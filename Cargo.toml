@@ -1,0 +1,15 @@
+[package]
+name = "decompiler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+goblin = "0.8.2"
+
+[dependencies.iced-x86]
+version = "1.21.0"
+default-features = false
+features = ["decoder", "intel", "no_std", "instr_info"]
+
+
