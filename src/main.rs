@@ -172,23 +172,75 @@ mod x86_to_mil {
             const V0: mil::Reg = Builder::V0;
             const V1: mil::Reg = Builder::V1;
 
-            let read_operand = |builder: &mut Builder, insn: &Instruction, op_ndx| match insn
-                .op_kind(op_ndx)
-            {
+            let mut formatter = IntelFormatter::new();
+
+            for insn in insns {
+                let mut output = String::new();
+                formatter.format(&insn, &mut output);
+                eprintln!("converting: {}", output);
+
+                use iced_x86::Mnemonic as M;
+                match insn.mnemonic() {
+                    M::Push => {
+                        assert_eq!(insn.op_count(), 1);
+
+                        let rsp = Builder::xlat_reg(Register::RSP);
+                        let (value, sz) = self.emit_read(&insn, 0);
+                        let sz = sz as i64;
+
+                        self.emit(rsp, mil::Insn::AddK(rsp, -sz));
+                        self.emit(V0, mil::Insn::StoreMem(rsp, value));
+                    }
+
+                    M::Mov => {
+                        let (value, sz) = self.emit_read(&insn, 1);
+                        self.emit_write(insn, 0, value, sz);
+                    }
+
+                    M::Shl => {
+                        let (value, sz) = self.emit_read(&insn, 0);
+                        let (bits_count, _) = self.emit_read(&insn, 1);
+                        self.emit(value, mil::Insn::Shl(value, bits_count));
+                    }
+
+                    _ => {
+                        let mut output = String::new();
+                        formatter.format(&insn, &mut output);
+                        let description = format!("unsupported: {}", output);
+                        self.emit(V0, mil::Insn::TODO(description.leak()));
+                    }
+                }
+            }
+
+            Ok(self.build())
+        }
+
+        /// Emit MIL instructions for reading the given operand.
+        ///
+        /// The operand to be read is taken in as an instruction and an index; the operand to be
+        /// read is the nth operand of the instruction.
+        ///
+        /// Return value: the register that stores the read value (in the MIL text), and the
+        /// value's size in bytes (either 1, 2, 4, or 8).
+        fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u8) {
+            const V0: mil::Reg = Builder::V0;
+            // let v0 = Self::V0;
+
+            match insn.op_kind(op_ndx) {
                 OpKind::Register => {
                     let reg = insn.op_register(op_ndx);
                     let full_reg = Builder::xlat_reg(reg.full_register());
                     match reg.size() {
                         1 => {
-                            builder.emit(V0, mil::Insn::L1(full_reg));
+                            self.emit(V0, mil::Insn::L1(full_reg));
                             (V0, 1u8)
                         }
                         2 => {
-                            builder.emit(V0, mil::Insn::L2(full_reg));
+                            self.emit(V0, mil::Insn::L2(full_reg));
                             (V0, 2)
                         }
                         4 => {
-                            builder.emit(V0, mil::Insn::L4(full_reg));
+                            self.emit(V0, mil::Insn::L4(full_reg));
                             (V0, 4)
                         }
                         8 => (full_reg, 8),
@@ -196,7 +248,7 @@ mod x86_to_mil {
                     }
                 }
                 OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                    builder.emit(V0, mil::Insn::Const8(insn.near_branch_target()));
+                    self.emit(V0, mil::Insn::Const8(insn.near_branch_target()));
                     (V0, 8)
                 }
                 OpKind::FarBranch16 | OpKind::FarBranch32 => {
@@ -204,41 +256,41 @@ mod x86_to_mil {
                 }
 
                 OpKind::Immediate8 => {
-                    builder.emit(V0, mil::Insn::Const1(insn.immediate8()));
+                    self.emit(V0, mil::Insn::Const1(insn.immediate8()));
                     (V0, 1)
                 }
                 OpKind::Immediate8_2nd => {
-                    builder.emit(V0, mil::Insn::Const1(insn.immediate8_2nd()));
+                    self.emit(V0, mil::Insn::Const1(insn.immediate8_2nd()));
                     (V0, 1)
                 }
                 OpKind::Immediate16 => {
-                    builder.emit(V0, mil::Insn::Const2(insn.immediate16()));
+                    self.emit(V0, mil::Insn::Const2(insn.immediate16()));
                     (V0, 2)
                 }
                 OpKind::Immediate32 => {
-                    builder.emit(V0, mil::Insn::Const4(insn.immediate32()));
+                    self.emit(V0, mil::Insn::Const4(insn.immediate32()));
                     (V0, 4)
                 }
                 OpKind::Immediate64 => {
-                    builder.emit(V0, mil::Insn::Const8(insn.immediate64()));
+                    self.emit(V0, mil::Insn::Const8(insn.immediate64()));
                     (V0, 8)
                 }
                 // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
                 // so I think we don't lose any info (semantic or otherwise)
                 OpKind::Immediate8to16 => {
-                    builder.emit(V0, mil::Insn::Const2(insn.immediate8to16() as u16));
+                    self.emit(V0, mil::Insn::Const2(insn.immediate8to16() as u16));
                     (V0, 2)
                 }
                 OpKind::Immediate8to32 => {
-                    builder.emit(V0, mil::Insn::Const4(insn.immediate8to32() as u32));
+                    self.emit(V0, mil::Insn::Const4(insn.immediate8to32() as u32));
                     (V0, 4)
                 }
                 OpKind::Immediate8to64 => {
-                    builder.emit(V0, mil::Insn::Const8(insn.immediate8to64() as u64));
+                    self.emit(V0, mil::Insn::Const8(insn.immediate8to64() as u64));
                     (V0, 8)
                 }
                 OpKind::Immediate32to64 => {
-                    builder.emit(V0, mil::Insn::Const8(insn.immediate32to64() as u64));
+                    self.emit(V0, mil::Insn::Const8(insn.immediate32to64() as u64));
                     (V0, 8)
                 }
 
@@ -263,72 +315,30 @@ mod x86_to_mil {
                     // Instruction::memory_segment()
                     // Instruction::segment_prefix()
 
-                    let addr = builder.emit_compute_address(insn);
+                    let addr = self.emit_compute_address(insn);
 
                     use iced_x86::MemorySize;
                     match insn.memory_size() {
                         MemorySize::UInt8 | MemorySize::Int8 => {
-                            builder.emit(V0, mil::Insn::LoadMem1(addr));
+                            self.emit(V0, mil::Insn::LoadMem1(addr));
                             (V0, 1)
                         }
                         MemorySize::UInt16 | MemorySize::Int16 => {
-                            builder.emit(V0, mil::Insn::LoadMem2(addr));
+                            self.emit(V0, mil::Insn::LoadMem2(addr));
                             (V0, 2)
                         }
                         MemorySize::UInt32 | MemorySize::Int32 => {
-                            builder.emit(V0, mil::Insn::LoadMem4(addr));
+                            self.emit(V0, mil::Insn::LoadMem4(addr));
                             (V0, 4)
                         }
                         MemorySize::UInt64 | MemorySize::Int64 => {
-                            builder.emit(V0, mil::Insn::LoadMem8(addr));
+                            self.emit(V0, mil::Insn::LoadMem8(addr));
                             (V0, 8)
                         }
                         other => todo!("unsupported size for memory operand: {:?}", other),
                     }
                 }
-            };
-
-            let mut formatter = IntelFormatter::new();
-
-            for insn in insns {
-                let mut output = String::new();
-                formatter.format(&insn, &mut output);
-                eprintln!("converting: {}", output);
-
-                use iced_x86::Mnemonic as M;
-                match insn.mnemonic() {
-                    M::Push => {
-                        assert_eq!(insn.op_count(), 1);
-
-                        let rsp = Builder::xlat_reg(Register::RSP);
-                        let (value, sz) = read_operand(&mut self, &insn, 0);
-                        let sz = sz as i64;
-
-                        self.emit(rsp, mil::Insn::AddK(rsp, -sz));
-                        self.emit(V0, mil::Insn::StoreMem(rsp, value));
-                    }
-
-                    M::Mov => {
-                        let (value, sz) = read_operand(&mut self, &insn, 1);
-                        self.emit_write(insn, 0, value, sz);
-                    }
-
-                    M::Shl => {
-                        let (value, sz) = read_operand(&mut self, &insn, 0);
-                        let (bits_count, _) = read_operand(&mut self, &insn, 1);
-                        self.emit(value, mil::Insn::Shl(value, bits_count));
-                    }
-
-                    _ => {
-                        let mut output = String::new();
-                        formatter.format(&insn, &mut output);
-                        let description = format!("unsupported: {}", output);
-                        self.emit(V0, mil::Insn::TODO(description.leak()));
-                    }
-                }
             }
-
-            Ok(self.build())
         }
 
         fn emit_write(
