@@ -133,6 +133,7 @@ fn main() {
 
 mod x86_to_mil {
     use crate::mil;
+    use iced_x86::Register;
     use iced_x86::{Formatter, IntelFormatter};
 
     use anyhow::Result;
@@ -142,140 +143,82 @@ mod x86_to_mil {
     ) -> Result<mil::Program> {
         use iced_x86::{Instruction, OpKind, Register};
 
-        let mut builder = mil::ProgramBuilder::new();
+        let mut builder = Builder::new();
 
         // Temporary abstract registers
         //    Abstract registers used in the mil program to compute 'small stuff' (memory
         //    offsets, some arithmetic).  Generally used only in the context of a single
         //    instruction.
-        let v0 = mil::Reg(0);
-        let v1 = mil::Reg(1);
-        let v_count = 2;
-
-        // Translate register name from x86_64 to mil
-        let xlat_reg = move |reg: iced_x86::Register| -> mil::Reg {
-            let rel_id = match reg.full_register() {
-                Register::None => panic!("invalid register: none"),
-                Register::RAX => 0,
-                Register::RBP => 1,
-                Register::RBX => 2,
-                Register::RCX => 3,
-                Register::RDI => 4,
-                Register::RDX => 5,
-                Register::RIP => 6,
-                Register::RSI => 7,
-                Register::RSP => 8,
-                Register::R8 => 9,
-                Register::R9 => 10,
-                Register::R10 => 11,
-                Register::R11 => 12,
-                Register::R12 => 13,
-                Register::R13 => 14,
-                Register::R14 => 15,
-                Register::R15 => 16,
-                _ => panic!(
-                    "unsupported register: {:?} (full: {:?})",
-                    reg,
-                    reg.full_register()
-                ),
-            };
-            mil::Reg(v_count + rel_id)
-        };
-
-        let compute_address = |builder: &mut mil::ProgramBuilder, insn: &iced_x86::Instruction| {
-            assert_eq!(insn.segment_prefix(), Register::None);
-
-            builder.push(v0, mil::Insn::Const8(insn.memory_displacement64()));
-
-            match insn.memory_base() {
-                Register::None => {}
-                base => {
-                    // TODO make this recursive and use read_operand instead of xlat_reg?
-                    builder.push(v0, mil::Insn::Add(v0, xlat_reg(base)));
-                }
-            }
-
-            match insn.memory_index() {
-                Register::None => {}
-                index_reg => {
-                    let scale = insn.memory_index_scale();
-                    builder.push(v1, mil::Insn::MulK32(xlat_reg(index_reg), scale));
-                    builder.push(v0, mil::Insn::Add(v0, v1));
-                }
-            }
-
-            v0
-        };
+        const V0: mil::Reg = Builder::V0;
+        const V1: mil::Reg = Builder::V1;
 
         let read_operand =
-            |builder: &mut mil::ProgramBuilder, insn: &Instruction, op_ndx| match insn
-                .op_kind(op_ndx)
-            {
+            |builder: &mut Builder, insn: &Instruction, op_ndx| match insn.op_kind(op_ndx) {
                 OpKind::Register => {
                     let reg = insn.op_register(op_ndx);
-                    let full_reg = xlat_reg(reg.full_register());
+                    let full_reg = Builder::xlat_reg(reg.full_register());
                     match reg.size() {
                         1 => {
-                            builder.push(v0, mil::Insn::L1(full_reg));
-                            (v0, 1u8)
+                            builder.emit(V0, mil::Insn::L1(full_reg));
+                            (V0, 1u8)
                         }
                         2 => {
-                            builder.push(v0, mil::Insn::L2(full_reg));
-                            (v0, 2)
+                            builder.emit(V0, mil::Insn::L2(full_reg));
+                            (V0, 2)
                         }
                         4 => {
-                            builder.push(v0, mil::Insn::L4(full_reg));
-                            (v0, 4)
+                            builder.emit(V0, mil::Insn::L4(full_reg));
+                            (V0, 4)
                         }
                         8 => (full_reg, 8),
                         other => panic!("invalid register size: {other}"),
                     }
                 }
                 OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                    builder.push(v0, mil::Insn::Const8(insn.near_branch_target()));
-                    (v0, 8)
+                    builder.emit(V0, mil::Insn::Const8(insn.near_branch_target()));
+                    (V0, 8)
                 }
                 OpKind::FarBranch16 | OpKind::FarBranch32 => {
                     todo!("not supported: far branch operands")
                 }
 
                 OpKind::Immediate8 => {
-                    builder.push(v0, mil::Insn::Const1(insn.immediate8()));
-                    (v0, 1)
+                    builder.emit(V0, mil::Insn::Const1(insn.immediate8()));
+                    (V0, 1)
                 }
                 OpKind::Immediate8_2nd => {
-                    builder.push(v0, mil::Insn::Const1(insn.immediate8_2nd()));
-                    (v0, 1)
+                    builder.emit(V0, mil::Insn::Const1(insn.immediate8_2nd()));
+                    (V0, 1)
                 }
                 OpKind::Immediate16 => {
-                    builder.push(v0, mil::Insn::Const2(insn.immediate16()));
-                    (v0, 2)
+                    builder.emit(V0, mil::Insn::Const2(insn.immediate16()));
+                    (V0, 2)
                 }
                 OpKind::Immediate32 => {
-                    builder.push(v0, mil::Insn::Const4(insn.immediate32()));
-                    (v0, 4)
+                    builder.emit(V0, mil::Insn::Const4(insn.immediate32()));
+                    (V0, 4)
                 }
                 OpKind::Immediate64 => {
-                    builder.push(v0, mil::Insn::Const8(insn.immediate64()));
-                    (v0, 8)
+                    builder.emit(V0, mil::Insn::Const8(insn.immediate64()));
+                    (V0, 8)
                 }
                 // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
                 // so I think we don't lose any info (semantic or otherwise)
                 OpKind::Immediate8to16 => {
-                    builder.push(v0, mil::Insn::Const2(insn.immediate8to16() as u16));
-                    (v0, 2)
+                    builder.emit(V0, mil::Insn::Const2(insn.immediate8to16() as u16));
+                    (V0, 2)
                 }
                 OpKind::Immediate8to32 => {
-                    builder.push(v0, mil::Insn::Const4(insn.immediate8to32() as u32));
-                    (v0, 4)
+                    builder.emit(V0, mil::Insn::Const4(insn.immediate8to32() as u32));
+                    (V0, 4)
                 }
                 OpKind::Immediate8to64 => {
-                    builder.push(v0, mil::Insn::Const8(insn.immediate8to64() as u64));
-                    (v0, 8)
+                    builder.emit(V0, mil::Insn::Const8(insn.immediate8to64() as u64));
+                    (V0, 8)
                 }
                 OpKind::Immediate32to64 => {
-                    builder.push(v0, mil::Insn::Const8(insn.immediate32to64() as u64));
-                    (v0, 8)
+                    builder.emit(V0, mil::Insn::Const8(insn.immediate32to64() as u64));
+                    (V0, 8)
                 }
 
                 OpKind::MemorySegSI
@@ -299,25 +242,25 @@ mod x86_to_mil {
                     // Instruction::memory_segment()
                     // Instruction::segment_prefix()
 
-                    let addr = compute_address(builder, insn);
+                    let addr = builder.emit_compute_address(insn);
 
                     use iced_x86::MemorySize;
                     match insn.memory_size() {
                         MemorySize::UInt8 | MemorySize::Int8 => {
-                            builder.push(v0, mil::Insn::LoadMem1(addr));
-                            (v0, 1)
+                            builder.emit(V0, mil::Insn::LoadMem1(addr));
+                            (V0, 1)
                         }
                         MemorySize::UInt16 | MemorySize::Int16 => {
-                            builder.push(v0, mil::Insn::LoadMem2(addr));
-                            (v0, 2)
+                            builder.emit(V0, mil::Insn::LoadMem2(addr));
+                            (V0, 2)
                         }
                         MemorySize::UInt32 | MemorySize::Int32 => {
-                            builder.push(v0, mil::Insn::LoadMem4(addr));
-                            (v0, 4)
+                            builder.emit(V0, mil::Insn::LoadMem4(addr));
+                            (V0, 4)
                         }
                         MemorySize::UInt64 | MemorySize::Int64 => {
-                            builder.push(v0, mil::Insn::LoadMem8(addr));
-                            (v0, 8)
+                            builder.emit(V0, mil::Insn::LoadMem8(addr));
+                            (V0, 8)
                         }
                         other => todo!("unsupported size for memory operand: {:?}", other),
                     }
@@ -336,12 +279,12 @@ mod x86_to_mil {
                 M::Push => {
                     assert_eq!(insn.op_count(), 1);
 
-                    let rsp = xlat_reg(Register::RSP);
+                    let rsp = Builder::xlat_reg(Register::RSP);
                     let (value, sz) = read_operand(&mut builder, &insn, 0);
                     let sz = sz as i64;
 
-                    builder.push(rsp, mil::Insn::AddK(rsp, -sz));
-                    builder.push(v0, mil::Insn::StoreMem(rsp, value));
+                    builder.emit(rsp, mil::Insn::AddK(rsp, -sz));
+                    builder.emit(V0, mil::Insn::StoreMem(rsp, value));
                 }
 
                 M::Mov => {
@@ -356,7 +299,7 @@ mod x86_to_mil {
                                 "mov: src and dest must have same size"
                             );
 
-                            let full_dest = xlat_reg(dest.full_register());
+                            let full_dest = Builder::xlat_reg(dest.full_register());
                             let modifier = match sz {
                                 1 => mil::Insn::WithL1(full_dest, value),
                                 2 => mil::Insn::WithL2(full_dest, value),
@@ -364,7 +307,7 @@ mod x86_to_mil {
                                 8 => mil::Insn::Get(value),
                                 _ => panic!("invalid dest size"),
                             };
-                            builder.push(full_dest, modifier);
+                            builder.emit(full_dest, modifier);
                         }
 
                         OpKind::NearBranch16
@@ -398,7 +341,7 @@ mod x86_to_mil {
 
                         OpKind::Memory => {
                             builder
-                                .push(v0, mil::Insn::TODO(format!("todo: mov to memory").leak()));
+                                .emit(V0, mil::Insn::TODO(format!("todo: mov to memory").leak()));
                         }
                     };
                 }
@@ -411,7 +354,7 @@ mod x86_to_mil {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
                     let description = format!("unsupported: {}", output);
-                    builder.push(v0, mil::Insn::TODO(description.leak()));
+                    builder.emit(V0, mil::Insn::TODO(description.leak()));
                 }
             }
         }
@@ -419,7 +362,90 @@ mod x86_to_mil {
         Ok(builder.build())
     }
 
-    struct Builder {}
+    struct Builder {
+        pb: mil::ProgramBuilder,
+    }
+
+    impl Builder {
+        fn new() -> Builder {
+            Builder {
+                pb: mil::ProgramBuilder::new(),
+            }
+        }
+
+        fn build(self) -> mil::Program {
+            self.pb.build()
+        }
+
+        fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
+            assert_eq!(insn.segment_prefix(), Register::None);
+
+            self.pb
+                .push(Self::V0, mil::Insn::Const8(insn.memory_displacement64()));
+
+            match insn.memory_base() {
+                Register::None => {}
+                base => {
+                    // TODO make this recursive and use read_operand instead of xlat_reg?
+                    let push = self
+                        .pb
+                        .push(Self::V0, mil::Insn::Add(Self::V0, Self::xlat_reg(base)));
+                }
+            }
+
+            match insn.memory_index() {
+                Register::None => {}
+                index_reg => {
+                    let scale = insn.memory_index_scale();
+                    self.pb.push(
+                        Self::V1,
+                        mil::Insn::MulK32(Self::xlat_reg(index_reg), scale),
+                    );
+                    self.pb.push(Self::V0, mil::Insn::Add(Self::V0, Self::V1));
+                }
+            }
+
+            Self::V0
+        }
+
+        const V0: mil::Reg = mil::Reg(0);
+        const V1: mil::Reg = mil::Reg(1);
+        const TMP_REG_COUNT: u16 = 2;
+
+        /// Translate a *full* register name
+        fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {
+            let rel_id = match reg.full_register() {
+                Register::None => panic!("invalid register: none"),
+                Register::RAX => 0,
+                Register::RBP => 1,
+                Register::RBX => 2,
+                Register::RCX => 3,
+                Register::RDI => 4,
+                Register::RDX => 5,
+                Register::RIP => 6,
+                Register::RSI => 7,
+                Register::RSP => 8,
+                Register::R8 => 9,
+                Register::R9 => 10,
+                Register::R10 => 11,
+                Register::R11 => 12,
+                Register::R12 => 13,
+                Register::R13 => 14,
+                Register::R14 => 15,
+                Register::R15 => 16,
+                _ => panic!(
+                    "unsupported register: {:?} (full: {:?})",
+                    reg,
+                    reg.full_register()
+                ),
+            };
+            mil::Reg(Self::TMP_REG_COUNT + rel_id)
+        }
+
+        fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
+            self.pb.push(dest, insn)
+        }
+    }
 
     #[cfg(test)]
     mod tests {
