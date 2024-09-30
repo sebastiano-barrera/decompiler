@@ -197,6 +197,46 @@ mod x86_to_mil {
                         self.emit_write(insn, 0, value, sz);
                     }
 
+                    M::Add => {
+                        let (a, a_sz) = self.emit_read(&insn, 0);
+                        let (b, b_sz) = self.emit_read(&insn, 1);
+                        assert_eq!(a_sz, b_sz, "add: operands must be the same size");
+                        self.emit(a, mil::Insn::Add(a, b));
+                        // TODO represent flags change
+                    }
+                    M::Sub => {
+                        let (a, a_sz) = self.emit_read(&insn, 0);
+                        let (b, b_sz) = self.emit_read(&insn, 1);
+                        assert_eq!(a_sz, b_sz, "sub: operands must be the same size");
+                        self.emit(a, mil::Insn::Sub(a, b));
+                        // TODO represent flags change
+                    }
+
+                    M::Lea => {
+                        let (dest, dest_sz) = self.emit_read(&insn, 0);
+                        match insn.op1_kind() {
+                            OpKind::Memory => {
+                                self.emit_compute_address_into(&insn, dest);
+                            }
+                            OpKind::MemorySegSI
+                            | OpKind::MemorySegESI
+                            | OpKind::MemorySegRSI
+                            | OpKind::MemorySegDI
+                            | OpKind::MemorySegEDI
+                            | OpKind::MemorySegRDI
+                            | OpKind::MemoryESDI
+                            | OpKind::MemoryESEDI
+                            | OpKind::MemoryESRDI => panic!(
+                                "lea: segment-relative memory operands are not yet supported"
+                            ),
+                            _ => {
+                                panic!(
+                                    "lea: invalid operand: second operand must be of type memory"
+                                )
+                            }
+                        }
+                    }
+
                     M::Shl => {
                         let (value, sz) = self.emit_read(&insn, 0);
                         let (bits_count, _) = self.emit_read(&insn, 1);
@@ -407,18 +447,24 @@ mod x86_to_mil {
         }
 
         fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
-            assert_eq!(insn.segment_prefix(), Register::None);
+            self.emit_compute_address_into(insn, Self::V0);
+            Self::V0
+        }
+        fn emit_compute_address_into(&mut self, insn: &iced_x86::Instruction, dest: mil::Reg) {
+            assert_eq!(
+                insn.segment_prefix(), Register::None,
+                "emit_compute_address_into: segment-relative memory address operands are not supported",
+            );
 
             self.pb
-                .push(Self::V0, mil::Insn::Const8(insn.memory_displacement64()));
+                .push(dest, mil::Insn::Const8(insn.memory_displacement64()));
 
             match insn.memory_base() {
                 Register::None => {}
                 base => {
                     // TODO make this recursive and use read_operand instead of xlat_reg?
-                    let push = self
-                        .pb
-                        .push(Self::V0, mil::Insn::Add(Self::V0, Self::xlat_reg(base)));
+                    self.pb
+                        .push(dest, mil::Insn::Add(dest, Self::xlat_reg(base)));
                 }
             }
 
@@ -430,11 +476,9 @@ mod x86_to_mil {
                         Self::V1,
                         mil::Insn::MulK32(Self::xlat_reg(index_reg), scale),
                     );
-                    self.pb.push(Self::V0, mil::Insn::Add(Self::V0, Self::V1));
+                    self.pb.push(dest, mil::Insn::Add(dest, Self::V1));
                 }
             }
-
-            Self::V0
         }
 
         const V0: mil::Reg = mil::Reg(0);
@@ -445,23 +489,23 @@ mod x86_to_mil {
         fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {
             let rel_id = match reg.full_register() {
                 Register::None => panic!("invalid register: none"),
-                Register::RAX => 0,
                 Register::RBP => 1,
-                Register::RBX => 2,
-                Register::RCX => 3,
+                Register::RSP => 2,
+                Register::RIP => 3,
                 Register::RDI => 4,
-                Register::RDX => 5,
-                Register::RIP => 6,
-                Register::RSI => 7,
-                Register::RSP => 8,
-                Register::R8 => 9,
-                Register::R9 => 10,
-                Register::R10 => 11,
-                Register::R11 => 12,
-                Register::R12 => 13,
-                Register::R13 => 14,
-                Register::R14 => 15,
-                Register::R15 => 16,
+                Register::RSI => 5,
+                Register::RAX => 6,
+                Register::RBX => 7,
+                Register::RCX => 8,
+                Register::RDX => 9,
+                Register::R8 => 10,
+                Register::R9 => 11,
+                Register::R10 => 12,
+                Register::R11 => 13,
+                Register::R12 => 14,
+                Register::R13 => 15,
+                Register::R14 => 16,
+                Register::R15 => 17,
                 _ => panic!(
                     "unsupported register: {:?} (full: {:?})",
                     reg,
