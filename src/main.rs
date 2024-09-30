@@ -133,8 +133,8 @@ fn main() {
 
 mod x86_to_mil {
     use crate::mil;
-    use iced_x86::Register;
     use iced_x86::{Formatter, IntelFormatter};
+    use iced_x86::{OpKind, Register};
 
     use anyhow::Result;
 
@@ -310,63 +310,7 @@ mod x86_to_mil {
 
                     M::Mov => {
                         let (value, sz) = read_operand(&mut self, &insn, 1);
-
-                        match insn.op0_kind() {
-                            OpKind::Register => {
-                                let dest = insn.op0_register();
-                                assert_eq!(
-                                    dest.size(),
-                                    sz as usize,
-                                    "mov: src and dest must have same size"
-                                );
-
-                                let full_dest = Builder::xlat_reg(dest.full_register());
-                                let modifier = match sz {
-                                    1 => mil::Insn::WithL1(full_dest, value),
-                                    2 => mil::Insn::WithL2(full_dest, value),
-                                    4 => mil::Insn::WithL4(full_dest, value),
-                                    8 => mil::Insn::Get(value),
-                                    _ => panic!("invalid dest size"),
-                                };
-                                self.emit(full_dest, modifier);
-                            }
-
-                            OpKind::NearBranch16
-                            | OpKind::NearBranch32
-                            | OpKind::NearBranch64
-                            | OpKind::FarBranch16
-                            | OpKind::FarBranch32
-                            | OpKind::Immediate8
-                            | OpKind::Immediate8_2nd
-                            | OpKind::Immediate16
-                            | OpKind::Immediate32
-                            | OpKind::Immediate64
-                            | OpKind::Immediate8to16
-                            | OpKind::Immediate8to32
-                            | OpKind::Immediate8to64
-                            | OpKind::Immediate32to64 => {
-                                panic!("invalid mov dest operand: {:?}", insn.op0_kind())
-                            }
-
-                            OpKind::MemorySegSI
-                            | OpKind::MemorySegESI
-                            | OpKind::MemorySegRSI
-                            | OpKind::MemorySegDI
-                            | OpKind::MemorySegEDI
-                            | OpKind::MemorySegRDI
-                            | OpKind::MemoryESDI
-                            | OpKind::MemoryESEDI
-                            | OpKind::MemoryESRDI => {
-                                todo!("mov: segment-relative memory destination operands are not supported")
-                            }
-
-                            OpKind::Memory => {
-                                self.emit(
-                                    V0,
-                                    mil::Insn::TODO(format!("todo: mov to memory").leak()),
-                                );
-                            }
-                        };
+                        self.emit_write(insn, value, sz);
                     }
 
                     M::Shl => {
@@ -383,6 +327,65 @@ mod x86_to_mil {
             }
 
             Ok(self.build())
+        }
+
+        fn emit_write(&mut self, insn: iced_x86::Instruction, value: mil::Reg, value_size: u8) {
+            match insn.op0_kind() {
+                OpKind::Register => {
+                    let dest = insn.op0_register();
+                    assert_eq!(
+                        dest.size(),
+                        value_size as usize,
+                        "mov: src and dest must have same size"
+                    );
+
+                    let full_dest = Builder::xlat_reg(dest.full_register());
+                    let modifier = match value_size {
+                        1 => mil::Insn::WithL1(full_dest, value),
+                        2 => mil::Insn::WithL2(full_dest, value),
+                        4 => mil::Insn::WithL4(full_dest, value),
+                        8 => mil::Insn::Get(value),
+                        _ => panic!("invalid dest size"),
+                    };
+                    self.emit(full_dest, modifier);
+                }
+
+                OpKind::NearBranch16
+                | OpKind::NearBranch32
+                | OpKind::NearBranch64
+                | OpKind::FarBranch16
+                | OpKind::FarBranch32
+                | OpKind::Immediate8
+                | OpKind::Immediate8_2nd
+                | OpKind::Immediate16
+                | OpKind::Immediate32
+                | OpKind::Immediate64
+                | OpKind::Immediate8to16
+                | OpKind::Immediate8to32
+                | OpKind::Immediate8to64
+                | OpKind::Immediate32to64 => {
+                    panic!("invalid mov dest operand: {:?}", insn.op0_kind())
+                }
+
+                OpKind::MemorySegSI
+                | OpKind::MemorySegESI
+                | OpKind::MemorySegRSI
+                | OpKind::MemorySegDI
+                | OpKind::MemorySegEDI
+                | OpKind::MemorySegRDI
+                | OpKind::MemoryESDI
+                | OpKind::MemoryESEDI
+                | OpKind::MemoryESRDI => {
+                    todo!("mov: segment-relative memory destination operands are not supported")
+                }
+
+                OpKind::Memory => {
+                    self.emit(
+                        Self::V0,
+                        mil::Insn::TODO(format!("todo: mov to memory").leak()),
+                    );
+                }
+            }
         }
 
         fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
