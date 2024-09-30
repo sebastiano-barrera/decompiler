@@ -141,19 +141,40 @@ mod x86_to_mil {
     pub fn translate(
         mut insns: impl Iterator<Item = iced_x86::Instruction>,
     ) -> Result<mil::Program> {
-        use iced_x86::{Instruction, OpKind, Register};
+        Builder::new().translate(insns)
+    }
 
-        let mut builder = Builder::new();
+    struct Builder {
+        pb: mil::ProgramBuilder,
+    }
 
-        // Temporary abstract registers
-        //    Abstract registers used in the mil program to compute 'small stuff' (memory
-        //    offsets, some arithmetic).  Generally used only in the context of a single
-        //    instruction.
-        const V0: mil::Reg = Builder::V0;
-        const V1: mil::Reg = Builder::V1;
+    impl Builder {
+        fn new() -> Builder {
+            Builder {
+                pb: mil::ProgramBuilder::new(),
+            }
+        }
 
-        let read_operand =
-            |builder: &mut Builder, insn: &Instruction, op_ndx| match insn.op_kind(op_ndx) {
+        fn build(self) -> mil::Program {
+            self.pb.build()
+        }
+
+        fn translate(
+            mut self,
+            insns: impl Iterator<Item = iced_x86::Instruction>,
+        ) -> std::result::Result<mil::Program, anyhow::Error> {
+            use iced_x86::{Instruction, OpKind, Register};
+
+            // Temporary abstract registers
+            //    Abstract registers used in the mil program to compute 'small stuff' (memory
+            //    offsets, some arithmetic).  Generally used only in the context of a single
+            //    instruction.
+            const V0: mil::Reg = Builder::V0;
+            const V1: mil::Reg = Builder::V1;
+
+            let read_operand = |builder: &mut Builder, insn: &Instruction, op_ndx| match insn
+                .op_kind(op_ndx)
+            {
                 OpKind::Register => {
                     let reg = insn.op_register(op_ndx);
                     let full_reg = Builder::xlat_reg(reg.full_register());
@@ -267,114 +288,101 @@ mod x86_to_mil {
                 }
             };
 
-        let mut formatter = IntelFormatter::new();
+            let mut formatter = IntelFormatter::new();
 
-        for insn in insns {
-            let mut output = String::new();
-            formatter.format(&insn, &mut output);
-            eprintln!("converting: {}", output);
+            for insn in insns {
+                let mut output = String::new();
+                formatter.format(&insn, &mut output);
+                eprintln!("converting: {}", output);
 
-            use iced_x86::Mnemonic as M;
-            match insn.mnemonic() {
-                M::Push => {
-                    assert_eq!(insn.op_count(), 1);
+                use iced_x86::Mnemonic as M;
+                match insn.mnemonic() {
+                    M::Push => {
+                        assert_eq!(insn.op_count(), 1);
 
-                    let rsp = Builder::xlat_reg(Register::RSP);
-                    let (value, sz) = read_operand(&mut builder, &insn, 0);
-                    let sz = sz as i64;
+                        let rsp = Builder::xlat_reg(Register::RSP);
+                        let (value, sz) = read_operand(&mut self, &insn, 0);
+                        let sz = sz as i64;
 
-                    builder.emit(rsp, mil::Insn::AddK(rsp, -sz));
-                    builder.emit(V0, mil::Insn::StoreMem(rsp, value));
-                }
+                        self.emit(rsp, mil::Insn::AddK(rsp, -sz));
+                        self.emit(V0, mil::Insn::StoreMem(rsp, value));
+                    }
 
-                M::Mov => {
-                    let (value, sz) = read_operand(&mut builder, &insn, 1);
+                    M::Mov => {
+                        let (value, sz) = read_operand(&mut self, &insn, 1);
 
-                    match insn.op0_kind() {
-                        OpKind::Register => {
-                            let dest = insn.op0_register();
-                            assert_eq!(
-                                dest.size(),
-                                sz as usize,
-                                "mov: src and dest must have same size"
-                            );
+                        match insn.op0_kind() {
+                            OpKind::Register => {
+                                let dest = insn.op0_register();
+                                assert_eq!(
+                                    dest.size(),
+                                    sz as usize,
+                                    "mov: src and dest must have same size"
+                                );
 
-                            let full_dest = Builder::xlat_reg(dest.full_register());
-                            let modifier = match sz {
-                                1 => mil::Insn::WithL1(full_dest, value),
-                                2 => mil::Insn::WithL2(full_dest, value),
-                                4 => mil::Insn::WithL4(full_dest, value),
-                                8 => mil::Insn::Get(value),
-                                _ => panic!("invalid dest size"),
-                            };
-                            builder.emit(full_dest, modifier);
-                        }
+                                let full_dest = Builder::xlat_reg(dest.full_register());
+                                let modifier = match sz {
+                                    1 => mil::Insn::WithL1(full_dest, value),
+                                    2 => mil::Insn::WithL2(full_dest, value),
+                                    4 => mil::Insn::WithL4(full_dest, value),
+                                    8 => mil::Insn::Get(value),
+                                    _ => panic!("invalid dest size"),
+                                };
+                                self.emit(full_dest, modifier);
+                            }
 
-                        OpKind::NearBranch16
-                        | OpKind::NearBranch32
-                        | OpKind::NearBranch64
-                        | OpKind::FarBranch16
-                        | OpKind::FarBranch32
-                        | OpKind::Immediate8
-                        | OpKind::Immediate8_2nd
-                        | OpKind::Immediate16
-                        | OpKind::Immediate32
-                        | OpKind::Immediate64
-                        | OpKind::Immediate8to16
-                        | OpKind::Immediate8to32
-                        | OpKind::Immediate8to64
-                        | OpKind::Immediate32to64 => {
-                            panic!("invalid mov dest operand: {:?}", insn.op0_kind())
-                        }
+                            OpKind::NearBranch16
+                            | OpKind::NearBranch32
+                            | OpKind::NearBranch64
+                            | OpKind::FarBranch16
+                            | OpKind::FarBranch32
+                            | OpKind::Immediate8
+                            | OpKind::Immediate8_2nd
+                            | OpKind::Immediate16
+                            | OpKind::Immediate32
+                            | OpKind::Immediate64
+                            | OpKind::Immediate8to16
+                            | OpKind::Immediate8to32
+                            | OpKind::Immediate8to64
+                            | OpKind::Immediate32to64 => {
+                                panic!("invalid mov dest operand: {:?}", insn.op0_kind())
+                            }
 
-                        OpKind::MemorySegSI
-                        | OpKind::MemorySegESI
-                        | OpKind::MemorySegRSI
-                        | OpKind::MemorySegDI
-                        | OpKind::MemorySegEDI
-                        | OpKind::MemorySegRDI
-                        | OpKind::MemoryESDI
-                        | OpKind::MemoryESEDI
-                        | OpKind::MemoryESRDI => {
-                            todo!("mov: segment-relative memory destination operands are not supported")
-                        }
+                            OpKind::MemorySegSI
+                            | OpKind::MemorySegESI
+                            | OpKind::MemorySegRSI
+                            | OpKind::MemorySegDI
+                            | OpKind::MemorySegEDI
+                            | OpKind::MemorySegRDI
+                            | OpKind::MemoryESDI
+                            | OpKind::MemoryESEDI
+                            | OpKind::MemoryESRDI => {
+                                todo!("mov: segment-relative memory destination operands are not supported")
+                            }
 
-                        OpKind::Memory => {
-                            builder
-                                .emit(V0, mil::Insn::TODO(format!("todo: mov to memory").leak()));
-                        }
-                    };
-                }
+                            OpKind::Memory => {
+                                self.emit(
+                                    V0,
+                                    mil::Insn::TODO(format!("todo: mov to memory").leak()),
+                                );
+                            }
+                        };
+                    }
 
-                M::Shl => {
-                    let (value, sz) = read_operand(&mut builder, &insn, 0);
-                }
+                    M::Shl => {
+                        let (value, sz) = read_operand(&mut self, &insn, 0);
+                    }
 
-                _ => {
-                    let mut output = String::new();
-                    formatter.format(&insn, &mut output);
-                    let description = format!("unsupported: {}", output);
-                    builder.emit(V0, mil::Insn::TODO(description.leak()));
+                    _ => {
+                        let mut output = String::new();
+                        formatter.format(&insn, &mut output);
+                        let description = format!("unsupported: {}", output);
+                        self.emit(V0, mil::Insn::TODO(description.leak()));
+                    }
                 }
             }
-        }
 
-        Ok(builder.build())
-    }
-
-    struct Builder {
-        pb: mil::ProgramBuilder,
-    }
-
-    impl Builder {
-        fn new() -> Builder {
-            Builder {
-                pb: mil::ProgramBuilder::new(),
-            }
-        }
-
-        fn build(self) -> mil::Program {
-            self.pb.build()
+            Ok(self.build())
         }
 
         fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
