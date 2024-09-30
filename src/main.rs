@@ -310,11 +310,13 @@ mod x86_to_mil {
 
                     M::Mov => {
                         let (value, sz) = read_operand(&mut self, &insn, 1);
-                        self.emit_write(insn, value, sz);
+                        self.emit_write(insn, 0, value, sz);
                     }
 
                     M::Shl => {
                         let (value, sz) = read_operand(&mut self, &insn, 0);
+                        let (bits_count, _) = read_operand(&mut self, &insn, 1);
+                        self.emit(value, mil::Insn::Shl(value, bits_count));
                     }
 
                     _ => {
@@ -329,10 +331,16 @@ mod x86_to_mil {
             Ok(self.build())
         }
 
-        fn emit_write(&mut self, insn: iced_x86::Instruction, value: mil::Reg, value_size: u8) {
-            match insn.op0_kind() {
+        fn emit_write(
+            &mut self,
+            insn: iced_x86::Instruction,
+            dest_op_ndx: u32,
+            value: mil::Reg,
+            value_size: u8,
+        ) {
+            match insn.op_kind(dest_op_ndx) {
                 OpKind::Register => {
-                    let dest = insn.op0_register();
+                    let dest = insn.op_register(dest_op_ndx);
                     assert_eq!(
                         dest.size(),
                         value_size as usize,
@@ -511,6 +519,9 @@ mod mil {
                     Insn::Sub(a, b) => print!("{:8} r{},r{}", "sub", a.0, b.0),
                     Insn::Mul(a, b) => print!("{:8} r{},r{}", "mul", a.0, b.0),
                     Insn::MulK32(a, b) => print!("{:8} r{},0x{:x}", "mul", a.0, b),
+                    Insn::Shl(value, bits_count) => {
+                        print!("{:8} r{},r{}", "shl", value.0, bits_count.0)
+                    }
 
                     Insn::LoadMem1(addr) => print!("{:8} addr:r{}", "lmem1", addr.0),
                     Insn::LoadMem2(addr) => print!("{:8} addr:r{}", "lmem2", addr.0),
@@ -584,6 +595,7 @@ mod mil {
         Sub(Reg, Reg),
         Mul(Reg, Reg),
         MulK32(Reg, u32),
+        Shl(Reg, Reg),
 
         TODO(&'static str),
 
