@@ -243,6 +243,29 @@ mod x86_to_mil {
                         self.emit(value, mil::Insn::Shl(value, bits_count));
                     }
 
+                    M::Call => {
+                        // TODO Use function type info to use the proper number of arguments (also
+                        // allow different calling conventions)
+                        // For now, we always assume exactly 4 arguments, using the sysv amd64 call
+                        // conv.
+                        self.emit(V1, mil::Insn::CArgEnd);
+                        for arch_reg in [Register::RDI, Register::RSI, Register::RDX, Register::RCX]
+                        {
+                            let value = Self::xlat_reg(arch_reg);
+                            self.emit(V1, mil::Insn::CArg { value, prev: V1 });
+                        }
+
+                        let (callee, sz) = self.emit_read(&insn, 0);
+                        assert_eq!(
+                            sz, 8,
+                            "invalid call instruction: operand must be 8 bytes, not {}",
+                            sz
+                        );
+                        assert_ne!(callee, V1, "callee and arg start can't share a register");
+                        let ret_reg = Self::xlat_reg(Register::RAX);
+                        self.emit(ret_reg, mil::Insn::Call { callee, arg0: V1 });
+                    }
+
                     _ => {
                         let mut output = String::new();
                         formatter.format(&insn, &mut output);
@@ -586,6 +609,14 @@ mod mil {
                         print!("{:8} *r{}<r{}", "smem", addr.0, val.0)
                     }
                     Insn::TODO(msg) => print!("{:8} {}", "TODO", msg),
+
+                    Insn::Call { callee, arg0 } => {
+                        print!("{:8} r{}(r{})", "call", callee.0, arg0.0)
+                    }
+                    Insn::CArgEnd => print!("cargend"),
+                    Insn::CArg { value, prev } => {
+                        print!("{:8} r{} after r{}", "carg", value.0, prev.0)
+                    }
                 }
 
                 println!();
@@ -650,6 +681,19 @@ mod mil {
         Mul(Reg, Reg),
         MulK32(Reg, u32),
         Shl(Reg, Reg),
+
+        // call args are represented with a linked list:
+        //  r0 <- [compute callee]
+        //  r1 <- [compute arg 0]
+        //  r2 <- [compute arg 1]
+        //  r3 <- cargend
+        //  r4 <- carg r1 then r3
+        //  r5 <- carg r2 then r4
+        //  r6 <- call r0(r5)
+        // destination vreg is for the return value
+        Call { callee: Reg, arg0: Reg },
+        CArgEnd,
+        CArg { value: Reg, prev: Reg },
 
         TODO(&'static str),
 
