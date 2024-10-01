@@ -684,12 +684,16 @@ mod x86_to_mil {
 mod mil {
     // TODO This currently only represents the pre-SSA version of the program.
 
+    use std::collections::HashMap;
+
     #[derive(Debug)]
     pub struct Program {
         // TODO Add origin info to each insn
         insns: Vec<Insn>,
         dests: Vec<Reg>,
         addrs: Vec<u64>,
+        // TODO More specific types
+        mil_of_input_addr: HashMap<u64, usize>,
     }
 
     impl Program {
@@ -806,12 +810,32 @@ mod mil {
         }
 
         pub fn build(self) -> Program {
-            assert_eq!(self.dests.len(), self.insns.len());
-            assert_eq!(self.dests.len(), self.addrs.len());
+            let Self {
+                insns,
+                dests,
+                addrs,
+                ..
+            } = self;
+
+            assert_eq!(dests.len(), insns.len());
+            assert_eq!(dests.len(), addrs.len());
+
+            // addrs is input addr of mil addr;
+            // we also need mil addr of input addr to resolve jumps
+            let mil_of_input_addr: HashMap<_, _> = addrs
+                .iter()
+                .enumerate()
+                .map(|(ndx, input_addr)| {
+                    // ndx acts as mil  addr
+                    (*input_addr, ndx)
+                })
+                .collect();
+
             Program {
-                insns: self.insns,
-                dests: self.dests,
-                addrs: self.addrs,
+                insns,
+                dests,
+                addrs,
+                mil_of_input_addr,
             }
         }
     }
