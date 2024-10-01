@@ -547,10 +547,17 @@ mod x86_to_mil {
                 }
 
                 OpKind::Memory => {
-                    self.emit(
-                        Self::V0,
-                        mil::Insn::TODO(format!("todo: mov to memory").leak()),
+                    assert_eq!(
+                        value_size as usize,
+                        insn.memory_size().size(),
+                        "destination memory operand is not the same size as the value"
                     );
+
+                    let addr = Self::V1;
+                    self.emit_compute_address_into(&insn, addr);
+                    assert_ne!(value, addr);
+
+                    self.emit(Self::V0, mil::Insn::StoreMem(addr, value));
                 }
             }
         }
