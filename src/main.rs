@@ -223,6 +223,7 @@ mod x86_to_mil {
                         let (b, b_sz) = self.emit_read(&insn, 1);
                         assert_eq!(a_sz, b_sz, "add: operands must be the same size");
                         self.emit(a, mil::Insn::Add(a, b));
+                        self.emit_write(&insn, 0, a, a_sz);
                         self.emit_set_flags_arith(a);
                     }
                     M::Sub => {
@@ -230,6 +231,7 @@ mod x86_to_mil {
                         let (b, b_sz) = self.emit_read(&insn, 1);
                         assert_eq!(a_sz, b_sz, "sub: operands must be the same size");
                         self.emit(a, mil::Insn::Sub(a, b));
+                        self.emit_write(&insn, 0, a, a_sz);
                         self.emit_set_flags_arith(a);
                     }
 
@@ -284,6 +286,7 @@ mod x86_to_mil {
                         let (value, sz) = self.emit_read(&insn, 0);
                         let bits_count = self.emit_read_value(&insn, 1);
                         self.emit(value, mil::Insn::Shl(value, bits_count));
+                        self.emit_write(&insn, 0, value, sz);
 
                         // TODO implement flag cahnges: CF, OF
                         // (these are more complex than others, as they depend on the exact value
