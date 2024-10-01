@@ -184,12 +184,31 @@ mod x86_to_mil {
                     M::Push => {
                         assert_eq!(insn.op_count(), 1);
 
-                        let rsp = Builder::xlat_reg(Register::RSP);
                         let (value, sz) = self.emit_read(&insn, 0);
-                        let sz = sz as i64;
 
-                        self.emit(rsp, mil::Insn::AddK(rsp, -sz));
-                        self.emit(V0, mil::Insn::StoreMem(rsp, value));
+                        self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, -(sz as i64)));
+                        self.emit(V0, mil::Insn::StoreMem(Self::RSP, value));
+                    }
+                    M::Pop => {
+                        assert_eq!(insn.op_count(), 1);
+
+                        let sz = Self::op_size(&insn, 0);
+                        match sz {
+                            8 => self.emit(V0, mil::Insn::LoadMem8(Self::RSP)),
+                            2 => self.emit(V0, mil::Insn::LoadMem2(Self::RSP)),
+                            _ => panic!(
+                                "assertion failed: pop dest size must be either 8 or 2 bytes"
+                            ),
+                        };
+
+                        self.emit_write(&insn, 0, V0, sz);
+                        self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, sz as i64));
+                    }
+                    M::Leave => {
+                        self.emit(Self::RSP, mil::Insn::Get(Self::RBP));
+                        self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
+                        self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, 8));
+                    }
                     }
 
                     M::Mov => {
@@ -261,7 +280,7 @@ mod x86_to_mil {
 
                     M::Shl => {
                         let (value, sz) = self.emit_read(&insn, 0);
-                        let (bits_count, _) = self.emit_read(&insn, 1);
+                        let bits_count = self.emit_read_value(&insn, 1);
                         self.emit(value, mil::Insn::Shl(value, bits_count));
 
                         // TODO implement flag cahnges: CF, OF
@@ -334,6 +353,39 @@ mod x86_to_mil {
             self.emit(Self::PF, mil::Insn::Parity(Self::V0));
         }
 
+        fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u8 {
+            match insn.op_kind(op_ndx) {
+                OpKind::Register => insn.op_register(op_ndx).size().try_into().unwrap(),
+                OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => 8,
+                OpKind::FarBranch16 | OpKind::FarBranch32 => {
+                    todo!("not supported: far branch operands")
+                }
+                OpKind::Immediate8 => 1,
+                OpKind::Immediate8_2nd => 1,
+                OpKind::Immediate16 => 2,
+                OpKind::Immediate32 => 4,
+                OpKind::Immediate64 => 8,
+                // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
+                // so I think we don't lose any info (semantic or otherwise)
+                OpKind::Immediate8to16 => 2,
+                OpKind::Immediate8to32 => 4,
+                OpKind::Immediate8to64 => 8,
+                OpKind::Immediate32to64 => 8,
+
+                OpKind::MemorySegSI
+                | OpKind::MemorySegESI
+                | OpKind::MemorySegRSI
+                | OpKind::MemorySegDI
+                | OpKind::MemorySegEDI
+                | OpKind::MemorySegRDI
+                | OpKind::MemoryESDI
+                | OpKind::MemoryESEDI
+                | OpKind::MemoryESRDI => todo!("not supported: segment-relative memory operands"),
+
+                OpKind::Memory => insn.memory_size().size().try_into().unwrap(),
+            }
+        }
+
         /// Emit MIL instructions for reading the given operand.
         ///
         /// The operand to be read is taken in as an instruction and an index; the operand to be
@@ -341,7 +393,7 @@ mod x86_to_mil {
         ///
         /// Return value: the register that stores the read value (in the MIL text), and the
         /// value's size in bytes (either 1, 2, 4, or 8).
-        fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u8) {
+        fn emit_read_value(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> mil::Reg {
             const V0: mil::Reg = Builder::V0;
             // let v0 = Self::V0;
 
@@ -350,67 +402,38 @@ mod x86_to_mil {
                     let reg = insn.op_register(op_ndx);
                     let full_reg = Builder::xlat_reg(reg.full_register());
                     match reg.size() {
-                        1 => {
-                            self.emit(V0, mil::Insn::L1(full_reg));
-                            (V0, 1u8)
-                        }
-                        2 => {
-                            self.emit(V0, mil::Insn::L2(full_reg));
-                            (V0, 2)
-                        }
-                        4 => {
-                            self.emit(V0, mil::Insn::L4(full_reg));
-                            (V0, 4)
-                        }
-                        8 => (full_reg, 8),
+                        1 => self.emit(V0, mil::Insn::L1(full_reg)),
+                        2 => self.emit(V0, mil::Insn::L2(full_reg)),
+                        4 => self.emit(V0, mil::Insn::L4(full_reg)),
+                        8 => full_reg,
                         other => panic!("invalid register size: {other}"),
                     }
                 }
                 OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                    self.emit(V0, mil::Insn::Const8(insn.near_branch_target()));
-                    (V0, 8)
+                    self.emit(V0, mil::Insn::Const8(insn.near_branch_target()))
                 }
                 OpKind::FarBranch16 | OpKind::FarBranch32 => {
                     todo!("not supported: far branch operands")
                 }
 
-                OpKind::Immediate8 => {
-                    self.emit(V0, mil::Insn::Const1(insn.immediate8()));
-                    (V0, 1)
-                }
-                OpKind::Immediate8_2nd => {
-                    self.emit(V0, mil::Insn::Const1(insn.immediate8_2nd()));
-                    (V0, 1)
-                }
-                OpKind::Immediate16 => {
-                    self.emit(V0, mil::Insn::Const2(insn.immediate16()));
-                    (V0, 2)
-                }
-                OpKind::Immediate32 => {
-                    self.emit(V0, mil::Insn::Const4(insn.immediate32()));
-                    (V0, 4)
-                }
-                OpKind::Immediate64 => {
-                    self.emit(V0, mil::Insn::Const8(insn.immediate64()));
-                    (V0, 8)
-                }
+                OpKind::Immediate8 => self.emit(V0, mil::Insn::Const1(insn.immediate8())),
+                OpKind::Immediate8_2nd => self.emit(V0, mil::Insn::Const1(insn.immediate8_2nd())),
+                OpKind::Immediate16 => self.emit(V0, mil::Insn::Const2(insn.immediate16())),
+                OpKind::Immediate32 => self.emit(V0, mil::Insn::Const4(insn.immediate32())),
+                OpKind::Immediate64 => self.emit(V0, mil::Insn::Const8(insn.immediate64())),
                 // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
                 // so I think we don't lose any info (semantic or otherwise)
                 OpKind::Immediate8to16 => {
-                    self.emit(V0, mil::Insn::Const2(insn.immediate8to16() as u16));
-                    (V0, 2)
+                    self.emit(V0, mil::Insn::Const2(insn.immediate8to16() as u16))
                 }
                 OpKind::Immediate8to32 => {
-                    self.emit(V0, mil::Insn::Const4(insn.immediate8to32() as u32));
-                    (V0, 4)
+                    self.emit(V0, mil::Insn::Const4(insn.immediate8to32() as u32))
                 }
                 OpKind::Immediate8to64 => {
-                    self.emit(V0, mil::Insn::Const8(insn.immediate8to64() as u64));
-                    (V0, 8)
+                    self.emit(V0, mil::Insn::Const8(insn.immediate8to64() as u64))
                 }
                 OpKind::Immediate32to64 => {
-                    self.emit(V0, mil::Insn::Const8(insn.immediate32to64() as u64));
-                    (V0, 8)
+                    self.emit(V0, mil::Insn::Const8(insn.immediate32to64() as u64))
                 }
 
                 OpKind::MemorySegSI
@@ -439,25 +462,27 @@ mod x86_to_mil {
                     use iced_x86::MemorySize;
                     match insn.memory_size() {
                         MemorySize::UInt8 | MemorySize::Int8 => {
-                            self.emit(V0, mil::Insn::LoadMem1(addr));
-                            (V0, 1)
+                            self.emit(V0, mil::Insn::LoadMem1(addr))
                         }
                         MemorySize::UInt16 | MemorySize::Int16 => {
-                            self.emit(V0, mil::Insn::LoadMem2(addr));
-                            (V0, 2)
+                            self.emit(V0, mil::Insn::LoadMem2(addr))
                         }
                         MemorySize::UInt32 | MemorySize::Int32 => {
-                            self.emit(V0, mil::Insn::LoadMem4(addr));
-                            (V0, 4)
+                            self.emit(V0, mil::Insn::LoadMem4(addr))
                         }
                         MemorySize::UInt64 | MemorySize::Int64 => {
-                            self.emit(V0, mil::Insn::LoadMem8(addr));
-                            (V0, 8)
+                            self.emit(V0, mil::Insn::LoadMem8(addr))
                         }
                         other => todo!("unsupported size for memory operand: {:?}", other),
                     }
                 }
             }
+        }
+
+        fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u8) {
+            let value = self.emit_read_value(insn, op_ndx);
+            let sz = Self::op_size(insn, op_ndx);
+            (value, sz)
         }
 
         fn emit_write(
