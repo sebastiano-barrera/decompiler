@@ -175,6 +175,8 @@ mod x86_to_mil {
             let mut formatter = IntelFormatter::new();
 
             for insn in insns {
+                self.pb.set_input_addr(insn.ip());
+
                 let mut output = String::new();
                 formatter.format(&insn, &mut output);
                 eprintln!("converting: {}", output);
@@ -687,12 +689,23 @@ mod mil {
         // TODO Add origin info to each insn
         insns: Vec<Insn>,
         dests: Vec<Reg>,
+        addrs: Vec<u64>,
     }
 
     impl Program {
         pub fn dump(&self) {
             println!("program  {} instrs", self.insns.len());
-            for (insn, dest) in self.insns.iter().zip(self.dests.iter()) {
+            let mut last_addr = 0;
+            for ((insn, dest), addr) in self
+                .insns
+                .iter()
+                .zip(self.dests.iter())
+                .zip(self.addrs.iter())
+            {
+                if last_addr != *addr {
+                    println!("0x{:x}:", addr);
+                    last_addr = *addr;
+                }
                 print!(" r{:<3} <- ", dest.0);
 
                 match insn {
@@ -762,6 +775,8 @@ mod mil {
     pub struct ProgramBuilder {
         insns: Vec<Insn>,
         dests: Vec<Reg>,
+        addrs: Vec<u64>,
+        cur_input_addr: u64,
     }
 
     impl ProgramBuilder {
@@ -769,20 +784,34 @@ mod mil {
             Self {
                 insns: Vec::new(),
                 dests: Vec::new(),
+                addrs: Vec::new(),
+                cur_input_addr: 0,
             }
         }
 
         pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
             self.dests.push(dest);
             self.insns.push(insn);
+            self.addrs.push(self.cur_input_addr);
             dest
+        }
+
+        /// Associate the instructions emitted via the following calls to `emit_*` to the given
+        /// address.
+        ///
+        /// This establishes a correspondence between the output MIL code and the input machine
+        /// code, which is then used to resolve jumps, etc.
+        pub fn set_input_addr(&mut self, addr: u64) {
+            self.cur_input_addr = addr;
         }
 
         pub fn build(self) -> Program {
             assert_eq!(self.dests.len(), self.insns.len());
+            assert_eq!(self.dests.len(), self.addrs.len());
             Program {
                 insns: self.insns,
                 dests: self.dests,
+                addrs: self.addrs,
             }
         }
     }
