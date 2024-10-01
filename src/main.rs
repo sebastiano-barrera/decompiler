@@ -202,14 +202,26 @@ mod x86_to_mil {
                         let (b, b_sz) = self.emit_read(&insn, 1);
                         assert_eq!(a_sz, b_sz, "add: operands must be the same size");
                         self.emit(a, mil::Insn::Add(a, b));
-                        // TODO represent flags change
+                        self.emit_set_flags_arith(a);
                     }
                     M::Sub => {
                         let (a, a_sz) = self.emit_read(&insn, 0);
                         let (b, b_sz) = self.emit_read(&insn, 1);
                         assert_eq!(a_sz, b_sz, "sub: operands must be the same size");
                         self.emit(a, mil::Insn::Sub(a, b));
-                        // TODO represent flags change
+                        self.emit_set_flags_arith(a);
+                    }
+
+                    M::Test => {
+                        let (a, a_sz) = self.emit_read(&insn, 0);
+                        let (b, b_sz) = self.emit_read(&insn, 1);
+                        self.emit(V0, mil::Insn::BitAnd(a, b));
+                        self.emit(Self::SF, mil::Insn::SignOf(V0));
+                        self.emit(Self::ZF, mil::Insn::IsZero(V0));
+                        self.emit(V1, mil::Insn::L1(V0));
+                        self.emit(Self::PF, mil::Insn::Parity(V1));
+                        self.emit(Self::CF, mil::Insn::Const1(0));
+                        self.emit(Self::OF, mil::Insn::Const1(0));
                     }
 
                     M::Lea => {
@@ -241,6 +253,15 @@ mod x86_to_mil {
                         let (value, sz) = self.emit_read(&insn, 0);
                         let (bits_count, _) = self.emit_read(&insn, 1);
                         self.emit(value, mil::Insn::Shl(value, bits_count));
+
+                        // TODO implement flag cahnges: CF, OF
+                        // (these are more complex than others, as they depend on the exact value
+                        // of the bit count)
+                        self.emit(Self::SF, mil::Insn::SignOf(value));
+                        self.emit(Self::ZF, mil::Insn::IsZero(value));
+                        self.emit(Self::V0, mil::Insn::L1(value));
+                        self.emit(Self::PF, mil::Insn::Parity(Self::V0));
+                        // ignored: AF
                     }
 
                     M::Call => {
@@ -264,6 +285,16 @@ mod x86_to_mil {
                         assert_ne!(callee, V1, "callee and arg start can't share a register");
                         let ret_reg = Self::xlat_reg(Register::RAX);
                         self.emit(ret_reg, mil::Insn::Call { callee, arg0: V1 });
+
+                        self.emit(Self::CF, mil::Insn::Undefined);
+                        self.emit(Self::PF, mil::Insn::Undefined);
+                        self.emit(Self::AF, mil::Insn::Undefined);
+                        self.emit(Self::ZF, mil::Insn::Undefined);
+                        self.emit(Self::SF, mil::Insn::Undefined);
+                        self.emit(Self::TF, mil::Insn::Undefined);
+                        self.emit(Self::IF, mil::Insn::Undefined);
+                        self.emit(Self::DF, mil::Insn::Undefined);
+                        self.emit(Self::OF, mil::Insn::Undefined);
                     }
 
                     _ => {
@@ -276,6 +307,21 @@ mod x86_to_mil {
             }
 
             Ok(self.build())
+        }
+
+        /// Emit Insns that set the x86_64 flags as it happens after an arithmetic x86_64
+        /// instruction.
+        ///
+        /// Argument `a` is the destination register of the arthmetic operation.  It is both used
+        /// to refer to the result, or to otherwise identify the arithmetic operation itself.
+        fn emit_set_flags_arith(&mut self, a: mil::Reg) {
+            self.emit(Self::OF, mil::Insn::OverflowOf(a));
+            self.emit(Self::CF, mil::Insn::CarryOf(a));
+            // ignored: AF
+            self.emit(Self::SF, mil::Insn::SignOf(a));
+            self.emit(Self::ZF, mil::Insn::IsZero(a));
+            self.emit(Self::V0, mil::Insn::L1(a));
+            self.emit(Self::PF, mil::Insn::Parity(Self::V0));
         }
 
         /// Emit MIL instructions for reading the given operand.
@@ -504,38 +550,68 @@ mod x86_to_mil {
             }
         }
 
+        // TODO there must be a better way...
+        // temporary registers, to represent interemediate steps
         const V0: mil::Reg = mil::Reg(0);
         const V1: mil::Reg = mil::Reg(1);
-        const TMP_REG_COUNT: u16 = 2;
+
+        // flags
+        const CF: mil::Reg = mil::Reg(2); // Carry flag
+        const PF: mil::Reg = mil::Reg(3); // Parity flag      true=even false=odd
+        const AF: mil::Reg = mil::Reg(4); // Auxiliary Carry
+        const ZF: mil::Reg = mil::Reg(5); // Zero flag        true=zero false=non-zero
+        const SF: mil::Reg = mil::Reg(6); // Sign flag        true=neg false=pos
+        const TF: mil::Reg = mil::Reg(7); // Trap flag
+        const IF: mil::Reg = mil::Reg(8); // Interrupt enable true=enabled false=disabled
+        const DF: mil::Reg = mil::Reg(9); // Direction flag   true=down false=up
+        const OF: mil::Reg = mil::Reg(10); // Overflow flag    true=overflow false=no-overflow
+
+        // general purpose regs
+        const RBP: mil::Reg = mil::Reg(11);
+        const RSP: mil::Reg = mil::Reg(12);
+        const RIP: mil::Reg = mil::Reg(13);
+        const RDI: mil::Reg = mil::Reg(14);
+        const RSI: mil::Reg = mil::Reg(15);
+        const RAX: mil::Reg = mil::Reg(16);
+        const RBX: mil::Reg = mil::Reg(17);
+        const RCX: mil::Reg = mil::Reg(18);
+        const RDX: mil::Reg = mil::Reg(19);
+        const R8: mil::Reg = mil::Reg(20);
+        const R9: mil::Reg = mil::Reg(21);
+        const R10: mil::Reg = mil::Reg(22);
+        const R11: mil::Reg = mil::Reg(23);
+        const R12: mil::Reg = mil::Reg(24);
+        const R13: mil::Reg = mil::Reg(25);
+        const R14: mil::Reg = mil::Reg(26);
+        const R15: mil::Reg = mil::Reg(27);
 
         /// Translate a *full* register name
         fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {
-            let rel_id = match reg.full_register() {
+            match reg.full_register() {
                 Register::None => panic!("invalid register: none"),
-                Register::RBP => 1,
-                Register::RSP => 2,
-                Register::RIP => 3,
-                Register::RDI => 4,
-                Register::RSI => 5,
-                Register::RAX => 6,
-                Register::RBX => 7,
-                Register::RCX => 8,
-                Register::RDX => 9,
-                Register::R8 => 10,
-                Register::R9 => 11,
-                Register::R10 => 12,
-                Register::R11 => 13,
-                Register::R12 => 14,
-                Register::R13 => 15,
-                Register::R14 => 16,
-                Register::R15 => 17,
+                Register::RBP => Self::RBP,
+                Register::RSP => Self::RSP,
+                Register::RIP => Self::RIP,
+                Register::RDI => Self::RDI,
+                Register::RSI => Self::RSI,
+                Register::RAX => Self::RAX,
+                Register::RBX => Self::RBX,
+                Register::RCX => Self::RCX,
+                Register::RDX => Self::RDX,
+                Register::R8 => Self::R8,
+                Register::R9 => Self::R9,
+                Register::R10 => Self::R10,
+                Register::R11 => Self::R11,
+                Register::R12 => Self::R12,
+                Register::R13 => Self::R13,
+                Register::R14 => Self::R14,
+                Register::R15 => Self::R15,
                 _ => panic!(
                     "unsupported register: {:?} (full: {:?})",
                     reg,
                     reg.full_register()
                 ),
-            };
-            mil::Reg(Self::TMP_REG_COUNT + rel_id)
+            }
         }
 
         fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
@@ -599,6 +675,8 @@ mod mil {
                     Insn::Shl(value, bits_count) => {
                         print!("{:8} r{},r{}", "shl", value.0, bits_count.0)
                     }
+                    Insn::BitAnd(a, b) => print!("{:8} r{},r{}", "and", a.0, b.0),
+                    Insn::BitOr(a, b) => print!("{:8} r{},r{}", "or", a.0, b.0),
 
                     Insn::LoadMem1(addr) => print!("{:8} addr:r{}", "lmem1", addr.0),
                     Insn::LoadMem2(addr) => print!("{:8} addr:r{}", "lmem2", addr.0),
@@ -617,6 +695,14 @@ mod mil {
                     Insn::CArg { value, prev } => {
                         print!("{:8} r{} after r{}", "carg", value.0, prev.0)
                     }
+
+                    Insn::OverflowOf(x) => print!("{:8} r{}", "overflow", x.0),
+                    Insn::CarryOf(x) => print!("{:8} r{}", "carry", x.0),
+                    Insn::SignOf(x) => print!("{:8} r{}", "sign", x.0),
+                    Insn::IsZero(x) => print!("{:8} r{}", "is0", x.0),
+                    Insn::Parity(x) => print!("{:8} r{}", "parity", x.0),
+
+                    Insn::Undefined => print!("undef"),
                 }
 
                 println!();
@@ -681,6 +767,8 @@ mod mil {
         Mul(Reg, Reg),
         MulK32(Reg, u32),
         Shl(Reg, Reg),
+        BitAnd(Reg, Reg),
+        BitOr(Reg, Reg),
 
         // call args are represented with a linked list:
         //  r0 <- [compute callee]
@@ -702,6 +790,14 @@ mod mil {
         LoadMem4(Reg),
         LoadMem8(Reg),
         StoreMem(Reg, Reg),
+
+        OverflowOf(Reg),
+        CarryOf(Reg),
+        SignOf(Reg),
+        IsZero(Reg),
+        Parity(Reg),
+
+        Undefined,
     }
 }
 
