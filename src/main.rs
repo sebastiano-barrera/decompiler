@@ -209,6 +209,8 @@ mod x86_to_mil {
                         self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
                         self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, 8));
                     }
+                    M::Ret => {
+                        self.emit(V0, mil::Insn::Ret(Self::RAX));
                     }
 
                     M::Mov => {
@@ -730,6 +732,7 @@ mod mil {
                     Insn::CArg { value, prev } => {
                         print!("{:8} r{} after r{}", "carg", value.0, prev.0)
                     }
+                    Insn::Ret(x) => print!("ret r{}", x.0),
 
                     Insn::OverflowOf(x) => print!("{:8} r{}", "overflow", x.0),
                     Insn::CarryOf(x) => print!("{:8} r{}", "carry", x.0),
@@ -817,6 +820,7 @@ mod mil {
         Call { callee: Reg, arg0: Reg },
         CArgEnd,
         CArg { value: Reg, prev: Reg },
+        Ret(Reg),
 
         TODO(&'static str),
 
