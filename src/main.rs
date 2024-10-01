@@ -224,6 +224,16 @@ mod x86_to_mil {
                         self.emit(Self::OF, mil::Insn::Const1(0));
                     }
 
+                    M::Cmp => {
+                        let (a, a_sz) = self.emit_read(&insn, 0);
+                        let (b, b_sz) = self.emit_read(&insn, 1);
+                        assert_eq!(a_sz, b_sz, "cmp: operands must be the same size");
+                        // just put the result in a tmp reg, then ignore it (other than for the
+                        // flags)
+                        self.emit(V0, mil::Insn::Sub(a, b));
+                        self.emit_set_flags_arith(V0);
+                    }
+
                     M::Lea => {
                         let (dest, dest_sz) = self.emit_read(&insn, 0);
                         match insn.op1_kind() {
