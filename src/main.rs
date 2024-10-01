@@ -194,7 +194,7 @@ mod x86_to_mil {
 
                     M::Mov => {
                         let (value, sz) = self.emit_read(&insn, 1);
-                        self.emit_write(insn, 0, value, sz);
+                        self.emit_write(&insn, 0, value, sz);
                     }
 
                     M::Add => {
@@ -462,7 +462,7 @@ mod x86_to_mil {
 
         fn emit_write(
             &mut self,
-            insn: iced_x86::Instruction,
+            insn: &iced_x86::Instruction,
             dest_op_ndx: u32,
             value: mil::Reg,
             value_size: u8,
