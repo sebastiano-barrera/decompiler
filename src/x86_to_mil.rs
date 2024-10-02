@@ -193,9 +193,16 @@ impl Builder {
                 }
 
                 M::Jmp => {
-                    let (dest, sz) = self.emit_read(&insn, 0);
-                    assert_eq!(sz, 8, "jmp operand must be 8 bytes");
-                    self.emit(Self::V0, mil::Insn::Jmp(dest));
+                    // refactor with emit_jmpif?
+                    match insn.op0_kind() {
+                        OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
+                            let target = insn.near_branch_target();
+                            self.emit(Self::V0, mil::Insn::JmpK(target));
+                        }
+                        _ => {
+                            todo!("indirect jmp");
+                        }
+                    }
                 }
                 M::Je => {
                     self.emit_jmpif(insn, 0, Self::ZF);

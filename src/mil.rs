@@ -58,6 +58,7 @@ pub enum Insn {
     CArg { value: Reg, prev: Reg },
     Ret(Reg),
     Jmp(Reg),
+    JmpK(u64),
     JmpIfK { cond: Reg, target: u64 },
 
     TODO(&'static str),
@@ -145,6 +146,7 @@ impl Program {
                 Insn::JmpIfK { cond, target } => {
                     print!("{:8} r{},0x{:x}", "jmp.if", cond.0, target)
                 }
+                Insn::JmpK(target) => print!("{:8} 0x{:x}", "jmp", target),
 
                 Insn::OverflowOf(x) => print!("{:8} r{}", "overflow", x.0),
                 Insn::CarryOf(x) => print!("{:8} r{}", "carry", x.0),
