@@ -333,6 +333,17 @@ mod x86_to_mil {
                         self.emit(Self::OF, mil::Insn::Undefined);
                     }
 
+                    M::Jmp => {
+                        let (dest, sz) = self.emit_read(&insn, 0);
+                        assert_eq!(sz, 8, "jmp operand must be 8 bytes");
+                        self.emit(Self::V0, mil::Insn::Jmp(dest));
+                    }
+                    M::Je => {
+                        self.emit_jmpif(insn, 0, Self::ZF);
+                    }
+                    M::Jb => {
+                        self.emit_jmpif(insn, 0, Self::CF);
+                    }
                     _ => {
                         let mut output = String::new();
                         formatter.format(&insn, &mut output);
@@ -343,6 +354,18 @@ mod x86_to_mil {
             }
 
             Ok(self.build())
+        }
+
+        fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {
+            match insn.op_kind(op_ndx) {
+                OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
+                    let target = insn.near_branch_target();
+                    self.emit(Self::V0, mil::Insn::JmpIfK { cond, target });
+                }
+                _ => {
+                    todo!("indirect jmpif");
+                }
+            }
         }
 
         /// Emit Insns that set the x86_64 flags as it happens after an arithmetic x86_64
@@ -759,7 +782,11 @@ mod mil {
                     Insn::CArg { value, prev } => {
                         print!("{:8} r{} after r{}", "carg", value.0, prev.0)
                     }
-                    Insn::Ret(x) => print!("ret r{}", x.0),
+                    Insn::Ret(x) => print!("{:8} r{}", "ret", x.0),
+                    Insn::Jmp(x) => print!("{:8} r{}", "jmp", x.0),
+                    Insn::JmpIfK { cond, target } => {
+                        print!("{:8} r{},0x{:x}", "jmp.if", cond.0, target)
+                    }
 
                     Insn::OverflowOf(x) => print!("{:8} r{}", "overflow", x.0),
                     Insn::CarryOf(x) => print!("{:8} r{}", "carry", x.0),
@@ -884,6 +911,8 @@ mod mil {
         CArgEnd,
         CArg { value: Reg, prev: Reg },
         Ret(Reg),
+        Jmp(Reg),
+        JmpIfK { cond: Reg, target: u64 },
 
         TODO(&'static str),
 
