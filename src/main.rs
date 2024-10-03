@@ -6,6 +6,7 @@ use iced_x86::{Decoder, Formatter, IntelFormatter, OpKind};
 
 use anyhow::Result;
 
+mod cfg;
 mod mil;
 mod x86_to_mil;
 
@@ -132,7 +133,9 @@ fn main() {
     let prog = x86_to_mil::translate(decoder.iter()).unwrap();
     println!("mil program = ");
     prog.dump();
-}
 
-/// Control Flow Graph of some MCode
-struct CFG {}
+    println!();
+    println!("cfg:");
+    let cfg = cfg::analyze_mil(&prog);
+    cfg.dump(&prog);
+}
