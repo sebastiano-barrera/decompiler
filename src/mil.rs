@@ -24,8 +24,20 @@ pub struct Program {
 ///
 /// The language admits as many registers as a u16 can represent (2**16). They're
 /// abstract, so we don't pay for them!
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Reg(pub u16);
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Reg {
+    Nor(u16),
+    Phi(u16),
+}
+
+impl std::fmt::Debug for Reg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Reg::Nor(ndx) => write!(f, "r{}", ndx),
+            Reg::Phi(ndx) => write!(f, "ɸ{}", ndx),
+        }
+    }
+}
 
 pub type Index = usize;
 
@@ -98,60 +110,60 @@ impl Insn {
             Insn::Const2(val) => print!("{:8} {} (0x{:x})", "const2", *val as i64, val),
             Insn::Const4(val) => print!("{:8} {} (0x{:x})", "const4", *val as i64, val),
             Insn::Const8(val) => print!("{:8} {} (0x{:x})", "const8", *val as i64, val),
-            Insn::L1(x) => print!("{:8} r{}", "l1", x.0),
-            Insn::L2(x) => print!("{:8} r{}", "l2", x.0),
-            Insn::L4(x) => print!("{:8} r{}", "l4", x.0),
-            Insn::Get(x) => print!("{:8} r{}", "get", x.0),
+            Insn::L1(x) => print!("{:8} {:?}", "l1", x),
+            Insn::L2(x) => print!("{:8} {:?}", "l2", x),
+            Insn::L4(x) => print!("{:8} {:?}", "l4", x),
+            Insn::Get(x) => print!("{:8} {:?}", "get", x),
             Insn::WithL1(full, part) => {
-                print!("{:8} r{}<-r{}", "with.l1", full.0, part.0)
+                print!("{:8} {:?}<-{:?}", "with.l1", full, part)
             }
             Insn::WithL2(full, part) => {
-                print!("{:8} r{}<-r{}", "with.l2", full.0, part.0)
+                print!("{:8} {:?}<-{:?}", "with.l2", full, part)
             }
             Insn::WithL4(full, part) => {
-                print!("{:8} r{}<-r{}", "with.l4", full.0, part.0)
+                print!("{:8} {:?}<-{:?}", "with.l4", full, part)
             }
 
-            Insn::Add(a, b) => print!("{:8} r{},r{}", "add", a.0, b.0),
-            Insn::AddK(a, b) => print!("{:8} r{},{}", "add", a.0, *b as i64),
-            Insn::Sub(a, b) => print!("{:8} r{},r{}", "sub", a.0, b.0),
-            Insn::Mul(a, b) => print!("{:8} r{},r{}", "mul", a.0, b.0),
-            Insn::MulK32(a, b) => print!("{:8} r{},0x{:x}", "mul", a.0, b),
+            Insn::Add(a, b) => print!("{:8} {:?},{:?}", "add", a, b),
+            Insn::AddK(a, b) => print!("{:8} {:?},{}", "add", a, *b as i64),
+            Insn::Sub(a, b) => print!("{:8} {:?},{:?}", "sub", a, b),
+            Insn::Mul(a, b) => print!("{:8} {:?},{:?}", "mul", a, b),
+            Insn::MulK32(a, b) => print!("{:8} {:?},0x{:x}", "mul", a, b),
             Insn::Shl(value, bits_count) => {
-                print!("{:8} r{},r{}", "shl", value.0, bits_count.0)
+                print!("{:8} {:?},{:?}", "shl", value, bits_count)
             }
-            Insn::BitAnd(a, b) => print!("{:8} r{},r{}", "and", a.0, b.0),
-            Insn::BitOr(a, b) => print!("{:8} r{},r{}", "or", a.0, b.0),
+            Insn::BitAnd(a, b) => print!("{:8} {:?},{:?}", "and", a, b),
+            Insn::BitOr(a, b) => print!("{:8} {:?},{:?}", "or", a, b),
 
-            Insn::LoadMem1(addr) => print!("{:8} addr:r{}", "lmem1", addr.0),
-            Insn::LoadMem2(addr) => print!("{:8} addr:r{}", "lmem2", addr.0),
-            Insn::LoadMem4(addr) => print!("{:8} addr:r{}", "lmem4", addr.0),
-            Insn::LoadMem8(addr) => print!("{:8} addr:r{}", "lmem8", addr.0),
+            Insn::LoadMem1(addr) => print!("{:8} addr:{:?}", "lmem1", addr),
+            Insn::LoadMem2(addr) => print!("{:8} addr:{:?}", "lmem2", addr),
+            Insn::LoadMem4(addr) => print!("{:8} addr:{:?}", "lmem4", addr),
+            Insn::LoadMem8(addr) => print!("{:8} addr:{:?}", "lmem8", addr),
 
             Insn::StoreMem(addr, val) => {
-                print!("{:8} *r{}<r{}", "smem", addr.0, val.0)
+                print!("{:8} *{:?}<{:?}", "smem", addr, val)
             }
             Insn::TODO(msg) => print!("{:8} {}", "TODO", msg),
 
             Insn::Call { callee, arg0 } => {
-                print!("{:8} r{}(r{})", "call", callee.0, arg0.0)
+                print!("{:8} {:?}({:?})", "call", callee, arg0)
             }
             Insn::CArgEnd => print!("cargend"),
             Insn::CArg { value, prev } => {
-                print!("{:8} r{} after r{}", "carg", value.0, prev.0)
+                print!("{:8} {:?} after {:?}", "carg", value, prev)
             }
-            Insn::Ret(x) => print!("{:8} r{}", "ret", x.0),
-            Insn::Jmp(x) => print!("{:8} r{}", "jmp", x.0),
+            Insn::Ret(x) => print!("{:8} {:?}", "ret", x),
+            Insn::Jmp(x) => print!("{:8} {:?}", "jmp", x),
             Insn::JmpIfK { cond, target } => {
-                print!("{:8} r{},0x{:x}", "jmp.if", cond.0, target)
+                print!("{:8} {:?},0x{:x}", "jmp.if", cond, target)
             }
             Insn::JmpK(target) => print!("{:8} 0x{:x}", "jmp", target),
 
-            Insn::OverflowOf(x) => print!("{:8} r{}", "overflow", x.0),
-            Insn::CarryOf(x) => print!("{:8} r{}", "carry", x.0),
-            Insn::SignOf(x) => print!("{:8} r{}", "sign", x.0),
-            Insn::IsZero(x) => print!("{:8} r{}", "is0", x.0),
-            Insn::Parity(x) => print!("{:8} r{}", "parity", x.0),
+            Insn::OverflowOf(x) => print!("{:8} {:?}", "overflow", x),
+            Insn::CarryOf(x) => print!("{:8} {:?}", "carry", x),
+            Insn::SignOf(x) => print!("{:8} {:?}", "sign", x),
+            Insn::IsZero(x) => print!("{:8} {:?}", "is0", x),
+            Insn::Parity(x) => print!("{:8} {:?}", "parity", x),
 
             Insn::Undefined => print!("undef"),
         }
@@ -173,7 +185,7 @@ impl Program {
                 println!("0x{:x}:", addr);
                 last_addr = *addr;
             }
-            print!("{:5} r{:<3} <- ", ndx, dest.0);
+            print!("{:5} {:?} <- ", ndx, dest);
             insn.dump();
 
             println!();

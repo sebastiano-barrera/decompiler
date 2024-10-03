@@ -22,7 +22,7 @@ enum BlockCont {
 }
 
 #[derive(Debug, Copy, Clone)]
-struct BasicBlockID(u16);
+pub struct BasicBlockID(u16);
 
 impl Graph {
     #[inline(always)]
