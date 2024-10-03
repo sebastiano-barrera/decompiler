@@ -256,14 +256,18 @@ impl ProgramBuilder {
 
         // addrs is input addr of mil addr;
         // we also need mil addr of input addr to resolve jumps
-        let mil_of_input_addr: HashMap<_, _> = addrs
-            .iter()
-            .enumerate()
-            .map(|(ndx, input_addr)| {
-                // ndx acts as mil  addr
-                (*input_addr, ndx)
-            })
-            .collect();
+        let mil_of_input_addr = {
+            let mut map = HashMap::new();
+            let mut addrs = addrs.iter().enumerate();
+            let mut last_addr = u64::MAX;
+            while let Some((ndx, &addr)) = addrs.next() {
+                if addr != last_addr {
+                    map.insert(addr, ndx);
+                    last_addr = addr;
+                }
+            }
+            map
+        };
 
         Program {
             insns,

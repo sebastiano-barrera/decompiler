@@ -24,6 +24,13 @@ enum BlockCont {
 #[derive(Debug, Copy, Clone)]
 struct BasicBlockID(u16);
 
+impl Graph {
+    #[inline(always)]
+    pub fn block_count(&self) -> usize {
+        self.bounds.len() - 1
+    }
+}
+
 pub fn analyze_mil(program: &mil::Program) -> Graph {
     let bounds = {
         let mut bounds = Vec::with_capacity(program.len() / 5);
@@ -150,25 +157,31 @@ fn dest_of_insn(
 }
 
 impl Graph {
-    #[inline(always)]
-    pub fn block_count(&self) -> usize {
-        self.bounds.len() - 1
-    }
-
-    pub fn dump(&self, program: &mil::Program) {
+    pub fn dump_graphviz(&self, program: &mil::Program) {
         let count = self.block_count();
-        println!("{:4} blocks", count);
+        println!("digraph {{");
+        println!("  // {} blocks", count);
+
         for bndx in 0..count {
             let start_ndx = self.bounds[bndx];
-            let start_addr = 0; //program.get(start_ndx).unwrap().addr;
-
             let end_ndx = self.bounds[bndx + 1];
-            let end_addr = 0; // program.get(end_ndx).unwrap().addr;
 
             println!(
-                "  #{}  {}(0x{:x}) ..= {}(0x{:x}) -> {:?}",
-                bndx, start_ndx, start_addr, end_ndx, end_addr, self.successors[bndx],
+                "  block{} [label=\"{}\\n{}..{}\"];",
+                bndx, bndx, start_ndx, end_ndx,
             );
+
+            match self.successors[bndx] {
+                BlockCont::End => println!("  block{} -> end", bndx),
+                BlockCont::Jmp(BasicBlockID(dest)) => println!("  block{} -> block{}", bndx, dest),
+                BlockCont::Alt(BasicBlockID(a), BasicBlockID(b)) => {
+                    println!("  block{} -> block{};", bndx, a);
+                    println!("  block{} -> block{};", bndx, b);
+                }
+            }
+
+            println!();
         }
+        println!("}}");
     }
 }

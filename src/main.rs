@@ -137,5 +137,5 @@ fn main() {
     println!();
     println!("cfg:");
     let cfg = cfg::analyze_mil(&prog);
-    cfg.dump(&prog);
+    cfg.dump_graphviz(&prog);
 }
