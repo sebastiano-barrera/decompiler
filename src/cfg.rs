@@ -14,6 +14,9 @@ pub struct Graph {
     block_at: HashMap<mil::Index, BasicBlockID>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
+
+    postorder_index: Vec<usize>,
+    postorder_order: Vec<usize>,
 }
 
 #[derive(Debug)]
@@ -25,11 +28,11 @@ enum BlockCont {
 
 impl BlockCont {
     #[inline]
-    fn flatten(&self) -> (Option<BasicBlockID>, Option<BasicBlockID>) {
+    fn as_array(&self) -> [Option<BasicBlockID>; 2] {
         match self {
-            BlockCont::End => (None, None),
-            BlockCont::Jmp(d) => (Some(*d), None),
-            BlockCont::Alt(d, e) => (Some(*d), Some(*e)),
+            BlockCont::End => [None, None],
+            BlockCont::Jmp(d) => [Some(*d), None],
+            BlockCont::Alt(d, e) => [Some(*d), Some(*e)],
         }
     }
 }
@@ -123,7 +126,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
         for (pred_ndx, cont) in successors.iter().enumerate() {
             let pred_ndx = pred_ndx.try_into().unwrap();
-            let (a, b) = cont.flatten();
+            let [a, b] = cont.as_array();
             if a == bid || b == bid {
                 predecessors.push(BasicBlockID(pred_ndx));
                 pred_count += 1;
@@ -132,6 +135,42 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
         pred_ndx_range.push(pred_offset..pred_offset + pred_count);
     }
+
+    let postorder_order = {
+        let mut postorder_order = Vec::with_capacity(block_count);
+        let mut visited = vec![false; block_count].into_boxed_slice();
+
+        let mut queue = Vec::with_capacity(block_count);
+        queue.push(0);
+
+        while let Some(ndx) = queue.pop() {
+            debug_assert!(visited[ndx as usize]);
+            postorder_order.push(ndx);
+
+            let block_succs: [_; 2] = successors.get(ndx as usize).unwrap().as_array();
+            // insert into the queue in reverse order
+            for succ in block_succs.into_iter().rev() {
+                if let Some(BasicBlockID(succ)) = succ {
+                    let succ = succ as usize;
+                    if !visited[succ] {
+                        queue.push(succ);
+                    }
+                }
+            }
+
+            visited[ndx] = true;
+        }
+
+        postorder_order
+    };
+
+    let postorder_index = {
+        let mut postorder_index = vec![0; block_count];
+        for (order_ndx, &bndx) in postorder_order.iter().enumerate() {
+            postorder_index[bndx] = order_ndx;
+        }
+        postorder_index
+    };
 
     #[cfg(debug_assertions)]
     {
@@ -172,6 +211,8 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
+        postorder_order,
+        postorder_index,
     }
 }
 
