@@ -12,6 +12,8 @@ pub struct Graph {
     // successors[bndx] = successors to block #bndx
     successors: Vec<BlockCont>,
     block_at: HashMap<mil::Index, BasicBlockID>,
+    predecessors: Vec<BasicBlockID>,
+    pred_ndx_range: Vec<Range<usize>>,
 }
 
 #[derive(Debug)]
@@ -21,13 +23,29 @@ enum BlockCont {
     Alt(BasicBlockID, BasicBlockID),
 }
 
-#[derive(Debug, Copy, Clone)]
+impl BlockCont {
+    #[inline]
+    fn flatten(&self) -> (Option<BasicBlockID>, Option<BasicBlockID>) {
+        match self {
+            BlockCont::End => (None, None),
+            BlockCont::Jmp(d) => (Some(*d), None),
+            BlockCont::Alt(d, e) => (Some(*d), Some(*e)),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub struct BasicBlockID(u16);
 
 impl Graph {
     #[inline(always)]
     pub fn block_count(&self) -> usize {
         self.bounds.len() - 1
+    }
+
+    pub fn predecessors(&self, bndx: BasicBlockID) -> Option<&[BasicBlockID]> {
+        let range = self.pred_ndx_range.get(bndx.0 as usize)?;
+        Some(&self.predecessors[range.start..range.end])
     }
 }
 
@@ -75,7 +93,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
     // in particular, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
 
-    let successors = bounds[1..]
+    let successors: Vec<_> = bounds[1..]
         .iter()
         .map(|end_ndx| {
             let last_ndx = end_ndx - 1;
@@ -92,6 +110,28 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
         })
         .collect();
+
+    let mut pred_ndx_range = Vec::with_capacity(block_count);
+    let mut predecessors = Vec::with_capacity(block_count * 2);
+
+    // quadratic, but you know how life goes
+    for bndx in 0..block_count {
+        let bid = Some(BasicBlockID(bndx.try_into().unwrap()));
+
+        let pred_offset = predecessors.len();
+        let mut pred_count = 0;
+
+        for (pred_ndx, cont) in successors.iter().enumerate() {
+            let pred_ndx = pred_ndx.try_into().unwrap();
+            let (a, b) = cont.flatten();
+            if a == bid || b == bid {
+                predecessors.push(BasicBlockID(pred_ndx));
+                pred_count += 1;
+            }
+        }
+
+        pred_ndx_range.push(pred_offset..pred_offset + pred_count);
+    }
 
     #[cfg(debug_assertions)]
     {
@@ -130,6 +170,8 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         bounds,
         block_at,
         successors,
+        predecessors,
+        pred_ndx_range,
     }
 }
 
