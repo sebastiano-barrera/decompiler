@@ -22,46 +22,6 @@ pub struct Graph {
     postorder_ordering: Vec<BasicBlockID>,
 }
 
-pub struct BlockMap<T>(Vec<T>);
-
-impl<T: Clone> BlockMap<T> {
-    pub fn new(init: T, count: usize) -> Self {
-        let vec = vec![init; count];
-        BlockMap(vec)
-    }
-
-    pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &T)> {
-        self.0.iter().enumerate().map(|(ndx, item)| {
-            let ndx = ndx.try_into().unwrap();
-            (BasicBlockID(ndx), item)
-        })
-    }
-}
-
-impl<T> Index<BasicBlockID> for BlockMap<T> {
-    type Output = T;
-
-    fn index(&self, index: BasicBlockID) -> &Self::Output {
-        self.0.index(index.0 as usize)
-    }
-}
-impl<T> IndexMut<BasicBlockID> for BlockMap<T> {
-    fn index_mut(&mut self, index: BasicBlockID) -> &mut Self::Output {
-        self.0.index_mut(index.0 as usize)
-    }
-}
-impl<T> std::ops::Deref for BlockMap<T> {
-    type Target = Vec<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl<T> std::ops::DerefMut for BlockMap<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 #[derive(Debug)]
 enum BlockCont {
     End,
@@ -341,5 +301,45 @@ impl Graph {
             println!();
         }
         println!("}}");
+    }
+}
+
+pub struct BlockMap<T>(Vec<T>);
+
+impl<T: Clone> BlockMap<T> {
+    pub fn new(init: T, count: usize) -> Self {
+        let vec = vec![init; count];
+        BlockMap(vec)
+    }
+
+    pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &T)> {
+        self.0.iter().enumerate().map(|(ndx, item)| {
+            let ndx = ndx.try_into().unwrap();
+            (BasicBlockID(ndx), item)
+        })
+    }
+}
+
+impl<T> Index<BasicBlockID> for BlockMap<T> {
+    type Output = T;
+
+    fn index(&self, index: BasicBlockID) -> &Self::Output {
+        self.0.index(index.0 as usize)
+    }
+}
+impl<T> IndexMut<BasicBlockID> for BlockMap<T> {
+    fn index_mut(&mut self, index: BasicBlockID) -> &mut Self::Output {
+        self.0.index_mut(index.0 as usize)
+    }
+}
+impl<T> std::ops::Deref for BlockMap<T> {
+    type Target = Vec<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl<T> std::ops::DerefMut for BlockMap<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
