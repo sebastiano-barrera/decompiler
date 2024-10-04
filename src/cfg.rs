@@ -2,7 +2,10 @@
 ///
 /// Routines and data types to extract and represent the control-flow graph (basic blocks and their
 /// sequence relationships).
-use std::{collections::HashMap, ops::Range};
+use std::{
+    collections::HashMap,
+    ops::{Index, IndexMut, Range},
+};
 
 use crate::mil;
 
@@ -15,8 +18,48 @@ pub struct Graph {
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
 
-    postorder_index: Vec<usize>,
-    postorder_order: Vec<usize>,
+    postorder_index: BlockMap<usize>,
+    postorder_ordering: Vec<BasicBlockID>,
+}
+
+pub struct BlockMap<T>(Vec<T>);
+
+impl<T: Clone> BlockMap<T> {
+    pub fn new(init: T, count: usize) -> Self {
+        let vec = vec![init; count];
+        BlockMap(vec)
+    }
+
+    pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &T)> {
+        self.0.iter().enumerate().map(|(ndx, item)| {
+            let ndx = ndx.try_into().unwrap();
+            (BasicBlockID(ndx), item)
+        })
+    }
+}
+
+impl<T> Index<BasicBlockID> for BlockMap<T> {
+    type Output = T;
+
+    fn index(&self, index: BasicBlockID) -> &Self::Output {
+        self.0.index(index.0 as usize)
+    }
+}
+impl<T> IndexMut<BasicBlockID> for BlockMap<T> {
+    fn index_mut(&mut self, index: BasicBlockID) -> &mut Self::Output {
+        self.0.index_mut(index.0 as usize)
+    }
+}
+impl<T> std::ops::Deref for BlockMap<T> {
+    type Target = Vec<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl<T> std::ops::DerefMut for BlockMap<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 #[derive(Debug)]
@@ -40,6 +83,20 @@ impl BlockCont {
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub struct BasicBlockID(u16);
 
+pub const ENTRY_BID: BasicBlockID = BasicBlockID(0);
+
+impl BasicBlockID {
+    #[inline(always)]
+    pub fn as_number(&self) -> u16 {
+        self.0
+    }
+
+    #[inline(always)]
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl Graph {
     #[inline(always)]
     pub fn block_count(&self) -> usize {
@@ -49,6 +106,16 @@ impl Graph {
     pub fn predecessors(&self, bndx: BasicBlockID) -> Option<&[BasicBlockID]> {
         let range = self.pred_ndx_range.get(bndx.0 as usize)?;
         Some(&self.predecessors[range.start..range.end])
+    }
+
+    // TODO Change return value to BlockIndex
+    pub fn postorder_ordering<'s>(&'s self) -> &[BasicBlockID] {
+        &self.postorder_ordering
+    }
+
+    // TODO Change return value to BlockIndex
+    pub fn postorder_index(&self) -> &BlockMap<usize> {
+        &self.postorder_index
     }
 }
 
@@ -136,7 +203,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         pred_ndx_range.push(pred_offset..pred_offset + pred_count);
     }
 
-    let postorder_order = {
+    let postorder_ordering = {
         let mut postorder_order = Vec::with_capacity(block_count);
         let mut visited = vec![false; block_count].into_boxed_slice();
 
@@ -144,8 +211,8 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         queue.push(0);
 
         while let Some(ndx) = queue.pop() {
-            debug_assert!(visited[ndx as usize]);
-            postorder_order.push(ndx);
+            debug_assert!(!visited[ndx as usize]);
+            postorder_order.push(BasicBlockID(ndx.try_into().unwrap()));
 
             let block_succs: [_; 2] = successors.get(ndx as usize).unwrap().as_array();
             // insert into the queue in reverse order
@@ -165,8 +232,9 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     };
 
     let postorder_index = {
-        let mut postorder_index = vec![0; block_count];
-        for (order_ndx, &bndx) in postorder_order.iter().enumerate() {
+        let mut postorder_index = BlockMap(vec![0; block_count]);
+        for (order_ndx, &bndx) in postorder_ordering.iter().enumerate() {
+            let order_ndx = order_ndx.try_into().unwrap();
             postorder_index[bndx] = order_ndx;
         }
         postorder_index
@@ -203,6 +271,13 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
         // no duplicates (<=> no 0-length blocks)
         debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
+
+        for (i, ndx) in postorder_ordering.iter().enumerate() {
+            debug_assert_eq!(postorder_index[*ndx], i);
+        }
+        for (bid, order) in postorder_index.items() {
+            debug_assert_eq!(postorder_ordering[*order], bid);
+        }
     }
 
     Graph {
@@ -211,7 +286,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
-        postorder_order,
+        postorder_ordering,
         postorder_index,
     }
 }

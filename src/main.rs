@@ -8,6 +8,7 @@ use anyhow::Result;
 
 mod cfg;
 mod mil;
+mod ssa;
 mod x86_to_mil;
 
 struct CliOptions {
@@ -138,4 +139,21 @@ fn main() {
     println!("cfg:");
     let cfg = cfg::analyze_mil(&prog);
     cfg.dump_graphviz(&prog);
+
+    println!();
+    println!("dom tree:");
+    let dom_tree = ssa::compute_dom_tree(&cfg);
+    println!("digraph {{");
+    for (bid, _) in dom_tree.items() {
+        let bid = bid.as_number();
+        println!("  block{} [label=\"{}\"]", bid, bid);
+    }
+    for (bid, parent) in dom_tree.items() {
+        if let Some(parent) = parent {
+            println!("  block{} -> block{}", bid.as_number(), parent.as_number());
+        }
+    }
+    println!("}}");
+    // println!("ssa:");
+    // let ssa = ssa::convert_to_ssa(&prog, &cfg);
 }
