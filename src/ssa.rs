@@ -30,7 +30,7 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph) {
         return;
     }
 
-    const ERR_NON_NOR: &'static str = "input program must not mention any non-Nor Reg";
+    const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
     let dom_tree = compute_dom_tree(cfg);
 
     let var_count = program
@@ -78,7 +78,7 @@ type DomTree = cfg::BlockMap<Option<cfg::BasicBlockID>>;
 
 pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
     let block_count = cfg.block_count();
-    let rpo = cfg::traverse_reverse_postorder(&cfg);
+    let rpo = cfg::traverse_reverse_postorder(cfg);
 
     let mut parent = cfg::BlockMap::new(None, block_count);
 
@@ -91,7 +91,7 @@ pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
 
         for &bid in rpo.order().iter() {
             let preds = cfg.predecessors(bid);
-            if preds.len() == 0 {
+            if preds.is_empty() {
                 continue;
             }
 

@@ -170,8 +170,8 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let is_covered = {
             let mut is = vec![false; program.len()];
             for (&start_ndx, &end_ndx) in bounds.iter().zip(bounds[1..].iter()) {
-                for i in start_ndx..end_ndx {
-                    is[i] = true;
+                for item in &mut is[start_ndx..end_ndx] {
+                    *item = true;
                 }
             }
             is
@@ -190,7 +190,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let invalid: Vec<_> = bounds
             .iter()
             .copied()
-            .filter(|&i| !(i <= program.len()))
+            .filter(|&i| i > program.len())
             .collect();
         debug_assert_eq!(&invalid, &[]);
 
@@ -304,12 +304,10 @@ pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
         visited[bid] = true;
 
         let block_succs: [_; 2] = graph.successors[bid].as_array();
-        for succ in block_succs {
-            if let Some(succ) = succ {
-                if !visited[succ] {
-                    eprintln!("{} -> {}", bid.as_usize(), succ.as_usize());
-                    queue.push(succ);
-                }
+        for succ in block_succs.into_iter().flatten() {
+            if !visited[succ] {
+                eprintln!("{} -> {}", bid.as_usize(), succ.as_usize());
+                queue.push(succ);
             }
         }
     }
@@ -347,14 +345,12 @@ fn count_nonbackedge_predecessors(graph: &Graph) -> BlockMap<u16> {
             Color::Unvisited => {
                 // schedule Visiting -> Finished after all children have been visited
                 queue.push(bid);
-                for succ in graph.successors[bid].as_array() {
-                    if let Some(succ) = succ {
-                        if color[succ] == Color::Unvisited {
-                            queue.push(succ);
-                        }
-                        if color[succ] != Color::Visiting {
-                            incoming_count[succ] += 1;
-                        }
+                for succ in graph.successors[bid].as_array().into_iter().flatten() {
+                    if color[succ] == Color::Unvisited {
+                        queue.push(succ);
+                    }
+                    if color[succ] != Color::Visiting {
+                        incoming_count[succ] += 1;
                     }
                 }
 

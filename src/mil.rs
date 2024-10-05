@@ -133,7 +133,7 @@ impl Insn {
             }
 
             Insn::Add(a, b) => print!("{:8} {:?},{:?}", "add", a, b),
-            Insn::AddK(a, b) => print!("{:8} {:?},{}", "add", a, *b as i64),
+            Insn::AddK(a, b) => print!("{:8} {:?},{}", "add", a, *b),
             Insn::Sub(a, b) => print!("{:8} {:?},{:?}", "sub", a, b),
             Insn::Mul(a, b) => print!("{:8} {:?},{:?}", "mul", a, b),
             Insn::MulK32(a, b) => print!("{:8} {:?},0x{:x}", "mul", a, b),
@@ -280,7 +280,7 @@ impl ProgramBuilder {
             let mut map = HashMap::new();
             let mut addrs = addrs.iter().enumerate();
             let mut last_addr = u64::MAX;
-            while let Some((ndx, &addr)) = addrs.next() {
+            for (ndx, &addr) in addrs {
                 if addr != last_addr {
                     map.insert(addr, ndx);
                     last_addr = addr;

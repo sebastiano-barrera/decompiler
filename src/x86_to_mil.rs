@@ -445,7 +445,7 @@ impl Builder {
                 );
 
                 let addr = Self::V1;
-                self.emit_compute_address_into(&insn, addr);
+                self.emit_compute_address_into(insn, addr);
                 assert_ne!(value, addr);
 
                 self.emit(Self::V0, mil::Insn::StoreMem(addr, value));
