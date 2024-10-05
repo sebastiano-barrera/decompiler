@@ -68,6 +68,16 @@ impl Graph {
         let range = &self.pred_ndx_range[bndx.0 as usize];
         &self.predecessors[range.start..range.end]
     }
+
+    pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<usize> {
+        let ndx = bid.as_usize();
+        let start = self.bounds[ndx];
+        let end = self.bounds[ndx + 1];
+        // must contain at least 1 instruction
+        // TODO hoist this assertion somewhere else?
+        assert!(end > start);
+        start..end
+    }
 }
 
 pub fn analyze_mil(program: &mil::Program) -> Graph {

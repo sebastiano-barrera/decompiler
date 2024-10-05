@@ -30,6 +30,14 @@ pub enum Reg {
     Phi(u16),
 }
 
+impl Reg {
+    pub fn as_nor(&self) -> Option<u16> {
+        match self {
+            Reg::Nor(id) => Some(*id),
+            _ => None,
+        }
+    }
+}
 impl std::fmt::Debug for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
