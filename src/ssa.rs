@@ -30,9 +30,7 @@ type DomTree = cfg::BlockMap<Option<cfg::BasicBlockID>>;
 
 pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
     let block_count = cfg.block_count();
-    let postorder_pos = cfg.postorder_index();
-    eprintln!("     postorder_pos: {:?}", postorder_pos.as_slice());
-    eprintln!("postorder_ordering: {:?}", cfg.postorder_ordering());
+    let rpo = cfg::traverse_reverse_postorder(&cfg);
 
     let mut parent = cfg::BlockMap::new(None, block_count);
 
@@ -43,8 +41,8 @@ pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
     while changed {
         changed = false;
 
-        for &bid in cfg.postorder_ordering().iter() {
-            let preds = cfg.predecessors(bid).unwrap();
+        for &bid in rpo.order().iter() {
+            let preds = cfg.predecessors(bid);
             if preds.len() == 0 {
                 continue;
             }
@@ -64,12 +62,7 @@ pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
                 if parent[pred].is_some() {
                     idom = common_ancestor(
                         &parent,
-                        |id_a, id_b| {
-                            let pos_a = postorder_pos[id_a];
-                            let pos_b = postorder_pos[id_b];
-                            eprintln!(" {id_a:?} < {id_b:?} ?  {pos_a} < {pos_b}");
-                            pos_a < pos_b
-                        },
+                        |id_a, id_b| rpo.position_of(id_a) < rpo.position_of(id_b),
                         pred,
                         idom,
                     );
@@ -78,15 +71,9 @@ pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
 
             let prev_idom = parent[bid].replace(idom);
             if prev_idom != Some(idom) {
-                eprintln!(
-                    "changed because parent of {:?} became {:?} from {:?}",
-                    bid, idom, prev_idom,
-                );
                 changed = true;
             }
         }
-
-        println!("changed? {changed}");
     }
 
     // we hand the tree out with a slightly different convention: the root node has no parent in
@@ -111,18 +98,14 @@ where
     LT: Fn(cfg::BasicBlockID, cfg::BasicBlockID) -> bool,
 {
     while ndx_a != ndx_b {
-        eprintln!("---");
-        eprintln!("A = {:?}; B = {:?}", ndx_a, ndx_b);
         let mut count = parent_of.len();
         while is_lt(ndx_a, ndx_b) {
-            eprintln!("hoisting A {:?}", ndx_a);
-            ndx_a = parent_of[ndx_a].unwrap();
+            ndx_b = parent_of[ndx_b].unwrap();
             count -= 1;
         }
         let mut count = parent_of.len();
         while is_lt(ndx_b, ndx_a) {
-            eprintln!("hoisting B {:?}", ndx_b);
-            ndx_b = parent_of[ndx_b].unwrap();
+            ndx_a = parent_of[ndx_a].unwrap();
             count -= 1;
         }
     }

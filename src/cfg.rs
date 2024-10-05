@@ -7,19 +7,16 @@ use std::{
     ops::{Index, IndexMut, Range},
 };
 
-use crate::mil;
+use crate::{cfg, mil};
 
 /// Control Flow Graph
 pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
-    successors: Vec<BlockCont>,
+    successors: BlockMap<BlockCont>,
     block_at: HashMap<mil::Index, BasicBlockID>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
-
-    postorder_index: BlockMap<usize>,
-    postorder_ordering: Vec<BasicBlockID>,
 }
 
 #[derive(Debug)]
@@ -63,19 +60,13 @@ impl Graph {
         self.bounds.len() - 1
     }
 
-    pub fn predecessors(&self, bndx: BasicBlockID) -> Option<&[BasicBlockID]> {
-        let range = self.pred_ndx_range.get(bndx.0 as usize)?;
-        Some(&self.predecessors[range.start..range.end])
+    pub fn block_ids(&self) -> impl Iterator<Item = BasicBlockID> {
+        (0..self.block_count()).map(|ndx| BasicBlockID(ndx.try_into().unwrap()))
     }
 
-    // TODO Change return value to BlockIndex
-    pub fn postorder_ordering<'s>(&'s self) -> &[BasicBlockID] {
-        &self.postorder_ordering
-    }
-
-    // TODO Change return value to BlockIndex
-    pub fn postorder_index(&self) -> &BlockMap<usize> {
-        &self.postorder_index
+    pub fn predecessors(&self, bndx: BasicBlockID) -> &[BasicBlockID] {
+        let range = &self.pred_ndx_range[bndx.0 as usize];
+        &self.predecessors[range.start..range.end]
     }
 }
 
@@ -140,6 +131,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
         })
         .collect();
+    let successors = BlockMap(successors);
 
     let mut pred_ndx_range = Vec::with_capacity(block_count);
     let mut predecessors = Vec::with_capacity(block_count * 2);
@@ -162,43 +154,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
         pred_ndx_range.push(pred_offset..pred_offset + pred_count);
     }
-
-    let postorder_ordering = {
-        let mut postorder_order = Vec::with_capacity(block_count);
-        let mut visited = vec![false; block_count].into_boxed_slice();
-
-        let mut queue = Vec::with_capacity(block_count);
-        queue.push(0);
-
-        while let Some(ndx) = queue.pop() {
-            debug_assert!(!visited[ndx as usize]);
-            postorder_order.push(BasicBlockID(ndx.try_into().unwrap()));
-
-            let block_succs: [_; 2] = successors.get(ndx as usize).unwrap().as_array();
-            // insert into the queue in reverse order
-            for succ in block_succs.into_iter().rev() {
-                if let Some(BasicBlockID(succ)) = succ {
-                    let succ = succ as usize;
-                    if !visited[succ] {
-                        queue.push(succ);
-                    }
-                }
-            }
-
-            visited[ndx] = true;
-        }
-
-        postorder_order
-    };
-
-    let postorder_index = {
-        let mut postorder_index = BlockMap(vec![0; block_count]);
-        for (order_ndx, &bndx) in postorder_ordering.iter().enumerate() {
-            let order_ndx = order_ndx.try_into().unwrap();
-            postorder_index[bndx] = order_ndx;
-        }
-        postorder_index
-    };
 
     #[cfg(debug_assertions)]
     {
@@ -231,13 +186,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
         // no duplicates (<=> no 0-length blocks)
         debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
-
-        for (i, ndx) in postorder_ordering.iter().enumerate() {
-            debug_assert_eq!(postorder_index[*ndx], i);
-        }
-        for (bid, order) in postorder_index.items() {
-            debug_assert_eq!(postorder_ordering[*order], bid);
-        }
     }
 
     Graph {
@@ -246,8 +194,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
-        postorder_ordering,
-        postorder_index,
     }
 }
 
@@ -289,7 +235,8 @@ impl Graph {
                 bndx, bndx, start_ndx, end_ndx,
             );
 
-            match self.successors[bndx] {
+            let bid = BasicBlockID(bndx.try_into().unwrap());
+            match self.successors[bid] {
                 BlockCont::End => println!("  block{} -> end", bndx),
                 BlockCont::Jmp(BasicBlockID(dest)) => println!("  block{} -> block{}", bndx, dest),
                 BlockCont::Alt(BasicBlockID(a), BasicBlockID(b)) => {
@@ -304,6 +251,146 @@ impl Graph {
     }
 }
 
+//
+// Traversals
+//
+pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
+    let count = graph.block_count();
+
+    // Remaining predecessors count
+    // let mut rem_preds_count = BlockMap::new(0, count);
+    // for bid in graph.block_ids() {
+    //     rem_preds_count[bid] = graph.predecessors(bid).len();
+    // }
+    let mut rem_preds_count = count_nonbackedge_predecessors(graph);
+
+    let mut order = Vec::with_capacity(count);
+    let mut queue = Vec::with_capacity(count / 2);
+    // we must avoid re-visiting a fully processed node. this happens when processing backedges.
+    let mut visited = BlockMap::new(false, count);
+
+    queue.push(ENTRY_BID);
+    // formally incorrect, but aligns it with the rest of the algorithm
+    rem_preds_count[cfg::ENTRY_BID] = 1;
+
+    while let Some(bid) = queue.pop() {
+        // each node X must be processed (added to the ordering) only after all its P predecessors
+        // have been processed.  we achieve this by discarding X queue items corresponding to (P-1)
+        // times before processing it the P-th time.
+
+        rem_preds_count[bid] -= 1;
+        if rem_preds_count[bid] > 0 {
+            eprintln!(
+                "node {}: delaying ({})",
+                bid.as_usize(),
+                rem_preds_count[bid]
+            );
+            continue;
+        }
+
+        assert_eq!(rem_preds_count[bid], 0);
+        eprintln!("node {}: processing", bid.as_usize());
+        order.push(bid);
+        visited[bid] = true;
+
+        let block_succs: [_; 2] = graph.successors[bid].as_array();
+        for succ in block_succs {
+            if let Some(succ) = succ {
+                if !visited[succ] {
+                    eprintln!("{} -> {}", bid.as_usize(), succ.as_usize());
+                    queue.push(succ);
+                }
+            }
+        }
+    }
+
+    // all incoming edges have been processed
+    eprintln!("rem_preds: {:?}", &*rem_preds_count);
+    if let Some(max) = rem_preds_count.iter().max() {
+        assert_eq!(&0, max);
+    }
+    assert_eq!(order.len(), count);
+
+    Ordering::new(order)
+}
+
+/// Count, for each node, the number of incoming edges (or, equivalently, predecessor nodes) that
+/// are not back-edges (i.e. don't form a cycle).
+fn count_nonbackedge_predecessors(graph: &Graph) -> BlockMap<u16> {
+    let count = graph.block_count();
+
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    enum Color {
+        Unvisited,
+        Visiting,
+        Finished,
+    }
+
+    let mut incoming_count = BlockMap::new(0, count);
+    let mut color = BlockMap::new(Color::Unvisited, count);
+
+    let mut queue = Vec::with_capacity(count / 2);
+    queue.push(ENTRY_BID);
+
+    while let Some(bid) = queue.pop() {
+        match color[bid] {
+            Color::Unvisited => {
+                // schedule Visiting -> Finished after all children have been visited
+                queue.push(bid);
+                for succ in graph.successors[bid].as_array() {
+                    if let Some(succ) = succ {
+                        if color[succ] == Color::Unvisited {
+                            queue.push(succ);
+                        }
+                        if color[succ] != Color::Visiting {
+                            incoming_count[succ] += 1;
+                        }
+                    }
+                }
+
+                color[bid] = Color::Visiting;
+            }
+            Color::Visiting => {
+                color[bid] = Color::Finished;
+            }
+            Color::Finished => panic!("unreachable!"),
+        }
+    }
+
+    incoming_count
+}
+
+pub struct Ordering {
+    order: Vec<BasicBlockID>,
+    pos_of: BlockMap<usize>,
+}
+
+impl Ordering {
+    pub fn new(order: Vec<BasicBlockID>) -> Self {
+        let mut pos_of = BlockMap::new(0, order.len());
+        let mut occurs_count = BlockMap::new(0, order.len());
+        for (pos, &bid) in order.iter().enumerate() {
+            occurs_count[bid] += 1;
+            pos_of[bid] = pos;
+        }
+
+        assert!(occurs_count.iter().all(|count| *count == 1));
+
+        Ordering { order, pos_of }
+    }
+
+    pub fn order(&self) -> &[BasicBlockID] {
+        &self.order
+    }
+
+    pub fn position_of(&self, bid: BasicBlockID) -> usize {
+        self.pos_of[bid]
+    }
+}
+
+//
+// Utilities
+//
 pub struct BlockMap<T>(Vec<T>);
 
 impl<T: Clone> BlockMap<T> {
