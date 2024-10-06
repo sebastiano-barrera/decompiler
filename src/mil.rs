@@ -112,7 +112,7 @@ impl Insn {
         matches!(self, Insn::JmpIfK { .. } | Insn::Jmp(_) | Insn::Ret(_))
     }
 
-    fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
+    pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
         match self {
             Insn::Const1(_)
             | Insn::Const2(_)
@@ -256,6 +256,14 @@ impl Program {
         Some(InsnView { insn, dest, addr })
     }
 
+    #[inline(always)]
+    pub fn get_mut(&mut self, ndx: Index) -> Option<InsnViewMut> {
+        let insn = self.insns.get_mut(ndx)?;
+        let dest = self.dests.get_mut(ndx).unwrap();
+        let addr = *self.addrs.get_mut(ndx).unwrap();
+        Some(InsnViewMut { insn, dest, addr })
+    }
+
     pub fn index_of_addr(&self, addr: u64) -> Option<Index> {
         self.mil_of_input_addr.get(&addr).copied()
     }
@@ -274,6 +282,12 @@ impl Program {
 pub struct InsnView<'a> {
     pub insn: &'a Insn,
     pub dest: Reg,
+    pub addr: u64,
+}
+
+pub struct InsnViewMut<'a> {
+    pub insn: &'a mut Insn,
+    pub dest: &'a mut Reg,
     pub addr: u64,
 }
 

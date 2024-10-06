@@ -11,37 +11,167 @@ use crate::{
 };
 
 pub struct Program {
-    original: mil::Program,
+    inner: mil::Program,
 }
 
 impl Program {
-    pub fn original(&self) -> &mil::Program {
-        &self.original
+    pub fn dump(&self) {
+        self.inner.dump()
     }
 }
 
-pub fn convert_to_ssa(program: &mil::Program, cfg: &cfg::Graph) -> Program {
-    let phi_blocks = place_phi_nodes(program, cfg);
-    todo!()
+pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
+    let dom_tree = compute_dom_tree(cfg);
+    let phi_blocks = place_phi_nodes(&program, cfg, &dom_tree);
+
+    /*
+    stack[v] is a stack of variable names (for every variable v)
+
+    def rename(block):
+      for instr in block:
+        replace each argument to instr with stack[old name]
+
+        replace instr's destination with a new name
+        push that new name onto stack[old name]
+
+      for s in block's successors:
+        for p in s's ϕ-nodes:
+          Assuming p is for a variable v, make it read from stack[v].
+
+      for b in blocks immediately dominated by block:
+        # That is, children in the dominance tree.
+        rename(b)
+
+      pop all the names we just pushed onto the stacks
+
+    rename(entry)
+    */
+
+    struct VarMap {
+        count: usize,
+        mappings: Vec<mil::Reg>,
+    }
+
+    impl VarMap {
+        fn new(vars_count: usize) -> Self {
+            VarMap {
+                count: vars_count,
+                mappings: Vec::new(),
+            }
+        }
+
+        fn push(&mut self) {
+            self.mappings.reserve(self.count);
+
+            // copy the current frame's map into the new one
+            for i in 0..self.count {
+                let val = self.mappings[self.mappings.len() - self.count];
+                self.mappings.push(val);
+            }
+
+            assert_eq!(0, self.mappings.len() % self.count);
+        }
+
+        fn pop(&mut self) {
+            let old_len = self.mappings.len();
+            self.mappings.truncate(old_len - self.count);
+            assert_eq!(0, self.mappings.len() % self.count);
+        }
+
+        fn current(&self) -> &[mil::Reg] {
+            let len = self.mappings.len();
+            &self.mappings[len - self.count..]
+        }
+        fn current_mut(&mut self) -> &mut [mil::Reg] {
+            let len = self.mappings.len();
+            &mut self.mappings[len - self.count..]
+        }
+
+        fn get(&self, reg: mil::Reg) -> mil::Reg {
+            let reg_num = reg.as_nor().expect("only Reg::Nor can be mapped") as usize;
+            self.current()[reg_num]
+        }
+
+        fn set(&mut self, src: mil::Reg, dst: mil::Reg) {
+            let reg_num = src.as_nor().expect("only Reg::Nor can be mapped") as usize;
+            self.current_mut()[reg_num] = dst;
+        }
+    }
+
+    let var_count = count_variables(&program);
+    let mut var_map = VarMap::new(var_count);
+
+    enum Cmd {
+        Finish(BasicBlockID),
+        Start(BasicBlockID),
+    }
+    let mut queue = vec![Cmd::Finish(cfg::ENTRY_BID), Cmd::Start(cfg::ENTRY_BID)];
+
+    while let Some(cmd) = queue.pop() {
+        match cmd {
+            Cmd::Start(bid) => {
+                var_map.push();
+
+                // patch current block
+                for insn_ndx in cfg.insns_ndx_range(bid) {
+                    let insn = program.get_mut(insn_ndx).unwrap();
+                    let inputs = insn.insn.input_regs_mut();
+
+                    if bid == cfg::ENTRY_BID && insn_ndx == 0 {
+                        assert_eq!(inputs, [None, None]);
+                    }
+
+                    for reg in inputs.into_iter().flatten() {
+                        *reg = var_map.get(*reg);
+                    }
+
+                    // in the output SSA, each destination register corrsponds to the instruction's
+                    // index. this way, the numeric value of a register can also be used as
+                    // instruction ID, to locate a register/variable's defining instruction.
+                    let new_name = mil::Reg::Nor(insn_ndx.try_into().unwrap());
+                    let old_name = std::mem::replace(insn.dest, new_name);
+                    var_map.set(old_name, new_name);
+                }
+
+                // todo!("patch successor's phi instructions");
+                // The algorithm is the following:
+                // >  for s in block's successors:
+                // >    for p in s's ϕ-nodes:
+                // >      Assuming p is for a variable v, make it read from stack[v].
+                // ... but in order to patch the correct operand in each phi instruction, we have
+                // to figure out a "predecessor position", i.e. whether the current block is the
+                // successor's 1st, 2nd, 3rd predecessor.
+
+                // TODO quadratic, but cfgs are generally pretty small
+                let imm_dominated = dom_tree
+                    .items()
+                    .filter(|(_, parent)| **parent == Some(bid))
+                    .map(|(bid, _)| bid);
+                for child in imm_dominated {
+                    queue.push(Cmd::Finish(child));
+                    queue.push(Cmd::Start(child));
+                }
+            }
+
+            Cmd::Finish(bid) => {
+                var_map.pop();
+            }
+        }
+    }
+
+    Program { inner: program }
 }
 
-fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph) {
+const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
+
+fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree) {
     if program.len() == 0 {
         return;
     }
 
-    const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
-    let dom_tree = compute_dom_tree(cfg);
-
-    let var_count = program
-        .iter()
-        .map(|insn| insn.dest.as_nor().expect(ERR_NON_NOR))
-        .max()
-        .unwrap() as usize
-        + 1;
+    let var_count = count_variables(program);
     let mut var_written = vec![false; var_count];
 
-    // capacity is a heuristic
     let mut phis = vec![false; var_count * cfg.block_count()];
     // order does not matter
     for bid in cfg.block_ids() {
@@ -72,6 +202,15 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph) {
     }
 
     todo!()
+}
+
+// TODO cache this info somewhere. it's so weird to recompute it twice!
+fn count_variables(program: &mil::Program) -> usize {
+    1 + program
+        .iter()
+        .map(|insn| insn.dest.as_nor().expect(ERR_NON_NOR))
+        .max()
+        .unwrap() as usize
 }
 
 type DomTree = cfg::BlockMap<Option<cfg::BasicBlockID>>;
