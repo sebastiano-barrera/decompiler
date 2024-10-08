@@ -38,6 +38,8 @@ impl Builder {
 
         let mut formatter = IntelFormatter::new();
 
+        self.emit(Self::RSP, mil::Insn::Ancestral(mil::Ancestral::StackBot));
+
         for insn in insns {
             self.pb.set_input_addr(insn.ip());
 

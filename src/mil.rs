@@ -108,6 +108,12 @@ pub enum Insn {
     Parity(Reg),
 
     Undefined,
+    Ancestral(Ancestral),
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Ancestral {
+    StackBot,
 }
 
 impl Insn {
@@ -125,7 +131,8 @@ impl Insn {
             | Insn::CArgEnd
             | Insn::JmpK(_)
             | Insn::TODO(_)
-            | Insn::Undefined => [None, None],
+            | Insn::Undefined
+            | Insn::Ancestral(_) => [None, None],
 
             Insn::L1(reg)
             | Insn::L2(reg)
@@ -173,7 +180,8 @@ impl Insn {
             | Insn::CArgEnd
             | Insn::JmpK(_)
             | Insn::TODO(_)
-            | Insn::Undefined => [None, None],
+            | Insn::Undefined
+            | Insn::Ancestral(_) => [None, None],
 
             Insn::L1(reg)
             | Insn::L2(reg)
@@ -274,6 +282,9 @@ impl Insn {
             Insn::Parity(x) => print!("{:8} {:?}", "parity", x),
 
             Insn::Undefined => print!("undef"),
+            Insn::Ancestral(anc) => match anc {
+                Ancestral::StackBot => print!("#stackBottom"),
+            },
         }
     }
 
@@ -307,7 +318,8 @@ impl Insn {
             | Insn::LoadMem1(_)
             | Insn::LoadMem2(_)
             | Insn::LoadMem4(_)
-            | Insn::LoadMem8(_) => false,
+            | Insn::LoadMem8(_)
+            | Insn::Ancestral(_) => false,
 
             Insn::Call { .. }
             | Insn::CArgEnd
