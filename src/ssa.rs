@@ -162,10 +162,16 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
                         *reg = var_map.get(*reg);
                     }
 
-                    // in the output SSA, each destination register corrsponds to the instruction's
-                    // index. this way, the numeric value of a register can also be used as
-                    // instruction ID, to locate a register/variable's defining instruction.
-                    let new_name = mil::Reg::Nor(insn_ndx.try_into().unwrap());
+                    let new_name = if let mil::Insn::Get(input_reg) = insn.insn {
+                        // exception: for Get(_) instructions, we just reuse the input reg for the
+                        // output
+                        *input_reg
+                    } else {
+                        // in the output SSA, each destination register corrsponds to the instruction's
+                        // index. this way, the numeric value of a register can also be used as
+                        // instruction ID, to locate a register/variable's defining instruction.
+                        mil::Reg::Nor(insn_ndx.try_into().unwrap())
+                    };
                     let old_name = std::mem::replace(insn.dest, new_name);
                     var_map.set(old_name, new_name);
                 }
