@@ -243,13 +243,13 @@ impl Insn {
             Insn::BitAnd(a, b) => print!("{:8} {:?},{:?}", "and", a, b),
             Insn::BitOr(a, b) => print!("{:8} {:?},{:?}", "or", a, b),
 
-            Insn::LoadMem1(addr) => print!("{:8} addr:{:?}", "lmem1", addr),
-            Insn::LoadMem2(addr) => print!("{:8} addr:{:?}", "lmem2", addr),
-            Insn::LoadMem4(addr) => print!("{:8} addr:{:?}", "lmem4", addr),
-            Insn::LoadMem8(addr) => print!("{:8} addr:{:?}", "lmem8", addr),
+            Insn::LoadMem1(addr) => print!("{:8} addr:{:?}", "loadm1", addr),
+            Insn::LoadMem2(addr) => print!("{:8} addr:{:?}", "loadm2", addr),
+            Insn::LoadMem4(addr) => print!("{:8} addr:{:?}", "loadm4", addr),
+            Insn::LoadMem8(addr) => print!("{:8} addr:{:?}", "loadm8", addr),
 
             Insn::StoreMem(addr, val) => {
-                print!("{:8} *{:?} ← {:?}", "smem", addr, val)
+                print!("{:8} *{:?} ← {:?}", "storem", addr, val)
             }
             Insn::TODO(msg) => print!("{:8} {}", "TODO", msg),
 
