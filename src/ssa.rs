@@ -338,6 +338,10 @@ struct PhiViewMut<'a> {
     dest: &'a mut mil::Reg,
     args: &'a mut [mil::Reg],
 }
+struct PhiView<'a> {
+    dest: &'a mil::Reg,
+    args: &'a [mil::Reg],
+}
 
 impl Phis {
     fn empty() -> Self {
@@ -354,16 +358,29 @@ impl Phis {
         self.phi_ndx_offset[bid].len()
     }
 
+    fn node(&self, bid: cfg::BasicBlockID, ndx: usize) -> PhiView {
+        let flat_ndx = self.flat_ndx(bid, ndx);
+        PhiView {
+            dest: &self.dest[flat_ndx],
+            args: &self.args
+                [flat_ndx * self.max_preds_count..(flat_ndx + 1) * self.max_preds_count],
+        }
+    }
+
     fn node_mut(&mut self, bid: cfg::BasicBlockID, ndx: usize) -> PhiViewMut {
+        let flat_ndx = self.flat_ndx(bid, ndx);
+        PhiViewMut {
+            dest: &mut self.dest[flat_ndx],
+            args: &mut self.args
+                [flat_ndx * self.max_preds_count..(flat_ndx + 1) * self.max_preds_count],
+        }
+    }
+
+    fn flat_ndx(&self, bid: BasicBlockID, ndx: usize) -> usize {
         let range_ndx = &self.phi_ndx_offset[bid];
         let abs_ndx = range_ndx.start + ndx;
         assert!(abs_ndx < range_ndx.end);
-
-        PhiViewMut {
-            dest: &mut self.dest[abs_ndx],
-            args: &mut self.args
-                [abs_ndx * self.max_preds_count..(abs_ndx + 1) * self.max_preds_count],
-        }
+        abs_ndx
     }
 }
 
