@@ -28,6 +28,8 @@ pub struct Program {
 pub enum Reg {
     Nor(u16),
     Phi(u16),
+    /// Represents an undefined value.  Only allowed as a source, and only used in SSA.
+    Und,
 }
 
 impl Reg {
@@ -43,6 +45,7 @@ impl std::fmt::Debug for Reg {
         match self {
             Reg::Nor(ndx) => write!(f, "r{}", ndx),
             Reg::Phi(ndx) => write!(f, "ɸ{}", ndx),
+            Reg::Und => write!(f, "<undefined>"),
         }
     }
 }

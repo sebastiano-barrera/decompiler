@@ -51,7 +51,7 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
 
     struct VarMap {
         count: usize,
-        mappings: Vec<Option<mil::Reg>>,
+        mappings: Vec<mil::Reg>,
     }
 
     impl VarMap {
@@ -67,7 +67,7 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
 
             if self.mappings.is_empty() {
                 for _ in 0..self.count {
-                    self.mappings.push(None);
+                    self.mappings.push(mil::Reg::Und);
                 }
             } else {
                 // copy the current frame's map into the new one
@@ -86,24 +86,24 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
             assert_eq!(0, self.mappings.len() % self.count);
         }
 
-        fn current(&self) -> &[Option<mil::Reg>] {
+        fn current(&self) -> &[mil::Reg] {
             assert!(self.mappings.len() > 0, "no mappings!");
             let len = self.mappings.len();
             &self.mappings[len - self.count..]
         }
-        fn current_mut(&mut self) -> &mut [Option<mil::Reg>] {
+        fn current_mut(&mut self) -> &mut [mil::Reg] {
             let len = self.mappings.len();
             &mut self.mappings[len - self.count..]
         }
 
-        fn get(&self, reg: mil::Reg) -> Option<mil::Reg> {
+        fn get(&self, reg: mil::Reg) -> mil::Reg {
             let reg_num = reg.as_nor().expect("only Reg::Nor can be mapped") as usize;
             self.current()[reg_num]
         }
 
         fn set(&mut self, src: mil::Reg, dst: mil::Reg) {
             let reg_num = src.as_nor().expect("only Reg::Nor can be mapped") as usize;
-            self.current_mut()[reg_num] = Some(dst);
+            self.current_mut()[reg_num] = dst;
         }
     }
 
@@ -136,10 +136,7 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
                     // > }
 
                     for reg in inputs.into_iter().flatten() {
-                        *reg = match var_map.get(*reg) {
-                            Some(reg) => reg,
-                            None => panic!("unassigned variable: {:?}", reg),
-                        };
+                        *reg = var_map.get(*reg);
                     }
 
                     // in the output SSA, each destination register corrsponds to the instruction's
@@ -150,7 +147,6 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
                     var_map.set(old_name, new_name);
                 }
 
-                // todo!("patch successor's phi instructions");
                 // The algorithm is the following:
                 // >  for s in block's successors:
                 // >    for p in s's ϕ-nodes:
@@ -164,15 +160,15 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
                     // predecessor is very small (< 10), so this is plenty fast
                     // index of bid in succ's predecessor list
                     let pred_ndx = cfg
-                        .predecessors(bid)
+                        .predecessors(succ)
                         .iter()
                         .position(|&pred| pred == bid)
                         .unwrap();
-                    for ndx in 0..phis.nodes_count(bid) {
-                        let phi = phis.node_mut(bid, ndx);
-                        phi.args[pred_ndx] = var_map
-                            .get(phi.args[pred_ndx])
-                            .expect("unassigned variable!");
+                    for ndx in 0..phis.nodes_count(succ) {
+                        let phi = phis.node_mut(succ, ndx);
+                        // NOTE: the substitution of the *successor's* phi node's argument is
+                        // done in the context of *this* node (its predecessor)
+                        phi.args[pred_ndx] = var_map.get(phi.args[pred_ndx]);
                     }
                 }
 
