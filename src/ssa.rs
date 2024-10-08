@@ -15,11 +15,28 @@ use crate::{
 pub struct Program {
     inner: mil::Program,
     cfg: cfg::Graph,
+    is_alive: Box<[bool]>,
 }
 
 impl Program {
     pub fn dump(&self) {
-        self.inner.dump()
+        let count: usize = self.is_alive.iter().map(|x| *x as usize).sum();
+        println!("ssa program  {} instrs", count);
+
+        for bid in self.cfg.block_ids() {
+            let ndxs = self.cfg.insns_ndx_range(bid);
+            println!(".B{}:", bid.as_usize());
+            for ndx in ndxs {
+                if !self.is_alive[ndx] {
+                    continue;
+                }
+
+                let item = self.inner.get(ndx).unwrap();
+                print!("  {:?} <- ", item.dest);
+                item.insn.dump();
+                println!();
+            }
+        }
     }
 }
 
@@ -193,9 +210,18 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
         }
     }
 
+    let var_count = program
+        .iter()
+        .filter_map(|insn| insn.dest.as_nor())
+        .max()
+        .map(|max_reg_ndx| max_reg_ndx + 1)
+        .unwrap_or(0) as usize;
+    let is_alive = vec![true; var_count].into_boxed_slice();
+
     Program {
         inner: program,
         cfg,
+        is_alive,
     }
 }
 
@@ -510,4 +536,16 @@ fn dump_tree_dot(dom_tree: cfg::BlockMap<Option<cfg::BasicBlockID>>) {
     println!("}}");
 }
 
-pub fn eliminate_dead_code(prog: &mut Program) {}
+pub fn eliminate_dead_code(prog: &mut Program) {
+    // phi nodes are considered always read, and so are ignored by DCE
+
+    prog.is_alive.fill(false);
+
+    for item in prog.inner.iter() {
+        for input in item.insn.input_regs().into_iter().flatten() {
+            if let Some(reg_ndx) = input.as_nor() {
+                prog.is_alive[reg_ndx as usize] = true;
+            }
+        }
+    }
+}

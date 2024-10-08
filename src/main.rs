@@ -136,7 +136,7 @@ fn main() {
     prog.dump();
 
     println!();
-
-    let prog = ssa::convert_to_ssa(prog);
+    let mut prog = ssa::convert_to_ssa(prog);
+    ssa::eliminate_dead_code(&mut prog);
     prog.dump();
 }

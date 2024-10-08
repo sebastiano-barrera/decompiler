@@ -115,6 +115,7 @@ impl Insn {
         matches!(self, Insn::JmpIfK { .. } | Insn::Jmp(_) | Insn::Ret(_))
     }
 
+    // TODO There must be some macro magic to generate these two functions
     pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
         match self {
             Insn::Const1(_)
@@ -163,7 +164,55 @@ impl Insn {
         }
     }
 
-    fn dump(&self) {
+    pub fn input_regs(&self) -> [Option<&Reg>; 2] {
+        match self {
+            Insn::Const1(_)
+            | Insn::Const2(_)
+            | Insn::Const4(_)
+            | Insn::Const8(_)
+            | Insn::CArgEnd
+            | Insn::JmpK(_)
+            | Insn::TODO(_)
+            | Insn::Undefined => [None, None],
+
+            Insn::L1(reg)
+            | Insn::L2(reg)
+            | Insn::L4(reg)
+            | Insn::Get(reg)
+            | Insn::AddK(reg, _)
+            | Insn::MulK32(reg, _)
+            | Insn::Ret(reg)
+            | Insn::Jmp(reg)
+            | Insn::JmpIfK {
+                cond: reg,
+                target: _,
+            }
+            | Insn::LoadMem1(reg)
+            | Insn::LoadMem2(reg)
+            | Insn::LoadMem4(reg)
+            | Insn::LoadMem8(reg)
+            | Insn::OverflowOf(reg)
+            | Insn::CarryOf(reg)
+            | Insn::SignOf(reg)
+            | Insn::IsZero(reg)
+            | Insn::Parity(reg) => [Some(reg), None],
+
+            Insn::WithL1(a, b)
+            | Insn::WithL2(a, b)
+            | Insn::WithL4(a, b)
+            | Insn::Add(a, b)
+            | Insn::Sub(a, b)
+            | Insn::Mul(a, b)
+            | Insn::Shl(a, b)
+            | Insn::BitAnd(a, b)
+            | Insn::BitOr(a, b)
+            | Insn::Call { callee: a, arg0: b }
+            | Insn::CArg { value: a, prev: b }
+            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
+        }
+    }
+
+    pub fn dump(&self) {
         match self {
             Insn::Const1(val) => print!("{:8} {} (0x{:x})", "const1", *val as i64, val),
             Insn::Const2(val) => print!("{:8} {} (0x{:x})", "const2", *val as i64, val),
