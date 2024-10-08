@@ -136,10 +136,7 @@ fn main() {
     prog.dump();
 
     println!();
-    println!("cfg:");
-    let cfg = cfg::analyze_mil(&prog);
-    cfg.dump_graphviz(&prog);
 
-    let prog = ssa::convert_to_ssa(prog, &cfg);
+    let prog = ssa::convert_to_ssa(prog);
     prog.dump();
 }

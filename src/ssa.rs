@@ -14,6 +14,7 @@ use crate::{
 
 pub struct Program {
     inner: mil::Program,
+    cfg: cfg::Graph,
 }
 
 impl Program {
@@ -22,9 +23,12 @@ impl Program {
     }
 }
 
-pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
-    let dom_tree = compute_dom_tree(cfg);
-    let mut phis = place_phi_nodes(&program, cfg, &dom_tree);
+pub fn convert_to_ssa(mut program: mil::Program) -> Program {
+    let cfg = cfg::analyze_mil(&program);
+    cfg.dump_graphviz(&program);
+
+    let dom_tree = compute_dom_tree(&cfg);
+    let mut phis = place_phi_nodes(&program, &cfg, &dom_tree);
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -189,7 +193,10 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
         }
     }
 
-    Program { inner: program }
+    Program {
+        inner: program,
+        cfg,
+    }
 }
 
 const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
@@ -502,3 +509,5 @@ fn dump_tree_dot(dom_tree: cfg::BlockMap<Option<cfg::BasicBlockID>>) {
     }
     println!("}}");
 }
+
+pub fn eliminate_dead_code(prog: &mut Program) {}
