@@ -269,6 +269,16 @@ impl Graph {
 // Traversals
 //
 pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
+    Ordering::new(reverse_postorder(graph))
+}
+
+pub fn traverse_postorder(graph: &Graph) -> Ordering {
+    let mut order = reverse_postorder(graph);
+    order.reverse();
+    Ordering::new(order)
+}
+
+fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
     let count = graph.block_count();
 
     // Remaining predecessors count
@@ -317,13 +327,11 @@ pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
     }
 
     // all incoming edges have been processed
-    eprintln!("rem_preds: {:?}", &*rem_preds_count);
     if let Some(max) = rem_preds_count.iter().max() {
         assert_eq!(&0, max);
     }
     assert_eq!(order.len(), count);
-
-    Ordering::new(order)
+    order
 }
 
 /// Count, for each node, the number of incoming edges (or, equivalently, predecessor nodes) that
