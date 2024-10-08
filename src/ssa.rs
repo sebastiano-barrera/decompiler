@@ -16,6 +16,7 @@ pub struct Program {
     inner: mil::Program,
     cfg: cfg::Graph,
     is_alive: Box<[bool]>,
+    reader_count: Box<[usize]>,
 }
 
 impl Program {
@@ -34,7 +35,13 @@ impl Program {
                 }
 
                 let item = self.inner.get(ndx).unwrap();
-                print!("  {:?} <- ", item.dest);
+                let rdr_count = self.reader_count[ndx];
+                if rdr_count > 1 {
+                    print!("  ({:3})  ", rdr_count);
+                } else {
+                    print!("         ");
+                }
+                print!("{:?} <- ", item.dest);
                 item.insn.dump();
                 println!();
             }
@@ -225,12 +232,16 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
         .map(|max_reg_ndx| max_reg_ndx + 1)
         .unwrap_or(0) as usize;
     let is_alive = vec![true; var_count].into_boxed_slice();
+    let reader_count = vec![0; var_count].into_boxed_slice();
 
-    Program {
+    let mut program = Program {
         inner: program,
         cfg,
         is_alive,
-    }
+        reader_count,
+    };
+    eliminate_dead_code(&mut program);
+    program
 }
 
 const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
@@ -556,7 +567,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     // phi nodes are considered always read, and so are ignored by DCE
 
     prog.is_alive.fill(false);
-    let mut is_read = vec![false; prog.is_alive.len()].into_boxed_slice();
+    prog.reader_count.fill(0);
 
     for &bid in postorder.order() {
         for ndx in prog.cfg.insns_ndx_range(bid).rev() {
@@ -568,7 +579,8 @@ pub fn eliminate_dead_code(prog: &mut Program) {
                 }
             };
 
-            prog.is_alive[dest_ndx] = item.insn.is_control_flow() || is_read[dest_ndx];
+            prog.is_alive[dest_ndx] =
+                item.insn.is_control_flow() || prog.reader_count[dest_ndx] > 0;
             if !prog.is_alive[dest_ndx] {
                 // this insn's reads don't count
                 continue;
@@ -576,7 +588,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
 
             for input in item.insn.input_regs().into_iter().flatten() {
                 if let Some(reg_ndx) = input.as_nor() {
-                    is_read[reg_ndx as usize] = true;
+                    prog.reader_count[reg_ndx as usize] += 1;
                 }
             }
         }
