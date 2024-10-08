@@ -25,7 +25,9 @@ impl Program {
 
         for bid in self.cfg.block_ids() {
             let ndxs = self.cfg.insns_ndx_range(bid);
-            println!(".B{}:", bid.as_usize());
+            let block_addr = self.inner.get(ndxs.start).unwrap().addr;
+
+            println!(".B{}:   ;; 0x{:x}", bid.as_usize(), block_addr);
             for ndx in ndxs {
                 if !self.is_alive[ndx] {
                     continue;
@@ -537,14 +539,39 @@ fn dump_tree_dot(dom_tree: cfg::BlockMap<Option<cfg::BasicBlockID>>) {
 }
 
 pub fn eliminate_dead_code(prog: &mut Program) {
+    if prog.inner.len() == 0 {
+        return;
+    }
+
+    // in this ordering, each node is always processed  before any of its parents.  it starts with
+    // exit nodes.
+    let postorder = cfg::traverse_postorder(&prog.cfg);
+
     // phi nodes are considered always read, and so are ignored by DCE
 
     prog.is_alive.fill(false);
+    let mut is_read = vec![false; prog.is_alive.len()].into_boxed_slice();
 
-    for item in prog.inner.iter() {
-        for input in item.insn.input_regs().into_iter().flatten() {
-            if let Some(reg_ndx) = input.as_nor() {
-                prog.is_alive[reg_ndx as usize] = true;
+    for &bid in postorder.order() {
+        for ndx in prog.cfg.insns_ndx_range(bid).rev() {
+            let item = prog.inner.get(ndx).unwrap();
+            let dest_ndx = match item.dest {
+                mil::Reg::Nor(nor_ndx) => nor_ndx as usize,
+                mil::Reg::Phi(_) | mil::Reg::Und => {
+                    continue;
+                }
+            };
+
+            prog.is_alive[dest_ndx] = item.insn.is_control_flow() || is_read[dest_ndx];
+            if !prog.is_alive[dest_ndx] {
+                // this insn's reads don't count
+                continue;
+            }
+
+            for input in item.insn.input_regs().into_iter().flatten() {
+                if let Some(reg_ndx) = input.as_nor() {
+                    is_read[reg_ndx as usize] = true;
+                }
             }
         }
     }

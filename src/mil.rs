@@ -276,6 +276,50 @@ impl Insn {
             Insn::Undefined => print!("undef"),
         }
     }
+
+    pub fn is_control_flow(&self) -> bool {
+        match self {
+            Insn::Const1(_)
+            | Insn::Const2(_)
+            | Insn::Const4(_)
+            | Insn::Const8(_)
+            | Insn::L1(_)
+            | Insn::L2(_)
+            | Insn::L4(_)
+            | Insn::Get(_)
+            | Insn::WithL1(_, _)
+            | Insn::WithL2(_, _)
+            | Insn::WithL4(_, _)
+            | Insn::Add(_, _)
+            | Insn::AddK(_, _)
+            | Insn::Sub(_, _)
+            | Insn::Mul(_, _)
+            | Insn::MulK32(_, _)
+            | Insn::Shl(_, _)
+            | Insn::BitAnd(_, _)
+            | Insn::BitOr(_, _)
+            | Insn::OverflowOf(_)
+            | Insn::CarryOf(_)
+            | Insn::SignOf(_)
+            | Insn::IsZero(_)
+            | Insn::Parity(_)
+            | Insn::Undefined
+            | Insn::LoadMem1(_)
+            | Insn::LoadMem2(_)
+            | Insn::LoadMem4(_)
+            | Insn::LoadMem8(_) => false,
+
+            Insn::Call { .. }
+            | Insn::CArgEnd
+            | Insn::CArg { .. }
+            | Insn::Ret(_)
+            | Insn::Jmp(_)
+            | Insn::JmpK(_)
+            | Insn::JmpIfK { .. }
+            | Insn::TODO(_)
+            | Insn::StoreMem(_, _) => true,
+        }
+    }
 }
 
 impl Program {
