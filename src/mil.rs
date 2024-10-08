@@ -223,13 +223,13 @@ impl Insn {
             Insn::L4(x) => print!("{:8} {:?}", "l4", x),
             Insn::Get(x) => print!("{:8} {:?}", "get", x),
             Insn::WithL1(full, part) => {
-                print!("{:8} {:?}<-{:?}", "with.l1", full, part)
+                print!("{:8} {:?} ← {:?}", "with.l1", full, part)
             }
             Insn::WithL2(full, part) => {
-                print!("{:8} {:?}<-{:?}", "with.l2", full, part)
+                print!("{:8} {:?} ← {:?}", "with.l2", full, part)
             }
             Insn::WithL4(full, part) => {
-                print!("{:8} {:?}<-{:?}", "with.l4", full, part)
+                print!("{:8} {:?} ← {:?}", "with.l4", full, part)
             }
 
             Insn::Add(a, b) => print!("{:8} {:?},{:?}", "add", a, b),
@@ -249,7 +249,7 @@ impl Insn {
             Insn::LoadMem8(addr) => print!("{:8} addr:{:?}", "lmem8", addr),
 
             Insn::StoreMem(addr, val) => {
-                print!("{:8} *{:?}<{:?}", "smem", addr, val)
+                print!("{:8} *{:?} ← {:?}", "smem", addr, val)
             }
             Insn::TODO(msg) => print!("{:8} {}", "TODO", msg),
 
