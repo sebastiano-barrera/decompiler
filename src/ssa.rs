@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
 ///
@@ -22,7 +24,7 @@ impl Program {
 
 pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
     let dom_tree = compute_dom_tree(cfg);
-    let phi_blocks = place_phi_nodes(&program, cfg, &dom_tree);
+    let mut phis = place_phi_nodes(&program, cfg, &dom_tree);
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -49,7 +51,7 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
 
     struct VarMap {
         count: usize,
-        mappings: Vec<mil::Reg>,
+        mappings: Vec<Option<mil::Reg>>,
     }
 
     impl VarMap {
@@ -63,10 +65,16 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
         fn push(&mut self) {
             self.mappings.reserve(self.count);
 
-            // copy the current frame's map into the new one
-            for i in 0..self.count {
-                let val = self.mappings[self.mappings.len() - self.count];
-                self.mappings.push(val);
+            if self.mappings.is_empty() {
+                for _ in 0..self.count {
+                    self.mappings.push(None);
+                }
+            } else {
+                // copy the current frame's map into the new one
+                for i in 0..self.count {
+                    let val = self.mappings[self.mappings.len() - self.count];
+                    self.mappings.push(val);
+                }
             }
 
             assert_eq!(0, self.mappings.len() % self.count);
@@ -78,23 +86,24 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
             assert_eq!(0, self.mappings.len() % self.count);
         }
 
-        fn current(&self) -> &[mil::Reg] {
+        fn current(&self) -> &[Option<mil::Reg>] {
+            assert!(self.mappings.len() > 0, "no mappings!");
             let len = self.mappings.len();
             &self.mappings[len - self.count..]
         }
-        fn current_mut(&mut self) -> &mut [mil::Reg] {
+        fn current_mut(&mut self) -> &mut [Option<mil::Reg>] {
             let len = self.mappings.len();
             &mut self.mappings[len - self.count..]
         }
 
-        fn get(&self, reg: mil::Reg) -> mil::Reg {
+        fn get(&self, reg: mil::Reg) -> Option<mil::Reg> {
             let reg_num = reg.as_nor().expect("only Reg::Nor can be mapped") as usize;
             self.current()[reg_num]
         }
 
         fn set(&mut self, src: mil::Reg, dst: mil::Reg) {
             let reg_num = src.as_nor().expect("only Reg::Nor can be mapped") as usize;
-            self.current_mut()[reg_num] = dst;
+            self.current_mut()[reg_num] = Some(dst);
         }
     }
 
@@ -117,12 +126,20 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
                     let insn = program.get_mut(insn_ndx).unwrap();
                     let inputs = insn.insn.input_regs_mut();
 
-                    if bid == cfg::ENTRY_BID && insn_ndx == 0 {
-                        assert_eq!(inputs, [None, None]);
-                    }
+                    // TODO Re-establish this invariant
+                    //  this will only make sense after I add abstract values representing initial
+                    //  conditions to each function... (probably coming from the calling
+                    //  convention)
+                    //
+                    // > if bid == cfg::ENTRY_BID && insn_ndx == 0 {
+                    // >     assert_eq!(inputs, [None, None]);
+                    // > }
 
                     for reg in inputs.into_iter().flatten() {
-                        *reg = var_map.get(*reg);
+                        *reg = match var_map.get(*reg) {
+                            Some(reg) => reg,
+                            None => panic!("unassigned variable: {:?}", reg),
+                        };
                     }
 
                     // in the output SSA, each destination register corrsponds to the instruction's
@@ -141,6 +158,23 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
                 // ... but in order to patch the correct operand in each phi instruction, we have
                 // to figure out a "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
+
+                for succ in cfg.successors(bid).into_iter().flatten() {
+                    // maybe there is a better way, but I'm betting that the max nubmer of
+                    // predecessor is very small (< 10), so this is plenty fast
+                    // index of bid in succ's predecessor list
+                    let pred_ndx = cfg
+                        .predecessors(bid)
+                        .iter()
+                        .position(|&pred| pred == bid)
+                        .unwrap();
+                    for ndx in 0..phis.nodes_count(bid) {
+                        let phi = phis.node_mut(bid, ndx);
+                        phi.args[pred_ndx] = var_map
+                            .get(phi.args[pred_ndx])
+                            .expect("unassigned variable!");
+                    }
+                }
 
                 // TODO quadratic, but cfgs are generally pretty small
                 let imm_dominated = dom_tree
@@ -164,15 +198,22 @@ pub fn convert_to_ssa(mut program: mil::Program, cfg: &cfg::Graph) -> Program {
 
 const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
 
-fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree) {
+fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree) -> Phis {
+    let block_count = cfg.block_count();
+
     if program.len() == 0 {
-        return;
+        return Phis::empty();
     }
 
     let var_count = count_variables(program);
+
     let mut var_written = vec![false; var_count];
 
-    let mut phis = vec![false; var_count * cfg.block_count()];
+    // phis is a matrix of [V * B] booleans, where V = variables count; B = blocks count.
+    // it represents a set of phi nodes of a specific form:
+    //   phis[v, b] == true  <==>  block b has an instr: `v <- phi v, v, ... (for all predecessors)`
+    let mut phis_set = vec![false; var_count * block_count].into_boxed_slice();
+
     // order does not matter
     for bid in cfg.block_ids() {
         var_written.iter_mut().for_each(|it| *it = false);
@@ -191,7 +232,7 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree)
             // TODO use bitvec and bitwise or?
             let block_phis = {
                 let ofs = bid.as_usize() * var_count;
-                &mut phis[ofs..ofs + var_count]
+                &mut phis_set[ofs..ofs + var_count]
             };
             assert_eq!(block_phis.len(), var_count);
             assert_eq!(var_written.len(), var_count);
@@ -201,7 +242,138 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree)
         });
     }
 
-    todo!()
+    // translate `phis` into a representation such that inputs can be replaced with specific input
+    // variables assigned in predecessors. details are in struct Phis
+    let mut phis_builder = {
+        let mut preds_count = cfg::BlockMap::new(usize::MAX, block_count);
+        for bid in cfg.block_ids() {
+            preds_count[bid] = cfg.predecessors(bid).len();
+        }
+        PhisBuilder::new(preds_count)
+    };
+
+    for bid in cfg.block_ids() {
+        phis_builder.set_start(bid);
+
+        let phis_ofs = bid.as_usize() * var_count;
+        phis_set[phis_ofs..phis_ofs + var_count]
+            .iter()
+            .enumerate()
+            .filter(|(_, is_there)| **is_there)
+            .for_each(|(var_ndx, _)| {
+                let reg_id = var_ndx.try_into().unwrap();
+                let var = mil::Reg::Nor(reg_id);
+                phis_builder.push_init(var);
+            });
+
+        phis_builder.set_end(bid);
+    }
+
+    phis_builder.build()
+}
+
+/// Collection of phi nodes.
+///
+/// This representation of a collection of phi nodes is intended to augment a pre-existing
+/// mil::Program, to support register renaming as part of SSA conversion. It allows us to add phi
+/// nodes without adding any instruction in the mil::Program, therefore without invalidating any
+/// outstanding mil::Index-es.
+///
+struct Phis {
+    preds_count: cfg::BlockMap<usize>,
+    phi_ndx_offset: cfg::BlockMap<Range<usize>>,
+    dest: Box<[mil::Reg]>,
+    args: Box<[mil::Reg]>,
+    max_preds_count: usize,
+}
+struct PhiViewMut<'a> {
+    dest: &'a mut mil::Reg,
+    args: &'a mut [mil::Reg],
+}
+
+impl Phis {
+    fn empty() -> Self {
+        Phis {
+            preds_count: cfg::BlockMap::new(0, 0),
+            phi_ndx_offset: cfg::BlockMap::new(0..0, 0),
+            dest: Box::from([]),
+            args: Box::from([]),
+            max_preds_count: 0,
+        }
+    }
+
+    fn nodes_count(&mut self, bid: cfg::BasicBlockID) -> usize {
+        self.phi_ndx_offset[bid].len()
+    }
+
+    fn node_mut(&mut self, bid: cfg::BasicBlockID, ndx: usize) -> PhiViewMut {
+        let range_ndx = &self.phi_ndx_offset[bid];
+        let abs_ndx = range_ndx.start + ndx;
+        assert!(abs_ndx < range_ndx.end);
+
+        PhiViewMut {
+            dest: &mut self.dest[abs_ndx],
+            args: &mut self.args
+                [abs_ndx * self.max_preds_count..(abs_ndx + 1) * self.max_preds_count],
+        }
+    }
+}
+
+struct PhisBuilder {
+    preds_count: cfg::BlockMap<usize>,
+    phi_ndx_offset: cfg::BlockMap<Range<usize>>,
+    dest: Vec<mil::Reg>,
+    args: Vec<mil::Reg>,
+    max_preds_count: usize,
+}
+
+impl PhisBuilder {
+    const REG_UNINIT: mil::Reg = mil::Reg::Nor(u16::MAX);
+
+    fn new(preds_count: cfg::BlockMap<usize>) -> Self {
+        let block_count = preds_count.len();
+        let max_preds_count = preds_count.iter().max().copied().unwrap_or(0);
+        PhisBuilder {
+            preds_count,
+            phi_ndx_offset: cfg::BlockMap::new(0..0, block_count),
+            dest: Vec::new(),
+            args: Vec::new(),
+            max_preds_count,
+        }
+    }
+
+    fn nodes_count(&self) -> usize {
+        assert_eq!(0, self.args.len() % self.max_preds_count);
+        self.args.len() / self.max_preds_count
+    }
+    fn set_start(&mut self, bid: cfg::BasicBlockID) {
+        let init_ndx = self.nodes_count();
+        self.phi_ndx_offset[bid] = init_ndx..init_ndx;
+    }
+    fn set_end(&mut self, bid: cfg::BasicBlockID) {
+        self.phi_ndx_offset[bid].end = self.nodes_count();
+    }
+    /// Add a phi node of the form `reg <- phi reg, reg, reg...` (with as many arguments as
+    /// there are predecessors)
+    fn push_init(&mut self, reg: mil::Reg) {
+        self.dest.push(reg);
+        for _ in 0..self.max_preds_count {
+            self.args.push(reg);
+        }
+    }
+
+    fn build(self) -> Phis {
+        assert_eq!(self.preds_count.len(), self.phi_ndx_offset.len());
+        assert_eq!(self.args.len() % self.max_preds_count, 0);
+        assert_eq!(self.args.len() / self.max_preds_count, self.dest.len());
+        Phis {
+            preds_count: self.preds_count,
+            phi_ndx_offset: self.phi_ndx_offset,
+            dest: self.dest.into_boxed_slice(),
+            args: self.args.into_boxed_slice(),
+            max_preds_count: self.max_preds_count,
+        }
+    }
 }
 
 // TODO cache this info somewhere. it's so weird to recompute it twice!

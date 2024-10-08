@@ -69,6 +69,10 @@ impl Graph {
         &self.predecessors[range.start..range.end]
     }
 
+    pub fn successors(&self, bid: BasicBlockID) -> [Option<BasicBlockID>; 2] {
+        self.successors[bid].as_array()
+    }
+
     pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<usize> {
         let ndx = bid.as_usize();
         let start = self.bounds[ndx];
@@ -410,6 +414,12 @@ impl<T: Clone> BlockMap<T> {
             let ndx = ndx.try_into().unwrap();
             (BasicBlockID(ndx), item)
         })
+    }
+}
+
+impl<T> Into<Vec<T>> for BlockMap<T> {
+    fn into(self) -> Vec<T> {
+        self.0
     }
 }
 
