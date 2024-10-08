@@ -14,7 +14,6 @@ pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
     successors: BlockMap<BlockCont>,
-    block_at: HashMap<mil::Index, BasicBlockID>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
 }
@@ -204,7 +203,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
     Graph {
         bounds,
-        block_at,
         successors,
         predecessors,
         pred_ndx_range,
