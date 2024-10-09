@@ -16,7 +16,8 @@ pub struct Program {
     inner: mil::Program,
     cfg: cfg::Graph,
     is_alive: Box<[bool]>,
-    reader_count: Box<[usize]>,
+    phis: Phis,
+    rdr_count: ReaderCount,
 }
 
 impl Program {
@@ -29,13 +30,23 @@ impl Program {
             let block_addr = self.inner.get(ndxs.start).unwrap().addr;
 
             println!(".B{}:   ;; 0x{:x}", bid.as_usize(), block_addr);
+
+            for phi_ndx in 0..self.phis.nodes_count(bid) {
+                let phi = self.phis.node(bid, phi_ndx);
+                print!("         {:?} <- phi", phi.dest);
+                for (pred, arg) in self.cfg.predecessors(bid).iter().zip(phi.args) {
+                    print!(" .B{}:{:?}", pred.as_usize(), arg);
+                }
+                println!();
+            }
+
             for ndx in ndxs {
                 if !self.is_alive[ndx] {
                     continue;
                 }
 
                 let item = self.inner.get(ndx).unwrap();
-                let rdr_count = self.reader_count[ndx];
+                let rdr_count = self.rdr_count.get(item.dest);
                 if rdr_count > 1 {
                     print!("  ({:3})  ", rdr_count);
                 } else {
@@ -151,7 +162,17 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
             Cmd::Start(bid) => {
                 var_map.push();
 
-                // patch current block
+                // -- patch current block
+
+                // phi nodes are *used* here for their destination; their arguments are fixed up
+                // while processing the predecessors
+                for phi_ndx in 0..phis.nodes_count(bid) {
+                    let phi = phis.node_mut(bid, phi_ndx);
+                    let phi_ndx = phi_ndx.try_into().unwrap();
+                    var_map.set(*phi.dest, mil::Reg::Phi(phi_ndx));
+                    *phi.dest = mil::Reg::Phi(phi_ndx);
+                }
+
                 for insn_ndx in cfg.insns_ndx_range(bid) {
                     let insn = program.get_mut(insn_ndx).unwrap();
                     let inputs = insn.insn.input_regs_mut();
@@ -183,10 +204,12 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
                     var_map.set(old_name, new_name);
                 }
 
+                // -- patch successor's phi nodes
                 // The algorithm is the following:
                 // >  for s in block's successors:
                 // >    for p in s's ϕ-nodes:
                 // >      Assuming p is for a variable v, make it read from stack[v].
+                //
                 // ... but in order to patch the correct operand in each phi instruction, we have
                 // to figure out a "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
@@ -232,13 +255,15 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
         .map(|max_reg_ndx| max_reg_ndx + 1)
         .unwrap_or(0) as usize;
     let is_alive = vec![true; var_count].into_boxed_slice();
-    let reader_count = vec![0; var_count].into_boxed_slice();
+
+    let rdr_count = ReaderCount::new(var_count, phis.len());
 
     let mut program = Program {
         inner: program,
         cfg,
         is_alive,
-        reader_count,
+        phis,
+        rdr_count,
     };
     eliminate_dead_code(&mut program);
     program
@@ -328,11 +353,11 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree)
 /// outstanding mil::Index-es.
 ///
 struct Phis {
-    preds_count: cfg::BlockMap<usize>,
-    phi_ndx_offset: cfg::BlockMap<Range<usize>>,
+    block_ndxs: cfg::BlockMap<Range<usize>>,
     dest: Box<[mil::Reg]>,
     args: Box<[mil::Reg]>,
     max_preds_count: usize,
+    reader_count: Box<[usize]>,
 }
 struct PhiViewMut<'a> {
     dest: &'a mut mil::Reg,
@@ -346,41 +371,55 @@ struct PhiView<'a> {
 impl Phis {
     fn empty() -> Self {
         Phis {
-            preds_count: cfg::BlockMap::new(0, 0),
-            phi_ndx_offset: cfg::BlockMap::new(0..0, 0),
+            block_ndxs: cfg::BlockMap::new(0..0, 0),
             dest: Box::from([]),
             args: Box::from([]),
+            reader_count: Box::from([]),
             max_preds_count: 0,
         }
     }
 
-    fn nodes_count(&mut self, bid: cfg::BasicBlockID) -> usize {
-        self.phi_ndx_offset[bid].len()
+    #[inline]
+    fn nodes_count(&self, bid: cfg::BasicBlockID) -> usize {
+        self.block_ndxs[bid].len()
     }
 
+    #[inline]
     fn node(&self, bid: cfg::BasicBlockID, ndx: usize) -> PhiView {
         let flat_ndx = self.flat_ndx(bid, ndx);
+        self.flat_get(flat_ndx)
+    }
+
+    #[inline]
+    fn node_mut(&mut self, bid: cfg::BasicBlockID, ndx: usize) -> PhiViewMut {
+        let flat_ndx = self.flat_ndx(bid, ndx);
+        self.flat_get_mut(flat_ndx)
+    }
+
+    #[inline]
+    fn flat_ndx(&self, bid: BasicBlockID, ndx: usize) -> usize {
+        let range_ndx = &self.block_ndxs[bid];
+        let abs_ndx = range_ndx.start + ndx;
+        assert!(abs_ndx < range_ndx.end);
+        abs_ndx
+    }
+
+    fn len(&self) -> usize {
+        self.dest.len()
+    }
+    fn flat_get(&self, flat_ndx: usize) -> PhiView {
         PhiView {
             dest: &self.dest[flat_ndx],
             args: &self.args
                 [flat_ndx * self.max_preds_count..(flat_ndx + 1) * self.max_preds_count],
         }
     }
-
-    fn node_mut(&mut self, bid: cfg::BasicBlockID, ndx: usize) -> PhiViewMut {
-        let flat_ndx = self.flat_ndx(bid, ndx);
+    fn flat_get_mut(&mut self, flat_ndx: usize) -> PhiViewMut<'_> {
         PhiViewMut {
             dest: &mut self.dest[flat_ndx],
             args: &mut self.args
                 [flat_ndx * self.max_preds_count..(flat_ndx + 1) * self.max_preds_count],
         }
-    }
-
-    fn flat_ndx(&self, bid: BasicBlockID, ndx: usize) -> usize {
-        let range_ndx = &self.phi_ndx_offset[bid];
-        let abs_ndx = range_ndx.start + ndx;
-        assert!(abs_ndx < range_ndx.end);
-        abs_ndx
     }
 }
 
@@ -431,12 +470,13 @@ impl PhisBuilder {
         assert_eq!(self.preds_count.len(), self.phi_ndx_offset.len());
         assert_eq!(self.args.len() % self.max_preds_count, 0);
         assert_eq!(self.args.len() / self.max_preds_count, self.dest.len());
+        let count = self.dest.len();
         Phis {
-            preds_count: self.preds_count,
-            phi_ndx_offset: self.phi_ndx_offset,
+            block_ndxs: self.phi_ndx_offset,
             dest: self.dest.into_boxed_slice(),
             args: self.args.into_boxed_slice(),
             max_preds_count: self.max_preds_count,
+            reader_count: vec![0; count].into_boxed_slice(),
         }
     }
 }
@@ -584,7 +624,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     // phi nodes are considered always read, and so are ignored by DCE
 
     prog.is_alive.fill(false);
-    prog.reader_count.fill(0);
+    prog.rdr_count.reset();
 
     for &bid in postorder.order() {
         for ndx in prog.cfg.insns_ndx_range(bid).rev() {
@@ -597,17 +637,63 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             };
 
             prog.is_alive[dest_ndx] =
-                item.insn.is_control_flow() || prog.reader_count[dest_ndx] > 0;
+                item.insn.is_control_flow() || prog.rdr_count.get(item.dest) > 0;
             if !prog.is_alive[dest_ndx] {
                 // this insn's reads don't count
                 continue;
             }
 
-            for input in item.insn.input_regs().into_iter().flatten() {
-                if let Some(reg_ndx) = input.as_nor() {
-                    prog.reader_count[reg_ndx as usize] += 1;
-                }
+            for &input in item.insn.input_regs().into_iter().flatten() {
+                prog.rdr_count.inc(input);
             }
+        }
+
+        for phi_ndx in 0..prog.phis.nodes_count(bid) {
+            let phi = prog.phis.node(bid, phi_ndx);
+            for (&pred, &arg) in prog.cfg.predecessors(bid).iter().zip(phi.args) {
+                prog.rdr_count.inc(arg);
+            }
+        }
+    }
+}
+
+struct ReaderCount {
+    nor: Box<[usize]>,
+    phi: Box<[usize]>,
+}
+
+impl ReaderCount {
+    fn new(nor_count: usize, phi_count: usize) -> Self {
+        ReaderCount {
+            nor: vec![0; nor_count].into_boxed_slice(),
+            phi: vec![0; phi_count].into_boxed_slice(),
+        }
+    }
+
+    fn reset(&mut self) {
+        self.nor.fill(0);
+        self.phi.fill(0);
+    }
+
+    fn get(&self, reg: mil::Reg) -> usize {
+        match reg {
+            mil::Reg::Nor(nor_ndx) => self.nor[nor_ndx as usize],
+            mil::Reg::Phi(phi_ndx) => self.phi[phi_ndx as usize],
+            mil::Reg::Und => 0,
+        }
+    }
+
+    fn inc(&mut self, reg: mil::Reg) {
+        match reg {
+            mil::Reg::Nor(nor_ndx) => {
+                self.nor[nor_ndx as usize] += 1;
+            }
+            mil::Reg::Phi(phi_ndx) => {
+                // NOTE This already follows the convention where phi indices are
+                // function-scoped, not block-scoped
+                self.phi[phi_ndx as usize] += 1;
+            }
+            mil::Reg::Und => {}
         }
     }
 }
