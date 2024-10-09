@@ -15,7 +15,7 @@ use crate::{
 pub struct Program {
     inner: mil::Program,
     cfg: cfg::Graph,
-    is_alive: Box<[bool]>,
+    is_alive: RegMap<bool>,
     phis: Phis,
     rdr_count: ReaderCount,
 }
@@ -33,6 +33,9 @@ impl Program {
 
             for phi_ndx in 0..self.phis.nodes_count(bid) {
                 let phi = self.phis.node(bid, phi_ndx);
+                if !*self.is_alive.get(*phi.dest).unwrap() {
+                    continue;
+                }
                 print!("         {:?} <- phi", phi.dest);
                 for (pred, arg) in self.cfg.predecessors(bid).iter().zip(phi.args) {
                     print!(" .B{}:{:?}", pred.as_usize(), arg);
@@ -41,7 +44,8 @@ impl Program {
             }
 
             for ndx in ndxs {
-                if !self.is_alive[ndx] {
+                let nor_ndx = ndx.try_into().unwrap();
+                if !*self.is_alive.get(mil::Reg::Nor(nor_ndx)).unwrap() {
                     continue;
                 }
 
@@ -254,14 +258,8 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
         }
     }
 
-    let var_count = program
-        .iter()
-        .filter_map(|insn| insn.dest.as_nor())
-        .max()
-        .map(|max_reg_ndx| max_reg_ndx + 1)
-        .unwrap_or(0) as usize;
-    let is_alive = vec![true; var_count].into_boxed_slice();
-
+    let var_count = program.len();
+    let is_alive = RegMap::new(true, var_count, phis.len());
     let rdr_count = ReaderCount::new(var_count, phis.len());
 
     let mut program = Program {
@@ -640,24 +638,22 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     // exit nodes.
     let postorder = cfg::traverse_postorder(&prog.cfg);
 
-    // phi nodes are considered always read, and so are ignored by DCE
-
     prog.is_alive.fill(false);
     prog.rdr_count.reset();
 
     for &bid in postorder.order() {
         for ndx in prog.cfg.insns_ndx_range(bid).rev() {
             let item = prog.inner.get(ndx).unwrap();
-            let dest_ndx = match item.dest {
-                mil::Reg::Nor(nor_ndx) => nor_ndx as usize,
-                mil::Reg::Phi(_) | mil::Reg::Und => {
+            let dest = match item.dest {
+                mil::Reg::Nor(_) | mil::Reg::Phi(_) => item.dest,
+                mil::Reg::Und => {
                     continue;
                 }
             };
 
-            prog.is_alive[dest_ndx] =
-                item.insn.is_control_flow() || prog.rdr_count.get(item.dest) > 0;
-            if !prog.is_alive[dest_ndx] {
+            let is_alive = prog.is_alive.get_mut(dest).unwrap();
+            *is_alive = item.insn.is_control_flow() || prog.rdr_count.get(dest) > 0;
+            if !*is_alive {
                 // this insn's reads don't count
                 continue;
             }
@@ -667,52 +663,75 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             }
         }
 
+        // order of processing of phi nodes should not matter
         for phi_ndx in 0..prog.phis.nodes_count(bid) {
             let phi = prog.phis.node(bid, phi_ndx);
-            for (&pred, &arg) in prog.cfg.predecessors(bid).iter().zip(phi.args) {
+            let dest = *phi.dest;
+            let is_alive = prog.is_alive.get_mut(dest).unwrap();
+            *is_alive = prog.rdr_count.get(dest) > 0;
+            if !*is_alive {
+                // this insn's reads don't count
+                continue;
+            }
+            for &arg in phi.args {
                 prog.rdr_count.inc(arg);
             }
         }
     }
 }
 
-struct ReaderCount {
-    nor: Box<[usize]>,
-    phi: Box<[usize]>,
+struct RegMap<T> {
+    nor: Box<[T]>,
+    phi: Box<[T]>,
+}
+impl<T: Clone> RegMap<T> {
+    fn new(init: T, nor_count: usize, phi_count: usize) -> Self {
+        RegMap {
+            nor: vec![init.clone(); nor_count].into_boxed_slice(),
+            phi: vec![init; phi_count].into_boxed_slice(),
+        }
+    }
+
+    fn fill(&mut self, value: T) {
+        self.nor.fill(value.clone());
+        self.phi.fill(value);
+    }
+
+    fn get(&self, reg: mil::Reg) -> Option<&T> {
+        match reg {
+            mil::Reg::Nor(nor_ndx) => Some(&self.nor[nor_ndx as usize]),
+            mil::Reg::Phi(phi_ndx) => Some(&self.phi[phi_ndx as usize]),
+            mil::Reg::Und => None,
+        }
+    }
+
+    fn get_mut(&mut self, reg: mil::Reg) -> Option<&mut T> {
+        match reg {
+            mil::Reg::Nor(nor_ndx) => Some(&mut self.nor[nor_ndx as usize]),
+            mil::Reg::Phi(phi_ndx) => Some(&mut self.phi[phi_ndx as usize]),
+            mil::Reg::Und => None,
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &T> {
+        self.nor.iter().chain(self.phi.iter())
+    }
 }
 
+struct ReaderCount(RegMap<usize>);
 impl ReaderCount {
     fn new(nor_count: usize, phi_count: usize) -> Self {
-        ReaderCount {
-            nor: vec![0; nor_count].into_boxed_slice(),
-            phi: vec![0; phi_count].into_boxed_slice(),
-        }
+        ReaderCount(RegMap::new(0, nor_count, phi_count))
     }
-
     fn reset(&mut self) {
-        self.nor.fill(0);
-        self.phi.fill(0);
+        self.0.fill(0);
     }
-
     fn get(&self, reg: mil::Reg) -> usize {
-        match reg {
-            mil::Reg::Nor(nor_ndx) => self.nor[nor_ndx as usize],
-            mil::Reg::Phi(phi_ndx) => self.phi[phi_ndx as usize],
-            mil::Reg::Und => 0,
-        }
+        *self.0.get(reg).unwrap()
     }
-
     fn inc(&mut self, reg: mil::Reg) {
-        match reg {
-            mil::Reg::Nor(nor_ndx) => {
-                self.nor[nor_ndx as usize] += 1;
-            }
-            mil::Reg::Phi(phi_ndx) => {
-                // NOTE This already follows the convention where phi indices are
-                // function-scoped, not block-scoped
-                self.phi[phi_ndx as usize] += 1;
-            }
-            mil::Reg::Und => {}
+        if let Some(elm) = self.0.get_mut(reg) {
+            *elm += 1;
         }
     }
 }
