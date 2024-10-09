@@ -112,10 +112,16 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
                 }
             } else {
                 // copy the current frame's map into the new one
-                for i in 0..self.count {
+                for _ in 0..self.count {
                     let val = self.mappings[self.mappings.len() - self.count];
                     self.mappings.push(val);
                 }
+
+                let len = self.mappings.len();
+                debug_assert_eq!(
+                    &self.mappings[len - self.count * 2..len - self.count],
+                    &self.mappings[len - self.count..]
+                );
             }
 
             assert_eq!(0, self.mappings.len() % self.count);
@@ -142,9 +148,9 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
             self.current()[reg_num]
         }
 
-        fn set(&mut self, src: mil::Reg, dst: mil::Reg) {
-            let reg_num = src.as_nor().expect("only Reg::Nor can be mapped") as usize;
-            self.current_mut()[reg_num] = dst;
+        fn set(&mut self, old: mil::Reg, new: mil::Reg) {
+            let reg_num = old.as_nor().expect("only Reg::Nor can be mapped") as usize;
+            self.current_mut()[reg_num] = new;
         }
     }
 
@@ -242,7 +248,7 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
                 }
             }
 
-            Cmd::Finish(bid) => {
+            Cmd::Finish(_) => {
                 var_map.pop();
             }
         }
@@ -278,41 +284,29 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree)
         return Phis::empty();
     }
 
+    // matrix [B * B] where B = #blocks
+    // matrix[i, j] = true iff block j is in block i's dominance frontier
+    let is_dom_front = compute_dominance_frontier(cfg, dom_tree);
+
+    // the rule is:
+    //   if variable v is written in block b,
+    //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
+    // (phis_set is to avoid having multiple phis for the same var)
     let var_count = count_variables(program);
-
-    let mut var_written = vec![false; var_count];
-
-    // phis is a matrix of [V * B] booleans, where V = variables count; B = blocks count.
-    // it represents a set of phi nodes of a specific form:
-    //   phis[v, b] == true  <==>  block b has an instr: `v <- phi v, v, ... (for all predecessors)`
-    let mut phis_set = vec![false; var_count * block_count].into_boxed_slice();
-
-    // order does not matter
+    let mut phis_set = Mat::new(false, block_count, var_count);
     for bid in cfg.block_ids() {
-        var_written.iter_mut().for_each(|it| *it = false);
+        let bid_ndx = bid.as_usize();
 
-        let ndxs = cfg.insns_ndx_range(bid);
-        let block_start_pos = ndxs.start;
-        let preds_count = cfg.predecessors(bid).len();
-
-        for insn_ndx in ndxs {
+        for insn_ndx in cfg.insns_ndx_range(bid) {
             let insn = program.get(insn_ndx).unwrap();
-            let dest = insn.dest.as_nor().expect(ERR_NON_NOR) as usize;
-            var_written[dest] = true;
-        }
-
-        find_dominance_frontier(cfg, &dom_tree, bid, |dom_fr_bid| {
-            // TODO use bitvec and bitwise or?
-            let block_phis = {
-                let ofs = bid.as_usize() * var_count;
-                &mut phis_set[ofs..ofs + var_count]
-            };
-            assert_eq!(block_phis.len(), var_count);
-            assert_eq!(var_written.len(), var_count);
-            for i in 0..var_count {
-                block_phis[i] |= var_written[i];
+            if let mil::Reg::Nor(dest_ndx) = insn.dest {
+                for target_ndx in 0..cfg.block_count() {
+                    if *is_dom_front.item(bid_ndx, target_ndx) {
+                        *phis_set.item_mut(target_ndx, dest_ndx as usize) = true;
+                    }
+                }
             }
-        });
+        }
     }
 
     // translate `phis` into a representation such that inputs can be replaced with specific input
@@ -324,20 +318,16 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree)
         }
         PhisBuilder::new(preds_count)
     };
-
     for bid in cfg.block_ids() {
         phis_builder.set_start(bid);
+        let block_ndx = bid.as_usize();
 
-        let phis_ofs = bid.as_usize() * var_count;
-        phis_set[phis_ofs..phis_ofs + var_count]
-            .iter()
-            .enumerate()
-            .filter(|(_, is_there)| **is_there)
-            .for_each(|(var_ndx, _)| {
-                let reg_id = var_ndx.try_into().unwrap();
-                let var = mil::Reg::Nor(reg_id);
-                phis_builder.push_init(var);
-            });
+        for var_ndx in 0..var_count {
+            if *phis_set.item(block_ndx, var_ndx) {
+                let var_ndx = var_ndx.try_into().unwrap();
+                phis_builder.push_init(mil::Reg::Nor(var_ndx));
+            }
+        }
 
         phis_builder.set_end(bid);
     }
@@ -352,6 +342,7 @@ fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree)
 /// nodes without adding any instruction in the mil::Program, therefore without invalidating any
 /// outstanding mil::Index-es.
 ///
+#[derive(Debug)]
 struct Phis {
     block_ndxs: cfg::BlockMap<Range<usize>>,
     dest: Box<[mil::Reg]>,
@@ -460,6 +451,7 @@ impl PhisBuilder {
     /// Add a phi node of the form `reg <- phi reg, reg, reg...` (with as many arguments as
     /// there are predecessors)
     fn push_init(&mut self, reg: mil::Reg) {
+        assert!(matches!(reg, mil::Reg::Nor(_)));
         self.dest.push(reg);
         for _ in 0..self.max_preds_count {
             self.args.push(reg);
@@ -562,40 +554,67 @@ where
     LT: Fn(cfg::BasicBlockID, cfg::BasicBlockID) -> bool,
 {
     while ndx_a != ndx_b {
-        let mut count = parent_of.len();
         while is_lt(ndx_a, ndx_b) {
             ndx_b = parent_of[ndx_b].unwrap();
-            count -= 1;
         }
-        let mut count = parent_of.len();
         while is_lt(ndx_b, ndx_a) {
             ndx_a = parent_of[ndx_a].unwrap();
-            count -= 1;
         }
     }
 
     ndx_a
 }
 
-fn find_dominance_frontier(
-    graph: &cfg::Graph,
-    dom_tree: &cfg::BlockMap<Option<cfg::BasicBlockID>>,
-    node: cfg::BasicBlockID,
-    mut on_found: impl FnMut(cfg::BasicBlockID),
-) {
-    let preds = graph.predecessors(node);
-    if preds.len() < 2 {
-        return;
+struct Mat<T> {
+    items: Box<[T]>,
+    rows: usize,
+    cols: usize,
+}
+impl<T: Clone> Mat<T> {
+    fn new(init: T, rows: usize, cols: usize) -> Self {
+        let items = vec![init; rows * cols].into_boxed_slice();
+        Mat { items, rows, cols }
     }
 
-    let runner_stop = dom_tree[node].unwrap();
-    for &pred in preds {
-        let mut runner = pred;
-        while runner != runner_stop {
-            on_found(runner);
-            runner = dom_tree[runner].unwrap();
+    fn ndx(&self, i: usize, j: usize) -> usize {
+        assert!(i < self.rows);
+        assert!(j < self.cols);
+        self.cols * i + j
+    }
+
+    fn item(&self, i: usize, j: usize) -> &T {
+        &self.items[self.ndx(i, j)]
+    }
+    fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
+        &mut self.items[self.ndx(i, j)]
+    }
+}
+
+fn compute_dominance_frontier(
+    graph: &cfg::Graph,
+    dom_tree: &cfg::BlockMap<Option<cfg::BasicBlockID>>,
+) -> Mat<bool> {
+    let count = graph.block_count();
+    let mut mat = Mat::new(false, count, count);
+
+    for bid in graph.block_ids() {
+        let preds = graph.predecessors(bid);
+        if preds.len() < 2 {
+            continue;
+        }
+
+        let runner_stop = dom_tree[bid].unwrap();
+        for &pred in preds {
+            // bid is in the dominance frontier of pred, and of all its dominators
+            let mut runner = pred;
+            while runner != runner_stop {
+                *mat.item_mut(runner.as_usize(), bid.as_usize()) = true;
+                runner = dom_tree[runner].unwrap();
+            }
         }
     }
+
+    mat
 }
 
 fn dump_tree_dot(dom_tree: cfg::BlockMap<Option<cfg::BasicBlockID>>) {
@@ -695,5 +714,54 @@ impl ReaderCount {
             }
             mil::Reg::Und => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::mil;
+
+    #[test]
+    fn test_phi_read() {
+        use mil::{Insn, Reg};
+        let prog = {
+            let mut pb = mil::ProgramBuilder::new();
+
+            pb.set_input_addr(0xf0);
+            pb.push(Reg::Nor(0), Insn::Const8(123));
+            pb.push(
+                Reg::Nor(1),
+                Insn::JmpIfK {
+                    cond: Reg::Nor(0),
+                    target: 0xf2,
+                },
+            );
+
+            pb.set_input_addr(0xf1);
+            pb.push(Reg::Nor(2), Insn::Const1(4));
+            pb.push(Reg::Nor(3), Insn::JmpK(0xf3));
+
+            pb.set_input_addr(0xf2);
+            pb.push(Reg::Nor(2), Insn::Const1(8));
+
+            pb.set_input_addr(0xf3);
+            pb.push(Reg::Nor(4), Insn::AddK(Reg::Nor(2), 456));
+            pb.push(Reg::Nor(5), Insn::Ret(Reg::Nor(4)));
+
+            pb.build()
+        };
+
+        eprintln!("-- mil:");
+        prog.dump();
+
+        eprintln!("-- ssa:");
+        let prog = super::convert_to_ssa(prog);
+        prog.dump();
+
+        let bid = prog.cfg.block_starting_at(5).unwrap();
+        let phi_count = prog.phis.nodes_count(bid);
+        assert_eq!(phi_count, 2);
+        // assert_eq!(prog.phis.node(bid, 0),);
+        assert!(false);
     }
 }
