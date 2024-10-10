@@ -66,9 +66,9 @@ impl Program {
 
 pub fn convert_to_ssa(mut program: mil::Program) -> Program {
     let cfg = cfg::analyze_mil(&program);
-    cfg.dump_graphviz(&program);
+    let dom_tree = cfg::compute_dom_tree(&cfg);
+    cfg.dump_graphviz(Some(&dom_tree));
 
-    let dom_tree = compute_dom_tree(&cfg);
     let mut phis = place_phi_nodes(&program, &cfg, &dom_tree);
 
     /*
@@ -279,7 +279,7 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
 
 const ERR_NON_NOR: &str = "input program must not mention any non-Nor Reg";
 
-fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &DomTree) -> Phis {
+fn place_phi_nodes(program: &mil::Program, cfg: &cfg::Graph, dom_tree: &cfg::DomTree) -> Phis {
     let block_count = cfg.block_count();
 
     if program.len() == 0 {
@@ -497,89 +497,6 @@ fn count_variables(program: &mil::Program) -> usize {
         .unwrap() as usize;
 
     1 + max_reg_ndx
-}
-
-type DomTree = cfg::BlockMap<Option<cfg::BasicBlockID>>;
-
-pub fn compute_dom_tree(cfg: &cfg::Graph) -> DomTree {
-    let block_count = cfg.block_count();
-    let rpo = cfg::traverse_reverse_postorder(cfg);
-
-    let mut parent = cfg::BlockMap::new(None, block_count);
-
-    // process the entry node "manually", so the algorithm can rely on it for successors
-    parent[cfg::ENTRY_BID] = Some(cfg::ENTRY_BID);
-
-    let mut changed = true;
-    while changed {
-        changed = false;
-
-        for &bid in rpo.order().iter() {
-            let preds = cfg.predecessors(bid);
-            if preds.is_empty() {
-                continue;
-            }
-
-            // start with the first unprocessed predecessor
-            let (idom_init_ndx, &(mut idom)) = preds
-                .iter()
-                .enumerate()
-                .find(|(pred_ndx, _)| parent[preds[*pred_ndx]].is_some())
-                .expect("rev. postorder bug: all predecessors are yet to be processed");
-
-            for (pred_ndx, &pred) in preds.iter().enumerate() {
-                if pred_ndx == idom_init_ndx {
-                    continue;
-                }
-
-                if parent[pred].is_some() {
-                    idom = common_ancestor(
-                        &parent,
-                        |id_a, id_b| rpo.position_of(id_a) < rpo.position_of(id_b),
-                        pred,
-                        idom,
-                    );
-                }
-            }
-
-            let prev_idom = parent[bid].replace(idom);
-            if prev_idom != Some(idom) {
-                changed = true;
-            }
-        }
-    }
-
-    // we hand the tree out with a slightly different convention: the root node has no parent in
-    // the tree, so the corresponding item is None.  up to this point the root is linked to itself,
-    // as required by the algorithm by how it's formulated
-    parent[cfg::ENTRY_BID] = None;
-    parent
-}
-
-/// Find the common ancestor of two nodes in a tree.
-///
-/// The tree is presumed to have progressively numbered nodes. It is represented as an array
-/// `parent_of` such that, for each node with index _i_, parent_of[i] is the index of the parent
-/// node (or _i_, the same index, for the root node).
-fn common_ancestor<LT>(
-    parent_of: &DomTree,
-    is_lt: LT,
-    mut ndx_a: cfg::BasicBlockID,
-    mut ndx_b: cfg::BasicBlockID,
-) -> cfg::BasicBlockID
-where
-    LT: Fn(cfg::BasicBlockID, cfg::BasicBlockID) -> bool,
-{
-    while ndx_a != ndx_b {
-        while is_lt(ndx_a, ndx_b) {
-            ndx_b = parent_of[ndx_b].unwrap();
-        }
-        while is_lt(ndx_b, ndx_a) {
-            ndx_a = parent_of[ndx_a].unwrap();
-        }
-    }
-
-    ndx_a
 }
 
 struct Mat<T> {
