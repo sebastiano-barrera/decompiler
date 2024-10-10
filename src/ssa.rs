@@ -485,11 +485,18 @@ impl PhisBuilder {
 
 // TODO cache this info somewhere. it's so weird to recompute it twice!
 fn count_variables(program: &mil::Program) -> usize {
-    1 + program
+    use std::iter::once;
+
+    let max_reg_ndx = program
         .iter()
-        .map(|insn| insn.dest.as_nor().expect(ERR_NON_NOR))
+        .flat_map(|insn| {
+            once(insn.dest).chain(insn.insn.input_regs().into_iter().flatten().copied())
+        })
+        .map(|reg| reg.as_nor().expect(ERR_NON_NOR))
         .max()
-        .unwrap() as usize
+        .unwrap() as usize;
+
+    1 + max_reg_ndx
 }
 
 type DomTree = cfg::BlockMap<Option<cfg::BasicBlockID>>;
