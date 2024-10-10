@@ -309,23 +309,16 @@ fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
 
         rem_preds_count[bid] -= 1;
         if rem_preds_count[bid] > 0 {
-            eprintln!(
-                "node {}: delaying ({})",
-                bid.as_usize(),
-                rem_preds_count[bid]
-            );
             continue;
         }
 
         assert_eq!(rem_preds_count[bid], 0);
-        eprintln!("node {}: processing", bid.as_usize());
         order.push(bid);
         visited[bid] = true;
 
         let block_succs: [_; 2] = graph.successors[bid].as_array();
         for succ in block_succs.into_iter().flatten() {
             if !visited[succ] {
-                eprintln!("{} -> {}", bid.as_usize(), succ.as_usize());
                 queue.push(succ);
             }
         }

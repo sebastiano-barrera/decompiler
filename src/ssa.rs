@@ -627,20 +627,6 @@ fn compute_dominance_frontier(
     mat
 }
 
-fn dump_tree_dot(dom_tree: cfg::BlockMap<Option<cfg::BasicBlockID>>) {
-    println!("digraph {{");
-    for (bid, _) in dom_tree.items() {
-        let bid = bid.as_number();
-        println!("  block{} [label=\"{}\"]", bid, bid);
-    }
-    for (bid, parent) in dom_tree.items() {
-        if let Some(parent) = parent {
-            println!("  block{} -> block{}", bid.as_number(), parent.as_number());
-        }
-    }
-    println!("}}");
-}
-
 pub fn eliminate_dead_code(prog: &mut Program) {
     if prog.inner.len() == 0 {
         return;
