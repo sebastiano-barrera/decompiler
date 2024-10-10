@@ -81,6 +81,8 @@ pub enum Insn {
     Shl(Reg, Reg),
     BitAnd(Reg, Reg),
     BitOr(Reg, Reg),
+    Eq(Reg, Reg),
+    Not(Reg),
 
     // call args are represented with a linked list:
     //  r0 <- [compute callee]
@@ -146,6 +148,7 @@ impl Insn {
             | Insn::Get(reg)
             | Insn::AddK(reg, _)
             | Insn::MulK32(reg, _)
+            | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::Jmp(reg)
             | Insn::JmpIfK {
@@ -171,6 +174,7 @@ impl Insn {
             | Insn::Shl(a, b)
             | Insn::BitAnd(a, b)
             | Insn::BitOr(a, b)
+            | Insn::Eq(a, b)
             | Insn::Call { callee: a, arg0: b }
             | Insn::CArg { value: a, prev: b }
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
@@ -195,6 +199,7 @@ impl Insn {
             | Insn::Get(reg)
             | Insn::AddK(reg, _)
             | Insn::MulK32(reg, _)
+            | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::Jmp(reg)
             | Insn::JmpIfK {
@@ -220,6 +225,7 @@ impl Insn {
             | Insn::Shl(a, b)
             | Insn::BitAnd(a, b)
             | Insn::BitOr(a, b)
+            | Insn::Eq(a, b)
             | Insn::Call { callee: a, arg0: b }
             | Insn::CArg { value: a, prev: b }
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
@@ -256,6 +262,8 @@ impl Insn {
             }
             Insn::BitAnd(a, b) => print!("{:8} {:?},{:?}", "and", a, b),
             Insn::BitOr(a, b) => print!("{:8} {:?},{:?}", "or", a, b),
+            Insn::Eq(a, b) => print!("{:8} {:?},{:?}", "eq", a, b),
+            Insn::Not(x) => print!("{:8} {:?}", "not", x),
 
             Insn::LoadMem1(addr) => print!("{:8} addr:{:?}", "loadm1", addr),
             Insn::LoadMem2(addr) => print!("{:8} addr:{:?}", "loadm2", addr),
@@ -315,6 +323,8 @@ impl Insn {
             | Insn::Shl(_, _)
             | Insn::BitAnd(_, _)
             | Insn::BitOr(_, _)
+            | Insn::Eq(_, _)
+            | Insn::Not(_)
             | Insn::OverflowOf(_)
             | Insn::CarryOf(_)
             | Insn::SignOf(_)

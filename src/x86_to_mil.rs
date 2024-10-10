@@ -212,6 +212,13 @@ impl Builder {
                 M::Jb => {
                     self.emit_jmpif(insn, 0, Self::CF);
                 }
+                M::Jle => {
+                    // ZF=1 or SF ≠ OF
+                    self.emit(Self::V0, mil::Insn::Eq(Self::SF, Self::OF));
+                    self.emit(Self::V0, mil::Insn::Not(Self::V0));
+                    self.emit(Self::V0, mil::Insn::BitOr(Self::V0, Self::ZF));
+                    self.emit_jmpif(insn, 0, Self::V0);
+                }
                 _ => {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
