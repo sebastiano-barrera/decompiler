@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::io::Read;
 use std::{fs::File, path::PathBuf};
 

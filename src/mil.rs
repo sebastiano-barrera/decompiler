@@ -39,6 +39,12 @@ impl Reg {
             _ => None,
         }
     }
+    pub fn as_phi(&self) -> Option<u16> {
+        match self {
+            Reg::Phi(id) => Some(*id),
+            _ => None,
+        }
+    }
 }
 impl std::fmt::Debug for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

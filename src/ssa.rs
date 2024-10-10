@@ -94,59 +94,49 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
     rename(entry)
     */
 
+    // TODO rework this with a more efficient data structure
     struct VarMap {
         count: usize,
-        mappings: Vec<mil::Reg>,
+        stack: Vec<Box<[mil::Reg]>>,
     }
 
     impl VarMap {
         fn new(vars_count: usize) -> Self {
             VarMap {
                 count: vars_count,
-                mappings: Vec::new(),
+                stack: Vec::new(),
             }
         }
 
         fn push(&mut self) {
-            self.mappings.reserve(self.count);
-
-            if self.mappings.is_empty() {
-                for _ in 0..self.count {
-                    self.mappings.push(mil::Reg::Und);
-                }
+            if self.stack.is_empty() {
+                self.stack
+                    .push(vec![mil::Reg::Und; self.count].into_boxed_slice());
             } else {
-                // copy the current frame's map into the new one
-                for _ in 0..self.count {
-                    let val = self.mappings[self.mappings.len() - self.count];
-                    self.mappings.push(val);
-                }
-
-                let len = self.mappings.len();
-                debug_assert_eq!(
-                    &self.mappings[len - self.count * 2..len - self.count],
-                    &self.mappings[len - self.count..]
-                );
+                let new_elem = self.stack.last().unwrap().clone();
+                self.stack.push(new_elem);
             }
 
-            assert_eq!(0, self.mappings.len() % self.count);
+            self.check_invariants()
+        }
+
+        fn check_invariants(&self) {
+            for elem in &self.stack {
+                assert_eq!(elem.len(), self.count);
+            }
         }
 
         fn pop(&mut self) {
-            let old_len = self.mappings.len();
-            self.mappings.truncate(old_len - self.count);
-            assert_eq!(0, self.mappings.len() % self.count);
+            self.stack.pop();
+            self.check_invariants();
         }
 
         fn current(&self) -> &[mil::Reg] {
-            assert!(self.mappings.len() > 0, "no mappings!");
-            let len = self.mappings.len();
-            &self.mappings[len - self.count..]
+            &self.stack.last().expect("no mappings!")[..]
         }
         fn current_mut(&mut self) -> &mut [mil::Reg] {
-            let len = self.mappings.len();
-            &mut self.mappings[len - self.count..]
+            &mut self.stack.last_mut().expect("no mappings!")[..]
         }
-
         fn get(&self, reg: mil::Reg) -> mil::Reg {
             let reg_num = reg.as_nor().expect("only Reg::Nor can be mapped") as usize;
             self.current()[reg_num]
@@ -176,11 +166,12 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
 
                 // phi nodes are *used* here for their destination; their arguments are fixed up
                 // while processing the predecessors
-                for phi_ndx in 0..phis.nodes_count(bid) {
-                    let phi = phis.node_mut(bid, phi_ndx);
-                    let phi_ndx = phi_ndx.try_into().unwrap();
-                    var_map.set(*phi.dest, mil::Reg::Phi(phi_ndx));
-                    *phi.dest = mil::Reg::Phi(phi_ndx);
+                for block_phi_ndx in 0..phis.nodes_count(bid) {
+                    let glob_phi_ndx = phis.flat_ndx(bid, block_phi_ndx);
+                    let phi = phis.flat_get_mut(glob_phi_ndx);
+                    let new_phi = mil::Reg::Phi(glob_phi_ndx.try_into().unwrap());
+                    var_map.set(*phi.dest, new_phi);
+                    *phi.dest = new_phi;
                 }
 
                 for insn_ndx in cfg.insns_ndx_range(bid) {
@@ -200,17 +191,19 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
                         *reg = var_map.get(*reg);
                     }
 
+                    // in the output SSA, each destination register corrsponds to the instruction's
+                    // index. this way, the numeric value of a register can also be used as
+                    // instruction ID, to locate a register/variable's defining instruction.
+                    let new_dest = mil::Reg::Nor(insn_ndx.try_into().unwrap());
+                    let old_name = std::mem::replace(insn.dest, new_dest);
                     let new_name = if let mil::Insn::Get(input_reg) = insn.insn {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
                         *input_reg
                     } else {
-                        // in the output SSA, each destination register corrsponds to the instruction's
-                        // index. this way, the numeric value of a register can also be used as
-                        // instruction ID, to locate a register/variable's defining instruction.
-                        mil::Reg::Nor(insn_ndx.try_into().unwrap())
+                        new_dest
                     };
-                    let old_name = std::mem::replace(insn.dest, new_name);
+
                     var_map.set(old_name, new_name);
                 }
 
@@ -257,10 +250,21 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
             }
         }
     }
-
     let var_count = program.len();
     let is_alive = RegMap::new(true, var_count, phis.len());
     let rdr_count = ReaderCount::new(var_count, phis.len());
+
+    // establish SSA invariants
+    // the returned Program will no longer change (just some instructions are going to be marked as
+    // "dead" and ignored)
+    for (ndx, insn) in program.iter().enumerate() {
+        let ndx = ndx.try_into().unwrap();
+        assert_eq!(insn.dest, mil::Reg::Nor(ndx));
+    }
+    for (ndx, phi_dest) in phis.dest.iter().enumerate() {
+        let ndx = ndx.try_into().unwrap();
+        assert_eq!(phi_dest, &mil::Reg::Phi(ndx));
+    }
 
     let mut program = Program {
         inner: program,
@@ -460,6 +464,14 @@ impl PhisBuilder {
         assert_eq!(self.preds_count.len(), self.phi_ndx_offset.len());
         assert_eq!(self.args.len() % self.max_preds_count, 0);
         assert_eq!(self.args.len() / self.max_preds_count, self.dest.len());
+        for (i, range_a) in self.phi_ndx_offset.iter().enumerate() {
+            for (j, range_b) in self.phi_ndx_offset.iter().enumerate() {
+                if i == j {
+                    continue;
+                }
+                assert!(range_b.start >= range_a.end || range_b.end <= range_a.start);
+            }
+        }
         let count = self.dest.len();
         Phis {
             block_ndxs: self.phi_ndx_offset,
