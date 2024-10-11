@@ -50,7 +50,7 @@ impl std::fmt::Debug for Reg {
     }
 }
 
-pub type Index = usize;
+pub type Index = u16;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Insn {
@@ -375,17 +375,17 @@ impl Program {
 
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
-        let insn = self.insns.get(ndx)?;
-        let dest = *self.dests.get(ndx).unwrap();
-        let addr = *self.addrs.get(ndx).unwrap();
+        let insn = self.insns.get(ndx as usize)?;
+        let dest = *self.dests.get(ndx as usize).unwrap();
+        let addr = *self.addrs.get(ndx as usize).unwrap();
         Some(InsnView { insn, dest, addr })
     }
 
     #[inline(always)]
     pub fn get_mut(&mut self, ndx: Index) -> Option<InsnViewMut> {
-        let insn = self.insns.get_mut(ndx)?;
-        let dest = self.dests.get_mut(ndx).unwrap();
-        let addr = *self.addrs.get_mut(ndx).unwrap();
+        let insn = self.insns.get_mut(ndx as usize)?;
+        let dest = self.dests.get_mut(ndx as usize).unwrap();
+        let addr = *self.addrs.get_mut(ndx as usize).unwrap();
         Some(InsnViewMut { insn, dest, addr })
     }
 
@@ -394,13 +394,14 @@ impl Program {
     }
 
     #[inline(always)]
-    pub fn len(&self) -> usize {
-        self.insns.len()
+    pub fn len(&self) -> Index {
+        self.insns.len().try_into().unwrap()
     }
 
     #[inline(always)]
     pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView> {
-        (0..self.len()).map(|ndx| self.get(ndx).unwrap())
+        let len_u16: u16 = self.len().try_into().unwrap();
+        (0..len_u16).map(|ndx| self.get(ndx).unwrap())
     }
 }
 
@@ -465,10 +466,11 @@ impl ProgramBuilder {
         // addrs is input addr of mil addr;
         // we also need mil addr of input addr to resolve jumps
         let mil_of_input_addr = {
-            let mut map = HashMap::new();
+            let mut map: HashMap<u64, Index> = HashMap::new();
             let mut last_addr = u64::MAX;
             for (ndx, &addr) in addrs.iter().enumerate() {
                 if addr != last_addr {
+                    let ndx = ndx.try_into().unwrap();
                     map.insert(addr, ndx);
                     last_addr = addr;
                 }

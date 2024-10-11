@@ -395,8 +395,8 @@ impl Phis {
         abs_ndx
     }
 
-    fn len(&self) -> usize {
-        self.dest.len()
+    fn len(&self) -> mil::Index {
+        self.dest.len().try_into().unwrap()
     }
     fn flat_get(&self, flat_ndx: usize) -> PhiView {
         PhiView {
@@ -601,10 +601,10 @@ struct RegMap<T> {
     phi: Box<[T]>,
 }
 impl<T: Clone> RegMap<T> {
-    fn new(init: T, nor_count: usize, phi_count: usize) -> Self {
+    fn new(init: T, nor_count: mil::Index, phi_count: mil::Index) -> Self {
         RegMap {
-            nor: vec![init.clone(); nor_count].into_boxed_slice(),
-            phi: vec![init; phi_count].into_boxed_slice(),
+            nor: vec![init.clone(); nor_count as usize].into_boxed_slice(),
+            phi: vec![init; phi_count as usize].into_boxed_slice(),
         }
     }
 
@@ -636,7 +636,7 @@ impl<T: Clone> RegMap<T> {
 
 struct ReaderCount(RegMap<usize>);
 impl ReaderCount {
-    fn new(nor_count: usize, phi_count: usize) -> Self {
+    fn new(nor_count: mil::Index, phi_count: mil::Index) -> Self {
         ReaderCount(RegMap::new(0, nor_count, phi_count))
     }
     fn reset(&mut self) {
@@ -690,7 +690,7 @@ mod tests {
         prog.dump();
 
         eprintln!("-- ssa:");
-        let prog = super::convert_to_ssa(prog);
+        let prog = super::mil_to_ssa(prog);
         prog.dump();
 
         let bid = prog.cfg.block_starting_at(5).unwrap();

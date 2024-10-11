@@ -17,7 +17,7 @@ pub struct Graph {
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
     #[cfg(test)]
-    block_at: HashMap<usize, BasicBlockID>,
+    block_at: HashMap<mil::Index, BasicBlockID>,
 }
 
 #[derive(Debug)]
@@ -74,7 +74,7 @@ impl Graph {
         self.successors[bid].as_array()
     }
 
-    pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<usize> {
+    pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<mil::Index> {
         let ndx = bid.as_usize();
         let start = self.bounds[ndx];
         let end = self.bounds[ndx + 1];
@@ -92,7 +92,7 @@ impl Graph {
 
 pub fn analyze_mil(program: &mil::Program) -> Graph {
     let bounds = {
-        let mut bounds = Vec::with_capacity(program.len() / 5);
+        let mut bounds = Vec::with_capacity(program.len() as usize / 5);
         bounds.push(0);
 
         for ndx in 0..program.len() {
@@ -178,8 +178,10 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     #[cfg(debug_assertions)]
     {
         let is_covered = {
-            let mut is = vec![false; program.len()];
+            let mut is = vec![false; program.len() as usize];
             for (&start_ndx, &end_ndx) in bounds.iter().zip(bounds[1..].iter()) {
+                let start_ndx = start_ndx as usize;
+                let end_ndx = end_ndx as usize;
                 for item in &mut is[start_ndx..end_ndx] {
                     *item = true;
                 }
