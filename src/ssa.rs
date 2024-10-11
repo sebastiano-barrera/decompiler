@@ -350,7 +350,6 @@ struct Phis {
     dest: Box<[mil::Reg]>,
     args: Box<[mil::Reg]>,
     max_preds_count: usize,
-    reader_count: Box<[usize]>,
 }
 struct PhiViewMut<'a> {
     dest: &'a mut mil::Reg,
@@ -367,7 +366,6 @@ impl Phis {
             block_ndxs: cfg::BlockMap::new(0..0, 0),
             dest: Box::from([]),
             args: Box::from([]),
-            reader_count: Box::from([]),
             max_preds_count: 0,
         }
     }
@@ -472,13 +470,11 @@ impl PhisBuilder {
                 assert!(range_b.start >= range_a.end || range_b.end <= range_a.start);
             }
         }
-        let count = self.dest.len();
         Phis {
             block_ndxs: self.phi_ndx_offset,
             dest: self.dest.into_boxed_slice(),
             args: self.args.into_boxed_slice(),
             max_preds_count: self.max_preds_count,
-            reader_count: vec![0; count].into_boxed_slice(),
         }
     }
 }
