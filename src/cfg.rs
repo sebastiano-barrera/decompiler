@@ -16,6 +16,7 @@ pub struct Graph {
     successors: BlockMap<BlockCont>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
+    #[cfg(test)]
     block_at: HashMap<usize, BasicBlockID>,
 }
 
@@ -212,6 +213,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
+        #[cfg(test)]
         block_at,
     }
 }

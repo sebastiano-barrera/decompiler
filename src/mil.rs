@@ -39,12 +39,6 @@ impl Reg {
             _ => None,
         }
     }
-    pub fn as_phi(&self) -> Option<u16> {
-        match self {
-            Reg::Phi(id) => Some(*id),
-            _ => None,
-        }
-    }
 }
 impl std::fmt::Debug for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -76,6 +70,7 @@ pub enum Insn {
     Add(Reg, Reg),
     AddK(Reg, i64),
     Sub(Reg, Reg),
+    #[allow(dead_code)]
     Mul(Reg, Reg),
     MulK32(Reg, u32),
     Shl(Reg, Reg),
@@ -93,13 +88,23 @@ pub enum Insn {
     //  r5 <- carg r2 then r4
     //  r6 <- call r0(r5)
     // destination vreg is for the return value
-    Call { callee: Reg, arg0: Reg },
+    Call {
+        callee: Reg,
+        arg0: Reg,
+    },
     CArgEnd,
-    CArg { value: Reg, prev: Reg },
+    CArg {
+        value: Reg,
+        prev: Reg,
+    },
     Ret(Reg),
+    #[allow(dead_code)]
     Jmp(Reg),
     JmpK(u64),
-    JmpIfK { cond: Reg, target: u64 },
+    JmpIfK {
+        cond: Reg,
+        target: u64,
+    },
 
     TODO(&'static str),
 
@@ -125,10 +130,6 @@ pub enum Ancestral {
 }
 
 impl Insn {
-    pub fn is_block_ender(&self) -> bool {
-        matches!(self, Insn::JmpIfK { .. } | Insn::Jmp(_) | Insn::Ret(_))
-    }
-
     // TODO There must be some macro magic to generate these two functions
     pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
         match self {
@@ -412,6 +413,7 @@ pub struct InsnView<'a> {
 pub struct InsnViewMut<'a> {
     pub insn: &'a mut Insn,
     pub dest: &'a mut Reg,
+    #[allow(dead_code)]
     pub addr: u64,
 }
 
@@ -464,9 +466,8 @@ impl ProgramBuilder {
         // we also need mil addr of input addr to resolve jumps
         let mil_of_input_addr = {
             let mut map = HashMap::new();
-            let mut addrs = addrs.iter().enumerate();
             let mut last_addr = u64::MAX;
-            for (ndx, &addr) in addrs {
+            for (ndx, &addr) in addrs.iter().enumerate() {
                 if addr != last_addr {
                     map.insert(addr, ndx);
                     last_addr = addr;

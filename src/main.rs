@@ -1,9 +1,7 @@
 use std::io::Read;
 use std::{fs::File, path::PathBuf};
 
-use iced_x86::{Decoder, Formatter, IntelFormatter, OpKind};
-
-use anyhow::Result;
+use iced_x86::{Decoder, Formatter, IntelFormatter};
 
 mod cfg;
 mod mil;

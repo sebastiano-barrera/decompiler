@@ -152,10 +152,10 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
     let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
-        Finish(BasicBlockID),
+        Finish,
         Start(BasicBlockID),
     }
-    let mut queue = vec![Cmd::Finish(cfg::ENTRY_BID), Cmd::Start(cfg::ENTRY_BID)];
+    let mut queue = vec![Cmd::Finish, Cmd::Start(cfg::ENTRY_BID)];
 
     while let Some(cmd) = queue.pop() {
         match cmd {
@@ -240,12 +240,12 @@ pub fn convert_to_ssa(mut program: mil::Program) -> Program {
                     .filter(|(_, parent)| **parent == Some(bid))
                     .map(|(bid, _)| bid);
                 for child in imm_dominated {
-                    queue.push(Cmd::Finish(child));
+                    queue.push(Cmd::Finish);
                     queue.push(Cmd::Start(child));
                 }
             }
 
-            Cmd::Finish(_) => {
+            Cmd::Finish => {
                 var_map.pop();
             }
         }
@@ -423,8 +423,6 @@ struct PhisBuilder {
 }
 
 impl PhisBuilder {
-    const REG_UNINIT: mil::Reg = mil::Reg::Nor(u16::MAX);
-
     fn new(preds_count: cfg::BlockMap<usize>) -> Self {
         let block_count = preds_count.len();
         let max_preds_count = preds_count.iter().max().copied().unwrap_or(0);

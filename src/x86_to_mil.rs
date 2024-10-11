@@ -4,7 +4,7 @@ use iced_x86::{OpKind, Register};
 
 use anyhow::Result;
 
-pub fn translate(mut insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<mil::Program> {
+pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<mil::Program> {
     Builder::new().translate(insns)
 }
 
@@ -27,7 +27,7 @@ impl Builder {
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
     ) -> std::result::Result<mil::Program, anyhow::Error> {
-        use iced_x86::{Instruction, OpKind, Register};
+        use iced_x86::{OpKind, Register};
 
         // Temporary abstract registers
         //    Abstract registers used in the mil program to compute 'small stuff' (memory
@@ -102,8 +102,8 @@ impl Builder {
                 }
 
                 M::Test => {
-                    let (a, a_sz) = self.emit_read(&insn, 0);
-                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
                     self.emit(V0, mil::Insn::BitAnd(a, b));
                     self.emit(Self::SF, mil::Insn::SignOf(V0));
                     self.emit(Self::ZF, mil::Insn::IsZero(V0));
@@ -124,7 +124,7 @@ impl Builder {
                 }
 
                 M::Lea => {
-                    let (dest, dest_sz) = self.emit_read(&insn, 0);
+                    let (dest, _) = self.emit_read(&insn, 0);
                     match insn.op1_kind() {
                         OpKind::Memory => {
                             self.emit_compute_address_into(&insn, dest);
