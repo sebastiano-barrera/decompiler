@@ -500,38 +500,38 @@ impl Builder {
 
     // TODO there must be a better way...
     // temporary registers, to represent interemediate steps
-    const V0: mil::Reg = mil::Reg::Nor(0);
-    const V1: mil::Reg = mil::Reg::Nor(1);
+    const V0: mil::Reg = mil::Reg(0);
+    const V1: mil::Reg = mil::Reg(1);
 
     // flags
-    const CF: mil::Reg = mil::Reg::Nor(2); // Carry flag
-    const PF: mil::Reg = mil::Reg::Nor(3); // Parity flag      true=even false=odd
-    const AF: mil::Reg = mil::Reg::Nor(4); // Auxiliary Carry
-    const ZF: mil::Reg = mil::Reg::Nor(5); // Zero flag        true=zero false=non-zero
-    const SF: mil::Reg = mil::Reg::Nor(6); // Sign flag        true=neg false=pos
-    const TF: mil::Reg = mil::Reg::Nor(7); // Trap flag
-    const IF: mil::Reg = mil::Reg::Nor(8); // Interrupt enable true=enabled false=disabled
-    const DF: mil::Reg = mil::Reg::Nor(9); // Direction flag   true=down false=up
-    const OF: mil::Reg = mil::Reg::Nor(10); // Overflow flag    true=overflow false=no-overflow
+    const CF: mil::Reg = mil::Reg(2); // Carry flag
+    const PF: mil::Reg = mil::Reg(3); // Parity flag      true=even false=odd
+    const AF: mil::Reg = mil::Reg(4); // Auxiliary Carry
+    const ZF: mil::Reg = mil::Reg(5); // Zero flag        true=zero false=non-zero
+    const SF: mil::Reg = mil::Reg(6); // Sign flag        true=neg false=pos
+    const TF: mil::Reg = mil::Reg(7); // Trap flag
+    const IF: mil::Reg = mil::Reg(8); // Interrupt enable true=enabled false=disabled
+    const DF: mil::Reg = mil::Reg(9); // Direction flag   true=down false=up
+    const OF: mil::Reg = mil::Reg(10); // Overflow flag    true=overflow false=no-overflow
 
     // general purpose regs
-    const RBP: mil::Reg = mil::Reg::Nor(11);
-    const RSP: mil::Reg = mil::Reg::Nor(12);
-    const RIP: mil::Reg = mil::Reg::Nor(13);
-    const RDI: mil::Reg = mil::Reg::Nor(14);
-    const RSI: mil::Reg = mil::Reg::Nor(15);
-    const RAX: mil::Reg = mil::Reg::Nor(16);
-    const RBX: mil::Reg = mil::Reg::Nor(17);
-    const RCX: mil::Reg = mil::Reg::Nor(18);
-    const RDX: mil::Reg = mil::Reg::Nor(19);
-    const R8: mil::Reg = mil::Reg::Nor(20);
-    const R9: mil::Reg = mil::Reg::Nor(21);
-    const R10: mil::Reg = mil::Reg::Nor(22);
-    const R11: mil::Reg = mil::Reg::Nor(23);
-    const R12: mil::Reg = mil::Reg::Nor(24);
-    const R13: mil::Reg = mil::Reg::Nor(25);
-    const R14: mil::Reg = mil::Reg::Nor(26);
-    const R15: mil::Reg = mil::Reg::Nor(27);
+    const RBP: mil::Reg = mil::Reg(11);
+    const RSP: mil::Reg = mil::Reg(12);
+    const RIP: mil::Reg = mil::Reg(13);
+    const RDI: mil::Reg = mil::Reg(14);
+    const RSI: mil::Reg = mil::Reg(15);
+    const RAX: mil::Reg = mil::Reg(16);
+    const RBX: mil::Reg = mil::Reg(17);
+    const RCX: mil::Reg = mil::Reg(18);
+    const RDX: mil::Reg = mil::Reg(19);
+    const R8: mil::Reg = mil::Reg(20);
+    const R9: mil::Reg = mil::Reg(21);
+    const R10: mil::Reg = mil::Reg(22);
+    const R11: mil::Reg = mil::Reg(23);
+    const R12: mil::Reg = mil::Reg(24);
+    const R13: mil::Reg = mil::Reg(25);
+    const R14: mil::Reg = mil::Reg(26);
+    const R15: mil::Reg = mil::Reg(27);
 
     /// Translate a *full* register name
     fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {

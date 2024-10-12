@@ -25,28 +25,16 @@ pub struct Program {
 /// The language admits as many registers as a u16 can represent (2**16). They're
 /// abstract, so we don't pay for them!
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Reg {
-    Nor(u16),
-    Phi(u16),
-    /// Represents an undefined value.  Only allowed as a source, and only used in SSA.
-    Und,
-}
+pub struct Reg(pub u16);
 
 impl Reg {
-    pub fn as_nor(&self) -> Option<u16> {
-        match self {
-            Reg::Nor(id) => Some(*id),
-            _ => None,
-        }
+    pub fn reg_index(&self) -> u16 {
+        self.0
     }
 }
 impl std::fmt::Debug for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Reg::Nor(ndx) => write!(f, "r{}", ndx),
-            Reg::Phi(ndx) => write!(f, "ɸ{}", ndx),
-            Reg::Und => write!(f, "<undefined>"),
-        }
+        write!(f, "r{}", self.0)
     }
 }
 
@@ -122,6 +110,15 @@ pub enum Insn {
 
     Undefined,
     Ancestral(Ancestral),
+
+    /// Phi node.  `start` and `end` designate a range of PhiArg items
+    Phi {
+        pred_count: u8,
+    },
+    PhiArg {
+        pred_ndx: u8,
+        value: Reg,
+    },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -141,7 +138,8 @@ impl Insn {
             | Insn::JmpK(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Ancestral(_) => [None, None],
+            | Insn::Ancestral(_)
+            | Insn::Phi { .. } => [None, None],
 
             Insn::L1(reg)
             | Insn::L2(reg)
@@ -164,7 +162,8 @@ impl Insn {
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
             | Insn::IsZero(reg)
-            | Insn::Parity(reg) => [Some(reg), None],
+            | Insn::Parity(reg)
+            | Insn::PhiArg { value: reg, .. } => [Some(reg), None],
 
             Insn::WithL1(a, b)
             | Insn::WithL2(a, b)
@@ -192,7 +191,8 @@ impl Insn {
             | Insn::JmpK(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Ancestral(_) => [None, None],
+            | Insn::Ancestral(_)
+            | Insn::Phi { .. } => [None, None],
 
             Insn::L1(reg)
             | Insn::L2(reg)
@@ -215,7 +215,8 @@ impl Insn {
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
             | Insn::IsZero(reg)
-            | Insn::Parity(reg) => [Some(reg), None],
+            | Insn::Parity(reg)
+            | Insn::PhiArg { value: reg, .. } => [Some(reg), None],
 
             Insn::WithL1(a, b)
             | Insn::WithL2(a, b)
@@ -300,6 +301,11 @@ impl Insn {
             Insn::Ancestral(anc) => match anc {
                 Ancestral::StackBot => print!("#stackBottom"),
             },
+
+            Insn::Phi { pred_count } => print!("{:8} {}", "phi", pred_count),
+            Insn::PhiArg { pred_ndx, value } => {
+                print!("{:8} in[{}]:{:?}", "phiarg", pred_ndx, value)
+            }
         }
     }
 
@@ -336,7 +342,9 @@ impl Insn {
             | Insn::LoadMem2(_)
             | Insn::LoadMem4(_)
             | Insn::LoadMem8(_)
-            | Insn::Ancestral(_) => false,
+            | Insn::Ancestral(_)
+            | Insn::Phi { .. }
+            | Insn::PhiArg { .. } => false,
 
             Insn::Call { .. }
             | Insn::CArgEnd
@@ -387,6 +395,14 @@ impl Program {
         let dest = self.dests.get_mut(ndx as usize).unwrap();
         let addr = *self.addrs.get_mut(ndx as usize).unwrap();
         Some(InsnViewMut { insn, dest, addr })
+    }
+
+    pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
+        let index = self.insns.len().try_into().unwrap();
+        self.insns.push(insn);
+        self.dests.push(dest);
+        self.addrs.push(u64::MAX);
+        index
     }
 
     pub fn index_of_addr(&self, addr: u64) -> Option<Index> {

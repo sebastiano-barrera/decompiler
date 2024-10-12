@@ -133,6 +133,6 @@ fn main() {
     prog.dump();
 
     println!();
-    let prog = ssa::convert_to_ssa(prog);
+    let prog = ssa::mil_to_ssa(prog);
     prog.dump();
 }
