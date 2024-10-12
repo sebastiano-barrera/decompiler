@@ -10,14 +10,13 @@ use std::{
 use crate::mil;
 
 /// Control Flow Graph
+#[derive(Debug)]
 pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
     successors: BlockMap<BlockCont>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
-    #[cfg(test)]
-    block_at: HashMap<mil::Index, BasicBlockID>,
 }
 
 #[derive(Debug)]
@@ -82,11 +81,6 @@ impl Graph {
         // TODO hoist this assertion somewhere else?
         assert!(end > start);
         start..end
-    }
-
-    #[cfg(test)]
-    pub fn block_starting_at(&self, index: mil::Index) -> Option<BasicBlockID> {
-        self.block_at.get(&index).copied()
     }
 }
 
@@ -215,8 +209,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
-        #[cfg(test)]
-        block_at,
     }
 }
 

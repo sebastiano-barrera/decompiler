@@ -130,9 +130,9 @@ fn main() {
     );
     let prog = x86_to_mil::translate(decoder.iter()).unwrap();
     println!("mil program = ");
-    prog.dump();
+    println!("{:?}", prog);
 
     println!();
     let prog = ssa::mil_to_ssa(prog);
-    prog.dump();
+    println!("{:?}", prog);
 }

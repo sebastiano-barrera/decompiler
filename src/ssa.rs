@@ -20,27 +20,28 @@ pub struct Program {
     rdr_count: ReaderCount,
 }
 
-impl Program {
-    pub fn dump(&self) {
+impl std::fmt::Debug for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let count: usize = self.is_alive.iter().map(|x| *x as usize).sum();
-        println!("ssa program  {} instrs", count);
+        writeln!(f, "ssa program  {} instrs", count)?;
 
         for bid in self.cfg.block_ids() {
             let phi_ndxs = self.block_phi_ndxs[bid].clone();
             let nor_ndxs = self.cfg.insns_ndx_range(bid);
             let block_addr = self.inner.get(nor_ndxs.start).unwrap().addr;
 
-            print!(".B{}:  in[", bid.as_usize());
+            write!(f, ".B{}:  in[", bid.as_usize())?;
             for pred in self.cfg.predecessors(bid) {
-                print!(".B{} ", pred.as_number());
+                write!(f, ".B{} ", pred.as_number())?;
             }
-            print!("]  ");
-            println!(
+            write!(f, "]  ")?;
+            writeln!(
+                f,
                 "   ;; 0x{:x}  {} insn {} phis",
                 block_addr,
                 nor_ndxs.len(),
                 phi_ndxs.len()
-            );
+            )?;
 
             for ndx in phi_ndxs.chain(nor_ndxs) {
                 let is_alive = *self.is_alive.get(mil::Reg(ndx)).unwrap();
@@ -51,15 +52,15 @@ impl Program {
                 let item = self.inner.get(ndx).unwrap();
                 let rdr_count = self.rdr_count.get(item.dest);
                 if rdr_count > 1 {
-                    print!("  ({:3})  ", rdr_count);
+                    write!(f, "  ({:3})  ", rdr_count)?;
                 } else {
-                    print!("         ");
+                    write!(f, "         ")?;
                 }
-                print!("{:?} <- ", item.dest);
-                item.insn.dump();
-                println!();
+                writeln!(f, "{:?} <- {:?}", item.dest, item.insn)?;
             }
         }
+
+        Ok(())
     }
 }
 
@@ -485,6 +486,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     }
 }
 
+#[derive(Debug)]
 struct RegMap<T>(Box<[T]>);
 impl<T: Clone> RegMap<T> {
     fn new(init: T, var_count: mil::Index) -> Self {
@@ -509,6 +511,7 @@ impl<T: Clone> RegMap<T> {
     }
 }
 
+#[derive(Debug)]
 struct ReaderCount(RegMap<usize>);
 impl ReaderCount {
     fn new(var_count: mil::Index) -> Self {
@@ -562,16 +565,10 @@ mod tests {
         };
 
         eprintln!("-- mil:");
-        prog.dump();
+        eprintln!("{:?}", prog);
 
         eprintln!("-- ssa:");
         let prog = super::mil_to_ssa(prog);
-        prog.dump();
-
-        let bid = prog.cfg.block_starting_at(5).unwrap();
-        let phi_count = prog.block_phi_ndxs[bid].len();
-        assert_eq!(phi_count, 2);
-        // assert_eq!(prog.phis.node(bid, 0),);
-        assert!(false);
+        insta::assert_debug_snapshot!(prog);
     }
 }

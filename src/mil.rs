@@ -11,7 +11,6 @@ use std::collections::HashMap;
 ///  - a corresponding address in the original machine code (`u64`).
 ///
 /// By convention, the entry point of the program is always at index 0.
-#[derive(Debug)]
 pub struct Program {
     insns: Vec<Insn>,
     dests: Vec<Reg>,
@@ -40,7 +39,7 @@ impl std::fmt::Debug for Reg {
 
 pub type Index = u16;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Insn {
     Const1(u8),
     Const2(u16),
@@ -234,81 +233,6 @@ impl Insn {
         }
     }
 
-    pub fn dump(&self) {
-        match self {
-            Insn::Const1(val) => print!("{:8} {} (0x{:x})", "const1", *val as i64, val),
-            Insn::Const2(val) => print!("{:8} {} (0x{:x})", "const2", *val as i64, val),
-            Insn::Const4(val) => print!("{:8} {} (0x{:x})", "const4", *val as i64, val),
-            Insn::Const8(val) => print!("{:8} {} (0x{:x})", "const8", *val as i64, val),
-            Insn::L1(x) => print!("{:8} {:?}", "l1", x),
-            Insn::L2(x) => print!("{:8} {:?}", "l2", x),
-            Insn::L4(x) => print!("{:8} {:?}", "l4", x),
-            Insn::Get(x) => print!("{:8} {:?}", "get", x),
-            Insn::WithL1(full, part) => {
-                print!("{:8} {:?} ← {:?}", "with.l1", full, part)
-            }
-            Insn::WithL2(full, part) => {
-                print!("{:8} {:?} ← {:?}", "with.l2", full, part)
-            }
-            Insn::WithL4(full, part) => {
-                print!("{:8} {:?} ← {:?}", "with.l4", full, part)
-            }
-
-            Insn::Add(a, b) => print!("{:8} {:?},{:?}", "add", a, b),
-            Insn::AddK(a, b) => print!("{:8} {:?},{}", "add", a, *b),
-            Insn::Sub(a, b) => print!("{:8} {:?},{:?}", "sub", a, b),
-            Insn::Mul(a, b) => print!("{:8} {:?},{:?}", "mul", a, b),
-            Insn::MulK32(a, b) => print!("{:8} {:?},0x{:x}", "mul", a, b),
-            Insn::Shl(value, bits_count) => {
-                print!("{:8} {:?},{:?}", "shl", value, bits_count)
-            }
-            Insn::BitAnd(a, b) => print!("{:8} {:?},{:?}", "and", a, b),
-            Insn::BitOr(a, b) => print!("{:8} {:?},{:?}", "or", a, b),
-            Insn::Eq(a, b) => print!("{:8} {:?},{:?}", "eq", a, b),
-            Insn::Not(x) => print!("{:8} {:?}", "not", x),
-
-            Insn::LoadMem1(addr) => print!("{:8} addr:{:?}", "loadm1", addr),
-            Insn::LoadMem2(addr) => print!("{:8} addr:{:?}", "loadm2", addr),
-            Insn::LoadMem4(addr) => print!("{:8} addr:{:?}", "loadm4", addr),
-            Insn::LoadMem8(addr) => print!("{:8} addr:{:?}", "loadm8", addr),
-
-            Insn::StoreMem(addr, val) => {
-                print!("{:8} *{:?} ← {:?}", "storem", addr, val)
-            }
-            Insn::TODO(msg) => print!("{:8} {}", "TODO", msg),
-
-            Insn::Call { callee, arg0 } => {
-                print!("{:8} {:?}({:?})", "call", callee, arg0)
-            }
-            Insn::CArgEnd => print!("cargend"),
-            Insn::CArg { value, prev } => {
-                print!("{:8} {:?} after {:?}", "carg", value, prev)
-            }
-            Insn::Ret(x) => print!("{:8} {:?}", "ret", x),
-            Insn::Jmp(x) => print!("{:8} {:?}", "jmp", x),
-            Insn::JmpIfK { cond, target } => {
-                print!("{:8} {:?},0x{:x}", "jmp.if", cond, target)
-            }
-            Insn::JmpK(target) => print!("{:8} 0x{:x}", "jmp", target),
-
-            Insn::OverflowOf(x) => print!("{:8} {:?}", "overflow", x),
-            Insn::CarryOf(x) => print!("{:8} {:?}", "carry", x),
-            Insn::SignOf(x) => print!("{:8} {:?}", "sign", x),
-            Insn::IsZero(x) => print!("{:8} {:?}", "is0", x),
-            Insn::Parity(x) => print!("{:8} {:?}", "parity", x),
-
-            Insn::Undefined => print!("undef"),
-            Insn::Ancestral(anc) => match anc {
-                Ancestral::StackBot => print!("#stackBottom"),
-            },
-
-            Insn::Phi { pred_count } => print!("{:8} {}", "phi", pred_count),
-            Insn::PhiArg { pred_ndx, value } => {
-                print!("{:8} in[{}]:{:?}", "phiarg", pred_ndx, value)
-            }
-        }
-    }
-
     pub fn is_control_flow(&self) -> bool {
         match self {
             Insn::Const1(_)
@@ -359,9 +283,70 @@ impl Insn {
     }
 }
 
-impl Program {
-    pub fn dump(&self) {
-        println!("program  {} instrs", self.insns.len());
+impl std::fmt::Debug for Insn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Insn::Const1(val) => write!(f, "{:8} {} (0x{:x})", "const1", *val as i64, val),
+            Insn::Const2(val) => write!(f, "{:8} {} (0x{:x})", "const2", *val as i64, val),
+            Insn::Const4(val) => write!(f, "{:8} {} (0x{:x})", "const4", *val as i64, val),
+            Insn::Const8(val) => write!(f, "{:8} {} (0x{:x})", "const8", *val as i64, val),
+            Insn::L1(x) => write!(f, "{:8} {:?}", "l1", x),
+            Insn::L2(x) => write!(f, "{:8} {:?}", "l2", x),
+            Insn::L4(x) => write!(f, "{:8} {:?}", "l4", x),
+            Insn::Get(x) => write!(f, "{:8} {:?}", "get", x),
+            Insn::WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l1", full, part),
+            Insn::WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l2", full, part),
+            Insn::WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l4", full, part),
+
+            Insn::Add(a, b) => write!(f, "{:8} {:?},{:?}", "add", a, b),
+            Insn::AddK(a, b) => write!(f, "{:8} {:?},{}", "add", a, *b),
+            Insn::Sub(a, b) => write!(f, "{:8} {:?},{:?}", "sub", a, b),
+            Insn::Mul(a, b) => write!(f, "{:8} {:?},{:?}", "mul", a, b),
+            Insn::MulK32(a, b) => write!(f, "{:8} {:?},0x{:x}", "mul", a, b),
+            Insn::Shl(value, bits_count) => write!(f, "{:8} {:?},{:?}", "shl", value, bits_count),
+            Insn::BitAnd(a, b) => write!(f, "{:8} {:?},{:?}", "and", a, b),
+            Insn::BitOr(a, b) => write!(f, "{:8} {:?},{:?}", "or", a, b),
+            Insn::Eq(a, b) => write!(f, "{:8} {:?},{:?}", "eq", a, b),
+            Insn::Not(x) => write!(f, "{:8} {:?}", "not", x),
+
+            Insn::LoadMem1(addr) => write!(f, "{:8} addr:{:?}", "loadm1", addr),
+            Insn::LoadMem2(addr) => write!(f, "{:8} addr:{:?}", "loadm2", addr),
+            Insn::LoadMem4(addr) => write!(f, "{:8} addr:{:?}", "loadm4", addr),
+            Insn::LoadMem8(addr) => write!(f, "{:8} addr:{:?}", "loadm8", addr),
+
+            Insn::StoreMem(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem", addr, val),
+            Insn::TODO(msg) => write!(f, "{:8} {}", "TODO", msg),
+
+            Insn::Call { callee, arg0 } => write!(f, "{:8} {:?}({:?})", "call", callee, arg0),
+            Insn::CArgEnd => write!(f, "cargend"),
+            Insn::CArg { value, prev } => write!(f, "{:8} {:?} after {:?}", "carg", value, prev),
+            Insn::Ret(x) => write!(f, "{:8} {:?}", "ret", x),
+            Insn::Jmp(x) => write!(f, "{:8} {:?}", "jmp", x),
+            Insn::JmpIfK { cond, target } => write!(f, "{:8} {:?},0x{:x}", "jmp.if", cond, target),
+            Insn::JmpK(target) => write!(f, "{:8} 0x{:x}", "jmp", target),
+
+            Insn::OverflowOf(x) => write!(f, "{:8} {:?}", "overflow", x),
+            Insn::CarryOf(x) => write!(f, "{:8} {:?}", "carry", x),
+            Insn::SignOf(x) => write!(f, "{:8} {:?}", "sign", x),
+            Insn::IsZero(x) => write!(f, "{:8} {:?}", "is0", x),
+            Insn::Parity(x) => write!(f, "{:8} {:?}", "parity", x),
+
+            Insn::Undefined => write!(f, "undef"),
+            Insn::Ancestral(anc) => match anc {
+                Ancestral::StackBot => write!(f, "#stackBottom"),
+            },
+
+            Insn::Phi { pred_count } => write!(f, "{:8} {}", "phi", pred_count),
+            Insn::PhiArg { pred_ndx, value } => {
+                write!(f, "{:8} in[{}]:{:?}", "phiarg", pred_ndx, value)
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "program  {} instrs", self.insns.len())?;
         let mut last_addr = 0;
         for (ndx, ((insn, dest), addr)) in self
             .insns
@@ -371,16 +356,16 @@ impl Program {
             .enumerate()
         {
             if last_addr != *addr {
-                println!("0x{:x}:", addr);
+                writeln!(f, "0x{:x}:", addr)?;
                 last_addr = *addr;
             }
-            print!("{:5} {:?} <- ", ndx, dest);
-            insn.dump();
-
-            println!();
+            writeln!(f, "{:5} {:?} <- {:?}", ndx, dest, insn)?;
         }
+        Ok(())
     }
+}
 
+impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
         let insn = self.insns.get(ndx as usize)?;
