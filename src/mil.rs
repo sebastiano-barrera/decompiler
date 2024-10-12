@@ -93,6 +93,7 @@ pub enum Insn {
         target: u64,
     },
 
+    #[allow(clippy::upper_case_acronyms)]
     TODO(&'static str),
 
     LoadMem1(Reg),
@@ -401,8 +402,7 @@ impl Program {
 
     #[inline(always)]
     pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView> {
-        let len_u16: u16 = self.len().try_into().unwrap();
-        (0..len_u16).map(|ndx| self.get(ndx).unwrap())
+        (0..self.len()).map(|ndx| self.get(ndx).unwrap())
     }
 }
 

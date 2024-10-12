@@ -517,9 +517,9 @@ impl<T: Clone> BlockMap<T> {
     }
 }
 
-impl<T> Into<Vec<T>> for BlockMap<T> {
-    fn into(self) -> Vec<T> {
-        self.0
+impl<T> From<BlockMap<T>> for Vec<T> {
+    fn from(val: BlockMap<T>) -> Self {
+        val.0
     }
 }
 
