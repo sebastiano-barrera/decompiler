@@ -234,7 +234,7 @@ impl Insn {
         }
     }
 
-    pub fn is_control_flow(&self) -> bool {
+    pub fn has_side_effects(&self) -> bool {
         match self {
             Insn::Const1(_)
             | Insn::Const2(_)

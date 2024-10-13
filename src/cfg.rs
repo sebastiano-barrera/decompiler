@@ -17,10 +17,11 @@ pub struct Graph {
     successors: BlockMap<BlockCont>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
+    block_at: HashMap<mil::Index, BasicBlockID>,
 }
 
 #[derive(Debug)]
-enum BlockCont {
+pub enum BlockCont {
     End,
     Jmp(BasicBlockID),
     Alt(BasicBlockID, BasicBlockID),
@@ -28,7 +29,7 @@ enum BlockCont {
 
 impl BlockCont {
     #[inline]
-    fn as_array(&self) -> [Option<BasicBlockID>; 2] {
+    pub fn as_array(&self) -> [Option<BasicBlockID>; 2] {
         match self {
             BlockCont::End => [None, None],
             BlockCont::Jmp(d) => [Some(*d), None],
@@ -37,7 +38,7 @@ impl BlockCont {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone, Hash)]
 pub struct BasicBlockID(u16);
 
 pub const ENTRY_BID: BasicBlockID = BasicBlockID(0);
@@ -69,8 +70,8 @@ impl Graph {
         &self.predecessors[range.start..range.end]
     }
 
-    pub fn successors(&self, bid: BasicBlockID) -> [Option<BasicBlockID>; 2] {
-        self.successors[bid].as_array()
+    pub fn successors(&self, bid: BasicBlockID) -> &BlockCont {
+        &self.successors[bid]
     }
 
     pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<mil::Index> {
@@ -81,6 +82,10 @@ impl Graph {
         // TODO hoist this assertion somewhere else?
         assert!(end > start);
         start..end
+    }
+
+    pub fn block_at(&self, ndx: mil::Index) -> Option<BasicBlockID> {
+        self.block_at.get(&ndx).copied()
     }
 }
 
@@ -209,6 +214,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
+        block_at,
     }
 }
 
@@ -507,6 +513,13 @@ impl<T: Clone> BlockMap<T> {
     pub fn new(init: T, count: usize) -> Self {
         let vec = vec![init; count];
         BlockMap(vec)
+    }
+
+    pub fn new_with<F>(cfg: &Graph, init_item: F) -> Self
+    where
+        F: Fn(BasicBlockID) -> T,
+    {
+        Self(cfg.block_ids().map(init_item).collect())
     }
 
     pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &T)> {

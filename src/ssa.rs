@@ -20,6 +20,27 @@ pub struct Program {
     rdr_count: ReaderCount,
 }
 
+impl Program {
+    pub fn cfg(&self) -> &cfg::Graph {
+        &self.cfg
+    }
+
+    pub fn get(&self, ndx: mil::Index) -> Option<mil::InsnView> {
+        self.inner.get(ndx)
+    }
+    pub fn len(&self) -> mil::Index {
+        self.inner.len()
+    }
+
+    pub fn index_of_addr(&self, addr: u64) -> Option<mil::Index> {
+        self.inner.index_of_addr(addr)
+    }
+
+    pub fn readers_count(&self, reg: mil::Reg) -> usize {
+        self.rdr_count.get(reg)
+    }
+}
+
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let count: usize = self.is_alive.iter().map(|x| *x as usize).sum();
@@ -229,7 +250,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                 // to figure out a "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for succ in cfg.successors(bid).into_iter().flatten() {
+                for succ in cfg.successors(bid).as_array().into_iter().flatten() {
                     // maybe there is a better way, but I'm betting that the max nubmer of
                     // predecessor is very small (< 10), so this is plenty fast
                     // index of bid in succ's predecessor list
@@ -450,7 +471,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             let dest = item.dest;
 
             let is_alive = prog.is_alive.get_mut(dest).unwrap();
-            *is_alive = item.insn.is_control_flow() || prog.rdr_count.get(dest) > 0;
+            *is_alive = item.insn.has_side_effects() || prog.rdr_count.get(dest) > 0;
             if !*is_alive {
                 // this insn's reads don't count
                 continue;

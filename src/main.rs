@@ -3,6 +3,7 @@ use std::{fs::File, path::PathBuf};
 
 use iced_x86::{Decoder, Formatter, IntelFormatter};
 
+mod ast;
 mod cfg;
 mod mil;
 mod ssa;
@@ -135,4 +136,8 @@ fn main() {
     println!();
     let prog = ssa::mil_to_ssa(prog);
     println!("{:?}", prog);
+
+    println!();
+    let ast = ast::ssa_to_ast(&prog);
+    println!("{:#?}", ast);
 }
