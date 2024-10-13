@@ -3,9 +3,12 @@ use std::{fs::File, path::PathBuf};
 
 use iced_x86::{Decoder, Formatter, IntelFormatter};
 
+use crate::pp::PrettyPrinter;
+
 mod ast;
 mod cfg;
 mod mil;
+mod pp;
 mod ssa;
 mod x86_to_mil;
 
@@ -139,5 +142,16 @@ fn main() {
 
     println!();
     let ast = ast::ssa_to_ast(&prog);
-    println!("{:#?}", ast);
+    let out = std::io::stdout().lock();
+    let mut pp = PrettyPrinter::start(IoAsFmt(out));
+    ast.pretty_print(&mut pp).unwrap()
+}
+
+struct IoAsFmt<W>(W);
+
+impl<W: std::io::Write> std::fmt::Write for IoAsFmt<W> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        self.0.write(s.as_bytes()).unwrap();
+        Ok(())
+    }
 }

@@ -1,4 +1,3 @@
-use std::ops::Index;
 #[allow(dead_code)]
 #[allow(unused)]
 use std::{collections::HashMap, rc::Rc};
@@ -393,5 +392,104 @@ fn fold_bin(op: BinOp, a: Box<Node>, b: Box<Node>) -> Node {
     Node::Bin {
         op,
         args: [a, b].into(),
+    }
+}
+
+impl Ast {
+    pub fn pretty_print<W: std::fmt::Write>(
+        &self,
+        pp: &mut crate::pp::PrettyPrinter<W>,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+
+        for (thid, thunk) in self.thunks.iter() {
+            write!(pp, "thunk {} ", thid.0.as_str())?;
+            thunk.pretty_print(pp)?;
+            writeln!(pp)?;
+        }
+
+        Ok(())
+    }
+}
+impl Thunk {
+    pub fn pretty_print<W: std::fmt::Write>(
+        &self,
+        pp: &mut crate::pp::PrettyPrinter<W>,
+    ) -> std::fmt::Result {
+        self.body.pretty_print(pp)
+    }
+}
+impl Node {
+    pub fn pretty_print<W: std::fmt::Write>(
+        &self,
+        pp: &mut crate::pp::PrettyPrinter<W>,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+        match self {
+            Node::Seq(nodes) => {
+                writeln!(pp, "{{")?;
+                write!(pp, "  ")?;
+                pp.open_box();
+                for (ndx, node) in nodes.iter().enumerate() {
+                    node.pretty_print(pp)?;
+                    if ndx < nodes.len() - 1 {
+                        writeln!(pp, ";")?;
+                    }
+                }
+                pp.close_box();
+                write!(pp, "\n}}")
+            }
+            Node::If { cond, cons, alt } => {
+                write!(pp, "if ")?;
+                pp.open_box();
+                cond.pretty_print(pp)?;
+                pp.close_box();
+
+                write!(pp, " {{\n  ")?;
+                pp.open_box();
+                cons.pretty_print(pp)?;
+                pp.close_box();
+
+                write!(pp, "\n}} else {{\n  ")?;
+                pp.open_box();
+                alt.pretty_print(pp)?;
+                pp.close_box();
+                write!(pp, "\n}}")
+            }
+            _ => write!(pp, "<-- TODO -->"),
+            // Node::Let { name, value } => todo!(),
+            // Node::Ref(_) => todo!(),
+            // Node::GoToLabel(_) => todo!(),
+            // Node::GoToAddr(_) => todo!(),
+            // Node::Const1(_) => todo!(),
+            // Node::Const2(_) => todo!(),
+            // Node::Const4(_) => todo!(),
+            // Node::Const8(_) => todo!(),
+            // Node::L1(_) => todo!(),
+            // Node::L2(_) => todo!(),
+            // Node::L4(_) => todo!(),
+            // Node::WithL1(_, _) => todo!(),
+            // Node::WithL2(_, _) => todo!(),
+            // Node::WithL4(_, _) => todo!(),
+            // Node::Bin { op, args } => todo!(),
+            // Node::Not(_) => todo!(),
+            // Node::Call(_, _) => todo!(),
+            // Node::Return(_) => todo!(),
+            // Node::TODO(_) => todo!(),
+            // Node::Phi(_) => todo!(),
+            // Node::LoadMem1(_) => todo!(),
+            // Node::LoadMem2(_) => todo!(),
+            // Node::LoadMem4(_) => todo!(),
+            // Node::LoadMem8(_) => todo!(),
+            // Node::StoreMem(_, _) => todo!(),
+            // Node::OverflowOf(_) => todo!(),
+            // Node::CarryOf(_) => todo!(),
+            // Node::SignOf(_) => todo!(),
+            // Node::IsZero(_) => todo!(),
+            // Node::Parity(_) => todo!(),
+            // Node::StackBot => todo!(),
+            // Node::Undefined => todo!(),
+            // Node::Nop => todo!(),
+        }
     }
 }
