@@ -439,6 +439,7 @@ impl Node {
                 pp.close_box();
                 write!(pp, "\n}}")
             }
+
             Node::If { cond, cons, alt } => {
                 write!(pp, "if ")?;
                 pp.open_box();
@@ -456,40 +457,168 @@ impl Node {
                 pp.close_box();
                 write!(pp, "\n}}")
             }
-            _ => write!(pp, "<-- TODO -->"),
-            // Node::Let { name, value } => todo!(),
-            // Node::Ref(_) => todo!(),
-            // Node::GoToLabel(_) => todo!(),
-            // Node::GoToAddr(_) => todo!(),
-            // Node::Const1(_) => todo!(),
-            // Node::Const2(_) => todo!(),
-            // Node::Const4(_) => todo!(),
-            // Node::Const8(_) => todo!(),
-            // Node::L1(_) => todo!(),
-            // Node::L2(_) => todo!(),
-            // Node::L4(_) => todo!(),
-            // Node::WithL1(_, _) => todo!(),
-            // Node::WithL2(_, _) => todo!(),
-            // Node::WithL4(_, _) => todo!(),
-            // Node::Bin { op, args } => todo!(),
-            // Node::Not(_) => todo!(),
-            // Node::Call(_, _) => todo!(),
-            // Node::Return(_) => todo!(),
-            // Node::TODO(_) => todo!(),
-            // Node::Phi(_) => todo!(),
-            // Node::LoadMem1(_) => todo!(),
-            // Node::LoadMem2(_) => todo!(),
-            // Node::LoadMem4(_) => todo!(),
-            // Node::LoadMem8(_) => todo!(),
-            // Node::StoreMem(_, _) => todo!(),
-            // Node::OverflowOf(_) => todo!(),
-            // Node::CarryOf(_) => todo!(),
-            // Node::SignOf(_) => todo!(),
-            // Node::IsZero(_) => todo!(),
-            // Node::Parity(_) => todo!(),
-            // Node::StackBot => todo!(),
-            // Node::Undefined => todo!(),
-            // Node::Nop => todo!(),
+
+            Node::Let { name, value } => {
+                write!(pp, "let {} = ", name.0.as_str())?;
+                pp.open_box();
+                value.pretty_print(pp)?;
+                pp.close_box();
+                Ok(())
+            }
+
+            Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
+
+            Node::GoToLabel(lbl) => write!(pp, "goto {}", lbl.0.as_str()),
+            Node::GoToAddr(addr) => write!(pp, "goto 0x{:x}", addr),
+            Node::Const1(val) => write!(pp, "{}", *val as i8),
+            Node::Const2(val) => write!(pp, "{}", *val as i16),
+            Node::Const4(val) => write!(pp, "{}", *val as i32),
+            Node::Const8(val) => write!(pp, "{}", *val as i64),
+
+            Node::L1(arg) => {
+                arg.pretty_print(pp)?;
+                write!(pp, ".l1")
+            }
+            Node::L2(arg) => {
+                arg.pretty_print(pp)?;
+                write!(pp, ".l2")
+            }
+            Node::L4(arg) => {
+                arg.pretty_print(pp)?;
+                write!(pp, ".l4")
+            }
+            Node::WithL1(a, b) => {
+                a.pretty_print(pp)?;
+                write!(pp, " with l1 = ")?;
+                b.pretty_print(pp)
+            }
+            Node::WithL2(a, b) => {
+                a.pretty_print(pp)?;
+                write!(pp, " with l2 = ")?;
+                b.pretty_print(pp)
+            }
+            Node::WithL4(a, b) => {
+                a.pretty_print(pp)?;
+                write!(pp, " with l4 = ")?;
+                b.pretty_print(pp)
+            }
+            Node::Bin { op, args } => {
+                let op_s = match op {
+                    BinOp::Add => " + ",
+                    BinOp::Sub => " - ",
+                    BinOp::Mul => " * ",
+                    BinOp::Div => " / ",
+                    BinOp::Shl => " << ",
+                    BinOp::Shr => " >> ",
+                    BinOp::BitAnd => " & ",
+                    BinOp::BitOr => " | ",
+                    BinOp::Eq => " == ",
+                };
+
+                for (ndx, arg) in args.iter().enumerate() {
+                    let needs_parens = matches!(&**arg, Node::Bin { .. });
+
+                    if ndx > 0 {
+                        write!(pp, "{}", op_s)?;
+                    }
+                    if needs_parens {
+                        write!(pp, "(")?;
+                    }
+                    pp.open_box();
+                    arg.pretty_print(pp)?;
+                    pp.close_box();
+                    if needs_parens {
+                        write!(pp, ")")?;
+                    }
+                }
+                Ok(())
+            }
+
+            Node::Not(arg) => {
+                write!(pp, "not ")?;
+                arg.pretty_print(pp)
+            }
+            Node::Call(callee, args) => {
+                callee.pretty_print(pp)?;
+                write!(pp, "(\n  ")?;
+                pp.open_box();
+                for (ndx, arg) in args.iter().enumerate() {
+                    if ndx > 0 {
+                        writeln!(pp)?;
+                    }
+                    arg.pretty_print(pp)?;
+                    write!(pp, ",")?;
+                }
+                pp.close_box();
+                write!(pp, "\n)")
+            }
+            Node::Return(arg) => {
+                write!(pp, "return ")?;
+                arg.pretty_print(pp)
+            }
+            Node::TODO(msg) => write!(pp, "<-- TODO: {} -->", msg),
+            Node::Phi(phi_args) => {
+                write!(pp, "phi(\n  ")?;
+                pp.open_box();
+                let mut first = true;
+                for (pred_ndx, value) in phi_args {
+                    if !first {
+                        writeln!(pp)?;
+                    }
+                    first = false;
+                    write!(pp, "from pred. {} = ", pred_ndx)?;
+                    value.pretty_print(pp)?;
+                    write!(pp, ",")?;
+                }
+                pp.close_box();
+                write!(pp, "\n)")
+            }
+
+            Node::LoadMem1(arg)
+            | Node::LoadMem2(arg)
+            | Node::LoadMem4(arg)
+            | Node::LoadMem8(arg) => {
+                write!(pp, "(")?;
+                arg.pretty_print(pp)?;
+                write!(pp, ").*")
+            }
+            Node::StoreMem(dest, val) => {
+                write!(pp, "(")?;
+                dest.pretty_print(pp)?;
+                write!(pp, ").* <- ")?;
+                pp.open_box();
+                val.pretty_print(pp)?;
+                pp.close_box();
+                Ok(())
+            }
+            Node::OverflowOf(arg) => {
+                write!(pp, "overflow (")?;
+                arg.pretty_print(pp)?;
+                write!(pp, ")")
+            }
+            Node::CarryOf(arg) => {
+                write!(pp, "carry (")?;
+                arg.pretty_print(pp)?;
+                write!(pp, ")")
+            }
+            Node::SignOf(arg) => {
+                write!(pp, "sign (")?;
+                arg.pretty_print(pp)?;
+                write!(pp, ")")
+            }
+            Node::IsZero(arg) => {
+                write!(pp, "is0 (")?;
+                arg.pretty_print(pp)?;
+                write!(pp, ")")
+            }
+            Node::Parity(arg) => {
+                write!(pp, "parity (")?;
+                arg.pretty_print(pp)?;
+                write!(pp, ")")
+            }
+            Node::StackBot => write!(pp, "<stackBottom>"),
+            Node::Undefined => write!(pp, "<undefined>"),
+            Node::Nop => write!(pp, "nop"),
         }
     }
 }
