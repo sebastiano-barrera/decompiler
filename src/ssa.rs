@@ -43,6 +43,10 @@ impl Program {
     pub fn block_phi(&self, bid: cfg::BasicBlockID) -> &PhiInfo {
         &self.phis[bid]
     }
+
+    pub fn is_alive(&self, ndx: mil::Index) -> bool {
+        *self.is_alive.get(mil::Reg(ndx)).unwrap()
+    }
 }
 
 #[derive(Clone)]
@@ -70,6 +74,15 @@ impl PhiInfo {
         self.pred_count
     }
 
+    pub fn node_ndx(&self, phi_ndx: mil::Index) -> mil::Index {
+        assert!(phi_ndx < self.phi_count);
+        assert_eq!(
+            self.ndxs.len(),
+            (self.phi_count * (1 + self.pred_count)).into()
+        );
+        self.ndxs.start + phi_ndx * (1 + self.pred_count)
+    }
+
     pub fn arg<'p>(
         &self,
         ssa: &'p Program,
@@ -84,13 +97,8 @@ impl PhiInfo {
     }
 
     fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Index {
-        assert!(phi_ndx < self.phi_count);
         assert!(pred_ndx < self.pred_count);
-        assert_eq!(
-            self.ndxs.len(),
-            (self.phi_count * (1 + self.pred_count)).into()
-        );
-        self.ndxs.start + phi_ndx * (1 + self.pred_count) + pred_ndx
+        self.node_ndx(phi_ndx) + 1 + pred_ndx
     }
 }
 
@@ -424,11 +432,24 @@ fn place_phi_nodes(
 
         let end_ndx = program.len();
         assert_eq!(end_ndx - start_ndx, phi_count * (1 + pred_count));
-        phis[bid] = PhiInfo {
+
+        let phi_info = PhiInfo {
             ndxs: start_ndx..end_ndx,
             phi_count,
             pred_count,
         };
+        {
+            for phi_ndx in 0..phi_info.phi_count {
+                for pred_ndx in 0..phi_info.pred_count {
+                    // check that it doesn't throw
+                    let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
+                    let item = program.get(ndx).unwrap();
+                    assert!(matches!(&item.insn, mil::Insn::PhiArg(_)));
+                }
+            }
+        }
+
+        phis[bid] = phi_info;
     }
 
     phis

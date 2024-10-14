@@ -182,8 +182,10 @@ impl<'a> Builder<'a> {
             },
         );
 
-        let phi_count = self.ssa.block_phi(start_bid).phi_count();
+        let phis = self.ssa.block_phi(start_bid);
+        let phi_count = phis.phi_count();
         self.thunks.get_mut(&lbl).unwrap().params = (0..phi_count)
+            .filter(|phi_ndx| self.ssa.is_alive(phis.node_ndx(*phi_ndx)))
             .map(|phi_ndx| Ident(Rc::new(format!("phi{}", phi_ndx))))
             .collect();
 
@@ -259,6 +261,7 @@ impl<'a> Builder<'a> {
 
         let target_phis = self.ssa.block_phi(bid);
         let values = (0..target_phis.phi_count())
+            .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
             .map(|phi_ndx| {
                 let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
                 self.get_node(reg.0).boxed()
@@ -446,13 +449,11 @@ impl Ast {
         pp: &mut crate::pp::PrettyPrinter<W>,
     ) -> std::fmt::Result {
         use std::fmt::Write;
-
         for (thid, thunk) in self.thunks.iter() {
-            write!(pp, "thunk {} ", thid.0.as_str())?;
+            write!(pp, "{} :: ", thid.0.as_str())?;
             thunk.pretty_print(pp)?;
             writeln!(pp)?;
         }
-
         Ok(())
     }
 }
@@ -461,7 +462,16 @@ impl Thunk {
         &self,
         pp: &mut crate::pp::PrettyPrinter<W>,
     ) -> std::fmt::Result {
-        self.body.pretty_print(pp)
+        use std::fmt::Write;
+
+        write!(pp, "thunk (")?;
+        for param_name in &self.params {
+            write!(pp, "{}, ", param_name.0.as_str())?;
+        }
+        write!(pp, ") ")?;
+
+        self.body.pretty_print(pp);
+        Ok(())
     }
 }
 impl Node {
@@ -514,14 +524,24 @@ impl Node {
             Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
 
             Node::ContinueToThunk(thunk_id, args) => {
-                write!(pp, "goto {} with (", thunk_id.0.as_str())?;
-                pp.open_box();
-                for arg in &args.values {
-                    arg.pretty_print(pp)?;
-                    writeln!(pp, ",")?;
+                write!(pp, "goto {}", thunk_id.0.as_str())?;
+                if args.values.len() > 0 {
+                    write!(pp, " with ")?;
+                    pp.open_box();
+                    for (ndx, arg) in args.values.iter().enumerate() {
+                        if ndx == 0 {
+                            write!(pp, "( ")?;
+                        } else {
+                            write!(pp, "\n, ")?;
+                        }
+                        pp.open_box();
+                        arg.pretty_print(pp)?;
+                        pp.close_box();
+                    }
+                    write!(pp, "\n)")?;
+                    pp.close_box();
                 }
-                pp.close_box();
-                write!(pp, ")")
+                Ok(())
             }
             Node::ContinueToExtern(addr) => write!(pp, "jmp extern 0x{:x}", addr),
             Node::Const1(val) => write!(pp, "{}", *val as i8),
