@@ -470,7 +470,7 @@ impl Thunk {
         }
         write!(pp, ") ")?;
 
-        self.body.pretty_print(pp);
+        self.body.pretty_print(pp)?;
         Ok(())
     }
 }
