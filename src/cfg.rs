@@ -27,7 +27,7 @@ type PredIndex = u8;
 pub enum BlockCont {
     End,
     Jmp(Jump),
-    Alt(Jump, Jump),
+    Alt { straight: Jump, side: Jump },
 }
 
 impl BlockCont {
@@ -36,7 +36,7 @@ impl BlockCont {
         match self {
             BlockCont::End => [None, None],
             BlockCont::Jmp(d) => [Some(*d), None],
-            BlockCont::Alt(d, e) => [Some(*d), Some(*e)],
+            BlockCont::Alt { straight, side } => [Some(*straight), Some(*side)],
         }
     }
 
@@ -44,7 +44,7 @@ impl BlockCont {
         match self {
             BlockCont::End => [None, None],
             BlockCont::Jmp(d) => [Some(d), None],
-            BlockCont::Alt(d, e) => [Some(d), Some(e)],
+            BlockCont::Alt { straight, side } => [Some(straight), Some(side)],
         }
     }
 }
@@ -155,10 +155,10 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
                 (Some(dest), None) | (None, Some(dest)) => {
                     BlockCont::Jmp((0, *block_at.get(&dest).unwrap()))
                 }
-                (Some(straight_dest), Some(side_dest)) => BlockCont::Alt(
-                    (0, *block_at.get(&straight_dest).unwrap()),
-                    (0, *block_at.get(&side_dest).unwrap()),
-                ),
+                (Some(straight_dest), Some(side_dest)) => BlockCont::Alt {
+                    straight: (0, *block_at.get(&straight_dest).unwrap()),
+                    side: (0, *block_at.get(&side_dest).unwrap()),
+                },
             }
         })
         .collect();
@@ -275,9 +275,15 @@ impl Graph {
                 BlockCont::Jmp((_, BasicBlockID(dest))) => {
                     println!("  block{} -> block{}", bndx, dest)
                 }
-                BlockCont::Alt((_, BasicBlockID(a)), (_, BasicBlockID(b))) => {
-                    println!("  block{} -> block{};", bndx, a);
-                    println!("  block{} -> block{};", bndx, b);
+                BlockCont::Alt {
+                    straight: (_, BasicBlockID(stra_bd)),
+                    side: (_, BasicBlockID(side_bid)),
+                } => {
+                    println!("  block{} -> block{} [color=\"darkred\"];", bndx, stra_bd);
+                    println!(
+                        "  block{} -> block{} [color=\"darkgreen\"];",
+                        bndx, side_bid
+                    );
                 }
             }
 
