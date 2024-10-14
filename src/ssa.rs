@@ -32,6 +32,13 @@ impl Program {
         self.inner.len()
     }
 
+    // TODO remove
+    pub fn block_phis(&self, bid: BasicBlockID) -> impl Iterator<Item = mil::InsnView> {
+        self.block_phi_ndxs[bid]
+            .clone()
+            .map(|ndx| self.get(ndx).unwrap())
+    }
+
     pub fn index_of_addr(&self, addr: u64) -> Option<mil::Index> {
         self.inner.index_of_addr(addr)
     }
@@ -60,6 +67,14 @@ impl PhiInfo {
             phi_count: 0,
             pred_count: 0,
         }
+    }
+
+    pub fn phi_count(&self) -> mil::Index {
+        self.phi_count
+    }
+
+    pub fn pred_count(&self) -> mil::Index {
+        self.pred_count
     }
 
     pub fn arg<'p>(

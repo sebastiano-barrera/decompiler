@@ -4,7 +4,10 @@ use std::{collections::HashMap, rc::Rc};
 
 use smallvec::SmallVec;
 
-use crate::{cfg, mil, ssa};
+use crate::{
+    cfg::{self, BasicBlockID},
+    mil, ssa,
+};
 
 #[derive(Debug)]
 pub struct Ast {
@@ -15,6 +18,14 @@ pub struct Ast {
 #[derive(Debug)]
 struct Thunk {
     body: Node,
+    // there is one param per phi node
+    params: SmallVec<[Ident; 2]>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ThunkArgs {
+    // values are in the same length and order as the target Thunk's params
+    values: SmallVec<[NodeP; 2]>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -33,8 +44,8 @@ enum Node {
         value: NodeP,
     },
     Ref(Ident),
-    GoToLabel(Ident),
-    GoToAddr(u64),
+    ContinueToThunk(Ident, ThunkArgs),
+    ContinueToExtern(u64),
 
     Const1(u8),
     Const2(u16),
@@ -118,7 +129,7 @@ pub fn ssa_to_ast(ssa: &ssa::Program) -> Ast {
 struct Builder<'a> {
     ssa: &'a ssa::Program,
     name_of_value: HashMap<mil::Index, Ident>,
-    label_of_block: cfg::BlockMap<Ident>,
+    thunk_id_of_block: cfg::BlockMap<Ident>,
     visited: cfg::BlockMap<bool>,
     thunks: HashMap<Ident, Thunk>,
 }
@@ -136,15 +147,17 @@ impl<'a> Builder<'a> {
             })
             .collect();
 
-        // TODO Inline thunks that have a single predecessor
-        let label_of_block = cfg::BlockMap::new_with(ssa.cfg(), |bid| {
+        // Thunk IDs are all preassigned so that jumps/continues can always be resolved, regardless
+        // of the order in which blocks are processed / thunks generated.
+        // (conservatively = even for thunks that end up not being generated)
+        let thunk_id_of_block = cfg::BlockMap::new_with(ssa.cfg(), |bid| {
             Ident(Rc::new(format!("T{}", bid.as_number())))
         });
 
         Builder {
             ssa,
             name_of_value,
-            label_of_block,
+            thunk_id_of_block,
             visited: cfg::BlockMap::new(false, ssa.cfg().block_count()),
             thunks: HashMap::new(),
         }
@@ -163,8 +176,19 @@ impl<'a> Builder<'a> {
 
     fn compile_thunk(&mut self, start_bid: cfg::BasicBlockID) -> Ident {
         // create thunk and assign ID immediately, in case the thunk jumps to itself
-        let lbl = Ident(Rc::new(format!("T{}", start_bid.as_number())));
-        self.thunks.insert(lbl.clone(), Thunk { body: Node::Nop });
+        let lbl = self.thunk_id_of_block[start_bid].clone();
+        self.thunks.insert(
+            lbl.clone(),
+            Thunk {
+                body: Node::Nop,
+                params: SmallVec::new(),
+            },
+        );
+
+        let phi_count = self.ssa.block_phi(start_bid).phi_count();
+        self.thunks.get_mut(&lbl).unwrap().params = (0..phi_count)
+            .map(|phi_ndx| Ident(Rc::new(format!("phi{}", phi_ndx))))
+            .collect();
 
         let seq = self
             .ssa
@@ -178,7 +202,7 @@ impl<'a> Builder<'a> {
                     return None;
                 }
 
-                let node = self.compile_node(ndx);
+                let node = self.compile_node(ndx, start_bid);
                 if node == Node::Nop {
                     return None;
                 }
@@ -202,7 +226,22 @@ impl<'a> Builder<'a> {
         lbl
     }
 
-    fn compile_node(&self, start_ndx: mil::Index) -> Node {
+    fn compile_continue(&self, bid: cfg::BasicBlockID, pred_ndx: u8) -> Node {
+        let thunk_id = self.thunk_id_of_block[bid].clone();
+
+        let target_phis = self.ssa.block_phi(bid);
+        let values = (0..target_phis.phi_count())
+            .map(|phi_ndx| {
+                let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
+                self.get_node(reg.0).boxed()
+            })
+            .collect();
+        let args = ThunkArgs { values };
+
+        Node::ContinueToThunk(thunk_id, args)
+    }
+
+    fn compile_node(&self, start_ndx: mil::Index, bid: cfg::BasicBlockID) -> Node {
         use mil::Insn;
 
         let iv = self.ssa.get(start_ndx).unwrap();
@@ -229,32 +268,34 @@ impl<'a> Builder<'a> {
             // To be handled in ::Call
             Insn::CArgEnd | Insn::CArg { .. } => Node::Nop,
             Insn::Ret(arg) => Node::Return(self.get_node(arg.0).boxed()),
-            Insn::Jmp(_) => todo!("indirect jump"),
-            Insn::JmpK(target) => {
-                match self
-                    .ssa
-                    .index_of_addr(*target)
-                    .and_then(|ndx| self.ssa.cfg().block_at(ndx))
-                {
-                    Some(bid) => Node::GoToLabel(self.label_of_block[bid].clone()),
-                    None => Node::GoToAddr(*target),
-                }
+            Insn::JmpK(target) => Node::ContinueToExtern(*target),
+            Insn::Jmp(target_loc) => {
+                let (pred_ndx, target_bid) = match self.ssa.cfg().successors(bid) {
+                    cfg::BlockCont::Jmp(jmp) => *jmp,
+                    other => panic!(
+                        "wrong block continuation: expected BlockCont::Jmp, got {:?}",
+                        other
+                    ),
+                };
+
+                assert_eq!(self.ssa.cfg().block_at(target_loc.0), Some(target_bid));
+
+                self.compile_continue(target_bid, pred_ndx)
             }
             Insn::JmpIfK { cond, target } => {
                 let cond = self.get_node(cond.0).boxed();
-                let alt_bid = self.ssa.cfg().block_at(start_ndx + 1).unwrap();
 
-                let cons = match self
-                    .ssa
-                    .index_of_addr(*target)
-                    .and_then(|ndx| self.ssa.cfg().block_at(ndx))
-                {
-                    Some(bid) => Node::GoToLabel(self.label_of_block[bid].clone()),
-                    None => Node::GoToAddr(*target),
-                }
-                .boxed();
+                let ((neg_pred_ndx, neg_bid), (pos_pred_ndx, pos_bid)) =
+                    match self.ssa.cfg().successors(bid) {
+                        cfg::BlockCont::Alt { straight, side } => (straight, side),
+                        other => panic!(
+                            "wrong block continuation: expected BlockCont::Alt, got {:?}",
+                            other
+                        ),
+                    };
 
-                let alt = Node::GoToLabel(self.label_of_block[alt_bid].clone()).boxed();
+                let cons = self.compile_continue(*neg_bid, *neg_pred_ndx).boxed();
+                let alt = self.compile_continue(*pos_bid, *pos_pred_ndx).boxed();
 
                 Node::If { cond, cons, alt }
             }
@@ -389,6 +430,49 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn get_phis(
+    ssa: &ssa::Program,
+    bid: BasicBlockID,
+    pred: BasicBlockID,
+    mut action: impl FnMut(u32, mil::Reg),
+) {
+    let preds = ssa.cfg().predecessors(bid);
+    let my_pred_ndx: u8 = preds
+        .iter()
+        .position(|p| *p == pred)
+        .expect("not a predecessor!")
+        .try_into()
+        .unwrap();
+    let block_pred_count = preds.len();
+    let mut phi_iter = ssa.block_phis(bid).peekable();
+
+    let mut phi_ndx = 0;
+    while let Some(any_item) = phi_iter.next() {
+        let pred_count = match any_item.insn {
+            mil::Insn::Phi { pred_count } => *pred_count,
+            other => panic!(
+                "incorrect data returned by ssa::Program::block_phis: expected Phi, not {other:?}"
+            ),
+        };
+        assert_eq!(pred_count as usize, block_pred_count);
+
+        while let Some(any_item) = phi_iter.peek() {
+            let value = match any_item.insn {
+                mil::Insn::Phi { .. } => {break}
+                mil::Insn::PhiArg { pred_ndx, value } if *pred_ndx == my_pred_ndx => value,
+                mil::Insn::PhiArg { .. } => {continue},
+                other => panic!(
+                    "incorrect data returned by ssa::Program::block_phis: expected PhiArg, not {other:?}"
+                ),
+            };
+            action(phi_ndx, *value);
+            phi_iter.next();
+        }
+
+        phi_ndx += 1;
+    }
+}
+
 fn fold_bin(op: BinOp, a: Box<Node>, b: Box<Node>) -> Node {
     // TODO!
     Node::Bin {
@@ -470,8 +554,7 @@ impl Node {
 
             Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
 
-            Node::GoToLabel(lbl) => write!(pp, "goto {}", lbl.0.as_str()),
-            Node::GoToAddr(addr) => write!(pp, "goto 0x{:x}", addr),
+            Node::ContinueToThunk(lbl) => write!(pp, "goto {}", lbl.0.as_str()),
             Node::Const1(val) => write!(pp, "{}", *val as i8),
             Node::Const2(val) => write!(pp, "{}", *val as i16),
             Node::Const4(val) => write!(pp, "{}", *val as i32),
