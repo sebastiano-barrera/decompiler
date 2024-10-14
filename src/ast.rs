@@ -4,10 +4,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use smallvec::SmallVec;
 
-use crate::{
-    cfg::{self, BasicBlockID},
-    mil, ssa,
-};
+use crate::{cfg, mil, ssa};
 
 #[derive(Debug)]
 pub struct Ast {
@@ -190,10 +187,10 @@ impl<'a> Builder<'a> {
             .map(|phi_ndx| Ident(Rc::new(format!("phi{}", phi_ndx))))
             .collect();
 
-        let seq = self
-            .ssa
-            .cfg()
-            .insns_ndx_range(start_bid)
+        let nor_ndxs = self.ssa.cfg().insns_ndx_range(start_bid);
+
+        let mut seq: SmallVec<_> = nor_ndxs
+            .clone()
             .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
             .filter_map(|(ndx, iv)| {
                 let name = self.name_of_value.get(&iv.dest.0);
@@ -202,7 +199,7 @@ impl<'a> Builder<'a> {
                     return None;
                 }
 
-                let node = self.compile_node(ndx, start_bid);
+                let node = self.compile_node(ndx);
                 if node == Node::Nop {
                     return None;
                 }
@@ -220,6 +217,37 @@ impl<'a> Builder<'a> {
                 Some(node.boxed())
             })
             .collect();
+
+        match self.ssa.cfg().successors(start_bid) {
+            cfg::BlockCont::End => {
+                // all done!
+            }
+            cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
+                let cont_node = self.compile_continue(*tgt, *pred_ndx).boxed();
+                seq.push(cont_node);
+            }
+            cfg::BlockCont::Alt {
+                straight: (neg_pred_ndx, neg_bid),
+                side: (pos_pred_ndx, pos_bid),
+            } => {
+                assert!(
+                    nor_ndxs.len() > 0,
+                    "block with BlockCont::Alt continuation must have at least 1 insn"
+                );
+                let last_ndx = nor_ndxs.end - 1;
+                let last_item = self.ssa.get(last_ndx).unwrap();
+
+                let cond = match &last_item.insn {
+                    mil::Insn::JmpIfK { cond, target: _ } => cond,
+                    _ => panic!("block with BlockCont::Alt continuation must end with a JmpIfK"),
+                };
+                let cond = self.get_node(cond.0).boxed();
+                let cons = self.compile_continue(*neg_bid, *neg_pred_ndx).boxed();
+                let alt = self.compile_continue(*pos_bid, *pos_pred_ndx).boxed();
+
+                seq.push(Node::If { cond, cons, alt }.boxed());
+            }
+        };
 
         self.thunks.get_mut(&lbl).unwrap().body = Node::Seq(seq);
         self.visited[start_bid] = true;
@@ -241,7 +269,7 @@ impl<'a> Builder<'a> {
         Node::ContinueToThunk(thunk_id, args)
     }
 
-    fn compile_node(&self, start_ndx: mil::Index, bid: cfg::BasicBlockID) -> Node {
+    fn compile_node(&self, start_ndx: mil::Index) -> Node {
         use mil::Insn;
 
         let iv = self.ssa.get(start_ndx).unwrap();
@@ -269,35 +297,9 @@ impl<'a> Builder<'a> {
             Insn::CArgEnd | Insn::CArg { .. } => Node::Nop,
             Insn::Ret(arg) => Node::Return(self.get_node(arg.0).boxed()),
             Insn::JmpK(target) => Node::ContinueToExtern(*target),
-            Insn::Jmp(target_loc) => {
-                let (pred_ndx, target_bid) = match self.ssa.cfg().successors(bid) {
-                    cfg::BlockCont::Jmp(jmp) => *jmp,
-                    other => panic!(
-                        "wrong block continuation: expected BlockCont::Jmp, got {:?}",
-                        other
-                    ),
-                };
-
-                assert_eq!(self.ssa.cfg().block_at(target_loc.0), Some(target_bid));
-
-                self.compile_continue(target_bid, pred_ndx)
-            }
-            Insn::JmpIfK { cond, target } => {
-                let cond = self.get_node(cond.0).boxed();
-
-                let ((neg_pred_ndx, neg_bid), (pos_pred_ndx, pos_bid)) =
-                    match self.ssa.cfg().successors(bid) {
-                        cfg::BlockCont::Alt { straight, side } => (straight, side),
-                        other => panic!(
-                            "wrong block continuation: expected BlockCont::Alt, got {:?}",
-                            other
-                        ),
-                    };
-
-                let cons = self.compile_continue(*neg_bid, *neg_pred_ndx).boxed();
-                let alt = self.compile_continue(*pos_bid, *pos_pred_ndx).boxed();
-
-                Node::If { cond, cons, alt }
+            Insn::Jmp(_) | Insn::JmpIfK { .. } => {
+                // skip.  the control fllow handling in compile_thunk shall take care of this
+                Node::Nop
             }
             Insn::StoreMem(addr, val) => {
                 let addr = self.get_node(addr.0).boxed();
@@ -430,49 +432,6 @@ impl<'a> Builder<'a> {
     }
 }
 
-fn get_phis(
-    ssa: &ssa::Program,
-    bid: BasicBlockID,
-    pred: BasicBlockID,
-    mut action: impl FnMut(u32, mil::Reg),
-) {
-    let preds = ssa.cfg().predecessors(bid);
-    let my_pred_ndx: u8 = preds
-        .iter()
-        .position(|p| *p == pred)
-        .expect("not a predecessor!")
-        .try_into()
-        .unwrap();
-    let block_pred_count = preds.len();
-    let mut phi_iter = ssa.block_phis(bid).peekable();
-
-    let mut phi_ndx = 0;
-    while let Some(any_item) = phi_iter.next() {
-        let pred_count = match any_item.insn {
-            mil::Insn::Phi { pred_count } => *pred_count,
-            other => panic!(
-                "incorrect data returned by ssa::Program::block_phis: expected Phi, not {other:?}"
-            ),
-        };
-        assert_eq!(pred_count as usize, block_pred_count);
-
-        while let Some(any_item) = phi_iter.peek() {
-            let value = match any_item.insn {
-                mil::Insn::Phi { .. } => {break}
-                mil::Insn::PhiArg { pred_ndx, value } if *pred_ndx == my_pred_ndx => value,
-                mil::Insn::PhiArg { .. } => {continue},
-                other => panic!(
-                    "incorrect data returned by ssa::Program::block_phis: expected PhiArg, not {other:?}"
-                ),
-            };
-            action(phi_ndx, *value);
-            phi_iter.next();
-        }
-
-        phi_ndx += 1;
-    }
-}
-
 fn fold_bin(op: BinOp, a: Box<Node>, b: Box<Node>) -> Node {
     // TODO!
     Node::Bin {
@@ -554,7 +513,17 @@ impl Node {
 
             Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
 
-            Node::ContinueToThunk(lbl) => write!(pp, "goto {}", lbl.0.as_str()),
+            Node::ContinueToThunk(thunk_id, args) => {
+                write!(pp, "goto {} with (", thunk_id.0.as_str())?;
+                pp.open_box();
+                for arg in &args.values {
+                    arg.pretty_print(pp)?;
+                    writeln!(pp, ",")?;
+                }
+                pp.close_box();
+                write!(pp, ")")
+            }
+            Node::ContinueToExtern(addr) => write!(pp, "jmp extern 0x{:x}", addr),
             Node::Const1(val) => write!(pp, "{}", *val as i8),
             Node::Const2(val) => write!(pp, "{}", *val as i16),
             Node::Const4(val) => write!(pp, "{}", *val as i32),

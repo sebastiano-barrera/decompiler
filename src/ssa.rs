@@ -32,13 +32,6 @@ impl Program {
         self.inner.len()
     }
 
-    // TODO remove
-    pub fn block_phis(&self, bid: BasicBlockID) -> impl Iterator<Item = mil::InsnView> {
-        self.block_phi_ndxs[bid]
-            .clone()
-            .map(|ndx| self.get(ndx).unwrap())
-    }
-
     pub fn index_of_addr(&self, addr: u64) -> Option<mil::Index> {
         self.inner.index_of_addr(addr)
     }
@@ -86,7 +79,7 @@ impl PhiInfo {
         let item = ssa.get(self.arg_ndx(phi_ndx, pred_ndx)).unwrap();
         match item.insn {
             mil::Insn::PhiArg(reg) => reg,
-            _ => unreachable!(),
+            other => panic!("expected phiarg, got {:?}", other),
         }
     }
 
