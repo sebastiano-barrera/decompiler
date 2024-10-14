@@ -135,7 +135,11 @@ impl<'a> Builder<'a> {
     fn new(ssa: &'a ssa::Program) -> Builder<'a> {
         let name_of_value = (0..ssa.len())
             .filter_map(|ndx| {
-                if ssa.readers_count(mil::Reg(ndx)) > 1 {
+                let insn = ssa.get(ndx).unwrap().insn;
+                if insn == &mil::Insn::Phi
+                    || insn.has_side_effects()
+                    || ssa.readers_count(mil::Reg(ndx)) > 1
+                {
                     let name = Ident(Rc::new(format!("v{}", ndx)));
                     Some((ndx, name))
                 } else {
@@ -185,8 +189,14 @@ impl<'a> Builder<'a> {
         let phis = self.ssa.block_phi(start_bid);
         let phi_count = phis.phi_count();
         self.thunks.get_mut(&lbl).unwrap().params = (0..phi_count)
-            .filter(|phi_ndx| self.ssa.is_alive(phis.node_ndx(*phi_ndx)))
-            .map(|phi_ndx| Ident(Rc::new(format!("phi{}", phi_ndx))))
+            .map(|phi_ndx| phis.node_ndx(phi_ndx))
+            .filter(|ndx| self.ssa.is_alive(*ndx))
+            .map(|ndx| {
+                self.name_of_value
+                    .get(&ndx)
+                    .expect("unnamed phi node!")
+                    .clone()
+            })
             .collect();
 
         let nor_ndxs = self.ssa.cfg().insns_ndx_range(start_bid);
@@ -525,22 +535,29 @@ impl Node {
 
             Node::ContinueToThunk(thunk_id, args) => {
                 write!(pp, "goto {}", thunk_id.0.as_str())?;
-                if args.values.len() > 0 {
-                    write!(pp, " with ")?;
-                    pp.open_box();
-                    for (ndx, arg) in args.values.iter().enumerate() {
-                        if ndx == 0 {
-                            write!(pp, "( ")?;
-                        } else {
-                            write!(pp, "\n, ")?;
-                        }
-                        pp.open_box();
+                match &args.values[..] {
+                    &[] => {}
+                    &[ref arg] => {
+                        write!(pp, " (")?;
                         arg.pretty_print(pp)?;
+                        write!(pp, ")")?;
+                    }
+                    args => {
+                        write!(pp, " with (")?;
+                        pp.open_box();
+                        for (ndx, arg) in args.iter().enumerate() {
+                            pp.open_box();
+                            arg.pretty_print(pp)?;
+                            if ndx == args.len() - 1 {
+                                write!(pp, ")")?;
+                            } else {
+                                writeln!(pp, ",")?;
+                            }
+                            pp.close_box();
+                        }
                         pp.close_box();
                     }
-                    write!(pp, "\n)")?;
-                    pp.close_box();
-                }
+                };
                 Ok(())
             }
             Node::ContinueToExtern(addr) => write!(pp, "jmp extern 0x{:x}", addr),

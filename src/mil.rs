@@ -39,7 +39,7 @@ impl std::fmt::Debug for Reg {
 
 pub type Index = u16;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Insn {
     Const1(u8),
     Const2(u16),
@@ -135,7 +135,7 @@ pub enum Insn {
     PhiArg(Reg),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Ancestral {
     StackBot,
 }
