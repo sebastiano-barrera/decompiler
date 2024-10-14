@@ -579,19 +579,25 @@ impl Node {
                 write!(pp, ".l4")
             }
             Node::WithL1(a, b) => {
+                write!(pp, "(")?;
                 a.pretty_print(pp)?;
                 write!(pp, " with l1 = ")?;
-                b.pretty_print(pp)
+                b.pretty_print(pp)?;
+                write!(pp, ")")
             }
             Node::WithL2(a, b) => {
+                write!(pp, "(")?;
                 a.pretty_print(pp)?;
                 write!(pp, " with l2 = ")?;
-                b.pretty_print(pp)
+                b.pretty_print(pp)?;
+                write!(pp, ")")
             }
             Node::WithL4(a, b) => {
+                write!(pp, "(")?;
                 a.pretty_print(pp)?;
                 write!(pp, " with l4 = ")?;
-                b.pretty_print(pp)
+                b.pretty_print(pp)?;
+                write!(pp, ")")
             }
             Node::Bin { op, args } => {
                 let op_s = match op {
