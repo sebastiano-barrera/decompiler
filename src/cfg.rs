@@ -20,20 +20,31 @@ pub struct Graph {
     block_at: HashMap<mil::Index, BasicBlockID>,
 }
 
+type Jump = (PredIndex, BasicBlockID);
+type PredIndex = u8;
+
 #[derive(Debug)]
 pub enum BlockCont {
     End,
-    Jmp(BasicBlockID),
-    Alt(BasicBlockID, BasicBlockID),
+    Jmp(Jump),
+    Alt(Jump, Jump),
 }
 
 impl BlockCont {
     #[inline]
-    pub fn as_array(&self) -> [Option<BasicBlockID>; 2] {
+    pub fn as_array(&self) -> [Option<Jump>; 2] {
         match self {
             BlockCont::End => [None, None],
             BlockCont::Jmp(d) => [Some(*d), None],
             BlockCont::Alt(d, e) => [Some(*d), Some(*e)],
+        }
+    }
+
+    pub fn as_array_mut(&mut self) -> [Option<&mut Jump>; 2] {
+        match self {
+            BlockCont::End => [None, None],
+            BlockCont::Jmp(d) => [Some(d), None],
+            BlockCont::Alt(d, e) => [Some(d), Some(e)],
         }
     }
 }
@@ -137,41 +148,43 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         .iter()
         .map(|end_ndx| {
             let last_ndx = end_ndx - 1;
+            // predecessor indices are fixed up later
             match dest_of_insn(program, last_ndx) {
                 (None, None) => panic!("all instructions must lead *somewhere*!"),
                 (None, Some(dest)) if dest == program.len() => BlockCont::End,
                 (Some(dest), None) | (None, Some(dest)) => {
-                    BlockCont::Jmp(*block_at.get(&dest).unwrap())
+                    BlockCont::Jmp((0, *block_at.get(&dest).unwrap()))
                 }
                 (Some(straight_dest), Some(side_dest)) => BlockCont::Alt(
-                    *block_at.get(&straight_dest).unwrap(),
-                    *block_at.get(&side_dest).unwrap(),
+                    (0, *block_at.get(&straight_dest).unwrap()),
+                    (0, *block_at.get(&side_dest).unwrap()),
                 ),
             }
         })
         .collect();
-    let successors = BlockMap(successors);
+    let mut successors = BlockMap(successors);
 
     let mut pred_ndx_range = Vec::with_capacity(block_count);
     let mut predecessors = Vec::with_capacity(block_count * 2);
 
     // quadratic, but you know how life goes
     for bndx in 0..block_count {
-        let bid = Some(BasicBlockID(bndx.try_into().unwrap()));
+        let bid = BasicBlockID(bndx.try_into().unwrap());
 
         let pred_offset = predecessors.len();
         let mut pred_count = 0;
 
-        for (pred_ndx, cont) in successors.iter().enumerate() {
-            let pred_ndx = pred_ndx.try_into().unwrap();
-            let [a, b] = cont.as_array();
-            if a == bid || b == bid {
-                predecessors.push(BasicBlockID(pred_ndx));
-                pred_count += 1;
+        for (pred, cont) in successors.items_mut() {
+            for (pred_ndx, dest) in cont.as_array_mut().into_iter().flatten() {
+                if *dest == bid {
+                    predecessors.push(pred);
+                    *pred_ndx = pred_count;
+                    pred_count += 1;
+                }
             }
         }
 
-        pred_ndx_range.push(pred_offset..pred_offset + pred_count);
+        pred_ndx_range.push(pred_offset..pred_offset + pred_count as usize);
     }
 
     #[cfg(debug_assertions)]
@@ -259,8 +272,10 @@ impl Graph {
             let bid = BasicBlockID(bndx.try_into().unwrap());
             match self.successors[bid] {
                 BlockCont::End => println!("  block{} -> end", bndx),
-                BlockCont::Jmp(BasicBlockID(dest)) => println!("  block{} -> block{}", bndx, dest),
-                BlockCont::Alt(BasicBlockID(a), BasicBlockID(b)) => {
+                BlockCont::Jmp((_, BasicBlockID(dest))) => {
+                    println!("  block{} -> block{}", bndx, dest)
+                }
+                BlockCont::Alt((_, BasicBlockID(a)), (_, BasicBlockID(b))) => {
                     println!("  block{} -> block{};", bndx, a);
                     println!("  block{} -> block{};", bndx, b);
                 }
@@ -416,7 +431,7 @@ fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
         visited[bid] = true;
 
         let block_succs: [_; 2] = graph.successors[bid].as_array();
-        for succ in block_succs.into_iter().flatten() {
+        for (_, succ) in block_succs.into_iter().flatten() {
             if !visited[succ] {
                 queue.push(succ);
             }
@@ -454,7 +469,7 @@ fn count_nonbackedge_predecessors(graph: &Graph) -> BlockMap<u16> {
             Color::Unvisited => {
                 // schedule Visiting -> Finished after all children have been visited
                 queue.push(bid);
-                for succ in graph.successors[bid].as_array().into_iter().flatten() {
+                for (_, succ) in graph.successors[bid].as_array().into_iter().flatten() {
                     if color[succ] == Color::Unvisited {
                         queue.push(succ);
                     }
@@ -521,9 +536,17 @@ impl<T: Clone> BlockMap<T> {
     {
         Self(cfg.block_ids().map(init_item).collect())
     }
+}
 
+impl<T> BlockMap<T> {
     pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &T)> {
         self.0.iter().enumerate().map(|(ndx, item)| {
+            let ndx = ndx.try_into().unwrap();
+            (BasicBlockID(ndx), item)
+        })
+    }
+    pub fn items_mut(&mut self) -> impl ExactSizeIterator<Item = (BasicBlockID, &mut T)> {
+        self.0.iter_mut().enumerate().map(|(ndx, item)| {
             let ndx = ndx.try_into().unwrap();
             (BasicBlockID(ndx), item)
         })

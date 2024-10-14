@@ -16,7 +16,7 @@ pub struct Program {
     inner: mil::Program,
     cfg: cfg::Graph,
     is_alive: RegMap<bool>,
-    block_phi_ndxs: cfg::BlockMap<Range<mil::Index>>,
+    phis: cfg::BlockMap<PhiInfo>,
     rdr_count: ReaderCount,
 }
 
@@ -39,6 +39,51 @@ impl Program {
     pub fn readers_count(&self, reg: mil::Reg) -> usize {
         self.rdr_count.get(reg)
     }
+
+    pub fn block_phi(&self, bid: cfg::BasicBlockID) -> &PhiInfo {
+        &self.phis[bid]
+    }
+}
+
+#[derive(Clone)]
+pub struct PhiInfo {
+    ndxs: Range<mil::Index>,
+    // TODO smaller sizes?; these rarely go above, like 4-8
+    phi_count: mil::Index,
+    pred_count: mil::Index,
+}
+
+impl PhiInfo {
+    fn empty() -> Self {
+        PhiInfo {
+            ndxs: 0..0,
+            phi_count: 0,
+            pred_count: 0,
+        }
+    }
+
+    pub fn arg<'p>(
+        &self,
+        ssa: &'p Program,
+        phi_ndx: mil::Index,
+        pred_ndx: mil::Index,
+    ) -> &'p mil::Reg {
+        let item = ssa.get(self.arg_ndx(phi_ndx, pred_ndx)).unwrap();
+        match item.insn {
+            mil::Insn::PhiArg(reg) => reg,
+            _ => unreachable!(),
+        }
+    }
+
+    fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Index {
+        assert!(phi_ndx < self.phi_count);
+        assert!(pred_ndx < self.pred_count);
+        assert_eq!(
+            self.ndxs.len(),
+            (self.phi_count * (1 + self.pred_count)).into()
+        );
+        self.ndxs.start + phi_ndx * (1 + self.pred_count) + pred_ndx
+    }
 }
 
 impl std::fmt::Debug for Program {
@@ -47,7 +92,8 @@ impl std::fmt::Debug for Program {
         writeln!(f, "ssa program  {} instrs", count)?;
 
         for bid in self.cfg.block_ids() {
-            let phi_ndxs = self.block_phi_ndxs[bid].clone();
+            let phis = &self.phis[bid];
+            let phi_ndxs = phis.ndxs.clone();
             let nor_ndxs = self.cfg.insns_ndx_range(bid);
             let block_addr = self.inner.get(nor_ndxs.start).unwrap().addr;
 
@@ -61,7 +107,7 @@ impl std::fmt::Debug for Program {
                 "   ;; 0x{:x}  {} insn {} phis",
                 block_addr,
                 nor_ndxs.len(),
-                phi_ndxs.len()
+                phis.phi_count,
             )?;
 
             for ndx in phi_ndxs.chain(nor_ndxs) {
@@ -90,7 +136,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     let dom_tree = cfg::compute_dom_tree(&cfg);
     cfg.dump_graphviz(Some(&dom_tree));
 
-    let block_phi_ndxs = place_phi_nodes(&mut program, &cfg, &dom_tree);
+    let mut phis = place_phi_nodes(&mut program, &cfg, &dom_tree);
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -117,13 +163,13 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
     // TODO rework this with a more efficient data structure
     struct VarMap {
-        count: usize,
+        count: mil::Index,
         default: mil::Reg,
         stack: Vec<Box<[Option<mil::Reg>]>>,
     }
 
     impl VarMap {
-        fn new(count: usize, default: mil::Reg) -> Self {
+        fn new(count: mil::Index, default: mil::Reg) -> Self {
             VarMap {
                 count,
                 default,
@@ -133,7 +179,8 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
         fn push(&mut self) {
             if self.stack.is_empty() {
-                self.stack.push(vec![None; self.count].into_boxed_slice());
+                self.stack
+                    .push(vec![None; self.count.into()].into_boxed_slice());
             } else {
                 let new_elem = self.stack.last().unwrap().clone();
                 self.stack.push(new_elem);
@@ -144,7 +191,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
         fn check_invariants(&self) {
             for elem in &self.stack {
-                assert_eq!(elem.len(), self.count);
+                assert_eq!(elem.len(), self.count.into());
             }
         }
 
@@ -195,7 +242,8 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
                 // phi nodes are *used* here for their destination; their arguments are fixed up
                 // while processing the predecessors
-                for ndx in block_phi_ndxs[bid].clone() {
+                let block_phis = &phis[bid];
+                for ndx in block_phis.ndxs.clone() {
                     let item = program.get_mut(ndx).unwrap();
                     match item.insn {
                         mil::Insn::Phi { .. } => {
@@ -246,32 +294,24 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                 // >    for p in s's ϕ-nodes:
                 // >      Assuming p is for a variable v, make it read from stack[v].
                 //
-                // ... but in order to patch the correct operand in each phi instruction, we have
-                // to figure out a "predecessor position", i.e. whether the current block is the
+                // ... in order to patch the correct operand in each phi instruction, we have
+                // to use its "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for succ in cfg.successors(bid).as_array().into_iter().flatten() {
-                    // maybe there is a better way, but I'm betting that the max nubmer of
-                    // predecessor is very small (< 10), so this is plenty fast
-                    // index of bid in succ's predecessor list
-                    let my_pred_ndx = cfg
-                        .predecessors(succ)
-                        .iter()
-                        .position(|&pred| pred == bid)
-                        .unwrap();
+                for (my_pred_ndx, succ) in cfg.successors(bid).as_array().into_iter().flatten() {
+                    let succ_phis = &mut phis[succ];
 
-                    for ndx in block_phi_ndxs[succ].clone() {
-                        match program.get_mut(ndx).unwrap().insn {
-                            mil::Insn::Phi { .. } => {}
-                            mil::Insn::PhiArg { pred_ndx, value } => {
-                                // NOTE: the substitution of the *successor's* phi node's argument is
-                                // done in the context of *this* node (its predecessor)
-                                if my_pred_ndx == *pred_ndx as usize {
-                                    *value = var_map.get(*value);
-                                }
-                            }
+                    for phi_ndx in 0..succ_phis.phi_count {
+                        let ndx = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
+                        let arg = match program.get_mut(ndx).unwrap().insn {
+                            mil::Insn::Phi => continue,
+                            mil::Insn::PhiArg(value) => value,
                             _ => panic!("non-phi node in block phi ndx range"),
-                        }
+                        };
+
+                        // NOTE: the substitution of the *successor's* phi node's argument is
+                        // done in the context of *this* node (its predecessor)
+                        *arg = var_map.get(*arg);
                     }
                 }
 
@@ -307,7 +347,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         inner: program,
         cfg,
         is_alive,
-        block_phi_ndxs,
+        phis,
         rdr_count,
     };
     eliminate_dead_code(&mut program);
@@ -318,11 +358,11 @@ fn place_phi_nodes(
     program: &mut mil::Program,
     cfg: &cfg::Graph,
     dom_tree: &cfg::DomTree,
-) -> cfg::BlockMap<Range<mil::Index>> {
+) -> cfg::BlockMap<PhiInfo> {
     let block_count = cfg.block_count();
 
     if program.len() == 0 {
-        return cfg::BlockMap::new(0..0, block_count);
+        return cfg::BlockMap::new(PhiInfo::empty(), block_count);
     }
 
     // matrix [B * B] where B = #blocks
@@ -334,7 +374,7 @@ fn place_phi_nodes(
     //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
     // (phis_set is to avoid having multiple phis for the same var)
     let var_count = count_variables(program);
-    let mut phis_set = Mat::new(false, block_count, var_count);
+    let mut phis_set = Mat::new(false, block_count.into(), var_count.into());
     for bid in cfg.block_ids() {
         let bid_ndx = bid.as_usize();
 
@@ -352,40 +392,42 @@ fn place_phi_nodes(
     // translate `phis` into a representation such that inputs can be replaced with specific input
     // variables assigned in predecessors.
     // they are appended as Phi/PhiArg nodes to the program
-    let mut block_phi_ndxs = cfg::BlockMap::new(0..0, block_count);
+    let mut phis = cfg::BlockMap::new(PhiInfo::empty(), block_count);
 
     for bid in cfg.block_ids() {
-        let pred_count = cfg.predecessors(bid).len().try_into().unwrap();
+        let pred_count: u16 = cfg.predecessors(bid).len().try_into().unwrap();
         let start_ndx = program.len();
-        let block_ndx = bid.as_usize();
+        let mut phi_count = 0;
 
         for var_ndx in 0..var_count {
-            if *phis_set.item(block_ndx, var_ndx) {
+            if *phis_set.item(bid.as_usize(), var_ndx.into()) {
                 let var_ndx = var_ndx.try_into().unwrap();
                 let reg = mil::Reg(var_ndx);
 
-                program.push(reg, mil::Insn::Phi { pred_count });
-                for pred_ndx in 0..pred_count {
-                    program.push(
-                        mil::Reg(program.len()),
-                        mil::Insn::PhiArg {
-                            pred_ndx,
-                            value: reg,
-                        },
-                    );
+                program.push(reg, mil::Insn::Phi);
+                phi_count += 1;
+
+                for _pred_ndx in 0..pred_count {
+                    // implicitly corresponds to _pred_ndx
+                    program.push(mil::Reg(program.len()), mil::Insn::PhiArg(reg));
                 }
             }
         }
 
         let end_ndx = program.len();
-        block_phi_ndxs[bid] = start_ndx..end_ndx;
+        assert_eq!(end_ndx - start_ndx, phi_count * (1 + pred_count));
+        phis[bid] = PhiInfo {
+            ndxs: start_ndx..end_ndx,
+            phi_count,
+            pred_count,
+        };
     }
 
-    block_phi_ndxs
+    phis
 }
 
 // TODO cache this info somewhere. it's so weird to recompute it twice!
-fn count_variables(program: &mil::Program) -> usize {
+fn count_variables(program: &mil::Program) -> mil::Index {
     use std::iter::once;
 
     let max_reg_ndx = program
@@ -396,7 +438,7 @@ fn count_variables(program: &mil::Program) -> usize {
         })
         .map(|reg| reg.reg_index())
         .max()
-        .unwrap() as usize;
+        .unwrap();
 
     1 + max_reg_ndx
 }
@@ -487,7 +529,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
 
         // order of processing of phi nodes should not matter
         let mut flag = false;
-        for ndx in prog.block_phi_ndxs[bid].clone() {
+        for ndx in prog.phis[bid].ndxs.clone() {
             let reg = mil::Reg(ndx);
             let is_alive = prog.is_alive.get_mut(reg).unwrap();
             *is_alive = prog.rdr_count.get(reg) > 0;
@@ -495,7 +537,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
                 mil::Insn::Phi { .. } => {
                     flag = *is_alive;
                 }
-                mil::Insn::PhiArg { value, .. } => {
+                mil::Insn::PhiArg(value) => {
                     *is_alive = flag;
                     if *is_alive {
                         prog.rdr_count.inc(*value);

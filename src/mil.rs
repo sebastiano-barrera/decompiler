@@ -111,14 +111,28 @@ pub enum Insn {
     Undefined,
     Ancestral(Ancestral),
 
-    /// Phi node.  `start` and `end` designate a range of PhiArg items
-    Phi {
-        pred_count: u8,
-    },
-    PhiArg {
-        pred_ndx: u8,
-        value: Reg,
-    },
+    /// Phi node.
+    ///
+    /// Exists purely to give the phi node an index that the rest of the program can refer to (in
+    /// SSA).
+    Phi,
+
+    // argument to a phi node
+    //
+    //   - args to the same phi node are all adjacent, forming a 'group'
+    //      - always the same number as there are predecessors.
+    //      - their order matches the order of the block's predecessors in the CFG.
+    //   - all the groups in the same block are also adjacent
+    // e.g.  3 phis on a block with 2 predecessors: B5, B7
+    //   B3:
+    //     PhiArg r2   ;; --+-- phi0 <- B5:r2  B7:r8
+    //     PhiArg r8   ;; --'
+    //     PhiArg r11  ;; --+-- phi1 <- B5:r11 B7:r29
+    //     PhiArg r29  ;; --'
+    //     PhiArg r93  ;; --+-- phi2 <- B5:r93 B7:r332
+    //     PhiArg r332 ;; --'
+    //     ... ;; normal insns
+    PhiArg(Reg),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -138,8 +152,8 @@ impl Insn {
             | Insn::JmpK(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Ancestral(_)
-            | Insn::Phi { .. } => [None, None],
+            | Insn::Phi
+            | Insn::Ancestral(_) => [None, None],
 
             Insn::L1(reg)
             | Insn::L2(reg)
@@ -163,7 +177,7 @@ impl Insn {
             | Insn::SignOf(reg)
             | Insn::IsZero(reg)
             | Insn::Parity(reg)
-            | Insn::PhiArg { value: reg, .. } => [Some(reg), None],
+            | Insn::PhiArg(reg) => [Some(reg), None],
 
             Insn::WithL1(a, b)
             | Insn::WithL2(a, b)
@@ -191,8 +205,8 @@ impl Insn {
             | Insn::JmpK(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Ancestral(_)
-            | Insn::Phi { .. } => [None, None],
+            | Insn::Phi
+            | Insn::Ancestral(_) => [None, None],
 
             Insn::L1(reg)
             | Insn::L2(reg)
@@ -216,7 +230,7 @@ impl Insn {
             | Insn::SignOf(reg)
             | Insn::IsZero(reg)
             | Insn::Parity(reg)
-            | Insn::PhiArg { value: reg, .. } => [Some(reg), None],
+            | Insn::PhiArg(reg) => [Some(reg), None],
 
             Insn::WithL1(a, b)
             | Insn::WithL2(a, b)
@@ -268,7 +282,7 @@ impl Insn {
             | Insn::LoadMem4(_)
             | Insn::LoadMem8(_)
             | Insn::Ancestral(_)
-            | Insn::Phi { .. }
+            | Insn::Phi
             | Insn::PhiArg { .. } => false,
 
             Insn::Call { .. }
@@ -337,9 +351,9 @@ impl std::fmt::Debug for Insn {
                 Ancestral::StackBot => write!(f, "#stackBottom"),
             },
 
-            Insn::Phi { pred_count } => write!(f, "{:8} {}", "phi", pred_count),
-            Insn::PhiArg { pred_ndx, value } => {
-                write!(f, "{:8} in[{}]:{:?}", "phiarg", pred_ndx, value)
+            Insn::Phi => write!(f, "phi"),
+            Insn::PhiArg(reg) => {
+                write!(f, "{:8} {:?}", "phiarg", reg)
             }
         }
     }

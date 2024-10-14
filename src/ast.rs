@@ -58,7 +58,7 @@ enum Node {
     Call(Box<Node>, SmallVec<[NodeP; 4]>),
     Return(NodeP),
     TODO(&'static str),
-    Phi(SmallVec<[(u8, NodeP); 2]>),
+    Phi(SmallVec<[(u16, NodeP); 2]>),
 
     LoadMem1(Box<Node>),
     LoadMem2(Box<Node>),
@@ -346,18 +346,20 @@ impl<'a> Builder<'a> {
                 mil::Ancestral::StackBot => Node::StackBot,
             },
 
-            Insn::Phi { pred_count } => {
-                let mut args = SmallVec::with_capacity(*pred_count as usize);
-                let mut ndx = start_ndx + 1;
+            Insn::Phi => {
+                let mut args = SmallVec::new();
+
+                let mut pred_ndx = 0;
                 while let Some(mil::InsnView {
-                    insn: Insn::PhiArg { pred_ndx, value },
+                    insn: Insn::PhiArg(value),
                     ..
-                }) = self.ssa.get(ndx)
+                }) = self.ssa.get(start_ndx + 1 + pred_ndx)
                 {
                     let value_expr = self.get_node(value.0).boxed();
-                    args.push((*pred_ndx, value_expr));
-                    ndx += 1;
+                    args.push((pred_ndx, value_expr));
+                    pred_ndx += 1;
                 }
+
                 Node::Phi(args)
             }
 
