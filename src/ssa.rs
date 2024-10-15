@@ -497,10 +497,7 @@ impl<T: Clone> Mat<T> {
     }
 }
 
-fn compute_dominance_frontier(
-    graph: &cfg::Graph,
-    dom_tree: &cfg::BlockMap<Option<cfg::BasicBlockID>>,
-) -> Mat<bool> {
+fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Mat<bool> {
     let count = graph.block_count();
     let mut mat = Mat::new(false, count, count);
 

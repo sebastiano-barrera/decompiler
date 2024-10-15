@@ -311,7 +311,35 @@ impl Graph {
     }
 }
 
-pub type DomTree = BlockMap<Option<BasicBlockID>>;
+pub struct DomTree(BlockMap<Option<BasicBlockID>>);
+
+impl DomTree {
+    pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &Option<BasicBlockID>)> {
+        self.0.items()
+    }
+
+    /// Get an iterator of immediate dominators of the given block
+    pub fn imm_doms<'s>(&'s self, bid: BasicBlockID) -> impl 's + Iterator<Item = BasicBlockID> {
+        let mut cur = Some(bid);
+        std::iter::from_fn(move || {
+            if let Some(cur_bid) = &mut cur {
+                let ret = *cur_bid;
+                cur = self.0[bid];
+                Some(ret)
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl Index<BasicBlockID> for DomTree {
+    type Output = Option<BasicBlockID>;
+
+    fn index(&self, index: BasicBlockID) -> &Self::Output {
+        self.0.index(index)
+    }
+}
 
 pub fn compute_dom_tree(cfg: &Graph) -> DomTree {
     let block_count = cfg.block_count();
@@ -365,7 +393,7 @@ pub fn compute_dom_tree(cfg: &Graph) -> DomTree {
     // the tree, so the corresponding item is None.  up to this point the root is linked to itself,
     // as required by the algorithm by how it's formulated
     parent[ENTRY_BID] = None;
-    parent
+    DomTree(parent)
 }
 
 /// Find the common ancestor of two nodes in a tree.
@@ -374,7 +402,7 @@ pub fn compute_dom_tree(cfg: &Graph) -> DomTree {
 /// `parent_of` such that, for each node with index _i_, parent_of[i] is the index of the parent
 /// node (or _i_, the same index, for the root node).
 fn common_ancestor<LT>(
-    parent_of: &DomTree,
+    parent_of: &BlockMap<Option<BasicBlockID>>,
     is_lt: LT,
     mut ndx_a: BasicBlockID,
     mut ndx_b: BasicBlockID,
