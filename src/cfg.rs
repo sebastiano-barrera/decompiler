@@ -9,7 +9,7 @@ use std::{
 
 use crate::mil;
 
-/// Control Flow Graph
+/// A graph where nodes are blocks, and edges are successors/predecessors relationships.
 #[derive(Debug)]
 pub struct Graph {
     bounds: Vec<mil::Index>,
@@ -17,7 +17,6 @@ pub struct Graph {
     successors: BlockMap<BlockCont>,
     predecessors: Vec<BasicBlockID>,
     pred_ndx_range: Vec<Range<usize>>,
-    block_at: HashMap<mil::Index, BasicBlockID>,
 }
 
 type Jump = (PredIndex, BasicBlockID);
@@ -93,10 +92,6 @@ impl Graph {
         // TODO hoist this assertion somewhere else?
         assert!(end > start);
         start..end
-    }
-
-    pub fn block_at(&self, ndx: mil::Index) -> Option<BasicBlockID> {
-        self.block_at.get(&ndx).copied()
     }
 }
 
@@ -227,7 +222,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         successors,
         predecessors,
         pred_ndx_range,
-        block_at,
     }
 }
 
@@ -311,6 +305,7 @@ impl Graph {
     }
 }
 
+#[derive(Debug)]
 pub struct DomTree(BlockMap<Option<BasicBlockID>>);
 
 impl DomTree {

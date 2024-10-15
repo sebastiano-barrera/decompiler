@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -14,7 +14,10 @@ use crate::{
 
 pub struct Program {
     inner: mil::Program,
+
     cfg: cfg::Graph,
+    dom_tree: cfg::DomTree,
+
     is_alive: RegMap<bool>,
     phis: cfg::BlockMap<PhiInfo>,
     rdr_count: ReaderCount,
@@ -46,6 +49,10 @@ impl Program {
 
     pub fn is_alive(&self, ndx: mil::Index) -> bool {
         *self.is_alive.get(mil::Reg(ndx)).unwrap()
+    }
+
+    pub fn dom_tree(&self) -> &cfg::DomTree {
+        &self.dom_tree
     }
 }
 
@@ -359,12 +366,15 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         assert_eq!(insn.dest, mil::Reg(ndx));
     }
 
+    let dom_tree = cfg::compute_dom_tree(&cfg);
+
     let mut program = Program {
         inner: program,
         cfg,
         is_alive,
         phis,
         rdr_count,
+        dom_tree,
     };
     eliminate_dead_code(&mut program);
     program
