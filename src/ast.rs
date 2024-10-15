@@ -136,10 +136,7 @@ impl<'a> Builder<'a> {
         let name_of_value = (0..ssa.len())
             .filter_map(|ndx| {
                 let insn = ssa.get(ndx).unwrap().insn;
-                if insn == &mil::Insn::Phi
-                    || insn.has_side_effects()
-                    || ssa.readers_count(mil::Reg(ndx)) > 1
-                {
+                if insn == &mil::Insn::Phi || ssa.readers_count(mil::Reg(ndx)) > 1 {
                     let name = Ident(Rc::new(format!("v{}", ndx)));
                     Some((ndx, name))
                 } else {
