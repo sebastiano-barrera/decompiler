@@ -231,26 +231,30 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     }
 }
 
+/// Returns the indices of the instruction(s) that may follow the given one.
+///
+/// The return value is a tuple of two elements:
+///
+///  - the first is the "straight" destination, the index to follow when the
+///    branch (if any) IS NOT taken;
+///
+///  - the second is only set for branches and is the "side" destination, the
+///    index to follow when the branch IS taken.
 fn dest_of_insn(
     program: &mil::Program,
     ndx: mil::Index,
 ) -> (Option<mil::Index>, Option<mil::Index>) {
     let insn = program.get(ndx).unwrap().insn;
     match insn {
-        mil::Insn::JmpK(target) => {
-            let index = program.index_of_addr(*target).unwrap();
-            (None, Some(index))
-        }
-        mil::Insn::JmpIfK { target, .. } => {
-            let index = program.index_of_addr(*target).unwrap();
-            (Some(ndx + 1), Some(index))
-        }
+        mil::Insn::JmpI(_) => todo!("indirect jump"),
+        mil::Insn::Jmp(ndx) => (None, Some(*ndx)),
+        mil::Insn::JmpIf { target, .. } => (Some(ndx + 1), Some(*target)),
         mil::Insn::Ret(_) => {
             // one-past-the-end of the program is a valid index; signifies "exit the function"
             (None, Some(program.len()))
         }
-        mil::Insn::Jmp(_) => todo!("indirect jmp"),
-        _ => (Some(ndx + 1), None),
+        // external jumps are currently handled as non-control-flow instruction
+        mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. } | _ => (Some(ndx + 1), None),
     }
 }
 

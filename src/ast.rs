@@ -247,8 +247,8 @@ impl<'a> Builder<'a> {
                 let last_item = self.ssa.get(last_ndx).unwrap();
 
                 let cond = match &last_item.insn {
-                    mil::Insn::JmpIfK { cond, target: _ } => cond,
-                    _ => panic!("block with BlockCont::Alt continuation must end with a JmpIfK"),
+                    mil::Insn::JmpIf { cond, target: _ } => cond,
+                    _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
                 };
                 let cond = self.get_node(cond.0).boxed();
                 let cons = self.compile_continue(*neg_bid, *neg_pred_ndx).boxed();
@@ -306,8 +306,8 @@ impl<'a> Builder<'a> {
             // To be handled in ::Call
             Insn::CArgEnd | Insn::CArg { .. } => Node::Nop,
             Insn::Ret(arg) => Node::Return(self.get_node(arg.0).boxed()),
-            Insn::JmpK(target) => Node::ContinueToExtern(*target),
-            Insn::Jmp(_) | Insn::JmpIfK { .. } => {
+            Insn::JmpExt(target) => Node::ContinueToExtern(*target),
+            Insn::JmpI(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }

@@ -636,7 +636,7 @@ mod tests {
             pb.push(Reg(0), Insn::Const8(123));
             pb.push(
                 Reg(1),
-                Insn::JmpIfK {
+                Insn::JmpExtIf {
                     cond: Reg(0),
                     target: 0xf2,
                 },
@@ -644,7 +644,7 @@ mod tests {
 
             pb.set_input_addr(0xf1);
             pb.push(Reg(2), Insn::Const1(4));
-            pb.push(Reg(3), Insn::JmpK(0xf3));
+            pb.push(Reg(3), Insn::JmpExt(0xf3));
 
             pb.set_input_addr(0xf2);
             pb.push(Reg(2), Insn::Const1(8));

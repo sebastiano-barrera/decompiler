@@ -199,7 +199,7 @@ impl Builder {
                     match insn.op0_kind() {
                         OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                             let target = insn.near_branch_target();
-                            self.emit(Self::V0, mil::Insn::JmpK(target));
+                            self.emit(Self::V0, mil::Insn::JmpExt(target));
                         }
                         _ => {
                             todo!("indirect jmp");
@@ -235,7 +235,7 @@ impl Builder {
         match insn.op_kind(op_ndx) {
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                 let target = insn.near_branch_target();
-                self.emit(Self::V0, mil::Insn::JmpIfK { cond, target });
+                self.emit(Self::V0, mil::Insn::JmpExtIf { cond, target });
             }
             _ => {
                 todo!("indirect jmpif");

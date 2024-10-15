@@ -16,6 +16,9 @@ pub struct Program {
     dests: Vec<Reg>,
     addrs: Vec<u64>,
     // TODO More specific types
+    // kept even if dead, because we will still want to trace each MIL
+    // instruction back to the original machine code / assembly
+    #[allow(dead_code)]
     mil_of_input_addr: HashMap<u64, Index>,
 }
 
@@ -86,9 +89,14 @@ pub enum Insn {
     },
     Ret(Reg),
     #[allow(dead_code)]
-    Jmp(Reg),
-    JmpK(u64),
-    JmpIfK {
+    JmpI(Reg),
+    Jmp(Index),
+    JmpExt(u64),
+    JmpIf {
+        cond: Reg,
+        target: Index,
+    },
+    JmpExtIf {
         cond: Reg,
         target: u64,
     },
@@ -149,7 +157,8 @@ impl Insn {
             | Insn::Const4(_)
             | Insn::Const8(_)
             | Insn::CArgEnd
-            | Insn::JmpK(_)
+            | Insn::JmpExt(_)
+            | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
             | Insn::Phi
@@ -163,8 +172,12 @@ impl Insn {
             | Insn::MulK32(reg, _)
             | Insn::Not(reg)
             | Insn::Ret(reg)
-            | Insn::Jmp(reg)
-            | Insn::JmpIfK {
+            | Insn::JmpI(reg)
+            | Insn::JmpExtIf {
+                cond: reg,
+                target: _,
+            }
+            | Insn::JmpIf {
                 cond: reg,
                 target: _,
             }
@@ -202,7 +215,8 @@ impl Insn {
             | Insn::Const4(_)
             | Insn::Const8(_)
             | Insn::CArgEnd
-            | Insn::JmpK(_)
+            | Insn::JmpExt(_)
+            | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
             | Insn::Phi
@@ -216,8 +230,12 @@ impl Insn {
             | Insn::MulK32(reg, _)
             | Insn::Not(reg)
             | Insn::Ret(reg)
-            | Insn::Jmp(reg)
-            | Insn::JmpIfK {
+            | Insn::JmpI(reg)
+            | Insn::JmpIf {
+                cond: reg,
+                target: _,
+            }
+            | Insn::JmpExtIf {
                 cond: reg,
                 target: _,
             }
@@ -289,9 +307,11 @@ impl Insn {
             | Insn::CArgEnd
             | Insn::CArg { .. }
             | Insn::Ret(_)
+            | Insn::JmpI(_)
+            | Insn::JmpExt(_)
             | Insn::Jmp(_)
-            | Insn::JmpK(_)
-            | Insn::JmpIfK { .. }
+            | Insn::JmpExtIf { .. }
+            | Insn::JmpIf { .. }
             | Insn::TODO(_)
             | Insn::StoreMem(_, _) => true,
         }
@@ -336,9 +356,13 @@ impl std::fmt::Debug for Insn {
             Insn::CArgEnd => write!(f, "cargend"),
             Insn::CArg { value, prev } => write!(f, "{:8} {:?} after {:?}", "carg", value, prev),
             Insn::Ret(x) => write!(f, "{:8} {:?}", "ret", x),
+            Insn::JmpI(x) => write!(f, "{:8} *{:?}", "jmp", x),
             Insn::Jmp(x) => write!(f, "{:8} {:?}", "jmp", x),
-            Insn::JmpIfK { cond, target } => write!(f, "{:8} {:?},0x{:x}", "jmp.if", cond, target),
-            Insn::JmpK(target) => write!(f, "{:8} 0x{:x}", "jmp", target),
+            Insn::JmpExt(target) => write!(f, "{:8} 0x{:x} extern", "jmp", target),
+            Insn::JmpExtIf { cond, target } => {
+                write!(f, "{:8} {:?},0x{:x} extern", "jmp.if", cond, target)
+            }
+            Insn::JmpIf { cond, target } => write!(f, "{:8} {:?},{}", "jmp.if", cond, target),
 
             Insn::OverflowOf(x) => write!(f, "{:8} {:?}", "overflow", x),
             Insn::CarryOf(x) => write!(f, "{:8} {:?}", "carry", x),
@@ -469,7 +493,7 @@ impl ProgramBuilder {
 
     pub fn build(self) -> Program {
         let Self {
-            insns,
+            mut insns,
             dests,
             addrs,
             ..
@@ -492,6 +516,25 @@ impl ProgramBuilder {
             }
             map
         };
+
+        for insn in &mut insns {
+            match insn {
+                Insn::JmpExt(addr) => {
+                    if let Some(ndx) = mil_of_input_addr.get(addr) {
+                        *insn = Insn::Jmp(*ndx);
+                    }
+                }
+                Insn::JmpExtIf { cond, target } => {
+                    if let Some(ndx) = mil_of_input_addr.get(target) {
+                        *insn = Insn::JmpIf {
+                            cond: *cond,
+                            target: *ndx,
+                        };
+                    }
+                }
+                _ => {}
+            }
+        }
 
         Program {
             insns,
