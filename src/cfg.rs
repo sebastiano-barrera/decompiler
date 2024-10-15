@@ -388,6 +388,9 @@ pub fn compute_dom_tree(cfg: &Graph) -> DomTree {
     // the tree, so the corresponding item is None.  up to this point the root is linked to itself,
     // as required by the algorithm by how it's formulated
     parent[ENTRY_BID] = None;
+    for (bid, parent) in parent.items() {
+        assert_ne!(*parent, Some(bid));
+    }
     DomTree(parent)
 }
 
