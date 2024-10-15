@@ -15,8 +15,13 @@ pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
     successors: BlockMap<BlockCont>,
-    predecessors: Vec<BasicBlockID>,
-    pred_ndx_range: Vec<Range<usize>>,
+    predecessors: Edges,
+}
+
+#[derive(Debug)]
+struct Edges {
+    target: Vec<BasicBlockID>,
+    ndx_range: BlockMap<Range<usize>>,
 }
 
 type Jump = (PredIndex, BasicBlockID);
@@ -39,6 +44,7 @@ impl BlockCont {
         }
     }
 
+    #[inline]
     pub fn as_array_mut(&mut self) -> [Option<&mut Jump>; 2] {
         match self {
             BlockCont::End => [None, None],
@@ -65,6 +71,13 @@ impl BasicBlockID {
     }
 }
 
+impl Edges {
+    pub fn successors(&self, bndx: BasicBlockID) -> &[BasicBlockID] {
+        let range = &self.ndx_range[bndx];
+        &self.target[range.start..range.end]
+    }
+}
+
 impl Graph {
     #[inline(always)]
     pub fn block_count(&self) -> usize {
@@ -75,9 +88,8 @@ impl Graph {
         (0..self.block_count()).map(|ndx| BasicBlockID(ndx.try_into().unwrap()))
     }
 
-    pub fn predecessors(&self, bndx: BasicBlockID) -> &[BasicBlockID] {
-        let range = &self.pred_ndx_range[bndx.0 as usize];
-        &self.predecessors[range.start..range.end]
+    pub fn predecessors(&self, bid: BasicBlockID) -> &[BasicBlockID] {
+        self.predecessors.successors(bid)
     }
 
     pub fn successors(&self, bid: BasicBlockID) -> &BlockCont {
@@ -159,7 +171,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         .collect();
     let mut successors = BlockMap(successors);
 
-    let mut pred_ndx_range = Vec::with_capacity(block_count);
+    let mut pred_ndx_range = BlockMap::new(0..0, block_count);
     let mut predecessors = Vec::with_capacity(block_count * 2);
 
     // quadratic, but you know how life goes
@@ -217,11 +229,15 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
     }
 
+    let predecessors = Edges {
+        target: predecessors,
+        ndx_range: pred_ndx_range,
+    };
+
     Graph {
         bounds,
         successors,
         predecessors,
-        pred_ndx_range,
     }
 }
 
