@@ -157,7 +157,9 @@ impl std::fmt::Debug for Program {
 pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg::compute_dom_tree(&cfg);
+    eprintln!("//  --- dom tree ---");
     cfg.dump_graphviz(Some(&dom_tree));
+    eprintln!("//  --- END ---");
 
     let mut phis = place_phi_nodes(&mut program, &cfg, &dom_tree);
 
@@ -365,8 +367,6 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         let ndx = ndx.try_into().unwrap();
         assert_eq!(insn.dest, mil::Reg(ndx));
     }
-
-    let dom_tree = cfg::compute_dom_tree(&cfg);
 
     let mut program = Program {
         inner: program,
