@@ -321,7 +321,7 @@ impl Graph {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DomTree(BlockMap<Option<BasicBlockID>>);
 
 impl DomTree {
@@ -573,7 +573,7 @@ impl Ordering {
 //
 // Utilities
 //
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BlockMap<T>(Vec<T>);
 
 impl<T: Clone> BlockMap<T> {
