@@ -232,7 +232,7 @@ impl<'a> Builder<'a> {
                 // all done!
             }
             cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
-                let cont_node = self.compile_continue(*tgt, *pred_ndx).boxed();
+                let cont_node = self.compile_continue(tgt, pred_ndx).boxed();
                 seq.push(cont_node);
             }
             cfg::BlockCont::Alt {
@@ -251,8 +251,8 @@ impl<'a> Builder<'a> {
                     _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
                 };
                 let cond = self.get_node(cond.0).boxed();
-                let cons = self.compile_continue(*neg_bid, *neg_pred_ndx).boxed();
-                let alt = self.compile_continue(*pos_bid, *pos_pred_ndx).boxed();
+                let cons = self.compile_continue(neg_bid, neg_pred_ndx).boxed();
+                let alt = self.compile_continue(pos_bid, pos_pred_ndx).boxed();
 
                 seq.push(Node::If { cond, cons, alt }.boxed());
             }

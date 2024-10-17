@@ -14,7 +14,7 @@ use crate::mil;
 pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
-    successors: BlockMap<BlockCont>,
+    successors: Edges,
     predecessors: Edges,
 }
 
@@ -22,6 +22,15 @@ pub struct Graph {
 struct Edges {
     target: Vec<BasicBlockID>,
     ndx_range: BlockMap<Range<usize>>,
+}
+
+impl std::ops::Index<BasicBlockID> for Edges {
+    type Output = [BasicBlockID];
+
+    fn index(&self, bid: BasicBlockID) -> &Self::Output {
+        let range = self.ndx_range[bid].clone();
+        &self.target[range]
+    }
 }
 
 type Jump = (PredIndex, BasicBlockID);
@@ -92,8 +101,17 @@ impl Graph {
         self.predecessors.successors(bid)
     }
 
-    pub fn successors(&self, bid: BasicBlockID) -> &BlockCont {
-        &self.successors[bid]
+    pub fn successors(&self, bid: BasicBlockID) -> BlockCont {
+        let successors = &self.successors[bid];
+        match successors {
+            [] => BlockCont::End,
+            [cons] => BlockCont::Jmp((0, *cons)),
+            [alt, cons] => BlockCont::Alt {
+                straight: (0, *alt),
+                side: (0, *cons),
+            },
+            _ => panic!("blocks must have 2 successors max"),
+        }
     }
 
     pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<mil::Index> {
@@ -108,6 +126,9 @@ impl Graph {
 }
 
 pub fn analyze_mil(program: &mil::Program) -> Graph {
+    // if bounds == [b0, b1, b2, b3, ...]
+    // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
+    // in particular, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
     let bounds = {
         let mut bounds = Vec::with_capacity(program.len() as usize / 5);
         bounds.push(0);
@@ -147,52 +168,59 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         })
         .collect();
 
-    // if bounds == [b0, b1, b2, b3, ...]
-    // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
-    // in particular, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
+    let successors = {
+        let mut target = Vec::new();
+        let mut ndx_range = BlockMap::new(0..0, block_count);
 
-    let successors: Vec<_> = bounds[1..]
-        .iter()
-        .map(|end_ndx| {
-            let last_ndx = end_ndx - 1;
+        for (insn_end_ndx, blk_ndx) in bounds[1..].iter().zip(0..) {
+            let last_ndx = insn_end_ndx - 1;
+
+            let start_ndx = target.len();
             // predecessor indices are fixed up later
             match dest_of_insn(program, last_ndx) {
                 (None, None) => panic!("all instructions must lead *somewhere*!"),
-                (None, Some(dest)) if dest == program.len() => BlockCont::End,
+
+                (None, Some(dest)) if dest == program.len() => {}
+
                 (Some(dest), None) | (None, Some(dest)) => {
-                    BlockCont::Jmp((0, *block_at.get(&dest).unwrap()))
+                    target.push(*block_at.get(&dest).unwrap());
                 }
-                (Some(straight_dest), Some(side_dest)) => BlockCont::Alt {
-                    straight: (0, *block_at.get(&straight_dest).unwrap()),
-                    side: (0, *block_at.get(&side_dest).unwrap()),
-                },
-            }
-        })
-        .collect();
-    let mut successors = BlockMap(successors);
 
-    let mut pred_ndx_range = BlockMap::new(0..0, block_count);
-    let mut predecessors = Vec::with_capacity(block_count * 2);
-
-    // quadratic, but you know how life goes
-    for bndx in 0..block_count {
-        let bid = BasicBlockID(bndx.try_into().unwrap());
-
-        let pred_offset = predecessors.len();
-        let mut pred_count = 0;
-
-        for (pred, cont) in successors.items_mut() {
-            for (pred_ndx, dest) in cont.as_array_mut().into_iter().flatten() {
-                if *dest == bid {
-                    predecessors.push(pred);
-                    *pred_ndx = pred_count;
-                    pred_count += 1;
+                (Some(straight_dest), Some(side_dest)) => {
+                    target.push(*block_at.get(&straight_dest).unwrap());
+                    target.push(*block_at.get(&side_dest).unwrap());
                 }
-            }
+            };
+
+            ndx_range[BasicBlockID(blk_ndx)] = start_ndx..target.len();
         }
 
-        pred_ndx_range[bid] = pred_offset..pred_offset + pred_count as usize;
-    }
+        Edges { target, ndx_range }
+    };
+
+    let predecessors = {
+        let mut ndx_range = BlockMap::new(0..0, block_count);
+        let mut target = Vec::with_capacity(block_count * 2);
+        let mut pred_ndx = Vec::with_capacity(successors.target.len());
+
+        // quadratic, but you know how life goes
+        for succ in (0..block_count as u16).map(BasicBlockID) {
+            let offset = target.len();
+
+            for pred in (0..block_count as u16).map(BasicBlockID) {
+                for pred_succ in successors.successors(pred) {
+                    if *pred_succ == succ {
+                        pred_ndx.push(target.len() - offset);
+                        target.push(pred);
+                    }
+                }
+            }
+
+            ndx_range[succ] = offset..target.len();
+        }
+
+        Edges { ndx_range, target }
+    };
 
     #[cfg(debug_assertions)]
     {
@@ -228,11 +256,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         // no duplicates (<=> no 0-length blocks)
         debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
     }
-
-    let predecessors = Edges {
-        target: predecessors,
-        ndx_range: pred_ndx_range,
-    };
 
     Graph {
         bounds,
@@ -274,30 +297,26 @@ impl Graph {
         println!("digraph {{");
         println!("  // {} blocks", count);
 
-        for bndx in 0..count {
-            let start_ndx = self.bounds[bndx];
-            let end_ndx = self.bounds[bndx + 1];
+        for bid in self.block_ids() {
+            let Range { start, end } = self.insns_ndx_range(bid);
 
             println!(
                 "  block{} [label=\"{}\\n{}..{}\"];",
-                bndx, bndx, start_ndx, end_ndx,
+                bid.0, bid.0, start, end,
             );
 
-            let bid = BasicBlockID(bndx.try_into().unwrap());
-            match self.successors[bid] {
-                BlockCont::End => println!("  block{} -> end", bndx),
-                BlockCont::Jmp((_, BasicBlockID(dest))) => {
-                    println!("  block{} -> block{}", bndx, dest)
-                }
-                BlockCont::Alt {
-                    straight: (_, BasicBlockID(stra_bd)),
-                    side: (_, BasicBlockID(side_bid)),
-                } => {
-                    println!("  block{} -> block{} [color=\"darkred\"];", bndx, stra_bd);
-                    println!(
-                        "  block{} -> block{} [color=\"darkgreen\"];",
-                        bndx, side_bid
-                    );
+            match self.successors.successors(bid) {
+                [] => println!("  block{} -> end", bid.0),
+                dests => {
+                    for (succ_ndx, dest) in dests.iter().enumerate() {
+                        let color = match (dests.len(), succ_ndx) {
+                            (1, _) => "black",
+                            (2, 0) => "darkred",
+                            (2, 1) => "darkgreen",
+                            _ => panic!("max 2 successors!"),
+                        };
+                        println!("  block{} -> block{} [color=\"{}\"];", bid.0, dest.0, color);
+                    }
                 }
             }
 
@@ -482,8 +501,7 @@ fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
         order.push(bid);
         visited[bid] = true;
 
-        let block_succs: [_; 2] = graph.successors[bid].as_array();
-        for (_, succ) in block_succs.into_iter().flatten() {
+        for &succ in graph.successors.successors(bid) {
             if !visited[succ] {
                 queue.push(succ);
             }
@@ -521,7 +539,7 @@ fn count_nonbackedge_predecessors(graph: &Graph) -> BlockMap<u16> {
             Color::Unvisited => {
                 // schedule Visiting -> Finished after all children have been visited
                 queue.push(bid);
-                for (_, succ) in graph.successors[bid].as_array().into_iter().flatten() {
+                for &succ in graph.successors.successors(bid) {
                     if color[succ] == Color::Unvisited {
                         queue.push(succ);
                     }
