@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range};
+use std::ops::Range;
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -312,6 +312,10 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
                     var_map.set(old_name, new_name);
                 }
+                for insn_ndx in cfg.insns_ndx_range(bid) {
+                    let item = program.get(insn_ndx).unwrap();
+                    assert_eq!(item.dest, mil::Reg(insn_ndx));
+                }
 
                 // -- patch successor's phi nodes
                 // The algorithm is the following:
@@ -365,7 +369,13 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     // "dead" and ignored)
     for (ndx, insn) in program.iter().enumerate() {
         let ndx = ndx.try_into().unwrap();
-        assert_eq!(insn.dest, mil::Reg(ndx));
+        assert_eq!(
+            insn.dest,
+            mil::Reg(ndx),
+            "insn unvisited: {:?} <- {:?}",
+            insn.dest,
+            insn.insn
+        );
     }
 
     let mut program = Program {
