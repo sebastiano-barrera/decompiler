@@ -407,15 +407,16 @@ impl DomTree {
 
     /// Get an iterator of immediate dominators of the given block
     pub fn imm_doms<'s>(&'s self, bid: BasicBlockID) -> impl 's + Iterator<Item = BasicBlockID> {
-        let mut cur = Some(bid);
+        let mut cur = self.0[bid];
+        let mut visited = BlockMap::new(false, self.0.block_count());
         std::iter::from_fn(move || {
-            if let Some(cur_bid) = &mut cur {
-                let ret = *cur_bid;
-                cur = self.0[bid];
-                Some(ret)
-            } else {
-                None
-            }
+            let ret = cur?;
+            cur = self.0[ret];
+
+            assert!(!visited[ret]);
+            visited[ret] = true;
+
+            Some(ret)
         })
     }
 }

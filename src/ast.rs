@@ -4,7 +4,12 @@ use std::{collections::HashMap, rc::Rc};
 
 use smallvec::SmallVec;
 
-use crate::{cfg, mil, ssa};
+use crate::{
+    cfg::{self, BasicBlockID},
+    mil,
+    pp::PrettyPrinter,
+    ssa,
+};
 
 #[derive(Debug)]
 pub struct Ast {
@@ -451,10 +456,7 @@ fn fold_bin(op: BinOp, a: Box<Node>, b: Box<Node>) -> Node {
 }
 
 impl Ast {
-    pub fn pretty_print<W: std::fmt::Write>(
-        &self,
-        pp: &mut crate::pp::PrettyPrinter<W>,
-    ) -> std::fmt::Result {
+    pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
         use std::fmt::Write;
         for (thid, thunk) in self.thunks.iter() {
             write!(pp, "{} :: ", thid.0.as_str())?;
@@ -465,10 +467,7 @@ impl Ast {
     }
 }
 impl Thunk {
-    pub fn pretty_print<W: std::fmt::Write>(
-        &self,
-        pp: &mut crate::pp::PrettyPrinter<W>,
-    ) -> std::fmt::Result {
+    pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
         use std::fmt::Write;
 
         write!(pp, "thunk (")?;
@@ -482,10 +481,7 @@ impl Thunk {
     }
 }
 impl Node {
-    pub fn pretty_print<W: std::fmt::Write>(
-        &self,
-        pp: &mut crate::pp::PrettyPrinter<W>,
-    ) -> std::fmt::Result {
+    pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
         use std::fmt::Write;
         match self {
             Node::Seq(nodes) => {
@@ -713,6 +709,53 @@ impl Node {
             Node::StackBot => write!(pp, "<stackBottom>"),
             Node::Undefined => write!(pp, "<undefined>"),
             Node::Nop => write!(pp, "nop"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PatternSet {
+    // TODO replace this with something more appropriate
+    pats: Vec<Pattern>,
+}
+#[derive(Debug)]
+struct Pattern {
+    key_bid: BasicBlockID,
+    pat: Pat,
+}
+#[derive(Debug)]
+enum Pat {
+    If { tail: BasicBlockID },
+}
+
+pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
+    let mut pats = Vec::new();
+    search_pat_if(cfg, &mut pats);
+    PatternSet { pats }
+}
+
+fn search_pat_if(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
+    let succs = cfg.successors();
+    let preds = cfg.predecessors();
+
+    for bid in cfg.block_ids() {
+        if preds[bid].len() < 2 {
+            continue;
+        }
+
+        for idom in cfg.dom_tree().imm_doms(bid) {
+            if succs[idom].len() < 2 {
+                continue;
+            }
+
+            for iidom in cfg.inv_dom_tree().imm_doms(idom) {
+                if iidom == bid {
+                    out.push(Pattern {
+                        key_bid: idom,
+                        pat: Pat::If { tail: bid },
+                    });
+                }
+            }
         }
     }
 }

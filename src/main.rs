@@ -140,10 +140,15 @@ fn main() {
     let prog = ssa::mil_to_ssa(prog);
     println!("{:?}", prog);
 
-    println!();
-    let ast = ast::ssa_to_ast(&prog);
     let out = std::io::stdout().lock();
     let mut pp = PrettyPrinter::start(IoAsFmt(out));
+
+    println!();
+    let pats = ast::search_patterns(prog.cfg());
+    println!("-- patterns = {:#?}", pats);
+
+    println!();
+    let ast = ast::ssa_to_ast(&prog);
     ast.pretty_print(&mut pp).unwrap()
 }
 
