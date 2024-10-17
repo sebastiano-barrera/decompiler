@@ -191,7 +191,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
         }
 
-        pred_ndx_range.push(pred_offset..pred_offset + pred_count as usize);
+        pred_ndx_range[bid] = pred_offset..pred_offset + pred_count as usize;
     }
 
     #[cfg(debug_assertions)]
@@ -491,8 +491,8 @@ fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
     }
 
     // all incoming edges have been processed
-    if let Some(max) = rem_preds_count.iter().max() {
-        assert_eq!(&0, max);
+    if let Some(max) = rem_preds_count.items().map(|(_, count)| *count).max() {
+        assert_eq!(0, max);
     }
     assert_eq!(order.len(), count);
     order
@@ -556,7 +556,7 @@ impl Ordering {
             pos_of[bid] = pos;
         }
 
-        assert!(occurs_count.iter().all(|count| *count == 1));
+        assert!(occurs_count.items().all(|(_, count)| *count == 1));
 
         Ordering { order, pos_of }
     }
@@ -621,16 +621,5 @@ impl<T> Index<BasicBlockID> for BlockMap<T> {
 impl<T> IndexMut<BasicBlockID> for BlockMap<T> {
     fn index_mut(&mut self, index: BasicBlockID) -> &mut Self::Output {
         self.0.index_mut(index.0 as usize)
-    }
-}
-impl<T> std::ops::Deref for BlockMap<T> {
-    type Target = Vec<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl<T> std::ops::DerefMut for BlockMap<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
