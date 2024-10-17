@@ -16,7 +16,6 @@ pub struct Program {
     inner: mil::Program,
 
     cfg: cfg::Graph,
-    dom_tree: cfg::DomTree,
 
     is_alive: RegMap<bool>,
     phis: cfg::BlockMap<PhiInfo>,
@@ -49,10 +48,6 @@ impl Program {
 
     pub fn is_alive(&self, ndx: mil::Index) -> bool {
         *self.is_alive.get(mil::Reg(ndx)).unwrap()
-    }
-
-    pub fn dom_tree(&self) -> &cfg::DomTree {
-        &self.dom_tree
     }
 }
 
@@ -121,7 +116,7 @@ impl std::fmt::Debug for Program {
             let block_addr = self.inner.get(nor_ndxs.start).unwrap().addr;
 
             write!(f, ".B{}:  in[", bid.as_usize())?;
-            for pred in self.cfg.predecessors(bid) {
+            for pred in self.cfg.block_preds(bid) {
                 write!(f, ".B{} ", pred.as_number())?;
             }
             write!(f, "]  ")?;
@@ -156,7 +151,7 @@ impl std::fmt::Debug for Program {
 
 pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     let cfg = cfg::analyze_mil(&program);
-    let dom_tree = cfg::compute_dom_tree(&cfg);
+    let dom_tree = cfg.dom_tree();
     eprintln!("//  --- dom tree ---");
     cfg.dump_graphviz(Some(&dom_tree));
     eprintln!("//  --- END ---");
@@ -327,7 +322,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                 // to use its "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for (my_pred_ndx, succ) in cfg.successors(bid).as_array().into_iter().flatten() {
+                for (my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
                     let succ_phis = &mut phis[succ];
 
                     for phi_ndx in 0..succ_phis.phi_count {
@@ -384,7 +379,6 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         is_alive,
         phis,
         rdr_count,
-        dom_tree,
     };
     eliminate_dead_code(&mut program);
     program
@@ -431,7 +425,7 @@ fn place_phi_nodes(
     let mut phis = cfg::BlockMap::new(PhiInfo::empty(), block_count);
 
     for bid in cfg.block_ids() {
-        let pred_count: u16 = cfg.predecessors(bid).len().try_into().unwrap();
+        let pred_count: u16 = cfg.block_preds(bid).len().try_into().unwrap();
         let start_ndx = program.len();
         let mut phi_count = 0;
 
@@ -522,7 +516,7 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     let mut mat = Mat::new(false, count, count);
 
     for bid in graph.block_ids() {
-        let preds = graph.predecessors(bid);
+        let preds = graph.block_preds(bid);
         if preds.len() < 2 {
             continue;
         }

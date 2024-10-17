@@ -227,7 +227,7 @@ impl<'a> Builder<'a> {
             })
             .collect();
 
-        match self.ssa.cfg().successors(start_bid) {
+        match self.ssa.cfg().block_cont(start_bid) {
             cfg::BlockCont::End => {
                 // all done!
             }

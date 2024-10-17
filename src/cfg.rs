@@ -16,10 +16,13 @@ pub struct Graph {
     // successors[bndx] = successors to block #bndx
     successors: Edges,
     predecessors: Edges,
+
+    dom_tree: DomTree,
+    inv_dom_tree: DomTree,
 }
 
-#[derive(Debug)]
-struct Edges {
+pub struct Edges {
+    entries: BlockMap<bool>,
     target: Vec<BasicBlockID>,
     ndx_range: BlockMap<Range<usize>>,
 }
@@ -30,6 +33,25 @@ impl std::ops::Index<BasicBlockID> for Edges {
     fn index(&self, bid: BasicBlockID) -> &Self::Output {
         let range = self.ndx_range[bid].clone();
         &self.target[range]
+    }
+}
+
+impl Edges {
+    fn block_count(&self) -> usize {
+        self.ndx_range.block_count()
+    }
+}
+impl std::fmt::Debug for Edges {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+        for (bid, _) in self.ndx_range.items() {
+            write!(f, "{} -> ", bid.0)?;
+            for succ in &self[bid] {
+                write!(f, "{} ", succ.0)?;
+            }
+            write!(f, "; ")?;
+        }
+        write!(f, "]")
     }
 }
 
@@ -97,11 +119,11 @@ impl Graph {
         (0..self.block_count()).map(|ndx| BasicBlockID(ndx.try_into().unwrap()))
     }
 
-    pub fn predecessors(&self, bid: BasicBlockID) -> &[BasicBlockID] {
+    pub fn block_preds(&self, bid: BasicBlockID) -> &[BasicBlockID] {
         self.predecessors.successors(bid)
     }
 
-    pub fn successors(&self, bid: BasicBlockID) -> BlockCont {
+    pub fn block_cont(&self, bid: BasicBlockID) -> BlockCont {
         let successors = &self.successors[bid];
         match successors {
             [] => BlockCont::End,
@@ -122,6 +144,21 @@ impl Graph {
         // TODO hoist this assertion somewhere else?
         assert!(end > start);
         start..end
+    }
+
+    pub fn dom_tree(&self) -> &DomTree {
+        &self.dom_tree
+    }
+
+    pub fn inv_dom_tree(&self) -> &DomTree {
+        &self.inv_dom_tree
+    }
+
+    pub fn successors(&self) -> &Edges {
+        &self.successors
+    }
+    pub fn predecessors(&self) -> &Edges {
+        &self.predecessors
     }
 }
 
@@ -195,12 +232,19 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             ndx_range[BasicBlockID(blk_ndx)] = start_ndx..target.len();
         }
 
-        Edges { target, ndx_range }
+        let mut entries = BlockMap::new(false, block_count);
+        entries[ENTRY_BID] = true;
+        Edges {
+            entries,
+            target,
+            ndx_range,
+        }
     };
 
     let predecessors = {
         let mut ndx_range = BlockMap::new(0..0, block_count);
         let mut target = Vec::with_capacity(block_count * 2);
+        let mut entries = BlockMap::new(false, block_count);
         let mut pred_ndx = Vec::with_capacity(successors.target.len());
 
         // quadratic, but you know how life goes
@@ -217,9 +261,17 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
 
             ndx_range[succ] = offset..target.len();
+
+            if successors.successors(succ).len() == 0 {
+                entries[succ] = true;
+            }
         }
 
-        Edges { ndx_range, target }
+        Edges {
+            entries,
+            ndx_range,
+            target,
+        }
     };
 
     #[cfg(debug_assertions)]
@@ -257,10 +309,15 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
     }
 
+    let dom_tree = compute_dom_tree(&successors, &predecessors);
+    let inv_dom_tree = compute_dom_tree(&predecessors, &successors);
+
     Graph {
         bounds,
         successors,
         predecessors,
+        dom_tree,
+        inv_dom_tree,
     }
 }
 
@@ -371,21 +428,26 @@ impl Index<BasicBlockID> for DomTree {
     }
 }
 
-pub fn compute_dom_tree(cfg: &Graph) -> DomTree {
-    let block_count = cfg.block_count();
-    let rpo = traverse_reverse_postorder(cfg);
+pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
+    let block_count = fwd_edges.block_count();
+    assert_eq!(block_count, bwd_edges.block_count());
+    let rpo = Ordering::new(reverse_postorder(fwd_edges));
 
     let mut parent = BlockMap::new(None, block_count);
 
-    // process the entry node "manually", so the algorithm can rely on it for successors
-    parent[ENTRY_BID] = Some(ENTRY_BID);
+    // process the entry node(s) "manually", so the algorithm can rely on it for successors
+    for (bid, &is_entry) in fwd_edges.entries.items() {
+        if is_entry {
+            parent[bid] = Some(bid);
+        }
+    }
 
     let mut changed = true;
     while changed {
         changed = false;
 
         for &bid in rpo.order().iter() {
-            let preds = cfg.predecessors(bid);
+            let preds = &bwd_edges[bid];
             if preds.is_empty() {
                 continue;
             }
@@ -419,10 +481,15 @@ pub fn compute_dom_tree(cfg: &Graph) -> DomTree {
         }
     }
 
-    // we hand the tree out with a slightly different convention: the root node has no parent in
+    // we hand the tree out with a slightly different convention: the entry node(s) has no parent in
     // the tree, so the corresponding item is None.  up to this point the root is linked to itself,
     // as required by the algorithm by how it's formulated
-    parent[ENTRY_BID] = None;
+    for (bid, &is_entry) in fwd_edges.entries.items() {
+        if is_entry {
+            assert_eq!(parent[bid], Some(bid));
+            parent[bid] = None;
+        }
+    }
     for (bid, parent) in parent.items() {
         assert_ne!(*parent, Some(bid));
     }
@@ -458,34 +525,30 @@ where
 //
 // Traversals
 //
-pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
-    Ordering::new(reverse_postorder(graph))
-}
-
 pub fn traverse_postorder(graph: &Graph) -> Ordering {
-    let mut order = reverse_postorder(graph);
+    let mut order = reverse_postorder(graph.successors());
     order.reverse();
     Ordering::new(order)
 }
 
-fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
-    let count = graph.block_count();
+fn reverse_postorder(edges: &Edges) -> Vec<BasicBlockID> {
+    let count = edges.block_count();
 
     // Remaining predecessors count
-    // let mut rem_preds_count = BlockMap::new(0, count);
-    // for bid in graph.block_ids() {
-    //     rem_preds_count[bid] = graph.predecessors(bid).len();
-    // }
-    let mut rem_preds_count = count_nonbackedge_predecessors(graph);
+    let mut rem_preds_count = count_nonbackedge_predecessors(edges);
 
     let mut order = Vec::with_capacity(count);
     let mut queue = Vec::with_capacity(count / 2);
     // we must avoid re-visiting a fully processed node. this happens when processing backedges.
     let mut visited = BlockMap::new(false, count);
 
-    queue.push(ENTRY_BID);
-    // formally incorrect, but aligns it with the rest of the algorithm
-    rem_preds_count[ENTRY_BID] = 1;
+    for (bid, &is_entry) in edges.entries.items() {
+        if is_entry {
+            queue.push(bid);
+            // formally incorrect, but aligns it with the rest of the algorithm
+            rem_preds_count[bid] = 1;
+        }
+    }
 
     while let Some(bid) = queue.pop() {
         // each node X must be processed (added to the ordering) only after all its P predecessors
@@ -501,7 +564,7 @@ fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
         order.push(bid);
         visited[bid] = true;
 
-        for &succ in graph.successors.successors(bid) {
+        for &succ in edges.successors(bid) {
             if !visited[succ] {
                 queue.push(succ);
             }
@@ -518,8 +581,8 @@ fn reverse_postorder(graph: &Graph) -> Vec<BasicBlockID> {
 
 /// Count, for each node, the number of incoming edges (or, equivalently, predecessor nodes) that
 /// are not back-edges (i.e. don't form a cycle).
-fn count_nonbackedge_predecessors(graph: &Graph) -> BlockMap<u16> {
-    let count = graph.block_count();
+fn count_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
+    let count = edges.block_count();
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     enum Color {
@@ -532,14 +595,18 @@ fn count_nonbackedge_predecessors(graph: &Graph) -> BlockMap<u16> {
     let mut color = BlockMap::new(Color::Unvisited, count);
 
     let mut queue = Vec::with_capacity(count / 2);
-    queue.push(ENTRY_BID);
+    for (bid, &is_entry) in edges.entries.items() {
+        if is_entry {
+            queue.push(bid);
+        }
+    }
 
     while let Some(bid) = queue.pop() {
         match color[bid] {
             Color::Unvisited => {
                 // schedule Visiting -> Finished after all children have been visited
                 queue.push(bid);
-                for &succ in graph.successors.successors(bid) {
+                for &succ in edges.successors(bid) {
                     if color[succ] == Color::Unvisited {
                         queue.push(succ);
                     }
@@ -605,6 +672,10 @@ impl<T: Clone> BlockMap<T> {
         F: Fn(BasicBlockID) -> T,
     {
         Self(cfg.block_ids().map(init_item).collect())
+    }
+
+    fn block_count(&self) -> usize {
+        self.0.len()
     }
 }
 
