@@ -725,12 +725,23 @@ struct Pattern {
 }
 #[derive(Debug)]
 enum Pat {
+    /// An if-like structure: the control flow branches at `key_bid`, and
+    /// both paths (there can only be 2!) join up again at `tail`. `key_bid` dominates
+    /// `tail`.
     If { tail: BasicBlockID },
+
+    /// A cycle.
+    ///
+    /// The cycle starts with the `key_bid` block, and continues with the block
+    /// designated by `path`. A 1-block cycle (a block that can jump to its own
+    /// start) is represented with an empty `path`.
+    Cycle { path: SmallVec<[BasicBlockID; 4]> },
 }
 
 pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
     let mut pats = Vec::new();
     search_pat_if(cfg, &mut pats);
+    search_pat_cycle(cfg, &mut pats);
     PatternSet { pats }
 }
 
@@ -755,6 +766,56 @@ fn search_pat_if(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
                         pat: Pat::If { tail: bid },
                     });
                 }
+            }
+        }
+    }
+}
+
+fn search_pat_cycle(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
+    let mut in_path = cfg::BlockMap::new(false, cfg.block_count());
+    let mut path = Vec::with_capacity(cfg.block_count() / 2);
+
+    enum Cmd {
+        Start(cfg::BasicBlockID),
+        End(cfg::BasicBlockID),
+    }
+    let mut queue = vec![Cmd::Start(cfg::ENTRY_BID)];
+    while let Some(cmd) = queue.pop() {
+        match cmd {
+            Cmd::Start(bid) => {
+                assert!(!in_path[bid]);
+                path.push(bid);
+                in_path[bid] = true;
+                for &succ in &cfg.successors()[bid] {
+                    if in_path[succ] {
+                        let cycle = {
+                            let cycle_len =
+                                1 + path.iter().rev().take_while(|step| **step != succ).count();
+                            assert_eq!(path[path.len() - cycle_len], succ);
+                            assert!(cycle_len > 0);
+
+                            let cy = &path[path.len() - cycle_len..];
+                            assert_eq!(cy.len(), cycle_len);
+                            cy
+                        };
+
+                        out.push(Pattern {
+                            key_bid: cycle[0],
+                            pat: Pat::Cycle {
+                                path: cycle[1..].into(),
+                            },
+                        });
+                    } else {
+                        queue.push(Cmd::End(succ));
+                        queue.push(Cmd::Start(succ));
+                    }
+                }
+            }
+            Cmd::End(bid) => {
+                assert!(in_path[bid]);
+                in_path[bid] = false;
+                let check = path.pop();
+                assert_eq!(check, Some(bid));
             }
         }
     }
