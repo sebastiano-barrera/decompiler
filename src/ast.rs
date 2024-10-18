@@ -110,7 +110,7 @@ impl Node {
     }
 }
 
-pub fn ssa_to_ast(ssa: &ssa::Program) -> Ast {
+pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
     // the set of blocks in the CFG
     // is transformed
     // into a set of Thunk-s
@@ -738,6 +738,19 @@ enum Pat {
     Cycle { path: SmallVec<[BasicBlockID; 4]> },
 }
 
+impl PatternSet {
+    pub fn available_for_block<'s>(
+        &'s self,
+        key_bid: BasicBlockID,
+    ) -> impl 's + Iterator<Item = usize> {
+        self.pats
+            .iter()
+            .enumerate()
+            .filter(move |(_, pat)| pat.key_bid == key_bid)
+            .map(|(ndx, _)| ndx)
+    }
+}
+
 pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
     let mut pats = Vec::new();
     search_pat_if(cfg, &mut pats);
@@ -818,5 +831,30 @@ fn search_pat_cycle(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
                 assert_eq!(check, Some(bid));
             }
         }
+    }
+}
+
+pub struct PatternSel<'a> {
+    set: &'a PatternSet,
+    // each item is an index into `set`
+    sel: cfg::BlockMap<Option<usize>>,
+}
+
+impl<'a> PatternSel<'a> {
+    pub fn new(set: &'a PatternSet, block_count: usize) -> Self {
+        let sel = cfg::BlockMap::new(None, block_count);
+        PatternSel { set, sel }
+    }
+
+    pub fn set(&mut self, bid: cfg::BasicBlockID, pat_ndx: Option<usize>) {
+        if let Some(pat_ndx) = pat_ndx {
+            assert_eq!(bid, self.set.pats[pat_ndx].key_bid);
+        }
+        self.sel[bid] = pat_ndx;
+    }
+
+    pub fn get(&self, bid: BasicBlockID) -> Option<&Pattern> {
+        let ndx = self.sel[bid]?;
+        Some(&self.set.pats[ndx])
     }
 }
