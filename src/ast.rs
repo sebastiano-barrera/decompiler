@@ -121,28 +121,30 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
     //
     // each thunk can result from one or more blocks, merged.
 
-    let mut builder = Builder::new(ssa, pat_sel);
+    let mut builder = Builder::init_to_ast(ssa);
 
-    let root_thunk = builder.compile_thunk(cfg::ENTRY_BID);
-    while let Some(bid) = builder.next_unvisited_block() {
-        builder.compile_thunk(bid);
+    for (bid, pat_ndx) in pat_sel.sel.items() {
+        if let Some(pat_ndx) = pat_ndx {
+            let pat = &pat_sel.set.pats[*pat_ndx];
+            assert_eq!(pat.key_bid, bid);
+            builder.apply_pattern(pat);
+        }
     }
-    let thunks = builder.finish();
 
-    Ast { root_thunk, thunks }
+    // TODO: inline 1-predecessor continuations (?)
+
+    builder.finish()
 }
 
 struct Builder<'a> {
     ssa: &'a ssa::Program,
-    pat_sel: &'a PatternSel<'a>,
     name_of_value: HashMap<mil::Index, Ident>,
     thunk_id_of_block: cfg::BlockMap<ThunkID>,
-    visited: cfg::BlockMap<bool>,
     thunks: HashMap<ThunkID, Thunk>,
 }
 
 impl<'a> Builder<'a> {
-    fn new(ssa: &'a ssa::Program, pat_sel: &'a PatternSel<'a>) -> Builder<'a> {
+    fn init_to_ast(ssa: &'a ssa::Program) -> Builder<'a> {
         let name_of_value = (0..ssa.len())
             .filter_map(|ndx| {
                 let insn = ssa.get(ndx).unwrap().insn;
@@ -162,25 +164,31 @@ impl<'a> Builder<'a> {
             ThunkID(Rc::new(format!("T{}", bid.as_number())))
         });
 
-        Builder {
+        let mut builder = Builder {
             ssa,
-            pat_sel,
             name_of_value,
             thunk_id_of_block,
-            visited: cfg::BlockMap::new(false, ssa.cfg().block_count()),
             thunks: HashMap::new(),
+        };
+
+        for bid in ssa.cfg().block_ids() {
+            builder.compile_thunk(bid);
         }
+
+        for bid in ssa.cfg().block_ids() {
+            let tid = &builder.thunk_id_of_block[bid];
+            assert!(builder.thunks.contains_key(tid));
+        }
+
+        builder
     }
 
-    fn next_unvisited_block(&self) -> Option<cfg::BasicBlockID> {
-        self.visited
-            .items()
-            .find(|(_, visited)| !*visited)
-            .map(|(bid, _)| bid)
-    }
-
-    fn finish(self) -> HashMap<ThunkID, Thunk> {
-        self.thunks
+    fn finish(self) -> Ast {
+        let root_tid = self.thunk_id_of_block[cfg::ENTRY_BID].clone();
+        Ast {
+            root_thunk: root_tid,
+            thunks: self.thunks,
+        }
     }
 
     fn compile_thunk(&mut self, start_bid: cfg::BasicBlockID) -> ThunkID {
@@ -207,26 +215,10 @@ impl<'a> Builder<'a> {
             })
             .collect();
 
-        let pat = self.pat_sel.get(start_bid).map(|p| {
-            assert_eq!(start_bid, p.key_bid);
-            &p.pat
-        });
-        let body = match pat {
-            Some(Pat::If { tail }) => {
-                todo!("compile_thunk(If)")
-            }
-            Some(Pat::Cycle { path }) => {
-                let mut seq = self.compile_thunk_normal(start_bid);
-                todo!("compile_thunk(Cycle)")
-            }
-            None => {
-                let seq = self.compile_thunk_normal(start_bid);
-                Node::Seq(seq)
-            }
-        };
+        let seq = self.compile_thunk_normal(start_bid);
+        let body = Node::Seq(seq);
 
         self.thunks.get_mut(&lbl).unwrap().body = body;
-        self.visited[start_bid] = true;
         lbl
     }
 
@@ -476,6 +468,11 @@ impl<'a> Builder<'a> {
             // inline
             self.compile_node(ndx)
         }
+    }
+
+    fn apply_pattern(&mut self, pat: &Pattern) {
+        // TODO do something!
+        // todo!("apply_pattern: {:?}", pat)
     }
 }
 
