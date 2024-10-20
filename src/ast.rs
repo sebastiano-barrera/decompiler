@@ -752,20 +752,22 @@ struct Pattern {
     key_bid: BasicBlockID,
     pat: Pat,
 }
+
 #[derive(Debug)]
 enum Pat {
-    /// An if-like structure: the control flow branches at `key_bid`, and
-    /// both paths (there can only be 2!) join up again at `tail`. `key_bid` dominates
-    /// `tail`.
-    If { tail: BasicBlockID },
+    /// One control flow path in a branch (an if-like structure): the control flow
+    /// branches at `key_bid`.
+    IfBranch { path: Path },
 
     /// A cycle.
     ///
     /// The cycle starts with the `key_bid` block, and continues with the block
     /// designated by `path`. A 1-block cycle (a block that can jump to its own
     /// start) is represented with an empty `path`.
-    Cycle { path: SmallVec<[BasicBlockID; 4]> },
+    Cycle { path: Path },
 }
+
+type Path = SmallVec<[BasicBlockID; 4]>;
 
 impl PatternSet {
     pub fn available_for_block<'s>(
@@ -781,39 +783,10 @@ impl PatternSet {
 }
 
 pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
-    let mut pats = Vec::new();
-    search_pat_if(cfg, &mut pats);
-    search_pat_cycle(cfg, &mut pats);
-    PatternSet { pats }
-}
-
-fn search_pat_if(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
     let succs = cfg.successors();
     let preds = cfg.predecessors();
 
-    for bid in cfg.block_ids() {
-        if preds[bid].len() < 2 {
-            continue;
-        }
-
-        for idom in cfg.dom_tree().imm_doms(bid) {
-            if succs[idom].len() < 2 {
-                continue;
-            }
-
-            for iidom in cfg.inv_dom_tree().imm_doms(idom) {
-                if iidom == bid {
-                    out.push(Pattern {
-                        key_bid: idom,
-                        pat: Pat::If { tail: bid },
-                    });
-                }
-            }
-        }
-    }
-}
-
-fn search_pat_cycle(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
+    let mut pats = Vec::new();
     let mut in_path = cfg::BlockMap::new(false, cfg.block_count());
     let mut path = Vec::with_capacity(cfg.block_count() / 2);
 
@@ -822,12 +795,46 @@ fn search_pat_cycle(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
         End(cfg::BasicBlockID),
     }
     let mut queue = vec![Cmd::Start(cfg::ENTRY_BID)];
+
     while let Some(cmd) = queue.pop() {
         match cmd {
             Cmd::Start(bid) => {
                 assert!(!in_path[bid]);
                 path.push(bid);
                 in_path[bid] = true;
+
+                // if branch:
+                //   && the current block B has ≥ 2 predecessors
+                //   && an ancestor (indirect predecessor) A of B dominates B
+                //   && B inverse-dominates A
+                if preds[bid].len() >= 2 {
+                    assert_eq!(path.last().unwrap(), &bid);
+
+                    for idom in cfg.dom_tree().imm_doms(bid) {
+                        let tail_len = match path
+                            .iter()
+                            .rev()
+                            .enumerate()
+                            .find(|(_, &step)| step == idom)
+                            .map(|(rndx, _)| rndx)
+                        {
+                            None => break,
+                            Some(l) if l < 2 => break,
+                            Some(l) => l,
+                        };
+
+                        let tail_ndx = path.len() - tail_len;
+                        let branch = &path[tail_ndx + 1..path.len() - 1];
+                        pats.push(Pattern {
+                            key_bid: path[tail_ndx],
+                            pat: Pat::IfBranch {
+                                path: branch.into(),
+                            },
+                        });
+                    }
+                }
+
+                // cycles: one of the current block's successors S dominates B
                 for &succ in &cfg.successors()[bid] {
                     if in_path[succ] {
                         let cycle = {
@@ -841,7 +848,7 @@ fn search_pat_cycle(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
                             cy
                         };
 
-                        out.push(Pattern {
+                        pats.push(Pattern {
                             key_bid: cycle[0],
                             pat: Pat::Cycle {
                                 path: cycle[1..].into(),
@@ -861,6 +868,7 @@ fn search_pat_cycle(cfg: &cfg::Graph, out: &mut Vec<Pattern>) {
             }
         }
     }
+    PatternSet { pats }
 }
 
 pub struct PatternSel<'a> {
