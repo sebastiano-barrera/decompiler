@@ -1,3 +1,4 @@
+use std::ops::Range;
 #[allow(dead_code)]
 #[allow(unused)]
 use std::{collections::HashMap, rc::Rc};
@@ -13,8 +14,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Ast {
-    root_thunk: Ident,
-    thunks: HashMap<Ident, Thunk>,
+    root_thunk: ThunkID,
+    thunks: HashMap<ThunkID, Thunk>,
 }
 
 #[derive(Debug)]
@@ -33,6 +34,9 @@ struct ThunkArgs {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident(Rc<String>);
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct ThunkID(Rc<String>);
+
 #[derive(Debug, PartialEq, Eq)]
 enum Node {
     Seq(SmallVec<[NodeP; 2]>),
@@ -46,7 +50,7 @@ enum Node {
         value: NodeP,
     },
     Ref(Ident),
-    ContinueToThunk(Ident, ThunkArgs),
+    ContinueToThunk(ThunkID, ThunkArgs),
     ContinueToExtern(u64),
 
     Const1(u8),
@@ -117,7 +121,7 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
     //
     // each thunk can result from one or more blocks, merged.
 
-    let mut builder = Builder::new(ssa);
+    let mut builder = Builder::new(ssa, pat_sel);
 
     let root_thunk = builder.compile_thunk(cfg::ENTRY_BID);
     while let Some(bid) = builder.next_unvisited_block() {
@@ -130,14 +134,15 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
 
 struct Builder<'a> {
     ssa: &'a ssa::Program,
+    pat_sel: &'a PatternSel<'a>,
     name_of_value: HashMap<mil::Index, Ident>,
-    thunk_id_of_block: cfg::BlockMap<Ident>,
+    thunk_id_of_block: cfg::BlockMap<ThunkID>,
     visited: cfg::BlockMap<bool>,
-    thunks: HashMap<Ident, Thunk>,
+    thunks: HashMap<ThunkID, Thunk>,
 }
 
 impl<'a> Builder<'a> {
-    fn new(ssa: &'a ssa::Program) -> Builder<'a> {
+    fn new(ssa: &'a ssa::Program, pat_sel: &'a PatternSel<'a>) -> Builder<'a> {
         let name_of_value = (0..ssa.len())
             .filter_map(|ndx| {
                 let insn = ssa.get(ndx).unwrap().insn;
@@ -154,11 +159,12 @@ impl<'a> Builder<'a> {
         // of the order in which blocks are processed / thunks generated.
         // (conservatively = even for thunks that end up not being generated)
         let thunk_id_of_block = cfg::BlockMap::new_with(ssa.cfg(), |bid| {
-            Ident(Rc::new(format!("T{}", bid.as_number())))
+            ThunkID(Rc::new(format!("T{}", bid.as_number())))
         });
 
         Builder {
             ssa,
+            pat_sel,
             name_of_value,
             thunk_id_of_block,
             visited: cfg::BlockMap::new(false, ssa.cfg().block_count()),
@@ -173,11 +179,11 @@ impl<'a> Builder<'a> {
             .map(|(bid, _)| bid)
     }
 
-    fn finish(self) -> HashMap<Ident, Thunk> {
+    fn finish(self) -> HashMap<ThunkID, Thunk> {
         self.thunks
     }
 
-    fn compile_thunk(&mut self, start_bid: cfg::BasicBlockID) -> Ident {
+    fn compile_thunk(&mut self, start_bid: cfg::BasicBlockID) -> ThunkID {
         // create thunk and assign ID immediately, in case the thunk jumps to itself
         let lbl = self.thunk_id_of_block[start_bid].clone();
         self.thunks.insert(
@@ -201,38 +207,35 @@ impl<'a> Builder<'a> {
             })
             .collect();
 
-        let nor_ndxs = self.ssa.cfg().insns_ndx_range(start_bid);
+        let pat = self.pat_sel.get(start_bid).map(|p| {
+            assert_eq!(start_bid, p.key_bid);
+            &p.pat
+        });
+        let body = match pat {
+            Some(Pat::If { tail }) => {
+                todo!("compile_thunk(If)")
+            }
+            Some(Pat::Cycle { path }) => {
+                let mut seq = self.compile_thunk_normal(start_bid);
+                todo!("compile_thunk(Cycle)")
+            }
+            None => {
+                let seq = self.compile_thunk_normal(start_bid);
+                Node::Seq(seq)
+            }
+        };
 
-        let mut seq: SmallVec<_> = nor_ndxs
-            .clone()
-            .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
-            .filter_map(|(ndx, iv)| {
-                let name = self.name_of_value.get(&iv.dest.0);
+        self.thunks.get_mut(&lbl).unwrap().body = body;
+        self.visited[start_bid] = true;
+        lbl
+    }
 
-                if !iv.insn.has_side_effects() && name.is_none() {
-                    return None;
-                }
+    fn compile_thunk_normal(&mut self, bid: BasicBlockID) -> SmallVec<[Box<Node>; 2]> {
+        let nor_ndxs = self.ssa.cfg().insns_ndx_range(bid);
 
-                let node = self.compile_node(ndx);
-                if node == Node::Nop {
-                    return None;
-                }
+        let mut seq = self.compile_seq_normal(&nor_ndxs);
 
-                if let Some(name) = name {
-                    return Some(
-                        Node::Let {
-                            name: name.clone(),
-                            value: node.boxed(),
-                        }
-                        .boxed(),
-                    );
-                };
-
-                Some(node.boxed())
-            })
-            .collect();
-
-        match self.ssa.cfg().block_cont(start_bid) {
+        match self.ssa.cfg().block_cont(bid) {
             cfg::BlockCont::End => {
                 // all done!
             }
@@ -263,9 +266,38 @@ impl<'a> Builder<'a> {
             }
         };
 
-        self.thunks.get_mut(&lbl).unwrap().body = Node::Seq(seq);
-        self.visited[start_bid] = true;
-        lbl
+        seq
+    }
+
+    fn compile_seq_normal(&mut self, nor_ndxs: &Range<mil::Index>) -> SmallVec<[Box<Node>; 2]> {
+        nor_ndxs
+            .clone()
+            .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
+            .filter_map(|(ndx, iv)| {
+                let name = self.name_of_value.get(&iv.dest.0);
+
+                if !iv.insn.has_side_effects() && name.is_none() {
+                    return None;
+                }
+
+                let node = self.compile_node(ndx);
+                if node == Node::Nop {
+                    return None;
+                }
+
+                if let Some(name) = name {
+                    return Some(
+                        Node::Let {
+                            name: name.clone(),
+                            value: node.boxed(),
+                        }
+                        .boxed(),
+                    );
+                };
+
+                Some(node.boxed())
+            })
+            .collect()
     }
 
     fn compile_continue(&self, bid: cfg::BasicBlockID, pred_ndx: u8) -> Node {
