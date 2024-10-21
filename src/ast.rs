@@ -127,8 +127,26 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
         if let Some(pat_ndx) = pat_ndx {
             let pat = &pat_sel.set.pats[*pat_ndx];
             assert_eq!(pat.key_bid, bid);
-            builder.apply_pattern(pat);
+
+            match &pat.pat {
+                Pat::IfBranch { path } => {
+                    mark_path_inline(&mut builder, path);
+                }
+                Pat::Cycle { path } => {
+                    if path.len() == 0 {
+                        todo!("not yet implemented: self-recursive blocks")
+                    }
+
+                    mark_path_inline(&mut builder, path);
+                    let last = path.last().copied().unwrap();
+                    builder.mark_edge_loop(last, bid);
+                }
+            }
         }
+    }
+
+    for bid in ssa.cfg().block_ids() {
+        builder.compile_new_thunk(bid);
     }
 
     // TODO: inline 1-predecessor continuations (?)
@@ -136,11 +154,26 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
     builder.finish()
 }
 
+fn mark_path_inline(builder: &mut Builder, path: &Path) {
+    for (&a, &b) in path.iter().zip(&path[1..]) {
+        builder.mark_edge_inline(a, b);
+    }
+}
+
 struct Builder<'a> {
     ssa: &'a ssa::Program,
     name_of_value: HashMap<mil::Index, Ident>,
     thunk_id_of_block: cfg::BlockMap<ThunkID>,
     thunks: HashMap<ThunkID, Thunk>,
+    edge_flags: HashMap<(BasicBlockID, BasicBlockID), EdgeFlags>,
+    blocks_compiling: Vec<BasicBlockID>,
+}
+
+// TODO replace with a proper bitmask
+#[derive(Clone, Copy, Default)]
+struct EdgeFlags {
+    is_loop: bool,
+    is_inline: bool,
 }
 
 impl<'a> Builder<'a> {
@@ -160,27 +193,18 @@ impl<'a> Builder<'a> {
         // Thunk IDs are all preassigned so that jumps/continues can always be resolved, regardless
         // of the order in which blocks are processed / thunks generated.
         // (conservatively = even for thunks that end up not being generated)
-        let thunk_id_of_block = cfg::BlockMap::new_with(ssa.cfg(), |bid| {
-            ThunkID(Rc::new(format!("T{}", bid.as_number())))
-        });
+        let cfg = ssa.cfg();
+        let thunk_id_of_block =
+            cfg::BlockMap::new_with(cfg, |bid| ThunkID(Rc::new(format!("T{}", bid.as_number()))));
 
-        let mut builder = Builder {
+        Builder {
             ssa,
             name_of_value,
             thunk_id_of_block,
             thunks: HashMap::new(),
-        };
-
-        for bid in ssa.cfg().block_ids() {
-            builder.compile_thunk(bid);
+            edge_flags: HashMap::new(),
+            blocks_compiling: Vec::new(),
         }
-
-        for bid in ssa.cfg().block_ids() {
-            let tid = &builder.thunk_id_of_block[bid];
-            assert!(builder.thunks.contains_key(tid));
-        }
-
-        builder
     }
 
     fn finish(self) -> Ast {
@@ -191,20 +215,21 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn compile_thunk(&mut self, start_bid: cfg::BasicBlockID) -> ThunkID {
+    fn compile_new_thunk(&mut self, start_bid: cfg::BasicBlockID) -> ThunkID {
         // create thunk and assign ID immediately, in case the thunk jumps to itself
         let lbl = self.thunk_id_of_block[start_bid].clone();
-        self.thunks.insert(
-            lbl.clone(),
-            Thunk {
-                body: Node::Nop,
-                params: SmallVec::new(),
-            },
-        );
+        let thunk = self.compile_thunk(start_bid);
+        self.thunks.insert(lbl.clone(), thunk);
+        lbl
+    }
+
+    fn compile_thunk(&mut self, start_bid: BasicBlockID) -> Thunk {
+        assert!(!self.blocks_compiling.contains(&start_bid));
+        self.blocks_compiling.push(start_bid);
 
         let phis = self.ssa.block_phi(start_bid);
         let phi_count = phis.phi_count();
-        self.thunks.get_mut(&lbl).unwrap().params = (0..phi_count)
+        let params = (0..phi_count)
             .map(|phi_ndx| phis.node_ndx(phi_ndx))
             .filter(|ndx| self.ssa.is_alive(*ndx))
             .map(|ndx| {
@@ -218,8 +243,9 @@ impl<'a> Builder<'a> {
         let seq = self.compile_thunk_normal(start_bid);
         let body = Node::Seq(seq);
 
-        self.thunks.get_mut(&lbl).unwrap().body = body;
-        lbl
+        let check = self.blocks_compiling.pop();
+        assert_eq!(check, Some(start_bid));
+        Thunk { params, body }
     }
 
     fn compile_thunk_normal(&mut self, bid: BasicBlockID) -> SmallVec<[Box<Node>; 2]> {
@@ -292,20 +318,51 @@ impl<'a> Builder<'a> {
             .collect()
     }
 
-    fn compile_continue(&self, bid: cfg::BasicBlockID, pred_ndx: u8) -> Node {
-        let thunk_id = self.thunk_id_of_block[bid].clone();
+    fn compile_continue(&mut self, target_bid: cfg::BasicBlockID, pred_ndx: u8) -> Node {
+        let args = {
+            let target_phis = self.ssa.block_phi(target_bid);
+            let values = (0..target_phis.phi_count())
+                .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
+                .map(|phi_ndx| {
+                    let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
+                    self.get_node(reg.0).boxed()
+                })
+                .collect();
+            ThunkArgs { values }
+        };
 
-        let target_phis = self.ssa.block_phi(bid);
-        let values = (0..target_phis.phi_count())
-            .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
-            .map(|phi_ndx| {
-                let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
-                self.get_node(reg.0).boxed()
-            })
-            .collect();
-        let args = ThunkArgs { values };
+        let cur_bid = self.blocks_compiling.last().copied().unwrap();
+        let edge = self.edge(cur_bid, target_bid);
+        let nonbackedge_count = self
+            .ssa
+            .cfg()
+            .successors()
+            .nonbackedge_predecessor_count(target_bid);
+        if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
+            let Thunk { params, body } = self.compile_thunk(target_bid);
+            assert_eq!(
+                params.len(),
+                args.values.len(),
+                "inconsistent arg/param count"
+            );
 
-        Node::ContinueToThunk(thunk_id, args)
+            let mut wrapper_seq: SmallVec<[NodeP; 2]> = params
+                .into_iter()
+                .zip(args.values.into_iter())
+                .map(|(param, arg)| {
+                    Node::Let {
+                        name: param,
+                        value: arg,
+                    }
+                    .boxed()
+                })
+                .collect();
+            wrapper_seq.push(body.boxed());
+            Node::Seq(wrapper_seq)
+        } else {
+            let thunk_id = self.thunk_id_of_block[target_bid].clone();
+            Node::ContinueToThunk(thunk_id, args)
+        }
     }
 
     fn compile_node(&self, start_ndx: mil::Index) -> Node {
@@ -470,9 +527,20 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn apply_pattern(&mut self, pat: &Pattern) {
-        // TODO do something!
-        // todo!("apply_pattern: {:?}", pat)
+    fn edge_mut(&mut self, a: BasicBlockID, b: BasicBlockID) -> &mut EdgeFlags {
+        self.edge_flags
+            .entry((a, b))
+            .or_insert_with(|| EdgeFlags::default())
+    }
+    fn edge(&self, a: BasicBlockID, b: BasicBlockID) -> EdgeFlags {
+        self.edge_flags.get(&(a, b)).copied().unwrap_or_default()
+    }
+
+    fn mark_edge_loop(&mut self, a: BasicBlockID, b: BasicBlockID) {
+        self.edge_mut(a, b).is_loop = true;
+    }
+    fn mark_edge_inline(&mut self, a: BasicBlockID, b: BasicBlockID) {
+        self.edge_mut(a, b).is_inline = true;
     }
 }
 
@@ -824,7 +892,7 @@ pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
                         };
 
                         let tail_ndx = path.len() - tail_len;
-                        let branch = &path[tail_ndx + 1..path.len() - 1];
+                        let branch = &path[tail_ndx..path.len() - 1];
                         pats.push(Pattern {
                             key_bid: path[tail_ndx],
                             pat: Pat::IfBranch {
@@ -850,9 +918,7 @@ pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
 
                         pats.push(Pattern {
                             key_bid: cycle[0],
-                            pat: Pat::Cycle {
-                                path: cycle[1..].into(),
-                            },
+                            pat: Pat::Cycle { path: cycle.into() },
                         });
                     } else {
                         queue.push(Cmd::End(succ));
