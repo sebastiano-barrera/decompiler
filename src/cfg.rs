@@ -25,6 +25,7 @@ pub struct Edges {
     entries: BlockMap<bool>,
     target: Vec<BasicBlockID>,
     ndx_range: BlockMap<Range<usize>>,
+    nonbackedge_preds_count: BlockMap<u16>,
 }
 
 impl std::ops::Index<BasicBlockID> for Edges {
@@ -40,7 +41,17 @@ impl Edges {
     fn block_count(&self) -> usize {
         self.ndx_range.block_count()
     }
+
+    pub fn nonbackedge_predecessor_count(&self, bid: BasicBlockID) -> u16 {
+        self.nonbackedge_preds_count[bid]
+    }
+
+    pub fn successors(&self, bndx: BasicBlockID) -> &[BasicBlockID] {
+        let range = &self.ndx_range[bndx];
+        &self.target[range.start..range.end]
+    }
 }
+
 impl std::fmt::Debug for Edges {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[")?;
@@ -99,13 +110,6 @@ impl BasicBlockID {
     #[inline(always)]
     pub fn as_usize(&self) -> usize {
         self.0 as usize
-    }
-}
-
-impl Edges {
-    pub fn successors(&self, bndx: BasicBlockID) -> &[BasicBlockID] {
-        let range = &self.ndx_range[bndx];
-        &self.target[range.start..range.end]
     }
 }
 
@@ -234,11 +238,14 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
         let mut entries = BlockMap::new(false, block_count);
         entries[ENTRY_BID] = true;
-        Edges {
+        let mut edges = Edges {
             entries,
-            target,
             ndx_range,
-        }
+            target,
+            nonbackedge_preds_count: BlockMap::new(0, block_count),
+        };
+        recount_nonbackedge_predecessors(&mut edges);
+        edges
     };
 
     let predecessors = {
@@ -267,11 +274,14 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
         }
 
-        Edges {
+        let mut edges = Edges {
             entries,
             ndx_range,
             target,
-        }
+            nonbackedge_preds_count: BlockMap::new(0, block_count),
+        };
+        recount_nonbackedge_predecessors(&mut edges);
+        edges
     };
 
     #[cfg(debug_assertions)]
@@ -536,7 +546,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BasicBlockID> {
     let count = edges.block_count();
 
     // Remaining predecessors count
-    let mut rem_preds_count = count_nonbackedge_predecessors(edges);
+    let mut rem_preds_count = edges.nonbackedge_preds_count.clone();
 
     let mut order = Vec::with_capacity(count);
     let mut queue = Vec::with_capacity(count / 2);
@@ -582,7 +592,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BasicBlockID> {
 
 /// Count, for each node, the number of incoming edges (or, equivalently, predecessor nodes) that
 /// are not back-edges (i.e. don't form a cycle).
-fn count_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
+fn recount_nonbackedge_predecessors(edges: &mut Edges) {
     let count = edges.block_count();
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -625,7 +635,7 @@ fn count_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
         }
     }
 
-    incoming_count
+    edges.nonbackedge_preds_count = incoming_count;
 }
 
 pub struct Ordering {
@@ -659,7 +669,7 @@ impl Ordering {
 //
 // Utilities
 //
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMap<T>(Vec<T>);
 
 impl<T: Clone> BlockMap<T> {
