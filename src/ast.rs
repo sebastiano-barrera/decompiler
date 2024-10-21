@@ -146,7 +146,9 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
     }
 
     for bid in ssa.cfg().block_ids() {
-        builder.compile_new_thunk(bid);
+        if !builder.visited[bid] {
+            builder.compile_new_thunk(bid);
+        }
     }
 
     // TODO: inline 1-predecessor continuations (?)
@@ -167,6 +169,7 @@ struct Builder<'a> {
     thunks: HashMap<ThunkID, Thunk>,
     edge_flags: HashMap<(BasicBlockID, BasicBlockID), EdgeFlags>,
     blocks_compiling: Vec<BasicBlockID>,
+    visited: cfg::BlockMap<bool>,
 }
 
 // TODO replace with a proper bitmask
@@ -204,6 +207,7 @@ impl<'a> Builder<'a> {
             thunks: HashMap::new(),
             edge_flags: HashMap::new(),
             blocks_compiling: Vec::new(),
+            visited: cfg::BlockMap::new(false, cfg.block_count()),
         }
     }
 
@@ -226,6 +230,9 @@ impl<'a> Builder<'a> {
     fn compile_thunk(&mut self, start_bid: BasicBlockID) -> Thunk {
         assert!(!self.blocks_compiling.contains(&start_bid));
         self.blocks_compiling.push(start_bid);
+
+        assert!(!self.visited[start_bid]);
+        self.visited[start_bid] = true;
 
         let phis = self.ssa.block_phi(start_bid);
         let phi_count = phis.phi_count();
