@@ -864,7 +864,6 @@ impl PatternSet {
 }
 
 pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
-    let succs = cfg.successors();
     let preds = cfg.predecessors();
 
     let mut pats = Vec::new();
@@ -967,10 +966,5 @@ impl<'a> PatternSel<'a> {
             assert_eq!(bid, self.set.pats[pat_ndx].key_bid);
         }
         self.sel[bid] = pat_ndx;
-    }
-
-    pub fn get(&self, bid: BasicBlockID) -> Option<&Pattern> {
-        let ndx = self.sel[bid]?;
-        Some(&self.set.pats[ndx])
     }
 }
