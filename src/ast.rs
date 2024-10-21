@@ -39,7 +39,7 @@ pub struct ThunkID(Rc<String>);
 
 #[derive(Debug, PartialEq, Eq)]
 enum Node {
-    Seq(SmallVec<[NodeP; 2]>),
+    Seq(Seq),
     If {
         cond: NodeP,
         cons: NodeP,
@@ -94,6 +94,7 @@ enum Node {
 }
 
 type NodeP = Box<Node>;
+type Seq = SmallVec<[NodeP; 2]>;
 
 #[derive(PartialEq, Eq, Debug)]
 enum BinOp {
@@ -220,23 +221,24 @@ impl<'a> Builder<'a> {
     }
 
     fn compile_new_thunk(&mut self, start_bid: cfg::BasicBlockID) -> ThunkID {
-        // create thunk and assign ID immediately, in case the thunk jumps to itself
+        let mut seq = Seq::new();
+
+        let params = self.thunk_params_of_block_phis(start_bid);
+        self.compile_thunk_body(start_bid, &mut seq);
+
+        let thunk = Thunk {
+            params,
+            body: Node::Seq(seq),
+        };
+
         let lbl = self.thunk_id_of_block[start_bid].clone();
-        let thunk = self.compile_thunk(start_bid);
         self.thunks.insert(lbl.clone(), thunk);
         lbl
     }
 
-    fn compile_thunk(&mut self, start_bid: BasicBlockID) -> Thunk {
-        assert!(!self.blocks_compiling.contains(&start_bid));
-        self.blocks_compiling.push(start_bid);
-
-        assert!(!self.visited[start_bid]);
-        self.visited[start_bid] = true;
-
-        let phis = self.ssa.block_phi(start_bid);
-        let phi_count = phis.phi_count();
-        let params = (0..phi_count)
+    fn thunk_params_of_block_phis(&mut self, bid: BasicBlockID) -> SmallVec<[Ident; 2]> {
+        let phis = self.ssa.block_phi(bid);
+        (0..phis.phi_count())
             .map(|phi_ndx| phis.node_ndx(phi_ndx))
             .filter(|ndx| self.ssa.is_alive(*ndx))
             .map(|ndx| {
@@ -245,28 +247,26 @@ impl<'a> Builder<'a> {
                     .expect("unnamed phi node!")
                     .clone()
             })
-            .collect();
-
-        let seq = self.compile_thunk_normal(start_bid);
-        let body = Node::Seq(seq);
-
-        let check = self.blocks_compiling.pop();
-        assert_eq!(check, Some(start_bid));
-        Thunk { params, body }
+            .collect()
     }
 
-    fn compile_thunk_normal(&mut self, bid: BasicBlockID) -> SmallVec<[Box<Node>; 2]> {
+    fn compile_thunk_body(&mut self, bid: BasicBlockID, out_seq: &mut Seq) {
+        assert!(!self.blocks_compiling.contains(&bid));
+        self.blocks_compiling.push(bid);
+
+        assert!(!self.visited[bid]);
+        self.visited[bid] = true;
+
         let nor_ndxs = self.ssa.cfg().insns_ndx_range(bid);
 
-        let mut seq = self.compile_seq_normal(&nor_ndxs);
+        self.compile_seq(&nor_ndxs, out_seq);
 
         match self.ssa.cfg().block_cont(bid) {
             cfg::BlockCont::End => {
                 // all done!
             }
             cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
-                let cont_node = self.compile_continue(tgt, pred_ndx).boxed();
-                seq.push(cont_node);
+                self.compile_continue(tgt, pred_ndx, out_seq);
             }
             cfg::BlockCont::Alt {
                 straight: (neg_pred_ndx, neg_bid),
@@ -284,58 +284,67 @@ impl<'a> Builder<'a> {
                     _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
                 };
                 let cond = self.get_node(cond.0).boxed();
-                let cons = self.compile_continue(neg_bid, neg_pred_ndx).boxed();
-                let alt = self.compile_continue(pos_bid, pos_pred_ndx).boxed();
+                let cons = {
+                    let mut seq = Seq::new();
+                    self.compile_continue(neg_bid, neg_pred_ndx, &mut seq);
+                    Node::Seq(seq).boxed()
+                };
+                let alt = {
+                    let mut seq = Seq::new();
+                    self.compile_continue(pos_bid, pos_pred_ndx, &mut seq);
+                    Node::Seq(seq).boxed()
+                };
 
-                seq.push(Node::If { cond, cons, alt }.boxed());
+                out_seq.push(Node::If { cond, cons, alt }.boxed());
             }
         };
 
-        seq
+        let check = self.blocks_compiling.pop();
+        assert_eq!(check, Some(bid));
     }
 
-    fn compile_seq_normal(&mut self, nor_ndxs: &Range<mil::Index>) -> SmallVec<[Box<Node>; 2]> {
-        nor_ndxs
-            .clone()
-            .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
-            .filter_map(|(ndx, iv)| {
-                let name = self.name_of_value.get(&iv.dest.0);
+    fn compile_seq(&mut self, nor_ndxs: &Range<mil::Index>, out_seq: &mut Seq) {
+        out_seq.extend(
+            nor_ndxs
+                .clone()
+                .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
+                .filter_map(|(ndx, iv)| {
+                    let name = self.name_of_value.get(&iv.dest.0);
 
-                if !iv.insn.has_side_effects() && name.is_none() {
-                    return None;
-                }
+                    if !iv.insn.has_side_effects() && name.is_none() {
+                        return None;
+                    }
 
-                let node = self.compile_node(ndx);
-                if node == Node::Nop {
-                    return None;
-                }
+                    let node = self.compile_node(ndx);
+                    if node == Node::Nop {
+                        return None;
+                    }
 
-                if let Some(name) = name {
-                    return Some(
-                        Node::Let {
-                            name: name.clone(),
-                            value: node.boxed(),
-                        }
-                        .boxed(),
-                    );
-                };
+                    if let Some(name) = name {
+                        return Some(
+                            Node::Let {
+                                name: name.clone(),
+                                value: node.boxed(),
+                            }
+                            .boxed(),
+                        );
+                    };
 
-                Some(node.boxed())
-            })
-            .collect()
+                    Some(node.boxed())
+                }),
+        )
     }
 
-    fn compile_continue(&mut self, target_bid: cfg::BasicBlockID, pred_ndx: u8) -> Node {
-        let args = {
+    fn compile_continue(&mut self, target_bid: cfg::BasicBlockID, pred_ndx: u8, out_seq: &mut Seq) {
+        let args: SmallVec<_> = {
             let target_phis = self.ssa.block_phi(target_bid);
-            let values = (0..target_phis.phi_count())
+            (0..target_phis.phi_count())
                 .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
                 .map(|phi_ndx| {
                     let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
                     self.get_node(reg.0).boxed()
                 })
-                .collect();
-            ThunkArgs { values }
+                .collect()
         };
 
         let cur_bid = self.blocks_compiling.last().copied().unwrap();
@@ -346,29 +355,28 @@ impl<'a> Builder<'a> {
             .successors()
             .nonbackedge_predecessor_count(target_bid);
         if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
-            let Thunk { params, body } = self.compile_thunk(target_bid);
-            assert_eq!(
-                params.len(),
-                args.values.len(),
-                "inconsistent arg/param count"
+            let params = self.thunk_params_of_block_phis(target_bid);
+
+            assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
+
+            out_seq.extend(
+                params
+                    .into_iter()
+                    .zip(args.into_iter())
+                    .map(|(param, arg)| {
+                        Node::Let {
+                            name: param,
+                            value: arg,
+                        }
+                        .boxed()
+                    }),
             );
 
-            let mut wrapper_seq: SmallVec<[NodeP; 2]> = params
-                .into_iter()
-                .zip(args.values.into_iter())
-                .map(|(param, arg)| {
-                    Node::Let {
-                        name: param,
-                        value: arg,
-                    }
-                    .boxed()
-                })
-                .collect();
-            wrapper_seq.push(body.boxed());
-            Node::Seq(wrapper_seq)
+            self.compile_thunk_body(target_bid, out_seq);
         } else {
             let thunk_id = self.thunk_id_of_block[target_bid].clone();
-            Node::ContinueToThunk(thunk_id, args)
+            let node = Node::ContinueToThunk(thunk_id, ThunkArgs { values: args });
+            out_seq.push(node.boxed());
         }
     }
 
@@ -589,8 +597,7 @@ impl Node {
         use std::fmt::Write;
         match self {
             Node::Seq(nodes) => {
-                writeln!(pp, "{{")?;
-                write!(pp, "  ")?;
+                write!(pp, "{{\n    ")?;
                 pp.open_box();
                 for (ndx, node) in nodes.iter().enumerate() {
                     node.pretty_print(pp)?;
@@ -608,16 +615,11 @@ impl Node {
                 cond.pretty_print(pp)?;
                 pp.close_box();
 
-                write!(pp, " {{\n  ")?;
-                pp.open_box();
+                write!(pp, " ")?;
                 cons.pretty_print(pp)?;
-                pp.close_box();
 
-                write!(pp, "\n}} else {{\n  ")?;
-                pp.open_box();
-                alt.pretty_print(pp)?;
-                pp.close_box();
-                write!(pp, "\n}}")
+                write!(pp, " else ")?;
+                alt.pretty_print(pp)
             }
 
             Node::Let { name, value } => {
