@@ -53,6 +53,8 @@ enum Node {
     ContinueToThunk(ThunkID, ThunkArgs),
     ContinueToExtern(u64),
 
+    Labeled(ThunkID, NodeP),
+
     Const1(u8),
     Const2(u16),
     Const4(u32),
@@ -357,30 +359,37 @@ impl<'a> Builder<'a> {
 
         let cur_bid = self.blocks_compiling.last().copied().unwrap();
         let edge = self.edge(cur_bid, target_bid);
-        let nonbackedge_count = self
-            .ssa
-            .cfg()
-            .direct()
-            .nonbackedge_predecessor_count(target_bid);
+
+        let cfg = self.ssa.cfg();
+        let nonbackedge_count = cfg.direct().nonbackedge_predecessor_count(target_bid);
+        let preds_count = cfg.block_preds(target_bid).len();
+
         if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
             let params = self.thunk_params_of_block_phis(target_bid);
 
             assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
 
-            out_seq.extend(
-                params
-                    .into_iter()
-                    .zip(args.into_iter())
-                    .map(|(param, arg)| {
-                        Node::Let {
-                            name: param,
-                            value: arg,
-                        }
-                        .boxed()
-                    }),
-            );
+            let param_lets = params
+                .into_iter()
+                .zip(args.into_iter())
+                .map(|(param, arg)| {
+                    Node::Let {
+                        name: param,
+                        value: arg,
+                    }
+                    .boxed()
+                });
 
-            self.compile_thunk_body(target_bid, out_seq);
+            if preds_count > 1 {
+                let mut inner_seq = SmallVec::new();
+                inner_seq.extend(param_lets);
+                self.compile_thunk_body(target_bid, &mut inner_seq);
+                let label = self.thunk_id_of_block[target_bid].clone();
+                out_seq.push(Node::Labeled(label, Node::Seq(inner_seq).boxed()).boxed());
+            } else {
+                out_seq.extend(param_lets);
+                self.compile_thunk_body(target_bid, out_seq);
+            }
         } else {
             let thunk_id = self.thunk_id_of_block[target_bid].clone();
             let node = Node::ContinueToThunk(thunk_id, ThunkArgs { values: args });
@@ -639,6 +648,11 @@ impl Node {
             }
 
             Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
+
+            Node::Labeled(thunk_id, node) => {
+                write!(pp, "'{}: ", thunk_id.0)?;
+                node.pretty_print(pp)
+            }
 
             Node::ContinueToThunk(thunk_id, args) => {
                 write!(pp, "goto {}", thunk_id.0.as_str())?;
