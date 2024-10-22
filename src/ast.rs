@@ -360,7 +360,7 @@ impl<'a> Builder<'a> {
         let nonbackedge_count = self
             .ssa
             .cfg()
-            .successors()
+            .direct()
             .nonbackedge_predecessor_count(target_bid);
         if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
             let params = self.thunk_params_of_block_phis(target_bid);
@@ -868,7 +868,7 @@ impl PatternSet {
 }
 
 pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
-    let preds = cfg.predecessors();
+    let preds = cfg.inverse();
 
     let mut pats = Vec::new();
     let mut in_path = cfg::BlockMap::new(false, cfg.block_count());
@@ -919,7 +919,7 @@ pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
                 }
 
                 // cycles: one of the current block's successors S dominates B
-                for &succ in &cfg.successors()[bid] {
+                for &succ in &cfg.direct()[bid] {
                     if in_path[succ] {
                         let cycle = {
                             let cycle_len =

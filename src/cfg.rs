@@ -14,8 +14,8 @@ use crate::mil;
 pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
-    successors: Edges,
-    predecessors: Edges,
+    direct: Edges,
+    inverse: Edges,
 
     dom_tree: DomTree,
     inv_dom_tree: DomTree,
@@ -124,11 +124,11 @@ impl Graph {
     }
 
     pub fn block_preds(&self, bid: BasicBlockID) -> &[BasicBlockID] {
-        self.predecessors.successors(bid)
+        self.inverse.successors(bid)
     }
 
     pub fn block_cont(&self, bid: BasicBlockID) -> BlockCont {
-        let successors = &self.successors[bid];
+        let successors = &self.direct[bid];
         match successors {
             [] => BlockCont::End,
             [cons] => BlockCont::Jmp((0, *cons)),
@@ -158,11 +158,11 @@ impl Graph {
         &self.inv_dom_tree
     }
 
-    pub fn successors(&self) -> &Edges {
-        &self.successors
+    pub fn direct(&self) -> &Edges {
+        &self.direct
     }
-    pub fn predecessors(&self) -> &Edges {
-        &self.predecessors
+    pub fn inverse(&self) -> &Edges {
+        &self.inverse
     }
 }
 
@@ -209,7 +209,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         })
         .collect();
 
-    let successors = {
+    let direct = {
         let mut target = Vec::new();
         let mut ndx_range = BlockMap::new(0..0, block_count);
 
@@ -248,18 +248,18 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         edges
     };
 
-    let predecessors = {
+    let inverse = {
         let mut ndx_range = BlockMap::new(0..0, block_count);
         let mut target = Vec::with_capacity(block_count * 2);
         let mut entries = BlockMap::new(false, block_count);
-        let mut pred_ndx = Vec::with_capacity(successors.target.len());
+        let mut pred_ndx = Vec::with_capacity(direct.target.len());
 
         // quadratic, but you know how life goes
         for succ in (0..block_count as u16).map(BasicBlockID) {
             let offset = target.len();
 
             for pred in (0..block_count as u16).map(BasicBlockID) {
-                for pred_succ in successors.successors(pred) {
+                for pred_succ in direct.successors(pred) {
                     if *pred_succ == succ {
                         pred_ndx.push(target.len() - offset);
                         target.push(pred);
@@ -269,7 +269,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
             ndx_range[succ] = offset..target.len();
 
-            if successors.successors(succ).len() == 0 {
+            if direct.successors(succ).len() == 0 {
                 entries[succ] = true;
             }
         }
@@ -319,13 +319,13 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
     }
 
-    let dom_tree = compute_dom_tree(&successors, &predecessors);
-    let inv_dom_tree = compute_dom_tree(&predecessors, &successors);
+    let dom_tree = compute_dom_tree(&direct, &inverse);
+    let inv_dom_tree = compute_dom_tree(&inverse, &direct);
 
     Graph {
         bounds,
-        successors,
-        predecessors,
+        direct,
+        inverse,
         dom_tree,
         inv_dom_tree,
     }
@@ -372,7 +372,7 @@ impl Graph {
                 bid.0, bid.0, start, end,
             );
 
-            match self.successors.successors(bid) {
+            match self.direct.successors(bid) {
                 [] => println!("  block{} -> end", bid.0),
                 dests => {
                     for (succ_ndx, dest) in dests.iter().enumerate() {
@@ -537,7 +537,7 @@ where
 // Traversals
 //
 pub fn traverse_postorder(graph: &Graph) -> Ordering {
-    let mut order = reverse_postorder(graph.successors());
+    let mut order = reverse_postorder(graph.direct());
     order.reverse();
     Ordering::new(order)
 }
