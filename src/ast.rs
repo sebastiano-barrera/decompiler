@@ -186,6 +186,10 @@ impl<'a> Builder<'a> {
             .filter_map(|ndx| {
                 let insn = ssa.get(ndx).unwrap().insn;
                 let is_named = match insn {
+                    mil::Insn::Const1(_)
+                    | mil::Insn::Const2(_)
+                    | mil::Insn::Const4(_)
+                    | mil::Insn::Const8(_) => false,
                     mil::Insn::Phi | mil::Insn::Call { .. } => true,
                     _ => ssa.readers_count(mil::Reg(ndx)) > 1,
                 };
