@@ -810,14 +810,10 @@ impl Node {
                 write!(pp, "\n)")
             }
 
-            Node::LoadMem1(arg)
-            | Node::LoadMem2(arg)
-            | Node::LoadMem4(arg)
-            | Node::LoadMem8(arg) => {
-                write!(pp, "(")?;
-                arg.pretty_print(pp)?;
-                write!(pp, ").*")
-            }
+            Node::LoadMem1(arg) => pp_load_mem(pp, 1, arg),
+            Node::LoadMem2(arg) => pp_load_mem(pp, 2, arg),
+            Node::LoadMem4(arg) => pp_load_mem(pp, 4, arg),
+            Node::LoadMem8(arg) => pp_load_mem(pp, 8, arg),
 
             Node::StoreMem1(dest, val) => pp_store_mem(pp, 1, dest, val),
             Node::StoreMem2(dest, val) => pp_store_mem(pp, 2, dest, val),
@@ -863,13 +859,24 @@ fn pp_store_mem<W: std::fmt::Write>(
     val: &Node,
 ) -> std::fmt::Result {
     use std::fmt::Write;
-    write!(pp, "(")?;
+    write!(pp, "[")?;
     dest.pretty_print(pp)?;
-    write!(pp, ").* <{}> <- ", dest_size)?;
+    write!(pp, "]:{} = ", dest_size)?;
     pp.open_box();
     val.pretty_print(pp)?;
     pp.close_box();
     Ok(())
+}
+
+fn pp_load_mem<W: std::fmt::Write>(
+    pp: &mut PrettyPrinter<W>,
+    src_size: u8,
+    addr: &Node,
+) -> std::fmt::Result {
+    use std::fmt::Write;
+    write!(pp, "[")?;
+    addr.pretty_print(pp)?;
+    write!(pp, "]:{}", src_size)
 }
 
 #[derive(Debug)]
