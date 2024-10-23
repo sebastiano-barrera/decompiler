@@ -56,7 +56,13 @@ impl Builder {
                     let v0 = self.reg_gen.next();
 
                     self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, -(sz as i64)));
-                    self.emit(v0, mil::Insn::StoreMem(Self::RSP, value));
+                    match sz {
+                        8 => self.emit(v0, mil::Insn::StoreMem8(Self::RSP, value)),
+                        4 => self.emit(v0, mil::Insn::StoreMem4(Self::RSP, value)),
+                        _ => {
+                            panic!("invalid push operand size {sz} (must be 8 or 4)")
+                        }
+                    };
                 }
                 M::Pop => {
                     assert_eq!(insn.op_count(), 1);
@@ -472,7 +478,15 @@ impl Builder {
                 assert_ne!(value, addr);
 
                 let v0 = self.reg_gen.next();
-                self.emit(v0, mil::Insn::StoreMem(addr, value));
+                match value_size {
+                    1 => self.emit(v0, mil::Insn::StoreMem1(addr, value)),
+                    2 => self.emit(v0, mil::Insn::StoreMem2(addr, value)),
+                    4 => self.emit(v0, mil::Insn::StoreMem4(addr, value)),
+                    8 => self.emit(v0, mil::Insn::StoreMem8(addr, value)),
+                    _ => panic!(
+                        "invalid memory destination size {value_size} (must be 1, 2, 4, or 8)"
+                    ),
+                };
             }
         }
     }

@@ -108,7 +108,10 @@ pub enum Insn {
     LoadMem2(Reg),
     LoadMem4(Reg),
     LoadMem8(Reg),
-    StoreMem(Reg, Reg),
+    StoreMem1(Reg, Reg),
+    StoreMem2(Reg, Reg),
+    StoreMem4(Reg, Reg),
+    StoreMem8(Reg, Reg),
 
     OverflowOf(Reg),
     CarryOf(Reg),
@@ -204,7 +207,10 @@ impl Insn {
             | Insn::Eq(a, b)
             | Insn::Call { callee: a, arg0: b }
             | Insn::CArg { value: a, prev: b }
-            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
+            | Insn::StoreMem1(a, b)
+            | Insn::StoreMem2(a, b)
+            | Insn::StoreMem4(a, b)
+            | Insn::StoreMem8(a, b) => [Some(a), Some(b)],
         }
     }
 
@@ -262,7 +268,10 @@ impl Insn {
             | Insn::Eq(a, b)
             | Insn::Call { callee: a, arg0: b }
             | Insn::CArg { value: a, prev: b }
-            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
+            | Insn::StoreMem1(a, b)
+            | Insn::StoreMem2(a, b)
+            | Insn::StoreMem4(a, b)
+            | Insn::StoreMem8(a, b) => [Some(a), Some(b)],
         }
     }
 
@@ -313,7 +322,10 @@ impl Insn {
             | Insn::JmpExtIf { .. }
             | Insn::JmpIf { .. }
             | Insn::TODO(_)
-            | Insn::StoreMem(_, _) => true,
+            | Insn::StoreMem1(_, _)
+            | Insn::StoreMem2(_, _)
+            | Insn::StoreMem4(_, _)
+            | Insn::StoreMem8(_, _) => true,
         }
     }
 }
@@ -349,7 +361,10 @@ impl std::fmt::Debug for Insn {
             Insn::LoadMem4(addr) => write!(f, "{:8} addr:{:?}", "loadm4", addr),
             Insn::LoadMem8(addr) => write!(f, "{:8} addr:{:?}", "loadm8", addr),
 
-            Insn::StoreMem(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem", addr, val),
+            Insn::StoreMem1(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem1", addr, val),
+            Insn::StoreMem2(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem2", addr, val),
+            Insn::StoreMem4(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem4", addr, val),
+            Insn::StoreMem8(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem8", addr, val),
             Insn::TODO(msg) => write!(f, "{:8} {}", "TODO", msg),
 
             Insn::Call { callee, arg0 } => write!(f, "{:8} {:?}({:?})", "call", callee, arg0),

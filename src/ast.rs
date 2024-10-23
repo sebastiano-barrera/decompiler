@@ -83,7 +83,10 @@ enum Node {
     LoadMem2(Box<Node>),
     LoadMem4(Box<Node>),
     LoadMem8(Box<Node>),
-    StoreMem(Box<Node>, Box<Node>),
+    StoreMem1(Box<Node>, Box<Node>),
+    StoreMem2(Box<Node>, Box<Node>),
+    StoreMem4(Box<Node>, Box<Node>),
+    StoreMem8(Box<Node>, Box<Node>),
 
     OverflowOf(Box<Node>),
     CarryOf(Box<Node>),
@@ -429,10 +432,25 @@ impl<'a> Builder<'a> {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }
-            Insn::StoreMem(addr, val) => {
+            Insn::StoreMem1(addr, val) => {
                 let addr = self.get_node(addr.0).boxed();
                 let val = self.get_node(val.0).boxed();
-                Node::StoreMem(addr, val)
+                Node::StoreMem1(addr, val)
+            }
+            Insn::StoreMem2(addr, val) => {
+                let addr = self.get_node(addr.0).boxed();
+                let val = self.get_node(val.0).boxed();
+                Node::StoreMem2(addr, val)
+            }
+            Insn::StoreMem4(addr, val) => {
+                let addr = self.get_node(addr.0).boxed();
+                let val = self.get_node(val.0).boxed();
+                Node::StoreMem4(addr, val)
+            }
+            Insn::StoreMem8(addr, val) => {
+                let addr = self.get_node(addr.0).boxed();
+                let val = self.get_node(val.0).boxed();
+                Node::StoreMem8(addr, val)
             }
 
             Insn::Const1(val) => Node::Const1(*val),
@@ -800,15 +818,12 @@ impl Node {
                 arg.pretty_print(pp)?;
                 write!(pp, ").*")
             }
-            Node::StoreMem(dest, val) => {
-                write!(pp, "(")?;
-                dest.pretty_print(pp)?;
-                write!(pp, ").* <- ")?;
-                pp.open_box();
-                val.pretty_print(pp)?;
-                pp.close_box();
-                Ok(())
-            }
+
+            Node::StoreMem1(dest, val) => pp_store_mem(pp, 1, dest, val),
+            Node::StoreMem2(dest, val) => pp_store_mem(pp, 2, dest, val),
+            Node::StoreMem4(dest, val) => pp_store_mem(pp, 4, dest, val),
+            Node::StoreMem8(dest, val) => pp_store_mem(pp, 8, dest, val),
+
             Node::OverflowOf(arg) => {
                 write!(pp, "overflow (")?;
                 arg.pretty_print(pp)?;
@@ -839,6 +854,22 @@ impl Node {
             Node::Nop => write!(pp, "nop"),
         }
     }
+}
+
+fn pp_store_mem<W: std::fmt::Write>(
+    pp: &mut PrettyPrinter<W>,
+    dest_size: u8,
+    dest: &Node,
+    val: &Node,
+) -> std::fmt::Result {
+    use std::fmt::Write;
+    write!(pp, "(")?;
+    dest.pretty_print(pp)?;
+    write!(pp, ").* <{}> <- ", dest_size)?;
+    pp.open_box();
+    val.pretty_print(pp)?;
+    pp.close_box();
+    Ok(())
 }
 
 #[derive(Debug)]
