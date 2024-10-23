@@ -195,6 +195,10 @@ impl<'a> Builder<'a> {
                     | mil::Insn::Const2(_)
                     | mil::Insn::Const4(_)
                     | mil::Insn::Const8(_) => false,
+                    mil::Insn::LoadMem1(_)
+                    | mil::Insn::LoadMem2(_)
+                    | mil::Insn::LoadMem4(_)
+                    | mil::Insn::LoadMem8(_) => false,
                     mil::Insn::Phi | mil::Insn::Call { .. } => true,
                     _ => ssa.readers_count(mil::Reg(ndx)) > 1,
                 };
