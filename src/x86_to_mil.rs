@@ -10,12 +10,14 @@ pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<m
 
 struct Builder {
     pb: mil::ProgramBuilder,
+    reg_gen: RegGen,
 }
 
 impl Builder {
     fn new() -> Builder {
         Builder {
             pb: mil::ProgramBuilder::new(),
+            reg_gen: RegGen::new(Self::R_TMP_FIRST),
         }
     }
 
@@ -29,18 +31,16 @@ impl Builder {
     ) -> std::result::Result<mil::Program, anyhow::Error> {
         use iced_x86::{OpKind, Register};
 
-        // Temporary abstract registers
-        //    Abstract registers used in the mil program to compute 'small stuff' (memory
-        //    offsets, some arithmetic).  Generally used only in the context of a single
-        //    instruction.
-        const V0: mil::Reg = Builder::V0;
-        const V1: mil::Reg = Builder::V1;
-
         let mut formatter = IntelFormatter::new();
 
         self.emit(Self::RSP, mil::Insn::Ancestral(mil::Ancestral::StackBot));
 
         for insn in insns {
+            // Temporary abstract registers
+            //    These are used in the mil program to compute 'small stuff' (memory
+            //    offsets, some arithmetic).  Never reused across different
+            //    instructions.  "Generated" via self.reg_gen (RegGen)
+            self.reg_gen = RegGen::new(Self::R_TMP_FIRST);
             self.pb.set_input_addr(insn.ip());
 
             let mut output = String::new();
@@ -53,21 +53,24 @@ impl Builder {
                     assert_eq!(insn.op_count(), 1);
 
                     let (value, sz) = self.emit_read(&insn, 0);
+                    let v0 = self.reg_gen.next();
 
                     self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, -(sz as i64)));
-                    self.emit(V0, mil::Insn::StoreMem(Self::RSP, value));
+                    self.emit(v0, mil::Insn::StoreMem(Self::RSP, value));
                 }
                 M::Pop => {
                     assert_eq!(insn.op_count(), 1);
 
+                    let v0 = self.reg_gen.next();
+
                     let sz = Self::op_size(&insn, 0);
                     match sz {
-                        8 => self.emit(V0, mil::Insn::LoadMem8(Self::RSP)),
-                        2 => self.emit(V0, mil::Insn::LoadMem2(Self::RSP)),
+                        8 => self.emit(v0, mil::Insn::LoadMem8(Self::RSP)),
+                        2 => self.emit(v0, mil::Insn::LoadMem2(Self::RSP)),
                         _ => panic!("assertion failed: pop dest size must be either 8 or 2 bytes"),
                     };
 
-                    self.emit_write(&insn, 0, V0, sz);
+                    self.emit_write(&insn, 0, v0, sz);
                     self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, sz as i64));
                 }
                 M::Leave => {
@@ -76,7 +79,8 @@ impl Builder {
                     self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, 8));
                 }
                 M::Ret => {
-                    self.emit(V0, mil::Insn::Ret(Self::RAX));
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Ret(Self::RAX));
                 }
 
                 M::Mov => {
@@ -104,11 +108,13 @@ impl Builder {
                 M::Test => {
                     let (a, _) = self.emit_read(&insn, 0);
                     let (b, _) = self.emit_read(&insn, 1);
-                    self.emit(V0, mil::Insn::BitAnd(a, b));
-                    self.emit(Self::SF, mil::Insn::SignOf(V0));
-                    self.emit(Self::ZF, mil::Insn::IsZero(V0));
-                    self.emit(V1, mil::Insn::L1(V0));
-                    self.emit(Self::PF, mil::Insn::Parity(V1));
+                    let v0 = self.reg_gen.next();
+                    let v1 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::BitAnd(a, b));
+                    self.emit(Self::SF, mil::Insn::SignOf(v0));
+                    self.emit(Self::ZF, mil::Insn::IsZero(v0));
+                    self.emit(v1, mil::Insn::L1(v0));
+                    self.emit(Self::PF, mil::Insn::Parity(v1));
                     self.emit(Self::CF, mil::Insn::Const1(0));
                     self.emit(Self::OF, mil::Insn::Const1(0));
                 }
@@ -116,11 +122,12 @@ impl Builder {
                 M::Cmp => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
+                    let v0 = self.reg_gen.next();
                     assert_eq!(a_sz, b_sz, "cmp: operands must be the same size");
                     // just put the result in a tmp reg, then ignore it (other than for the
                     // flags)
-                    self.emit(V0, mil::Insn::Sub(a, b));
-                    self.emit_set_flags_arith(V0);
+                    self.emit(v0, mil::Insn::Sub(a, b));
+                    self.emit_set_flags_arith(v0);
                 }
 
                 M::Lea => {
@@ -157,8 +164,9 @@ impl Builder {
                     // of the bit count)
                     self.emit(Self::SF, mil::Insn::SignOf(value));
                     self.emit(Self::ZF, mil::Insn::IsZero(value));
-                    self.emit(Self::V0, mil::Insn::L1(value));
-                    self.emit(Self::PF, mil::Insn::Parity(Self::V0));
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::L1(value));
+                    self.emit(Self::PF, mil::Insn::Parity(v0));
                     // ignored: AF
                 }
 
@@ -167,10 +175,11 @@ impl Builder {
                     // allow different calling conventions)
                     // For now, we always assume exactly 4 arguments, using the sysv amd64 call
                     // conv.
-                    self.emit(V1, mil::Insn::CArgEnd);
+                    let v1 = self.reg_gen.next();
+                    self.emit(v1, mil::Insn::CArgEnd);
                     for arch_reg in [Register::RDI, Register::RSI, Register::RDX, Register::RCX] {
                         let value = Self::xlat_reg(arch_reg);
-                        self.emit(V1, mil::Insn::CArg { value, prev: V1 });
+                        self.emit(v1, mil::Insn::CArg { value, prev: v1 });
                     }
 
                     let (callee, sz) = self.emit_read(&insn, 0);
@@ -179,9 +188,9 @@ impl Builder {
                         "invalid call instruction: operand must be 8 bytes, not {}",
                         sz
                     );
-                    assert_ne!(callee, V1, "callee and arg start can't share a register");
+                    assert_ne!(callee, v1, "callee and arg start can't share a register");
                     let ret_reg = Self::xlat_reg(Register::RAX);
-                    self.emit(ret_reg, mil::Insn::Call { callee, arg0: V1 });
+                    self.emit(ret_reg, mil::Insn::Call { callee, arg0: v1 });
 
                     self.emit(Self::CF, mil::Insn::Undefined);
                     self.emit(Self::PF, mil::Insn::Undefined);
@@ -199,7 +208,8 @@ impl Builder {
                     match insn.op0_kind() {
                         OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                             let target = insn.near_branch_target();
-                            self.emit(Self::V0, mil::Insn::JmpExt(target));
+                            let v0 = self.reg_gen.next();
+                            self.emit(v0, mil::Insn::JmpExt(target));
                         }
                         _ => {
                             todo!("indirect jmp");
@@ -214,16 +224,18 @@ impl Builder {
                 }
                 M::Jle => {
                     // ZF=1 or SF ≠ OF
-                    self.emit(Self::V0, mil::Insn::Eq(Self::SF, Self::OF));
-                    self.emit(Self::V0, mil::Insn::Not(Self::V0));
-                    self.emit(Self::V0, mil::Insn::BitOr(Self::V0, Self::ZF));
-                    self.emit_jmpif(insn, 0, Self::V0);
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Eq(Self::SF, Self::OF));
+                    self.emit(v0, mil::Insn::Not(v0));
+                    self.emit(v0, mil::Insn::BitOr(v0, Self::ZF));
+                    self.emit_jmpif(insn, 0, v0);
                 }
                 _ => {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
                     let description = format!("unsupported: {}", output);
-                    self.emit(V0, mil::Insn::TODO(description.leak()));
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::TODO(description.leak()));
                 }
             }
         }
@@ -235,7 +247,8 @@ impl Builder {
         match insn.op_kind(op_ndx) {
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                 let target = insn.near_branch_target();
-                self.emit(Self::V0, mil::Insn::JmpExtIf { cond, target });
+                let v0 = self.reg_gen.next();
+                self.emit(v0, mil::Insn::JmpExtIf { cond, target });
             }
             _ => {
                 todo!("indirect jmpif");
@@ -254,8 +267,9 @@ impl Builder {
         // ignored: AF
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
-        self.emit(Self::V0, mil::Insn::L1(a));
-        self.emit(Self::PF, mil::Insn::Parity(Self::V0));
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::L1(a));
+        self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
     fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u8 {
@@ -299,7 +313,7 @@ impl Builder {
     /// Return value: the register that stores the read value (in the MIL text), and the
     /// value's size in bytes (either 1, 2, 4, or 8).
     fn emit_read_value(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> mil::Reg {
-        const V0: mil::Reg = Builder::V0;
+        let v0 = self.reg_gen.next();
         // let v0 = Self::V0;
 
         match insn.op_kind(op_ndx) {
@@ -307,38 +321,38 @@ impl Builder {
                 let reg = insn.op_register(op_ndx);
                 let full_reg = Builder::xlat_reg(reg.full_register());
                 match reg.size() {
-                    1 => self.emit(V0, mil::Insn::L1(full_reg)),
-                    2 => self.emit(V0, mil::Insn::L2(full_reg)),
-                    4 => self.emit(V0, mil::Insn::L4(full_reg)),
+                    1 => self.emit(v0, mil::Insn::L1(full_reg)),
+                    2 => self.emit(v0, mil::Insn::L2(full_reg)),
+                    4 => self.emit(v0, mil::Insn::L4(full_reg)),
                     8 => full_reg,
                     other => panic!("invalid register size: {other}"),
                 }
             }
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                self.emit(V0, mil::Insn::Const8(insn.near_branch_target()))
+                self.emit(v0, mil::Insn::Const8(insn.near_branch_target()))
             }
             OpKind::FarBranch16 | OpKind::FarBranch32 => {
                 todo!("not supported: far branch operands")
             }
 
-            OpKind::Immediate8 => self.emit(V0, mil::Insn::Const1(insn.immediate8())),
-            OpKind::Immediate8_2nd => self.emit(V0, mil::Insn::Const1(insn.immediate8_2nd())),
-            OpKind::Immediate16 => self.emit(V0, mil::Insn::Const2(insn.immediate16())),
-            OpKind::Immediate32 => self.emit(V0, mil::Insn::Const4(insn.immediate32())),
-            OpKind::Immediate64 => self.emit(V0, mil::Insn::Const8(insn.immediate64())),
+            OpKind::Immediate8 => self.emit(v0, mil::Insn::Const1(insn.immediate8())),
+            OpKind::Immediate8_2nd => self.emit(v0, mil::Insn::Const1(insn.immediate8_2nd())),
+            OpKind::Immediate16 => self.emit(v0, mil::Insn::Const2(insn.immediate16())),
+            OpKind::Immediate32 => self.emit(v0, mil::Insn::Const4(insn.immediate32())),
+            OpKind::Immediate64 => self.emit(v0, mil::Insn::Const8(insn.immediate64())),
             // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
             // so I think we don't lose any info (semantic or otherwise)
             OpKind::Immediate8to16 => {
-                self.emit(V0, mil::Insn::Const2(insn.immediate8to16() as u16))
+                self.emit(v0, mil::Insn::Const2(insn.immediate8to16() as u16))
             }
             OpKind::Immediate8to32 => {
-                self.emit(V0, mil::Insn::Const4(insn.immediate8to32() as u32))
+                self.emit(v0, mil::Insn::Const4(insn.immediate8to32() as u32))
             }
             OpKind::Immediate8to64 => {
-                self.emit(V0, mil::Insn::Const8(insn.immediate8to64() as u64))
+                self.emit(v0, mil::Insn::Const8(insn.immediate8to64() as u64))
             }
             OpKind::Immediate32to64 => {
-                self.emit(V0, mil::Insn::Const8(insn.immediate32to64() as u64))
+                self.emit(v0, mil::Insn::Const8(insn.immediate32to64() as u64))
             }
 
             OpKind::MemorySegSI
@@ -367,16 +381,16 @@ impl Builder {
                 use iced_x86::MemorySize;
                 match insn.memory_size() {
                     MemorySize::UInt8 | MemorySize::Int8 => {
-                        self.emit(V0, mil::Insn::LoadMem1(addr))
+                        self.emit(v0, mil::Insn::LoadMem1(addr))
                     }
                     MemorySize::UInt16 | MemorySize::Int16 => {
-                        self.emit(V0, mil::Insn::LoadMem2(addr))
+                        self.emit(v0, mil::Insn::LoadMem2(addr))
                     }
                     MemorySize::UInt32 | MemorySize::Int32 => {
-                        self.emit(V0, mil::Insn::LoadMem4(addr))
+                        self.emit(v0, mil::Insn::LoadMem4(addr))
                     }
                     MemorySize::UInt64 | MemorySize::Int64 => {
-                        self.emit(V0, mil::Insn::LoadMem8(addr))
+                        self.emit(v0, mil::Insn::LoadMem8(addr))
                     }
                     other => todo!("unsupported size for memory operand: {:?}", other),
                 }
@@ -453,18 +467,20 @@ impl Builder {
                     "destination memory operand is not the same size as the value"
                 );
 
-                let addr = Self::V1;
+                let addr = self.reg_gen.next();
                 self.emit_compute_address_into(insn, addr);
                 assert_ne!(value, addr);
 
-                self.emit(Self::V0, mil::Insn::StoreMem(addr, value));
+                let v0 = self.reg_gen.next();
+                self.emit(v0, mil::Insn::StoreMem(addr, value));
             }
         }
     }
 
     fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
-        self.emit_compute_address_into(insn, Self::V0);
-        Self::V0
+        let v0 = self.reg_gen.next();
+        self.emit_compute_address_into(insn, v0);
+        v0
     }
     fn emit_compute_address_into(&mut self, insn: &iced_x86::Instruction, dest: mil::Reg) {
         assert_eq!(
@@ -488,20 +504,14 @@ impl Builder {
         match insn.memory_index() {
             Register::None => {}
             index_reg => {
+                let v1 = self.reg_gen.next();
                 let scale = insn.memory_index_scale();
-                self.pb.push(
-                    Self::V1,
-                    mil::Insn::MulK32(Self::xlat_reg(index_reg), scale),
-                );
-                self.pb.push(dest, mil::Insn::Add(dest, Self::V1));
+                self.pb
+                    .push(v1, mil::Insn::MulK32(Self::xlat_reg(index_reg), scale));
+                self.pb.push(dest, mil::Insn::Add(dest, v1));
             }
         }
     }
-
-    // TODO there must be a better way...
-    // temporary registers, to represent interemediate steps
-    const V0: mil::Reg = mil::Reg(0);
-    const V1: mil::Reg = mil::Reg(1);
 
     // flags
     const CF: mil::Reg = mil::Reg(2); // Carry flag
@@ -532,6 +542,8 @@ impl Builder {
     const R13: mil::Reg = mil::Reg(25);
     const R14: mil::Reg = mil::Reg(26);
     const R15: mil::Reg = mil::Reg(27);
+
+    const R_TMP_FIRST: mil::Reg = mil::Reg(28);
 
     /// Translate a *full* register name
     fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {
@@ -564,5 +576,20 @@ impl Builder {
 
     fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
         self.pb.push(dest, insn)
+    }
+}
+
+struct RegGen {
+    next: mil::Reg,
+}
+impl RegGen {
+    fn new(first: mil::Reg) -> Self {
+        RegGen { next: first }
+    }
+
+    fn next(&mut self) -> mil::Reg {
+        let ret = self.next;
+        self.next.0 += 1;
+        ret
     }
 }
