@@ -6,7 +6,7 @@ use std::{collections::HashMap, rc::Rc};
 use smallvec::SmallVec;
 
 use crate::{
-    cfg::{self, BasicBlockID},
+    cfg::{self, BlockID},
     mil,
     pp::PrettyPrinter,
     ssa,
@@ -173,8 +173,8 @@ struct Builder<'a> {
     name_of_value: HashMap<mil::Index, Ident>,
     thunk_id_of_block: cfg::BlockMap<ThunkID>,
     thunks: HashMap<ThunkID, Thunk>,
-    edge_flags: HashMap<(BasicBlockID, BasicBlockID), EdgeFlags>,
-    blocks_compiling: Vec<BasicBlockID>,
+    edge_flags: HashMap<(BlockID, BlockID), EdgeFlags>,
+    blocks_compiling: Vec<BlockID>,
     visited: cfg::BlockMap<bool>,
 }
 
@@ -237,7 +237,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn compile_new_thunk(&mut self, start_bid: cfg::BasicBlockID) -> ThunkID {
+    fn compile_new_thunk(&mut self, start_bid: cfg::BlockID) -> ThunkID {
         let mut seq = Seq::new();
 
         let params = self.thunk_params_of_block_phis(start_bid);
@@ -253,7 +253,7 @@ impl<'a> Builder<'a> {
         lbl
     }
 
-    fn thunk_params_of_block_phis(&mut self, bid: BasicBlockID) -> SmallVec<[Ident; 2]> {
+    fn thunk_params_of_block_phis(&mut self, bid: BlockID) -> SmallVec<[Ident; 2]> {
         let phis = self.ssa.block_phi(bid);
         (0..phis.phi_count())
             .map(|phi_ndx| phis.node_ndx(phi_ndx))
@@ -267,7 +267,7 @@ impl<'a> Builder<'a> {
             .collect()
     }
 
-    fn compile_thunk_body(&mut self, bid: BasicBlockID, out_seq: &mut Seq) {
+    fn compile_thunk_body(&mut self, bid: BlockID, out_seq: &mut Seq) {
         assert!(!self.blocks_compiling.contains(&bid));
         self.blocks_compiling.push(bid);
 
@@ -352,7 +352,7 @@ impl<'a> Builder<'a> {
         )
     }
 
-    fn compile_continue(&mut self, target_bid: cfg::BasicBlockID, pred_ndx: u8, out_seq: &mut Seq) {
+    fn compile_continue(&mut self, target_bid: cfg::BlockID, pred_ndx: u8, out_seq: &mut Seq) {
         let args: SmallVec<_> = {
             let target_phis = self.ssa.block_phi(target_bid);
             (0..target_phis.phi_count())
@@ -581,19 +581,19 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn edge_mut(&mut self, a: BasicBlockID, b: BasicBlockID) -> &mut EdgeFlags {
+    fn edge_mut(&mut self, a: BlockID, b: BlockID) -> &mut EdgeFlags {
         self.edge_flags
             .entry((a, b))
             .or_insert_with(|| EdgeFlags::default())
     }
-    fn edge(&self, a: BasicBlockID, b: BasicBlockID) -> EdgeFlags {
+    fn edge(&self, a: BlockID, b: BlockID) -> EdgeFlags {
         self.edge_flags.get(&(a, b)).copied().unwrap_or_default()
     }
 
-    fn mark_edge_loop(&mut self, a: BasicBlockID, b: BasicBlockID) {
+    fn mark_edge_loop(&mut self, a: BlockID, b: BlockID) {
         self.edge_mut(a, b).is_loop = true;
     }
-    fn mark_edge_inline(&mut self, a: BasicBlockID, b: BasicBlockID) {
+    fn mark_edge_inline(&mut self, a: BlockID, b: BlockID) {
         self.edge_mut(a, b).is_inline = true;
     }
 }
@@ -890,7 +890,7 @@ pub struct PatternSet {
 }
 #[derive(Debug)]
 struct Pattern {
-    key_bid: BasicBlockID,
+    key_bid: BlockID,
     pat: Pat,
 }
 
@@ -908,13 +908,10 @@ enum Pat {
     Cycle { path: Path },
 }
 
-type Path = SmallVec<[BasicBlockID; 4]>;
+type Path = SmallVec<[BlockID; 4]>;
 
 impl PatternSet {
-    pub fn available_for_block<'s>(
-        &'s self,
-        key_bid: BasicBlockID,
-    ) -> impl 's + Iterator<Item = usize> {
+    pub fn available_for_block<'s>(&'s self, key_bid: BlockID) -> impl 's + Iterator<Item = usize> {
         self.pats
             .iter()
             .enumerate()
@@ -931,8 +928,8 @@ pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
     let mut path = Vec::with_capacity(cfg.block_count() / 2);
 
     enum Cmd {
-        Start(cfg::BasicBlockID),
-        End(cfg::BasicBlockID),
+        Start(cfg::BlockID),
+        End(cfg::BlockID),
     }
     let mut queue = vec![Cmd::Start(cfg::ENTRY_BID)];
 
@@ -1021,7 +1018,7 @@ impl<'a> PatternSel<'a> {
         PatternSel { set, sel }
     }
 
-    pub fn set(&mut self, bid: cfg::BasicBlockID, pat_ndx: Option<usize>) {
+    pub fn set(&mut self, bid: cfg::BlockID, pat_ndx: Option<usize>) {
         if let Some(pat_ndx) = pat_ndx {
             assert_eq!(bid, self.set.pats[pat_ndx].key_bid);
         }

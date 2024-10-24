@@ -23,15 +23,15 @@ pub struct Graph {
 
 pub struct Edges {
     entries: BlockMap<bool>,
-    target: Vec<BasicBlockID>,
+    target: Vec<BlockID>,
     ndx_range: BlockMap<Range<usize>>,
     nonbackedge_preds_count: BlockMap<u16>,
 }
 
-impl std::ops::Index<BasicBlockID> for Edges {
-    type Output = [BasicBlockID];
+impl std::ops::Index<BlockID> for Edges {
+    type Output = [BlockID];
 
-    fn index(&self, bid: BasicBlockID) -> &Self::Output {
+    fn index(&self, bid: BlockID) -> &Self::Output {
         let range = self.ndx_range[bid].clone();
         &self.target[range]
     }
@@ -42,11 +42,11 @@ impl Edges {
         self.ndx_range.block_count()
     }
 
-    pub fn nonbackedge_predecessor_count(&self, bid: BasicBlockID) -> u16 {
+    pub fn nonbackedge_predecessor_count(&self, bid: BlockID) -> u16 {
         self.nonbackedge_preds_count[bid]
     }
 
-    pub fn successors(&self, bndx: BasicBlockID) -> &[BasicBlockID] {
+    pub fn successors(&self, bndx: BlockID) -> &[BlockID] {
         let range = &self.ndx_range[bndx];
         &self.target[range.start..range.end]
     }
@@ -66,7 +66,7 @@ impl std::fmt::Debug for Edges {
     }
 }
 
-type Jump = (PredIndex, BasicBlockID);
+type Jump = (PredIndex, BlockID);
 type PredIndex = u8;
 
 #[derive(Debug)]
@@ -97,11 +97,11 @@ impl BlockCont {
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone, Hash)]
-pub struct BasicBlockID(u16);
+pub struct BlockID(u16);
 
-pub const ENTRY_BID: BasicBlockID = BasicBlockID(0);
+pub const ENTRY_BID: BlockID = BlockID(0);
 
-impl BasicBlockID {
+impl BlockID {
     #[inline(always)]
     pub fn as_number(&self) -> u16 {
         self.0
@@ -119,15 +119,15 @@ impl Graph {
         self.bounds.len() - 1
     }
 
-    pub fn block_ids(&self) -> impl Iterator<Item = BasicBlockID> {
-        (0..self.block_count()).map(|ndx| BasicBlockID(ndx.try_into().unwrap()))
+    pub fn block_ids(&self) -> impl Iterator<Item = BlockID> {
+        (0..self.block_count()).map(|ndx| BlockID(ndx.try_into().unwrap()))
     }
 
-    pub fn block_preds(&self, bid: BasicBlockID) -> &[BasicBlockID] {
+    pub fn block_preds(&self, bid: BlockID) -> &[BlockID] {
         self.inverse.successors(bid)
     }
 
-    pub fn block_cont(&self, bid: BasicBlockID) -> BlockCont {
+    pub fn block_cont(&self, bid: BlockID) -> BlockCont {
         let successors = &self.direct[bid];
         match successors {
             [] => BlockCont::End,
@@ -140,7 +140,7 @@ impl Graph {
         }
     }
 
-    pub fn insns_ndx_range(&self, bid: BasicBlockID) -> Range<mil::Index> {
+    pub fn insns_ndx_range(&self, bid: BlockID) -> Range<mil::Index> {
         let ndx = bid.as_usize();
         let start = self.bounds[ndx];
         let end = self.bounds[ndx + 1];
@@ -205,7 +205,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         .enumerate()
         .map(|(bndx, start_ndx)| {
             let bndx = bndx.try_into().unwrap();
-            (*start_ndx, BasicBlockID(bndx))
+            (*start_ndx, BlockID(bndx))
         })
         .collect();
 
@@ -233,7 +233,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
                 }
             };
 
-            ndx_range[BasicBlockID(blk_ndx)] = start_ndx..target.len();
+            ndx_range[BlockID(blk_ndx)] = start_ndx..target.len();
         }
 
         let mut entries = BlockMap::new(false, block_count);
@@ -255,10 +255,10 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let mut pred_ndx = Vec::with_capacity(direct.target.len());
 
         // quadratic, but you know how life goes
-        for succ in (0..block_count as u16).map(BasicBlockID) {
+        for succ in (0..block_count as u16).map(BlockID) {
             let offset = target.len();
 
-            for pred in (0..block_count as u16).map(BasicBlockID) {
+            for pred in (0..block_count as u16).map(BlockID) {
                 for pred_succ in direct.successors(pred) {
                     if *pred_succ == succ {
                         pred_ndx.push(target.len() - offset);
@@ -408,15 +408,15 @@ impl Graph {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DomTree(BlockMap<Option<BasicBlockID>>);
+pub struct DomTree(BlockMap<Option<BlockID>>);
 
 impl DomTree {
-    pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &Option<BasicBlockID>)> {
+    pub fn items(&self) -> impl ExactSizeIterator<Item = (BlockID, &Option<BlockID>)> {
         self.0.items()
     }
 
     /// Get an iterator of immediate dominators of the given block
-    pub fn imm_doms<'s>(&'s self, bid: BasicBlockID) -> impl 's + Iterator<Item = BasicBlockID> {
+    pub fn imm_doms<'s>(&'s self, bid: BlockID) -> impl 's + Iterator<Item = BlockID> {
         let mut cur = self.0[bid];
         let mut visited = BlockMap::new(false, self.0.block_count());
         std::iter::from_fn(move || {
@@ -431,10 +431,10 @@ impl DomTree {
     }
 }
 
-impl Index<BasicBlockID> for DomTree {
-    type Output = Option<BasicBlockID>;
+impl Index<BlockID> for DomTree {
+    type Output = Option<BlockID>;
 
-    fn index(&self, index: BasicBlockID) -> &Self::Output {
+    fn index(&self, index: BlockID) -> &Self::Output {
         self.0.index(index)
     }
 }
@@ -513,13 +513,13 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
 /// `parent_of` such that, for each node with index _i_, parent_of[i] is the index of the parent
 /// node (or _i_, the same index, for the root node).
 fn common_ancestor<LT>(
-    parent_of: &BlockMap<Option<BasicBlockID>>,
+    parent_of: &BlockMap<Option<BlockID>>,
     is_lt: LT,
-    mut ndx_a: BasicBlockID,
-    mut ndx_b: BasicBlockID,
-) -> BasicBlockID
+    mut ndx_a: BlockID,
+    mut ndx_b: BlockID,
+) -> BlockID
 where
-    LT: Fn(BasicBlockID, BasicBlockID) -> bool,
+    LT: Fn(BlockID, BlockID) -> bool,
 {
     while ndx_a != ndx_b {
         while is_lt(ndx_a, ndx_b) {
@@ -542,7 +542,7 @@ pub fn traverse_postorder(graph: &Graph) -> Ordering {
     Ordering::new(order)
 }
 
-fn reverse_postorder(edges: &Edges) -> Vec<BasicBlockID> {
+fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     let count = edges.block_count();
 
     // Remaining predecessors count
@@ -639,12 +639,12 @@ fn recount_nonbackedge_predecessors(edges: &mut Edges) {
 }
 
 pub struct Ordering {
-    order: Vec<BasicBlockID>,
+    order: Vec<BlockID>,
     pos_of: BlockMap<usize>,
 }
 
 impl Ordering {
-    pub fn new(order: Vec<BasicBlockID>) -> Self {
+    pub fn new(order: Vec<BlockID>) -> Self {
         let mut pos_of = BlockMap::new(0, order.len());
         let mut occurs_count = BlockMap::new(0, order.len());
         for (pos, &bid) in order.iter().enumerate() {
@@ -657,11 +657,11 @@ impl Ordering {
         Ordering { order, pos_of }
     }
 
-    pub fn order(&self) -> &[BasicBlockID] {
+    pub fn order(&self) -> &[BlockID] {
         &self.order
     }
 
-    pub fn position_of(&self, bid: BasicBlockID) -> usize {
+    pub fn position_of(&self, bid: BlockID) -> usize {
         self.pos_of[bid]
     }
 }
@@ -680,7 +680,7 @@ impl<T: Clone> BlockMap<T> {
 
     pub fn new_with<F>(cfg: &Graph, init_item: F) -> Self
     where
-        F: Fn(BasicBlockID) -> T,
+        F: Fn(BlockID) -> T,
     {
         Self(cfg.block_ids().map(init_item).collect())
     }
@@ -691,16 +691,16 @@ impl<T: Clone> BlockMap<T> {
 }
 
 impl<T> BlockMap<T> {
-    pub fn items(&self) -> impl ExactSizeIterator<Item = (BasicBlockID, &T)> {
+    pub fn items(&self) -> impl ExactSizeIterator<Item = (BlockID, &T)> {
         self.0.iter().enumerate().map(|(ndx, item)| {
             let ndx = ndx.try_into().unwrap();
-            (BasicBlockID(ndx), item)
+            (BlockID(ndx), item)
         })
     }
-    pub fn items_mut(&mut self) -> impl ExactSizeIterator<Item = (BasicBlockID, &mut T)> {
+    pub fn items_mut(&mut self) -> impl ExactSizeIterator<Item = (BlockID, &mut T)> {
         self.0.iter_mut().enumerate().map(|(ndx, item)| {
             let ndx = ndx.try_into().unwrap();
-            (BasicBlockID(ndx), item)
+            (BlockID(ndx), item)
         })
     }
 }
@@ -711,15 +711,15 @@ impl<T> From<BlockMap<T>> for Vec<T> {
     }
 }
 
-impl<T> Index<BasicBlockID> for BlockMap<T> {
+impl<T> Index<BlockID> for BlockMap<T> {
     type Output = T;
 
-    fn index(&self, index: BasicBlockID) -> &Self::Output {
+    fn index(&self, index: BlockID) -> &Self::Output {
         self.0.index(index.0 as usize)
     }
 }
-impl<T> IndexMut<BasicBlockID> for BlockMap<T> {
-    fn index_mut(&mut self, index: BasicBlockID) -> &mut Self::Output {
+impl<T> IndexMut<BlockID> for BlockMap<T> {
+    fn index_mut(&mut self, index: BlockID) -> &mut Self::Output {
         self.0.index_mut(index.0 as usize)
     }
 }

@@ -8,7 +8,7 @@ use std::ops::Range;
 /// > A Simple, Fast Dominance Algorithm.
 /// > Rice University, CS Technical Report 06-33870.
 use crate::{
-    cfg::{self, BasicBlockID},
+    cfg::{self, BlockID},
     mil,
 };
 
@@ -42,7 +42,7 @@ impl Program {
         self.rdr_count.get(reg)
     }
 
-    pub fn block_phi(&self, bid: cfg::BasicBlockID) -> &PhiInfo {
+    pub fn block_phi(&self, bid: cfg::BlockID) -> &PhiInfo {
         &self.phis[bid]
     }
 
@@ -249,7 +249,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
     enum Cmd {
         Finish,
-        Start(BasicBlockID),
+        Start(BlockID),
     }
     let mut queue = vec![Cmd::Finish, Cmd::Start(cfg::ENTRY_BID)];
 
