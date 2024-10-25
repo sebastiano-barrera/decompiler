@@ -394,7 +394,8 @@ impl<'a> Builder<'a> {
                 let label = self.thunk_id_of_block[target_bid].clone();
                 out_seq.push(Node::Labeled(label, Node::Seq(inner_seq).boxed()).boxed());
             } else {
-                out_seq.extend(param_lets);
+                let mut param_lets = param_lets;
+                assert_eq!(param_lets.next(), None);
                 self.compile_thunk_body(target_bid, out_seq);
             }
         } else {
