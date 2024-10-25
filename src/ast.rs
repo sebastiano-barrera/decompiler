@@ -27,7 +27,9 @@ struct Thunk {
 
 #[derive(Debug, PartialEq, Eq)]
 struct ThunkArgs {
-    // values are in the same length and order as the target Thunk's params
+    // thunk's parameters (copied)
+    names: SmallVec<[Ident; 2]>,
+    // values, in lockstep with `params`
     values: SmallVec<[NodeP; 2]>,
 }
 
@@ -46,6 +48,10 @@ enum Node {
         alt: NodeP,
     },
     Let {
+        name: Ident,
+        value: NodeP,
+    },
+    LetMut {
         name: Ident,
         value: NodeP,
     },
@@ -371,36 +377,42 @@ impl<'a> Builder<'a> {
         let nonbackedge_count = cfg.direct().nonbackedge_predecessor_count(target_bid);
         let preds_count = cfg.block_preds(target_bid).len();
 
+        let params = self.thunk_params_of_block_phis(target_bid);
+        assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
+
         if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
-            let params = self.thunk_params_of_block_phis(target_bid);
-
-            assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
-
-            let param_lets = params
-                .into_iter()
-                .zip(args.into_iter())
-                .map(|(param, arg)| {
-                    Node::Let {
-                        name: param,
-                        value: arg,
-                    }
-                    .boxed()
-                });
-
             if preds_count > 1 {
+                out_seq.extend(
+                    params
+                        .into_iter()
+                        .zip(args.into_iter())
+                        .map(|(param, arg)| {
+                            Node::LetMut {
+                                name: param,
+                                value: arg,
+                            }
+                            .boxed()
+                        }),
+                );
+
                 let mut inner_seq = SmallVec::new();
-                inner_seq.extend(param_lets);
                 self.compile_thunk_body(target_bid, &mut inner_seq);
+                let inner_seq = Node::Seq(inner_seq).boxed();
                 let label = self.thunk_id_of_block[target_bid].clone();
-                out_seq.push(Node::Labeled(label, Node::Seq(inner_seq).boxed()).boxed());
+                out_seq.push(Node::Labeled(label, inner_seq).boxed());
             } else {
-                let mut param_lets = param_lets;
-                assert_eq!(param_lets.next(), None);
+                assert_eq!(params.len(), 0);
                 self.compile_thunk_body(target_bid, out_seq);
             }
         } else {
             let thunk_id = self.thunk_id_of_block[target_bid].clone();
-            let node = Node::ContinueToThunk(thunk_id, ThunkArgs { values: args });
+            let node = Node::ContinueToThunk(
+                thunk_id,
+                ThunkArgs {
+                    names: params,
+                    values: args,
+                },
+            );
             out_seq.push(node.boxed());
         }
     }
@@ -669,6 +681,13 @@ impl Node {
                 pp.close_box();
                 Ok(())
             }
+            Node::LetMut { name, value } => {
+                write!(pp, "let mut {} = ", name.0.as_str())?;
+                pp.open_box();
+                value.pretty_print(pp)?;
+                pp.close_box();
+                Ok(())
+            }
 
             Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
 
@@ -679,20 +698,23 @@ impl Node {
 
             Node::ContinueToThunk(thunk_id, args) => {
                 write!(pp, "goto {}", thunk_id.0.as_str())?;
-                match &args.values[..] {
-                    &[] => {}
-                    &[ref arg] => {
-                        write!(pp, " (")?;
-                        arg.pretty_print(pp)?;
+                let args_count = args.names.len();
+                assert_eq!(args_count, args.values.len());
+                match args_count {
+                    0 => {}
+                    1 => {
+                        write!(pp, " ({} = ", args.names[0].0.as_str())?;
+                        args.values[0].pretty_print(pp)?;
                         write!(pp, ")")?;
                     }
-                    args => {
+                    _ => {
                         write!(pp, " with (")?;
                         pp.open_box();
-                        for (ndx, arg) in args.iter().enumerate() {
+                        for (ndx, (name, arg)) in args.names.iter().zip(&args.values).enumerate() {
                             pp.open_box();
+                            write!(pp, "{} = ", name.0.as_str())?;
                             arg.pretty_print(pp)?;
-                            if ndx == args.len() - 1 {
+                            if ndx == args_count - 1 {
                                 write!(pp, ")")?;
                             } else {
                                 writeln!(pp, ",")?;
