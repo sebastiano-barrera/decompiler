@@ -1,6 +1,4 @@
 use std::ops::Range;
-#[allow(dead_code)]
-#[allow(unused)]
 use std::{collections::HashMap, rc::Rc};
 
 use smallvec::SmallVec;
@@ -12,15 +10,18 @@ use crate::{
     ssa,
 };
 
+use self::nodeset::{NodeID, NodeSet};
+
 #[derive(Debug)]
 pub struct Ast {
     root_thunk: ThunkID,
+    nodes: NodeSet,
     thunks: HashMap<ThunkID, Thunk>,
 }
 
 #[derive(Debug)]
 struct Thunk {
-    body: Node,
+    body: NodeID,
     // there is one param per phi node
     params: SmallVec<[Ident; 2]>,
 }
@@ -30,7 +31,7 @@ struct ThunkArgs {
     // thunk's parameters (copied)
     names: SmallVec<[Ident; 2]>,
     // values, in lockstep with `params`
-    values: SmallVec<[NodeP; 2]>,
+    values: SmallVec<[NodeID; 2]>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -43,69 +44,68 @@ pub struct ThunkID(Rc<String>);
 enum Node {
     Seq(Seq),
     If {
-        cond: NodeP,
-        cons: NodeP,
-        alt: NodeP,
+        cond: NodeID,
+        cons: NodeID,
+        alt: NodeID,
     },
     Let {
         name: Ident,
-        value: NodeP,
+        value: NodeID,
     },
     LetMut {
         name: Ident,
-        value: NodeP,
+        value: NodeID,
     },
     Ref(Ident),
     ContinueToThunk(ThunkID, ThunkArgs),
     ContinueToExtern(u64),
 
-    Labeled(ThunkID, NodeP),
+    Labeled(ThunkID, NodeID),
 
     Const1(u8),
     Const2(u16),
     Const4(u32),
     Const8(u64),
 
-    L1(NodeP),
-    L2(NodeP),
-    L4(NodeP),
+    L1(NodeID),
+    L2(NodeID),
+    L4(NodeID),
 
-    WithL1(NodeP, NodeP),
-    WithL2(NodeP, NodeP),
-    WithL4(NodeP, NodeP),
+    WithL1(NodeID, NodeID),
+    WithL2(NodeID, NodeID),
+    WithL4(NodeID, NodeID),
 
     Bin {
         op: BinOp,
-        args: SmallVec<[NodeP; 2]>,
+        args: SmallVec<[NodeID; 2]>,
     },
-    Not(NodeP),
+    Not(NodeID),
 
-    Call(Box<Node>, SmallVec<[NodeP; 4]>),
-    Return(NodeP),
+    Call(NodeID, SmallVec<[NodeID; 4]>),
+    Return(NodeID),
     TODO(&'static str),
-    Phi(SmallVec<[(u16, NodeP); 2]>),
+    Phi(SmallVec<[(u16, NodeID); 2]>),
 
-    LoadMem1(Box<Node>),
-    LoadMem2(Box<Node>),
-    LoadMem4(Box<Node>),
-    LoadMem8(Box<Node>),
-    StoreMem1(Box<Node>, Box<Node>),
-    StoreMem2(Box<Node>, Box<Node>),
-    StoreMem4(Box<Node>, Box<Node>),
-    StoreMem8(Box<Node>, Box<Node>),
+    LoadMem1(NodeID),
+    LoadMem2(NodeID),
+    LoadMem4(NodeID),
+    LoadMem8(NodeID),
+    StoreMem1(NodeID, NodeID),
+    StoreMem2(NodeID, NodeID),
+    StoreMem4(NodeID, NodeID),
+    StoreMem8(NodeID, NodeID),
 
-    OverflowOf(Box<Node>),
-    CarryOf(Box<Node>),
-    SignOf(Box<Node>),
-    IsZero(Box<Node>),
-    Parity(Box<Node>),
+    OverflowOf(NodeID),
+    CarryOf(NodeID),
+    SignOf(NodeID),
+    IsZero(NodeID),
+    Parity(NodeID),
     StackBot,
     Undefined,
     Nop,
 }
 
-type NodeP = Box<Node>;
-type Seq = SmallVec<[NodeP; 2]>;
+type Seq = SmallVec<[NodeID; 2]>;
 
 #[derive(PartialEq, Eq, Debug)]
 enum BinOp {
@@ -118,12 +118,6 @@ enum BinOp {
     BitAnd,
     BitOr,
     Eq,
-}
-
-impl Node {
-    fn boxed(self) -> Box<Self> {
-        Box::new(self)
-    }
 }
 
 pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
@@ -179,6 +173,7 @@ struct Builder<'a> {
     name_of_value: HashMap<mil::Index, Ident>,
     thunk_id_of_block: cfg::BlockMap<ThunkID>,
     thunks: HashMap<ThunkID, Thunk>,
+    nodes: NodeSet,
     edge_flags: HashMap<(BlockID, BlockID), EdgeFlags>,
     blocks_compiling: Vec<BlockID>,
     visited: cfg::BlockMap<bool>,
@@ -229,6 +224,7 @@ impl<'a> Builder<'a> {
             name_of_value,
             thunk_id_of_block,
             thunks: HashMap::new(),
+            nodes: NodeSet::new(),
             edge_flags: HashMap::new(),
             blocks_compiling: Vec::new(),
             visited: cfg::BlockMap::new(false, cfg.block_count()),
@@ -239,8 +235,13 @@ impl<'a> Builder<'a> {
         let root_tid = self.thunk_id_of_block[cfg::ENTRY_BID].clone();
         Ast {
             root_thunk: root_tid,
+            nodes: self.nodes,
             thunks: self.thunks,
         }
+    }
+
+    fn add_node(&mut self, node: Node) -> NodeID {
+        self.nodes.add(node)
     }
 
     fn compile_new_thunk(&mut self, start_bid: cfg::BlockID) -> ThunkID {
@@ -251,7 +252,7 @@ impl<'a> Builder<'a> {
 
         let thunk = Thunk {
             params,
-            body: Node::Seq(seq),
+            body: self.add_node(Node::Seq(seq)),
         };
 
         let lbl = self.thunk_id_of_block[start_bid].clone();
@@ -306,19 +307,19 @@ impl<'a> Builder<'a> {
                     mil::Insn::JmpIf { cond, target: _ } => cond,
                     _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
                 };
-                let cond = self.get_node(cond.0).boxed();
+                let cond = self.add_node_of_value(cond.0);
                 let cons = {
                     let mut seq = Seq::new();
                     self.compile_continue(neg_bid, neg_pred_ndx, &mut seq);
-                    Node::Seq(seq).boxed()
+                    self.add_node(Node::Seq(seq))
                 };
                 let alt = {
                     let mut seq = Seq::new();
                     self.compile_continue(pos_bid, pos_pred_ndx, &mut seq);
-                    Node::Seq(seq).boxed()
+                    self.add_node(Node::Seq(seq))
                 };
 
-                out_seq.push(Node::If { cond, cons, alt }.boxed());
+                out_seq.push(self.add_node(Node::If { cond, cons, alt }));
             }
         };
 
@@ -332,7 +333,7 @@ impl<'a> Builder<'a> {
                 .clone()
                 .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
                 .filter_map(|(ndx, iv)| {
-                    let name = self.name_of_value.get(&iv.dest.0);
+                    let name = self.name_of_value.get(&iv.dest.0).cloned();
 
                     if !iv.insn.has_side_effects() && name.is_none() {
                         return None;
@@ -344,16 +345,11 @@ impl<'a> Builder<'a> {
                     }
 
                     if let Some(name) = name {
-                        return Some(
-                            Node::Let {
-                                name: name.clone(),
-                                value: node.boxed(),
-                            }
-                            .boxed(),
-                        );
+                        let value = self.add_node(node);
+                        return Some(self.add_node(Node::Let { name, value }));
                     };
 
-                    Some(node.boxed())
+                    Some(self.add_node(node))
                 }),
         )
     }
@@ -365,7 +361,7 @@ impl<'a> Builder<'a> {
                 .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
                 .map(|phi_ndx| {
                     let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
-                    self.get_node(reg.0).boxed()
+                    self.add_node_of_value(reg.0)
                 })
                 .collect()
         };
@@ -387,19 +383,18 @@ impl<'a> Builder<'a> {
                         .into_iter()
                         .zip(args.into_iter())
                         .map(|(param, arg)| {
-                            Node::LetMut {
+                            self.add_node(Node::LetMut {
                                 name: param,
                                 value: arg,
-                            }
-                            .boxed()
+                            })
                         }),
                 );
 
                 let mut inner_seq = SmallVec::new();
                 self.compile_thunk_body(target_bid, &mut inner_seq);
-                let inner_seq = Node::Seq(inner_seq).boxed();
+                let inner_seq = self.add_node(Node::Seq(inner_seq));
                 let label = self.thunk_id_of_block[target_bid].clone();
-                out_seq.push(Node::Labeled(label, inner_seq).boxed());
+                out_seq.push(self.add_node(Node::Labeled(label, inner_seq)));
             } else {
                 assert_eq!(params.len(), 0);
                 self.compile_thunk_body(target_bid, out_seq);
@@ -413,24 +408,24 @@ impl<'a> Builder<'a> {
                     values: args,
                 },
             );
-            out_seq.push(node.boxed());
+            out_seq.push(self.add_node(node));
         }
     }
 
-    fn compile_node(&self, start_ndx: mil::Index) -> Node {
+    fn compile_node(&mut self, start_ndx: mil::Index) -> Node {
         use mil::Insn;
 
         let iv = self.ssa.get(start_ndx).unwrap();
         match iv.insn {
             Insn::Call { callee, arg0 } => {
-                let callee = self.get_node(callee.0).boxed();
+                let callee = self.add_node_of_value(callee.0);
                 let mut args = SmallVec::new();
                 let mut arg = arg0;
                 loop {
                     let arg_insn = self.ssa.get(arg.0).unwrap();
                     match arg_insn.insn {
                         Insn::CArg { value, prev } => {
-                            let arg_val = self.get_node(value.0).boxed();
+                            let arg_val = self.add_node_of_value(value.0);
                             args.push(arg_val);
                             arg = prev;
                         }
@@ -443,30 +438,30 @@ impl<'a> Builder<'a> {
             }
             // To be handled in ::Call
             Insn::CArgEnd | Insn::CArg { .. } => Node::Nop,
-            Insn::Ret(arg) => Node::Return(self.get_node(arg.0).boxed()),
+            Insn::Ret(arg) => Node::Return(self.add_node_of_value(arg.0)),
             Insn::JmpExt(target) => Node::ContinueToExtern(*target),
             Insn::JmpI(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }
             Insn::StoreMem1(addr, val) => {
-                let addr = self.get_node(addr.0).boxed();
-                let val = self.get_node(val.0).boxed();
+                let addr = self.add_node_of_value(addr.0);
+                let val = self.add_node_of_value(val.0);
                 Node::StoreMem1(addr, val)
             }
             Insn::StoreMem2(addr, val) => {
-                let addr = self.get_node(addr.0).boxed();
-                let val = self.get_node(val.0).boxed();
+                let addr = self.add_node_of_value(addr.0);
+                let val = self.add_node_of_value(val.0);
                 Node::StoreMem2(addr, val)
             }
             Insn::StoreMem4(addr, val) => {
-                let addr = self.get_node(addr.0).boxed();
-                let val = self.get_node(val.0).boxed();
+                let addr = self.add_node_of_value(addr.0);
+                let val = self.add_node_of_value(val.0);
                 Node::StoreMem4(addr, val)
             }
             Insn::StoreMem8(addr, val) => {
-                let addr = self.get_node(addr.0).boxed();
-                let val = self.get_node(val.0).boxed();
+                let addr = self.add_node_of_value(addr.0);
+                let val = self.add_node_of_value(val.0);
                 Node::StoreMem8(addr, val)
             }
 
@@ -475,77 +470,77 @@ impl<'a> Builder<'a> {
             Insn::Const4(val) => Node::Const4(*val),
             Insn::Const8(val) => Node::Const8(*val),
 
-            Insn::L1(reg) => Node::L1(self.get_node(reg.0).boxed()),
-            Insn::L2(reg) => Node::L2(self.get_node(reg.0).boxed()),
-            Insn::L4(reg) => Node::L4(self.get_node(reg.0).boxed()),
-            Insn::Get(reg) => self.get_node(reg.0),
+            Insn::L1(reg) => Node::L1(self.add_node_of_value(reg.0)),
+            Insn::L2(reg) => Node::L2(self.add_node_of_value(reg.0)),
+            Insn::L4(reg) => Node::L4(self.add_node_of_value(reg.0)),
+            Insn::Get(reg) => self.node_of_value(reg.0),
 
             Insn::WithL1(a, b) => {
-                Node::WithL1(self.get_node(a.0).boxed(), self.get_node(b.0).boxed())
+                Node::WithL1(self.add_node_of_value(a.0), self.add_node_of_value(b.0))
             }
             Insn::WithL2(a, b) => {
-                Node::WithL2(self.get_node(a.0).boxed(), self.get_node(b.0).boxed())
+                Node::WithL2(self.add_node_of_value(a.0), self.add_node_of_value(b.0))
             }
             Insn::WithL4(a, b) => {
-                Node::WithL4(self.get_node(a.0).boxed(), self.get_node(b.0).boxed())
+                Node::WithL4(self.add_node_of_value(a.0), self.add_node_of_value(b.0))
             }
-            Insn::Add(a, b) => fold_bin(
-                BinOp::Add,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::AddK(a, k) => fold_bin(
-                BinOp::Add,
-                self.get_node(a.0).boxed(),
-                Node::Const8(*k as u64).boxed(),
-            ),
-            Insn::Sub(a, b) => fold_bin(
-                BinOp::Sub,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::Mul(a, b) => fold_bin(
-                BinOp::Mul,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::MulK32(a, k) => fold_bin(
-                BinOp::Mul,
-                self.get_node(a.0).boxed(),
-                Node::Const8(*k as u64).boxed(),
-            ),
-            Insn::Shl(a, b) => fold_bin(
-                BinOp::Shl,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::BitAnd(a, b) => fold_bin(
-                BinOp::BitAnd,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::BitOr(a, b) => fold_bin(
-                BinOp::BitOr,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::Eq(a, b) => fold_bin(
-                BinOp::Eq,
-                self.get_node(a.0).boxed(),
-                self.get_node(b.0).boxed(),
-            ),
-            Insn::Not(x) => Node::Not(self.get_node(x.0).boxed()),
+            Insn::Add(a, b) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(b.0);
+                self.fold_bin(BinOp::Add, a, b)
+            }
+            Insn::AddK(a, k) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node(Node::Const8(*k as u64));
+                self.fold_bin(BinOp::Add, a, b)
+            }
+            Insn::Sub(a, b) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(b.0);
+                self.fold_bin(BinOp::Sub, a, b)
+            }
+            Insn::Mul(a, b) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(b.0);
+                self.fold_bin(BinOp::Mul, a, b)
+            }
+            Insn::MulK32(a, k) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node(Node::Const8(*k as u64));
+                self.fold_bin(BinOp::Mul, a, b)
+            }
+            Insn::Shl(a, b) => {
+                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(a.0);
+                self.fold_bin(BinOp::Shl, a, b)
+            }
+            Insn::BitAnd(a, b) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(b.0);
+                self.fold_bin(BinOp::BitAnd, a, b)
+            }
+            Insn::BitOr(a, b) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(b.0);
+                self.fold_bin(BinOp::BitOr, a, b)
+            }
+            Insn::Eq(a, b) => {
+                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(b.0);
+                self.fold_bin(BinOp::Eq, a, b)
+            }
+            Insn::Not(x) => Node::Not(self.add_node_of_value(x.0)),
             Insn::TODO(msg) => Node::TODO(msg),
-            Insn::LoadMem1(addr_reg) => Node::LoadMem1(self.get_node(addr_reg.0).boxed()),
-            Insn::LoadMem2(addr_reg) => Node::LoadMem2(self.get_node(addr_reg.0).boxed()),
-            Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.get_node(addr_reg.0).boxed()),
-            Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.get_node(addr_reg.0).boxed()),
+            Insn::LoadMem1(addr_reg) => Node::LoadMem1(self.add_node_of_value(addr_reg.0)),
+            Insn::LoadMem2(addr_reg) => Node::LoadMem2(self.add_node_of_value(addr_reg.0)),
+            Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.add_node_of_value(addr_reg.0)),
+            Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.add_node_of_value(addr_reg.0)),
 
-            Insn::OverflowOf(arg) => Node::OverflowOf(self.get_node(arg.0).boxed()),
-            Insn::CarryOf(arg) => Node::CarryOf(self.get_node(arg.0).boxed()),
-            Insn::SignOf(arg) => Node::SignOf(self.get_node(arg.0).boxed()),
-            Insn::IsZero(arg) => Node::IsZero(self.get_node(arg.0).boxed()),
-            Insn::Parity(arg) => Node::Parity(self.get_node(arg.0).boxed()),
+            Insn::OverflowOf(arg) => Node::OverflowOf(self.add_node_of_value(arg.0)),
+            Insn::CarryOf(arg) => Node::CarryOf(self.add_node_of_value(arg.0)),
+            Insn::SignOf(arg) => Node::SignOf(self.add_node_of_value(arg.0)),
+            Insn::IsZero(arg) => Node::IsZero(self.add_node_of_value(arg.0)),
+            Insn::Parity(arg) => Node::Parity(self.add_node_of_value(arg.0)),
 
             Insn::Undefined => Node::Undefined,
             Insn::Ancestral(anc) => match anc {
@@ -561,7 +556,7 @@ impl<'a> Builder<'a> {
                     ..
                 }) = self.ssa.get(start_ndx + 1 + pred_ndx)
                 {
-                    let value_expr = self.get_node(value.0).boxed();
+                    let value_expr = self.add_node_of_value(value.0);
                     args.push((pred_ndx, value_expr));
                     pred_ndx += 1;
                 }
@@ -585,7 +580,11 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn get_node(&self, ndx: mil::Index) -> Node {
+    fn add_node_of_value(&mut self, ndx: mil::Index) -> NodeID {
+        let node = self.node_of_value(ndx);
+        self.add_node(node)
+    }
+    fn node_of_value(&mut self, ndx: mil::Index) -> Node {
         if let Some(lbl) = self.name_of_value.get(&ndx) {
             Node::Ref(lbl.clone())
         } else {
@@ -609,13 +608,13 @@ impl<'a> Builder<'a> {
     fn mark_edge_inline(&mut self, a: BlockID, b: BlockID) {
         self.edge_mut(a, b).is_inline = true;
     }
-}
 
-fn fold_bin(op: BinOp, a: Box<Node>, b: Box<Node>) -> Node {
-    // TODO!
-    Node::Bin {
-        op,
-        args: [a, b].into(),
+    fn fold_bin(&self, op: BinOp, a: NodeID, b: NodeID) -> Node {
+        // TODO!
+        Node::Bin {
+            op,
+            args: [a, b].into(),
+        }
     }
 }
 
@@ -623,36 +622,34 @@ impl Ast {
     pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
         use std::fmt::Write;
         for (thid, thunk) in self.thunks.iter() {
-            write!(pp, "{} :: ", thid.0.as_str())?;
-            thunk.pretty_print(pp)?;
+            write!(pp, "thunk {}(", thid.0.as_str())?;
+            for param_name in &thunk.params {
+                write!(pp, "{}, ", param_name.0.as_str())?;
+            }
+            write!(pp, ") = ")?;
+
+            self.pretty_print_node(pp, thunk.body)?;
+
             writeln!(pp)?;
         }
         Ok(())
     }
-}
-impl Thunk {
-    pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
+
+    fn pretty_print_node<W: std::fmt::Write>(
+        &self,
+        pp: &mut PrettyPrinter<W>,
+        nid: NodeID,
+    ) -> std::fmt::Result {
         use std::fmt::Write;
 
-        write!(pp, "thunk (")?;
-        for param_name in &self.params {
-            write!(pp, "{}, ", param_name.0.as_str())?;
-        }
-        write!(pp, ") ")?;
+        let node = &self.nodes[nid];
 
-        self.body.pretty_print(pp)?;
-        Ok(())
-    }
-}
-impl Node {
-    pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
-        use std::fmt::Write;
-        match self {
+        match node {
             Node::Seq(nodes) => {
                 write!(pp, "{{\n    ")?;
                 pp.open_box();
                 for (ndx, node) in nodes.iter().enumerate() {
-                    node.pretty_print(pp)?;
+                    self.pretty_print_node(pp, *node)?;
                     if ndx < nodes.len() - 1 {
                         writeln!(pp, ";")?;
                     }
@@ -664,27 +661,27 @@ impl Node {
             Node::If { cond, cons, alt } => {
                 write!(pp, "if ")?;
                 pp.open_box();
-                cond.pretty_print(pp)?;
+                self.pretty_print_node(pp, *cond)?;
                 pp.close_box();
 
                 write!(pp, " ")?;
-                cons.pretty_print(pp)?;
+                self.pretty_print_node(pp, *cons)?;
 
                 write!(pp, " else ")?;
-                alt.pretty_print(pp)
+                self.pretty_print_node(pp, *alt)
             }
 
             Node::Let { name, value } => {
                 write!(pp, "let {} = ", name.0.as_str())?;
                 pp.open_box();
-                value.pretty_print(pp)?;
+                self.pretty_print_node(pp, *value)?;
                 pp.close_box();
                 Ok(())
             }
             Node::LetMut { name, value } => {
                 write!(pp, "let mut {} = ", name.0.as_str())?;
                 pp.open_box();
-                value.pretty_print(pp)?;
+                self.pretty_print_node(pp, *value)?;
                 pp.close_box();
                 Ok(())
             }
@@ -693,7 +690,7 @@ impl Node {
 
             Node::Labeled(thunk_id, node) => {
                 write!(pp, "'{}: ", thunk_id.0)?;
-                node.pretty_print(pp)
+                self.pretty_print_node(pp, *node)
             }
 
             Node::ContinueToThunk(thunk_id, args) => {
@@ -704,7 +701,7 @@ impl Node {
                     0 => {}
                     1 => {
                         write!(pp, " ({} = ", args.names[0].0.as_str())?;
-                        args.values[0].pretty_print(pp)?;
+                        self.pretty_print_node(pp, args.values[0])?;
                         write!(pp, ")")?;
                     }
                     _ => {
@@ -713,7 +710,7 @@ impl Node {
                         for (ndx, (name, arg)) in args.names.iter().zip(&args.values).enumerate() {
                             pp.open_box();
                             write!(pp, "{} = ", name.0.as_str())?;
-                            arg.pretty_print(pp)?;
+                            self.pretty_print_node(pp, *arg)?;
                             if ndx == args_count - 1 {
                                 write!(pp, ")")?;
                             } else {
@@ -733,36 +730,36 @@ impl Node {
             Node::Const8(val) => write!(pp, "{}", *val as i64),
 
             Node::L1(arg) => {
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ".l1")
             }
             Node::L2(arg) => {
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ".l2")
             }
             Node::L4(arg) => {
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ".l4")
             }
             Node::WithL1(a, b) => {
                 write!(pp, "(")?;
-                a.pretty_print(pp)?;
+                self.pretty_print_node(pp, *a)?;
                 write!(pp, " with l1 = ")?;
-                b.pretty_print(pp)?;
+                self.pretty_print_node(pp, *b)?;
                 write!(pp, ")")
             }
             Node::WithL2(a, b) => {
                 write!(pp, "(")?;
-                a.pretty_print(pp)?;
+                self.pretty_print_node(pp, *a)?;
                 write!(pp, " with l2 = ")?;
-                b.pretty_print(pp)?;
+                self.pretty_print_node(pp, *b)?;
                 write!(pp, ")")
             }
             Node::WithL4(a, b) => {
                 write!(pp, "(")?;
-                a.pretty_print(pp)?;
+                self.pretty_print_node(pp, *a)?;
                 write!(pp, " with l4 = ")?;
-                b.pretty_print(pp)?;
+                self.pretty_print_node(pp, *b)?;
                 write!(pp, ")")
             }
             Node::Bin { op, args } => {
@@ -778,8 +775,9 @@ impl Node {
                     BinOp::Eq => " == ",
                 };
 
-                for (ndx, arg) in args.iter().enumerate() {
-                    let needs_parens = matches!(&**arg, Node::Bin { .. });
+                for (ndx, &arg_nid) in args.iter().enumerate() {
+                    let arg = &self.nodes[arg_nid];
+                    let needs_parens = matches!(arg, Node::Bin { .. });
 
                     if ndx > 0 {
                         write!(pp, "{}", op_s)?;
@@ -788,7 +786,7 @@ impl Node {
                         write!(pp, "(")?;
                     }
                     pp.open_box();
-                    arg.pretty_print(pp)?;
+                    self.pretty_print_node(pp, arg_nid)?;
                     pp.close_box();
                     if needs_parens {
                         write!(pp, ")")?;
@@ -799,17 +797,17 @@ impl Node {
 
             Node::Not(arg) => {
                 write!(pp, "not ")?;
-                arg.pretty_print(pp)
+                self.pretty_print_node(pp, *arg)
             }
             Node::Call(callee, args) => {
-                callee.pretty_print(pp)?;
+                self.pretty_print_node(pp, *callee)?;
                 write!(pp, "(\n  ")?;
                 pp.open_box();
                 for (ndx, arg) in args.iter().enumerate() {
                     if ndx > 0 {
                         writeln!(pp)?;
                     }
-                    arg.pretty_print(pp)?;
+                    self.pretty_print_node(pp, *arg)?;
                     write!(pp, ",")?;
                 }
                 pp.close_box();
@@ -817,7 +815,7 @@ impl Node {
             }
             Node::Return(arg) => {
                 write!(pp, "return ")?;
-                arg.pretty_print(pp)
+                self.pretty_print_node(pp, *arg)
             }
             Node::TODO(msg) => write!(pp, "<-- TODO: {} -->", msg),
             Node::Phi(phi_args) => {
@@ -830,46 +828,46 @@ impl Node {
                     }
                     first = false;
                     write!(pp, "from pred. {} = ", pred_ndx)?;
-                    value.pretty_print(pp)?;
+                    self.pretty_print_node(pp, *value)?;
                     write!(pp, ",")?;
                 }
                 pp.close_box();
                 write!(pp, "\n)")
             }
 
-            Node::LoadMem1(arg) => pp_load_mem(pp, 1, arg),
-            Node::LoadMem2(arg) => pp_load_mem(pp, 2, arg),
-            Node::LoadMem4(arg) => pp_load_mem(pp, 4, arg),
-            Node::LoadMem8(arg) => pp_load_mem(pp, 8, arg),
+            Node::LoadMem1(arg) => self.pp_load_mem(pp, 1, *arg),
+            Node::LoadMem2(arg) => self.pp_load_mem(pp, 2, *arg),
+            Node::LoadMem4(arg) => self.pp_load_mem(pp, 4, *arg),
+            Node::LoadMem8(arg) => self.pp_load_mem(pp, 8, *arg),
 
-            Node::StoreMem1(dest, val) => pp_store_mem(pp, 1, dest, val),
-            Node::StoreMem2(dest, val) => pp_store_mem(pp, 2, dest, val),
-            Node::StoreMem4(dest, val) => pp_store_mem(pp, 4, dest, val),
-            Node::StoreMem8(dest, val) => pp_store_mem(pp, 8, dest, val),
+            Node::StoreMem1(dest, val) => self.pp_store_mem(pp, 1, *dest, *val),
+            Node::StoreMem2(dest, val) => self.pp_store_mem(pp, 2, *dest, *val),
+            Node::StoreMem4(dest, val) => self.pp_store_mem(pp, 4, *dest, *val),
+            Node::StoreMem8(dest, val) => self.pp_store_mem(pp, 8, *dest, *val),
 
             Node::OverflowOf(arg) => {
                 write!(pp, "overflow (")?;
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ")")
             }
             Node::CarryOf(arg) => {
                 write!(pp, "carry (")?;
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ")")
             }
             Node::SignOf(arg) => {
                 write!(pp, "sign (")?;
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ")")
             }
             Node::IsZero(arg) => {
                 write!(pp, "is0 (")?;
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ")")
             }
             Node::Parity(arg) => {
                 write!(pp, "parity (")?;
-                arg.pretty_print(pp)?;
+                self.pretty_print_node(pp, *arg)?;
                 write!(pp, ")")
             }
             Node::StackBot => write!(pp, "<stackBottom>"),
@@ -877,33 +875,35 @@ impl Node {
             Node::Nop => write!(pp, "nop"),
         }
     }
-}
 
-fn pp_store_mem<W: std::fmt::Write>(
-    pp: &mut PrettyPrinter<W>,
-    dest_size: u8,
-    dest: &Node,
-    val: &Node,
-) -> std::fmt::Result {
-    use std::fmt::Write;
-    write!(pp, "[")?;
-    dest.pretty_print(pp)?;
-    write!(pp, "]:{} = ", dest_size)?;
-    pp.open_box();
-    val.pretty_print(pp)?;
-    pp.close_box();
-    Ok(())
-}
+    fn pp_load_mem<W: std::fmt::Write>(
+        &self,
+        pp: &mut PrettyPrinter<W>,
+        src_size: u8,
+        addr: NodeID,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(pp, "[")?;
+        self.pretty_print_node(pp, addr)?;
+        write!(pp, "]:{}", src_size)
+    }
 
-fn pp_load_mem<W: std::fmt::Write>(
-    pp: &mut PrettyPrinter<W>,
-    src_size: u8,
-    addr: &Node,
-) -> std::fmt::Result {
-    use std::fmt::Write;
-    write!(pp, "[")?;
-    addr.pretty_print(pp)?;
-    write!(pp, "]:{}", src_size)
+    fn pp_store_mem<W: std::fmt::Write>(
+        &self,
+        pp: &mut PrettyPrinter<W>,
+        dest_size: u8,
+        dest: NodeID,
+        val: NodeID,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(pp, "[")?;
+        self.pretty_print_node(pp, dest)?;
+        write!(pp, "]:{} = ", dest_size)?;
+        pp.open_box();
+        self.pretty_print_node(pp, val)?;
+        pp.close_box();
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -1046,5 +1046,49 @@ impl<'a> PatternSel<'a> {
             assert_eq!(bid, self.set.pats[pat_ndx].key_bid);
         }
         self.sel[bid] = pat_ndx;
+    }
+}
+
+mod nodeset {
+    use super::Node;
+
+    pub(super) struct NodeSet(Vec<Node>);
+    impl NodeSet {
+        pub(super) fn add(&mut self, node: Node) -> NodeID {
+            let new_ndx = self.0.len().try_into().unwrap();
+            self.0.push(node);
+            NodeID(new_ndx)
+        }
+
+        pub(super) fn new() -> NodeSet {
+            NodeSet(Vec::new())
+        }
+    }
+
+    impl std::ops::Index<NodeID> for NodeSet {
+        type Output = Node;
+
+        fn index(&self, index: NodeID) -> &Self::Output {
+            &self.0[index.0 as usize]
+        }
+    }
+
+    #[derive(PartialEq, Eq, Clone, Copy)]
+    pub(super) struct NodeID(u32);
+
+    impl std::fmt::Debug for NodeSet {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            for (ndx, node) in self.0.iter().enumerate() {
+                let nid = NodeID(ndx.try_into().unwrap());
+                write!(f, "{:5?} = {:?}", nid, node)?;
+            }
+            Ok(())
+        }
+    }
+
+    impl std::fmt::Debug for NodeID {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "n{}", self.0)
+        }
     }
 }
