@@ -623,8 +623,11 @@ impl Ast {
         use std::fmt::Write;
         for (thid, thunk) in self.thunks.iter() {
             write!(pp, "thunk {}(", thid.0.as_str())?;
-            for param_name in &thunk.params {
-                write!(pp, "{}, ", param_name.0.as_str())?;
+            for (ndx, param_name) in thunk.params.iter().enumerate() {
+                if ndx > 0 {
+                    write!(pp, ", ")?;
+                }
+                write!(pp, "{}", param_name.0.as_str())?;
             }
             write!(pp, ") = ")?;
 
