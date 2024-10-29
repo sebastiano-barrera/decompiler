@@ -79,6 +79,11 @@ enum Node {
         op: BinOp,
         args: SmallVec<[NodeID; 2]>,
     },
+    Cmp {
+        op: CmpOp,
+        a: NodeID,
+        b: NodeID,
+    },
     Not(NodeID),
 
     Call(NodeID, SmallVec<[NodeID; 4]>),
@@ -117,7 +122,15 @@ enum BinOp {
     Shr,
     BitAnd,
     BitOr,
-    Eq,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+enum CmpOp {
+    EQ,
+    LT,
+    LE,
+    GE,
+    GT,
 }
 
 pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
@@ -231,8 +244,9 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn finish(self) -> Ast {
+    fn finish(mut self) -> Ast {
         let root_tid = self.thunk_id_of_block[cfg::ENTRY_BID].clone();
+        apply_peephole_substitutions(&mut self.nodes);
         Ast {
             root_thunk: root_tid,
             nodes: self.nodes,
@@ -527,7 +541,11 @@ impl<'a> Builder<'a> {
             Insn::Eq(a, b) => {
                 let a = self.add_node_of_value(a.0);
                 let b = self.add_node_of_value(b.0);
-                self.fold_bin(BinOp::Eq, a, b)
+                Node::Cmp {
+                    op: CmpOp::EQ,
+                    a,
+                    b,
+                }
             }
             Insn::Not(x) => Node::Not(self.add_node_of_value(x.0)),
             Insn::TODO(msg) => Node::TODO(msg),
@@ -614,6 +632,32 @@ impl<'a> Builder<'a> {
         Node::Bin {
             op,
             args: [a, b].into(),
+        }
+    }
+}
+
+fn apply_peephole_substitutions(nodes: &mut NodeSet) {
+    for nid in nodes.node_ids() {
+        match &nodes[nid] {
+            Node::CarryOf(arg) => {
+                let arg = &nodes[*arg];
+                if let Node::Bin {
+                    op: BinOp::Sub,
+                    args: sub_args,
+                } = arg
+                {
+                    if let &[a, b] = sub_args.as_slice() {
+                        let new_node = Node::Cmp {
+                            op: CmpOp::LT,
+                            a,
+                            b,
+                        };
+                        let new_node = nodes.add(new_node);
+                        nodes.swap(new_node, nid);
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
@@ -775,7 +819,6 @@ impl Ast {
                     BinOp::Shr => " >> ",
                     BinOp::BitAnd => " & ",
                     BinOp::BitOr => " | ",
-                    BinOp::Eq => " == ",
                 };
 
                 for (ndx, &arg_nid) in args.iter().enumerate() {
@@ -795,6 +838,26 @@ impl Ast {
                         write!(pp, ")")?;
                     }
                 }
+                Ok(())
+            }
+            Node::Cmp { op, a, b } => {
+                pp.open_box();
+                self.pretty_print_node(pp, *a)?;
+                pp.close_box();
+
+                let op_s = match op {
+                    CmpOp::EQ => "==",
+                    CmpOp::LT => "<",
+                    CmpOp::LE => "<=",
+                    CmpOp::GE => ">=",
+                    CmpOp::GT => ">",
+                };
+                write!(pp, " {} ", op_s)?;
+
+                pp.open_box();
+                self.pretty_print_node(pp, *b)?;
+                pp.close_box();
+
                 Ok(())
             }
 
@@ -1066,8 +1129,21 @@ mod nodeset {
         pub(super) fn new() -> NodeSet {
             NodeSet(Vec::new())
         }
-    }
 
+        pub(super) fn node_ids(&self) -> impl Iterator<Item = NodeID> {
+            (0..self.0.len()).map(|ndx| NodeID(ndx.try_into().unwrap()))
+        }
+
+        pub(super) fn iter(&self) -> impl Iterator<Item = (NodeID, &Node)> {
+            self.node_ids().map(|nid| (nid, &self[nid]))
+        }
+
+        pub(crate) fn swap(&mut self, nid_a: NodeID, nid_b: NodeID) {
+            let ndx_a = nid_a.0 as usize;
+            let ndx_b = nid_b.0 as usize;
+            self.0.swap(ndx_a, ndx_b);
+        }
+    }
     impl std::ops::Index<NodeID> for NodeSet {
         type Output = Node;
 
