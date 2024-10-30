@@ -77,7 +77,8 @@ enum Node {
 
     Bin {
         op: BinOp,
-        args: SmallVec<[NodeID; 2]>,
+        a: NodeID,
+        b: NodeID,
     },
     Cmp {
         op: CmpOp,
@@ -644,10 +645,7 @@ impl<'a> Builder<'a> {
 
     fn fold_bin(&self, op: BinOp, a: NodeID, b: NodeID) -> Node {
         // TODO!
-        Node::Bin {
-            op,
-            args: [a, b].into(),
-        }
+        Node::Bin { op, a, b }
     }
 }
 
@@ -658,18 +656,17 @@ fn apply_peephole_substitutions(nodes: &mut NodeSet) {
                 let arg = &nodes[*arg];
                 if let Node::Bin {
                     op: BinOp::Sub,
-                    args: sub_args,
+                    a,
+                    b,
                 } = arg
                 {
-                    if let &[a, b] = sub_args.as_slice() {
-                        let new_node = Node::Cmp {
-                            op: CmpOp::LT,
-                            a,
-                            b,
-                        };
-                        let new_node = nodes.add(new_node);
-                        nodes.swap(new_node, nid);
-                    }
+                    let new_node = Node::Cmp {
+                        op: CmpOp::LT,
+                        a: *a,
+                        b: *b,
+                    };
+                    let new_node = nodes.add(new_node);
+                    nodes.swap(new_node, nid);
                 }
             }
             _ => {}
@@ -824,19 +821,19 @@ impl Ast {
                 self.pretty_print_node(pp, *b)?;
                 write!(pp, ")")
             }
-            Node::Bin { op, args } => {
+            Node::Bin { op, a, b } => {
                 let op_s = match op {
-                    BinOp::Add => " + ",
-                    BinOp::Sub => " - ",
-                    BinOp::Mul => " * ",
-                    BinOp::Div => " / ",
-                    BinOp::Shl => " << ",
-                    BinOp::Shr => " >> ",
-                    BinOp::BitAnd => " & ",
-                    BinOp::BitOr => " | ",
+                    BinOp::Add => "+",
+                    BinOp::Sub => "-",
+                    BinOp::Mul => "*",
+                    BinOp::Div => "/",
+                    BinOp::Shl => "<<",
+                    BinOp::Shr => ">>",
+                    BinOp::BitAnd => "&",
+                    BinOp::BitOr => "|",
                 };
 
-                for (ndx, &arg_nid) in args.iter().enumerate() {
+                for (ndx, &arg_nid) in [a, b].into_iter().enumerate() {
                     let arg = &self.nodes[arg_nid];
                     let needs_parens = match arg {
                         Node::Bin { op: child_op, .. } => child_op.precedence() < op.precedence(),
@@ -844,8 +841,9 @@ impl Ast {
                     };
 
                     if ndx > 0 {
-                        write!(pp, "{}", op_s)?;
+                        write!(pp, " {} ", op_s)?;
                     }
+
                     if needs_parens {
                         write!(pp, "(")?;
                     }
