@@ -669,6 +669,16 @@ fn apply_peephole_substitutions(nodes: &mut NodeSet) {
                     nodes.swap(new_node, nid);
                 }
             }
+            Node::IsZero(arg) => {
+                let arg = *arg;
+                let zero = nodes.add(Node::Const8(0));
+                let new_node = nodes.add(Node::Cmp {
+                    op: CmpOp::EQ,
+                    a: arg,
+                    b: zero,
+                });
+                nodes.swap(new_node, nid);
+            }
             _ => {}
         }
     }
