@@ -123,6 +123,21 @@ enum BinOp {
     BitAnd,
     BitOr,
 }
+impl BinOp {
+    fn precedence(&self) -> u8 {
+        // higher number means higher precedence
+        match self {
+            BinOp::Add => 0,
+            BinOp::Sub => 0,
+            BinOp::Mul => 1,
+            BinOp::Div => 1,
+            BinOp::Shl => 2,
+            BinOp::Shr => 2,
+            BinOp::BitAnd => 3,
+            BinOp::BitOr => 3,
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, Debug)]
 enum CmpOp {
@@ -823,7 +838,10 @@ impl Ast {
 
                 for (ndx, &arg_nid) in args.iter().enumerate() {
                     let arg = &self.nodes[arg_nid];
-                    let needs_parens = matches!(arg, Node::Bin { .. });
+                    let needs_parens = match arg {
+                        Node::Bin { op: child_op, .. } => child_op.precedence() < op.precedence(),
+                        _ => false,
+                    };
 
                     if ndx > 0 {
                         write!(pp, "{}", op_s)?;
