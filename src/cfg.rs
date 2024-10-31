@@ -410,9 +410,36 @@ impl Graph {
 #[derive(Debug, PartialEq, Eq)]
 pub struct DomTree {
     parent: BlockMap<Option<BlockID>>,
+    children_ndx_range: BlockMap<Range<usize>>,
+    children: Vec<BlockID>,
 }
 
 impl DomTree {
+    fn from_parent(parent: BlockMap<Option<BlockID>>) -> DomTree {
+        let count = parent.block_count();
+
+        let mut children_ndx_range = BlockMap::new(0..0, count);
+        let mut children = Vec::with_capacity(count);
+
+        for bid in parent.block_ids() {
+            let clen_before = children.len();
+            for (child_bid, parent) in parent.items() {
+                if parent == &Some(bid) {
+                    children.push(child_bid);
+                }
+            }
+            children_ndx_range[bid] = clen_before..children.len();
+        }
+
+        // the root node is nobody's child in the dom tree
+        assert_eq!(children.len(), count - 1);
+        DomTree {
+            parent,
+            children_ndx_range,
+            children,
+        }
+    }
+
     pub fn items(&self) -> impl ExactSizeIterator<Item = (BlockID, &Option<BlockID>)> {
         self.parent.items()
     }
@@ -430,6 +457,11 @@ impl DomTree {
 
             Some(ret)
         })
+    }
+
+    pub fn children(&self, bid: BlockID) -> &[BlockID] {
+        let ndx_range = self.children_ndx_range[bid].clone();
+        &self.children[ndx_range]
     }
 }
 
@@ -506,7 +538,7 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     for (bid, parent) in parent.items() {
         assert_ne!(*parent, Some(bid));
     }
-    DomTree { parent }
+    DomTree::from_parent(parent)
 }
 
 /// Find the common ancestor of two nodes in a tree.
@@ -693,6 +725,10 @@ impl<T: Clone> BlockMap<T> {
 }
 
 impl<T> BlockMap<T> {
+    pub fn block_ids(&self) -> impl ExactSizeIterator<Item = BlockID> {
+        (0..self.0.len()).map(|ndx| BlockID(ndx.try_into().unwrap()))
+    }
+
     pub fn items(&self) -> impl ExactSizeIterator<Item = (BlockID, &T)> {
         self.0.iter().enumerate().map(|(ndx, item)| {
             let ndx = ndx.try_into().unwrap();
