@@ -111,6 +111,18 @@ enum Node {
     Nop,
 }
 
+impl Node {
+    fn as_const(&self) -> Option<u64> {
+        match self {
+            Node::Const1(x) => Some(*x as u64),
+            Node::Const2(x) => Some(*x as u64),
+            Node::Const4(x) => Some(*x as u64),
+            Node::Const8(x) => Some(*x),
+            _ => None,
+        }
+    }
+}
+
 type Seq = SmallVec<[NodeID; 2]>;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -678,6 +690,19 @@ fn apply_peephole_substitutions(nodes: &mut NodeSet) {
                     b: zero,
                 });
                 nodes.swap(new_node, nid);
+            }
+            Node::Bin {
+                op: BinOp::Sub,
+                a,
+                b,
+            } => {
+                let na = &nodes[*a];
+                let nb = &nodes[*b];
+                match (na.as_const(), nb.as_const()) {
+                    (Some(0), _) => nodes.swap(nid, *b),
+                    (_, Some(0)) => nodes.swap(nid, *a),
+                    _ => {}
+                }
             }
             _ => {}
         }
