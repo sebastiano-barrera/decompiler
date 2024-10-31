@@ -408,20 +408,22 @@ impl Graph {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DomTree(BlockMap<Option<BlockID>>);
+pub struct DomTree {
+    parent: BlockMap<Option<BlockID>>,
+}
 
 impl DomTree {
     pub fn items(&self) -> impl ExactSizeIterator<Item = (BlockID, &Option<BlockID>)> {
-        self.0.items()
+        self.parent.items()
     }
 
     /// Get an iterator of immediate dominators of the given block
     pub fn imm_doms<'s>(&'s self, bid: BlockID) -> impl 's + Iterator<Item = BlockID> {
-        let mut cur = self.0[bid];
-        let mut visited = BlockMap::new(false, self.0.block_count());
+        let mut cur = self.parent[bid];
+        let mut visited = BlockMap::new(false, self.parent.block_count());
         std::iter::from_fn(move || {
             let ret = cur?;
-            cur = self.0[ret];
+            cur = self.parent[ret];
 
             assert!(!visited[ret]);
             visited[ret] = true;
@@ -435,7 +437,7 @@ impl Index<BlockID> for DomTree {
     type Output = Option<BlockID>;
 
     fn index(&self, index: BlockID) -> &Self::Output {
-        self.0.index(index)
+        self.parent.index(index)
     }
 }
 
@@ -504,7 +506,7 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     for (bid, parent) in parent.items() {
         assert_ne!(*parent, Some(bid));
     }
-    DomTree(parent)
+    DomTree { parent }
 }
 
 /// Find the common ancestor of two nodes in a tree.
