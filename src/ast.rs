@@ -348,11 +348,14 @@ impl<'a> Builder<'a> {
         assert!(!self.blocks_compiling.contains(&bid));
         self.blocks_compiling.push(bid);
 
-        let nor_ndxs = self.ssa.cfg().insns_ndx_range(bid);
+        let cfg = &self.ssa.cfg();
+
+        let nor_ndxs = cfg.insns_ndx_range(bid);
 
         self.compile_seq(&nor_ndxs, out_seq);
 
-        match self.ssa.cfg().block_cont(bid) {
+        let block_cont = cfg.block_cont(bid);
+        match block_cont {
             cfg::BlockCont::End => {
                 // all done!
             }
@@ -389,6 +392,19 @@ impl<'a> Builder<'a> {
                 out_seq.push(self.add_node(Node::If { cond, cons, alt }));
             }
         };
+
+        let succs = &cfg.direct()[bid];
+        for &dominated_bid in cfg.dom_tree().children(bid) {
+            if succs.contains(&dominated_bid) {
+                continue;
+            }
+
+            // dominated_bid is an "extra":
+            // it's dominated by the current block, but not a direct successor
+            // it's indirect successor that still inherits the current block's scope
+            let node = self.compile_to_labeled(dominated_bid);
+            out_seq.push(self.add_node(node));
+        }
 
         let check = self.blocks_compiling.pop();
         assert_eq!(check, Some(bid));
@@ -457,11 +473,8 @@ impl<'a> Builder<'a> {
                         }),
                 );
 
-                let mut inner_seq = SmallVec::new();
-                self.compile_thunk_body(target_bid, &mut inner_seq);
-                let inner_seq = self.add_node(Node::Seq(inner_seq));
-                let label = self.thunk_id_of_block[target_bid].clone();
-                out_seq.push(self.add_node(Node::Labeled(label, inner_seq)));
+                let node = self.compile_to_labeled(target_bid);
+                out_seq.push(self.add_node(node));
             } else {
                 assert_eq!(params.len(), 0);
                 self.compile_thunk_body(target_bid, out_seq);
@@ -477,6 +490,14 @@ impl<'a> Builder<'a> {
             );
             out_seq.push(self.add_node(node));
         }
+    }
+
+    fn compile_to_labeled(&mut self, target_bid: BlockID) -> Node {
+        let mut inner_seq = SmallVec::new();
+        self.compile_thunk_body(target_bid, &mut inner_seq);
+        let inner_seq = self.add_node(Node::Seq(inner_seq));
+        let label = self.thunk_id_of_block[target_bid].clone();
+        Node::Labeled(label, inner_seq)
     }
 
     fn compile_node(&mut self, start_ndx: mil::Index) -> Node {
