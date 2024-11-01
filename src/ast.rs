@@ -49,7 +49,7 @@ enum Node {
         value: NodeID,
     },
     Ref(Ident),
-    ContinueToThunk(Label, ContinueArgs),
+    ContinueToLabel(Label, ContinueArgs),
     ContinueToExtern(u64),
 
     Labeled {
@@ -324,13 +324,15 @@ impl<'a> Builder<'a> {
     }
 
     fn compile_thunk_body(&mut self, bid: BlockID, out_seq: &mut Seq) {
-        assert!(!self.blocks_compiling.contains(&bid));
+        assert!(
+            !self.blocks_compiling.contains(&bid),
+            "compiling block again! {bid:?}"
+        );
         self.blocks_compiling.push(bid);
 
         let cfg = &self.ssa.cfg();
 
         let nor_ndxs = cfg.insns_ndx_range(bid);
-
         self.compile_seq(&nor_ndxs, out_seq);
 
         let block_cont = cfg.block_cont(bid);
@@ -373,7 +375,7 @@ impl<'a> Builder<'a> {
         };
 
         let succs = &cfg.direct()[bid];
-        for &dominated_bid in cfg.dom_tree().children(bid) {
+        for &dominated_bid in cfg.dom_tree().children_of(bid) {
             if succs.contains(&dominated_bid) {
                 continue;
             }
@@ -429,38 +431,32 @@ impl<'a> Builder<'a> {
         };
 
         let cur_bid = self.blocks_compiling.last().copied().unwrap();
-        let edge = self.edge(cur_bid, target_bid);
 
-        let cfg = self.ssa.cfg();
-        let nonbackedge_count = cfg.direct().nonbackedge_predecessor_count(target_bid);
-        let preds_count = cfg.block_preds(target_bid).len();
+        let dom_tree = self.ssa.cfg().dom_tree();
 
         let params = self.block_phis_to_param_names(target_bid);
         assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
 
-        if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
-            if preds_count > 1 {
-                out_seq.extend(
-                    params
-                        .into_iter()
-                        .zip(args.into_iter())
-                        .map(|(param, arg)| {
-                            self.add_node(Node::LetMut {
-                                name: param,
-                                value: arg,
-                            })
-                        }),
-                );
+        if dom_tree.parent_of(target_bid) == Some(cur_bid) {
+            // TODO represent initial parameter assignment some better way
+            out_seq.extend(
+                params
+                    .into_iter()
+                    .zip(args.into_iter())
+                    .map(|(param, arg)| {
+                        self.add_node(Node::LetMut {
+                            name: param,
+                            value: arg,
+                        })
+                    }),
+            );
 
-                let node = self.compile_to_labeled(target_bid);
-                out_seq.push(self.add_node(node));
-            } else {
-                assert_eq!(params.len(), 0);
-                self.compile_thunk_body(target_bid, out_seq);
-            }
+            let node = self.compile_to_labeled(target_bid);
+            out_seq.push(self.add_node(node));
         } else {
             let thunk_id = self.label_of_block[target_bid].clone();
-            let node = Node::ContinueToThunk(
+            // the label definition is going to be built while processing the actual dominator node
+            let node = Node::ContinueToLabel(
                 thunk_id,
                 ContinueArgs {
                     names: params,
@@ -804,7 +800,7 @@ impl Ast {
                 self.pretty_print_node(pp, *body)
             }
 
-            Node::ContinueToThunk(thunk_id, args) => {
+            Node::ContinueToLabel(thunk_id, args) => {
                 write!(pp, "goto {}", thunk_id.0.as_str())?;
                 let args_count = args.names.len();
                 assert_eq!(args_count, args.values.len());

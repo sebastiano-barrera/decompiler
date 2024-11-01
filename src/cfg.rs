@@ -459,9 +459,13 @@ impl DomTree {
         })
     }
 
-    pub fn children(&self, bid: BlockID) -> &[BlockID] {
+    pub fn children_of(&self, bid: BlockID) -> &[BlockID] {
         let ndx_range = self.children_ndx_range[bid].clone();
         &self.children[ndx_range]
+    }
+
+    pub fn parent_of(&self, bid: BlockID) -> Option<BlockID> {
+        self[bid]
     }
 }
 
