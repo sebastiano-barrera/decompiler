@@ -719,7 +719,7 @@ impl<T: Clone> BlockMap<T> {
         Self(cfg.block_ids().map(init_item).collect())
     }
 
-    fn block_count(&self) -> usize {
+    pub fn block_count(&self) -> usize {
         self.0.len()
     }
 }

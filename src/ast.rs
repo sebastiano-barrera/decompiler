@@ -161,7 +161,7 @@ enum CmpOp {
     GT,
 }
 
-pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
+pub fn ssa_to_ast(ssa: &ssa::Program, _pat_sel: &PatternSel) -> Ast {
     // the set of blocks in the CFG
     // is transformed
     // into a set of Thunk-s
@@ -170,33 +170,8 @@ pub fn ssa_to_ast(ssa: &ssa::Program, pat_sel: &PatternSel) -> Ast {
 
     let mut builder = Builder::init_to_ast(ssa);
 
-    for (bid, pat_ndx) in pat_sel.sel.items() {
-        if let Some(pat_ndx) = pat_ndx {
-            let pat = &pat_sel.set.pats[*pat_ndx];
-            assert_eq!(pat.key_bid, bid);
-
-            match &pat.pat {
-                Pat::IfBranch { path } => {
-                    mark_path_inline(&mut builder, path);
-                }
-                Pat::Cycle { path } => {
-                    if path.len() == 0 {
-                        todo!("not yet implemented: self-recursive blocks")
-                    }
-
-                    mark_path_inline(&mut builder, path);
-                    let last = path.last().copied().unwrap();
-                    builder.mark_edge_loop(last, bid);
-                }
-            }
-        }
-    }
-
-    for bid in ssa.cfg().block_ids() {
-        if !builder.visited[bid] {
-            builder.compile_new_thunk(bid);
-        }
-    }
+    // TODO Remove thunks altogether
+    builder.compile_new_thunk(cfg::ENTRY_BID);
 
     // TODO: inline 1-predecessor continuations (?)
 
@@ -217,7 +192,7 @@ struct Builder<'a> {
     nodes: NodeSet,
     edge_flags: HashMap<(BlockID, BlockID), EdgeFlags>,
     blocks_compiling: Vec<BlockID>,
-    visited: cfg::BlockMap<bool>,
+    marks: cfg::BlockMap<BlockMark>,
 }
 
 // TODO replace with a proper bitmask
@@ -227,8 +202,61 @@ struct EdgeFlags {
     is_inline: bool,
 }
 
+#[derive(Clone, Debug)]
+enum BlockMark {
+    Simple,
+    LoopHead { loop_enter_succ_ndx: u8 },
+}
+
+fn mark_blocks(cfg: &cfg::Graph) -> cfg::BlockMap<BlockMark> {
+    let mut mark = cfg::BlockMap::new(BlockMark::Simple, cfg.block_count());
+
+    // in_path[B] == Some(S)
+    //   <==> block B is in the currently walked path, via successor with index S
+    let mut in_path = cfg::BlockMap::new(None, cfg.block_count());
+    let mut path = Vec::with_capacity(cfg.block_count() / 2);
+
+    enum Cmd {
+        Start((cfg::BlockID, usize)),
+        End(cfg::BlockID),
+    }
+    let mut queue = Vec::with_capacity(cfg.block_count() / 2);
+    queue.push(Cmd::Start((cfg::ENTRY_BID, 0)));
+
+    while let Some(cmd) = queue.pop() {
+        match cmd {
+            Cmd::Start((bid, succ_ndx)) => {
+                assert!(in_path[bid].is_none());
+                path.push(bid);
+                let succ_ndx: u8 = succ_ndx.try_into().unwrap();
+                in_path[bid] = Some(succ_ndx);
+
+                // cycles: one of the current block's successors S dominates B
+                for (succ_ndx, &succ) in cfg.direct()[bid].iter().enumerate() {
+                    if let Some(loop_enter_succ_ndx) = in_path[succ] {
+                        mark[succ] = BlockMark::LoopHead {
+                            loop_enter_succ_ndx,
+                        };
+                    } else {
+                        queue.push(Cmd::End(succ));
+                        queue.push(Cmd::Start((succ, succ_ndx)));
+                    }
+                }
+            }
+            Cmd::End(bid) => {
+                assert!(in_path[bid].is_some());
+                in_path[bid] = None;
+            }
+        }
+    }
+
+    mark
+}
+
 impl<'a> Builder<'a> {
     fn init_to_ast(ssa: &'a ssa::Program) -> Builder<'a> {
+        let marks = mark_blocks(ssa.cfg());
+
         let name_of_value = (0..ssa.len())
             .filter_map(|ndx| {
                 let insn = ssa.get(ndx).unwrap().insn;
@@ -268,7 +296,7 @@ impl<'a> Builder<'a> {
             nodes: NodeSet::new(),
             edge_flags: HashMap::new(),
             blocks_compiling: Vec::new(),
-            visited: cfg::BlockMap::new(false, cfg.block_count()),
+            marks,
         }
     }
 
@@ -319,9 +347,6 @@ impl<'a> Builder<'a> {
     fn compile_thunk_body(&mut self, bid: BlockID, out_seq: &mut Seq) {
         assert!(!self.blocks_compiling.contains(&bid));
         self.blocks_compiling.push(bid);
-
-        assert!(!self.visited[bid]);
-        self.visited[bid] = true;
 
         let nor_ndxs = self.ssa.cfg().insns_ndx_range(bid);
 
