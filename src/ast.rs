@@ -14,20 +14,12 @@ use self::nodeset::{NodeID, NodeSet};
 
 #[derive(Debug)]
 pub struct Ast {
-    root_thunk: ThunkID,
+    root_nid: NodeID,
     nodes: NodeSet,
-    thunks: HashMap<ThunkID, Thunk>,
-}
-
-#[derive(Debug)]
-struct Thunk {
-    body: NodeID,
-    // there is one param per phi node
-    params: SmallVec<[Ident; 2]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct ThunkArgs {
+struct ContinueArgs {
     // thunk's parameters (copied)
     names: SmallVec<[Ident; 2]>,
     // values, in lockstep with `params`
@@ -38,7 +30,7 @@ struct ThunkArgs {
 pub struct Ident(Rc<String>);
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct ThunkID(Rc<String>);
+pub struct Label(Rc<String>);
 
 #[derive(Debug, PartialEq, Eq)]
 enum Node {
@@ -57,10 +49,15 @@ enum Node {
         value: NodeID,
     },
     Ref(Ident),
-    ContinueToThunk(ThunkID, ThunkArgs),
+    ContinueToThunk(Label, ContinueArgs),
     ContinueToExtern(u64),
 
-    Labeled(ThunkID, NodeID),
+    Labeled {
+        label: Label,
+        body: NodeID,
+        // there is one param per phi node (from the block that generated the label)
+        params: SmallVec<[Ident; 2]>,
+    },
 
     Const1(u8),
     Const2(u16),
@@ -162,20 +159,8 @@ enum CmpOp {
 }
 
 pub fn ssa_to_ast(ssa: &ssa::Program, _pat_sel: &PatternSel) -> Ast {
-    // the set of blocks in the CFG
-    // is transformed
-    // into a set of Thunk-s
-    //
-    // each thunk can result from one or more blocks, merged.
-
-    let mut builder = Builder::init_to_ast(ssa);
-
-    // TODO Remove thunks altogether
-    builder.compile_new_thunk(cfg::ENTRY_BID);
-
-    // TODO: inline 1-predecessor continuations (?)
-
-    builder.finish()
+    // TODO Remove the Builder altogether?
+    Builder::init_to_ast(ssa).compile(cfg::ENTRY_BID)
 }
 
 fn mark_path_inline(builder: &mut Builder, path: &Path) {
@@ -187,8 +172,7 @@ fn mark_path_inline(builder: &mut Builder, path: &Path) {
 struct Builder<'a> {
     ssa: &'a ssa::Program,
     name_of_value: HashMap<mil::Index, Ident>,
-    thunk_id_of_block: cfg::BlockMap<ThunkID>,
-    thunks: HashMap<ThunkID, Thunk>,
+    label_of_block: cfg::BlockMap<Label>,
     nodes: NodeSet,
     edge_flags: HashMap<(BlockID, BlockID), EdgeFlags>,
     blocks_compiling: Vec<BlockID>,
@@ -286,13 +270,12 @@ impl<'a> Builder<'a> {
         // (conservatively = even for thunks that end up not being generated)
         let cfg = ssa.cfg();
         let thunk_id_of_block =
-            cfg::BlockMap::new_with(cfg, |bid| ThunkID(Rc::new(format!("T{}", bid.as_number()))));
+            cfg::BlockMap::new_with(cfg, |bid| Label(Rc::new(format!("T{}", bid.as_number()))));
 
         Builder {
             ssa,
             name_of_value,
-            thunk_id_of_block,
-            thunks: HashMap::new(),
+            label_of_block: thunk_id_of_block,
             nodes: NodeSet::new(),
             edge_flags: HashMap::new(),
             blocks_compiling: Vec::new(),
@@ -300,13 +283,13 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn finish(mut self) -> Ast {
-        let root_tid = self.thunk_id_of_block[cfg::ENTRY_BID].clone();
+    fn compile(mut self, start_bid: cfg::BlockID) -> Ast {
+        let main_node = self.compile_to_labeled(start_bid);
+        let root_nid = self.add_node(main_node);
         apply_peephole_substitutions(&mut self.nodes);
         Ast {
-            root_thunk: root_tid,
+            root_nid,
             nodes: self.nodes,
-            thunks: self.thunks,
         }
     }
 
@@ -314,23 +297,19 @@ impl<'a> Builder<'a> {
         self.nodes.add(node)
     }
 
-    fn compile_new_thunk(&mut self, start_bid: cfg::BlockID) -> ThunkID {
+    fn compile_to_labeled(&mut self, start_bid: cfg::BlockID) -> Node {
         let mut seq = Seq::new();
 
-        let params = self.thunk_params_of_block_phis(start_bid);
         self.compile_thunk_body(start_bid, &mut seq);
 
-        let thunk = Thunk {
-            params,
+        Node::Labeled {
+            label: self.label_of_block[start_bid].clone(),
+            params: self.block_phis_to_param_names(start_bid),
             body: self.add_node(Node::Seq(seq)),
-        };
-
-        let lbl = self.thunk_id_of_block[start_bid].clone();
-        self.thunks.insert(lbl.clone(), thunk);
-        lbl
+        }
     }
 
-    fn thunk_params_of_block_phis(&mut self, bid: BlockID) -> SmallVec<[Ident; 2]> {
+    fn block_phis_to_param_names(&mut self, bid: BlockID) -> SmallVec<[Ident; 2]> {
         let phis = self.ssa.block_phi(bid);
         (0..phis.phi_count())
             .map(|phi_ndx| phis.node_ndx(phi_ndx))
@@ -456,7 +435,7 @@ impl<'a> Builder<'a> {
         let nonbackedge_count = cfg.direct().nonbackedge_predecessor_count(target_bid);
         let preds_count = cfg.block_preds(target_bid).len();
 
-        let params = self.thunk_params_of_block_phis(target_bid);
+        let params = self.block_phis_to_param_names(target_bid);
         assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
 
         if !edge.is_loop && (edge.is_inline || nonbackedge_count == 1) {
@@ -480,24 +459,16 @@ impl<'a> Builder<'a> {
                 self.compile_thunk_body(target_bid, out_seq);
             }
         } else {
-            let thunk_id = self.thunk_id_of_block[target_bid].clone();
+            let thunk_id = self.label_of_block[target_bid].clone();
             let node = Node::ContinueToThunk(
                 thunk_id,
-                ThunkArgs {
+                ContinueArgs {
                     names: params,
                     values: args,
                 },
             );
             out_seq.push(self.add_node(node));
         }
-    }
-
-    fn compile_to_labeled(&mut self, target_bid: BlockID) -> Node {
-        let mut inner_seq = SmallVec::new();
-        self.compile_thunk_body(target_bid, &mut inner_seq);
-        let inner_seq = self.add_node(Node::Seq(inner_seq));
-        let label = self.thunk_id_of_block[target_bid].clone();
-        Node::Labeled(label, inner_seq)
     }
 
     fn compile_node(&mut self, start_ndx: mil::Index) -> Node {
@@ -757,22 +728,7 @@ fn apply_peephole_substitutions(nodes: &mut NodeSet) {
 
 impl Ast {
     pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
-        use std::fmt::Write;
-        for (thid, thunk) in self.thunks.iter() {
-            write!(pp, "thunk {}(", thid.0.as_str())?;
-            for (ndx, param_name) in thunk.params.iter().enumerate() {
-                if ndx > 0 {
-                    write!(pp, ", ")?;
-                }
-                write!(pp, "{}", param_name.0.as_str())?;
-            }
-            write!(pp, ") = ")?;
-
-            self.pretty_print_node(pp, thunk.body)?;
-
-            writeln!(pp)?;
-        }
-        Ok(())
+        self.pretty_print_node(pp, self.root_nid)
     }
 
     fn pretty_print_node<W: std::fmt::Write>(
@@ -828,9 +784,24 @@ impl Ast {
 
             Node::Ref(ident) => write!(pp, "{}", ident.0.as_str()),
 
-            Node::Labeled(thunk_id, node) => {
-                write!(pp, "'{}: ", thunk_id.0)?;
-                self.pretty_print_node(pp, *node)
+            Node::Labeled {
+                params,
+                label,
+                body,
+            } => {
+                if params.len() == 0 {
+                    write!(pp, "'{}: ", label.0)?;
+                } else {
+                    write!(pp, "'{}(", label.0)?;
+                    for (ndx, param) in params.iter().enumerate() {
+                        if ndx > 0 {
+                            write!(pp, ", ")?;
+                        }
+                        write!(pp, "{}", param.0.as_str())?;
+                    }
+                    write!(pp, "): ")?;
+                }
+                self.pretty_print_node(pp, *body)
             }
 
             Node::ContinueToThunk(thunk_id, args) => {
