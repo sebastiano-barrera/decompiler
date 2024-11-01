@@ -435,7 +435,8 @@ impl<'a> Builder<'a> {
 
         let cur_bid = self.blocks_compiling.last().copied().unwrap();
 
-        let dom_tree = self.ssa.cfg().dom_tree();
+        let cfg = self.ssa.cfg();
+        let dom_tree = cfg.dom_tree();
 
         let params = self.block_phis_to_param_names(target_bid);
         assert_eq!(params.len(), args.len(), "inconsistent arg/param count");
@@ -454,8 +455,22 @@ impl<'a> Builder<'a> {
                     }),
             );
 
-            let node = self.compile_to_labeled(target_bid);
-            out_seq.push(self.add_node(node));
+            let labeled_node = self.compile_to_labeled(target_bid);
+            let preds_count = cfg.inverse().successors(target_bid).len();
+            let node_id = match labeled_node {
+                Node::Labeled {
+                    label: _,
+                    body,
+                    params,
+                } if preds_count == 1 => {
+                    assert_eq!(params.as_slice(), &[]);
+                    body
+                }
+
+                other => self.add_node(other),
+            };
+
+            out_seq.push(node_id);
         } else {
             let thunk_id = self.label_of_block[target_bid].clone();
             // the label definition is going to be built while processing the actual dominator node
@@ -789,9 +804,9 @@ impl Ast {
                 body,
             } => {
                 if params.len() == 0 {
-                    write!(pp, "'{}: ", label.0)?;
+                    write!(pp, "\n'{}: ", label.0)?;
                 } else {
-                    write!(pp, "'{}(", label.0)?;
+                    write!(pp, "\n'{}(", label.0)?;
                     for (ndx, param) in params.iter().enumerate() {
                         if ndx > 0 {
                             write!(pp, ", ")?;
