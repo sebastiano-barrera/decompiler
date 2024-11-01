@@ -294,7 +294,10 @@ impl<'a> Builder<'a> {
     }
 
     fn add_node(&mut self, node: Node) -> NodeID {
-        self.nodes.add(node)
+        match node {
+            Node::Seq(xs) if xs.len() == 1 => xs[0],
+            other => self.nodes.add(other),
+        }
     }
 
     fn compile_to_labeled(&mut self, start_bid: cfg::BlockID) -> Node {
