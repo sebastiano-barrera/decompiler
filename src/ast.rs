@@ -735,6 +735,13 @@ fn apply_peephole_substitutions(nodes: &mut NodeSet) {
                     _ => {}
                 }
             }
+            Node::Bin {
+                op: BinOp::BitAnd,
+                a,
+                b,
+            } if a == b => {
+                nodes.swap(nid, *a);
+            }
             _ => {}
         }
     }
