@@ -35,6 +35,38 @@ impl Builder {
 
         self.emit(Self::RSP, mil::Insn::Ancestral(mil::Ancestral::StackBot));
 
+        // ensure all registers are initialized at least once. most of these
+        // instructions (if all goes well, all of them) get "deleted" (masked)
+        // if the program is valid and the decompilation correct.  if not, this
+        // allows the program to still be decompiled into something (albeit,
+        // with some "holes")
+        self.emit(Self::CF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::PF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::AF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::ZF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::SF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::TF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::IF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::DF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::OF, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RBP, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RSP, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RIP, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RDI, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RSI, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RAX, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RBX, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RCX, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::RDX, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R8, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R9, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R10, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R11, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R12, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R13, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R14, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::R15, mil::Insn::Ancestral(mil::Ancestral::Pre));
+
         for insn in insns {
             // Temporary abstract registers
             //    These are used in the mil program to compute 'small stuff' (memory

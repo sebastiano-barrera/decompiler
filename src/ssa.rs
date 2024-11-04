@@ -184,15 +184,13 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     // TODO rework this with a more efficient data structure
     struct VarMap {
         count: mil::Index,
-        default: mil::Reg,
         stack: Vec<Box<[Option<mil::Reg>]>>,
     }
 
     impl VarMap {
-        fn new(count: mil::Index, default: mil::Reg) -> Self {
+        fn new(count: mil::Index) -> Self {
             VarMap {
                 count,
-                default,
                 stack: Vec::new(),
             }
         }
@@ -226,9 +224,9 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         fn current_mut(&mut self) -> &mut [Option<mil::Reg>] {
             &mut self.stack.last_mut().expect("no mappings!")[..]
         }
-        fn get(&self, reg: mil::Reg) -> mil::Reg {
+        fn get(&self, reg: mil::Reg) -> Option<mil::Reg> {
             let reg_num = reg.reg_index() as usize;
-            self.current()[reg_num].unwrap_or(self.default)
+            self.current()[reg_num]
         }
 
         fn set(&mut self, old: mil::Reg, new: mil::Reg) {
@@ -237,15 +235,8 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         }
     }
 
-    let undef_reg = {
-        let max_var = program.iter().map(|i| i.dest.0).max().unwrap();
-        let reg = mil::Reg(max_var + 1);
-        program.push(reg, mil::Insn::Undefined);
-        reg
-    };
-
     let var_count = count_variables(&program);
-    let mut var_map = VarMap::new(var_count, undef_reg);
+    let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
         Finish,
@@ -289,7 +280,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                     // > }
 
                     for reg in inputs.into_iter().flatten() {
-                        *reg = var_map.get(*reg);
+                        *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
 
                     // in the output SSA, each destination register corrsponds to the instruction's
@@ -335,7 +326,12 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
                         // NOTE: the substitution of the *successor's* phi node's argument is
                         // done in the context of *this* node (its predecessor)
-                        *arg = var_map.get(*arg);
+                        *arg = var_map.get(*arg).unwrap_or_else(|| {
+                            panic!(
+                                "value {:?} not initialized in pre-ssa (phi {:?}--[{}]-->{:?})",
+                                *arg, bid, my_pred_ndx, succ
+                            )
+                        });
                     }
                 }
 

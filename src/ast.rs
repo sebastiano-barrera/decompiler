@@ -106,6 +106,7 @@ enum Node {
     StackBot,
     Undefined,
     Nop,
+    Pre,
 }
 
 impl Node {
@@ -622,6 +623,7 @@ impl<'a> Builder<'a> {
             Insn::Undefined => Node::Undefined,
             Insn::Ancestral(anc) => match anc {
                 mil::Ancestral::StackBot => Node::StackBot,
+                mil::Ancestral::Pre => Node::Pre,
             },
 
             Insn::Phi => {
@@ -1026,6 +1028,7 @@ impl Ast {
                 write!(pp, ")")
             }
             Node::StackBot => write!(pp, "<stackBottom>"),
+            Node::Pre => write!(pp, "<pre>"),
             Node::Undefined => write!(pp, "<undefined>"),
             Node::Nop => write!(pp, "nop"),
         }
