@@ -40,32 +40,32 @@ impl Builder {
         // if the program is valid and the decompilation correct.  if not, this
         // allows the program to still be decompiled into something (albeit,
         // with some "holes")
-        self.emit(Self::CF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::PF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::AF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::ZF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::SF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::TF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::IF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::DF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::OF, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RBP, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RSP, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RIP, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RDI, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RSI, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RAX, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RBX, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RCX, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::RDX, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R8, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R9, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R10, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R11, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R12, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R13, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R14, mil::Insn::Ancestral(mil::Ancestral::Pre));
-        self.emit(Self::R15, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        self.emit(Self::CF, mil::Insn::Ancestral(mil::Ancestral::Pre("CF")));
+        self.emit(Self::PF, mil::Insn::Ancestral(mil::Ancestral::Pre("PF")));
+        self.emit(Self::AF, mil::Insn::Ancestral(mil::Ancestral::Pre("AF")));
+        self.emit(Self::ZF, mil::Insn::Ancestral(mil::Ancestral::Pre("ZF")));
+        self.emit(Self::SF, mil::Insn::Ancestral(mil::Ancestral::Pre("SF")));
+        self.emit(Self::TF, mil::Insn::Ancestral(mil::Ancestral::Pre("TF")));
+        self.emit(Self::IF, mil::Insn::Ancestral(mil::Ancestral::Pre("IF")));
+        self.emit(Self::DF, mil::Insn::Ancestral(mil::Ancestral::Pre("DF")));
+        self.emit(Self::OF, mil::Insn::Ancestral(mil::Ancestral::Pre("OF")));
+        self.emit(Self::RBP, mil::Insn::Ancestral(mil::Ancestral::Pre("RBP")));
+        self.emit(Self::RSP, mil::Insn::Ancestral(mil::Ancestral::Pre("RSP")));
+        self.emit(Self::RIP, mil::Insn::Ancestral(mil::Ancestral::Pre("RIP")));
+        self.emit(Self::RDI, mil::Insn::Ancestral(mil::Ancestral::Pre("RDI")));
+        self.emit(Self::RSI, mil::Insn::Ancestral(mil::Ancestral::Pre("RSI")));
+        self.emit(Self::RAX, mil::Insn::Ancestral(mil::Ancestral::Pre("RAX")));
+        self.emit(Self::RBX, mil::Insn::Ancestral(mil::Ancestral::Pre("RBX")));
+        self.emit(Self::RCX, mil::Insn::Ancestral(mil::Ancestral::Pre("RCX")));
+        self.emit(Self::RDX, mil::Insn::Ancestral(mil::Ancestral::Pre("RDX")));
+        self.emit(Self::R8, mil::Insn::Ancestral(mil::Ancestral::Pre("R8")));
+        self.emit(Self::R9, mil::Insn::Ancestral(mil::Ancestral::Pre("R9")));
+        self.emit(Self::R10, mil::Insn::Ancestral(mil::Ancestral::Pre("R10")));
+        self.emit(Self::R11, mil::Insn::Ancestral(mil::Ancestral::Pre("R11")));
+        self.emit(Self::R12, mil::Insn::Ancestral(mil::Ancestral::Pre("R12")));
+        self.emit(Self::R13, mil::Insn::Ancestral(mil::Ancestral::Pre("R13")));
+        self.emit(Self::R14, mil::Insn::Ancestral(mil::Ancestral::Pre("R14")));
+        self.emit(Self::R15, mil::Insn::Ancestral(mil::Ancestral::Pre("R15")));
 
         // ensure that all possible temporary registers are initialized at least
         // once. this in turn ensures that all phi nodes always have a valid
@@ -74,7 +74,8 @@ impl Builder {
         // relies on an ancestral value in the other path.
         for reg_ndx in Self::R_TMP_FIRST.0..=Self::R_TMP_LAST.0 {
             let reg = mil::Reg(reg_ndx);
-            self.emit(reg, mil::Insn::Ancestral(mil::Ancestral::Pre));
+            let tag = format!("tmp{}", reg_ndx).leak();
+            self.emit(reg, mil::Insn::Ancestral(mil::Ancestral::Pre(tag)));
         }
 
         for insn in insns {

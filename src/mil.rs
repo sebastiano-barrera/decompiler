@@ -152,7 +152,7 @@ pub enum Ancestral {
     /// the pre-existing value of a mahcine register at the time the function
     /// started execution.  mostly useful to allow the decompilation to proceed
     /// forward even when somehting is out of place.
-    Pre,
+    Pre(&'static str),
 }
 
 impl Insn {
@@ -392,7 +392,7 @@ impl std::fmt::Debug for Insn {
             Insn::Undefined => write!(f, "undef"),
             Insn::Ancestral(anc) => match anc {
                 Ancestral::StackBot => write!(f, "#stackBottom"),
-                Ancestral::Pre => write!(f, "#pre"),
+                Ancestral::Pre(tag) => write!(f, "#pre:{}", tag),
             },
 
             Insn::Phi => write!(f, "phi"),
