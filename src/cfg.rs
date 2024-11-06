@@ -23,7 +23,11 @@ pub struct Graph {
 
 pub struct Edges {
     entries: BlockMap<bool>,
+    // these probably should be Box<[T]>
     target: Vec<BlockID>,
+    // corresponds to 'target'. each item is the "predecessor index" of the edge
+    // a->b, such that if the value is p, then a is the pth predecessor of b.
+    pred_ndx: Vec<u8>,
     ndx_range: BlockMap<Range<usize>>,
     nonbackedge_preds_count: BlockMap<u16>,
 }
@@ -38,6 +42,15 @@ impl std::ops::Index<BlockID> for Edges {
 }
 
 impl Edges {
+    fn assert_invariants(&self) {
+        assert_eq!(self.pred_ndx.len(), self.target.len());
+        assert_eq!(self.entries.block_count(), self.ndx_range.block_count());
+        assert_eq!(
+            self.entries.block_count(),
+            self.nonbackedge_preds_count.block_count()
+        );
+    }
+
     fn block_count(&self) -> usize {
         self.ndx_range.block_count()
     }
@@ -128,13 +141,16 @@ impl Graph {
     }
 
     pub fn block_cont(&self, bid: BlockID) -> BlockCont {
-        let successors = &self.direct[bid];
+        let range = &self.direct.ndx_range[bid];
+        let successors = &self.direct.target[range.clone()];
+        let pred_ndxs = &self.direct.pred_ndx[range.clone()];
+
         match successors {
             [] => BlockCont::End,
-            [cons] => BlockCont::Jmp((0, *cons)),
+            [cons] => BlockCont::Jmp((pred_ndxs[0], *cons)),
             [alt, cons] => BlockCont::Alt {
-                straight: (0, *alt),
-                side: (0, *cons),
+                straight: (pred_ndxs[0], *alt),
+                side: (pred_ndxs[1], *cons),
             },
             _ => panic!("blocks must have 2 successors max"),
         }
@@ -212,6 +228,10 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     let direct = {
         let mut target = Vec::new();
         let mut ndx_range = BlockMap::new(0..0, block_count);
+        // the running counter of predecessors for each block, used to compute
+        // the pred ndx
+        let mut pred_count = BlockMap::new(0, block_count);
+        let mut pred_ndx = Vec::new();
 
         for (insn_end_ndx, blk_ndx) in bounds[1..].iter().zip(0..) {
             let last_ndx = insn_end_ndx - 1;
@@ -224,12 +244,19 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
                 (None, Some(dest)) if dest == program.len() => {}
 
                 (Some(dest), None) | (None, Some(dest)) => {
-                    target.push(*block_at.get(&dest).unwrap());
+                    let dest = *block_at.get(&dest).unwrap();
+                    target.push(dest);
+                    pred_ndx.push(pred_count[dest]);
+                    pred_count[dest] += 1;
                 }
 
                 (Some(straight_dest), Some(side_dest)) => {
-                    target.push(*block_at.get(&straight_dest).unwrap());
-                    target.push(*block_at.get(&side_dest).unwrap());
+                    for dest in [straight_dest, side_dest] {
+                        let dest = *block_at.get(&dest).unwrap();
+                        target.push(dest);
+                        pred_ndx.push(pred_count[dest]);
+                        pred_count[dest] += 1;
+                    }
                 }
             };
 
@@ -241,9 +268,11 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let mut edges = Edges {
             entries,
             ndx_range,
+            pred_ndx,
             target,
             nonbackedge_preds_count: BlockMap::new(0, block_count),
         };
+        edges.assert_invariants();
         recount_nonbackedge_predecessors(&mut edges);
         edges
     };
@@ -261,7 +290,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             for pred in (0..block_count as u16).map(BlockID) {
                 for pred_succ in direct.successors(pred) {
                     if *pred_succ == succ {
-                        pred_ndx.push(target.len() - offset);
+                        pred_ndx.push((target.len() - offset).try_into().unwrap());
                         target.push(pred);
                     }
                 }
@@ -277,9 +306,11 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let mut edges = Edges {
             entries,
             ndx_range,
+            pred_ndx,
             target,
             nonbackedge_preds_count: BlockMap::new(0, block_count),
         };
+        edges.assert_invariants();
         recount_nonbackedge_predecessors(&mut edges);
         edges
     };
