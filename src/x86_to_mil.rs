@@ -17,7 +17,7 @@ impl Builder {
     fn new() -> Builder {
         Builder {
             pb: mil::ProgramBuilder::new(),
-            reg_gen: RegGen::new(Self::R_TMP_FIRST),
+            reg_gen: Self::reset_reg_gen(),
         }
     }
 
@@ -67,12 +67,22 @@ impl Builder {
         self.emit(Self::R14, mil::Insn::Ancestral(mil::Ancestral::Pre));
         self.emit(Self::R15, mil::Insn::Ancestral(mil::Ancestral::Pre));
 
+        // ensure that all possible temporary registers are initialized at least
+        // once. this in turn ensures that all phi nodes always have a valid
+        // input value for all predecessors. this is useful because a variable
+        // (register) may only be initialized in one path, while the program
+        // relies on an ancestral value in the other path.
+        for reg_ndx in Self::R_TMP_FIRST.0..=Self::R_TMP_LAST.0 {
+            let reg = mil::Reg(reg_ndx);
+            self.emit(reg, mil::Insn::Ancestral(mil::Ancestral::Pre));
+        }
+
         for insn in insns {
             // Temporary abstract registers
             //    These are used in the mil program to compute 'small stuff' (memory
             //    offsets, some arithmetic).  Never reused across different
             //    instructions.  "Generated" via self.reg_gen (RegGen)
-            self.reg_gen = RegGen::new(Self::R_TMP_FIRST);
+            self.reg_gen = Self::reset_reg_gen();
             self.pb.set_input_addr(insn.ip());
 
             let mut output = String::new();
@@ -590,6 +600,11 @@ impl Builder {
     const R15: mil::Reg = mil::Reg(27);
 
     const R_TMP_FIRST: mil::Reg = mil::Reg(28);
+    const R_TMP_LAST: mil::Reg = mil::Reg(34);
+
+    fn reset_reg_gen() -> RegGen {
+        RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)
+    }
 
     /// Translate a *full* register name
     fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {
@@ -627,15 +642,19 @@ impl Builder {
 
 struct RegGen {
     next: mil::Reg,
+    last: mil::Reg,
 }
 impl RegGen {
-    fn new(first: mil::Reg) -> Self {
-        RegGen { next: first }
+    fn new(first: mil::Reg, last: mil::Reg) -> Self {
+        assert!(first.0 <= last.0);
+        RegGen { next: first, last }
     }
 
     fn next(&mut self) -> mil::Reg {
         let ret = self.next;
         self.next.0 += 1;
+
+        assert!(ret.0 <= self.last.0);
         ret
     }
 }
