@@ -144,22 +144,7 @@ fn main() {
     let mut pp = PrettyPrinter::start(IoAsFmt(out));
 
     println!();
-    let pats = ast::search_patterns(prog.cfg());
-    println!("-- patterns = {:#?}", pats);
-    let pat_sel = {
-        let mut pat_sel = ast::PatternSel::new(&pats, prog.cfg().block_count());
-        for bid in prog.cfg().block_ids() {
-            let sel = pats.available_for_block(bid).next();
-            if let Some(sel) = sel {
-                println!(" selecting #{} for B{}", sel, bid.as_number());
-            }
-            pat_sel.set(bid, sel);
-        }
-        pat_sel
-    };
-
-    println!();
-    let ast = ast::ssa_to_ast(&prog, &pat_sel);
+    let ast = ast::ssa_to_ast(&prog);
     ast.pretty_print(&mut pp).unwrap()
 }
 

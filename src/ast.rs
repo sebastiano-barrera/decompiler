@@ -159,15 +159,9 @@ enum CmpOp {
     GT,
 }
 
-pub fn ssa_to_ast(ssa: &ssa::Program, _pat_sel: &PatternSel) -> Ast {
+pub fn ssa_to_ast(ssa: &ssa::Program) -> Ast {
     // TODO Remove the Builder altogether?
     Builder::init_to_ast(ssa).compile(cfg::ENTRY_BID)
-}
-
-fn mark_path_inline(builder: &mut Builder, path: &Path) {
-    for (&a, &b) in path.iter().zip(&path[1..]) {
-        builder.mark_edge_inline(a, b);
-    }
 }
 
 struct Builder<'a> {
@@ -175,16 +169,8 @@ struct Builder<'a> {
     name_of_value: HashMap<mil::Index, Ident>,
     label_of_block: cfg::BlockMap<Label>,
     nodes: NodeSet,
-    edge_flags: HashMap<(BlockID, BlockID), EdgeFlags>,
     blocks_compiling: Vec<BlockID>,
     marks: cfg::BlockMap<BlockMark>,
-}
-
-// TODO replace with a proper bitmask
-#[derive(Clone, Copy, Default)]
-struct EdgeFlags {
-    is_loop: bool,
-    is_inline: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -278,7 +264,6 @@ impl<'a> Builder<'a> {
             name_of_value,
             label_of_block: thunk_id_of_block,
             nodes: NodeSet::new(),
-            edge_flags: HashMap::new(),
             blocks_compiling: Vec::new(),
             marks,
         }
@@ -672,22 +657,6 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn edge_mut(&mut self, a: BlockID, b: BlockID) -> &mut EdgeFlags {
-        self.edge_flags
-            .entry((a, b))
-            .or_insert_with(|| EdgeFlags::default())
-    }
-    fn edge(&self, a: BlockID, b: BlockID) -> EdgeFlags {
-        self.edge_flags.get(&(a, b)).copied().unwrap_or_default()
-    }
-
-    fn mark_edge_loop(&mut self, a: BlockID, b: BlockID) {
-        self.edge_mut(a, b).is_loop = true;
-    }
-    fn mark_edge_inline(&mut self, a: BlockID, b: BlockID) {
-        self.edge_mut(a, b).is_inline = true;
-    }
-
     fn fold_bin(&self, op: BinOp, a: NodeID, b: NodeID) -> Node {
         // TODO!
         Node::Bin { op, a, b }
@@ -1061,149 +1030,6 @@ impl Ast {
         self.pretty_print_node(pp, val)?;
         pp.close_box();
         Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct PatternSet {
-    // TODO replace this with something more appropriate
-    pats: Vec<Pattern>,
-}
-#[derive(Debug)]
-struct Pattern {
-    key_bid: BlockID,
-    pat: Pat,
-}
-
-#[derive(Debug)]
-enum Pat {
-    /// One control flow path in a branch (an if-like structure): the control flow
-    /// branches at `key_bid`.
-    IfBranch { path: Path },
-
-    /// A cycle.
-    ///
-    /// The cycle starts with the `key_bid` block, and continues with the block
-    /// designated by `path`. A 1-block cycle (a block that can jump to its own
-    /// start) is represented with an empty `path`.
-    Cycle { path: Path },
-}
-
-type Path = SmallVec<[BlockID; 4]>;
-
-impl PatternSet {
-    pub fn available_for_block<'s>(&'s self, key_bid: BlockID) -> impl 's + Iterator<Item = usize> {
-        self.pats
-            .iter()
-            .enumerate()
-            .filter(move |(_, pat)| pat.key_bid == key_bid)
-            .map(|(ndx, _)| ndx)
-    }
-}
-
-pub fn search_patterns(cfg: &cfg::Graph) -> PatternSet {
-    let preds = cfg.inverse();
-
-    let mut pats = Vec::new();
-    let mut in_path = cfg::BlockMap::new(false, cfg.block_count());
-    let mut path = Vec::with_capacity(cfg.block_count() / 2);
-
-    enum Cmd {
-        Start(cfg::BlockID),
-        End(cfg::BlockID),
-    }
-    let mut queue = vec![Cmd::Start(cfg::ENTRY_BID)];
-
-    while let Some(cmd) = queue.pop() {
-        match cmd {
-            Cmd::Start(bid) => {
-                assert!(!in_path[bid]);
-                path.push(bid);
-                in_path[bid] = true;
-
-                // if branch:
-                //   && the current block B has ≥ 2 predecessors
-                //   && an ancestor (indirect predecessor) A of B dominates B
-                //   && B inverse-dominates A
-                if preds[bid].len() >= 2 {
-                    assert_eq!(path.last().unwrap(), &bid);
-
-                    for idom in cfg.dom_tree().imm_doms(bid) {
-                        let tail_len = match path
-                            .iter()
-                            .rev()
-                            .enumerate()
-                            .find(|(_, &step)| step == idom)
-                            .map(|(rndx, _)| rndx)
-                        {
-                            None => break,
-                            Some(l) if l < 2 => break,
-                            Some(l) => l,
-                        };
-
-                        let tail_ndx = path.len() - tail_len;
-                        let branch = &path[tail_ndx..path.len() - 1];
-                        pats.push(Pattern {
-                            key_bid: path[tail_ndx],
-                            pat: Pat::IfBranch {
-                                path: branch.into(),
-                            },
-                        });
-                    }
-                }
-
-                // cycles: one of the current block's successors S dominates B
-                for &succ in &cfg.direct()[bid] {
-                    if in_path[succ] {
-                        let cycle = {
-                            let cycle_len =
-                                1 + path.iter().rev().take_while(|step| **step != succ).count();
-                            assert_eq!(path[path.len() - cycle_len], succ);
-                            assert!(cycle_len > 0);
-
-                            let cy = &path[path.len() - cycle_len..];
-                            assert_eq!(cy.len(), cycle_len);
-                            cy
-                        };
-
-                        pats.push(Pattern {
-                            key_bid: cycle[0],
-                            pat: Pat::Cycle { path: cycle.into() },
-                        });
-                    } else {
-                        queue.push(Cmd::End(succ));
-                        queue.push(Cmd::Start(succ));
-                    }
-                }
-            }
-            Cmd::End(bid) => {
-                assert!(in_path[bid]);
-                in_path[bid] = false;
-                let check = path.pop();
-                assert_eq!(check, Some(bid));
-            }
-        }
-    }
-    PatternSet { pats }
-}
-
-pub struct PatternSel<'a> {
-    set: &'a PatternSet,
-    // each item is an index into `set`
-    sel: cfg::BlockMap<Option<usize>>,
-}
-
-impl<'a> PatternSel<'a> {
-    pub fn new(set: &'a PatternSet, block_count: usize) -> Self {
-        let sel = cfg::BlockMap::new(None, block_count);
-        PatternSel { set, sel }
-    }
-
-    pub fn set(&mut self, bid: cfg::BlockID, pat_ndx: Option<usize>) {
-        if let Some(pat_ndx) = pat_ndx {
-            assert_eq!(bid, self.set.pats[pat_ndx].key_bid);
-        }
-        self.sel[bid] = pat_ndx;
     }
 }
 
