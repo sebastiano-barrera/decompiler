@@ -220,26 +220,24 @@ impl Builder {
                 }
 
                 M::Call => {
-                    // TODO Use function type info to use the proper number of arguments (also
-                    // allow different calling conventions)
-                    // For now, we always assume exactly 4 arguments, using the sysv amd64 call
-                    // conv.
-                    let v1 = self.reg_gen.next();
-                    self.emit(v1, mil::Insn::CArgEnd);
-                    for arch_reg in [Register::RDI, Register::RSI, Register::RDX, Register::RCX] {
-                        let value = Self::xlat_reg(arch_reg);
-                        self.emit(v1, mil::Insn::CArg { value, prev: v1 });
-                    }
-
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
                         sz, 8,
                         "invalid call instruction: operand must be 8 bytes, not {}",
                         sz
                     );
-                    assert_ne!(callee, v1, "callee and arg start can't share a register");
                     let ret_reg = Self::xlat_reg(Register::RAX);
-                    self.emit(ret_reg, mil::Insn::Call { callee, arg0: v1 });
+                    self.emit(ret_reg, mil::Insn::Call(callee));
+
+                    // TODO Use function type info to use the proper number of arguments (also
+                    // allow different calling conventions)
+                    // For now, we always assume exactly 4 arguments, using the sysv amd64 call
+                    // conv.
+                    for arch_reg in [Register::RDI, Register::RSI, Register::RDX, Register::RCX] {
+                        let value = Self::xlat_reg(arch_reg);
+                        let v1 = self.reg_gen.next();
+                        self.emit(v1, mil::Insn::CArg(value));
+                    }
 
                     self.emit(Self::CF, mil::Insn::Undefined);
                     self.emit(Self::PF, mil::Insn::Undefined);

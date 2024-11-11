@@ -476,27 +476,26 @@ impl<'a> Builder<'a> {
 
         let iv = self.ssa.get(start_ndx).unwrap();
         match iv.insn {
-            Insn::Call { callee, arg0 } => {
+            Insn::Call(callee) => {
                 let callee = self.add_node_of_value(callee.0);
+
                 let mut args = SmallVec::new();
-                let mut arg = arg0;
-                loop {
-                    let arg_insn = self.ssa.get(arg.0).unwrap();
-                    match arg_insn.insn {
-                        Insn::CArg { value, prev } => {
-                            let arg_val = self.add_node_of_value(value.0);
-                            args.push(arg_val);
-                            arg = prev;
-                        }
-                        Insn::CArgEnd => break Node::Call(callee, args),
-                        other => {
-                            panic!("invalid insn in call arg chain: {:?}", other)
-                        }
-                    };
+                let mut i = 1;
+                while let Some(mil::InsnView {
+                    insn: Insn::CArg(arg_reg),
+                    ..
+                }) = self.ssa.get(start_ndx + i)
+                {
+                    let arg = self.add_node_of_value(arg_reg.0);
+                    args.push(arg);
+
+                    i += 1;
                 }
+
+                Node::Call(callee, args)
             }
             // To be handled in ::Call
-            Insn::CArgEnd | Insn::CArg { .. } => Node::Nop,
+            Insn::CArg { .. } => Node::Nop,
             Insn::Ret(arg) => Node::Return(self.add_node_of_value(arg.0)),
             Insn::JmpExt(target) => Node::ContinueToExtern(*target),
             Insn::JmpI(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {

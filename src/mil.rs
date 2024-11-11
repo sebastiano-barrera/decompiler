@@ -69,24 +69,19 @@ pub enum Insn {
     Eq(Reg, Reg),
     Not(Reg),
 
-    // call args are represented with a linked list:
+    // call args are represented by a sequence of adjacent CArg instructions,
+    // immediately following the "main" Call insn:
     //  r0 <- [compute callee]
     //  r1 <- [compute arg 0]
     //  r2 <- [compute arg 1]
-    //  r3 <- cargend
-    //  r4 <- carg r1 then r3
-    //  r5 <- carg r2 then r4
-    //  r6 <- call r0(r5)
-    // destination vreg is for the return value
-    Call {
-        callee: Reg,
-        arg0: Reg,
-    },
-    CArgEnd,
-    CArg {
-        value: Reg,
-        prev: Reg,
-    },
+    //  r3 <- call r0
+    //  r4 <- carg r1
+    //  r5 <- carg r2
+    //  r6 <- carg r3
+    // destination vreg r3 is for the return value. r4, r5, r6 are entirely
+    // fictitious, they don't correspond to any value.
+    Call(Reg),
+    CArg(Reg),
     Ret(Reg),
     #[allow(dead_code)]
     JmpI(Reg),
@@ -163,7 +158,6 @@ impl Insn {
             | Insn::Const2(_)
             | Insn::Const4(_)
             | Insn::Const8(_)
-            | Insn::CArgEnd
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::TODO(_)
@@ -197,6 +191,8 @@ impl Insn {
             | Insn::SignOf(reg)
             | Insn::IsZero(reg)
             | Insn::Parity(reg)
+            | Insn::Call(reg)
+            | Insn::CArg(reg)
             | Insn::PhiArg(reg) => [Some(reg), None],
 
             Insn::WithL1(a, b)
@@ -209,8 +205,6 @@ impl Insn {
             | Insn::BitAnd(a, b)
             | Insn::BitOr(a, b)
             | Insn::Eq(a, b)
-            | Insn::Call { callee: a, arg0: b }
-            | Insn::CArg { value: a, prev: b }
             | Insn::StoreMem1(a, b)
             | Insn::StoreMem2(a, b)
             | Insn::StoreMem4(a, b)
@@ -224,7 +218,6 @@ impl Insn {
             | Insn::Const2(_)
             | Insn::Const4(_)
             | Insn::Const8(_)
-            | Insn::CArgEnd
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::TODO(_)
@@ -258,6 +251,8 @@ impl Insn {
             | Insn::SignOf(reg)
             | Insn::IsZero(reg)
             | Insn::Parity(reg)
+            | Insn::Call(reg)
+            | Insn::CArg(reg)
             | Insn::PhiArg(reg) => [Some(reg), None],
 
             Insn::WithL1(a, b)
@@ -270,8 +265,6 @@ impl Insn {
             | Insn::BitAnd(a, b)
             | Insn::BitOr(a, b)
             | Insn::Eq(a, b)
-            | Insn::Call { callee: a, arg0: b }
-            | Insn::CArg { value: a, prev: b }
             | Insn::StoreMem1(a, b)
             | Insn::StoreMem2(a, b)
             | Insn::StoreMem4(a, b)
@@ -317,7 +310,6 @@ impl Insn {
             | Insn::PhiArg { .. } => false,
 
             Insn::Call { .. }
-            | Insn::CArgEnd
             | Insn::CArg { .. }
             | Insn::Ret(_)
             | Insn::JmpI(_)
@@ -371,9 +363,8 @@ impl std::fmt::Debug for Insn {
             Insn::StoreMem8(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem8", addr, val),
             Insn::TODO(msg) => write!(f, "{:8} {}", "TODO", msg),
 
-            Insn::Call { callee, arg0 } => write!(f, "{:8} {:?}({:?})", "call", callee, arg0),
-            Insn::CArgEnd => write!(f, "cargend"),
-            Insn::CArg { value, prev } => write!(f, "{:8} {:?} after {:?}", "carg", value, prev),
+            Insn::Call(callee) => write!(f, "{:8} {:?}", "call", callee),
+            Insn::CArg(value) => write!(f, "{:8} {:?}", "carg", value),
             Insn::Ret(x) => write!(f, "{:8} {:?}", "ret", x),
             Insn::JmpI(x) => write!(f, "{:8} *{:?}", "jmp", x),
             Insn::Jmp(x) => write!(f, "{:8} {:?}", "jmp", x),
