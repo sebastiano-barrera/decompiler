@@ -17,7 +17,7 @@ pub struct Program {
 
     cfg: cfg::Graph,
 
-    is_alive: RegMap<bool>,
+    is_alive: Vec<bool>,
     phis: cfg::BlockMap<PhiInfo>,
     rdr_count: ReaderCount,
 }
@@ -47,7 +47,7 @@ impl Program {
     }
 
     pub fn is_alive(&self, ndx: mil::Index) -> bool {
-        *self.is_alive.get(mil::Reg(ndx)).unwrap()
+        self.is_alive[ndx as usize]
     }
 }
 
@@ -129,7 +129,7 @@ impl std::fmt::Debug for Program {
             )?;
 
             for ndx in phi_ndxs.chain(nor_ndxs) {
-                let is_alive = *self.is_alive.get(mil::Reg(ndx)).unwrap();
+                let is_alive = self.is_alive[ndx as usize];
                 if !is_alive {
                     continue;
                 }
@@ -352,7 +352,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         }
     }
     let var_count = program.len();
-    let is_alive = RegMap::new(true, var_count);
+    let is_alive = vec![true; var_count as usize];
     let rdr_count = ReaderCount::new(var_count);
 
     // establish SSA invariants
@@ -548,7 +548,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             let item = prog.inner.get(ndx).unwrap();
             let dest = item.dest;
 
-            let is_alive = prog.is_alive.get_mut(dest).unwrap();
+            let is_alive = prog.is_alive.get_mut(dest.reg_index() as usize).unwrap();
             *is_alive = item.insn.has_side_effects() || prog.rdr_count.get(dest) > 0;
             if !*is_alive {
                 // this insn's reads don't count
@@ -567,7 +567,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
         let mut flag = false;
         for ndx in prog.phis[bid].ndxs.clone() {
             let reg = mil::Reg(ndx);
-            let is_alive = prog.is_alive.get_mut(reg).unwrap();
+            let is_alive = prog.is_alive.get_mut(reg.reg_index() as usize).unwrap();
             *is_alive = prog.rdr_count.get(reg) > 0;
             match prog.inner.get_mut(ndx).unwrap().insn {
                 mil::Insn::Phi { .. } => {
@@ -586,44 +586,19 @@ pub fn eliminate_dead_code(prog: &mut Program) {
 }
 
 #[derive(Debug)]
-struct RegMap<T>(Box<[T]>);
-impl<T: Clone> RegMap<T> {
-    fn new(init: T, var_count: mil::Index) -> Self {
-        let arr = vec![init.clone(); var_count as usize].into_boxed_slice();
-        RegMap(arr)
-    }
-
-    fn fill(&mut self, value: T) {
-        self.0.fill(value);
-    }
-
-    fn get(&self, reg: mil::Reg) -> Option<&T> {
-        self.0.get(reg.reg_index() as usize)
-    }
-
-    fn get_mut(&mut self, reg: mil::Reg) -> Option<&mut T> {
-        self.0.get_mut(reg.reg_index() as usize)
-    }
-
-    fn iter(&self) -> impl Iterator<Item = &T> {
-        self.0.iter()
-    }
-}
-
-#[derive(Debug)]
-struct ReaderCount(RegMap<usize>);
+struct ReaderCount(Vec<usize>);
 impl ReaderCount {
     fn new(var_count: mil::Index) -> Self {
-        ReaderCount(RegMap::new(0, var_count))
+        ReaderCount(vec![0; var_count as usize])
     }
     fn reset(&mut self) {
         self.0.fill(0);
     }
     fn get(&self, reg: mil::Reg) -> usize {
-        *self.0.get(reg).unwrap()
+        self.0[reg.0 as usize]
     }
     fn inc(&mut self, reg: mil::Reg) {
-        if let Some(elm) = self.0.get_mut(reg) {
+        if let Some(elm) = self.0.get_mut(reg.reg_index() as usize) {
             *elm += 1;
         }
     }
