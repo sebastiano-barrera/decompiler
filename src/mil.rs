@@ -68,6 +68,7 @@ pub enum Insn {
     BitOr(Reg, Reg),
     Eq(Reg, Reg),
     Not(Reg),
+    LT(Reg, Reg),
 
     // call args are represented by a sequence of adjacent CArg instructions,
     // immediately following the "main" Call insn:
@@ -205,6 +206,7 @@ impl Insn {
             | Insn::BitAnd(a, b)
             | Insn::BitOr(a, b)
             | Insn::Eq(a, b)
+            | Insn::LT(a, b)
             | Insn::StoreMem1(a, b)
             | Insn::StoreMem2(a, b)
             | Insn::StoreMem4(a, b)
@@ -265,6 +267,7 @@ impl Insn {
             | Insn::BitAnd(a, b)
             | Insn::BitOr(a, b)
             | Insn::Eq(a, b)
+            | Insn::LT(a, b)
             | Insn::StoreMem1(a, b)
             | Insn::StoreMem2(a, b)
             | Insn::StoreMem4(a, b)
@@ -294,6 +297,7 @@ impl Insn {
             | Insn::BitAnd(_, _)
             | Insn::BitOr(_, _)
             | Insn::Eq(_, _)
+            | Insn::LT(_, _)
             | Insn::Not(_)
             | Insn::OverflowOf(_)
             | Insn::CarryOf(_)
@@ -350,6 +354,7 @@ impl std::fmt::Debug for Insn {
             Insn::BitAnd(a, b) => write!(f, "{:8} {:?},{:?}", "and", a, b),
             Insn::BitOr(a, b) => write!(f, "{:8} {:?},{:?}", "or", a, b),
             Insn::Eq(a, b) => write!(f, "{:8} {:?},{:?}", "eq", a, b),
+            Insn::LT(a, b) => write!(f, "{:8} {:?},{:?}", "<", a, b),
             Insn::Not(x) => write!(f, "{:8} {:?}", "not", x),
 
             Insn::LoadMem1(addr) => write!(f, "{:8} addr:{:?}", "loadm1", addr),
