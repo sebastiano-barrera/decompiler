@@ -445,10 +445,6 @@ impl Program {
         index
     }
 
-    pub fn index_of_addr(&self, addr: u64) -> Option<Index> {
-        self.mil_of_input_addr.get(&addr).copied()
-    }
-
     #[inline(always)]
     pub fn len(&self) -> Index {
         self.insns.len().try_into().unwrap()

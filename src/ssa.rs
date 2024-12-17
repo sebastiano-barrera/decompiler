@@ -47,10 +47,6 @@ impl Program {
         self.inner.len()
     }
 
-    pub fn index_of_addr(&self, addr: u64) -> Option<mil::Index> {
-        self.inner.index_of_addr(addr)
-    }
-
     pub fn readers_count(&self, reg: mil::Reg) -> usize {
         self.rdr_count.get(reg)
     }
