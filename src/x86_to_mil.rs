@@ -179,28 +179,29 @@ impl Builder {
                     self.emit_set_flags_arith(v0);
                 }
 
-                M::Lea => {
-                    let (dest, _) = self.emit_read(&insn, 0);
-                    match insn.op1_kind() {
-                        OpKind::Memory => {
-                            self.emit_compute_address_into(&insn, dest);
-                        }
-                        OpKind::MemorySegSI
-                        | OpKind::MemorySegESI
-                        | OpKind::MemorySegRSI
-                        | OpKind::MemorySegDI
-                        | OpKind::MemorySegEDI
-                        | OpKind::MemorySegRDI
-                        | OpKind::MemoryESDI
-                        | OpKind::MemoryESEDI
-                        | OpKind::MemoryESRDI => {
-                            panic!("lea: segment-relative memory operands are not yet supported")
-                        }
-                        _ => {
-                            panic!("lea: invalid operand: second operand must be of type memory")
-                        }
+                M::Lea => match insn.op1_kind() {
+                    OpKind::Memory => {
+                        let v0 = self.reg_gen.next();
+                        self.emit_compute_address_into(&insn, v0);
+                        assert_eq!(insn.op0_kind(), OpKind::Register);
+                        let value_size = insn.op0_register().size().try_into().unwrap();
+                        self.emit_write(&insn, 0, v0, value_size);
                     }
-                }
+                    OpKind::MemorySegSI
+                    | OpKind::MemorySegESI
+                    | OpKind::MemorySegRSI
+                    | OpKind::MemorySegDI
+                    | OpKind::MemorySegEDI
+                    | OpKind::MemorySegRDI
+                    | OpKind::MemoryESDI
+                    | OpKind::MemoryESEDI
+                    | OpKind::MemoryESRDI => {
+                        panic!("lea: segment-relative memory operands are not yet supported")
+                    }
+                    _ => {
+                        panic!("lea: invalid operand: second operand must be of type memory")
+                    }
+                },
 
                 M::Shl => {
                     let (value, sz) = self.emit_read(&insn, 0);
