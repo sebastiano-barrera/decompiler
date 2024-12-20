@@ -402,15 +402,13 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         );
     }
 
-    let mut program = Program {
+    Program {
         inner: program,
         cfg,
         is_alive,
         phis,
         rdr_count,
-    };
-    eliminate_dead_code(&mut program);
-    program
+    }
 }
 
 fn place_phi_nodes(
