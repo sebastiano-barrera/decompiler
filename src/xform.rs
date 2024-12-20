@@ -1,7 +1,5 @@
-#[cfg(test)]
 use crate::{mil, ssa};
 
-#[cfg(test)]
 pub fn fold_constants(prog: &mut ssa::Program) {
     use mil::{Insn, Reg};
 

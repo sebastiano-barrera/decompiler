@@ -139,7 +139,9 @@ fn main() {
     println!("{:?}", prog);
 
     println!();
-    let prog = ssa::mil_to_ssa(prog);
+    let mut prog = ssa::mil_to_ssa(prog);
+    ssa::eliminate_dead_code(&mut prog);
+    xform::fold_constants(&mut prog);
     println!("{:?}", prog);
 
     let out = std::io::stdout().lock();
