@@ -10,7 +10,9 @@ mod cfg;
 mod mil;
 mod pp;
 mod ssa;
+mod tests;
 mod x86_to_mil;
+mod xform;
 
 struct CliOptions {
     elf_filename: PathBuf,

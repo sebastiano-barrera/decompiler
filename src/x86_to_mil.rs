@@ -561,9 +561,9 @@ impl Builder {
             Register::None => {}
             index_reg => {
                 let v1 = self.reg_gen.next();
-                let scale = insn.memory_index_scale();
+                let scale = insn.memory_index_scale() as i64;
                 self.pb
-                    .push(v1, mil::Insn::MulK32(Self::xlat_reg(index_reg), scale));
+                    .push(v1, mil::Insn::MulK(Self::xlat_reg(index_reg), scale));
                 self.pb.push(dest, mil::Insn::Add(dest, v1));
             }
         }

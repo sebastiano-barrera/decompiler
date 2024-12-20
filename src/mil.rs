@@ -62,7 +62,7 @@ pub enum Insn {
     Sub(Reg, Reg),
     #[allow(dead_code)]
     Mul(Reg, Reg),
-    MulK32(Reg, u32),
+    MulK(Reg, i64),
     Shl(Reg, Reg),
     BitAnd(Reg, Reg),
     BitOr(Reg, Reg),
@@ -171,7 +171,7 @@ impl Insn {
             | Insn::L4(reg)
             | Insn::Get(reg)
             | Insn::AddK(reg, _)
-            | Insn::MulK32(reg, _)
+            | Insn::MulK(reg, _)
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpI(reg)
@@ -232,7 +232,7 @@ impl Insn {
             | Insn::L4(reg)
             | Insn::Get(reg)
             | Insn::AddK(reg, _)
-            | Insn::MulK32(reg, _)
+            | Insn::MulK(reg, _)
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpI(reg)
@@ -292,7 +292,7 @@ impl Insn {
             | Insn::AddK(_, _)
             | Insn::Sub(_, _)
             | Insn::Mul(_, _)
-            | Insn::MulK32(_, _)
+            | Insn::MulK(_, _)
             | Insn::Shl(_, _)
             | Insn::BitAnd(_, _)
             | Insn::BitOr(_, _)
@@ -328,6 +328,16 @@ impl Insn {
             | Insn::StoreMem8(_, _) => true,
         }
     }
+
+    pub fn as_const(&self) -> Option<i64> {
+        match self {
+            Insn::Const1(k) => Some(*k as i64),
+            Insn::Const2(k) => Some(*k as i64),
+            Insn::Const4(k) => Some(*k as i64),
+            Insn::Const8(k) => Some(*k as i64),
+            _ => None,
+        }
+    }
 }
 
 impl std::fmt::Debug for Insn {
@@ -346,10 +356,10 @@ impl std::fmt::Debug for Insn {
             Insn::WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l4", full, part),
 
             Insn::Add(a, b) => write!(f, "{:8} {:?},{:?}", "add", a, b),
-            Insn::AddK(a, b) => write!(f, "{:8} {:?},{}", "add", a, *b),
+            Insn::AddK(a, b) => write!(f, "{:8} {:?},{}", "addk", a, *b),
             Insn::Sub(a, b) => write!(f, "{:8} {:?},{:?}", "sub", a, b),
             Insn::Mul(a, b) => write!(f, "{:8} {:?},{:?}", "mul", a, b),
-            Insn::MulK32(a, b) => write!(f, "{:8} {:?},0x{:x}", "mul", a, b),
+            Insn::MulK(a, b) => write!(f, "{:8} {:?},0x{:x}", "mul", a, b),
             Insn::Shl(value, bits_count) => write!(f, "{:8} {:?},{:?}", "shl", value, bits_count),
             Insn::BitAnd(a, b) => write!(f, "{:8} {:?},{:?}", "and", a, b),
             Insn::BitOr(a, b) => write!(f, "{:8} {:?},{:?}", "or", a, b),
@@ -451,7 +461,7 @@ impl Program {
     }
 
     #[inline(always)]
-    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView> {
+    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = InsnView> {
         (0..self.len()).map(|ndx| self.get(ndx).unwrap())
     }
 }

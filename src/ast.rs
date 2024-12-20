@@ -562,7 +562,7 @@ impl<'a> Builder<'a> {
                 let b = self.add_node_of_value(b.0);
                 self.fold_bin(BinOp::Mul, a, b)
             }
-            Insn::MulK32(a, k) => {
+            Insn::MulK(a, k) => {
                 let a = self.add_node_of_value(a.0);
                 let b = self.add_node(Node::Const8(*k as u64));
                 self.fold_bin(BinOp::Mul, a, b)

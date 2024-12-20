@@ -9,7 +9,7 @@ use std::ops::Range;
 /// > Rice University, CS Technical Report 06-33870.
 use crate::{
     cfg::{self, BlockID},
-    mil,
+    mil::{self, InsnViewMut},
 };
 
 pub struct Program {
@@ -68,6 +68,10 @@ impl Program {
         assert_eq!(len, self.equiv.len());
         assert_eq!(len, self.rdr_count.0.len());
         // TODO more?
+    }
+
+    pub fn edit(&mut self) -> EditableProgram {
+        EditableProgram(self)
     }
 
     /// Push a new instruction to the program.
@@ -697,6 +701,28 @@ impl ReaderCount {
         if let Some(elm) = self.0.get_mut(reg.reg_index() as usize) {
             *elm += 1;
         }
+    }
+}
+
+pub struct EditableProgram<'a>(&'a mut Program);
+
+impl<'a> EditableProgram<'a> {
+    pub fn get_mut(&mut self, ndx: mil::Index) -> Option<mil::InsnViewMut> {
+        self.0.inner.get_mut(ndx)
+    }
+}
+impl<'a> std::ops::Deref for EditableProgram<'a> {
+    // only afford access to the MIL program; SSA invariants are re-checked upon
+    // releasing the EditableProgram
+    type Target = mil::Program;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.inner
+    }
+}
+impl<'a> std::ops::Drop for EditableProgram<'a> {
+    fn drop(&mut self) {
+        self.0.check_invariants();
     }
 }
 

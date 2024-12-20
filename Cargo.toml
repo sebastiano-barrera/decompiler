@@ -12,10 +12,11 @@ smallvec = "1.13.2"
 [dependencies.iced-x86]
 version = "1.21.0"
 default-features = false
-features = ["decoder", "intel", "no_std", "instr_info"]
+features = ["decoder", "intel", "std", "instr_info"]
 
 [dev-dependencies]
 insta = { version = "1.40.0", default-features = false }
+iced-x86 = { version = "1.21.0", features = ["encoder", "code_asm"] }
 
 [profile.dev.package]
 insta.opt-level = 3
