@@ -9,7 +9,7 @@ use std::ops::Range;
 /// > Rice University, CS Technical Report 06-33870.
 use crate::{
     cfg::{self, BlockID},
-    mil::{self, InsnViewMut},
+    mil,
 };
 
 pub struct Program {
@@ -23,15 +23,10 @@ pub struct Program {
     //   mil::Index values are just as good as mil::Reg for identifying both insns and
     //   values.
     inner: mil::Program,
-
+    phis: cfg::BlockMap<PhiInfo>,
     cfg: cfg::Graph,
 
     is_alive: Vec<bool>,
-    // instruction I belongs to equivalence class E
-    // TODO this (and other) vector parallel to inner need to grow alongside
-    // inner when we push instructions to it
-    equiv: Vec<mil::Index>,
-    phis: cfg::BlockMap<PhiInfo>,
     rdr_count: ReaderCount,
 }
 
@@ -65,7 +60,6 @@ impl Program {
     fn check_invariants(&self) {
         let len = self.inner.len() as usize;
         assert_eq!(len, self.is_alive.len());
-        assert_eq!(len, self.equiv.len());
         assert_eq!(len, self.rdr_count.0.len());
         // TODO more?
     }
@@ -84,17 +78,8 @@ impl Program {
         let dest = self.inner.len();
         self.inner.push(mil::Reg(dest), insn);
         self.is_alive.push(true);
-        self.equiv.push(dest);
         self.rdr_count.0.push(0);
         self.check_invariants();
-        dest
-    }
-
-    fn push_equiv(&mut self, insn: mil::Insn, equiv_to: mil::Index) -> mil::Index {
-        assert!((equiv_to as usize) < self.equiv.len());
-
-        let dest = self.push(insn);
-        self.equiv[dest as usize] = equiv_to;
         dest
     }
 }
@@ -417,18 +402,12 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
         );
     }
 
-    let mut equiv = vec![0; program.len() as usize];
-    for ndx in 0..program.len() {
-        equiv[ndx as usize] = ndx;
-    }
-
     let mut program = Program {
         inner: program,
         cfg,
         is_alive,
         phis,
         rdr_count,
-        equiv,
     };
     eliminate_dead_code(&mut program);
     program
@@ -635,52 +614,6 @@ pub fn eliminate_dead_code(prog: &mut Program) {
                 }
                 _ => panic!("not phi!"),
             }
-        }
-    }
-}
-
-pub fn apply_peephole_substitutions(program: &mut Program) {
-    for ndx in 0..program.len() {
-        match program.get(ndx).unwrap().insn {
-            mil::Insn::CarryOf(arg) => {
-                let arg = program.get(arg.0).unwrap().insn;
-                if let mil::Insn::Sub(a, b) = arg {
-                    program.push_equiv(mil::Insn::LT(*a, *b), ndx);
-                }
-            }
-            mil::Insn::IsZero(arg) => {
-                let arg = arg.clone();
-                let zero = program.push(mil::Insn::Const8(0));
-                let insn = mil::Insn::Eq(arg, mil::Reg(zero));
-                program.push_equiv(insn, ndx);
-            }
-            mil::Insn::Sub(a, b) => {
-                let a = program.get(a.0).unwrap().insn;
-                let b = program.get(b.0).unwrap().insn;
-                match (a, b) {
-                    (mil::Insn::Const1(0), _)
-                    | (mil::Insn::Const2(0), _)
-                    | (mil::Insn::Const4(0), _)
-                    | (mil::Insn::Const8(0), _) => {
-                        program.push_equiv(b.clone(), ndx);
-                    }
-
-                    (_, mil::Insn::Const1(0))
-                    | (_, mil::Insn::Const2(0))
-                    | (_, mil::Insn::Const4(0))
-                    | (_, mil::Insn::Const8(0)) => {
-                        program.push_equiv(a.clone(), ndx);
-                    }
-
-                    _ => {}
-                }
-            }
-            // TODO extend "a == b" to similar-enough subgraphs
-            mil::Insn::BitAnd(a, b) if a == b => {
-                let a = program.get(a.0).unwrap().insn;
-                program.push_equiv(a.clone(), ndx);
-            }
-            _ => {}
         }
     }
 }

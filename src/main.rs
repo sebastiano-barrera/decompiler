@@ -139,8 +139,7 @@ fn main() {
     println!("{:?}", prog);
 
     println!();
-    let mut prog = ssa::mil_to_ssa(prog);
-    ssa::apply_peephole_substitutions(&mut prog);
+    let prog = ssa::mil_to_ssa(prog);
     println!("{:?}", prog);
 
     let out = std::io::stdout().lock();
