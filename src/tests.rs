@@ -54,24 +54,52 @@ mod constant_folding {
             let mut b = mil::ProgramBuilder::new();
             b.push(Reg(0), Insn::Ancestral(mil::Ancestral::StackBot));
             b.push(Reg(1), Insn::Const8(5));
+            b.push(Reg(2), Insn::Const8(44));
             b.push(Reg(0), Insn::Add(Reg(1), Reg(0)));
-            b.push(Reg(2), Insn::Add(Reg(0), Reg(1)));
-            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.push(Reg(3), Insn::Add(Reg(0), Reg(1)));
+            b.push(Reg(4), Insn::Add(Reg(2), Reg(1)));
+            b.push(Reg(3), Insn::Const8(0));
+            b.push(Reg(4), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(4), Insn::Add(Reg(3), Reg(4)));
+            b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
         };
         let mut prog = ssa::mil_to_ssa(prog);
-
-        eprintln!();
-        eprintln!("PRE:");
-        eprintln!("{:?}", prog);
         xform::fold_constants(&mut prog);
 
-        eprintln!();
-        eprintln!("POST:");
-        eprintln!("{:?}", prog);
+        assert_eq!(prog.len(), 10);
+        assert_eq!(prog.get(3).unwrap().insn, &Insn::AddK(Reg(0), 5));
+        assert_eq!(prog.get(4).unwrap().insn, &Insn::AddK(Reg(0), 10));
+        assert_eq!(prog.get(5).unwrap().insn, &Insn::Const8(49));
+        assert_eq!(prog.get(8).unwrap().insn, &Insn::Get(Reg(7)));
+    }
 
-        assert_eq!(prog.len(), 1);
-        assert_eq!(prog.get(0).unwrap().insn, &Insn::Const8(128));
+    #[test]
+    fn mulk() {
+        use mil::{Insn, Reg};
+
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            b.push(Reg(0), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(1), Insn::Const8(5));
+            b.push(Reg(2), Insn::Const8(44));
+            b.push(Reg(0), Insn::Mul(Reg(1), Reg(0)));
+            b.push(Reg(3), Insn::Mul(Reg(0), Reg(1)));
+            b.push(Reg(4), Insn::Mul(Reg(2), Reg(1)));
+            b.push(Reg(3), Insn::Const8(1));
+            b.push(Reg(4), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(4), Insn::Mul(Reg(3), Reg(4)));
+            b.push(Reg(0), Insn::Ret(Reg(4)));
+            b.build()
+        };
+        let mut prog = ssa::mil_to_ssa(prog);
+        xform::fold_constants(&mut prog);
+
+        assert_eq!(prog.len(), 10);
+        assert_eq!(prog.get(3).unwrap().insn, &Insn::MulK(Reg(0), 5));
+        assert_eq!(prog.get(4).unwrap().insn, &Insn::MulK(Reg(0), 25));
+        assert_eq!(prog.get(5).unwrap().insn, &Insn::Const8(5 * 44));
+        assert_eq!(prog.get(8).unwrap().insn, &Insn::Get(Reg(7)));
     }
 }
 

@@ -643,12 +643,10 @@ impl<'a> EditableProgram<'a> {
     }
 }
 impl<'a> std::ops::Deref for EditableProgram<'a> {
-    // only afford access to the MIL program; SSA invariants are re-checked upon
-    // releasing the EditableProgram
-    type Target = mil::Program;
+    type Target = Program;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.inner
+        self.0
     }
 }
 impl<'a> std::ops::Drop for EditableProgram<'a> {
