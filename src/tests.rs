@@ -1,15 +1,12 @@
 #![cfg(test)]
 
-use iced_x86::Instruction;
-
-use crate::{ssa, x86_to_mil};
-
 mod logical_vars {
-    use super::test_with_code;
+    use crate::{ssa, x86_to_mil};
+
     use iced_x86::code_asm::CodeAssembler;
+    use iced_x86::Instruction;
 
     #[test]
-    #[ignore]
     fn simple() {
         let input = {
             use iced_x86::code_asm::{eax, ptr, rdi};
@@ -25,7 +22,6 @@ mod logical_vars {
     }
 
     #[test]
-    #[ignore]
     fn assign_in_composite() {
         let input = {
             use iced_x86::code_asm::{qword_ptr, rdi};
@@ -40,6 +36,44 @@ mod logical_vars {
 
         let output = test_with_code(&input).unwrap();
         insta::assert_snapshot!(output);
+    }
+
+    fn test_with_code(instrs: &[Instruction]) -> Result<String, std::fmt::Error> {
+        use std::fmt::Write;
+
+        let mut out = String::new();
+
+        use iced_x86::{Formatter, IntelFormatter};
+
+        let mut formatter = IntelFormatter::new();
+        let mut instr_strbuf = String::new();
+        for instr in instrs {
+            write!(out, "{:16x}: ", instr.ip())?;
+            instr_strbuf.clear();
+            formatter.format(&instr, &mut instr_strbuf);
+            writeln!(out, "{}", instr_strbuf)?;
+        }
+
+        let prog = x86_to_mil::translate(instrs.iter().copied()).unwrap();
+        writeln!(out, "mil program = ")?;
+        writeln!(out, "{:?}", prog)?;
+        writeln!(out,)?;
+
+        let mut prog = ssa::mil_to_ssa(prog);
+        crate::xform::fold_constants(&mut prog);
+        ssa::eliminate_dead_code(&mut prog);
+        writeln!(out, "{:?}", prog)?;
+
+        // TODO print AST as well?
+
+        // let out = std::io::stdout().lock();
+        // let mut pp = PrettyPrinter::start(IoAsFmt(out));
+
+        // println!();
+        // let ast = ast::ssa_to_ast(&prog);
+        // ast.pretty_print(&mut pp).unwrap()
+
+        Ok(out)
     }
 }
 
@@ -101,40 +135,4 @@ mod constant_folding {
         assert_eq!(prog.get(5).unwrap().insn, &Insn::Const8(5 * 44));
         assert_eq!(prog.get(8).unwrap().insn, &Insn::Get(Reg(7)));
     }
-}
-
-fn test_with_code(instrs: &[Instruction]) -> Result<String, std::fmt::Error> {
-    use std::fmt::Write;
-
-    let mut out = String::new();
-
-    use iced_x86::{Formatter, IntelFormatter};
-
-    let mut formatter = IntelFormatter::new();
-    let mut instr_strbuf = String::new();
-    for instr in instrs {
-        write!(out, "{:16x}: ", instr.ip())?;
-        instr_strbuf.clear();
-        formatter.format(&instr, &mut instr_strbuf);
-        writeln!(out, "{}", instr_strbuf)?;
-    }
-
-    let prog = x86_to_mil::translate(instrs.iter().copied()).unwrap();
-    writeln!(out, "mil program = ")?;
-    writeln!(out, "{:?}", prog)?;
-    writeln!(out,)?;
-
-    let prog = ssa::mil_to_ssa(prog);
-    writeln!(out, "{:?}", prog)?;
-
-    // TODO print AST as well?
-
-    // let out = std::io::stdout().lock();
-    // let mut pp = PrettyPrinter::start(IoAsFmt(out));
-
-    // println!();
-    // let ast = ast::ssa_to_ast(&prog);
-    // ast.pretty_print(&mut pp).unwrap()
-
-    Ok(out)
 }
