@@ -26,7 +26,7 @@ pub struct Program {
 ///
 /// The language admits as many registers as a u16 can represent (2**16). They're
 /// abstract, so we don't pay for them!
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Reg(pub u16);
 
 impl Reg {
@@ -439,6 +439,29 @@ impl Program {
         Some(InsnView { insn, dest, addr })
     }
 
+    pub fn slice(&self, start_ndx: Index, count: Index) -> Option<InsnSlice> {
+        let start_ndx = start_ndx as usize;
+        let end_ndx = start_ndx + count as usize;
+        if end_ndx >= self.insns.len() {
+            return None;
+        }
+
+        let insn = &self.insns[start_ndx..end_ndx];
+        let dest = &self.dests[start_ndx..end_ndx];
+        Some(InsnSlice { insn, dest })
+    }
+    pub fn slice_mut(&mut self, start_ndx: Index, count: Index) -> Option<InsnSliceMut> {
+        let start_ndx = start_ndx as usize;
+        let end_ndx = start_ndx + count as usize;
+        if end_ndx >= self.insns.len() {
+            return None;
+        }
+
+        let insn = &self.insns[start_ndx..end_ndx];
+        let dest = &self.dests[start_ndx..end_ndx];
+        Some(InsnSlice { insn, dest })
+    }
+
     #[inline(always)]
     pub fn get_mut(&mut self, ndx: Index) -> Option<InsnViewMut> {
         let insn = self.insns.get_mut(ndx as usize)?;
@@ -447,12 +470,22 @@ impl Program {
         Some(InsnViewMut { insn, dest, addr })
     }
 
-    pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
-        let index = self.insns.len().try_into().unwrap();
-        self.insns.push(insn);
-        self.dests.push(dest);
-        self.addrs.push(u64::MAX);
-        index
+    pub fn get_call_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
+        let ndx = ndx as usize;
+        assert!(matches!(self.insns[ndx], Insn::Call(_)));
+        self.insns.iter().skip(ndx + 1).map_while(|i| match i {
+            Insn::CArg(arg) => Some(*arg),
+            _ => None,
+        })
+    }
+
+    pub fn get_phi_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
+        let ndx = ndx as usize;
+        assert!(matches!(self.insns[ndx], Insn::Phi));
+        self.insns.iter().skip(ndx + 1).map_while(|i| match i {
+            Insn::PhiArg(arg) => Some(*arg),
+            _ => None,
+        })
     }
 
     #[inline(always)]
@@ -464,12 +497,54 @@ impl Program {
     pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = InsnView> {
         (0..self.len()).map(|ndx| self.get(ndx).unwrap())
     }
+
+    pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
+        let index = self.insns.len().try_into().unwrap();
+        self.insns.push(insn);
+        self.dests.push(dest);
+        self.addrs.push(u64::MAX);
+        index
+    }
 }
 
 pub struct InsnView<'a> {
     pub insn: &'a Insn,
     pub dest: Reg,
     pub addr: u64,
+}
+
+#[derive(Clone, Copy)]
+pub struct InsnSlice<'a> {
+    pub insn: &'a [Insn],
+    pub dest: &'a [Reg],
+}
+impl<'a> InsnSlice<'a> {
+    pub fn iter(&self) -> impl 'a + Iterator<Item = (Reg, Insn)> {
+        assert_eq!(self.insn.len(), self.dest.len());
+        self.dest.iter().copied().zip(self.insn.iter().copied())
+    }
+    pub fn len(&self) -> Index {
+        debug_assert_eq!(self.insn.len(), self.dest.len());
+        self.insn.len().try_into().unwrap()
+    }
+    pub fn get(&self, ndx: Index) -> Option<InsnView> {
+        if ndx < self.len() {
+            let ndx = ndx as usize;
+            Some(InsnView {
+                insn: &self.insn[ndx],
+                dest: self.dest[ndx],
+                addr: 0, // TODO!
+            })
+        } else {
+            None
+        }
+    }
+    pub fn last(&self) -> Option<InsnView> {
+        match self.len() {
+            0 => None,
+            n => self.get(n - 1),
+        }
+    }
 }
 
 pub struct InsnViewMut<'a> {

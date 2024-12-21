@@ -526,7 +526,7 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     while changed {
         changed = false;
 
-        for &bid in rpo.order().iter() {
+        for &bid in rpo.block_ids().iter() {
             let preds = &bwd_edges[bid];
             if preds.is_empty() {
                 continue;
@@ -605,6 +605,10 @@ where
 //
 // Traversals
 //
+pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
+    Ordering::new(reverse_postorder(graph.direct()))
+}
+
 pub fn traverse_postorder(graph: &Graph) -> Ordering {
     let mut order = reverse_postorder(graph.direct());
     order.reverse();
@@ -726,7 +730,7 @@ impl Ordering {
         Ordering { order, pos_of }
     }
 
-    pub fn order(&self) -> &[BlockID] {
+    pub fn block_ids(&self) -> &[BlockID] {
         &self.order
     }
 

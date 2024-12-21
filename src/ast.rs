@@ -1,4 +1,3 @@
-use std::ops::Range;
 use std::{collections::HashMap, rc::Rc};
 
 use smallvec::SmallVec;
@@ -166,7 +165,7 @@ pub fn ssa_to_ast(ssa: &ssa::Program) -> Ast {
 
 struct Builder<'a> {
     ssa: &'a ssa::Program,
-    name_of_value: HashMap<mil::Index, Ident>,
+    name_of_value: HashMap<mil::Reg, Ident>,
     label_of_block: cfg::BlockMap<Label>,
     nodes: NodeSet,
     blocks_compiling: Vec<BlockID>,
@@ -228,10 +227,10 @@ impl<'a> Builder<'a> {
     fn init_to_ast(ssa: &'a ssa::Program) -> Builder<'a> {
         let marks = mark_blocks(ssa.cfg());
 
-        let name_of_value = (0..ssa.len())
-            .filter_map(|ndx| {
-                let insn = ssa.get(ndx).unwrap().insn;
-                let is_named = match insn {
+        let name_of_value = ssa
+            .insns_unordered()
+            .filter_map(|iv| {
+                let is_named = match iv.insn {
                     mil::Insn::Const1(_)
                     | mil::Insn::Const2(_)
                     | mil::Insn::Const4(_)
@@ -241,11 +240,11 @@ impl<'a> Builder<'a> {
                     | mil::Insn::LoadMem4(_)
                     | mil::Insn::LoadMem8(_) => false,
                     mil::Insn::Phi | mil::Insn::Call { .. } => true,
-                    _ => ssa.readers_count(mil::Reg(ndx)) > 1,
+                    _ => ssa.readers_count(iv.dest) > 1,
                 };
                 if is_named {
-                    let name = Ident(Rc::new(format!("v{}", ndx)));
-                    Some((ndx, name))
+                    let name = Ident(Rc::new(format!("{:?}", iv.dest)));
+                    Some((iv.dest, name))
                 } else {
                     None
                 }
@@ -302,10 +301,10 @@ impl<'a> Builder<'a> {
         let phis = self.ssa.block_phi(bid);
         (0..phis.phi_count())
             .map(|phi_ndx| phis.node_ndx(phi_ndx))
-            .filter(|ndx| self.ssa.is_alive(*ndx))
-            .map(|ndx| {
+            .filter(|phi_reg| self.ssa.is_alive(*phi_reg))
+            .map(|phi_reg| {
                 self.name_of_value
-                    .get(&ndx)
+                    .get(&phi_reg)
                     .expect("unnamed phi node!")
                     .clone()
             })
@@ -319,10 +318,10 @@ impl<'a> Builder<'a> {
         );
         self.blocks_compiling.push(bid);
 
-        let cfg = &self.ssa.cfg();
+        let cfg = self.ssa.cfg();
 
-        let nor_ndxs = cfg.insns_ndx_range(bid);
-        self.compile_seq(&nor_ndxs, out_seq);
+        let nor_insns = self.ssa.block_normal_insns(bid).unwrap();
+        self.compile_seq(nor_insns, out_seq);
 
         let block_cont = cfg.block_cont(bid);
         match block_cont {
@@ -337,17 +336,16 @@ impl<'a> Builder<'a> {
                 side: (pos_pred_ndx, pos_bid),
             } => {
                 assert!(
-                    nor_ndxs.len() > 0,
+                    nor_insns.len() > 0,
                     "block with BlockCont::Alt continuation must have at least 1 insn"
                 );
-                let last_ndx = nor_ndxs.end - 1;
-                let last_item = self.ssa.get(last_ndx).unwrap();
+                let last_item = nor_insns.last().unwrap();
 
                 let cond = match &last_item.insn {
                     mil::Insn::JmpIf { cond, target: _ } => cond,
                     _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
                 };
-                let cond = self.add_node_of_value(cond.0);
+                let cond = self.add_node_of_value(*cond);
                 let cons = {
                     let mut seq = Seq::new();
                     self.compile_continue(neg_bid, neg_pred_ndx, &mut seq);
@@ -380,31 +378,26 @@ impl<'a> Builder<'a> {
         assert_eq!(check, Some(bid));
     }
 
-    fn compile_seq(&mut self, nor_ndxs: &Range<mil::Index>, out_seq: &mut Seq) {
-        out_seq.extend(
-            nor_ndxs
-                .clone()
-                .map(|ndx| (ndx, self.ssa.get(ndx).unwrap()))
-                .filter_map(|(ndx, iv)| {
-                    let name = self.name_of_value.get(&iv.dest.0).cloned();
+    fn compile_seq(&mut self, insns: mil::InsnSlice, out_seq: &mut Seq) {
+        out_seq.extend(insns.iter().filter_map(|(reg, insn)| {
+            let name = self.name_of_value.get(&reg).cloned();
 
-                    if !iv.insn.has_side_effects() && name.is_none() {
-                        return None;
-                    }
+            if !insn.has_side_effects() && name.is_none() {
+                return None;
+            }
 
-                    let node = self.compile_node(ndx);
-                    if node == Node::Nop {
-                        return None;
-                    }
+            let node = self.compile_node(reg);
+            if node == Node::Nop {
+                return None;
+            }
 
-                    if let Some(name) = name {
-                        let value = self.add_node(node);
-                        return Some(self.add_node(Node::Let { name, value }));
-                    };
+            if let Some(name) = name {
+                let value = self.add_node(node);
+                return Some(self.add_node(Node::Let { name, value }));
+            };
 
-                    Some(self.add_node(node))
-                }),
-        )
+            Some(self.add_node(node))
+        }))
     }
 
     fn compile_continue(&mut self, target_bid: cfg::BlockID, pred_ndx: u8, out_seq: &mut Seq) {
@@ -414,7 +407,7 @@ impl<'a> Builder<'a> {
                 .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
                 .map(|phi_ndx| {
                     let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
-                    self.add_node_of_value(reg.0)
+                    self.add_node_of_value(*reg)
                 })
                 .collect()
         };
@@ -471,55 +464,48 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn compile_node(&mut self, start_ndx: mil::Index) -> Node {
+    fn compile_node(&mut self, reg: mil::Reg) -> Node {
         use mil::Insn;
 
-        let iv = self.ssa.get(start_ndx).unwrap();
+        let iv = self.ssa.get(reg).unwrap();
         match iv.insn {
             Insn::Call(callee) => {
-                let callee = self.add_node_of_value(callee.0);
+                let callee = self.add_node_of_value(*callee);
 
                 let mut args = SmallVec::new();
-                let mut i = 1;
-                while let Some(mil::InsnView {
-                    insn: Insn::CArg(arg_reg),
-                    ..
-                }) = self.ssa.get(start_ndx + i)
-                {
-                    let arg = self.add_node_of_value(arg_reg.0);
+                for arg_reg in self.ssa.get_call_args(reg) {
+                    let arg = self.add_node_of_value(arg_reg);
                     args.push(arg);
-
-                    i += 1;
                 }
 
                 Node::Call(callee, args)
             }
             // To be handled in ::Call
             Insn::CArg { .. } => Node::Nop,
-            Insn::Ret(arg) => Node::Return(self.add_node_of_value(arg.0)),
+            Insn::Ret(arg) => Node::Return(self.add_node_of_value(*arg)),
             Insn::JmpExt(target) => Node::ContinueToExtern(*target),
             Insn::JmpI(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }
             Insn::StoreMem1(addr, val) => {
-                let addr = self.add_node_of_value(addr.0);
-                let val = self.add_node_of_value(val.0);
+                let addr = self.add_node_of_value(*addr);
+                let val = self.add_node_of_value(*val);
                 Node::StoreMem1(addr, val)
             }
             Insn::StoreMem2(addr, val) => {
-                let addr = self.add_node_of_value(addr.0);
-                let val = self.add_node_of_value(val.0);
+                let addr = self.add_node_of_value(*addr);
+                let val = self.add_node_of_value(*val);
                 Node::StoreMem2(addr, val)
             }
             Insn::StoreMem4(addr, val) => {
-                let addr = self.add_node_of_value(addr.0);
-                let val = self.add_node_of_value(val.0);
+                let addr = self.add_node_of_value(*addr);
+                let val = self.add_node_of_value(*val);
                 Node::StoreMem4(addr, val)
             }
             Insn::StoreMem8(addr, val) => {
-                let addr = self.add_node_of_value(addr.0);
-                let val = self.add_node_of_value(val.0);
+                let addr = self.add_node_of_value(*addr);
+                let val = self.add_node_of_value(*val);
                 Node::StoreMem8(addr, val)
             }
 
@@ -528,81 +514,81 @@ impl<'a> Builder<'a> {
             Insn::Const4(val) => Node::Const4(*val),
             Insn::Const8(val) => Node::Const8(*val),
 
-            Insn::L1(reg) => Node::L1(self.add_node_of_value(reg.0)),
-            Insn::L2(reg) => Node::L2(self.add_node_of_value(reg.0)),
-            Insn::L4(reg) => Node::L4(self.add_node_of_value(reg.0)),
-            Insn::Get(reg) => self.node_of_value(reg.0),
+            Insn::L1(reg) => Node::L1(self.add_node_of_value(*reg)),
+            Insn::L2(reg) => Node::L2(self.add_node_of_value(*reg)),
+            Insn::L4(reg) => Node::L4(self.add_node_of_value(*reg)),
+            Insn::Get(reg) => self.node_of_value(*reg),
 
             Insn::WithL1(a, b) => {
-                Node::WithL1(self.add_node_of_value(a.0), self.add_node_of_value(b.0))
+                Node::WithL1(self.add_node_of_value(*a), self.add_node_of_value(*b))
             }
             Insn::WithL2(a, b) => {
-                Node::WithL2(self.add_node_of_value(a.0), self.add_node_of_value(b.0))
+                Node::WithL2(self.add_node_of_value(*a), self.add_node_of_value(*b))
             }
             Insn::WithL4(a, b) => {
-                Node::WithL4(self.add_node_of_value(a.0), self.add_node_of_value(b.0))
+                Node::WithL4(self.add_node_of_value(*a), self.add_node_of_value(*b))
             }
             Insn::Add(a, b) => {
-                let a = self.add_node_of_value(a.0);
-                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(*b);
                 self.fold_bin(BinOp::Add, a, b)
             }
             Insn::AddK(a, k) => {
-                let a = self.add_node_of_value(a.0);
+                let a = self.add_node_of_value(*a);
                 let b = self.add_node(Node::Const8(*k as u64));
                 self.fold_bin(BinOp::Add, a, b)
             }
             Insn::Sub(a, b) => {
-                let a = self.add_node_of_value(a.0);
-                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(*b);
                 self.fold_bin(BinOp::Sub, a, b)
             }
             Insn::Mul(a, b) => {
-                let a = self.add_node_of_value(a.0);
-                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(*b);
                 self.fold_bin(BinOp::Mul, a, b)
             }
             Insn::MulK(a, k) => {
-                let a = self.add_node_of_value(a.0);
+                let a = self.add_node_of_value(*a);
                 let b = self.add_node(Node::Const8(*k as u64));
                 self.fold_bin(BinOp::Mul, a, b)
             }
             Insn::Shl(a, b) => {
-                let b = self.add_node_of_value(b.0);
-                let a = self.add_node_of_value(a.0);
+                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(*a);
                 self.fold_bin(BinOp::Shl, a, b)
             }
             Insn::BitAnd(a, b) => {
-                let a = self.add_node_of_value(a.0);
-                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(*b);
                 self.fold_bin(BinOp::BitAnd, a, b)
             }
             Insn::BitOr(a, b) => {
-                let a = self.add_node_of_value(a.0);
-                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(*b);
                 self.fold_bin(BinOp::BitOr, a, b)
             }
             Insn::Eq(a, b) => {
-                let a = self.add_node_of_value(a.0);
-                let b = self.add_node_of_value(b.0);
+                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(*b);
                 Node::Cmp {
                     op: CmpOp::EQ,
                     a,
                     b,
                 }
             }
-            Insn::Not(x) => Node::Not(self.add_node_of_value(x.0)),
+            Insn::Not(x) => Node::Not(self.add_node_of_value(*x)),
             Insn::TODO(msg) => Node::TODO(msg),
-            Insn::LoadMem1(addr_reg) => Node::LoadMem1(self.add_node_of_value(addr_reg.0)),
-            Insn::LoadMem2(addr_reg) => Node::LoadMem2(self.add_node_of_value(addr_reg.0)),
-            Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.add_node_of_value(addr_reg.0)),
-            Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.add_node_of_value(addr_reg.0)),
+            Insn::LoadMem1(addr_reg) => Node::LoadMem1(self.add_node_of_value(*addr_reg)),
+            Insn::LoadMem2(addr_reg) => Node::LoadMem2(self.add_node_of_value(*addr_reg)),
+            Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.add_node_of_value(*addr_reg)),
+            Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.add_node_of_value(*addr_reg)),
 
-            Insn::OverflowOf(arg) => Node::OverflowOf(self.add_node_of_value(arg.0)),
-            Insn::CarryOf(arg) => Node::CarryOf(self.add_node_of_value(arg.0)),
-            Insn::SignOf(arg) => Node::SignOf(self.add_node_of_value(arg.0)),
-            Insn::IsZero(arg) => Node::IsZero(self.add_node_of_value(arg.0)),
-            Insn::Parity(arg) => Node::Parity(self.add_node_of_value(arg.0)),
+            Insn::OverflowOf(arg) => Node::OverflowOf(self.add_node_of_value(*arg)),
+            Insn::CarryOf(arg) => Node::CarryOf(self.add_node_of_value(*arg)),
+            Insn::SignOf(arg) => Node::SignOf(self.add_node_of_value(*arg)),
+            Insn::IsZero(arg) => Node::IsZero(self.add_node_of_value(*arg)),
+            Insn::Parity(arg) => Node::Parity(self.add_node_of_value(*arg)),
 
             Insn::Undefined => Node::Undefined,
             Insn::Ancestral(anc) => match anc {
@@ -613,15 +599,10 @@ impl<'a> Builder<'a> {
             Insn::Phi => {
                 let mut args = SmallVec::new();
 
-                let mut pred_ndx = 0;
-                while let Some(mil::InsnView {
-                    insn: Insn::PhiArg(value),
-                    ..
-                }) = self.ssa.get(start_ndx + 1 + pred_ndx)
-                {
-                    let value_expr = self.add_node_of_value(value.0);
+                for (pred_ndx, value) in self.ssa.get_phi_args(reg).enumerate() {
+                    let pred_ndx = pred_ndx.try_into().unwrap();
+                    let value_expr = self.add_node_of_value(value);
                     args.push((pred_ndx, value_expr));
-                    pred_ndx += 1;
                 }
 
                 Node::Phi(args)
@@ -643,16 +624,16 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn add_node_of_value(&mut self, ndx: mil::Index) -> NodeID {
-        let node = self.node_of_value(ndx);
+    fn add_node_of_value(&mut self, reg: mil::Reg) -> NodeID {
+        let node = self.node_of_value(reg);
         self.add_node(node)
     }
-    fn node_of_value(&mut self, ndx: mil::Index) -> Node {
-        if let Some(lbl) = self.name_of_value.get(&ndx) {
+    fn node_of_value(&mut self, reg: mil::Reg) -> Node {
+        if let Some(lbl) = self.name_of_value.get(&reg) {
             Node::Ref(lbl.clone())
         } else {
             // inline
-            self.compile_node(ndx)
+            self.compile_node(reg)
         }
     }
 

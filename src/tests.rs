@@ -78,7 +78,7 @@ mod logical_vars {
 }
 
 mod constant_folding {
-    use crate::{mil, ssa, xform};
+    use crate::{cfg, mil, ssa, xform};
 
     #[test]
     fn addk() {
@@ -101,11 +101,13 @@ mod constant_folding {
         let mut prog = ssa::mil_to_ssa(prog);
         xform::fold_constants(&mut prog);
 
-        assert_eq!(prog.len(), 10);
-        assert_eq!(prog.get(3).unwrap().insn, &Insn::AddK(Reg(0), 5));
-        assert_eq!(prog.get(4).unwrap().insn, &Insn::AddK(Reg(0), 10));
-        assert_eq!(prog.get(5).unwrap().insn, &Insn::Const8(49));
-        assert_eq!(prog.get(8).unwrap().insn, &Insn::Get(Reg(7)));
+        assert_eq!(prog.cfg().block_count(), 1);
+        let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
+        assert_eq!(insns.len(), 10);
+        assert_eq!(insns.get(3).unwrap().insn, &Insn::AddK(Reg(0), 5));
+        assert_eq!(insns.get(4).unwrap().insn, &Insn::AddK(Reg(0), 10));
+        assert_eq!(insns.get(5).unwrap().insn, &Insn::Const8(49));
+        assert_eq!(insns.get(8).unwrap().insn, &Insn::Get(Reg(7)));
     }
 
     #[test]
@@ -129,10 +131,11 @@ mod constant_folding {
         let mut prog = ssa::mil_to_ssa(prog);
         xform::fold_constants(&mut prog);
 
-        assert_eq!(prog.len(), 10);
-        assert_eq!(prog.get(3).unwrap().insn, &Insn::MulK(Reg(0), 5));
-        assert_eq!(prog.get(4).unwrap().insn, &Insn::MulK(Reg(0), 25));
-        assert_eq!(prog.get(5).unwrap().insn, &Insn::Const8(5 * 44));
-        assert_eq!(prog.get(8).unwrap().insn, &Insn::Get(Reg(7)));
+        let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
+        assert_eq!(insns.len(), 10);
+        assert_eq!(insns.get(3).unwrap().insn, &Insn::MulK(Reg(0), 5));
+        assert_eq!(insns.get(4).unwrap().insn, &Insn::MulK(Reg(0), 25));
+        assert_eq!(insns.get(5).unwrap().insn, &Insn::Const8(5 * 44));
+        assert_eq!(insns.get(8).unwrap().insn, &Insn::Get(Reg(7)));
     }
 }

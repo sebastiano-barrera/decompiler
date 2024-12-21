@@ -1,6 +1,6 @@
-use std::{any::Any, fs::File};
+use std::fs::File;
 
-use gimli::{EndianSlice, Reader};
+use gimli::EndianSlice;
 
 fn main() {
     let executable_path = std::env::args()

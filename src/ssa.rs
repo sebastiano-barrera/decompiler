@@ -7,10 +7,7 @@ use std::ops::Range;
 /// > Cooper, Keith & Harvey, Timothy & Kennedy, Ken. (2006).
 /// > A Simple, Fast Dominance Algorithm.
 /// > Rice University, CS Technical Report 06-33870.
-use crate::{
-    cfg::{self, BlockID},
-    mil,
-};
+use crate::{cfg, mil};
 
 pub struct Program {
     // an ssa::Program contains a mil::Program at its core, but never exposes it directly:
@@ -35,11 +32,16 @@ impl Program {
         &self.cfg
     }
 
-    pub fn get(&self, ndx: mil::Index) -> Option<mil::InsnView> {
-        self.inner.get(ndx)
-    }
-    pub fn len(&self) -> mil::Index {
-        self.inner.len()
+    /// Get the defining instruction for the given register.
+    ///
+    /// (Note that it's not allowed to fetch instructions by position.)
+    pub fn get(&self, reg: mil::Reg) -> Option<mil::InsnView> {
+        // In SSA, Reg(ndx) happens to be located at index ndx.
+        // But it's a detail we try to hide, as it's likely we're going to have
+        // to transition to a more complex structure in the future.
+        let iv = self.inner.get(reg.0)?;
+        debug_assert_eq!(iv.dest, reg);
+        Some(iv)
     }
 
     pub fn readers_count(&self, reg: mil::Reg) -> usize {
@@ -50,8 +52,36 @@ impl Program {
         &self.phis[bid]
     }
 
-    pub fn is_alive(&self, ndx: mil::Index) -> bool {
-        self.is_alive[ndx as usize]
+    pub fn is_alive(&self, reg: mil::Reg) -> bool {
+        self.is_alive[reg.0 as usize]
+    }
+
+    /// Iterate through the instructions in the program, in no particular order
+    pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView<'_>> {
+        self.inner
+            .iter()
+            .enumerate()
+            .filter(move |(ndx, _)| self.is_alive[*ndx])
+            .map(|(_, insn)| insn)
+    }
+
+    pub fn block_normal_insns(&self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
+        let ndx_range = self.cfg.insns_ndx_range(bid);
+        let count = ndx_range.end - ndx_range.start;
+        self.inner.slice(ndx_range.start, count)
+    }
+    pub fn block_normal_insns_mut(&mut self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
+        let ndx_range = self.cfg.insns_ndx_range(bid);
+        let count = ndx_range.end - ndx_range.start;
+        self.inner.slice_mut(ndx_range.start, count)
+    }
+
+    pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
+        self.inner.get_call_args(reg.0)
+    }
+
+    pub fn get_phi_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
+        self.inner.get_phi_args(reg.0)
     }
 }
 
@@ -109,13 +139,14 @@ impl PhiInfo {
         self.pred_count
     }
 
-    pub fn node_ndx(&self, phi_ndx: mil::Index) -> mil::Index {
+    pub fn node_ndx(&self, phi_ndx: mil::Index) -> mil::Reg {
         assert!(phi_ndx < self.phi_count);
         assert_eq!(
             self.ndxs.len(),
             (self.phi_count * (1 + self.pred_count)).into()
         );
-        self.ndxs.start + phi_ndx * (1 + self.pred_count)
+        let value_ndx = self.ndxs.start + phi_ndx * (1 + self.pred_count);
+        mil::Reg(value_ndx)
     }
 
     pub fn arg<'p>(
@@ -131,9 +162,9 @@ impl PhiInfo {
         }
     }
 
-    fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Index {
+    fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
         assert!(pred_ndx < self.pred_count);
-        self.node_ndx(phi_ndx) + 1 + pred_ndx
+        mil::Reg(self.node_ndx(phi_ndx).0 + 1 + pred_ndx)
     }
 }
 
@@ -273,7 +304,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
     enum Cmd {
         Finish,
-        Start(BlockID),
+        Start(cfg::BlockID),
     }
     let mut queue = vec![Cmd::Finish, Cmd::Start(cfg::ENTRY_BID)];
 
@@ -350,8 +381,8 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                     let succ_phis = &mut phis[succ];
 
                     for phi_ndx in 0..succ_phis.phi_count {
-                        let ndx = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
-                        let arg = match program.get_mut(ndx).unwrap().insn {
+                        let arg = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
+                        let arg = match program.get_mut(arg.0).unwrap().insn {
                             mil::Insn::Phi => continue,
                             mil::Insn::PhiArg(value) => value,
                             _ => panic!("non-phi node in block phi ndx range"),
@@ -479,14 +510,12 @@ fn place_phi_nodes(
             phi_count,
             pred_count,
         };
-        {
-            for phi_ndx in 0..phi_info.phi_count {
-                for pred_ndx in 0..phi_info.pred_count {
-                    // check that it doesn't throw
-                    let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
-                    let item = program.get(ndx).unwrap();
-                    assert!(matches!(&item.insn, mil::Insn::PhiArg(_)));
-                }
+        for phi_ndx in 0..phi_info.phi_count {
+            for pred_ndx in 0..phi_info.pred_count {
+                // check that it doesn't throw
+                let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
+                let item = program.get(ndx.0).unwrap();
+                assert!(matches!(&item.insn, mil::Insn::PhiArg(_)));
             }
         }
 
@@ -574,7 +603,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     prog.is_alive.fill(false);
     prog.rdr_count.reset();
 
-    for &bid in postorder.order() {
+    for &bid in postorder.block_ids() {
         for ndx in prog.cfg.insns_ndx_range(bid).rev() {
             let item = prog.inner.get(ndx).unwrap();
             let dest = item.dest;
@@ -638,8 +667,8 @@ impl ReaderCount {
 pub struct EditableProgram<'a>(&'a mut Program);
 
 impl<'a> EditableProgram<'a> {
-    pub fn get_mut(&mut self, ndx: mil::Index) -> Option<mil::InsnViewMut> {
-        self.0.inner.get_mut(ndx)
+    pub fn get_mut(&mut self, reg: mil::Reg) -> Option<mil::InsnViewMut> {
+        self.0.inner.get_mut(reg.0)
     }
 }
 impl<'a> std::ops::Deref for EditableProgram<'a> {
