@@ -1,7 +1,7 @@
 /// Machine-Independent Language
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::collections::HashMap;
+use std::{cell::Cell, collections::HashMap, ops::Range};
 
 /// A MIL program.
 ///
@@ -12,8 +12,8 @@ use std::collections::HashMap;
 ///
 /// By convention, the entry point of the program is always at index 0.
 pub struct Program {
-    insns: Vec<Insn>,
-    dests: Vec<Reg>,
+    insns: Vec<Cell<Insn>>,
+    dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
@@ -424,68 +424,60 @@ impl std::fmt::Debug for Program {
                 writeln!(f, "0x{:x}:", addr)?;
                 last_addr = *addr;
             }
-            writeln!(f, "{:5} {:?} <- {:?}", ndx, dest, insn)?;
+            writeln!(f, "{:5} {:?} <- {:?}", ndx, dest.get(), insn.get())?;
         }
         Ok(())
+    }
+}
+
+fn range_conv<T, U: From<T>>(range: Range<T>) -> Range<U> {
+    Range {
+        start: range.start.into(),
+        end: range.end.into(),
     }
 }
 
 impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
-        let insn = self.insns.get(ndx as usize)?;
-        let dest = *self.dests.get(ndx as usize).unwrap();
-        let addr = *self.addrs.get(ndx as usize).unwrap();
+        let ndx = ndx as usize;
+        let insn = &self.insns[ndx];
+        let dest = &self.dests[ndx];
+        let addr = self.addrs[ndx];
         Some(InsnView { insn, dest, addr })
     }
 
-    pub fn slice(&self, start_ndx: Index, count: Index) -> Option<InsnSlice> {
-        let start_ndx = start_ndx as usize;
-        let end_ndx = start_ndx + count as usize;
-        if end_ndx >= self.insns.len() {
-            return None;
-        }
-
-        let insn = &self.insns[start_ndx..end_ndx];
-        let dest = &self.dests[start_ndx..end_ndx];
-        Some(InsnSlice { insn, dest })
-    }
-    pub fn slice_mut(&mut self, start_ndx: Index, count: Index) -> Option<InsnSliceMut> {
-        let start_ndx = start_ndx as usize;
-        let end_ndx = start_ndx + count as usize;
-        if end_ndx >= self.insns.len() {
-            return None;
-        }
-
-        let insn = &self.insns[start_ndx..end_ndx];
-        let dest = &self.dests[start_ndx..end_ndx];
-        Some(InsnSlice { insn, dest })
-    }
-
-    #[inline(always)]
-    pub fn get_mut(&mut self, ndx: Index) -> Option<InsnViewMut> {
-        let insn = self.insns.get_mut(ndx as usize)?;
-        let dest = self.dests.get_mut(ndx as usize).unwrap();
-        let addr = *self.addrs.get_mut(ndx as usize).unwrap();
-        Some(InsnViewMut { insn, dest, addr })
+    pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
+        let insn = self.insns.get(range_conv(ndxr.clone()))?;
+        let dest = &self.dests[range_conv(ndxr)];
+        Some(InsnSlice {
+            insns: insn,
+            dests: dest,
+        })
     }
 
     pub fn get_call_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
         let ndx = ndx as usize;
-        assert!(matches!(self.insns[ndx], Insn::Call(_)));
-        self.insns.iter().skip(ndx + 1).map_while(|i| match i {
-            Insn::CArg(arg) => Some(*arg),
-            _ => None,
-        })
+        assert!(matches!(self.insns[ndx].get(), Insn::Call(_)));
+        self.insns
+            .iter()
+            .skip(ndx + 1)
+            .map_while(|i| match i.get() {
+                Insn::CArg(arg) => Some(arg),
+                _ => None,
+            })
     }
 
     pub fn get_phi_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
         let ndx = ndx as usize;
-        assert!(matches!(self.insns[ndx], Insn::Phi));
-        self.insns.iter().skip(ndx + 1).map_while(|i| match i {
-            Insn::PhiArg(arg) => Some(*arg),
-            _ => None,
-        })
+        assert!(matches!(self.insns[ndx].get(), Insn::Phi));
+        self.insns
+            .iter()
+            .skip(ndx + 1)
+            .map_while(|i| match i.get() {
+                Insn::PhiArg(arg) => Some(arg),
+                _ => None,
+            })
     }
 
     #[inline(always)]
@@ -500,51 +492,28 @@ impl Program {
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
         let index = self.insns.len().try_into().unwrap();
-        self.insns.push(insn);
-        self.dests.push(dest);
+        self.insns.push(Cell::new(insn));
+        self.dests.push(Cell::new(dest));
         self.addrs.push(u64::MAX);
         index
     }
 }
 
 pub struct InsnView<'a> {
-    pub insn: &'a Insn,
-    pub dest: Reg,
+    pub insn: &'a Cell<Insn>,
+    pub dest: &'a Cell<Reg>,
     pub addr: u64,
 }
 
 #[derive(Clone, Copy)]
 pub struct InsnSlice<'a> {
-    pub insn: &'a [Insn],
-    pub dest: &'a [Reg],
+    pub insns: &'a [Cell<Insn>],
+    pub dests: &'a [Cell<Reg>],
 }
-impl<'a> InsnSlice<'a> {
-    pub fn iter(&self) -> impl 'a + Iterator<Item = (Reg, Insn)> {
-        assert_eq!(self.insn.len(), self.dest.len());
-        self.dest.iter().copied().zip(self.insn.iter().copied())
-    }
-    pub fn len(&self) -> Index {
-        debug_assert_eq!(self.insn.len(), self.dest.len());
-        self.insn.len().try_into().unwrap()
-    }
-    pub fn get(&self, ndx: Index) -> Option<InsnView> {
-        if ndx < self.len() {
-            let ndx = ndx as usize;
-            Some(InsnView {
-                insn: &self.insn[ndx],
-                dest: self.dest[ndx],
-                addr: 0, // TODO!
-            })
-        } else {
-            None
-        }
-    }
-    pub fn last(&self) -> Option<InsnView> {
-        match self.len() {
-            0 => None,
-            n => self.get(n - 1),
-        }
-    }
+pub struct InsnSliceMut<'a> {
+    pub program: &'a mut Program,
+    pub insns: &'a mut [Insn],
+    pub dests: &'a mut [Reg],
 }
 
 pub struct InsnViewMut<'a> {
@@ -556,8 +525,8 @@ pub struct InsnViewMut<'a> {
 
 // will be mostly useful to keep origin info later
 pub struct ProgramBuilder {
-    insns: Vec<Insn>,
-    dests: Vec<Reg>,
+    insns: Vec<Cell<Insn>>,
+    dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
     cur_input_addr: u64,
 }
@@ -573,8 +542,8 @@ impl ProgramBuilder {
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
-        self.dests.push(dest);
-        self.insns.push(insn);
+        self.dests.push(Cell::new(dest));
+        self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
         dest
     }
@@ -590,7 +559,7 @@ impl ProgramBuilder {
 
     pub fn build(self) -> Program {
         let Self {
-            mut insns,
+            insns,
             dests,
             addrs,
             ..
@@ -614,19 +583,16 @@ impl ProgramBuilder {
             map
         };
 
-        for insn in &mut insns {
-            match insn {
+        for insn in &insns {
+            match insn.get() {
                 Insn::JmpExt(addr) => {
-                    if let Some(ndx) = mil_of_input_addr.get(addr) {
-                        *insn = Insn::Jmp(*ndx);
+                    if let Some(ndx) = mil_of_input_addr.get(&addr) {
+                        insn.set(Insn::Jmp(*ndx));
                     }
                 }
                 Insn::JmpExtIf { cond, target } => {
-                    if let Some(ndx) = mil_of_input_addr.get(target) {
-                        *insn = Insn::JmpIf {
-                            cond: *cond,
-                            target: *ndx,
-                        };
+                    if let Some(ndx) = mil_of_input_addr.get(&target) {
+                        insn.set(Insn::JmpIf { cond, target: *ndx });
                     }
                 }
                 _ => {}

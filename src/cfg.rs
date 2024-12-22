@@ -375,11 +375,11 @@ fn dest_of_insn(
     program: &mil::Program,
     ndx: mil::Index,
 ) -> (Option<mil::Index>, Option<mil::Index>) {
-    let insn = program.get(ndx).unwrap().insn;
+    let insn = program.get(ndx).unwrap().insn.get();
     match insn {
         mil::Insn::JmpI(_) => todo!("indirect jump"),
-        mil::Insn::Jmp(ndx) => (None, Some(*ndx)),
-        mil::Insn::JmpIf { target, .. } => (Some(ndx + 1), Some(*target)),
+        mil::Insn::Jmp(ndx) => (None, Some(ndx)),
+        mil::Insn::JmpIf { target, .. } => (Some(ndx + 1), Some(target)),
         mil::Insn::Ret(_) => {
             // one-past-the-end of the program is a valid index; signifies "exit the function"
             (None, Some(program.len()))

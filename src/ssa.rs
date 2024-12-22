@@ -40,7 +40,7 @@ impl Program {
         // But it's a detail we try to hide, as it's likely we're going to have
         // to transition to a more complex structure in the future.
         let iv = self.inner.get(reg.0)?;
-        debug_assert_eq!(iv.dest, reg);
+        debug_assert_eq!(iv.dest.get(), reg);
         Some(iv)
     }
 
@@ -57,7 +57,7 @@ impl Program {
     }
 
     /// Iterate through the instructions in the program, in no particular order
-    pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView<'_>> {
+    pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView> {
         self.inner
             .iter()
             .enumerate()
@@ -67,13 +67,7 @@ impl Program {
 
     pub fn block_normal_insns(&self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
         let ndx_range = self.cfg.insns_ndx_range(bid);
-        let count = ndx_range.end - ndx_range.start;
-        self.inner.slice(ndx_range.start, count)
-    }
-    pub fn block_normal_insns_mut(&mut self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
-        let ndx_range = self.cfg.insns_ndx_range(bid);
-        let count = ndx_range.end - ndx_range.start;
-        self.inner.slice_mut(ndx_range.start, count)
+        self.inner.slice(ndx_range)
     }
 
     pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
@@ -92,10 +86,6 @@ impl Program {
         assert_eq!(len, self.is_alive.len());
         assert_eq!(len, self.rdr_count.0.len());
         // TODO more?
-    }
-
-    pub fn edit(&mut self) -> EditableProgram {
-        EditableProgram(self)
     }
 
     /// Push a new instruction to the program.
@@ -149,14 +139,9 @@ impl PhiInfo {
         mil::Reg(value_ndx)
     }
 
-    pub fn arg<'p>(
-        &self,
-        ssa: &'p Program,
-        phi_ndx: mil::Index,
-        pred_ndx: mil::Index,
-    ) -> &'p mil::Reg {
+    pub fn arg<'p>(&self, ssa: &'p Program, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
         let item = ssa.get(self.arg_ndx(phi_ndx, pred_ndx)).unwrap();
-        match item.insn {
+        match item.insn.get() {
             mil::Insn::PhiArg(reg) => reg,
             other => panic!("expected phiarg, got {:?}", other),
         }
@@ -199,13 +184,13 @@ impl std::fmt::Debug for Program {
                 }
 
                 let item = self.inner.get(ndx).unwrap();
-                let rdr_count = self.rdr_count.get(item.dest);
+                let rdr_count = self.rdr_count.get(item.dest.get());
                 if rdr_count > 1 {
                     write!(f, "  ({:3})  ", rdr_count)?;
                 } else {
                     write!(f, "         ")?;
                 }
-                writeln!(f, "{:?} <- {:?}", item.dest, item.insn)?;
+                writeln!(f, "{:?} <- {:?}", item.dest.get(), item.insn.get())?;
             }
         }
 
@@ -319,11 +304,11 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                 // while processing the predecessors
                 let block_phis = &phis[bid];
                 for ndx in block_phis.ndxs.clone() {
-                    let item = program.get_mut(ndx).unwrap();
-                    match item.insn {
+                    let item = program.get(ndx).unwrap();
+                    match item.insn.get() {
                         mil::Insn::Phi { .. } => {
-                            var_map.set(*item.dest, mil::Reg(ndx));
-                            *item.dest = mil::Reg(ndx);
+                            var_map.set(item.dest.get(), mil::Reg(ndx));
+                            item.dest.set(mil::Reg(ndx));
                         }
                         mil::Insn::PhiArg { .. } => {}
                         _ => panic!("non-phi node in block phi ndx range"),
@@ -331,8 +316,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                 }
 
                 for insn_ndx in cfg.insns_ndx_range(bid) {
-                    let insn = program.get_mut(insn_ndx).unwrap();
-                    let inputs = insn.insn.input_regs_mut();
+                    let iv = program.get(insn_ndx).unwrap();
 
                     // TODO Re-establish this invariant
                     //  this will only make sense after I add abstract values representing initial
@@ -343,19 +327,21 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                     // >     assert_eq!(inputs, [None, None]);
                     // > }
 
-                    for reg in inputs.into_iter().flatten() {
+                    let mut insn = iv.insn.get();
+                    for reg in insn.input_regs_mut().into_iter().flatten() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
+                    iv.insn.set(insn);
 
                     // in the output SSA, each destination register corrsponds to the instruction's
                     // index. this way, the numeric value of a register can also be used as
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
-                    let old_name = std::mem::replace(insn.dest, new_dest);
-                    let new_name = if let mil::Insn::Get(input_reg) = insn.insn {
+                    let old_name = iv.dest.replace(new_dest);
+                    let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
-                        *input_reg
+                        input_reg
                     } else {
                         new_dest
                     };
@@ -364,7 +350,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
                 }
                 for insn_ndx in cfg.insns_ndx_range(bid) {
                     let item = program.get(insn_ndx).unwrap();
-                    assert_eq!(item.dest, mil::Reg(insn_ndx));
+                    assert_eq!(item.dest.get(), mil::Reg(insn_ndx));
                 }
 
                 // -- patch successor's phi nodes
@@ -382,20 +368,22 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
 
                     for phi_ndx in 0..succ_phis.phi_count {
                         let arg = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
-                        let arg = match program.get_mut(arg.0).unwrap().insn {
+                        let iv = program.get(arg.0).unwrap();
+                        match iv.insn.get() {
                             mil::Insn::Phi => continue,
-                            mil::Insn::PhiArg(value) => value,
+                            mil::Insn::PhiArg(arg) => {
+                                // NOTE: the substitution of the *successor's* phi node's argument is
+                                // done in the context of *this* node (its predecessor)
+                                let arg_repl = var_map.get(arg).unwrap_or_else(|| {
+                                    panic!(
+                                        "value {:?} not initialized in pre-ssa (phi {:?}--[{}]-->{:?})",
+                                        arg, bid, my_pred_ndx, succ
+                                    )
+                                });
+                                iv.insn.set(mil::Insn::PhiArg(arg_repl));
+                            }
                             _ => panic!("non-phi node in block phi ndx range"),
                         };
-
-                        // NOTE: the substitution of the *successor's* phi node's argument is
-                        // done in the context of *this* node (its predecessor)
-                        *arg = var_map.get(*arg).unwrap_or_else(|| {
-                            panic!(
-                                "value {:?} not initialized in pre-ssa (phi {:?}--[{}]-->{:?})",
-                                *arg, bid, my_pred_ndx, succ
-                            )
-                        });
                     }
                 }
 
@@ -425,7 +413,7 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     for (ndx, insn) in program.iter().enumerate() {
         let ndx = ndx.try_into().unwrap();
         assert_eq!(
-            insn.dest,
+            insn.dest.get(),
             mil::Reg(ndx),
             "insn unvisited: {:?} <- {:?}",
             insn.dest,
@@ -468,7 +456,7 @@ fn place_phi_nodes(
 
         for insn_ndx in cfg.insns_ndx_range(bid) {
             let insn = program.get(insn_ndx).unwrap();
-            let mil::Reg(dest_ndx) = insn.dest;
+            let mil::Reg(dest_ndx) = insn.dest.get();
             for target_ndx in 0..cfg.block_count() {
                 if *is_dom_front.item(bid_ndx, target_ndx) {
                     *phis_set.item_mut(target_ndx, dest_ndx as usize) = true;
@@ -515,7 +503,7 @@ fn place_phi_nodes(
                 // check that it doesn't throw
                 let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
                 let item = program.get(ndx.0).unwrap();
-                assert!(matches!(&item.insn, mil::Insn::PhiArg(_)));
+                assert!(matches!(item.insn.get(), mil::Insn::PhiArg(_)));
             }
         }
 
@@ -527,19 +515,19 @@ fn place_phi_nodes(
 
 // TODO cache this info somewhere. it's so weird to recompute it twice!
 fn count_variables(program: &mil::Program) -> mil::Index {
-    use std::iter::once;
-
-    let max_reg_ndx = program
+    let max_dest = program
         .iter()
-        .flat_map(|insn| {
-            let inputs = insn.insn.input_regs().into_iter().flatten().copied();
-            once(insn.dest).chain(inputs)
-        })
-        .map(|reg| reg.reg_index())
+        .map(|iv| iv.dest.get().reg_index())
         .max()
-        .unwrap();
-
-    1 + max_reg_ndx
+        .unwrap_or(0);
+    let max_arg = program
+        .iter()
+        .flat_map(|iv| iv.insn.get().input_regs().map(|arg| arg.copied()))
+        .filter_map(|arg_opt| arg_opt)
+        .map(|r| r.reg_index())
+        .max()
+        .unwrap_or(0);
+    1 + max_dest.max(max_arg)
 }
 
 struct Mat<T> {
@@ -606,16 +594,17 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     for &bid in postorder.block_ids() {
         for ndx in prog.cfg.insns_ndx_range(bid).rev() {
             let item = prog.inner.get(ndx).unwrap();
-            let dest = item.dest;
+            let dest = item.dest.get();
+            let insn = item.insn.get();
 
             let is_alive = prog.is_alive.get_mut(dest.reg_index() as usize).unwrap();
-            *is_alive = item.insn.has_side_effects() || prog.rdr_count.get(dest) > 0;
+            *is_alive = insn.has_side_effects() || prog.rdr_count.get(dest) > 0;
             if !*is_alive {
                 // this insn's reads don't count
                 continue;
             }
 
-            for &input in item.insn.input_regs().into_iter().flatten() {
+            for &input in insn.input_regs().into_iter().flatten() {
                 prog.rdr_count.inc(input);
             }
         }
@@ -629,14 +618,14 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             let reg = mil::Reg(ndx);
             let is_alive = prog.is_alive.get_mut(reg.reg_index() as usize).unwrap();
             *is_alive = prog.rdr_count.get(reg) > 0;
-            match prog.inner.get_mut(ndx).unwrap().insn {
+            match prog.inner.get(ndx).unwrap().insn.get() {
                 mil::Insn::Phi { .. } => {
                     flag = *is_alive;
                 }
                 mil::Insn::PhiArg(value) => {
                     *is_alive = flag;
                     if *is_alive {
-                        prog.rdr_count.inc(*value);
+                        prog.rdr_count.inc(value);
                     }
                 }
                 _ => panic!("not phi!"),
@@ -661,26 +650,6 @@ impl ReaderCount {
         if let Some(elm) = self.0.get_mut(reg.reg_index() as usize) {
             *elm += 1;
         }
-    }
-}
-
-pub struct EditableProgram<'a>(&'a mut Program);
-
-impl<'a> EditableProgram<'a> {
-    pub fn get_mut(&mut self, reg: mil::Reg) -> Option<mil::InsnViewMut> {
-        self.0.inner.get_mut(reg.0)
-    }
-}
-impl<'a> std::ops::Deref for EditableProgram<'a> {
-    type Target = Program;
-
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-impl<'a> std::ops::Drop for EditableProgram<'a> {
-    fn drop(&mut self) {
-        self.0.check_invariants();
     }
 }
 

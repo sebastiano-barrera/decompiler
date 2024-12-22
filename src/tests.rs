@@ -103,11 +103,11 @@ mod constant_folding {
 
         assert_eq!(prog.cfg().block_count(), 1);
         let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
-        assert_eq!(insns.len(), 10);
-        assert_eq!(insns.get(3).unwrap().insn, &Insn::AddK(Reg(0), 5));
-        assert_eq!(insns.get(4).unwrap().insn, &Insn::AddK(Reg(0), 10));
-        assert_eq!(insns.get(5).unwrap().insn, &Insn::Const8(49));
-        assert_eq!(insns.get(8).unwrap().insn, &Insn::Get(Reg(7)));
+        assert_eq!(insns.insns.len(), 10);
+        assert_eq!(insns.insns[3].get(), Insn::AddK(Reg(0), 5));
+        assert_eq!(insns.insns[4].get(), Insn::AddK(Reg(0), 10));
+        assert_eq!(insns.insns[5].get(), Insn::Const8(49));
+        assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
     }
 
     #[test]
@@ -132,10 +132,10 @@ mod constant_folding {
         xform::fold_constants(&mut prog);
 
         let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
-        assert_eq!(insns.len(), 10);
-        assert_eq!(insns.get(3).unwrap().insn, &Insn::MulK(Reg(0), 5));
-        assert_eq!(insns.get(4).unwrap().insn, &Insn::MulK(Reg(0), 25));
-        assert_eq!(insns.get(5).unwrap().insn, &Insn::Const8(5 * 44));
-        assert_eq!(insns.get(8).unwrap().insn, &Insn::Get(Reg(7)));
+        assert_eq!(insns.insns.len(), 10);
+        assert_eq!(insns.insns[3].get(), Insn::MulK(Reg(0), 5));
+        assert_eq!(insns.insns[4].get(), Insn::MulK(Reg(0), 25));
+        assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
+        assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
     }
 }

@@ -230,7 +230,7 @@ impl<'a> Builder<'a> {
         let name_of_value = ssa
             .insns_unordered()
             .filter_map(|iv| {
-                let is_named = match iv.insn {
+                let is_named = match iv.insn.get() {
                     mil::Insn::Const1(_)
                     | mil::Insn::Const2(_)
                     | mil::Insn::Const4(_)
@@ -240,11 +240,11 @@ impl<'a> Builder<'a> {
                     | mil::Insn::LoadMem4(_)
                     | mil::Insn::LoadMem8(_) => false,
                     mil::Insn::Phi | mil::Insn::Call { .. } => true,
-                    _ => ssa.readers_count(iv.dest) > 1,
+                    _ => ssa.readers_count(iv.dest.get()) > 1,
                 };
                 if is_named {
                     let name = Ident(Rc::new(format!("{:?}", iv.dest)));
-                    Some((iv.dest, name))
+                    Some((iv.dest.get(), name))
                 } else {
                     None
                 }
@@ -336,16 +336,16 @@ impl<'a> Builder<'a> {
                 side: (pos_pred_ndx, pos_bid),
             } => {
                 assert!(
-                    nor_insns.len() > 0,
+                    nor_insns.insns.len() > 0,
                     "block with BlockCont::Alt continuation must have at least 1 insn"
                 );
-                let last_item = nor_insns.last().unwrap();
+                let last_insn = nor_insns.insns.last().unwrap().get();
 
-                let cond = match &last_item.insn {
+                let cond = match last_insn {
                     mil::Insn::JmpIf { cond, target: _ } => cond,
                     _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
                 };
-                let cond = self.add_node_of_value(*cond);
+                let cond = self.add_node_of_value(cond);
                 let cons = {
                     let mut seq = Seq::new();
                     self.compile_continue(neg_bid, neg_pred_ndx, &mut seq);
@@ -379,25 +379,32 @@ impl<'a> Builder<'a> {
     }
 
     fn compile_seq(&mut self, insns: mil::InsnSlice, out_seq: &mut Seq) {
-        out_seq.extend(insns.iter().filter_map(|(reg, insn)| {
-            let name = self.name_of_value.get(&reg).cloned();
+        out_seq.extend(
+            insns
+                .dests
+                .iter()
+                .zip(insns.insns.iter())
+                .map(|(r, i)| (r.get(), i.get()))
+                .filter_map(|(reg, insn)| {
+                    let name = self.name_of_value.get(&reg).cloned();
 
-            if !insn.has_side_effects() && name.is_none() {
-                return None;
-            }
+                    if !insn.has_side_effects() && name.is_none() {
+                        return None;
+                    }
 
-            let node = self.compile_node(reg);
-            if node == Node::Nop {
-                return None;
-            }
+                    let node = self.compile_node(reg);
+                    if node == Node::Nop {
+                        return None;
+                    }
 
-            if let Some(name) = name {
-                let value = self.add_node(node);
-                return Some(self.add_node(Node::Let { name, value }));
-            };
+                    if let Some(name) = name {
+                        let value = self.add_node(node);
+                        return Some(self.add_node(Node::Let { name, value }));
+                    };
 
-            Some(self.add_node(node))
-        }))
+                    Some(self.add_node(node))
+                }),
+        )
     }
 
     fn compile_continue(&mut self, target_bid: cfg::BlockID, pred_ndx: u8, out_seq: &mut Seq) {
@@ -407,7 +414,7 @@ impl<'a> Builder<'a> {
                 .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
                 .map(|phi_ndx| {
                     let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
-                    self.add_node_of_value(*reg)
+                    self.add_node_of_value(reg)
                 })
                 .collect()
         };
@@ -468,9 +475,9 @@ impl<'a> Builder<'a> {
         use mil::Insn;
 
         let iv = self.ssa.get(reg).unwrap();
-        match iv.insn {
+        match iv.insn.get() {
             Insn::Call(callee) => {
-                let callee = self.add_node_of_value(*callee);
+                let callee = self.add_node_of_value(callee);
 
                 let mut args = SmallVec::new();
                 for arg_reg in self.ssa.get_call_args(reg) {
@@ -482,113 +489,113 @@ impl<'a> Builder<'a> {
             }
             // To be handled in ::Call
             Insn::CArg { .. } => Node::Nop,
-            Insn::Ret(arg) => Node::Return(self.add_node_of_value(*arg)),
-            Insn::JmpExt(target) => Node::ContinueToExtern(*target),
+            Insn::Ret(arg) => Node::Return(self.add_node_of_value(arg)),
+            Insn::JmpExt(target) => Node::ContinueToExtern(target),
             Insn::JmpI(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }
             Insn::StoreMem1(addr, val) => {
-                let addr = self.add_node_of_value(*addr);
-                let val = self.add_node_of_value(*val);
+                let addr = self.add_node_of_value(addr);
+                let val = self.add_node_of_value(val);
                 Node::StoreMem1(addr, val)
             }
             Insn::StoreMem2(addr, val) => {
-                let addr = self.add_node_of_value(*addr);
-                let val = self.add_node_of_value(*val);
+                let addr = self.add_node_of_value(addr);
+                let val = self.add_node_of_value(val);
                 Node::StoreMem2(addr, val)
             }
             Insn::StoreMem4(addr, val) => {
-                let addr = self.add_node_of_value(*addr);
-                let val = self.add_node_of_value(*val);
+                let addr = self.add_node_of_value(addr);
+                let val = self.add_node_of_value(val);
                 Node::StoreMem4(addr, val)
             }
             Insn::StoreMem8(addr, val) => {
-                let addr = self.add_node_of_value(*addr);
-                let val = self.add_node_of_value(*val);
+                let addr = self.add_node_of_value(addr);
+                let val = self.add_node_of_value(val);
                 Node::StoreMem8(addr, val)
             }
 
-            Insn::Const1(val) => Node::Const1(*val),
-            Insn::Const2(val) => Node::Const2(*val),
-            Insn::Const4(val) => Node::Const4(*val),
-            Insn::Const8(val) => Node::Const8(*val),
+            Insn::Const1(val) => Node::Const1(val),
+            Insn::Const2(val) => Node::Const2(val),
+            Insn::Const4(val) => Node::Const4(val),
+            Insn::Const8(val) => Node::Const8(val),
 
-            Insn::L1(reg) => Node::L1(self.add_node_of_value(*reg)),
-            Insn::L2(reg) => Node::L2(self.add_node_of_value(*reg)),
-            Insn::L4(reg) => Node::L4(self.add_node_of_value(*reg)),
-            Insn::Get(reg) => self.node_of_value(*reg),
+            Insn::L1(reg) => Node::L1(self.add_node_of_value(reg)),
+            Insn::L2(reg) => Node::L2(self.add_node_of_value(reg)),
+            Insn::L4(reg) => Node::L4(self.add_node_of_value(reg)),
+            Insn::Get(reg) => self.node_of_value(reg),
 
             Insn::WithL1(a, b) => {
-                Node::WithL1(self.add_node_of_value(*a), self.add_node_of_value(*b))
+                Node::WithL1(self.add_node_of_value(a), self.add_node_of_value(b))
             }
             Insn::WithL2(a, b) => {
-                Node::WithL2(self.add_node_of_value(*a), self.add_node_of_value(*b))
+                Node::WithL2(self.add_node_of_value(a), self.add_node_of_value(b))
             }
             Insn::WithL4(a, b) => {
-                Node::WithL4(self.add_node_of_value(*a), self.add_node_of_value(*b))
+                Node::WithL4(self.add_node_of_value(a), self.add_node_of_value(b))
             }
             Insn::Add(a, b) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
                 self.fold_bin(BinOp::Add, a, b)
             }
             Insn::AddK(a, k) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node(Node::Const8(*k as u64));
+                let a = self.add_node_of_value(a);
+                let b = self.add_node(Node::Const8(k as u64));
                 self.fold_bin(BinOp::Add, a, b)
             }
             Insn::Sub(a, b) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
                 self.fold_bin(BinOp::Sub, a, b)
             }
             Insn::Mul(a, b) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
                 self.fold_bin(BinOp::Mul, a, b)
             }
             Insn::MulK(a, k) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node(Node::Const8(*k as u64));
+                let a = self.add_node_of_value(a);
+                let b = self.add_node(Node::Const8(k as u64));
                 self.fold_bin(BinOp::Mul, a, b)
             }
             Insn::Shl(a, b) => {
-                let b = self.add_node_of_value(*b);
-                let a = self.add_node_of_value(*a);
+                let b = self.add_node_of_value(b);
+                let a = self.add_node_of_value(a);
                 self.fold_bin(BinOp::Shl, a, b)
             }
             Insn::BitAnd(a, b) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
                 self.fold_bin(BinOp::BitAnd, a, b)
             }
             Insn::BitOr(a, b) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
                 self.fold_bin(BinOp::BitOr, a, b)
             }
             Insn::Eq(a, b) => {
-                let a = self.add_node_of_value(*a);
-                let b = self.add_node_of_value(*b);
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
                 Node::Cmp {
                     op: CmpOp::EQ,
                     a,
                     b,
                 }
             }
-            Insn::Not(x) => Node::Not(self.add_node_of_value(*x)),
+            Insn::Not(x) => Node::Not(self.add_node_of_value(x)),
             Insn::TODO(msg) => Node::TODO(msg),
-            Insn::LoadMem1(addr_reg) => Node::LoadMem1(self.add_node_of_value(*addr_reg)),
-            Insn::LoadMem2(addr_reg) => Node::LoadMem2(self.add_node_of_value(*addr_reg)),
-            Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.add_node_of_value(*addr_reg)),
-            Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.add_node_of_value(*addr_reg)),
+            Insn::LoadMem1(addr_reg) => Node::LoadMem1(self.add_node_of_value(addr_reg)),
+            Insn::LoadMem2(addr_reg) => Node::LoadMem2(self.add_node_of_value(addr_reg)),
+            Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.add_node_of_value(addr_reg)),
+            Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.add_node_of_value(addr_reg)),
 
-            Insn::OverflowOf(arg) => Node::OverflowOf(self.add_node_of_value(*arg)),
-            Insn::CarryOf(arg) => Node::CarryOf(self.add_node_of_value(*arg)),
-            Insn::SignOf(arg) => Node::SignOf(self.add_node_of_value(*arg)),
-            Insn::IsZero(arg) => Node::IsZero(self.add_node_of_value(*arg)),
-            Insn::Parity(arg) => Node::Parity(self.add_node_of_value(*arg)),
+            Insn::OverflowOf(arg) => Node::OverflowOf(self.add_node_of_value(arg)),
+            Insn::CarryOf(arg) => Node::CarryOf(self.add_node_of_value(arg)),
+            Insn::SignOf(arg) => Node::SignOf(self.add_node_of_value(arg)),
+            Insn::IsZero(arg) => Node::IsZero(self.add_node_of_value(arg)),
+            Insn::Parity(arg) => Node::Parity(self.add_node_of_value(arg)),
 
             Insn::Undefined => Node::Undefined,
             Insn::Ancestral(anc) => match anc {

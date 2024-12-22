@@ -16,27 +16,28 @@ pub fn fold_constants(prog: &mut ssa::Program) {
 
     fn assoc_of(prog: &ssa::Program, mut reg: mil::Reg) -> Assoc {
         loop {
-            match prog.get(reg).unwrap().insn {
-                Insn::Const1(k) => return Assoc::Const(*k as i64),
-                Insn::Const2(k) => return Assoc::Const(*k as i64),
-                Insn::Const4(k) => return Assoc::Const(*k as i64),
-                Insn::Const8(k) => return Assoc::Const(*k as i64),
-                Insn::AddK(r, k) => return Assoc::Add(*r, *k),
-                Insn::MulK(r, k) => return Assoc::Mul(*r, *k as i64),
+            match prog.get(reg).unwrap().insn.get() {
+                Insn::Const1(k) => return Assoc::Const(k as i64),
+                Insn::Const2(k) => return Assoc::Const(k as i64),
+                Insn::Const4(k) => return Assoc::Const(k as i64),
+                Insn::Const8(k) => return Assoc::Const(k as i64),
+                Insn::AddK(r, k) => return Assoc::Add(r, k),
+                Insn::MulK(r, k) => return Assoc::Mul(r, k as i64),
                 Insn::Get(r) => {
-                    reg = *r;
+                    reg = r;
                 }
                 _ => return Assoc::Opaque,
             };
         }
     }
 
-    let mut prog = prog.edit();
     let order = cfg::traverse_reverse_postorder(prog.cfg());
 
     for &bid in order.block_ids() {
         let insns = prog.block_normal_insns(bid).unwrap();
-        for (reg, insn) in insns.iter() {
+        for insn_cell in insns.insns.iter() {
+            let insn = insn_cell.get();
+
             let (a, b) = match insn {
                 Insn::Add(a, b) | Insn::Mul(a, b) => (a, b),
                 _ => continue,
@@ -73,7 +74,7 @@ pub fn fold_constants(prog: &mut ssa::Program) {
 
             // reborrow here, so that the match above runs with prog borrowed immut.
             if let Some(repl_insn) = repl_insn {
-                *prog.get_mut(reg).unwrap().insn = repl_insn;
+                insn_cell.set(repl_insn);
             }
         }
     }
