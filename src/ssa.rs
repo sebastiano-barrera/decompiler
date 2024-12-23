@@ -445,25 +445,31 @@ fn place_phi_nodes(
     // matrix[i, j] = true iff block j is in block i's dominance frontier
     let is_dom_front = compute_dominance_frontier(cfg, dom_tree);
 
+    let mut phis_set = RegMat::for_program(program, cfg, false);
+    find_received_vars(program, cfg, &mut phis_set);
+
     // the rule is:
     //   if variable v is written in block b,
     //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
     // (phis_set is to avoid having multiple phis for the same var)
-    let var_count = count_variables(program);
-    let mut phis_set = Mat::new(false, block_count.into(), var_count.into());
-    for bid in cfg.block_ids() {
-        let bid_ndx = bid.as_usize();
 
-        for insn_ndx in cfg.insns_ndx_range(bid) {
-            let insn = program.get(insn_ndx).unwrap();
-            let mil::Reg(dest_ndx) = insn.dest.get();
-            for target_ndx in 0..cfg.block_count() {
-                if *is_dom_front.item(bid_ndx, target_ndx) {
-                    *phis_set.item_mut(target_ndx, dest_ndx as usize) = true;
+    for bid in cfg.block_ids() {
+        let slice = program.slice(cfg.insns_ndx_range(bid)).unwrap();
+        for dest in slice.dests.iter() {
+            let dest = dest.get();
+            for target_bid in cfg.block_ids() {
+                let phi_needed = *is_dom_front.item(bid.as_usize(), target_bid.as_usize());
+
+                phis_set.update(target_bid, dest, |prev| *prev && phi_needed);
+
+                if *phis_set.get(target_bid, dest) {
+                    eprintln!("placing phi node at block {target_bid:?}, var {dest:?}");
                 }
             }
         }
     }
+
+    let var_count = count_variables(program);
 
     // translate `phis` into a representation such that inputs can be replaced with specific input
     // variables assigned in predecessors.
@@ -476,10 +482,9 @@ fn place_phi_nodes(
         let mut phi_count = 0;
 
         for var_ndx in 0..var_count {
-            if *phis_set.item(bid.as_usize(), var_ndx.into()) {
-                let var_ndx = var_ndx.try_into().unwrap();
-                let reg = mil::Reg(var_ndx);
-
+            let var_ndx = var_ndx.try_into().unwrap();
+            let reg = mil::Reg(var_ndx);
+            if *phis_set.get(bid, reg) {
                 program.push(reg, mil::Insn::Phi);
                 phi_count += 1;
 
@@ -513,6 +518,67 @@ fn place_phi_nodes(
     phis
 }
 
+/// Find the set of "received variables" for each block.
+///
+/// This is the set of variables which are read before any write in the block.
+/// In other words, for these are the variables, the block observes the values
+/// left there by other blocks.
+fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph, is_received: &mut RegMat<bool>) {
+    let order = cfg::traverse_postorder(graph);
+
+    is_received.fill(false);
+    for &bid in order.block_ids() {
+        for (dest, insn) in prog
+            .slice(graph.insns_ndx_range(bid))
+            .unwrap()
+            .iter_copied()
+            .rev()
+        {
+            is_received.set(bid, dest, false);
+            for input in insn.input_regs_iter() {
+                is_received.set(bid, input, true);
+            }
+        }
+    }
+}
+
+struct RegMat<T>(Mat<T>);
+
+impl<T: Clone> RegMat<T> {
+    fn for_program(program: &mil::Program, graph: &cfg::Graph, value: T) -> Self {
+        // we overestimate number of variables as number of instructions, but
+        // it's very likely still OK
+        let num_vars = program.len() as usize;
+        RegMat(Mat::new(value, graph.block_count(), num_vars))
+    }
+
+    fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
+        self.0
+            .item(bid.as_number() as usize, reg.reg_index() as usize)
+    }
+
+    fn set(&mut self, bid: cfg::BlockID, reg: mil::Reg, value: T) {
+        *self
+            .0
+            .item_mut(bid.as_number() as usize, reg.reg_index() as usize) = value;
+    }
+    fn update<F: FnOnce(&T) -> T>(&mut self, bid: cfg::BlockID, reg: mil::Reg, func: F) {
+        let prev = self.get(bid, reg);
+        self.set(bid, reg, func(prev))
+    }
+
+    fn fill(&mut self, value: T) {
+        self.0.fill(value);
+    }
+}
+
+#[cfg(test)]
+impl<T: std::fmt::Debug> RegMat<T> {
+    fn dump(&self) {
+        self.0.dump();
+    }
+}
+
 // TODO cache this info somewhere. it's so weird to recompute it twice!
 fn count_variables(program: &mil::Program) -> mil::Index {
     let max_dest = program
@@ -535,12 +601,7 @@ struct Mat<T> {
     rows: usize,
     cols: usize,
 }
-impl<T: Clone> Mat<T> {
-    fn new(init: T, rows: usize, cols: usize) -> Self {
-        let items = vec![init; rows * cols].into_boxed_slice();
-        Mat { items, rows, cols }
-    }
-
+impl<T> Mat<T> {
     fn ndx(&self, i: usize, j: usize) -> usize {
         assert!(i < self.rows);
         assert!(j < self.cols);
@@ -552,6 +613,27 @@ impl<T: Clone> Mat<T> {
     }
     fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
         &mut self.items[self.ndx(i, j)]
+    }
+}
+impl<T: Clone> Mat<T> {
+    fn new(init: T, rows: usize, cols: usize) -> Self {
+        let items = vec![init; rows * cols].into_boxed_slice();
+        Mat { items, rows, cols }
+    }
+    fn fill(&mut self, value: T) {
+        self.items.fill(value);
+    }
+}
+#[cfg(test)]
+impl<T: std::fmt::Debug> Mat<T> {
+    fn dump(&self) {
+        // TODO port to pp::PrettyPrinter
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                eprint!(" {:5?}", *self.item(i, j));
+            }
+            eprintln!();
+        }
     }
 }
 

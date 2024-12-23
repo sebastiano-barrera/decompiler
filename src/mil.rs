@@ -214,6 +214,9 @@ impl Insn {
         }
     }
 
+    pub fn input_regs_iter<'s>(&'s self) -> impl 's + Iterator<Item = Reg> {
+        self.input_regs().into_iter().flatten().copied()
+    }
     pub fn input_regs(&self) -> [Option<&Reg>; 2] {
         match self {
             Insn::Const1(_)
@@ -510,10 +513,15 @@ pub struct InsnSlice<'a> {
     pub insns: &'a [Cell<Insn>],
     pub dests: &'a [Cell<Reg>],
 }
-pub struct InsnSliceMut<'a> {
-    pub program: &'a mut Program,
-    pub insns: &'a mut [Insn],
-    pub dests: &'a mut [Reg],
+impl<'a> InsnSlice<'a> {
+    pub fn iter<'s>(
+        &'s self,
+    ) -> impl 's + DoubleEndedIterator<Item = (&'a Cell<Reg>, &'a Cell<Insn>)> {
+        self.dests.iter().zip(self.insns.iter())
+    }
+    pub fn iter_copied<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = (Reg, Insn)> {
+        self.iter().map(|(d, r)| (d.get(), r.get()))
+    }
 }
 
 pub struct InsnViewMut<'a> {

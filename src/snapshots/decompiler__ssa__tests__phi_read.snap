@@ -5,15 +5,15 @@ expression: prog
 ssa program  10 instrs
 .B0:  in[]     ;; 0xf0  2 insn 0 phis
          r0 <- const8   123 (0x7b)
-         r1 <- jmp.if   r0,0xf2
+         r1 <- jmp.if   r0,4
 .B1:  in[.B0 ]     ;; 0xf1  2 insn 0 phis
          r2 <- const1   4 (0x4)
-         r3 <- jmp      0xf3
+         r3 <- jmp      5
 .B2:  in[.B0 ]     ;; 0xf2  1 insn 0 phis
          r4 <- const1   8 (0x8)
-.B3:  in[.B1 .B2 ]     ;; 0xf3  2 insn 6 phis
-         r7 <- phi      2
-         r8 <- phiarg   in[0]:r2
-         r9 <- phiarg   in[1]:r4
-         r5 <- add      r7,456
+.B3:  in[.B1 .B2 ]     ;; 0xf3  2 insn 1 phis
+         r7 <- phi
+         r8 <- phiarg   r2
+         r9 <- phiarg   r4
+         r5 <- addk     r7,456
          r6 <- ret      r5
