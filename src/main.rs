@@ -156,7 +156,7 @@ struct IoAsFmt<W>(W);
 
 impl<W: std::io::Write> std::fmt::Write for IoAsFmt<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        self.0.write(s.as_bytes()).unwrap();
+        self.0.write_all(s.as_bytes()).unwrap();
         Ok(())
     }
 }

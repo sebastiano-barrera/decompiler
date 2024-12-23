@@ -32,6 +32,7 @@ pub struct Ident(Rc<String>);
 pub struct Label(Rc<String>);
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(clippy::upper_case_acronyms)]
 enum Node {
     Seq(Seq),
     If {
@@ -123,6 +124,7 @@ impl Node {
 type Seq = SmallVec<[NodeID; 2]>;
 
 #[derive(PartialEq, Eq, Debug)]
+#[allow(dead_code)]
 enum BinOp {
     Add,
     Sub,
@@ -150,6 +152,7 @@ impl BinOp {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[allow(dead_code)]
 enum CmpOp {
     EQ,
     LT,
@@ -281,7 +284,7 @@ impl<'a> Builder<'a> {
                 side: (pos_pred_ndx, pos_bid),
             } => {
                 assert!(
-                    nor_insns.insns.len() > 0,
+                    !nor_insns.insns.is_empty(),
                     "block with BlockCont::Alt continuation must have at least 1 insn"
                 );
                 let last_insn = nor_insns.insns.last().unwrap().get();
@@ -374,17 +377,12 @@ impl<'a> Builder<'a> {
 
         if dom_tree.parent_of(target_bid) == Some(cur_bid) {
             // TODO represent initial parameter assignment some better way
-            out_seq.extend(
-                params
-                    .into_iter()
-                    .zip(args.into_iter())
-                    .map(|(param, arg)| {
-                        self.add_node(Node::LetMut {
-                            name: param,
-                            value: arg,
-                        })
-                    }),
-            );
+            out_seq.extend(params.into_iter().zip(args).map(|(param, arg)| {
+                self.add_node(Node::LetMut {
+                    name: param,
+                    value: arg,
+                })
+            }));
 
             let labeled_node = self.compile_to_labeled(target_bid);
             let preds_count = cfg.inverse().successors(target_bid).len();
@@ -713,7 +711,7 @@ impl Ast {
                 label,
                 body,
             } => {
-                if params.len() == 0 {
+                if params.is_empty() {
                     write!(pp, "\n'{}: ", label.0)?;
                 } else {
                     write!(pp, "\n'{}(", label.0)?;

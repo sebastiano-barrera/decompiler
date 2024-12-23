@@ -183,10 +183,10 @@ pub fn mil_to_ssa(mut program: mil::Program) -> Program {
     let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
     eprintln!("//  --- dom tree ---");
-    cfg.dump_graphviz(Some(&dom_tree));
+    cfg.dump_graphviz(Some(dom_tree));
     eprintln!("//  --- END ---");
 
-    let mut phis = place_phi_nodes(&mut program, &cfg, &dom_tree);
+    let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -462,7 +462,6 @@ fn place_phi_nodes(
         let mut phi_count = 0;
 
         for var_ndx in 0..var_count {
-            let var_ndx = var_ndx.try_into().unwrap();
             let reg = mil::Reg(var_ndx);
             if *phis_set.get(bid, reg) {
                 program.push(reg, mil::Insn::Phi);
@@ -569,7 +568,7 @@ fn count_variables(program: &mil::Program) -> mil::Index {
     let max_arg = program
         .iter()
         .flat_map(|iv| iv.insn.get().input_regs().map(|arg| arg.copied()))
-        .filter_map(|arg_opt| arg_opt)
+        .flatten() // remove None's
         .map(|r| r.reg_index())
         .max()
         .unwrap_or(0);

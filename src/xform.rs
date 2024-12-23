@@ -22,7 +22,7 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                 Insn::Const4(k) => return Assoc::Const(k as i64),
                 Insn::Const8(k) => return Assoc::Const(k as i64),
                 Insn::AddK(r, k) => return Assoc::Add(r, k),
-                Insn::MulK(r, k) => return Assoc::Mul(r, k as i64),
+                Insn::MulK(r, k) => return Assoc::Mul(r, k),
                 Insn::Get(r) => {
                     reg = r;
                 }

@@ -31,7 +31,7 @@ impl<W: std::fmt::Write> PrettyPrinter<W> {
 impl<W: std::fmt::Write> std::fmt::Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         let mut cur_text = self.cur_text as usize;
-        for (ndx, line) in s.split(|ch| ch == '\n').enumerate() {
+        for (ndx, line) in s.split('\n').enumerate() {
             if ndx == 0 {
                 cur_text += line.len();
             } else {

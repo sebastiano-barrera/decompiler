@@ -4,8 +4,7 @@ use gimli::EndianSlice;
 
 fn main() {
     let executable_path = std::env::args()
-        .skip(1)
-        .next()
+        .nth(1)
         .expect("usage: lab_debug_info <executable>");
 
     let contents = {

@@ -298,7 +298,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
             ndx_range[succ] = offset..target.len();
 
-            if direct.successors(succ).len() == 0 {
+            if direct.successors(succ).is_empty() {
                 entries[succ] = true;
             }
         }
@@ -385,7 +385,8 @@ fn dest_of_insn(
             (None, Some(program.len()))
         }
         // external jumps are currently handled as non-control-flow instruction
-        mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. } | _ => (Some(ndx + 1), None),
+        // (mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. })
+        _ => (Some(ndx + 1), None),
     }
 }
 

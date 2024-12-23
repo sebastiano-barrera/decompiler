@@ -43,6 +43,7 @@ impl std::fmt::Debug for Reg {
 pub type Index = u16;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
     Const1(u8),
     Const2(u16),
