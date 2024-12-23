@@ -243,7 +243,7 @@ impl<'a> Builder<'a> {
                     _ => ssa.readers_count(iv.dest.get()) > 1,
                 };
                 if is_named {
-                    let name = Ident(Rc::new(format!("{:?}", iv.dest)));
+                    let name = Ident(Rc::new(format!("{:?}", iv.dest.get())));
                     Some((iv.dest.get(), name))
                 } else {
                     None
