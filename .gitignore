@@ -3,3 +3,4 @@ _unver/
 # Added by cargo
 /target
 
+src/.dir-locals.el
