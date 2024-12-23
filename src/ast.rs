@@ -169,64 +169,10 @@ struct Builder<'a> {
     label_of_block: cfg::BlockMap<Label>,
     nodes: NodeSet,
     blocks_compiling: Vec<BlockID>,
-    marks: cfg::BlockMap<BlockMark>,
-}
-
-#[derive(Clone, Debug)]
-enum BlockMark {
-    Simple,
-    LoopHead { loop_enter_succ_ndx: u8 },
-}
-
-fn mark_blocks(cfg: &cfg::Graph) -> cfg::BlockMap<BlockMark> {
-    let mut mark = cfg::BlockMap::new(BlockMark::Simple, cfg.block_count());
-
-    // in_path[B] == Some(S)
-    //   <==> block B is in the currently walked path, via successor with index S
-    let mut in_path = cfg::BlockMap::new(None, cfg.block_count());
-    let mut path = Vec::with_capacity(cfg.block_count() / 2);
-
-    enum Cmd {
-        Start((cfg::BlockID, usize)),
-        End(cfg::BlockID),
-    }
-    let mut queue = Vec::with_capacity(cfg.block_count() / 2);
-    queue.push(Cmd::Start((cfg::ENTRY_BID, 0)));
-
-    while let Some(cmd) = queue.pop() {
-        match cmd {
-            Cmd::Start((bid, succ_ndx)) => {
-                assert!(in_path[bid].is_none());
-                path.push(bid);
-                let succ_ndx: u8 = succ_ndx.try_into().unwrap();
-                in_path[bid] = Some(succ_ndx);
-
-                // cycles: one of the current block's successors S dominates B
-                for (succ_ndx, &succ) in cfg.direct()[bid].iter().enumerate() {
-                    if let Some(loop_enter_succ_ndx) = in_path[succ] {
-                        mark[succ] = BlockMark::LoopHead {
-                            loop_enter_succ_ndx,
-                        };
-                    } else {
-                        queue.push(Cmd::End(succ));
-                        queue.push(Cmd::Start((succ, succ_ndx)));
-                    }
-                }
-            }
-            Cmd::End(bid) => {
-                assert!(in_path[bid].is_some());
-                in_path[bid] = None;
-            }
-        }
-    }
-
-    mark
 }
 
 impl<'a> Builder<'a> {
     fn init_to_ast(ssa: &'a ssa::Program) -> Builder<'a> {
-        let marks = mark_blocks(ssa.cfg());
-
         let name_of_value = ssa
             .insns_unordered()
             .filter_map(|iv| {
@@ -264,7 +210,6 @@ impl<'a> Builder<'a> {
             label_of_block: thunk_id_of_block,
             nodes: NodeSet::new(),
             blocks_compiling: Vec::new(),
-            marks,
         }
     }
 
@@ -1037,10 +982,6 @@ mod nodeset {
 
         pub(super) fn node_ids(&self) -> impl Iterator<Item = NodeID> {
             (0..self.0.len()).map(|ndx| NodeID(ndx.try_into().unwrap()))
-        }
-
-        pub(super) fn iter(&self) -> impl Iterator<Item = (NodeID, &Node)> {
-            self.node_ids().map(|nid| (nid, &self[nid]))
         }
 
         pub(crate) fn swap(&mut self, nid_a: NodeID, nid_b: NodeID) {

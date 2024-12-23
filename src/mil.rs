@@ -331,16 +331,6 @@ impl Insn {
             | Insn::StoreMem8(_, _) => true,
         }
     }
-
-    pub fn as_const(&self) -> Option<i64> {
-        match self {
-            Insn::Const1(k) => Some(*k as i64),
-            Insn::Const2(k) => Some(*k as i64),
-            Insn::Const4(k) => Some(*k as i64),
-            Insn::Const8(k) => Some(*k as i64),
-            _ => None,
-        }
-    }
 }
 
 impl std::fmt::Debug for Insn {
@@ -522,13 +512,6 @@ impl<'a> InsnSlice<'a> {
     pub fn iter_copied<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = (Reg, Insn)> {
         self.iter().map(|(d, r)| (d.get(), r.get()))
     }
-}
-
-pub struct InsnViewMut<'a> {
-    pub insn: &'a mut Insn,
-    pub dest: &'a mut Reg,
-    #[allow(dead_code)]
-    pub addr: u64,
 }
 
 // will be mostly useful to keep origin info later

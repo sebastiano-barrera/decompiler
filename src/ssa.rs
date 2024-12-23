@@ -87,21 +87,6 @@ impl Program {
         assert_eq!(len, self.rdr_count.0.len());
         // TODO more?
     }
-
-    /// Push a new instruction to the program.
-    ///
-    /// The instruction will be placed in the "trail" area of the program,
-    /// outside of the executable sequence.  In this area, an instruction is
-    /// only useful for being referred-to by other instructions or an
-    /// equivalence set.
-    fn push(&mut self, insn: mil::Insn) -> mil::Index {
-        let dest = self.inner.len();
-        self.inner.push(mil::Reg(dest), insn);
-        self.is_alive.push(true);
-        self.rdr_count.0.push(0);
-        self.check_invariants();
-        dest
-    }
 }
 
 #[derive(Clone)]
@@ -123,10 +108,6 @@ impl PhiInfo {
 
     pub fn phi_count(&self) -> mil::Index {
         self.phi_count
-    }
-
-    pub fn pred_count(&self) -> mil::Index {
-        self.pred_count
     }
 
     pub fn node_ndx(&self, phi_ndx: mil::Index) -> mil::Reg {
@@ -452,7 +433,6 @@ fn place_phi_nodes(
     //   if variable v is written in block b,
     //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
     // (phis_set is to avoid having multiple phis for the same var)
-
     for bid in cfg.block_ids() {
         let slice = program.slice(cfg.insns_ndx_range(bid)).unwrap();
         for dest in slice.dests.iter() {
