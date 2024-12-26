@@ -463,8 +463,9 @@ impl DomTree {
             children_ndx_range[bid] = clen_before..children.len();
         }
 
-        // the root node is nobody's child in the dom tree
-        assert_eq!(children.len(), count - 1);
+        // entry nodes are nobody's child in the dom tree
+        let entries_count = parent.items().filter(|(_, p)| p.is_none()).count();
+        assert_eq!(children.len(), count - entries_count);
         DomTree {
             parent,
             children_ndx_range,
@@ -533,32 +534,58 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
                 continue;
             }
 
-            // start with the first unprocessed predecessor
-            let (idom_init_ndx, &(mut idom)) = preds
-                .iter()
-                .enumerate()
-                .find(|(pred_ndx, _)| parent[preds[*pred_ndx]].is_some())
-                .expect("rev. postorder bug: all predecessors are yet to be processed");
+            #[derive(PartialEq, Eq)]
+            enum RefPred {
+                Uninit,
+                Block(BlockID),
+                NoCommonAncestor,
+            }
+            let mut ref_pred = RefPred::Uninit;
 
-            for (pred_ndx, &pred) in preds.iter().enumerate() {
-                if pred_ndx == idom_init_ndx {
-                    continue;
-                }
+            // compare all predecessor against one (arbitrary) predecessor that
+            // was already processed (parent already assigned in dominator
+            // tree), herein "reference predecessor" (ref. pred.)
+            for &pred in preds.iter() {
+                // the basic guarantee of reverse postorder: every predecessor
+                // has already been processed
+                assert!(parent[pred].is_some());
 
-                if parent[pred].is_some() {
-                    idom = common_ancestor(
-                        &parent,
-                        |id_a, id_b| rpo.position_of(id_a) < rpo.position_of(id_b),
-                        pred,
-                        idom,
-                    );
-                }
+                // pred was already processed;
+                // ref_pred <- common ancestor of ref_pred and pred
+                ref_pred = match ref_pred {
+                    RefPred::Uninit => RefPred::Block(pred),
+                    RefPred::Block(ref_pred) => {
+                        let found = common_ancestor(
+                            &parent,
+                            |id_a, id_b| rpo.position_of(id_a) < rpo.position_of(id_b),
+                            pred,
+                            ref_pred,
+                        );
+                        match found {
+                            Some(com_anc) => RefPred::Block(com_anc),
+                            None => RefPred::NoCommonAncestor,
+                        }
+                    }
+                    RefPred::NoCommonAncestor => RefPred::NoCommonAncestor,
+                };
             }
 
-            let prev_idom = parent[bid].replace(idom);
-            if prev_idom != Some(idom) {
-                changed = true;
-            }
+            match ref_pred {
+                RefPred::Uninit => {
+                    assert!(preds.is_empty());
+                }
+                RefPred::Block(idom) => {
+                    let prev_idom = parent[bid].replace(idom);
+                    if prev_idom != Some(idom) {
+                        changed = true;
+                    }
+                }
+                RefPred::NoCommonAncestor => {
+                    // TODO Add a comment explaining why this is right
+                    assert!(parent[bid].is_none());
+                    // No need to ever do: parent[bid] = None;
+                }
+            };
         }
     }
 
@@ -577,6 +604,44 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     DomTree::from_parent(parent)
 }
 
+fn assert_is_tree(parent_of: &BlockMap<Option<BlockID>>) {
+    let count = parent_of.block_count();
+
+    let mut visited = BlockMap::new(false, count);
+
+    for bid in parent_of.block_ids() {
+        for (_, item) in visited.items_mut() {
+            *item = false;
+        }
+
+        let mut cur = bid;
+        loop {
+            // this function also supports the formulation where "no parent"
+            // is represented with a node's parent set to itself
+
+            let parent = match parent_of[cur] {
+                None => cur,
+                Some(p) => p,
+            };
+            if parent == cur {
+                assert_eq!(
+                    cur, ENTRY_BID,
+                    "path starting from {bid:?} does not connect to entry BlockID"
+                );
+                break;
+            }
+
+            visited[cur] = true;
+            assert!(
+                !visited[parent],
+                "cycle detected, starting at index {:?}, landing at index {:?}",
+                bid, parent
+            );
+            cur = parent;
+        }
+    }
+}
+
 /// Find the common ancestor of two nodes in a tree.
 ///
 /// The tree is presumed to have progressively numbered nodes. It is represented as an array
@@ -587,20 +652,33 @@ fn common_ancestor<LT>(
     is_lt: LT,
     mut ndx_a: BlockID,
     mut ndx_b: BlockID,
-) -> BlockID
+) -> Option<BlockID>
 where
     LT: Fn(BlockID, BlockID) -> bool,
 {
+    // This func is called with a graph encoded with such that each entry point
+    // `e` will have parent_of[e] == Some(e). If there are multiple entry
+    // points, we will never have ndx_a == ndx_b. Rather, we would walk through
+    // parent_of infinitely, so we have to add specific termination conditions
+    // for those.
     while ndx_a != ndx_b {
-        while is_lt(ndx_a, ndx_b) {
+        while parent_of[ndx_b] != Some(ndx_b) && is_lt(ndx_a, ndx_b) {
             ndx_b = parent_of[ndx_b].unwrap();
         }
-        while is_lt(ndx_b, ndx_a) {
+        while parent_of[ndx_a] != Some(ndx_a) && is_lt(ndx_b, ndx_a) {
             ndx_a = parent_of[ndx_a].unwrap();
+        }
+
+        // When the graph has multiple entry nodes, each `e` of them has
+        // parent_of[e] == Some(e). If ndx_a and ndx_b represent two such nodes,
+        // we're never going to find a common ancestor, and we must stop (or we
+        // go into an infinite loop).
+        if ndx_a != ndx_b && parent_of[ndx_a] == Some(ndx_a) && parent_of[ndx_b] == Some(ndx_b) {
+            return None;
         }
     }
 
-    ndx_a
+    Some(ndx_a)
 }
 
 //
