@@ -117,7 +117,7 @@ pub enum Insn {
     Parity(Reg),
 
     Undefined,
-    Ancestral(Ancestral),
+    Ancestral(AncestralName),
 
     /// Phi node.
     ///
@@ -143,14 +143,30 @@ pub enum Insn {
     PhiArg(Reg),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Ancestral {
-    StackBot,
-    /// the pre-existing value of a mahcine register at the time the function
-    /// started execution.  mostly useful to allow the decompilation to proceed
-    /// forward even when somehting is out of place.
-    Pre(&'static str),
+/// The "name" (identifier) of an "ancestral" value, i.e. a value in MIL code
+/// that represents the pre-existing value of a machine register at the time
+/// the function started execution.  Mostly useful to allow the decompilation to
+/// proceed forward even when somehting is out of place.
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+pub struct AncestralName(&'static str);
+
+impl AncestralName {
+    pub const fn new(name: &'static str) -> Self {
+        AncestralName(name)
+    }
+
+    pub fn name(&self) -> &'static str {
+        self.0
+    }
 }
+
+macro_rules! define_ancestral_name {
+    ($name:ident, $value:literal) => {
+        pub const $name: $crate::mil::AncestralName = $crate::mil::AncestralName::new($value);
+    };
+}
+
+define_ancestral_name!(ANC_STACK_BOTTOM, "stack_bottom");
 
 impl Insn {
     // TODO There must be some macro magic to generate these two functions
@@ -390,10 +406,7 @@ impl std::fmt::Debug for Insn {
             Insn::Parity(x) => write!(f, "{:8} {:?}", "parity", x),
 
             Insn::Undefined => write!(f, "undef"),
-            Insn::Ancestral(anc) => match anc {
-                Ancestral::StackBot => write!(f, "#stackBottom"),
-                Ancestral::Pre(tag) => write!(f, "#pre:{}", tag),
-            },
+            Insn::Ancestral(anc) => write!(f, "#pre:{}", anc.name()),
 
             Insn::Phi => write!(f, "phi"),
             Insn::PhiArg(reg) => {

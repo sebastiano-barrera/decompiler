@@ -103,7 +103,6 @@ enum Node {
     SignOf(NodeID),
     IsZero(NodeID),
     Parity(NodeID),
-    StackBot,
     Undefined,
     Nop,
     Pre(&'static str),
@@ -541,10 +540,7 @@ impl<'a> Builder<'a> {
             Insn::Parity(arg) => Node::Parity(self.add_node_of_value(arg)),
 
             Insn::Undefined => Node::Undefined,
-            Insn::Ancestral(anc) => match anc {
-                mil::Ancestral::StackBot => Node::StackBot,
-                mil::Ancestral::Pre(tag) => Node::Pre(tag),
-            },
+            Insn::Ancestral(anc) => Node::Pre(anc.name()),
 
             Insn::Phi => {
                 let mut args = SmallVec::new();
@@ -926,7 +922,6 @@ impl Ast {
                 self.pretty_print_node(pp, *arg)?;
                 write!(pp, ")")
             }
-            Node::StackBot => write!(pp, "<stackBottom>"),
             Node::Pre(tag) => write!(pp, "<pre:{}>", tag),
             Node::Undefined => write!(pp, "<undefined>"),
             Node::Nop => write!(pp, "nop"),

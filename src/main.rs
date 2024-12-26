@@ -7,6 +7,7 @@ use crate::pp::PrettyPrinter;
 
 mod ast;
 mod cfg;
+#[macro_use]
 mod mil;
 mod pp;
 mod ssa;

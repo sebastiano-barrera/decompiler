@@ -8,7 +8,7 @@ expression: output
                0: ret
 mil program = 
 program  47 instrs
-    0 r12 <- #stackBottom
+    0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
     3 r4 <- #pre:AF
@@ -35,13 +35,13 @@ program  47 instrs
    24 r25 <- #pre:R13
    25 r26 <- #pre:R14
    26 r27 <- #pre:R15
-   27 r28 <- #pre:tmp28
-   28 r29 <- #pre:tmp29
-   29 r30 <- #pre:tmp30
-   30 r31 <- #pre:tmp31
-   31 r32 <- #pre:tmp32
-   32 r33 <- #pre:tmp33
-   33 r34 <- #pre:tmp34
+   27 r28 <- undef
+   28 r29 <- undef
+   29 r30 <- undef
+   30 r31 <- undef
+   31 r32 <- undef
+   32 r33 <- undef
+   33 r34 <- undef
    34 r28 <- const8   0 (0x0)
    35 r29 <- const8   16 (0x10)
    36 r29 <- add      r29,r14

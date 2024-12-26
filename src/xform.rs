@@ -99,6 +99,10 @@ mod typing {
     mod tests {
         use crate::ssa;
 
+        define_ancestral_name!(ANC_ARG0, "arg0");
+        define_ancestral_name!(ANC_ARG1, "arg1");
+        define_ancestral_name!(ANC_CALLEE, "callee");
+
         fn basic_program() -> ssa::Program {
             let prog = {
                 use crate::mil::{self, Insn, Reg};
@@ -121,15 +125,15 @@ mod typing {
                 );
 
                 // True path: do some pointer arithmetic
-                b.push(Reg(0), Insn::Ancestral(mil::Ancestral::Pre("arg0")));
+                b.push(Reg(0), Insn::Ancestral(ANC_ARG0));
                 b.push(Reg(1), Insn::Const2(8));
                 b.push(Reg(0), Insn::AddK(Reg(0), 16));
                 b.push(Reg(1), Insn::LoadMem8(Reg(0)));
                 b.push(Reg(0), Insn::Ret(Reg(1)));
 
                 // False path: call a function
-                b.push(Reg(0), Insn::Ancestral(mil::Ancestral::Pre("arg1")));
-                b.push(Reg(4), Insn::Ancestral(mil::Ancestral::Pre("callee")));
+                b.push(Reg(0), Insn::Ancestral(ANC_ARG1));
+                b.push(Reg(4), Insn::Ancestral(ANC_CALLEE));
                 b.push(Reg(2), Insn::Call(Reg(4)));
                 b.push(Reg(3), Insn::CArg(Reg(0)));
                 b.push(Reg(0), Insn::Ret(Reg(1)));
@@ -147,7 +151,7 @@ mod typing {
         #[test]
         fn simple_error() {
             let mut program = basic_program();
-            super::edit_types(&mut program, |typing| {});
+            super::edit_types(&mut program, |_typing| {}).unwrap();
         }
     }
 }

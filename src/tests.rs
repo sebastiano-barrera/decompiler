@@ -86,14 +86,14 @@ mod constant_folding {
 
         let prog = {
             let mut b = mil::ProgramBuilder::new();
-            b.push(Reg(0), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
             b.push(Reg(1), Insn::Const8(5));
             b.push(Reg(2), Insn::Const8(44));
             b.push(Reg(0), Insn::Add(Reg(1), Reg(0)));
             b.push(Reg(3), Insn::Add(Reg(0), Reg(1)));
             b.push(Reg(4), Insn::Add(Reg(2), Reg(1)));
             b.push(Reg(3), Insn::Const8(0));
-            b.push(Reg(4), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
             b.push(Reg(4), Insn::Add(Reg(3), Reg(4)));
             b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
@@ -116,14 +116,14 @@ mod constant_folding {
 
         let prog = {
             let mut b = mil::ProgramBuilder::new();
-            b.push(Reg(0), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
             b.push(Reg(1), Insn::Const8(5));
             b.push(Reg(2), Insn::Const8(44));
             b.push(Reg(0), Insn::Mul(Reg(1), Reg(0)));
             b.push(Reg(3), Insn::Mul(Reg(0), Reg(1)));
             b.push(Reg(4), Insn::Mul(Reg(2), Reg(1)));
             b.push(Reg(3), Insn::Const8(1));
-            b.push(Reg(4), Insn::Ancestral(mil::Ancestral::StackBot));
+            b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
             b.push(Reg(4), Insn::Mul(Reg(3), Reg(4)));
             b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
