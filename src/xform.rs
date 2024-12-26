@@ -79,3 +79,77 @@ pub fn fold_constants(prog: &mut ssa::Program) {
         }
     }
 }
+
+mod typing {
+    use crate::ssa;
+
+    pub fn edit_types<'a, F>(program: &'a mut ssa::Program, action: F) -> ssa::ty::CheckResult
+    where
+        F: FnOnce(TypeEditor),
+    {
+        action(TypeEditor(program));
+        program.check_types()
+    }
+
+    pub struct TypeEditor<'a>(&'a mut ssa::Program);
+
+    impl<'a> TypeEditor<'a> {}
+
+    #[cfg(test)]
+    mod tests {
+        use crate::ssa;
+
+        fn basic_program() -> ssa::Program {
+            let prog = {
+                use crate::mil::{self, Insn, Reg};
+
+                let mut b = mil::ProgramBuilder::new();
+
+                // Main entry point with some arithmetic
+                b.push(Reg(0), Insn::Const8(100));
+                b.push(Reg(1), Insn::Const4(5));
+                b.push(Reg(0), Insn::Mul(Reg(0), Reg(1)));
+
+                // Conditional branch based on comparison
+                b.push(Reg(0), Insn::LT(Reg(0), Reg(1)));
+                b.push(
+                    Reg(2),
+                    Insn::JmpIf {
+                        cond: Reg(0),
+                        target: 10,
+                    },
+                );
+
+                // True path: do some pointer arithmetic
+                b.push(Reg(0), Insn::Ancestral(mil::Ancestral::Pre("arg0")));
+                b.push(Reg(1), Insn::Const2(8));
+                b.push(Reg(0), Insn::AddK(Reg(0), 16));
+                b.push(Reg(1), Insn::LoadMem8(Reg(0)));
+                b.push(Reg(0), Insn::Ret(Reg(1)));
+
+                // False path: call a function
+                b.push(Reg(0), Insn::Ancestral(mil::Ancestral::Pre("arg1")));
+                b.push(Reg(4), Insn::Ancestral(mil::Ancestral::Pre("callee")));
+                b.push(Reg(2), Insn::Call(Reg(4)));
+                b.push(Reg(3), Insn::CArg(Reg(0)));
+                b.push(Reg(0), Insn::Ret(Reg(1)));
+
+                b.build()
+            };
+
+            eprintln!();
+            eprintln!("PRE-SSA:\n{:?}", prog);
+
+            let prog = ssa::mil_to_ssa(prog);
+            eprintln!();
+            eprintln!("SSA:\n{:?}", prog);
+
+            prog
+        }
+
+        #[test]
+        fn basic() {
+            let _ = basic_program();
+        }
+    }
+}

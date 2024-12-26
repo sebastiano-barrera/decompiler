@@ -5,9 +5,11 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.89"
+bimap = "0.6.3"
 gimli = { version = "0.31.1", default-features = false, features = ["read-all"] }
 goblin = "0.8.2"
 smallvec = "1.13.2"
+thiserror = "2.0.9"
 
 [dependencies.iced-x86]
 version = "1.21.0"

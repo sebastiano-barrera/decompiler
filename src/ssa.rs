@@ -77,6 +77,10 @@ impl Program {
     pub fn get_phi_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
         self.inner.get_phi_args(reg.0)
     }
+
+    pub(crate) fn check_types(&self) -> ty::CheckResult {
+        todo!()
+    }
 }
 
 // private utility functions
@@ -754,5 +758,71 @@ mod tests {
         eprintln!("-- ssa:");
         let prog = super::mil_to_ssa(prog);
         insta::assert_debug_snapshot!(prog);
+    }
+}
+
+pub mod ty {
+    use thiserror::Error;
+
+    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    pub struct TypeID(usize);
+
+    pub struct TypeSet {
+        types: bimap::BiHashMap<Type, TypeID>,
+    }
+    impl TypeSet {}
+
+    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    pub struct Type {
+        // TODO pub alignment: u16,
+        pub ty: Ty,
+    }
+    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    pub enum Ty {
+        Ptr(TypeID),
+        Int(Int),
+    }
+    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    pub struct Int {
+        // TODO turn to flag?
+        signedness: Signedness,
+        size: IntSize,
+    }
+    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    pub enum Signedness {
+        Signed,
+        Unsigned,
+    }
+    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    pub enum IntSize {
+        Bytes1,
+        Bytes2,
+        Bytes4,
+        Bytes8,
+    }
+    impl IntSize {
+        fn bytes_count(&self) -> u8 {
+            match self {
+                IntSize::Bytes1 => 1,
+                IntSize::Bytes2 => 2,
+                IntSize::Bytes4 => 4,
+                IntSize::Bytes8 => 8,
+            }
+        }
+    }
+
+    //
+    // -- Checking
+    //
+
+    pub type CheckResult = std::result::Result<(), Error>;
+
+    #[derive(Error, Debug)]
+    pub enum Error {}
+
+    // Corresponds to pubilc API ssa::Program::check_types
+    pub(super) fn check_types(program: &super::Program) -> CheckResult {
+        // TODO!
+        Ok(())
     }
 }
