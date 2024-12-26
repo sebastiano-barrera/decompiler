@@ -140,7 +140,7 @@ fn main() {
     println!("{:?}", prog);
 
     println!();
-    let mut prog = ssa::mil_to_ssa(prog);
+    let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
     ssa::eliminate_dead_code(&mut prog);
     xform::fold_constants(&mut prog);
     println!("{:?}", prog);

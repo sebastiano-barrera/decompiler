@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -183,7 +183,25 @@ impl std::fmt::Debug for Program {
     }
 }
 
-pub fn mil_to_ssa(mut program: mil::Program) -> Program {
+pub struct ConversionParams {
+    pub program: mil::Program,
+    types: ty::TypeSet,
+    ancestral_types: HashMap<mil::AncestralName, ty::TypeID>,
+}
+
+impl ConversionParams {
+    pub fn new(program: mil::Program) -> Self {
+        ConversionParams {
+            program,
+            types: ty::TypeSet::new(),
+            ancestral_types: HashMap::new(),
+        }
+    }
+}
+
+pub fn mil_to_ssa(input: ConversionParams) -> Program {
+    let ConversionParams { mut program, .. } = input;
+
     let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
     eprintln!("//  --- dom tree ---");
@@ -756,7 +774,7 @@ mod tests {
         eprintln!("{:?}", prog);
 
         eprintln!("-- ssa:");
-        let prog = super::mil_to_ssa(prog);
+        let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
         insta::assert_debug_snapshot!(prog);
     }
 }
@@ -772,7 +790,13 @@ pub mod ty {
     pub struct TypeSet {
         types: bimap::BiHashMap<Type, TypeID>,
     }
-    impl TypeSet {}
+    impl TypeSet {
+        pub fn new() -> Self {
+            TypeSet {
+                types: bimap::BiHashMap::new(),
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub struct Type {

@@ -59,7 +59,7 @@ mod logical_vars {
         writeln!(out, "{:?}", prog)?;
         writeln!(out,)?;
 
-        let mut prog = ssa::mil_to_ssa(prog);
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         crate::xform::fold_constants(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
         writeln!(out, "{:?}", prog)?;
@@ -98,7 +98,7 @@ mod constant_folding {
             b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
         };
-        let mut prog = ssa::mil_to_ssa(prog);
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         xform::fold_constants(&mut prog);
 
         assert_eq!(prog.cfg().block_count(), 1);
@@ -128,7 +128,7 @@ mod constant_folding {
             b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
         };
-        let mut prog = ssa::mil_to_ssa(prog);
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         xform::fold_constants(&mut prog);
 
         let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();

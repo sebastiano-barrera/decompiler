@@ -141,7 +141,7 @@ mod typing {
                 b.build()
             };
 
-            let prog = ssa::mil_to_ssa(prog);
+            let prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             eprintln!();
             eprintln!("SSA:\n{:?}", prog);
 
