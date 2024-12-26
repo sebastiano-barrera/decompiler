@@ -88,7 +88,7 @@ mod typing {
         F: FnOnce(TypeEditor),
     {
         action(TypeEditor(program));
-        program.check_types()
+        ssa::ty::check_types(program)
     }
 
     pub struct TypeEditor<'a>(&'a mut ssa::Program);
@@ -137,9 +137,6 @@ mod typing {
                 b.build()
             };
 
-            eprintln!();
-            eprintln!("PRE-SSA:\n{:?}", prog);
-
             let prog = ssa::mil_to_ssa(prog);
             eprintln!();
             eprintln!("SSA:\n{:?}", prog);
@@ -148,8 +145,9 @@ mod typing {
         }
 
         #[test]
-        fn basic() {
-            let _ = basic_program();
+        fn simple_error() {
+            let mut program = basic_program();
+            super::edit_types(&mut program, |typing| {});
         }
     }
 }

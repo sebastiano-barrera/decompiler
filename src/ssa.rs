@@ -78,7 +78,7 @@ impl Program {
         self.inner.get_phi_args(reg.0)
     }
 
-    pub(crate) fn check_types(&self) -> ty::CheckResult {
+    fn value_type(&self, reg: mil::Reg) -> ty::Type {
         todo!()
     }
 }
@@ -764,7 +764,9 @@ mod tests {
 pub mod ty {
     use thiserror::Error;
 
-    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    use crate::mil;
+
+    #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub struct TypeID(usize);
 
     pub struct TypeSet {
@@ -772,28 +774,56 @@ pub mod ty {
     }
     impl TypeSet {}
 
-    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub struct Type {
         // TODO pub alignment: u16,
         pub ty: Ty,
     }
-    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    impl From<Ty> for Type {
+        fn from(ty: Ty) -> Self {
+            Type { ty }
+        }
+    }
+    #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub enum Ty {
         Ptr(TypeID),
         Int(Int),
+        Bool,
     }
-    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub struct Int {
         // TODO turn to flag?
         signedness: Signedness,
         size: IntSize,
     }
-    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+
+    macro_rules! int_type {
+        ($name:ident, $signedness:expr, $size:expr) => {
+            const $name: Type = Type {
+                ty: Ty::Int(Int {
+                    signedness: $signedness,
+                    size: $size,
+                }),
+            };
+        };
+    }
+
+    int_type!(TY_INT1, Signedness::Signed, IntSize::Bytes1);
+    int_type!(TY_INT2, Signedness::Signed, IntSize::Bytes2);
+    int_type!(TY_INT4, Signedness::Signed, IntSize::Bytes4);
+    int_type!(TY_INT8, Signedness::Signed, IntSize::Bytes8);
+    int_type!(TY_UINT1, Signedness::Unsigned, IntSize::Bytes1);
+    int_type!(TY_UINT2, Signedness::Unsigned, IntSize::Bytes2);
+    int_type!(TY_UINT4, Signedness::Unsigned, IntSize::Bytes4);
+    int_type!(TY_UINT8, Signedness::Unsigned, IntSize::Bytes8);
+    const TY_BOOL: Type = Type { ty: Ty::Bool };
+
+    #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub enum Signedness {
         Signed,
         Unsigned,
     }
-    #[derive(Clone, Copy, Hash, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub enum IntSize {
         Bytes1,
         Bytes2,
@@ -815,14 +845,133 @@ pub mod ty {
     // -- Checking
     //
 
-    pub type CheckResult = std::result::Result<(), Error>;
+    pub type CheckResult = std::result::Result<(), Vec<Error>>;
+    pub type CheckResultSingle = std::result::Result<(), Error>;
+
+    fn errors_to_result(errors: Vec<Error>) -> CheckResult {
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
 
     #[derive(Error, Debug)]
-    pub enum Error {}
+    pub enum Error {
+        #[error("arg {arg_ndx} was expected to be {expected_type:?}, but was {expected_type:?}")]
+        WrongType {
+            arg_ndx: u8,
+            expected_type: Type,
+            found_type: Type,
+        },
+
+        #[error("invalid type expectation for input args")]
+        Invalid,
+    }
 
     // Corresponds to pubilc API ssa::Program::check_types
-    pub(super) fn check_types(program: &super::Program) -> CheckResult {
-        // TODO!
-        Ok(())
+    pub fn check_types(program: &super::Program) -> CheckResult {
+        use mil::Insn;
+
+        let mut errors = Vec::new();
+
+        for iv in program.insns_unordered() {
+            let insn = iv.insn.get();
+            let expectation = match insn {
+                Insn::Add(_, _) | Insn::Mul(_, _) => TypeExpect::SameSizeIntegers,
+                Insn::AddK(_, _) | Insn::MulK(_, _) => {
+                    TypeExpect::Explicit(&[Some(TY_INT8), Some(TY_INT8)])
+                }
+
+                Insn::Eq(_, _) => TypeExpect::SameSizeIntegers,
+                Insn::LT(_, _) => TypeExpect::SameSizeIntegers,
+
+                Insn::JmpIf { .. } => TypeExpect::Explicit(&[Some(TY_BOOL)]),
+                _ => TypeExpect::None,
+            };
+
+            let inputs = insn.input_regs();
+            let input_types = inputs.map(|reg_opt| reg_opt.map(|reg| program.value_type(*reg)));
+            if let Err(err) = expectation.check(&input_types) {
+                errors.push(err);
+            }
+        }
+
+        errors_to_result(errors)
+    }
+
+    enum TypeExpect {
+        /// All integer operands must have the same size
+        SameSizeIntegers,
+        /// Types must match exactly the specified pattern
+        Explicit(&'static [Option<Type>]),
+        /// Any combination of types is valid. Type checking always succeeds.
+        None,
+    }
+    impl TypeExpect {
+        /// Perform type check for a single instruction.
+        ///
+        /// On detection of a type error, a single `Error` is returned.
+        ///
+        /// If the type expectation is invalid for the given input types (and
+        /// therefore for the instruction), the function panics, as this case is
+        /// considered a programmer error and a bug in this code.
+        fn check(&self, input_types: &[Option<Type>]) -> CheckResultSingle {
+            match self {
+                TypeExpect::SameSizeIntegers => {
+                    assert!(input_types.len() >= 2);
+
+                    let ref_typ = &input_types[0];
+
+                    for i in 1..input_types.len() {
+                        let typ = &input_types[i];
+                        check_one_type(ref_typ, typ, i)?;
+                    }
+
+                    Ok(())
+                }
+                TypeExpect::Explicit(exp_types) => {
+                    assert_eq!(
+                        exp_types.len(),
+                        input_types.len(),
+                        "invalid type expectation for this insn; wrong len ({} vs {})",
+                        exp_types.len(),
+                        input_types.len()
+                    );
+
+                    for (ndx, (input_typ, exp_typ)) in
+                        input_types.iter().zip(exp_types.iter()).enumerate()
+                    {
+                        check_one_type(exp_typ, input_typ, ndx)?;
+                    }
+
+                    Ok(())
+                }
+                TypeExpect::None => Ok(()),
+            }
+        }
+    }
+
+    fn check_one_type(
+        ref_typ: &Option<Type>,
+        typ: &Option<Type>,
+        arg_ndx: usize,
+    ) -> CheckResultSingle {
+        match (ref_typ, typ) {
+            (None, None) => Ok(()),
+            (None, Some(_)) => panic!("invalid type expectation for this insn; no type expectation for input at ndx {arg_ndx}"),
+            (Some(_), None) => panic!("invalid type expectation for this insn; no input arg at ndx {arg_ndx}, but there is a type expectation"),
+            (Some(ref_typ), Some(typ)) => {
+                if ref_typ == typ {
+                    Ok(())
+                } else {
+                    Err(Error::WrongType {
+                        arg_ndx: arg_ndx.try_into().unwrap(),
+                        expected_type: ref_typ.clone(),
+                        found_type: typ.clone(),
+                    })
+                }
+            }
+        }
     }
 }
