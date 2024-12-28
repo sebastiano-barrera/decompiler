@@ -53,7 +53,7 @@ pub enum Insn {
     L1(Reg),
     L2(Reg),
     L4(Reg),
-    Get(Reg),
+    Get8(Reg),
     WithL1(Reg, Reg),
     WithL2(Reg, Reg),
     WithL4(Reg, Reg),
@@ -209,7 +209,7 @@ impl Insn {
             Insn::L1(reg)
             | Insn::L2(reg)
             | Insn::L4(reg)
-            | Insn::Get(reg)
+            | Insn::Get8(reg)
             | Insn::ArithK1(_, reg, _)
             | Insn::ArithK2(_, reg, _)
             | Insn::ArithK4(_, reg, _)
@@ -270,7 +270,7 @@ impl Insn {
             Insn::L1(reg)
             | Insn::L2(reg)
             | Insn::L4(reg)
-            | Insn::Get(reg)
+            | Insn::Get8(reg)
             | Insn::ArithK1(_, reg, _)
             | Insn::ArithK2(_, reg, _)
             | Insn::ArithK4(_, reg, _)
@@ -321,7 +321,7 @@ impl Insn {
             | Insn::L1(_)
             | Insn::L2(_)
             | Insn::L4(_)
-            | Insn::Get(_)
+            | Insn::Get8(_)
             | Insn::WithL1(_, _)
             | Insn::WithL2(_, _)
             | Insn::WithL4(_, _)
@@ -420,7 +420,7 @@ impl std::fmt::Debug for Insn {
             Insn::L1(x) => write!(f, "{:8} {:?}", "l1", x),
             Insn::L2(x) => write!(f, "{:8} {:?}", "l2", x),
             Insn::L4(x) => write!(f, "{:8} {:?}", "l4", x),
-            Insn::Get(x) => write!(f, "{:8} {:?}", "get", x),
+            Insn::Get8(x) => write!(f, "{:8} {:?}", "get", x),
             Insn::WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l1", full, part),
             Insn::WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l2", full, part),
             Insn::WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l4", full, part),

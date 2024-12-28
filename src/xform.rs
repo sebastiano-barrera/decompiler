@@ -31,7 +31,7 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                 | Insn::ArithK2(ArithOp::Mul, r, k)
                 | Insn::ArithK4(ArithOp::Mul, r, k)
                 | Insn::ArithK8(ArithOp::Mul, r, k) => return Assoc::Mul(r, k),
-                Insn::Get(r) => {
+                Insn::Get8(r) => {
                     reg = r;
                 }
                 _ => return Assoc::Opaque,
@@ -58,10 +58,10 @@ pub fn fold_constants(prog: &mut ssa::Program) {
             let ba = assoc_of(&*prog, b);
 
             let repl_insn = match (op, aa, ba) {
-                (ArithOp::Add, Assoc::Const(0), _) => Insn::Get(b),
-                (ArithOp::Add, _, Assoc::Const(0)) => Insn::Get(a),
-                (ArithOp::Mul, Assoc::Const(1), _) => Insn::Get(b),
-                (ArithOp::Mul, _, Assoc::Const(1)) => Insn::Get(a),
+                (ArithOp::Add, Assoc::Const(0), _) => Insn::Get8(b),
+                (ArithOp::Add, _, Assoc::Const(0)) => Insn::Get8(a),
+                (ArithOp::Mul, Assoc::Const(1), _) => Insn::Get8(b),
+                (ArithOp::Mul, _, Assoc::Const(1)) => Insn::Get8(a),
 
                 (ArithOp::Add, Assoc::Const(ak), Assoc::Const(bk)) => {
                     Insn::Const8((ak + bk) as u64)

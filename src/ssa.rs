@@ -341,7 +341,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
                     let old_name = iv.dest.replace(new_dest);
-                    let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
+                    let new_name = if let mil::Insn::Get8(input_reg) = iv.insn.get() {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
                         input_reg

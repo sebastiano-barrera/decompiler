@@ -123,7 +123,7 @@ impl Builder {
                     );
                 }
                 M::Leave => {
-                    self.emit(Self::RSP, mil::Insn::Get(Self::RBP));
+                    self.emit(Self::RSP, mil::Insn::Get8(Self::RBP));
                     self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
                     self.emit(
                         Self::RSP,
@@ -483,7 +483,7 @@ impl Builder {
                     1 => mil::Insn::WithL1(full_dest, value),
                     2 => mil::Insn::WithL2(full_dest, value),
                     4 => mil::Insn::WithL4(full_dest, value),
-                    8 => mil::Insn::Get(value),
+                    8 => mil::Insn::Get8(value),
                     _ => panic!("invalid dest size"),
                 };
                 self.emit(full_dest, modifier);

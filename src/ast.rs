@@ -469,7 +469,7 @@ impl<'a> Builder<'a> {
             Insn::L1(reg) => Node::L1(self.add_node_of_value(reg)),
             Insn::L2(reg) => Node::L2(self.add_node_of_value(reg)),
             Insn::L4(reg) => Node::L4(self.add_node_of_value(reg)),
-            Insn::Get(reg) => self.node_of_value(reg),
+            Insn::Get8(reg) => self.node_of_value(reg),
 
             Insn::WithL1(a, b) => {
                 Node::WithL1(self.add_node_of_value(a), self.add_node_of_value(b))

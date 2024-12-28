@@ -110,7 +110,7 @@ mod constant_folding {
             Insn::ArithK8(ArithOp::Add, Reg(0), 10)
         );
         assert_eq!(insns.insns[5].get(), Insn::Const8(49));
-        assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
+        assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
     }
 
     #[test]
@@ -142,6 +142,6 @@ mod constant_folding {
             Insn::ArithK8(ArithOp::Mul, Reg(0), 25)
         );
         assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
-        assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
+        assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
     }
 }
