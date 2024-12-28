@@ -93,7 +93,11 @@ enum Node {
     LoadMem2(NodeID),
     LoadMem4(NodeID),
     LoadMem8(NodeID),
-    StoreMem(NodeID, NodeID),
+    StoreMem {
+        addr: NodeID,
+        value: NodeID,
+        size: u8,
+    },
 
     OverflowOf(NodeID),
     CarryOf(NodeID),
@@ -196,6 +200,7 @@ impl<'a> Builder<'a> {
         let name_of_value = ssa
             .insns_unordered()
             .filter_map(|iv| {
+                // TODO Use Insn::has_side_effect, Insn::result_type
                 let is_named = match iv.insn.get() {
                     mil::Insn::Const1(_)
                     | mil::Insn::Const2(_)
@@ -205,7 +210,11 @@ impl<'a> Builder<'a> {
                     | mil::Insn::LoadMem2(_)
                     | mil::Insn::LoadMem4(_)
                     | mil::Insn::LoadMem8(_) => false,
-                    mil::Insn::Phi | mil::Insn::Call { .. } => true,
+                    mil::Insn::Phi1
+                    | mil::Insn::Phi2
+                    | mil::Insn::Phi4
+                    | mil::Insn::Phi8
+                    | mil::Insn::Call { .. } => true,
                     _ => ssa.readers_count(iv.dest.get()) > 1,
                 };
                 if is_named {
@@ -456,9 +465,14 @@ impl<'a> Builder<'a> {
                 Node::Nop
             }
             Insn::StoreMem(addr, val) => {
+                let size = self
+                    .ssa
+                    .value_type(val)
+                    .bytes_size()
+                    .expect("Insn::StoreMem: value has no size!");
                 let addr = self.add_node_of_value(addr);
-                let val = self.add_node_of_value(val);
-                Node::StoreMem(addr, val)
+                let value = self.add_node_of_value(val);
+                Node::StoreMem { addr, value, size }
             }
 
             Insn::Const1(val) => Node::Const1(val),
@@ -471,13 +485,13 @@ impl<'a> Builder<'a> {
             Insn::L4(reg) => Node::L4(self.add_node_of_value(reg)),
             Insn::Get8(reg) => self.node_of_value(reg),
 
-            Insn::WithL1(a, b) => {
+            Insn::V8WithL1(a, b) => {
                 Node::WithL1(self.add_node_of_value(a), self.add_node_of_value(b))
             }
-            Insn::WithL2(a, b) => {
+            Insn::V8WithL2(a, b) => {
                 Node::WithL2(self.add_node_of_value(a), self.add_node_of_value(b))
             }
-            Insn::WithL4(a, b) => {
+            Insn::V8WithL4(a, b) => {
                 Node::WithL4(self.add_node_of_value(a), self.add_node_of_value(b))
             }
 
@@ -523,7 +537,7 @@ impl<'a> Builder<'a> {
             Insn::Undefined => Node::Undefined,
             Insn::Ancestral(anc) => Node::Pre(anc.name()),
 
-            Insn::Phi => {
+            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
                 let mut args = SmallVec::new();
 
                 for (pred_ndx, value) in self.ssa.get_phi_args(reg).enumerate() {
@@ -873,9 +887,7 @@ impl Ast {
             Node::LoadMem4(arg) => self.pp_load_mem(pp, 4, *arg),
             Node::LoadMem8(arg) => self.pp_load_mem(pp, 8, *arg),
 
-            // TODO The size is entirely fictitious. It will be made accurate
-            // after the typing stuff lands.
-            Node::StoreMem(dest, val) => self.pp_store_mem(pp, 11, *dest, *val),
+            Node::StoreMem { addr, value, size } => self.pp_store_mem(pp, *size, *addr, *value),
 
             Node::OverflowOf(arg) => {
                 write!(pp, "overflow (")?;

@@ -20,6 +20,8 @@ pub struct Program {
     // instruction back to the original machine code / assembly
     #[allow(dead_code)]
     mil_of_input_addr: HashMap<u64, Index>,
+
+    anc_types: HashMap<AncestralName, RegType>,
 }
 
 /// Register ID
@@ -42,6 +44,28 @@ impl std::fmt::Debug for Reg {
 
 pub type Index = u16;
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum RegType {
+    Effect,
+    Bytes1,
+    Bytes2,
+    Bytes4,
+    Bytes8,
+    Bool,
+}
+impl RegType {
+    pub(crate) fn bytes_size(&self) -> Option<u8> {
+        match self {
+            RegType::Effect => None,
+            RegType::Bool => None,
+            RegType::Bytes1 => Some(1),
+            RegType::Bytes2 => Some(2),
+            RegType::Bytes4 => Some(4),
+            RegType::Bytes8 => Some(8),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
@@ -54,9 +78,9 @@ pub enum Insn {
     L2(Reg),
     L4(Reg),
     Get8(Reg),
-    WithL1(Reg, Reg),
-    WithL2(Reg, Reg),
-    WithL4(Reg, Reg),
+    V8WithL1(Reg, Reg),
+    V8WithL2(Reg, Reg),
+    V8WithL4(Reg, Reg),
 
     Arith1(ArithOp, Reg, Reg),
     Arith2(ArithOp, Reg, Reg),
@@ -121,7 +145,11 @@ pub enum Insn {
     ///
     /// Exists purely to give the phi node an index that the rest of the program can refer to (in
     /// SSA).
-    Phi,
+    Phi1,
+    Phi2,
+    Phi4,
+    Phi8,
+    PhiBool,
 
     // argument to a phi node
     //
@@ -203,7 +231,11 @@ impl Insn {
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi
+            | Insn::Phi1
+            | Insn::Phi2
+            | Insn::Phi4
+            | Insn::Phi8
+            | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
             Insn::L1(reg)
@@ -238,9 +270,9 @@ impl Insn {
             | Insn::CArg(reg)
             | Insn::PhiArg(reg) => [Some(reg), None],
 
-            Insn::WithL1(a, b)
-            | Insn::WithL2(a, b)
-            | Insn::WithL4(a, b)
+            Insn::V8WithL1(a, b)
+            | Insn::V8WithL2(a, b)
+            | Insn::V8WithL4(a, b)
             | Insn::Arith1(_, a, b)
             | Insn::Arith2(_, a, b)
             | Insn::Arith4(_, a, b)
@@ -264,7 +296,11 @@ impl Insn {
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi
+            | Insn::Phi1
+            | Insn::Phi2
+            | Insn::Phi4
+            | Insn::Phi8
+            | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
             Insn::L1(reg)
@@ -299,9 +335,9 @@ impl Insn {
             | Insn::CArg(reg)
             | Insn::PhiArg(reg) => [Some(reg), None],
 
-            Insn::WithL1(a, b)
-            | Insn::WithL2(a, b)
-            | Insn::WithL4(a, b)
+            Insn::V8WithL1(a, b)
+            | Insn::V8WithL2(a, b)
+            | Insn::V8WithL4(a, b)
             | Insn::Arith1(_, a, b)
             | Insn::Arith2(_, a, b)
             | Insn::Arith4(_, a, b)
@@ -322,9 +358,9 @@ impl Insn {
             | Insn::L2(_)
             | Insn::L4(_)
             | Insn::Get8(_)
-            | Insn::WithL1(_, _)
-            | Insn::WithL2(_, _)
-            | Insn::WithL4(_, _)
+            | Insn::V8WithL1(_, _)
+            | Insn::V8WithL2(_, _)
+            | Insn::V8WithL4(_, _)
             | Insn::Arith1(_, _, _)
             | Insn::Arith2(_, _, _)
             | Insn::Arith4(_, _, _)
@@ -347,7 +383,11 @@ impl Insn {
             | Insn::LoadMem4(_)
             | Insn::LoadMem8(_)
             | Insn::Ancestral(_)
-            | Insn::Phi
+            | Insn::Phi1
+            | Insn::Phi2
+            | Insn::Phi4
+            | Insn::Phi8
+            | Insn::PhiBool
             | Insn::PhiArg { .. } => false,
 
             Insn::Call { .. }
@@ -361,6 +401,14 @@ impl Insn {
             | Insn::JmpIf { .. }
             | Insn::TODO(_) => true,
         }
+    }
+
+    #[inline(always)]
+    fn is_phi(&self) -> bool {
+        matches!(
+            self,
+            Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool
+        )
     }
 }
 
@@ -421,9 +469,9 @@ impl std::fmt::Debug for Insn {
             Insn::L2(x) => write!(f, "{:8} {:?}", "l2", x),
             Insn::L4(x) => write!(f, "{:8} {:?}", "l4", x),
             Insn::Get8(x) => write!(f, "{:8} {:?}", "get", x),
-            Insn::WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l1", full, part),
-            Insn::WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l2", full, part),
-            Insn::WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l4", full, part),
+            Insn::V8WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l1=", full, part),
+            Insn::V8WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l2=", full, part),
+            Insn::V8WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l4=", full, part),
 
             Insn::Arith1(op, a, b) => fmt_arith(f, *op, 1, *a, *b),
             Insn::Arith2(op, a, b) => fmt_arith(f, *op, 2, *a, *b),
@@ -477,7 +525,11 @@ impl std::fmt::Debug for Insn {
             Insn::Undefined => write!(f, "undef"),
             Insn::Ancestral(anc) => write!(f, "#pre:{}", anc.name()),
 
-            Insn::Phi => write!(f, "phi"),
+            Insn::Phi1 => write!(f, "phi1"),
+            Insn::Phi2 => write!(f, "phi2"),
+            Insn::Phi4 => write!(f, "phi4"),
+            Insn::Phi8 => write!(f, "phi8"),
+            Insn::PhiBool => write!(f, "phibool"),
             Insn::PhiArg(reg) => {
                 write!(f, "{:8} {:?}", "phiarg", reg)
             }
@@ -546,7 +598,8 @@ impl Program {
 
     pub fn get_phi_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
         let ndx = ndx as usize;
-        assert!(matches!(self.insns[ndx].get(), Insn::Phi));
+        let phi_insn = self.insns[ndx].get();
+        assert!(phi_insn.is_phi());
         self.insns
             .iter()
             .skip(ndx + 1)
@@ -572,6 +625,62 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.addrs.push(u64::MAX);
         index
+    }
+
+    pub fn value_type(&self, index: Index) -> RegType {
+        match self.insns[index as usize].get() {
+            Insn::Const1(_) => RegType::Bytes1,
+            Insn::Const2(_) => RegType::Bytes2,
+            Insn::Const4(_) => RegType::Bytes4,
+            Insn::Const8(_) => RegType::Bytes8,
+            Insn::L1(_) => RegType::Bytes1,
+            Insn::L2(_) => RegType::Bytes2,
+            Insn::L4(_) => RegType::Bytes4,
+            Insn::Get8(_) => RegType::Bytes8,
+            Insn::V8WithL1(_, _) => RegType::Bytes8,
+            Insn::V8WithL2(_, _) => RegType::Bytes8,
+            Insn::V8WithL4(_, _) => RegType::Bytes8,
+            Insn::Arith1(_, _, _) => RegType::Bytes1,
+            Insn::Arith2(_, _, _) => RegType::Bytes2,
+            Insn::Arith4(_, _, _) => RegType::Bytes4,
+            Insn::Arith8(_, _, _) => RegType::Bytes8,
+            Insn::ArithK1(_, _, _) => RegType::Bytes1,
+            Insn::ArithK2(_, _, _) => RegType::Bytes2,
+            Insn::ArithK4(_, _, _) => RegType::Bytes4,
+            Insn::ArithK8(_, _, _) => RegType::Bytes8,
+            Insn::Cmp(_, _, _) => RegType::Bool,
+            Insn::Bool(_, _, _) => RegType::Bool,
+            Insn::Not(_) => RegType::Bool,
+            // TODO This might have to change based on the use of calling
+            // convention and function type info
+            Insn::Call(_) => RegType::Bytes8,
+            Insn::CArg(_) => RegType::Effect,
+            Insn::Ret(_) => RegType::Effect,
+            Insn::JmpI(_) => RegType::Effect,
+            Insn::Jmp(_) => RegType::Effect,
+            Insn::JmpExt(_) => RegType::Effect,
+            Insn::JmpIf { .. } => RegType::Effect,
+            Insn::JmpExtIf { .. } => RegType::Effect,
+            Insn::TODO(_) => RegType::Effect,
+            Insn::LoadMem1(_) => RegType::Bytes1,
+            Insn::LoadMem2(_) => RegType::Bytes2,
+            Insn::LoadMem4(_) => RegType::Bytes4,
+            Insn::LoadMem8(_) => RegType::Bytes8,
+            Insn::StoreMem(_, _) => RegType::Effect,
+            Insn::OverflowOf(_) => RegType::Effect,
+            Insn::CarryOf(_) => RegType::Effect,
+            Insn::SignOf(_) => RegType::Effect,
+            Insn::IsZero(_) => RegType::Effect,
+            Insn::Parity(_) => RegType::Effect,
+            Insn::Undefined => RegType::Effect,
+            Insn::Phi1 => RegType::Bytes1,
+            Insn::Phi2 => RegType::Bytes2,
+            Insn::Phi4 => RegType::Bytes4,
+            Insn::Phi8 => RegType::Bytes8,
+            Insn::PhiBool => RegType::Bool,
+            Insn::PhiArg(_) => RegType::Effect,
+            Insn::Ancestral(anc_name) => self.anc_types.get(&anc_name).copied().unwrap(),
+        }
     }
 }
 
@@ -603,6 +712,7 @@ pub struct ProgramBuilder {
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
     cur_input_addr: u64,
+    anc_types: HashMap<AncestralName, RegType>,
 }
 
 impl ProgramBuilder {
@@ -612,6 +722,7 @@ impl ProgramBuilder {
             dests: Vec::new(),
             addrs: Vec::new(),
             cur_input_addr: 0,
+            anc_types: HashMap::new(),
         }
     }
 
@@ -620,6 +731,10 @@ impl ProgramBuilder {
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
         dest
+    }
+
+    pub fn set_ancestral_type(&mut self, anc_name: AncestralName, typ: RegType) {
+        self.anc_types.insert(anc_name, typ);
     }
 
     /// Associate the instructions emitted via the following calls to `emit_*` to the given
@@ -678,6 +793,7 @@ impl ProgramBuilder {
             dests,
             addrs,
             mil_of_input_addr,
+            anc_types: self.anc_types,
         }
     }
 }

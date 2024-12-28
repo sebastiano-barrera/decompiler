@@ -12,7 +12,7 @@ ssa program  10 instrs
 .B2:  in[.B0 ]     ;; 0xf2  1 insn 0 phis
          r4 <- const1   8 (0x8)
 .B3:  in[.B1 .B2 ]     ;; 0xf3  2 insn 1 phis
-         r7 <- phi
+         r7 <- phi1
          r8 <- phiarg   r2
          r9 <- phiarg   r4
          r5 <- addk     r7,456 byte

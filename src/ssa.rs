@@ -78,8 +78,8 @@ impl Program {
         self.inner.get_phi_args(reg.0)
     }
 
-    fn value_type(&self, reg: mil::Reg) -> ty::Type {
-        todo!()
+    pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
+        self.inner.value_type(reg.0)
     }
 }
 
@@ -309,7 +309,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 for ndx in block_phis.ndxs.clone() {
                     let item = program.get(ndx).unwrap();
                     match item.insn.get() {
-                        mil::Insn::Phi { .. } => {
+                        mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
                             var_map.set(item.dest.get(), mil::Reg(ndx));
                             item.dest.set(mil::Reg(ndx));
                         }
@@ -373,7 +373,13 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                         let arg = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
                         let iv = program.get(arg.0).unwrap();
                         match iv.insn.get() {
-                            mil::Insn::Phi => continue,
+                            // These are not supposed to exist yet!
+                            // Only Phi8 is added by place_phi_nodes; the others
+                            // are only placed by narrow_phi_nodes
+                            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
+                                panic!("unexpected narrow phi node at this phase of ssa conversion")
+                            }
+                            mil::Insn::Phi8 => continue,
                             mil::Insn::PhiArg(arg) => {
                                 // NOTE: the substitution of the *successor's* phi node's argument is
                                 // done in the context of *this* node (its predecessor)
@@ -424,15 +430,28 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         );
     }
 
-    Program {
+    let mut ssa = Program {
         inner: program,
         cfg,
         is_alive,
         phis,
         rdr_count,
-    }
+    };
+    narrow_phi_nodes(&mut ssa);
+    ssa
 }
 
+/// Add phi nodes to a MIL program, where required.
+///
+/// Some notes:
+///
+/// - This function acts on MIL programs not yet in SSA form. Phi nodes are
+/// added in preparation for an SSA conversion, but no part of the actual
+/// conversion is performed at all.
+///
+/// - The added Phi nodes are all with the largest result width (Phi8). They
+/// must be later swapped for the proper width variants (Phi1, Phi2, Phi4, ...)
+/// by calling `narrow_phi_nodes` on the SSA-converted program.
 fn place_phi_nodes(
     program: &mut mil::Program,
     cfg: &cfg::Graph,
@@ -486,7 +505,9 @@ fn place_phi_nodes(
         for var_ndx in 0..var_count {
             let reg = mil::Reg(var_ndx);
             if *phis_set.get(bid, reg) {
-                program.push(reg, mil::Insn::Phi);
+                // the largest-width Phi opcode is inserted here; will be
+                // narrowed down in a later phase of ssa construction
+                program.push(reg, mil::Insn::Phi8);
                 phi_count += 1;
 
                 for _pred_ndx in 0..pred_count {
@@ -517,6 +538,44 @@ fn place_phi_nodes(
     }
 
     phis
+}
+
+fn narrow_phi_nodes(program: &mut Program) {
+    for iv in program.insns_unordered() {
+        let dest = iv.dest.get();
+        let insn = iv.insn.get();
+
+        match insn {
+            mil::Insn::Phi8 => {}
+            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
+                panic!("narrow_phi_nodes: unexpected narrow phi node")
+            }
+            _ => continue,
+        }
+
+        let mut args = program.get_phi_args(dest);
+        let arg0 = args.next().unwrap();
+        let rt0 = program.value_type(arg0);
+
+        // check: all args have the same type!
+        for arg in args {
+            assert_eq!(
+                program.value_type(arg),
+                rt0,
+                "malformed ssa: phi node has different type args"
+            );
+        }
+
+        let repl_insn = match rt0 {
+            mil::RegType::Effect => panic!("malformed ssa: phi node can't have Effect inputs"),
+            mil::RegType::Bytes1 => mil::Insn::Phi1,
+            mil::RegType::Bytes2 => mil::Insn::Phi2,
+            mil::RegType::Bytes4 => mil::Insn::Phi4,
+            mil::RegType::Bytes8 => mil::Insn::Phi8,
+            mil::RegType::Bool => mil::Insn::PhiBool,
+        };
+        iv.insn.set(repl_insn);
+    }
 }
 
 /// Find the set of "received variables" for each block.
@@ -702,7 +761,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             let is_alive = prog.is_alive.get_mut(reg.reg_index() as usize).unwrap();
             *is_alive = prog.rdr_count.get(reg) > 0;
             match prog.inner.get(ndx).unwrap().insn.get() {
-                mil::Insn::Phi { .. } => {
+                mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
                     flag = *is_alive;
                 }
                 mil::Insn::PhiArg(value) => {
@@ -782,8 +841,6 @@ mod tests {
 
 pub mod ty {
     use thiserror::Error;
-
-    use crate::mil;
 
     #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
     pub struct TypeID(usize);

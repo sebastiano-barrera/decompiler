@@ -44,7 +44,7 @@ program  40 instrs
    35 r28 <- add      r28,r14  qword
    36 r29 <- mulk     r14,1 qword
    37 r28 <- add      r28,r29  qword
-   38 r16 <- with.l4  r16 ← r28
+   38 r16 <- v8.l4=   r16 ← r28
    39 r28 <- ret      r16
 
 
@@ -55,5 +55,5 @@ ssa program  7 instrs
          r35 <- get      r13
          r36 <- mulk     r13,1 qword
          r37 <- add      r35,r36  qword
-         r38 <- with.l4  r15 ← r37
+         r38 <- v8.l4=   r15 ← r37
          r39 <- ret      r38

@@ -1,4 +1,4 @@
-use crate::mil;
+use crate::mil::{self, AncestralName, RegType};
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
@@ -25,6 +25,11 @@ impl Builder {
         self.pb.build()
     }
 
+    fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
+        self.emit(reg, mil::Insn::Ancestral(anc_name));
+        self.pb.set_ancestral_type(anc_name, rt);
+    }
+
     fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
@@ -33,7 +38,7 @@ impl Builder {
 
         let mut formatter = IntelFormatter::new();
 
-        self.emit(Self::RSP, mil::Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+        self.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes8);
 
         // ensure all registers are initialized at least once. most of these
         // instructions (if all goes well, all of them) get "deleted" (masked)
@@ -41,32 +46,32 @@ impl Builder {
         // allows the program to still be decompiled into something (albeit,
         // with some "holes")
 
-        self.emit(Self::CF, mil::Insn::Ancestral(ANC_CF));
-        self.emit(Self::PF, mil::Insn::Ancestral(ANC_PF));
-        self.emit(Self::AF, mil::Insn::Ancestral(ANC_AF));
-        self.emit(Self::ZF, mil::Insn::Ancestral(ANC_ZF));
-        self.emit(Self::SF, mil::Insn::Ancestral(ANC_SF));
-        self.emit(Self::TF, mil::Insn::Ancestral(ANC_TF));
-        self.emit(Self::IF, mil::Insn::Ancestral(ANC_IF));
-        self.emit(Self::DF, mil::Insn::Ancestral(ANC_DF));
-        self.emit(Self::OF, mil::Insn::Ancestral(ANC_OF));
-        self.emit(Self::RBP, mil::Insn::Ancestral(ANC_RBP));
-        self.emit(Self::RSP, mil::Insn::Ancestral(ANC_RSP));
-        self.emit(Self::RIP, mil::Insn::Ancestral(ANC_RIP));
-        self.emit(Self::RDI, mil::Insn::Ancestral(ANC_RDI));
-        self.emit(Self::RSI, mil::Insn::Ancestral(ANC_RSI));
-        self.emit(Self::RAX, mil::Insn::Ancestral(ANC_RAX));
-        self.emit(Self::RBX, mil::Insn::Ancestral(ANC_RBX));
-        self.emit(Self::RCX, mil::Insn::Ancestral(ANC_RCX));
-        self.emit(Self::RDX, mil::Insn::Ancestral(ANC_RDX));
-        self.emit(Self::R8, mil::Insn::Ancestral(ANC_R8));
-        self.emit(Self::R9, mil::Insn::Ancestral(ANC_R9));
-        self.emit(Self::R10, mil::Insn::Ancestral(ANC_R10));
-        self.emit(Self::R11, mil::Insn::Ancestral(ANC_R11));
-        self.emit(Self::R12, mil::Insn::Ancestral(ANC_R12));
-        self.emit(Self::R13, mil::Insn::Ancestral(ANC_R13));
-        self.emit(Self::R14, mil::Insn::Ancestral(ANC_R14));
-        self.emit(Self::R15, mil::Insn::Ancestral(ANC_R15));
+        self.init_ancestral(Self::CF, ANC_CF, RegType::Bool);
+        self.init_ancestral(Self::PF, ANC_PF, RegType::Bool);
+        self.init_ancestral(Self::AF, ANC_AF, RegType::Bool);
+        self.init_ancestral(Self::ZF, ANC_ZF, RegType::Bool);
+        self.init_ancestral(Self::SF, ANC_SF, RegType::Bool);
+        self.init_ancestral(Self::TF, ANC_TF, RegType::Bool);
+        self.init_ancestral(Self::IF, ANC_IF, RegType::Bool);
+        self.init_ancestral(Self::DF, ANC_DF, RegType::Bool);
+        self.init_ancestral(Self::OF, ANC_OF, RegType::Bool);
+        self.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes8);
+        self.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes8);
+        self.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes8);
+        self.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes8);
+        self.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes8);
+        self.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes8);
+        self.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes8);
+        self.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes8);
+        self.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes8);
+        self.init_ancestral(Self::R8, ANC_R8, RegType::Bytes8);
+        self.init_ancestral(Self::R9, ANC_R9, RegType::Bytes8);
+        self.init_ancestral(Self::R10, ANC_R10, RegType::Bytes8);
+        self.init_ancestral(Self::R11, ANC_R11, RegType::Bytes8);
+        self.init_ancestral(Self::R12, ANC_R12, RegType::Bytes8);
+        self.init_ancestral(Self::R13, ANC_R13, RegType::Bytes8);
+        self.init_ancestral(Self::R14, ANC_R14, RegType::Bytes8);
+        self.init_ancestral(Self::R15, ANC_R15, RegType::Bytes8);
 
         // ensure that all possible temporary registers are initialized at least
         // once. this in turn ensures that all phi nodes always have a valid
@@ -480,9 +485,9 @@ impl Builder {
 
                 let full_dest = Builder::xlat_reg(dest.full_register());
                 let modifier = match value_size {
-                    1 => mil::Insn::WithL1(full_dest, value),
-                    2 => mil::Insn::WithL2(full_dest, value),
-                    4 => mil::Insn::WithL4(full_dest, value),
+                    1 => mil::Insn::V8WithL1(full_dest, value),
+                    2 => mil::Insn::V8WithL2(full_dest, value),
+                    4 => mil::Insn::V8WithL4(full_dest, value),
                     8 => mil::Insn::Get8(value),
                     _ => panic!("invalid dest size"),
                 };
