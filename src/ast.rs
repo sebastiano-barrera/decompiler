@@ -182,12 +182,7 @@ impl From<mil::CmpOp> for CmpOp {
     }
 }
 
-pub fn ssa_to_ast(ssa: &ssa::Program) -> Ast {
-    // TODO Remove the Builder altogether?
-    Builder::init_to_ast(ssa).compile(cfg::ENTRY_BID)
-}
-
-struct Builder<'a> {
+pub struct Builder<'a> {
     ssa: &'a ssa::Program,
     name_of_value: HashMap<mil::Reg, Ident>,
     label_of_block: cfg::BlockMap<Label>,
@@ -196,7 +191,7 @@ struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-    fn init_to_ast(ssa: &'a ssa::Program) -> Builder<'a> {
+    pub fn new(ssa: &'a ssa::Program) -> Builder<'a> {
         let name_of_value = ssa
             .insns_unordered()
             .filter_map(|iv| {
@@ -242,7 +237,13 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn compile(mut self, start_bid: cfg::BlockID) -> Ast {
+    pub fn compile(self) -> Ast {
+        self.compile_with_entry(cfg::ENTRY_BID)
+    }
+}
+
+impl<'a> Builder<'a> {
+    fn compile_with_entry(mut self, start_bid: cfg::BlockID) -> Ast {
         let main_node = self.compile_to_labeled(start_bid);
         let root_nid = self.add_node(main_node);
         apply_peephole_substitutions(&mut self.nodes);
@@ -1000,5 +1001,48 @@ mod nodeset {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "n{}", self.0)
         }
+    }
+}
+
+#[cfg(feature = "proto_typing")]
+#[cfg(test)]
+mod tests {
+    use crate::{ast, mil, ssa};
+    use mil::{ArithOp, Insn, Reg};
+
+    crate::define_ancestral_name!(ANC_ARG0, "arg0");
+
+    #[test]
+    fn store_target_struct_member() {
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            // this has undergone SSA and constant folding, but ProgramBuilder is the nicer
+            // API to get a proper ssa::Program
+            b.push(Reg(0), Insn::Ancestral(ANC_ARG0));
+            b.push(Reg(1), Insn::ArithK8(ArithOp::Add, Reg(0), 8));
+            b.push(Reg(2), Insn::Const4(123));
+            b.push(Reg(3), Insn::StoreMem(Reg(1), Reg(2)));
+            b.push(Reg(4), Insn::Ret(Reg(3)));
+            b.build()
+        };
+
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+
+        let type_id = ssa::TypeID(10);
+        let ptr_ty = ssa::Ptr { type_id, offset: 0 };
+        prog.set_ptr_type(Reg(0), ptr_ty);
+
+        let ast = ast::Builder::new(&prog).compile();
+        assert_ast_snapshot(&ast);
+    }
+
+    fn assert_ast_snapshot(ast: &ast::Ast) {
+        use crate::pp::PrettyPrinter;
+        use insta::assert_snapshot;
+
+        let mut out = String::new();
+        let mut pp = PrettyPrinter::start(&mut out);
+        ast.pretty_print(&mut pp).unwrap();
+        assert_snapshot!(out);
     }
 }

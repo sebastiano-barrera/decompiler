@@ -149,7 +149,7 @@ fn main() {
     let mut pp = PrettyPrinter::start(IoAsFmt(out));
 
     println!();
-    let ast = ast::ssa_to_ast(&prog);
+    let ast = ast::Builder::new(&prog).compile();
     ast.pretty_print(&mut pp).unwrap()
 }
 
