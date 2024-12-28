@@ -211,6 +211,7 @@ impl AncestralName {
     }
 }
 
+#[macro_export]
 macro_rules! define_ancestral_name {
     ($name:ident, $value:literal) => {
         pub const $name: $crate::mil::AncestralName = $crate::mil::AncestralName::new($value);

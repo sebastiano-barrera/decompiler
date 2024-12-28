@@ -25,6 +25,18 @@ pub struct Program {
 
     is_alive: Vec<bool>,
     rdr_count: ReaderCount,
+
+    #[cfg(feature = "proto_typing")]
+    ptr_regs: HashMap<mil::Reg, Ptr>,
+}
+
+#[cfg(feature = "proto_typing")]
+pub struct TypeID(pub u32);
+
+#[cfg(feature = "proto_typing")]
+pub struct Ptr {
+    pub type_id: TypeID,
+    pub offset: u32,
 }
 
 impl Program {
@@ -80,6 +92,17 @@ impl Program {
 
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
         self.inner.value_type(reg.0)
+    }
+}
+
+#[cfg(feature = "proto_typing")]
+impl Program {
+    pub fn set_ptr_type(&mut self, reg: mil::Reg, ptr_ty: Ptr) {
+        self.ptr_regs.insert(reg, ptr_ty);
+    }
+
+    pub fn ptr_type(&mut self, reg: mil::Reg) -> &Ptr {
+        self.ptr_regs.get(&reg).unwrap()
     }
 }
 
@@ -436,6 +459,9 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         is_alive,
         phis,
         rdr_count,
+
+        #[cfg(feature = "proto_typing")]
+        ptr_regs: HashMap::new(),
     };
     narrow_phi_nodes(&mut ssa);
     ssa
