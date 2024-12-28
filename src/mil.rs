@@ -58,18 +58,19 @@ pub enum Insn {
     WithL2(Reg, Reg),
     WithL4(Reg, Reg),
 
-    Add(Reg, Reg),
-    AddK(Reg, i64),
-    Sub(Reg, Reg),
-    #[allow(dead_code)]
-    Mul(Reg, Reg),
-    MulK(Reg, i64),
-    Shl(Reg, Reg),
-    BitAnd(Reg, Reg),
-    BitOr(Reg, Reg),
-    Eq(Reg, Reg),
+    Arith1(ArithOp, Reg, Reg),
+    Arith2(ArithOp, Reg, Reg),
+    Arith4(ArithOp, Reg, Reg),
+    Arith8(ArithOp, Reg, Reg),
+
+    ArithK1(ArithOp, Reg, i64),
+    ArithK2(ArithOp, Reg, i64),
+    ArithK4(ArithOp, Reg, i64),
+    ArithK8(ArithOp, Reg, i64),
+
+    Cmp(CmpOp, Reg, Reg),
+    Bool(BoolOp, Reg, Reg),
     Not(Reg),
-    LT(Reg, Reg),
 
     // call args are represented by a sequence of adjacent CArg instructions,
     // immediately following the "main" Call insn:
@@ -105,10 +106,7 @@ pub enum Insn {
     LoadMem2(Reg),
     LoadMem4(Reg),
     LoadMem8(Reg),
-    StoreMem1(Reg, Reg),
-    StoreMem2(Reg, Reg),
-    StoreMem4(Reg, Reg),
-    StoreMem8(Reg, Reg),
+    StoreMem(Reg, Reg),
 
     OverflowOf(Reg),
     CarryOf(Reg),
@@ -141,6 +139,31 @@ pub enum Insn {
     //     PhiArg r332 ;; --'
     //     ... ;; normal insns
     PhiArg(Reg),
+}
+
+/// Binary comparison operators. Inputs are integers; the output is a boolean.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CmpOp {
+    EQ,
+    LT,
+}
+
+/// Binary boolean operators. Inputs and outputs are booleans.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum BoolOp {
+    Or,
+    And,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ArithOp {
+    Add,
+    Sub,
+    #[allow(dead_code)]
+    Mul,
+    Shl,
+    BitAnd,
+    BitOr,
 }
 
 /// The "name" (identifier) of an "ancestral" value, i.e. a value in MIL code
@@ -187,8 +210,10 @@ impl Insn {
             | Insn::L2(reg)
             | Insn::L4(reg)
             | Insn::Get(reg)
-            | Insn::AddK(reg, _)
-            | Insn::MulK(reg, _)
+            | Insn::ArithK1(_, reg, _)
+            | Insn::ArithK2(_, reg, _)
+            | Insn::ArithK4(_, reg, _)
+            | Insn::ArithK8(_, reg, _)
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpI(reg)
@@ -216,18 +241,13 @@ impl Insn {
             Insn::WithL1(a, b)
             | Insn::WithL2(a, b)
             | Insn::WithL4(a, b)
-            | Insn::Add(a, b)
-            | Insn::Sub(a, b)
-            | Insn::Mul(a, b)
-            | Insn::Shl(a, b)
-            | Insn::BitAnd(a, b)
-            | Insn::BitOr(a, b)
-            | Insn::Eq(a, b)
-            | Insn::LT(a, b)
-            | Insn::StoreMem1(a, b)
-            | Insn::StoreMem2(a, b)
-            | Insn::StoreMem4(a, b)
-            | Insn::StoreMem8(a, b) => [Some(a), Some(b)],
+            | Insn::Arith1(_, a, b)
+            | Insn::Arith2(_, a, b)
+            | Insn::Arith4(_, a, b)
+            | Insn::Arith8(_, a, b)
+            | Insn::Cmp(_, a, b)
+            | Insn::Bool(_, a, b)
+            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
         }
     }
 
@@ -251,16 +271,18 @@ impl Insn {
             | Insn::L2(reg)
             | Insn::L4(reg)
             | Insn::Get(reg)
-            | Insn::AddK(reg, _)
-            | Insn::MulK(reg, _)
+            | Insn::ArithK1(_, reg, _)
+            | Insn::ArithK2(_, reg, _)
+            | Insn::ArithK4(_, reg, _)
+            | Insn::ArithK8(_, reg, _)
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpI(reg)
-            | Insn::JmpIf {
+            | Insn::JmpExtIf {
                 cond: reg,
                 target: _,
             }
-            | Insn::JmpExtIf {
+            | Insn::JmpIf {
                 cond: reg,
                 target: _,
             }
@@ -280,18 +302,13 @@ impl Insn {
             Insn::WithL1(a, b)
             | Insn::WithL2(a, b)
             | Insn::WithL4(a, b)
-            | Insn::Add(a, b)
-            | Insn::Sub(a, b)
-            | Insn::Mul(a, b)
-            | Insn::Shl(a, b)
-            | Insn::BitAnd(a, b)
-            | Insn::BitOr(a, b)
-            | Insn::Eq(a, b)
-            | Insn::LT(a, b)
-            | Insn::StoreMem1(a, b)
-            | Insn::StoreMem2(a, b)
-            | Insn::StoreMem4(a, b)
-            | Insn::StoreMem8(a, b) => [Some(a), Some(b)],
+            | Insn::Arith1(_, a, b)
+            | Insn::Arith2(_, a, b)
+            | Insn::Arith4(_, a, b)
+            | Insn::Arith8(_, a, b)
+            | Insn::Cmp(_, a, b)
+            | Insn::Bool(_, a, b)
+            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
         }
     }
 
@@ -308,16 +325,16 @@ impl Insn {
             | Insn::WithL1(_, _)
             | Insn::WithL2(_, _)
             | Insn::WithL4(_, _)
-            | Insn::Add(_, _)
-            | Insn::AddK(_, _)
-            | Insn::Sub(_, _)
-            | Insn::Mul(_, _)
-            | Insn::MulK(_, _)
-            | Insn::Shl(_, _)
-            | Insn::BitAnd(_, _)
-            | Insn::BitOr(_, _)
-            | Insn::Eq(_, _)
-            | Insn::LT(_, _)
+            | Insn::Arith1(_, _, _)
+            | Insn::Arith2(_, _, _)
+            | Insn::Arith4(_, _, _)
+            | Insn::Arith8(_, _, _)
+            | Insn::ArithK1(_, _, _)
+            | Insn::ArithK2(_, _, _)
+            | Insn::ArithK4(_, _, _)
+            | Insn::ArithK8(_, _, _)
+            | Insn::Cmp(_, _, _)
+            | Insn::Bool(_, _, _)
             | Insn::Not(_)
             | Insn::OverflowOf(_)
             | Insn::CarryOf(_)
@@ -336,17 +353,60 @@ impl Insn {
             Insn::Call { .. }
             | Insn::CArg { .. }
             | Insn::Ret(_)
+            | Insn::StoreMem(_, _)
             | Insn::JmpI(_)
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::JmpExtIf { .. }
             | Insn::JmpIf { .. }
-            | Insn::TODO(_)
-            | Insn::StoreMem1(_, _)
-            | Insn::StoreMem2(_, _)
-            | Insn::StoreMem4(_, _)
-            | Insn::StoreMem8(_, _) => true,
+            | Insn::TODO(_) => true,
         }
+    }
+}
+
+fn fmt_arith(
+    f: &mut std::fmt::Formatter<'_>,
+    op: ArithOp,
+    sz: u8,
+    a: Reg,
+    b: Reg,
+) -> std::fmt::Result {
+    let op = match op {
+        ArithOp::Add => "add",
+        ArithOp::Sub => "sub",
+        ArithOp::Mul => "mul",
+        ArithOp::Shl => "shl",
+        ArithOp::BitAnd => "and",
+        ArithOp::BitOr => "or",
+    };
+    write!(f, "{:8} {:?},{:?}  {}", op, a, b, size_keyword(sz))
+}
+
+fn fmt_arithk(
+    f: &mut std::fmt::Formatter<'_>,
+    op: ArithOp,
+    sz: u8,
+    a: Reg,
+    k: i64,
+) -> std::fmt::Result {
+    let op = match op {
+        ArithOp::Add => "addk",
+        ArithOp::Sub => "subk",
+        ArithOp::Mul => "mulk",
+        ArithOp::Shl => "shlk",
+        ArithOp::BitAnd => "andk",
+        ArithOp::BitOr => "ork",
+    };
+    write!(f, "{:8} {:?},{:?} {}", op, a, k, size_keyword(sz))
+}
+
+fn size_keyword(sz: u8) -> &'static str {
+    match sz {
+        1 => "byte",
+        2 => "word",
+        4 => "dword",
+        8 => "qword",
+        _ => panic!("invalid size: {sz}"),
     }
 }
 
@@ -365,16 +425,28 @@ impl std::fmt::Debug for Insn {
             Insn::WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l2", full, part),
             Insn::WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "with.l4", full, part),
 
-            Insn::Add(a, b) => write!(f, "{:8} {:?},{:?}", "add", a, b),
-            Insn::AddK(a, b) => write!(f, "{:8} {:?},{}", "addk", a, *b),
-            Insn::Sub(a, b) => write!(f, "{:8} {:?},{:?}", "sub", a, b),
-            Insn::Mul(a, b) => write!(f, "{:8} {:?},{:?}", "mul", a, b),
-            Insn::MulK(a, b) => write!(f, "{:8} {:?},0x{:x}", "mul", a, b),
-            Insn::Shl(value, bits_count) => write!(f, "{:8} {:?},{:?}", "shl", value, bits_count),
-            Insn::BitAnd(a, b) => write!(f, "{:8} {:?},{:?}", "and", a, b),
-            Insn::BitOr(a, b) => write!(f, "{:8} {:?},{:?}", "or", a, b),
-            Insn::Eq(a, b) => write!(f, "{:8} {:?},{:?}", "eq", a, b),
-            Insn::LT(a, b) => write!(f, "{:8} {:?},{:?}", "<", a, b),
+            Insn::Arith1(op, a, b) => fmt_arith(f, *op, 1, *a, *b),
+            Insn::Arith2(op, a, b) => fmt_arith(f, *op, 2, *a, *b),
+            Insn::Arith4(op, a, b) => fmt_arith(f, *op, 4, *a, *b),
+            Insn::Arith8(op, a, b) => fmt_arith(f, *op, 8, *a, *b),
+            Insn::ArithK1(op, reg, k) => fmt_arithk(f, *op, 1, *reg, *k),
+            Insn::ArithK2(op, reg, k) => fmt_arithk(f, *op, 2, *reg, *k),
+            Insn::ArithK4(op, reg, k) => fmt_arithk(f, *op, 4, *reg, *k),
+            Insn::ArithK8(op, reg, k) => fmt_arithk(f, *op, 8, *reg, *k),
+            Insn::Cmp(op, a, b) => {
+                let op = match op {
+                    CmpOp::EQ => "==",
+                    CmpOp::LT => "<",
+                };
+                write!(f, "{:8} {:?},{:?}", op, a, b)
+            }
+            Insn::Bool(op, a, b) => {
+                let op = match op {
+                    BoolOp::Or => "||",
+                    BoolOp::And => "&&",
+                };
+                write!(f, "{:8} {:?},{:?}", op, a, b)
+            }
             Insn::Not(x) => write!(f, "{:8} {:?}", "not", x),
 
             Insn::LoadMem1(addr) => write!(f, "{:8} addr:{:?}", "loadm1", addr),
@@ -382,10 +454,7 @@ impl std::fmt::Debug for Insn {
             Insn::LoadMem4(addr) => write!(f, "{:8} addr:{:?}", "loadm4", addr),
             Insn::LoadMem8(addr) => write!(f, "{:8} addr:{:?}", "loadm8", addr),
 
-            Insn::StoreMem1(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem1", addr, val),
-            Insn::StoreMem2(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem2", addr, val),
-            Insn::StoreMem4(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem4", addr, val),
-            Insn::StoreMem8(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "storem8", addr, val),
+            Insn::StoreMem(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "store", addr, val),
             Insn::TODO(msg) => write!(f, "{:8} {}", "TODO", msg),
 
             Insn::Call(callee) => write!(f, "{:8} {:?}", "call", callee),

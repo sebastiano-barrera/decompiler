@@ -1,7 +1,9 @@
 use crate::{cfg, mil, ssa};
 
+// TODO Fix the algorithm to work with different instruction output sizes.
+// NOTE Right now folding is done across instructions of different sizes. It's a known limitation.
 pub fn fold_constants(prog: &mut ssa::Program) {
-    use mil::{Insn, Reg};
+    use mil::{ArithOp, Insn, Reg};
 
     /// Associativity status of an instruction.
     ///
@@ -21,8 +23,14 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                 Insn::Const2(k) => return Assoc::Const(k as i64),
                 Insn::Const4(k) => return Assoc::Const(k as i64),
                 Insn::Const8(k) => return Assoc::Const(k as i64),
-                Insn::AddK(r, k) => return Assoc::Add(r, k),
-                Insn::MulK(r, k) => return Assoc::Mul(r, k),
+                Insn::ArithK1(ArithOp::Add, r, k)
+                | Insn::ArithK2(ArithOp::Add, r, k)
+                | Insn::ArithK4(ArithOp::Add, r, k)
+                | Insn::ArithK8(ArithOp::Add, r, k) => return Assoc::Add(r, k),
+                Insn::ArithK1(ArithOp::Mul, r, k)
+                | Insn::ArithK2(ArithOp::Mul, r, k)
+                | Insn::ArithK4(ArithOp::Mul, r, k)
+                | Insn::ArithK8(ArithOp::Mul, r, k) => return Assoc::Mul(r, k),
                 Insn::Get(r) => {
                     reg = r;
                 }
@@ -38,44 +46,52 @@ pub fn fold_constants(prog: &mut ssa::Program) {
         for insn_cell in insns.insns.iter() {
             let insn = insn_cell.get();
 
-            let (a, b) = match insn {
-                Insn::Add(a, b) | Insn::Mul(a, b) => (a, b),
+            let (op, a, b) = match insn {
+                Insn::Arith1(op @ (ArithOp::Add | ArithOp::Mul), a, b)
+                | Insn::Arith2(op @ (ArithOp::Add | ArithOp::Mul), a, b)
+                | Insn::Arith4(op @ (ArithOp::Add | ArithOp::Mul), a, b)
+                | Insn::Arith8(op @ (ArithOp::Add | ArithOp::Mul), a, b) => (op, a, b),
                 _ => continue,
             };
 
             let aa = assoc_of(&*prog, a);
             let ba = assoc_of(&*prog, b);
 
-            let repl_insn = match insn {
-                Insn::Add(_, _) => match (aa, ba) {
-                    (Assoc::Const(0), _) => Some(Insn::Get(b)),
-                    (_, Assoc::Const(0)) => Some(Insn::Get(a)),
-                    (Assoc::Const(ak), Assoc::Const(bk)) => Some(Insn::Const8((ak + bk) as u64)),
-                    (Assoc::Const(ak), Assoc::Add(r, bk)) => Some(Insn::AddK(r, ak + bk)),
-                    (Assoc::Add(r, ak), Assoc::Const(bk)) => Some(Insn::AddK(r, ak + bk)),
-                    (Assoc::Const(ak), _) => Some(Insn::AddK(b, ak)),
-                    (_, Assoc::Const(bk)) => Some(Insn::AddK(a, bk)),
-                    (_, _) => None,
-                },
+            let repl_insn = match (op, aa, ba) {
+                (ArithOp::Add, Assoc::Const(0), _) => Insn::Get(b),
+                (ArithOp::Add, _, Assoc::Const(0)) => Insn::Get(a),
+                (ArithOp::Mul, Assoc::Const(1), _) => Insn::Get(b),
+                (ArithOp::Mul, _, Assoc::Const(1)) => Insn::Get(a),
 
-                Insn::Mul(_, _) => match (aa, ba) {
-                    (Assoc::Const(1), _) => Some(Insn::Get(b)),
-                    (_, Assoc::Const(1)) => Some(Insn::Get(a)),
-                    (Assoc::Const(ak), Assoc::Const(bk)) => Some(Insn::Const8((ak * bk) as u64)),
-                    (Assoc::Const(ak), Assoc::Mul(r, bk)) => Some(Insn::MulK(r, ak * bk)),
-                    (Assoc::Mul(r, ak), Assoc::Const(bk)) => Some(Insn::MulK(r, ak * bk)),
-                    (Assoc::Const(ak), _) => Some(Insn::MulK(b, ak)),
-                    (_, Assoc::Const(bk)) => Some(Insn::MulK(a, bk)),
-                    (_, _) => None,
-                },
+                (ArithOp::Add, Assoc::Const(ak), Assoc::Const(bk)) => {
+                    Insn::Const8((ak + bk) as u64)
+                }
+                (ArithOp::Mul, Assoc::Const(ak), Assoc::Const(bk)) => {
+                    Insn::Const8((ak * bk) as u64)
+                }
 
-                _ => None,
+                (ArithOp::Add, Assoc::Const(ak), Assoc::Add(r, bk)) => {
+                    Insn::ArithK8(ArithOp::Add, r, ak + bk)
+                }
+                (ArithOp::Add, Assoc::Add(r, ak), Assoc::Const(bk)) => {
+                    Insn::ArithK8(ArithOp::Add, r, ak + bk)
+                }
+                (ArithOp::Add, Assoc::Const(ak), _) => Insn::ArithK8(ArithOp::Add, b, ak),
+                (ArithOp::Add, _, Assoc::Const(bk)) => Insn::ArithK8(ArithOp::Add, a, bk),
+
+                (ArithOp::Mul, Assoc::Const(ak), Assoc::Mul(r, bk)) => {
+                    Insn::ArithK8(ArithOp::Mul, r, ak * bk)
+                }
+                (ArithOp::Mul, Assoc::Mul(r, ak), Assoc::Const(bk)) => {
+                    Insn::ArithK8(ArithOp::Mul, r, ak * bk)
+                }
+                (ArithOp::Mul, Assoc::Const(ak), _) => Insn::ArithK8(ArithOp::Mul, b, ak),
+                (ArithOp::Mul, _, Assoc::Const(bk)) => Insn::ArithK8(ArithOp::Mul, a, bk),
+
+                (_, _, _) => continue,
             };
 
-            // reborrow here, so that the match above runs with prog borrowed immut.
-            if let Some(repl_insn) = repl_insn {
-                insn_cell.set(repl_insn);
-            }
+            insn_cell.set(repl_insn);
         }
     }
 }
@@ -112,10 +128,10 @@ mod typing {
                 // Main entry point with some arithmetic
                 b.push(Reg(0), Insn::Const8(100));
                 b.push(Reg(1), Insn::Const4(5));
-                b.push(Reg(0), Insn::Mul(Reg(0), Reg(1)));
+                b.push(Reg(0), Insn::Arith8(mil::ArithOp::Mul, Reg(0), Reg(1)));
 
                 // Conditional branch based on comparison
-                b.push(Reg(0), Insn::LT(Reg(0), Reg(1)));
+                b.push(Reg(0), Insn::Cmp(mil::CmpOp::LT, Reg(0), Reg(1)));
                 b.push(
                     Reg(2),
                     Insn::JmpIf {
@@ -127,7 +143,7 @@ mod typing {
                 // True path: do some pointer arithmetic
                 b.push(Reg(0), Insn::Ancestral(ANC_ARG0));
                 b.push(Reg(1), Insn::Const2(8));
-                b.push(Reg(0), Insn::AddK(Reg(0), 16));
+                b.push(Reg(0), Insn::ArithK8(mil::ArithOp::Add, Reg(0), 16));
                 b.push(Reg(1), Insn::LoadMem8(Reg(0)));
                 b.push(Reg(0), Insn::Ret(Reg(1)));
 

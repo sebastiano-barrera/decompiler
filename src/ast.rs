@@ -93,10 +93,7 @@ enum Node {
     LoadMem2(NodeID),
     LoadMem4(NodeID),
     LoadMem8(NodeID),
-    StoreMem1(NodeID, NodeID),
-    StoreMem2(NodeID, NodeID),
-    StoreMem4(NodeID, NodeID),
-    StoreMem8(NodeID, NodeID),
+    StoreMem(NodeID, NodeID),
 
     OverflowOf(NodeID),
     CarryOf(NodeID),
@@ -134,6 +131,18 @@ enum BinOp {
     BitAnd,
     BitOr,
 }
+impl From<mil::ArithOp> for BinOp {
+    fn from(value: mil::ArithOp) -> Self {
+        match value {
+            mil::ArithOp::Add => BinOp::Add,
+            mil::ArithOp::Sub => BinOp::Sub,
+            mil::ArithOp::Mul => BinOp::Mul,
+            mil::ArithOp::Shl => BinOp::Shl,
+            mil::ArithOp::BitAnd => BinOp::BitAnd,
+            mil::ArithOp::BitOr => BinOp::BitOr,
+        }
+    }
+}
 impl BinOp {
     fn precedence(&self) -> u8 {
         // higher number means higher precedence
@@ -158,6 +167,15 @@ enum CmpOp {
     LE,
     GE,
     GT,
+}
+
+impl From<mil::CmpOp> for CmpOp {
+    fn from(value: mil::CmpOp) -> Self {
+        match value {
+            mil::CmpOp::EQ => CmpOp::EQ,
+            mil::CmpOp::LT => CmpOp::LT,
+        }
+    }
 }
 
 pub fn ssa_to_ast(ssa: &ssa::Program) -> Ast {
@@ -437,25 +455,10 @@ impl<'a> Builder<'a> {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }
-            Insn::StoreMem1(addr, val) => {
+            Insn::StoreMem(addr, val) => {
                 let addr = self.add_node_of_value(addr);
                 let val = self.add_node_of_value(val);
-                Node::StoreMem1(addr, val)
-            }
-            Insn::StoreMem2(addr, val) => {
-                let addr = self.add_node_of_value(addr);
-                let val = self.add_node_of_value(val);
-                Node::StoreMem2(addr, val)
-            }
-            Insn::StoreMem4(addr, val) => {
-                let addr = self.add_node_of_value(addr);
-                let val = self.add_node_of_value(val);
-                Node::StoreMem4(addr, val)
-            }
-            Insn::StoreMem8(addr, val) => {
-                let addr = self.add_node_of_value(addr);
-                let val = self.add_node_of_value(val);
-                Node::StoreMem8(addr, val)
+                Node::StoreMem(addr, val)
             }
 
             Insn::Const1(val) => Node::Const1(val),
@@ -477,51 +480,29 @@ impl<'a> Builder<'a> {
             Insn::WithL4(a, b) => {
                 Node::WithL4(self.add_node_of_value(a), self.add_node_of_value(b))
             }
-            Insn::Add(a, b) => {
+
+            Insn::Arith1(op, a, b)
+            | Insn::Arith2(op, a, b)
+            | Insn::Arith4(op, a, b)
+            | Insn::Arith8(op, a, b) => {
                 let a = self.add_node_of_value(a);
                 let b = self.add_node_of_value(b);
-                self.fold_bin(BinOp::Add, a, b)
+                self.fold_bin(op.into(), a, b)
             }
-            Insn::AddK(a, k) => {
+            Insn::ArithK1(op, a, k)
+            | Insn::ArithK2(op, a, k)
+            | Insn::ArithK4(op, a, k)
+            | Insn::ArithK8(op, a, k) => {
                 let a = self.add_node_of_value(a);
                 let b = self.add_node(Node::Const8(k as u64));
-                self.fold_bin(BinOp::Add, a, b)
+                self.fold_bin(op.into(), a, b)
             }
-            Insn::Sub(a, b) => {
-                let a = self.add_node_of_value(a);
-                let b = self.add_node_of_value(b);
-                self.fold_bin(BinOp::Sub, a, b)
-            }
-            Insn::Mul(a, b) => {
-                let a = self.add_node_of_value(a);
-                let b = self.add_node_of_value(b);
-                self.fold_bin(BinOp::Mul, a, b)
-            }
-            Insn::MulK(a, k) => {
-                let a = self.add_node_of_value(a);
-                let b = self.add_node(Node::Const8(k as u64));
-                self.fold_bin(BinOp::Mul, a, b)
-            }
-            Insn::Shl(a, b) => {
-                let b = self.add_node_of_value(b);
-                let a = self.add_node_of_value(a);
-                self.fold_bin(BinOp::Shl, a, b)
-            }
-            Insn::BitAnd(a, b) => {
-                let a = self.add_node_of_value(a);
-                let b = self.add_node_of_value(b);
-                self.fold_bin(BinOp::BitAnd, a, b)
-            }
-            Insn::BitOr(a, b) => {
-                let a = self.add_node_of_value(a);
-                let b = self.add_node_of_value(b);
-                self.fold_bin(BinOp::BitOr, a, b)
-            }
-            Insn::Eq(a, b) => {
+
+            Insn::Cmp(op, a, b) => {
                 let a = self.add_node_of_value(a);
                 let b = self.add_node_of_value(b);
                 Node::Cmp {
-                    op: CmpOp::EQ,
+                    op: op.into(),
                     a,
                     b,
                 }
@@ -892,10 +873,9 @@ impl Ast {
             Node::LoadMem4(arg) => self.pp_load_mem(pp, 4, *arg),
             Node::LoadMem8(arg) => self.pp_load_mem(pp, 8, *arg),
 
-            Node::StoreMem1(dest, val) => self.pp_store_mem(pp, 1, *dest, *val),
-            Node::StoreMem2(dest, val) => self.pp_store_mem(pp, 2, *dest, *val),
-            Node::StoreMem4(dest, val) => self.pp_store_mem(pp, 4, *dest, *val),
-            Node::StoreMem8(dest, val) => self.pp_store_mem(pp, 8, *dest, *val),
+            // TODO The size is entirely fictitious. It will be made accurate
+            // after the typing stuff lands.
+            Node::StoreMem(dest, val) => self.pp_store_mem(pp, 11, *dest, *val),
 
             Node::OverflowOf(arg) => {
                 write!(pp, "overflow (")?;

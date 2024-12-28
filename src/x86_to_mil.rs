@@ -98,14 +98,11 @@ impl Builder {
                     let (value, sz) = self.emit_read(&insn, 0);
                     let v0 = self.reg_gen.next();
 
-                    self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, -(sz as i64)));
-                    match sz {
-                        8 => self.emit(v0, mil::Insn::StoreMem8(Self::RSP, value)),
-                        4 => self.emit(v0, mil::Insn::StoreMem4(Self::RSP, value)),
-                        _ => {
-                            panic!("invalid push operand size {sz} (must be 8 or 4)")
-                        }
-                    };
+                    self.emit(
+                        Self::RSP,
+                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
+                    );
+                    self.emit(v0, mil::Insn::StoreMem(Self::RSP, value));
                 }
                 M::Pop => {
                     assert_eq!(insn.op_count(), 1);
@@ -120,12 +117,18 @@ impl Builder {
                     };
 
                     self.emit_write(&insn, 0, v0, sz);
-                    self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, sz as i64));
+                    self.emit(
+                        Self::RSP,
+                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, sz as i64),
+                    );
                 }
                 M::Leave => {
                     self.emit(Self::RSP, mil::Insn::Get(Self::RBP));
                     self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
-                    self.emit(Self::RSP, mil::Insn::AddK(Self::RSP, 8));
+                    self.emit(
+                        Self::RSP,
+                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, 8),
+                    );
                 }
                 M::Ret => {
                     let v0 = self.reg_gen.next();
@@ -140,8 +143,7 @@ impl Builder {
                 M::Add => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
-                    assert_eq!(a_sz, b_sz, "add: operands must be the same size");
-                    self.emit(a, mil::Insn::Add(a, b));
+                    self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::Add);
                     self.emit_write(&insn, 0, a, a_sz);
                     self.emit_set_flags_arith(a);
                 }
@@ -149,21 +151,20 @@ impl Builder {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
                     assert_eq!(a_sz, b_sz, "sub: operands must be the same size");
-                    self.emit(a, mil::Insn::Sub(a, b));
+                    self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::Sub);
                     self.emit_write(&insn, 0, a, a_sz);
                     self.emit_set_flags_arith(a);
                 }
 
                 M::Test => {
-                    let (a, _) = self.emit_read(&insn, 0);
-                    let (b, _) = self.emit_read(&insn, 1);
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
                     let v0 = self.reg_gen.next();
-                    let v1 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::BitAnd(a, b));
-                    self.emit(Self::SF, mil::Insn::SignOf(v0));
-                    self.emit(Self::ZF, mil::Insn::IsZero(v0));
-                    self.emit(v1, mil::Insn::L1(v0));
-                    self.emit(Self::PF, mil::Insn::Parity(v1));
+                    self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::BitAnd);
+                    self.emit(Self::SF, mil::Insn::SignOf(a));
+                    self.emit(Self::ZF, mil::Insn::IsZero(a));
+                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(Self::PF, mil::Insn::Parity(a));
                     self.emit(Self::CF, mil::Insn::Const1(0));
                     self.emit(Self::OF, mil::Insn::Const1(0));
                 }
@@ -171,12 +172,11 @@ impl Builder {
                 M::Cmp => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
-                    let v0 = self.reg_gen.next();
                     assert_eq!(a_sz, b_sz, "cmp: operands must be the same size");
                     // just put the result in a tmp reg, then ignore it (other than for the
                     // flags)
-                    self.emit(v0, mil::Insn::Sub(a, b));
-                    self.emit_set_flags_arith(v0);
+                    self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::Sub);
+                    self.emit_set_flags_arith(a);
                 }
 
                 M::Lea => match insn.op1_kind() {
@@ -205,8 +205,8 @@ impl Builder {
 
                 M::Shl => {
                     let (value, sz) = self.emit_read(&insn, 0);
-                    let bits_count = self.emit_read_value(&insn, 1);
-                    self.emit(value, mil::Insn::Shl(value, bits_count));
+                    let (bits_count, bits_count_size) = self.emit_read(&insn, 1);
+                    self.emit_arith(value, sz, bits_count, bits_count_size, mil::ArithOp::Shl);
                     self.emit_write(&insn, 0, value, sz);
 
                     // TODO implement flag cahnges: CF, OF
@@ -273,9 +273,9 @@ impl Builder {
                 M::Jle => {
                     // ZF=1 or SF ≠ OF
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Eq(Self::SF, Self::OF));
+                    self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
                     self.emit(v0, mil::Insn::Not(v0));
-                    self.emit(v0, mil::Insn::BitOr(v0, Self::ZF));
+                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, v0, Self::ZF));
                     self.emit_jmpif(insn, 0, v0);
                 }
                 _ => {
@@ -289,6 +289,17 @@ impl Builder {
         }
 
         Ok(self.build())
+    }
+
+    fn emit_arith(&mut self, a: mil::Reg, a_sz: u8, b: mil::Reg, b_sz: u8, op: mil::ArithOp) {
+        let mil_insn = match (a_sz, b_sz) {
+            (1, 1) => mil::Insn::Arith1(op, a, b),
+            (2, 2) => mil::Insn::Arith2(op, a, b),
+            (4, 4) => mil::Insn::Arith4(op, a, b),
+            (8, 8) => mil::Insn::Arith8(op, a, b),
+            _ => panic!("add: operands must be the same size (not {a_sz} and {b_sz})"),
+        };
+        self.emit(a, mil_insn);
     }
 
     fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {
@@ -362,7 +373,6 @@ impl Builder {
     /// value's size in bytes (either 1, 2, 4, or 8).
     fn emit_read_value(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> mil::Reg {
         let v0 = self.reg_gen.next();
-        // let v0 = Self::V0;
 
         match insn.op_kind(op_ndx) {
             OpKind::Register => {
@@ -520,15 +530,7 @@ impl Builder {
                 assert_ne!(value, addr);
 
                 let v0 = self.reg_gen.next();
-                match value_size {
-                    1 => self.emit(v0, mil::Insn::StoreMem1(addr, value)),
-                    2 => self.emit(v0, mil::Insn::StoreMem2(addr, value)),
-                    4 => self.emit(v0, mil::Insn::StoreMem4(addr, value)),
-                    8 => self.emit(v0, mil::Insn::StoreMem8(addr, value)),
-                    _ => panic!(
-                        "invalid memory destination size {value_size} (must be 1, 2, 4, or 8)"
-                    ),
-                };
+                self.emit(v0, mil::Insn::StoreMem(addr, value));
             }
         }
     }
@@ -552,8 +554,11 @@ impl Builder {
             Register::None => {}
             base => {
                 // TODO make this recursive and use read_operand instead of xlat_reg?
-                self.pb
-                    .push(dest, mil::Insn::Add(dest, Self::xlat_reg(base)));
+                // addresses are 64-bit, so we use 8 bytes instructions
+                self.pb.push(
+                    dest,
+                    mil::Insn::Arith8(mil::ArithOp::Add, dest, Self::xlat_reg(base)),
+                );
             }
         }
 
@@ -562,9 +567,12 @@ impl Builder {
             index_reg => {
                 let v1 = self.reg_gen.next();
                 let scale = insn.memory_index_scale() as i64;
+                let reg = Self::xlat_reg(index_reg);
+                // addresses are 64-bit in this architecture, so instructions are all with 8 bytes results
+                let scaled = mil::Insn::ArithK8(mil::ArithOp::Mul, reg, scale);
+                self.pb.push(v1, scaled);
                 self.pb
-                    .push(v1, mil::Insn::MulK(Self::xlat_reg(index_reg), scale));
-                self.pb.push(dest, mil::Insn::Add(dest, v1));
+                    .push(dest, mil::Insn::Arith8(mil::ArithOp::Add, dest, v1));
             }
         }
     }

@@ -44,16 +44,16 @@ program  47 instrs
    33 r34 <- undef
    34 r28 <- const8   0 (0x0)
    35 r29 <- const8   16 (0x10)
-   36 r29 <- add      r29,r14
-   37 r30 <- storem8  *r29 ← r28
+   36 r29 <- add      r29,r14  qword
+   37 r30 <- store    *r29 ← r28
    38 r28 <- const8   0 (0x0)
    39 r29 <- const8   8 (0x8)
-   40 r29 <- add      r29,r14
-   41 r30 <- storem8  *r29 ← r28
+   40 r29 <- add      r29,r14  qword
+   41 r30 <- store    *r29 ← r28
    42 r28 <- const8   0 (0x0)
    43 r29 <- const8   0 (0x0)
-   44 r29 <- add      r29,r14
-   45 r30 <- storem8  *r29 ← r28
+   44 r29 <- add      r29,r14  qword
+   45 r30 <- store    *r29 ← r28
    46 r28 <- ret      r16
 
 
@@ -62,12 +62,12 @@ ssa program  12 instrs
   (  3)  r13 <- #pre:RDI
          r15 <- #pre:RAX
          r34 <- const8   0 (0x0)
-         r36 <- addk     r13,16
-         r37 <- storem8  *r36 ← r34
+         r36 <- addk     r13,16 qword
+         r37 <- store    *r36 ← r34
          r38 <- const8   0 (0x0)
-         r40 <- addk     r13,8
-         r41 <- storem8  *r40 ← r38
+         r40 <- addk     r13,8 qword
+         r41 <- store    *r40 ← r38
          r42 <- const8   0 (0x0)
          r44 <- get      r13
-         r45 <- storem8  *r44 ← r42
+         r45 <- store    *r44 ← r42
          r46 <- ret      r15

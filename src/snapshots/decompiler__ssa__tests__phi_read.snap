@@ -15,5 +15,5 @@ ssa program  10 instrs
          r7 <- phi
          r8 <- phiarg   r2
          r9 <- phiarg   r4
-         r5 <- addk     r7,456
+         r5 <- addk     r7,456 byte
          r6 <- ret      r5

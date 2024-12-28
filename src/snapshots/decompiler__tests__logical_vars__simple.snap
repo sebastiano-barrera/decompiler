@@ -41,9 +41,9 @@ program  40 instrs
    32 r33 <- undef
    33 r34 <- undef
    34 r28 <- const8   0 (0x0)
-   35 r28 <- add      r28,r14
-   36 r29 <- mul      r14,0x1
-   37 r28 <- add      r28,r29
+   35 r28 <- add      r28,r14  qword
+   36 r29 <- mulk     r14,1 qword
+   37 r28 <- add      r28,r29  qword
    38 r16 <- with.l4  r16 ← r28
    39 r28 <- ret      r16
 
@@ -53,7 +53,7 @@ ssa program  7 instrs
   (  2)  r13 <- #pre:RDI
          r15 <- #pre:RAX
          r35 <- get      r13
-         r36 <- mul      r13,0x1
-         r37 <- add      r35,r36
+         r36 <- mulk     r13,1 qword
+         r37 <- add      r35,r36  qword
          r38 <- with.l4  r15 ← r37
          r39 <- ret      r38

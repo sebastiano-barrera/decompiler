@@ -82,19 +82,19 @@ mod constant_folding {
 
     #[test]
     fn addk() {
-        use mil::{Insn, Reg};
+        use mil::{ArithOp, Insn, Reg};
 
         let prog = {
             let mut b = mil::ProgramBuilder::new();
             b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
             b.push(Reg(1), Insn::Const8(5));
             b.push(Reg(2), Insn::Const8(44));
-            b.push(Reg(0), Insn::Add(Reg(1), Reg(0)));
-            b.push(Reg(3), Insn::Add(Reg(0), Reg(1)));
-            b.push(Reg(4), Insn::Add(Reg(2), Reg(1)));
+            b.push(Reg(0), Insn::Arith8(ArithOp::Add, Reg(1), Reg(0)));
+            b.push(Reg(3), Insn::Arith8(ArithOp::Add, Reg(0), Reg(1)));
+            b.push(Reg(4), Insn::Arith8(ArithOp::Add, Reg(2), Reg(1)));
             b.push(Reg(3), Insn::Const8(0));
             b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-            b.push(Reg(4), Insn::Add(Reg(3), Reg(4)));
+            b.push(Reg(3), Insn::Arith8(ArithOp::Add, Reg(3), Reg(4)));
             b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
         };
@@ -104,27 +104,30 @@ mod constant_folding {
         assert_eq!(prog.cfg().block_count(), 1);
         let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
         assert_eq!(insns.insns.len(), 10);
-        assert_eq!(insns.insns[3].get(), Insn::AddK(Reg(0), 5));
-        assert_eq!(insns.insns[4].get(), Insn::AddK(Reg(0), 10));
+        assert_eq!(insns.insns[3].get(), Insn::ArithK8(ArithOp::Add, Reg(0), 5));
+        assert_eq!(
+            insns.insns[4].get(),
+            Insn::ArithK8(ArithOp::Add, Reg(0), 10)
+        );
         assert_eq!(insns.insns[5].get(), Insn::Const8(49));
         assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
     }
 
     #[test]
     fn mulk() {
-        use mil::{Insn, Reg};
+        use mil::{ArithOp, Insn, Reg};
 
         let prog = {
             let mut b = mil::ProgramBuilder::new();
             b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
             b.push(Reg(1), Insn::Const8(5));
             b.push(Reg(2), Insn::Const8(44));
-            b.push(Reg(0), Insn::Mul(Reg(1), Reg(0)));
-            b.push(Reg(3), Insn::Mul(Reg(0), Reg(1)));
-            b.push(Reg(4), Insn::Mul(Reg(2), Reg(1)));
+            b.push(Reg(0), Insn::Arith8(ArithOp::Mul, Reg(1), Reg(0)));
+            b.push(Reg(3), Insn::Arith8(ArithOp::Mul, Reg(0), Reg(1)));
+            b.push(Reg(4), Insn::Arith8(ArithOp::Mul, Reg(2), Reg(1)));
             b.push(Reg(3), Insn::Const8(1));
             b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-            b.push(Reg(4), Insn::Mul(Reg(3), Reg(4)));
+            b.push(Reg(4), Insn::Arith8(ArithOp::Mul, Reg(3), Reg(4)));
             b.push(Reg(0), Insn::Ret(Reg(4)));
             b.build()
         };
@@ -133,8 +136,11 @@ mod constant_folding {
 
         let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
         assert_eq!(insns.insns.len(), 10);
-        assert_eq!(insns.insns[3].get(), Insn::MulK(Reg(0), 5));
-        assert_eq!(insns.insns[4].get(), Insn::MulK(Reg(0), 25));
+        assert_eq!(insns.insns[3].get(), Insn::ArithK8(ArithOp::Mul, Reg(0), 5));
+        assert_eq!(
+            insns.insns[4].get(),
+            Insn::ArithK8(ArithOp::Mul, Reg(0), 25)
+        );
         assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
         assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
     }

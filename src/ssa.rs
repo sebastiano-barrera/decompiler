@@ -742,7 +742,8 @@ mod tests {
 
     #[test]
     fn test_phi_read() {
-        use mil::{Insn, Reg};
+        use mil::{ArithOp, Insn, Reg};
+
         let prog = {
             let mut pb = mil::ProgramBuilder::new();
 
@@ -764,7 +765,7 @@ mod tests {
             pb.push(Reg(2), Insn::Const1(8));
 
             pb.set_input_addr(0xf3);
-            pb.push(Reg(4), Insn::AddK(Reg(2), 456));
+            pb.push(Reg(4), Insn::ArithK1(ArithOp::Add, Reg(2), 456));
             pb.push(Reg(5), Insn::Ret(Reg(4)));
 
             pb.build()
@@ -895,33 +896,9 @@ pub mod ty {
 
     // Corresponds to pubilc API ssa::Program::check_types
     pub fn check_types(program: &super::Program) -> CheckResult {
-        use mil::Insn;
-
-        let mut errors = Vec::new();
-
-        for iv in program.insns_unordered() {
-            let insn = iv.insn.get();
-            let expectation = match insn {
-                Insn::Add(_, _) | Insn::Mul(_, _) => TypeExpect::SameSizeIntegers,
-                Insn::AddK(_, _) | Insn::MulK(_, _) => {
-                    TypeExpect::Explicit(&[Some(TY_INT8), Some(TY_INT8)])
-                }
-
-                Insn::Eq(_, _) => TypeExpect::SameSizeIntegers,
-                Insn::LT(_, _) => TypeExpect::SameSizeIntegers,
-
-                Insn::JmpIf { .. } => TypeExpect::Explicit(&[Some(TY_BOOL)]),
-                _ => TypeExpect::None,
-            };
-
-            let inputs = insn.input_regs();
-            let input_types = inputs.map(|reg_opt| reg_opt.map(|reg| program.value_type(*reg)));
-            if let Err(err) = expectation.check(&input_types) {
-                errors.push(err);
-            }
-        }
-
-        errors_to_result(errors)
+        // TODO implement this! (previous code removed after Insn changed a lot;
+        // this algo is going to be simpler)
+        Ok(())
     }
 
     enum TypeExpect {
