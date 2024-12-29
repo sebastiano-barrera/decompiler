@@ -110,16 +110,19 @@ impl TypeSet {
         }
     }
 
-    pub fn select(&self, tyid: TypeID, byte_range: Range<u32>) -> Result<Selection, SelectError> {
+    pub fn select(&self, tyid: TypeID, byte_range: Range<i64>) -> Result<Selection, SelectError> {
+        assert!(!byte_range.is_empty());
         let ty = &self.get(tyid).unwrap().ty;
 
-        if byte_range.end > ty.bytes_size() {
+        let size = ty.bytes_size() as i64;
+
+        if byte_range.end > size {
             return Err(SelectError::InvalidRange);
         }
 
         match ty {
             Ty::Int(_) | Ty::Enum(_) => {
-                if byte_range == (0..ty.bytes_size()) {
+                if byte_range == (0..size) {
                     Ok(Selection {
                         tyid,
                         path: SmallVec::new(),
@@ -131,8 +134,9 @@ impl TypeSet {
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     // TODO avoid the hashmap lookup?
-                    let bytes_size = self.get(m.tyid).unwrap().ty.bytes_size();
-                    (m.offset..m.offset + bytes_size) == byte_range
+                    let memb_size = self.get(m.tyid).unwrap().ty.bytes_size() as i64;
+                    let ofs = m.offset as i64;
+                    (ofs..ofs + memb_size) == byte_range
                 });
 
                 if let Some(member) = member {

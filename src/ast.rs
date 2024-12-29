@@ -1,4 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
+use std::ops::Range;
+use std::rc::Rc;
 
 use smallvec::SmallVec;
 
@@ -6,7 +8,7 @@ use crate::{
     cfg::{self, BlockID},
     mil,
     pp::PrettyPrinter,
-    ssa,
+    ssa, ty,
 };
 
 use self::nodeset::{NodeID, NodeSet};
@@ -94,9 +96,18 @@ enum Node {
     LoadMem4(NodeID),
     LoadMem8(NodeID),
     StoreMem {
-        addr: NodeID,
+        loc: NodeID,
         value: NodeID,
+    },
+
+    RawDeref {
+        addr: NodeID,
         size: u8,
+    },
+    MemberAccess {
+        base: NodeID,
+        // TODO replace with smallvec like in `ty`?
+        path: Vec<Rc<String>>,
     },
 
     OverflowOf(NodeID),
@@ -188,6 +199,7 @@ pub struct Builder<'a> {
     label_of_block: cfg::BlockMap<Label>,
     nodes: NodeSet,
     blocks_compiling: Vec<BlockID>,
+    types: Option<&'a ty::TypeSet>,
 }
 
 impl<'a> Builder<'a> {
@@ -234,7 +246,12 @@ impl<'a> Builder<'a> {
             label_of_block: thunk_id_of_block,
             nodes: NodeSet::new(),
             blocks_compiling: Vec::new(),
+            types: None,
         }
+    }
+
+    pub fn use_type_set(&mut self, types: &'a ty::TypeSet) {
+        self.types = Some(types);
     }
 
     pub fn compile(self) -> Ast {
@@ -471,9 +488,31 @@ impl<'a> Builder<'a> {
                     .value_type(val)
                     .bytes_size()
                     .expect("Insn::StoreMem: value has no size!");
-                let addr = self.add_node_of_value(addr);
+
+                use mil::ArithOp;
+                let attr_def = self.ssa.get(addr).unwrap().insn.get();
+                let (base, offset) = match attr_def {
+                    Insn::ArithK1(ArithOp::Add, base, offset)
+                    | Insn::ArithK2(ArithOp::Add, base, offset)
+                    | Insn::ArithK4(ArithOp::Add, base, offset)
+                    | Insn::ArithK8(ArithOp::Add, base, offset) => (base, offset),
+                    Insn::ArithK1(ArithOp::Sub, base, offset)
+                    | Insn::ArithK2(ArithOp::Sub, base, offset)
+                    | Insn::ArithK4(ArithOp::Sub, base, offset)
+                    | Insn::ArithK8(ArithOp::Sub, base, offset) => (base, -offset),
+                    _ => (addr, 0),
+                };
+
+                let offset_range = offset..offset + (size as i64);
+                let loc = self
+                    .add_node_derefing(base, offset_range)
+                    .unwrap_or_else(|| {
+                        let addr = self.add_node_of_value(addr);
+                        self.add_node(Node::RawDeref { addr, size })
+                    });
+
                 let value = self.add_node_of_value(val);
-                Node::StoreMem { addr, value, size }
+                Node::StoreMem { loc, value }
             }
 
             Insn::Const1(val) => Node::Const1(val),
@@ -564,6 +603,37 @@ impl<'a> Builder<'a> {
                 }
             }
         }
+    }
+
+    #[cfg(not(feature = "proto_typing"))]
+    fn add_node_derefing(&mut self, addr_reg: mil::Reg, size: u32) -> Option<NodeID> {
+        None
+    }
+
+    #[cfg(feature = "proto_typing")]
+    fn add_node_derefing(
+        &mut self,
+        base_reg: mil::Reg,
+        offset_range: Range<i64>,
+    ) -> Option<NodeID> {
+        let types = self.types?;
+        let pt = self.ssa.ptr_type(base_reg)?;
+
+        let sel = types.select(pt.pointee_tyid, offset_range);
+        eprintln!("sel = {:?}", sel); // TODO delete this
+        let sel = sel.ok()?;
+
+        let path = sel
+            .path
+            .into_iter()
+            .map(|step| match step {
+                ty::SelectStep::Index(_) => todo!(),
+                ty::SelectStep::Member(rc) => Rc::clone(&rc),
+            })
+            .collect();
+
+        let base = self.add_node_of_value(base_reg);
+        Some(self.add_node(Node::MemberAccess { base, path }))
     }
 
     fn add_node_of_value(&mut self, reg: mil::Reg) -> NodeID {
@@ -888,7 +958,26 @@ impl Ast {
             Node::LoadMem4(arg) => self.pp_load_mem(pp, 4, *arg),
             Node::LoadMem8(arg) => self.pp_load_mem(pp, 8, *arg),
 
-            Node::StoreMem { addr, value, size } => self.pp_store_mem(pp, *size, *addr, *value),
+            Node::StoreMem { loc, value } => {
+                self.pretty_print_node(pp, *loc)?;
+                write!(pp, " = ")?;
+                pp.open_box();
+                self.pretty_print_node(pp, *value)?;
+                pp.close_box();
+                Ok(())
+            }
+            Node::RawDeref { addr, size } => {
+                write!(pp, "[")?;
+                self.pretty_print_node(pp, *addr)?;
+                write!(pp, "]:{}", *size)
+            }
+            Node::MemberAccess { base, path } => {
+                self.pretty_print_node(pp, *base)?;
+                for step in path {
+                    write!(pp, ".{}", step)?;
+                }
+                Ok(())
+            }
 
             Node::OverflowOf(arg) => {
                 write!(pp, "overflow (")?;
@@ -1007,7 +1096,9 @@ mod nodeset {
 #[cfg(feature = "proto_typing")]
 #[cfg(test)]
 mod tests {
-    use crate::{ast, mil, ssa};
+    use std::rc::Rc;
+
+    use crate::{ast, mil, ssa, ty};
     use mil::{ArithOp, Insn, Reg};
 
     crate::define_ancestral_name!(ANC_ARG0, "arg0");
@@ -1016,25 +1107,66 @@ mod tests {
     fn store_target_struct_member() {
         let prog = {
             let mut b = mil::ProgramBuilder::new();
-            // this has undergone SSA and constant folding, but ProgramBuilder is the nicer
-            // API to get a proper ssa::Program
+            // this has undergone SSA and constant folding, but ProgramBuilder
+            // is the nicer API to get a proper ssa::Program
             b.push(Reg(0), Insn::Ancestral(ANC_ARG0));
             b.push(Reg(1), Insn::ArithK8(ArithOp::Add, Reg(0), 8));
             b.push(Reg(2), Insn::Const4(123));
             b.push(Reg(3), Insn::StoreMem(Reg(1), Reg(2)));
-            b.push(Reg(4), Insn::Ret(Reg(3)));
+            b.push(Reg(4), Insn::Ret(Reg(1)));
             b.build()
         };
 
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
 
-        let type_id = ssa::TypeID(10);
-        let ptr_ty = ssa::Ptr { type_id, offset: 0 };
-        prog.set_ptr_type(Reg(0), ptr_ty);
+        let mut types = ty::TypeSet::new();
+        let type_id = types.add(ty::Type {
+            name: Rc::new("point".to_owned()),
+            ty: ty::Ty::Struct(ty::Struct {
+                size: 24,
+                members: vec![
+                    ty::StructMember {
+                        offset: 0,
+                        name: Rc::new("x".to_owned()),
+                        tyid: ty::TYID_I32,
+                    },
+                    // a bit of padding
+                    ty::StructMember {
+                        offset: 8,
+                        name: Rc::new("y".to_owned()),
+                        tyid: ty::TYID_I32,
+                    },
+                    ty::StructMember {
+                        offset: 12,
+                        name: Rc::new("cost".to_owned()),
+                        tyid: ty::TYID_I8,
+                    },
+                ],
+            }),
+        });
 
-        let mut builder = ast::Builder::new(&prog);
+        // TODO this shall be inferred by a dedicated SSA processing step, after
+        // doing the following:
+        //    let ptr_ty = ssa::Ptr { type_id, offset: 0 };
+        //    prog.set_ptr_type(Reg(0), ptr_ty);
+        prog.set_ptr_type(
+            Reg(0),
+            ssa::Ptr {
+                pointee_tyid: type_id,
+            },
+        );
+        prog.set_ptr_type(
+            Reg(1),
+            ssa::Ptr {
+                pointee_tyid: type_id,
+            },
+        );
 
-        let ast = builder.compile();
+        let ast = {
+            let mut builder = ast::Builder::new(&prog);
+            builder.use_type_set(&mut types);
+            builder.compile()
+        };
         assert_ast_snapshot(&ast);
     }
 

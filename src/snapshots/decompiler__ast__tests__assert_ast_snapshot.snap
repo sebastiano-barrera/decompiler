@@ -1,0 +1,8 @@
+---
+source: src/ast.rs
+expression: out
+---
+'T0: {
+    <pre:arg0>.y = 123;
+    return <pre:arg0> + 8
+}

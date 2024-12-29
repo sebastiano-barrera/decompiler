@@ -36,8 +36,7 @@ pub struct TypeID(pub u32);
 
 #[cfg(feature = "proto_typing")]
 pub struct Ptr {
-    pub type_id: TypeID,
-    pub offset: u32,
+    pub pointee_tyid: TypeID,
 }
 
 impl Program {
@@ -102,8 +101,8 @@ impl Program {
         self.ptr_regs.insert(reg, ptr_ty);
     }
 
-    pub fn ptr_type(&mut self, reg: mil::Reg) -> &Ptr {
-        self.ptr_regs.get(&reg).unwrap()
+    pub fn ptr_type(&self, reg: mil::Reg) -> Option<&Ptr> {
+        self.ptr_regs.get(&reg)
     }
 }
 
