@@ -67,15 +67,13 @@ impl Edges {
 
 impl std::fmt::Debug for Edges {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[")?;
+        writeln!(f, "digraph {{")?;
         for (bid, _) in self.ndx_range.items() {
-            write!(f, "{} -> ", bid.0)?;
             for succ in &self[bid] {
-                write!(f, "{} ", succ.0)?;
+                writeln!(f, "  block{} -> block{};", bid.0, succ.0)?;
             }
-            write!(f, "; ")?;
         }
-        write!(f, "]")
+        writeln!(f, "}}")
     }
 }
 
@@ -546,9 +544,9 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
             // was already processed (parent already assigned in dominator
             // tree), herein "reference predecessor" (ref. pred.)
             for &pred in preds.iter() {
-                // the basic guarantee of reverse postorder: every predecessor
-                // has already been processed
-                assert!(parent[pred].is_some());
+                if parent[pred].is_none() {
+                    continue;
+                }
 
                 // pred was already processed;
                 // ref_pred <- common ancestor of ref_pred and pred
@@ -572,6 +570,9 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
 
             match ref_pred {
                 RefPred::Uninit => {
+                    // the basic guarantee of reverse postorder: at least one
+                    // predecessor has already been processed (the ones that get
+                    // to `bid` via a backedge come later in the order)
                     assert!(preds.is_empty());
                 }
                 RefPred::Block(idom) => {
@@ -747,43 +748,51 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
 fn recount_nonbackedge_predecessors(edges: &mut Edges) {
     let count = edges.block_count();
 
-    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-    enum Color {
-        Unvisited,
-        Visiting,
-        Finished,
-    }
-
     let mut incoming_count = BlockMap::new(0, count);
-    let mut color = BlockMap::new(Color::Unvisited, count);
+    let mut in_path = BlockMap::new(false, count);
+    let mut finished = BlockMap::new(false, count);
 
+    enum Cmd {
+        Enter(BlockID),
+        Exit(BlockID),
+    }
     let mut queue = Vec::with_capacity(count / 2);
     for (bid, &is_entry) in edges.entries.items() {
         if is_entry {
-            queue.push(bid);
+            queue.push(Cmd::Exit(bid));
+            queue.push(Cmd::Enter(bid));
         }
     }
 
-    while let Some(bid) = queue.pop() {
-        match color[bid] {
-            Color::Unvisited => {
-                // schedule Visiting -> Finished after all children have been visited
-                queue.push(bid);
-                for &succ in edges.successors(bid) {
-                    if color[succ] == Color::Unvisited {
-                        queue.push(succ);
-                    }
-                    if color[succ] != Color::Visiting {
-                        incoming_count[succ] += 1;
-                    }
+    while let Some(cmd) = queue.pop() {
+        match cmd {
+            Cmd::Enter(bid) => {
+                assert!(!in_path[bid]);
+                in_path[bid] = true;
+
+                if finished[bid] {
+                    // was marked finished in the meantime!
+                    // keep in the path for a later Cmd::Exit
+                    continue;
                 }
 
-                color[bid] = Color::Visiting;
+                for &succ in edges.successors(bid) {
+                    if !in_path[succ] {
+                        incoming_count[succ] += 1;
+                        queue.push(Cmd::Exit(succ));
+                        queue.push(Cmd::Enter(succ));
+                    } else {
+                        // it's a backedge, don't count it
+                    }
+                }
             }
-            Color::Visiting => {
-                color[bid] = Color::Finished;
+            Cmd::Exit(bid) => {
+                assert!(in_path[bid]);
+                in_path[bid] = false;
+                // may be false or already true; the latter if the node is
+                // visited multiple times
+                finished[bid] = true;
             }
-            Color::Finished => panic!("unreachable!"),
         }
     }
 
