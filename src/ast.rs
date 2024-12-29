@@ -1021,23 +1021,6 @@ impl Ast {
         self.pretty_print_node(pp, addr)?;
         write!(pp, "]:{}", src_size)
     }
-
-    fn pp_store_mem<W: std::fmt::Write>(
-        &self,
-        pp: &mut PrettyPrinter<W>,
-        dest_size: u8,
-        dest: NodeID,
-        val: NodeID,
-    ) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(pp, "[")?;
-        self.pretty_print_node(pp, dest)?;
-        write!(pp, "]:{} = ", dest_size)?;
-        pp.open_box();
-        self.pretty_print_node(pp, val)?;
-        pp.close_box();
-        Ok(())
-    }
 }
 
 mod nodeset {
@@ -1120,7 +1103,29 @@ mod tests {
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
 
         let mut types = ty::TypeSet::new();
-        let type_id = types.add(ty::Type {
+        let type_id = types.add(sample_struct());
+
+        // TODO this shall be inferred by a dedicated SSA processing step, after
+        // doing the following:
+        //    let ptr_ty = ssa::Ptr { type_id, offset: 0 };
+        //    prog.set_ptr_type(Reg(0), ptr_ty);
+        prog.set_ptr_type(
+            Reg(0),
+            ssa::Ptr {
+                pointee_tyid: type_id,
+            },
+        );
+
+        let ast = {
+            let mut builder = ast::Builder::new(&prog);
+            builder.use_type_set(&mut types);
+            builder.compile()
+        };
+        assert_ast_snapshot(&ast);
+    }
+
+    fn sample_struct() -> ty::Type {
+        ty::Type {
             name: Rc::new("point".to_owned()),
             ty: ty::Ty::Struct(ty::Struct {
                 size: 24,
@@ -1143,31 +1148,7 @@ mod tests {
                     },
                 ],
             }),
-        });
-
-        // TODO this shall be inferred by a dedicated SSA processing step, after
-        // doing the following:
-        //    let ptr_ty = ssa::Ptr { type_id, offset: 0 };
-        //    prog.set_ptr_type(Reg(0), ptr_ty);
-        prog.set_ptr_type(
-            Reg(0),
-            ssa::Ptr {
-                pointee_tyid: type_id,
-            },
-        );
-        prog.set_ptr_type(
-            Reg(1),
-            ssa::Ptr {
-                pointee_tyid: type_id,
-            },
-        );
-
-        let ast = {
-            let mut builder = ast::Builder::new(&prog);
-            builder.use_type_set(&mut types);
-            builder.compile()
-        };
-        assert_ast_snapshot(&ast);
+        }
     }
 
     fn assert_ast_snapshot(ast: &ast::Ast) {
