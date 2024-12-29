@@ -296,15 +296,42 @@ impl Builder {
         Ok(self.build())
     }
 
-    fn emit_arith(&mut self, a: mil::Reg, a_sz: u8, b: mil::Reg, b_sz: u8, op: mil::ArithOp) {
-        let mil_insn = match (a_sz, b_sz) {
-            (1, 1) => mil::Insn::Arith1(op, a, b),
-            (2, 2) => mil::Insn::Arith2(op, a, b),
-            (4, 4) => mil::Insn::Arith4(op, a, b),
-            (8, 8) => mil::Insn::Arith8(op, a, b),
-            _ => panic!("add: operands must be the same size (not {a_sz} and {b_sz})"),
+    fn emit_arith(
+        &mut self,
+        a: mil::Reg,
+        mut a_sz: u8,
+        b: mil::Reg,
+        mut b_sz: u8,
+        op: mil::ArithOp,
+    ) {
+        assert!([1, 2, 4, 8].contains(&a_sz));
+        assert!([1, 2, 4, 8].contains(&b_sz));
+        let sz = a_sz.max(b_sz);
+        self.widen(a, a_sz, sz);
+        self.widen(b, b_sz, sz);
+
+        let mil_insn = match sz {
+            1 => mil::Insn::Arith1(op, a, b),
+            2 => mil::Insn::Arith2(op, a, b),
+            4 => mil::Insn::Arith4(op, a, b),
+            8 => mil::Insn::Arith8(op, a, b),
+            _ => panic!("emit_arith: invalid operand size: {sz}"),
         };
         self.emit(a, mil_insn);
+    }
+
+    fn widen(&mut self, src: mil::Reg, src_sz: u8, tgt_sz: u8) {
+        let insn = match (src_sz, tgt_sz) {
+            (1, 2) => mil::Insn::Widen1_2(src),
+            (1, 4) => mil::Insn::Widen1_4(src),
+            (1, 8) => mil::Insn::Widen1_8(src),
+            (2, 4) => mil::Insn::Widen2_4(src),
+            (2, 8) => mil::Insn::Widen2_8(src),
+            (4, 8) => mil::Insn::Widen4_8(src),
+            (src_sz, tgt_sz) if src_sz == tgt_sz => return,
+            _ => panic!("invalid (src,tgt) sizes for widen: ({},{})", src_sz, tgt_sz),
+        };
+        self.emit(src, insn);
     }
 
     fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {

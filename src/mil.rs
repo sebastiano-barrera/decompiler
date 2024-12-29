@@ -81,6 +81,12 @@ pub enum Insn {
     V8WithL1(Reg, Reg),
     V8WithL2(Reg, Reg),
     V8WithL4(Reg, Reg),
+    Widen1_2(Reg),
+    Widen1_4(Reg),
+    Widen1_8(Reg),
+    Widen2_4(Reg),
+    Widen2_8(Reg),
+    Widen4_8(Reg),
 
     Arith1(ArithOp, Reg, Reg),
     Arith2(ArithOp, Reg, Reg),
@@ -247,6 +253,12 @@ impl Insn {
             | Insn::ArithK2(_, reg, _)
             | Insn::ArithK4(_, reg, _)
             | Insn::ArithK8(_, reg, _)
+            | Insn::Widen1_2(reg)
+            | Insn::Widen1_4(reg)
+            | Insn::Widen1_8(reg)
+            | Insn::Widen2_4(reg)
+            | Insn::Widen2_8(reg)
+            | Insn::Widen4_8(reg)
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpI(reg)
@@ -312,6 +324,12 @@ impl Insn {
             | Insn::ArithK2(_, reg, _)
             | Insn::ArithK4(_, reg, _)
             | Insn::ArithK8(_, reg, _)
+            | Insn::Widen1_2(reg)
+            | Insn::Widen1_4(reg)
+            | Insn::Widen1_8(reg)
+            | Insn::Widen2_4(reg)
+            | Insn::Widen2_8(reg)
+            | Insn::Widen4_8(reg)
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpI(reg)
@@ -362,6 +380,12 @@ impl Insn {
             | Insn::V8WithL1(_, _)
             | Insn::V8WithL2(_, _)
             | Insn::V8WithL4(_, _)
+            | Insn::Widen1_2(_)
+            | Insn::Widen1_4(_)
+            | Insn::Widen1_8(_)
+            | Insn::Widen2_4(_)
+            | Insn::Widen2_8(_)
+            | Insn::Widen4_8(_)
             | Insn::Arith1(_, _, _)
             | Insn::Arith2(_, _, _)
             | Insn::Arith4(_, _, _)
@@ -473,6 +497,12 @@ impl std::fmt::Debug for Insn {
             Insn::V8WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l1=", full, part),
             Insn::V8WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l2=", full, part),
             Insn::V8WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l4=", full, part),
+            Insn::Widen1_2(x) => write!(f, "{:8} 1->2 {:?}", "widen", *x),
+            Insn::Widen1_4(x) => write!(f, "{:8} 1->4 {:?}", "widen", *x),
+            Insn::Widen1_8(x) => write!(f, "{:8} 1->8 {:?}", "widen", *x),
+            Insn::Widen2_4(x) => write!(f, "{:8} 2->4 {:?}", "widen", *x),
+            Insn::Widen2_8(x) => write!(f, "{:8} 2->8 {:?}", "widen", *x),
+            Insn::Widen4_8(x) => write!(f, "{:8} 4->8 {:?}", "widen", *x),
 
             Insn::Arith1(op, a, b) => fmt_arith(f, *op, 1, *a, *b),
             Insn::Arith2(op, a, b) => fmt_arith(f, *op, 2, *a, *b),
@@ -641,6 +671,12 @@ impl Program {
             Insn::V8WithL1(_, _) => RegType::Bytes8,
             Insn::V8WithL2(_, _) => RegType::Bytes8,
             Insn::V8WithL4(_, _) => RegType::Bytes8,
+            Insn::Widen1_2(_) => RegType::Bytes2,
+            Insn::Widen1_4(_) => RegType::Bytes4,
+            Insn::Widen1_8(_) => RegType::Bytes8,
+            Insn::Widen2_4(_) => RegType::Bytes4,
+            Insn::Widen2_8(_) => RegType::Bytes8,
+            Insn::Widen4_8(_) => RegType::Bytes8,
             Insn::Arith1(_, _, _) => RegType::Bytes1,
             Insn::Arith2(_, _, _) => RegType::Bytes2,
             Insn::Arith4(_, _, _) => RegType::Bytes4,
