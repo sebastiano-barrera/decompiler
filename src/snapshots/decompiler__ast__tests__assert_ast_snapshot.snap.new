@@ -1,6 +1,6 @@
 ---
 source: src/ast.rs
-assertion_line: 1054
+assertion_line: 1048
 expression: out
 ---
 'T0: {

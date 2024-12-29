@@ -31,6 +31,7 @@ pub struct Program {
 }
 
 #[cfg(feature = "proto_typing")]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct TypeID(pub u32);
 
 #[cfg(feature = "proto_typing")]

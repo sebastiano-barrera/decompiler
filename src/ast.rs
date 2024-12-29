@@ -1032,7 +1032,9 @@ mod tests {
         let ptr_ty = ssa::Ptr { type_id, offset: 0 };
         prog.set_ptr_type(Reg(0), ptr_ty);
 
-        let ast = ast::Builder::new(&prog).compile();
+        let mut builder = ast::Builder::new(&prog);
+
+        let ast = builder.compile();
         assert_ast_snapshot(&ast);
     }
 
