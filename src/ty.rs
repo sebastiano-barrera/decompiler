@@ -26,7 +26,8 @@ pub struct TypeSet {
 
 pub const TYID_I8: TypeID = TypeID(0);
 pub const TYID_I32: TypeID = TypeID(1);
-const TYID_FIRST_FREE: TypeID = TypeID(2);
+pub const TYID_VOID: TypeID = TypeID(2);
+const TYID_FIRST_FREE: TypeID = TypeID(3);
 
 impl TypeSet {
     pub fn new() -> Self {
@@ -52,6 +53,13 @@ impl TypeSet {
                 }),
             },
         );
+        types.insert(
+            TYID_VOID,
+            Type {
+                name: Rc::new("void".to_owned()),
+                ty: Ty::Void,
+            },
+        );
 
         assert!(!types.contains_key(&TYID_FIRST_FREE));
         TypeSet {
@@ -67,7 +75,6 @@ impl TypeSet {
     }
 
     pub fn assign(&mut self, tyid: TypeID, type_: Type) {
-        self.assert_invariants(&type_);
         let prev = self.types.insert(tyid, type_);
         assert!(prev.is_none(), "Type ID {:?} already assigned", tyid);
     }
@@ -86,36 +93,43 @@ impl TypeSet {
         self.get(tyid).map(|t| t.ty.bytes_size())
     }
 
-    pub fn assert_invariants(&self, type_: &Type) {
-        match &type_.ty {
-            Ty::Int(_) | Ty::Enum(_) | Ty::Ptr(_) | Ty::Unknown(_) => {}
-            Ty::Struct(struct_ty) => {
-                assert!(struct_ty.members.iter().all(|m| {
-                    let size = self.bytes_size(m.tyid).unwrap();
-                    m.offset + size <= struct_ty.size
-                }));
+    pub fn assert_invariants(&self) {
+        for (_, typ) in self.types.iter() {
+            match &typ.ty {
+                Ty::Void
+                | Ty::Subroutine(_)
+                | Ty::Int(_)
+                | Ty::Enum(_)
+                | Ty::Ptr(_)
+                | Ty::Unknown(_) => {}
+                Ty::Struct(struct_ty) => {
+                    assert!(struct_ty.members.iter().all(|m| {
+                        let size = self.bytes_size(m.tyid).unwrap();
+                        m.offset + size <= struct_ty.size
+                    }));
 
-                // the code below makes sense if I never want to allow
-                // overlapping struct members. But it could be useful! this
-                // program is not beholden to the rules of programming languages
+                    // the code below makes sense if I never want to allow
+                    // overlapping struct members. But it could be useful! this
+                    // program is not beholden to the rules of programming languages
 
-                // let count = struct_ty.members.len();
-                // for i in 0..count {
-                //     for j in 0..count {
-                //         if i >= j {
-                //             continue;
-                //         }
+                    // let count = struct_ty.members.len();
+                    // for i in 0..count {
+                    //     for j in 0..count {
+                    //         if i >= j {
+                    //             continue;
+                    //         }
 
-                //         let mi = &struct_ty.members[i];
-                //         let mi_end = mi.offset + self.get(mi.tyid).unwrap().ty.bytes_size();
-                //         let mj = &struct_ty.members[j];
-                //         let mj_end = mj.offset + self.get(mj.tyid).unwrap().ty.bytes_size();
+                    //         let mi = &struct_ty.members[i];
+                    //         let mi_end = mi.offset + self.get(mi.tyid).unwrap().ty.bytes_size();
+                    //         let mj = &struct_ty.members[j];
+                    //         let mj_end = mj.offset + self.get(mj.tyid).unwrap().ty.bytes_size();
 
-                //         if mj_end > mi.offset && mi_end > mj.offset {
-                //             panic!("struct '{}': members `{}` ({}:{}) and `{}` ({}:{}) overlap!");
-                //         }
-                //     }
-                // }
+                    //         if mj_end > mi.offset && mi_end > mj.offset {
+                    //             panic!("struct '{}': members `{}` ({}:{}) and `{}` ({}:{}) overlap!");
+                    //         }
+                    //     }
+                    // }
+                }
             }
         }
     }
@@ -138,9 +152,12 @@ impl TypeSet {
         }
 
         match ty {
-            Ty::Ptr(_) | Ty::Int(_) | Ty::Enum(_) | Ty::Unknown(_) => {
-                Err(SelectError::InvalidRange)
-            }
+            Ty::Void
+            | Ty::Ptr(_)
+            | Ty::Int(_)
+            | Ty::Enum(_)
+            | Ty::Unknown(_)
+            | Ty::Subroutine(_) => Err(SelectError::InvalidRange),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     // TODO avoid the hashmap lookup?
@@ -162,11 +179,107 @@ impl TypeSet {
     }
 
     #[cfg(test)]
-    pub fn dump(&self) {
-        println!("TypeSet: {} types", self.types.len());
-        for (tyid, typ) in self.types.iter() {
-            println!("[{:4}]: {:#?}", tyid.0, typ);
+    pub fn dump<W: std::fmt::Write>(
+        &self,
+        pp: &mut crate::pp::PrettyPrinter<W>,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+
+        writeln!(pp, "TypeSet ({} types) = {{", self.types.len())?;
+
+        // ensure that the iteration always happens in the same order
+        let tyids = {
+            let mut keys: Vec<_> = self.types.keys().collect();
+            keys.sort();
+            keys
+        };
+
+        for tyid in tyids {
+            let typ = self.types.get(tyid).unwrap();
+            write!(pp, "  <{}> = ", tyid.0)?;
+            pp.open_box();
+            self.dump_type(pp, typ)?;
+            pp.close_box();
+            writeln!(pp)?;
         }
+        writeln!(pp, "}}")
+    }
+
+    #[cfg(test)]
+    pub fn dump_type_ref<W: std::fmt::Write>(
+        &self,
+        pp: &mut crate::pp::PrettyPrinter<W>,
+        tyid: TypeID,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+
+        let typ = self.get(tyid).unwrap();
+        if typ.name.is_empty() {
+            self.dump_type(pp, typ)
+        } else {
+            write!(pp, "{} <{}>", typ.name, tyid.0)
+        }
+    }
+
+    #[cfg(test)]
+    pub fn dump_type<W: std::fmt::Write>(
+        &self,
+        pp: &mut crate::pp::PrettyPrinter<W>,
+        typ: &Type,
+    ) -> std::fmt::Result {
+        use std::fmt::Write;
+
+        if !typ.name.is_empty() {
+            write!(pp, "\"{}\" ", typ.name)?;
+        }
+        match &typ.ty {
+            Ty::Int(Int { size, signed }) => {
+                let prefix = match signed {
+                    Signedness::Signed => "i",
+                    Signedness::Unsigned => "u",
+                };
+                write!(pp, "{}{}", prefix, size)?;
+            }
+            Ty::Enum(_) => write!(pp, "enum")?,
+            Ty::Struct(struct_ty) => {
+                write!(pp, "struct {{\n    ")?;
+                pp.open_box();
+                for (ndx, memb) in struct_ty.members.iter().enumerate() {
+                    if ndx > 0 {
+                        write!(pp, "\n")?;
+                    }
+                    write!(pp, "@{:3} {} ", memb.offset, memb.name)?;
+                    self.dump_type_ref(pp, memb.tyid)?;
+                }
+                pp.close_box();
+                write!(pp, "\n}}")?;
+            }
+            Ty::Ptr(type_id) => {
+                write!(pp, "*")?;
+                self.dump_type_ref(pp, *type_id)?;
+            }
+            Ty::Subroutine(subr_ty) => {
+                write!(pp, "func (")?;
+                pp.open_box();
+
+                for (ndx, SubroutineParam { name, tyid }) in subr_ty.params.iter().enumerate() {
+                    if ndx > 0 {
+                        write!(pp, ",\n")?;
+                    }
+                    let name = name.as_ref().map(|s| s.as_str()).unwrap_or("<unnamed>");
+                    write!(pp, "{} ", name)?;
+                    self.dump_type_ref(pp, *tyid)?;
+                }
+
+                pp.close_box();
+                write!(pp, ") ")?;
+                self.dump_type_ref(pp, subr_ty.return_tyid)?;
+            }
+            Ty::Unknown(_) => write!(pp, "?")?,
+            Ty::Void => write!(pp, "void")?,
+        }
+
+        Ok(())
     }
 }
 
@@ -191,7 +304,9 @@ pub enum Ty {
     Enum(Enum),
     Struct(Struct),
     Ptr(TypeID),
+    Subroutine(Subroutine),
     Unknown(Unknown),
+    Void,
 }
 impl Ty {
     fn bytes_size(&self) -> u32 {
@@ -199,9 +314,12 @@ impl Ty {
             Ty::Int(int_ty) => int_ty.size as u32,
             Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
             Ty::Struct(struct_ty) => struct_ty.size,
+            Ty::Unknown(unk_ty) => unk_ty.size,
             // TODO architecture dependent!
             Ty::Ptr(_) => 8,
-            Ty::Unknown(unk_ty) => unk_ty.size,
+            // TODO does this even make sense?
+            Ty::Subroutine(_) => 8,
+            Ty::Void => 0,
         }
     }
 }
@@ -250,6 +368,21 @@ pub struct Unknown {
     /// Size in bytes.  Types of unknown size have size 0.
     pub size: u32,
 }
+
+#[derive(Debug)]
+pub struct Subroutine {
+    pub return_tyid: TypeID,
+    pub params: Vec<SubroutineParam>,
+}
+#[derive(Debug)]
+pub struct SubroutineParam {
+    pub name: Option<Rc<String>>,
+    pub tyid: TypeID,
+}
+
+//
+// Selection
+//
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Selection {

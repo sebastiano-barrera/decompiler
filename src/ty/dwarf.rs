@@ -127,6 +127,7 @@ impl<'a> TypeParser<'a> {
             }
         }
 
+        types.assert_invariants();
         Ok(())
     }
 
@@ -161,12 +162,16 @@ impl<'a> TypeParser<'a> {
             // - [ ] DW_TAG_base_type
             // - [ ] DW_TAG_array_type
             // - [ ] DW_TAG_subrange_type
-            // - [ ] DW_TAG_subroutine_type
+            // - [x] DW_TAG_subroutine_type
             // - [x] DW_TAG_structure_type
             // - [x] DW_TAG_pointer_type
             gimli::constants::DW_TAG_structure_type => self.parse_struct_type(node, types),
             gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, types),
-            gimli::constants::DW_TAG_subroutine_type => self.parse_subroutine_type(node, types),
+            // subprograms (functions, in C) are considered as subroutine types
+            // with a only single instance existing in the program.
+            gimli::constants::DW_TAG_subprogram | gimli::constants::DW_TAG_subroutine_type => {
+                self.parse_subroutine_type(node, types)
+            }
 
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
@@ -197,6 +202,40 @@ impl<'a> TypeParser<'a> {
         }
     }
 
+    fn parse_subroutine_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+        let entry = node.entry();
+        assert!(
+            entry.tag() == gimli::constants::DW_TAG_subroutine_type
+                || entry.tag() == gimli::constants::DW_TAG_subprogram
+        );
+
+        let name = self
+            .get_name(entry)?
+            .map(|s| s.to_owned())
+            .unwrap_or_else(String::new);
+        let return_tyid = match self.try_parse_type_of(entry, types) {
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => Ok(ty::TYID_VOID),
+            res => res,
+        }?;
+
+        let mut params = Vec::new();
+        let mut children = node.children();
+        while let Some(child_node) = children.next()? {
+            let child_entry = child_node.entry();
+            let name = self.get_name(child_entry)?.map(|s| Rc::new(s.to_owned()));
+            let tyid = self.try_parse_type_of(&child_entry, types)?;
+            params.push(ty::SubroutineParam { name, tyid });
+        }
+
+        Ok(ty::Type {
+            name: Rc::new(name),
+            ty: ty::Ty::Subroutine(ty::Subroutine {
+                return_tyid,
+                params,
+            }),
+        })
+    }
+
     fn parse_pointer_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::DW_TAG_pointer_type);
@@ -213,7 +252,11 @@ impl<'a> TypeParser<'a> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_structure_type);
 
-        let name = self.get_name(entry)?.to_owned();
+        // TODO properly make this name optional (don't fallback to an empty string)
+        let name = self
+            .get_name(entry)?
+            .map(|s| s.to_owned())
+            .unwrap_or_else(String::new);
         let size = get_required_attr(entry, gimli::DW_AT_byte_size)?
             .value()
             .udata_value()
@@ -260,7 +303,11 @@ impl<'a> TypeParser<'a> {
             .try_into()
             .map_err(|_| Error::TypeTooLarge)?;
 
-        let name = Rc::new(self.get_name(member)?.to_owned());
+        let name = Rc::new(
+            self.get_name(member)?
+                .map(|s| s.to_owned())
+                .unwrap_or_else(String::new),
+        );
 
         let tyid = self.try_parse_type_of(member, types)?;
         Ok(ty::StructMember { offset, name, tyid })
@@ -286,15 +333,17 @@ impl<'a> TypeParser<'a> {
         Ok(tyid)
     }
 
-    fn get_name(&self, entry: &DIE<'a, '_, '_>) -> Result<&'a str> {
-        let attr = get_required_attr(entry, gimli::DW_AT_name)?;
+    fn get_name(&self, entry: &DIE<'a, '_, '_>) -> Result<Option<&'a str>> {
+        let Some(attr) = entry.attr(gimli::DW_AT_name)? else {
+            return Ok(None);
+        };
         let name = self
             .dwarf
             .attr_string(&self.unit, attr.value())
             .map_err(|_| Error::InvalidValueType(entry.offset().0, gimli::DW_AT_name))?
             .slice();
         // TODO lift the utf8 encoding restriction
-        Ok(std::str::from_utf8(name).unwrap())
+        Ok(Some(std::str::from_utf8(name).unwrap()))
     }
 }
 
@@ -307,6 +356,8 @@ fn get_required_attr<'a>(
 
 #[cfg(test)]
 mod tests {
+    use insta::assert_snapshot;
+
     use super::super::tests::DATA_DIR;
     use super::*;
 
@@ -320,6 +371,9 @@ mod tests {
         let mut types = ty::TypeSet::new();
         load_dwarf_types(contents, &mut types).unwrap();
 
-        types.dump();
+        let mut buf = String::new();
+        let mut pp = crate::pp::PrettyPrinter::start(&mut buf);
+        types.dump(&mut pp).unwrap();
+        assert_snapshot!(buf);
     }
 }
