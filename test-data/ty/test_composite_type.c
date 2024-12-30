@@ -17,3 +17,5 @@ void join(struct point *a, struct point *b) {
     a->next = b;
     b->prev = a;
 }
+
+int main() {}

@@ -313,7 +313,7 @@ mod tests {
     #[test]
     fn struct_type() {
         let contents = DATA_DIR
-            .get_file("test_composite_type.o")
+            .get_file("test_composite_type.so")
             .unwrap()
             .contents();
 
