@@ -151,19 +151,39 @@ impl<'a> TypeParser<'a> {
         let entry = node.entry();
 
         let res = match entry.tag() {
-            gimli::constants::DW_TAG_structure_type => self.parse_struct(node, tyid, types),
-            gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, tyid, types),
+            // tag types I'm going to support, least to most common:
+            // - [ ] DW_TAG_volatile_type
+            // - [ ] DW_TAG_restrict_type
+            // - [ ] DW_TAG_atomic_type
+            // - [ ] DW_TAG_union_type
+            // - [ ] DW_TAG_enumeration_type
+            // - [ ] DW_TAG_const_type
+            // - [ ] DW_TAG_base_type
+            // - [ ] DW_TAG_array_type
+            // - [ ] DW_TAG_subrange_type
+            // - [ ] DW_TAG_subroutine_type
+            // - [x] DW_TAG_structure_type
+            // - [x] DW_TAG_pointer_type
+            gimli::constants::DW_TAG_structure_type => self.parse_struct_type(node, types),
+            gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, types),
+            gimli::constants::DW_TAG_subroutine_type => self.parse_subroutine_type(node, types),
+
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
 
-        if res.is_err() {
-            let name = Rc::new(format!("unknown{}", key.0));
-            let ty = ty::Ty::Unknown(ty::Unknown { size: 0 });
-            types.assign(tyid, ty::Type { name, ty });
+        match res {
+            Ok(typ) => {
+                types.assign(tyid, typ);
+                Ok(tyid)
+            }
+            Err(err) => {
+                let name = Rc::new(format!("unknown{}", key.0));
+                let ty = ty::Ty::Unknown(ty::Unknown { size: 0 });
+                let typ = ty::Type { name, ty };
+                types.assign(tyid, typ);
+                Err(err)
+            }
         }
-
-        debug_assert!(types.get(tyid).is_some());
-        res
     }
 
     fn take_error<T>(&self, offset: usize, res: Result<T>) -> Option<T> {
@@ -177,28 +197,19 @@ impl<'a> TypeParser<'a> {
         }
     }
 
-    fn parse_pointer_type(
-        &self,
-        node: GimliNode,
-        tyid: ty::TypeID,
-        types: &mut ty::TypeSet,
-    ) -> Result<ty::TypeID> {
-        let pointee_tyid = self.try_parse_type_of(node.entry(), types)?;
-        let ty = ty::Type {
+    fn parse_pointer_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+        let entry = node.entry();
+        assert_eq!(entry.tag(), gimli::DW_TAG_pointer_type);
+
+        let pointee_tyid = self.try_parse_type_of(entry, types)?;
+        Ok(ty::Type {
             // TODO make name optional
             name: Rc::new(String::new()),
             ty: ty::Ty::Ptr(pointee_tyid),
-        };
-        types.assign(tyid, ty);
-        Ok(tyid)
+        })
     }
 
-    fn parse_struct(
-        &self,
-        node: GimliNode,
-        tyid: ty::TypeID,
-        types: &mut ty::TypeSet,
-    ) -> Result<ty::TypeID> {
+    fn parse_struct_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_structure_type);
 
@@ -227,12 +238,10 @@ impl<'a> TypeParser<'a> {
             }
         }
 
-        let ty = ty::Type {
+        Ok(ty::Type {
             name: Rc::new(name),
             ty: ty::Ty::Struct(ty::Struct { members, size }),
-        };
-        types.assign(tyid, ty);
-        Ok(tyid)
+        })
     }
 
     fn parse_struct_member(
