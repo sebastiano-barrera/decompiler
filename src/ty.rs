@@ -3,6 +3,8 @@ use std::{collections::HashMap, ops::Range, rc::Rc};
 use smallvec::{smallvec, SmallVec};
 use thiserror::Error;
 
+mod dwarf;
+
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
@@ -59,11 +61,20 @@ impl TypeSet {
     }
 
     pub fn add(&mut self, type_: Type) -> TypeID {
-        self.assert_invariants(&type_);
+        let tyid = self.alloc_type_id();
+        self.assign(tyid, type_);
+        tyid
+    }
 
+    pub fn assign(&mut self, tyid: TypeID, type_: Type) {
+        self.assert_invariants(&type_);
+        let prev = self.types.insert(tyid, type_);
+        assert!(prev.is_none(), "Type ID {:?} already assigned", tyid);
+    }
+
+    pub fn alloc_type_id(&mut self) -> TypeID {
         let tyid = self.next_tyid;
         self.next_tyid.0 += 1;
-        self.types.insert(tyid, type_);
         tyid
     }
 
@@ -77,8 +88,7 @@ impl TypeSet {
 
     pub fn assert_invariants(&self, type_: &Type) {
         match &type_.ty {
-            Ty::Int(_) => {}
-            Ty::Enum(_) => {}
+            Ty::Int(_) | Ty::Enum(_) | Ty::Ptr(_) | Ty::Unknown(_) => {}
             Ty::Struct(struct_ty) => {
                 assert!(struct_ty.members.iter().all(|m| {
                     let size = self.bytes_size(m.tyid).unwrap();
@@ -120,16 +130,16 @@ impl TypeSet {
             return Err(SelectError::InvalidRange);
         }
 
+        if byte_range == (0..size) {
+            return Ok(Selection {
+                tyid,
+                path: SmallVec::new(),
+            });
+        }
+
         match ty {
-            Ty::Int(_) | Ty::Enum(_) => {
-                if byte_range == (0..size) {
-                    Ok(Selection {
-                        tyid,
-                        path: SmallVec::new(),
-                    })
-                } else {
-                    Err(SelectError::InvalidRange)
-                }
+            Ty::Ptr(_) | Ty::Int(_) | Ty::Enum(_) | Ty::Unknown(_) => {
+                Err(SelectError::InvalidRange)
             }
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
@@ -150,6 +160,14 @@ impl TypeSet {
             }
         }
     }
+
+    #[cfg(test)]
+    pub fn dump(&self) {
+        println!("TypeSet: {} types", self.types.len());
+        for (tyid, typ) in self.types.iter() {
+            println!("[{:4}]: {:#?}", tyid.0, typ);
+        }
+    }
 }
 
 // use cases:
@@ -159,6 +177,7 @@ impl TypeSet {
 //  - select(type, offset, size) => (type, access path) || invalid || cross-boundaries
 //
 
+#[derive(Debug)]
 pub struct Type {
     // TODO alignment, ...
     /// Human-readable name for the type
@@ -166,10 +185,13 @@ pub struct Type {
     pub ty: Ty,
 }
 
+#[derive(Debug)]
 pub enum Ty {
     Int(Int),
     Enum(Enum),
     Struct(Struct),
+    Ptr(TypeID),
+    Unknown(Unknown),
 }
 impl Ty {
     fn bytes_size(&self) -> u32 {
@@ -177,23 +199,30 @@ impl Ty {
             Ty::Int(int_ty) => int_ty.size as u32,
             Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
             Ty::Struct(struct_ty) => struct_ty.size,
+            // TODO architecture dependent!
+            Ty::Ptr(_) => 8,
+            Ty::Unknown(unk_ty) => unk_ty.size,
         }
     }
 }
 
+#[derive(Debug)]
 pub struct Int {
     pub size: u8,
     pub signed: Signedness,
 }
+#[derive(Debug)]
 pub enum Signedness {
     Signed,
     Unsigned,
 }
 
+#[derive(Debug)]
 pub struct Enum {
     pub variants: Vec<EnumVariant>,
     pub base_type: Int,
 }
+#[derive(Debug)]
 pub struct EnumVariant {
     pub value: i64,
     pub name: Rc<String>,
@@ -203,14 +232,23 @@ pub struct EnumVariant {
 ///
 /// Unions may be represented by adding overlapping members. All members'
 /// occupied byte range must fit into the structure's size.
+#[derive(Debug)]
 pub struct Struct {
     pub members: Vec<StructMember>,
     pub size: u32,
 }
+#[derive(Debug)]
 pub struct StructMember {
     pub offset: u32,
     pub name: Rc<String>,
     pub tyid: TypeID,
+}
+
+/// Placeholder for types that are not fully understood by the system.
+#[derive(Debug)]
+pub struct Unknown {
+    /// Size in bytes.  Types of unknown size have size 0.
+    pub size: u32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -244,6 +282,10 @@ pub enum SelectError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use include_dir::{include_dir, Dir};
+
+    pub(crate) static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/ty/");
 
     #[test]
     fn simple_struct() {

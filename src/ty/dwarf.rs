@@ -1,0 +1,316 @@
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+
+use crate::ty;
+
+use gimli::EndianSlice;
+use thiserror::Error;
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("unsupported executable format (only ELF is supported)")]
+    UnsupportedExecFormat,
+
+    #[error("no compilation unit in DWARF debug info")]
+    NoCompileUnit,
+
+    #[error("error while parsing DWARF: {0}")]
+    ParserError(#[from] gimli::Error),
+
+    #[error("unsupported DWARF entry tag: {0}")]
+    UnsupportedDwarfTag(gimli::DwTag),
+
+    #[error("required attribute is missing: {0}")]
+    MissingRequiredAttr(gimli::DwAt),
+
+    #[error("data type discarded due to exceeding maximum supported size")]
+    TypeTooLarge,
+
+    #[error("DIE at offset {0} has wrong type of value for attribute {1}")]
+    InvalidValueType(usize, gimli::DwAt),
+}
+
+pub fn load_dwarf_types(contents: &[u8], types: &mut ty::TypeSet) -> Result<()> {
+    let parser = TypeParser::new(contents)?;
+    parser.load_types(types)?;
+
+    let errors = parser.errors.take();
+    if !errors.is_empty() {
+        eprintln!("{} errors while parsing DWARF:", errors.len());
+
+        for (ofs, err) in errors {
+            eprintln!("offset {:16}: {:?}", ofs, err);
+        }
+    }
+    Ok(())
+}
+
+type ESlice<'d> = EndianSlice<'d, gimli::RunTimeEndian>;
+type GimliNode<'a, 'b, 'c, 'd> = gimli::EntriesTreeNode<'a, 'b, 'c, ESlice<'d>>;
+
+struct TypeParser<'a> {
+    dwarf: gimli::Dwarf<ESlice<'a>>,
+    unit: gimli::Unit<ESlice<'a>, usize>,
+    errors: RefCell<Vec<(usize, Error)>>,
+    tyid_of_node: RefCell<HashMap<gimli::UnitOffset, ty::TypeID>>,
+}
+
+type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
+
+impl<'a> TypeParser<'a> {
+    fn new(contents: &'a [u8]) -> Result<Self> {
+        let object = goblin::Object::parse(&contents).expect("could not parse ELF");
+        let elf = match object {
+            goblin::Object::Elf(elf) => elf,
+            _ => return Err(Error::UnsupportedExecFormat),
+        };
+
+        let endianity = if elf.little_endian {
+            gimli::RunTimeEndian::Little
+        } else {
+            gimli::RunTimeEndian::Big
+        };
+
+        let dwarf = gimli::Dwarf::load(|section| -> std::result::Result<_, ()> {
+            let bytes = elf
+                .section_headers
+                .iter()
+                .find(|sec| elf.shdr_strtab.get_at(sec.sh_name) == Some(section.name()))
+                .and_then(|sec_hdr| {
+                    let file_range = sec_hdr.file_range()?;
+                    Some(&contents[file_range])
+                })
+                .unwrap_or(&[]);
+            Ok(EndianSlice::new(bytes, endianity))
+        })
+        .unwrap(); // never fails...
+
+        // "unit" means "compilation unit" here
+        let unit_hdr = {
+            let mut units = dwarf.debug_info.units();
+            let Some(unit_hdr) = units.next()? else {
+                return Err(Error::NoCompileUnit);
+            };
+            if units.next()?.is_some() {
+                eprintln!("warning: the given ELF contains debug info for multiple compilation units. only one will be parsed; the others will be ignored.");
+            }
+            unit_hdr
+        };
+
+        let unit = dwarf.unit(unit_hdr)?;
+        Ok(TypeParser {
+            dwarf,
+            unit,
+            errors: RefCell::new(Vec::new()),
+            tyid_of_node: RefCell::new(HashMap::new()),
+        })
+    }
+
+    fn load_types(&self, types: &'a mut ty::TypeSet) -> Result<()> {
+        let mut entries = self.unit.entries_tree(None)?;
+        let root = entries.root()?;
+
+        assert_eq!(root.entry().tag(), gimli::DW_TAG_compile_unit);
+
+        let mut children = root.children();
+        while let Some(node) = children.next()? {
+            let node_ofs = node.entry().offset().0;
+
+            match self.try_parse_type(node, types) {
+                Ok(_) => {}
+                Err(Error::UnsupportedDwarfTag(_)) => {}
+                Err(other_err) => {
+                    let mut errors = self.errors.borrow_mut();
+                    errors.push((node_ofs, other_err));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn try_parse_type(&self, node: GimliNode, types: &'a mut ty::TypeSet) -> Result<ty::TypeID> {
+        // The parsing might fail, but a TypeID is always associated to the
+        // GimliNode.
+        //
+        // In case of failure, the error is captured in self.errors and type is
+        // left as a `ty::Unknown`.
+        //
+        // This function is memoized via `self.tyid_of_node`.
+        let tyid = types.alloc_type_id();
+        let key = node.entry().offset();
+        {
+            let mut tyid_of_node = self.tyid_of_node.borrow_mut();
+            if let Some(&tyid) = tyid_of_node.get(&key) {
+                return Ok(tyid);
+            }
+            tyid_of_node.insert(key, tyid);
+        }
+
+        let entry = node.entry();
+
+        let res = match entry.tag() {
+            gimli::constants::DW_TAG_structure_type => self.parse_struct(node, tyid, types),
+            gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, tyid, types),
+            other => Err(Error::UnsupportedDwarfTag(other)),
+        };
+
+        if res.is_err() {
+            let name = Rc::new(format!("unknown{}", key.0));
+            let ty = ty::Ty::Unknown(ty::Unknown { size: 0 });
+            types.assign(tyid, ty::Type { name, ty });
+        }
+
+        debug_assert!(types.get(tyid).is_some());
+        res
+    }
+
+    fn take_error<T>(&self, offset: usize, res: Result<T>) -> Option<T> {
+        match res {
+            Ok(res) => Some(res),
+            Err(err) => {
+                let mut errors = self.errors.borrow_mut();
+                errors.push((offset, err));
+                None
+            }
+        }
+    }
+
+    fn parse_pointer_type(
+        &self,
+        node: GimliNode,
+        tyid: ty::TypeID,
+        types: &mut ty::TypeSet,
+    ) -> Result<ty::TypeID> {
+        let pointee_tyid = self.try_parse_type_of(node.entry(), types)?;
+        let ty = ty::Type {
+            // TODO make name optional
+            name: Rc::new(String::new()),
+            ty: ty::Ty::Ptr(pointee_tyid),
+        };
+        types.assign(tyid, ty);
+        Ok(tyid)
+    }
+
+    fn parse_struct(
+        &self,
+        node: GimliNode,
+        tyid: ty::TypeID,
+        types: &mut ty::TypeSet,
+    ) -> Result<ty::TypeID> {
+        let entry = node.entry();
+        assert_eq!(entry.tag(), gimli::constants::DW_TAG_structure_type);
+
+        let name = self.get_name(entry)?.to_owned();
+        let size = get_required_attr(entry, gimli::DW_AT_byte_size)?
+            .value()
+            .udata_value()
+            .ok_or(Error::InvalidValueType(
+                entry.offset().0,
+                gimli::DW_AT_byte_size,
+            ))?
+            .try_into()
+            .map_err(|_| Error::TypeTooLarge)?;
+        let mut members = Vec::new();
+        let mut children = node.children();
+        while let Some(child_node) = children.next()? {
+            let member = child_node.entry();
+            match member.tag() {
+                gimli::DW_TAG_member => {
+                    let res = self.parse_struct_member(member, types);
+                    if let Some(memb) = self.take_error(member.offset().0, res) {
+                        members.push(memb);
+                    }
+                }
+                _ => continue, // considered unsupported
+            }
+        }
+
+        let ty = ty::Type {
+            name: Rc::new(name),
+            ty: ty::Ty::Struct(ty::Struct { members, size }),
+        };
+        types.assign(tyid, ty);
+        Ok(tyid)
+    }
+
+    fn parse_struct_member(
+        &self,
+        member: &DIE<'_, '_, '_>,
+        types: &mut ty::TypeSet,
+    ) -> Result<ty::StructMember> {
+        assert_eq!(member.tag(), gimli::DW_TAG_member);
+
+        let offset = get_required_attr(member, gimli::DW_AT_data_member_location)?
+            .udata_value()
+            .ok_or(Error::InvalidValueType(
+                member.offset().0,
+                gimli::DW_AT_data_member_location,
+            ))?
+            .try_into()
+            .map_err(|_| Error::TypeTooLarge)?;
+
+        let name = Rc::new(self.get_name(member)?.to_owned());
+
+        let tyid = self.try_parse_type_of(member, types)?;
+        Ok(ty::StructMember { offset, name, tyid })
+    }
+
+    fn try_parse_type_of(
+        &self,
+        entry_with_type: &DIE<'_, '_, '_>,
+        types: &mut ty::TypeSet,
+    ) -> Result<ty::TypeID> {
+        let type_unit_offset = match get_required_attr(entry_with_type, gimli::DW_AT_type)?.value()
+        {
+            gimli::AttributeValue::UnitRef(ofs) => ofs,
+            _ => {
+                return Err(Error::InvalidValueType(
+                    entry_with_type.offset().0,
+                    gimli::DW_AT_type,
+                ))
+            }
+        };
+        let mut type_tree = self.unit.entries_tree(Some(type_unit_offset))?;
+        let tyid = self.try_parse_type(type_tree.root()?, types)?;
+        Ok(tyid)
+    }
+
+    fn get_name(&self, entry: &DIE<'a, '_, '_>) -> Result<&'a str> {
+        let attr = get_required_attr(entry, gimli::DW_AT_name)?;
+        let name = self
+            .dwarf
+            .attr_string(&self.unit, attr.value())
+            .map_err(|_| Error::InvalidValueType(entry.offset().0, gimli::DW_AT_name))?
+            .slice();
+        // TODO lift the utf8 encoding restriction
+        Ok(std::str::from_utf8(name).unwrap())
+    }
+}
+
+fn get_required_attr<'a>(
+    die: &DIE<'a, '_, '_>,
+    attr: gimli::DwAt,
+) -> Result<gimli::Attribute<ESlice<'a>>> {
+    die.attr(attr)?.ok_or(Error::MissingRequiredAttr(attr))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::DATA_DIR;
+    use super::*;
+
+    #[test]
+    fn struct_type() {
+        let contents = DATA_DIR
+            .get_file("test_composite_type.o")
+            .unwrap()
+            .contents();
+
+        let mut types = ty::TypeSet::new();
+        load_dwarf_types(contents, &mut types).unwrap();
+
+        types.dump();
+    }
+}
