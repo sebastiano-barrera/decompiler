@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use decompiler::test_tool;
+use decompiler::{pp, test_tool};
 
 pub struct CliOptions {
     pub elf_filename: PathBuf,
@@ -29,8 +29,15 @@ fn main() {
         contents
     };
 
-    let out = std::io::stdout().lock();
-    let res = test_tool::run(&contents, &opts.function_name, &mut IoAsFmt(out));
+    {
+        let wrt = IoAsFmt(std::io::stdout());
+        let pp = Box::new(pp::PrettyPrinter::start(wrt));
+        pp::debug::set_pp(pp);
+    }
+
+    let out = std::io::stdout();
+    let mut out = pp::PrettyPrinter::start(IoAsFmt(out));
+    let res = test_tool::run(&contents, &opts.function_name, &mut out);
     if let Err(err) = res {
         eprintln!("error: {}", err);
     }

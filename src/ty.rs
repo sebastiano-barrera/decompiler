@@ -5,6 +5,7 @@ use thiserror::Error;
 
 pub mod dwarf;
 
+use crate::pp::PP;
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
@@ -182,13 +183,8 @@ impl TypeSet {
         }
     }
 
-    pub fn dump<W: std::fmt::Write>(
-        &self,
-        pp: &mut crate::pp::PrettyPrinter<W>,
-    ) -> std::fmt::Result {
-        use std::fmt::Write;
-
-        writeln!(pp, "TypeSet ({} types) = {{", self.types.len())?;
+    pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::fmt::Result {
+        writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
 
         // ensure that the iteration always happens in the same order
         let tyids = {
@@ -199,39 +195,27 @@ impl TypeSet {
 
         for tyid in tyids {
             let typ = self.types.get(tyid).unwrap();
-            write!(pp, "  <{}> = ", tyid.0)?;
-            pp.open_box();
-            self.dump_type(pp, typ)?;
-            pp.close_box();
-            writeln!(pp)?;
+            write!(out, "  <{}> = ", tyid.0)?;
+            out.open_box();
+            self.dump_type(out, typ)?;
+            out.close_box();
+            writeln!(out)?;
         }
-        writeln!(pp, "}}")
+        writeln!(out, "}}")
     }
 
-    pub fn dump_type_ref<W: std::fmt::Write>(
-        &self,
-        pp: &mut crate::pp::PrettyPrinter<W>,
-        tyid: TypeID,
-    ) -> std::fmt::Result {
-        use std::fmt::Write;
-
+    pub fn dump_type_ref<W: PP + ?Sized>(&self, out: &mut W, tyid: TypeID) -> std::fmt::Result {
         let typ = self.get(tyid).unwrap();
         if typ.name.is_empty() {
-            self.dump_type(pp, typ)
+            self.dump_type(out, typ)
         } else {
-            write!(pp, "{} <{}>", typ.name, tyid.0)
+            write!(out, "{} <{}>", typ.name, tyid.0)
         }
     }
 
-    pub fn dump_type<W: std::fmt::Write>(
-        &self,
-        pp: &mut crate::pp::PrettyPrinter<W>,
-        typ: &Type,
-    ) -> std::fmt::Result {
-        use std::fmt::Write;
-
+    pub fn dump_type<W: PP + ?Sized>(&self, out: &mut W, typ: &Type) -> std::fmt::Result {
         if !typ.name.is_empty() {
-            write!(pp, "\"{}\" ", typ.name)?;
+            write!(out, "\"{}\" ", typ.name)?;
         }
         match &typ.ty {
             Ty::Int(Int { size, signed }) => {
@@ -239,47 +223,47 @@ impl TypeSet {
                     Signedness::Signed => "i",
                     Signedness::Unsigned => "u",
                 };
-                write!(pp, "{}{}", prefix, size * 8)?;
+                write!(out, "{}{}", prefix, size * 8)?;
             }
-            Ty::Bool(Bool { size }) => write!(pp, "bool{}", *size * 8)?,
-            Ty::Float(Float { size }) => write!(pp, "float{}", *size * 8)?,
-            Ty::Enum(_) => write!(pp, "enum")?,
+            Ty::Bool(Bool { size }) => write!(out, "bool{}", *size * 8)?,
+            Ty::Float(Float { size }) => write!(out, "float{}", *size * 8)?,
+            Ty::Enum(_) => write!(out, "enum")?,
             Ty::Struct(struct_ty) => {
-                write!(pp, "struct {{\n    ")?;
-                pp.open_box();
+                write!(out, "struct {{\n    ")?;
+                out.open_box();
                 for (ndx, memb) in struct_ty.members.iter().enumerate() {
                     if ndx > 0 {
-                        write!(pp, "\n")?;
+                        write!(out, "\n")?;
                     }
-                    write!(pp, "@{:3} {} ", memb.offset, memb.name)?;
-                    self.dump_type_ref(pp, memb.tyid)?;
+                    write!(out, "@{:3} {} ", memb.offset, memb.name)?;
+                    self.dump_type_ref(out, memb.tyid)?;
                 }
-                pp.close_box();
-                write!(pp, "\n}}")?;
+                out.close_box();
+                write!(out, "\n}}")?;
             }
             Ty::Ptr(type_id) => {
-                write!(pp, "*")?;
-                self.dump_type_ref(pp, *type_id)?;
+                write!(out, "*")?;
+                self.dump_type_ref(out, *type_id)?;
             }
             Ty::Subroutine(subr_ty) => {
-                write!(pp, "func (")?;
-                pp.open_box();
+                write!(out, "func (")?;
+                out.open_box();
 
                 for (ndx, SubroutineParam { name, tyid }) in subr_ty.params.iter().enumerate() {
                     if ndx > 0 {
-                        write!(pp, ",\n")?;
+                        write!(out, ",\n")?;
                     }
                     let name = name.as_ref().map(|s| s.as_str()).unwrap_or("<unnamed>");
-                    write!(pp, "{} ", name)?;
-                    self.dump_type_ref(pp, *tyid)?;
+                    write!(out, "{} ", name)?;
+                    self.dump_type_ref(out, *tyid)?;
                 }
 
-                pp.close_box();
-                write!(pp, ") ")?;
-                self.dump_type_ref(pp, subr_ty.return_tyid)?;
+                out.close_box();
+                write!(out, ") ")?;
+                self.dump_type_ref(out, subr_ty.return_tyid)?;
             }
-            Ty::Unknown(_) => write!(pp, "?")?,
-            Ty::Void => write!(pp, "void")?,
+            Ty::Unknown(_) => write!(out, "?")?,
+            Ty::Void => write!(out, "void")?,
         }
 
         Ok(())

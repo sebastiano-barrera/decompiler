@@ -7,7 +7,7 @@ use std::{
     ops::{Index, IndexMut, Range},
 };
 
-use crate::mil;
+use crate::{mil, pp::PP};
 
 /// A graph where nodes are blocks, and edges are successors/predecessors relationships.
 #[derive(Debug)]
@@ -389,21 +389,26 @@ fn dest_of_insn(
 }
 
 impl Graph {
-    pub fn dump_graphviz(&self, dom_tree: Option<&DomTree>) {
+    pub fn dump_graphviz<W: PP + ?Sized>(
+        &self,
+        out: &mut W,
+        dom_tree: Option<&DomTree>,
+    ) -> std::fmt::Result {
         let count = self.block_count();
-        println!("digraph {{");
-        println!("  // {} blocks", count);
+        writeln!(out, "digraph {{")?;
+        writeln!(out, "  // {} blocks", count)?;
 
         for bid in self.block_ids() {
             let Range { start, end } = self.insns_ndx_range(bid);
 
-            println!(
+            writeln!(
+                out,
                 "  block{} [label=\"{}\\n{}..{}\"];",
                 bid.0, bid.0, start, end,
-            );
+            )?;
 
             match self.direct.successors(bid) {
-                [] => println!("  block{} -> end", bid.0),
+                [] => writeln!(out, "  block{} -> end", bid.0)?,
                 dests => {
                     for (succ_ndx, dest) in dests.iter().enumerate() {
                         let color = match (dests.len(), succ_ndx) {
@@ -412,28 +417,34 @@ impl Graph {
                             (2, 1) => "darkgreen",
                             _ => panic!("max 2 successors!"),
                         };
-                        println!("  block{} -> block{} [color=\"{}\"];", bid.0, dest.0, color);
+                        writeln!(
+                            out,
+                            "  block{} -> block{} [color=\"{}\"];",
+                            bid.0, dest.0, color
+                        )?;
                     }
                 }
             }
 
-            println!();
+            writeln!(out,)?;
         }
 
         if let Some(dom_tree) = dom_tree {
-            println!("  // dominator tree");
+            writeln!(out, "  // dominator tree")?;
             for (bid, parent) in dom_tree.items() {
                 if let Some(parent) = parent {
-                    println!(
+                    writeln!(
+                        out,
                         "  block{} -> block{} [style=\"dotted\"];",
                         bid.as_number(),
                         parent.as_number()
-                    );
+                    )?;
                 }
             }
         }
 
-        println!("}}");
+        writeln!(out, "}}")?;
+        Ok(())
     }
 }
 

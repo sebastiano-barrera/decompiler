@@ -2,7 +2,7 @@ mod ast;
 mod cfg;
 #[macro_use]
 mod mil;
-mod pp;
+pub mod pp;
 mod ssa;
 mod tests;
 mod ty;

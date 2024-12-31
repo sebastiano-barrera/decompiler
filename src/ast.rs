@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 use crate::{
     cfg::{self, BlockID},
     mil,
-    pp::PrettyPrinter,
+    pp::{PrettyPrinter, PP},
     ssa, ty,
 };
 
@@ -711,17 +711,11 @@ fn apply_peephole_substitutions(nodes: &mut NodeSet) {
 }
 
 impl Ast {
-    pub fn pretty_print<W: std::fmt::Write>(&self, pp: &mut PrettyPrinter<W>) -> std::fmt::Result {
+    pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::fmt::Result {
         self.pretty_print_node(pp, self.root_nid)
     }
 
-    fn pretty_print_node<W: std::fmt::Write>(
-        &self,
-        pp: &mut PrettyPrinter<W>,
-        nid: NodeID,
-    ) -> std::fmt::Result {
-        use std::fmt::Write;
-
+    fn pretty_print_node<W: PP + ?Sized>(&self, pp: &mut W, nid: NodeID) -> std::fmt::Result {
         let node = &self.nodes[nid];
 
         match node {
@@ -1010,13 +1004,12 @@ impl Ast {
         }
     }
 
-    fn pp_load_mem<W: std::fmt::Write>(
+    fn pp_load_mem<W: PP + ?Sized>(
         &self,
-        pp: &mut PrettyPrinter<W>,
+        pp: &mut W,
         src_size: u8,
         addr: NodeID,
     ) -> std::fmt::Result {
-        use std::fmt::Write;
         write!(pp, "[")?;
         self.pretty_print_node(pp, addr)?;
         write!(pp, "]:{}", src_size)

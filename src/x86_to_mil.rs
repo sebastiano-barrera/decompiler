@@ -93,7 +93,6 @@ impl Builder {
 
             let mut output = String::new();
             formatter.format(&insn, &mut output);
-            eprintln!("converting: {}", output);
 
             use iced_x86::Mnemonic as M;
             match insn.mnemonic() {

@@ -7,7 +7,7 @@ use std::{collections::HashMap, ops::Range};
 /// > Cooper, Keith & Harvey, Timothy & Kennedy, Ken. (2006).
 /// > A Simple, Fast Dominance Algorithm.
 /// > Rice University, CS Technical Report 06-33870.
-use crate::{cfg, mil};
+use crate::{cfg, mil, pp};
 
 pub struct Program {
     // an ssa::Program contains a mil::Program at its core, but never exposes it directly:
@@ -222,9 +222,11 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 
     let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
-    eprintln!("//  --- dom tree ---");
-    cfg.dump_graphviz(Some(dom_tree));
-    eprintln!("//  --- END ---");
+    pp::debug::with_pp(|pp| {
+        writeln!(pp, "//  --- dom tree ---")?;
+        cfg.dump_graphviz(pp, Some(dom_tree))?;
+        writeln!(pp, "//  --- END ---")
+    });
 
     let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
 
@@ -653,13 +655,6 @@ impl<T: Clone> RegMat<T> {
     }
 }
 
-#[cfg(test)]
-impl<T: std::fmt::Debug> RegMat<T> {
-    fn dump(&self) {
-        self.0.dump();
-    }
-}
-
 // TODO cache this info somewhere. it's so weird to recompute it twice!
 fn count_variables(program: &mil::Program) -> mil::Index {
     let max_dest = program
@@ -703,18 +698,6 @@ impl<T: Clone> Mat<T> {
     }
     fn fill(&mut self, value: T) {
         self.items.fill(value);
-    }
-}
-#[cfg(test)]
-impl<T: std::fmt::Debug> Mat<T> {
-    fn dump(&self) {
-        // TODO port to pp::PrettyPrinter
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                eprint!(" {:5?}", *self.item(i, j));
-            }
-            eprintln!();
-        }
     }
 }
 

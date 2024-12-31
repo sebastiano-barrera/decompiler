@@ -1,7 +1,7 @@
 use iced_x86::Formatter;
 use thiserror::Error;
 
-use crate::{ast, pp::PrettyPrinter, ssa, ty, x86_to_mil, xform};
+use crate::{ast, pp::PP, ssa, ty, x86_to_mil, xform};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -27,7 +27,7 @@ fn obj_format_name(object: &goblin::Object) -> &'static str {
     }
 }
 
-pub fn run<W: std::fmt::Write>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
+pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
     let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
     let elf = match object {
         goblin::Object::Elf(elf) => elf,
@@ -37,11 +37,11 @@ pub fn run<W: std::fmt::Write>(raw_binary: &[u8], function_name: &str, out: &mut
     {
         let mut types = ty::TypeSet::new();
         let res = ty::dwarf::load_dwarf_types(&elf, &raw_binary, &mut types);
+
         writeln!(out, "dwarf types --[[")?;
         match res {
             Ok(report) => {
-                let mut pp = PrettyPrinter::start(&mut *out);
-                types.dump(&mut pp).unwrap();
+                types.dump(out).unwrap();
 
                 writeln!(out)?;
                 writeln!(out, "{} non-fatal errors:", report.errors.len())?;
@@ -102,14 +102,14 @@ pub fn run<W: std::fmt::Write>(raw_binary: &[u8], function_name: &str, out: &mut
     let mut formatter = iced_x86::IntelFormatter::new();
     let mut instr_strbuf = String::new();
     for instr in decoder {
-        print!("{:16x}: ", instr.ip());
+        write!(out, "{:16x}: ", instr.ip())?;
         let ofs = instr.ip() as usize - func_addr;
         let len = instr.len();
         for i in 0..8 {
             if i < len {
-                print!("{:02x} ", func_text[ofs + i]);
+                write!(out, "{:02x} ", func_text[ofs + i])?;
             } else {
-                print!("   ");
+                write!(out, "   ")?;
             }
         }
 
@@ -136,9 +136,8 @@ pub fn run<W: std::fmt::Write>(raw_binary: &[u8], function_name: &str, out: &mut
     writeln!(out, "{:?}", prog)?;
 
     writeln!(out)?;
-    let mut pp = PrettyPrinter::start(&mut *out);
     let ast = ast::Builder::new(&prog).compile();
-    ast.pretty_print(&mut pp).unwrap();
+    ast.pretty_print(out).unwrap();
 
     Ok(())
 }
