@@ -1,17 +1,6 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-mod ast;
-mod cfg;
-#[macro_use]
-mod mil;
-mod pp;
-mod ssa;
-mod tests;
-mod ty;
-mod x86_to_mil;
-mod xform;
-
-mod test_tool;
+use decompiler::test_tool;
 
 pub struct CliOptions {
     pub elf_filename: PathBuf,
