@@ -222,12 +222,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 
     let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
-    pp::debug::with_pp(|pp| {
-        writeln!(pp, "//  --- dom tree ---")?;
-        cfg.dump_graphviz(pp, Some(dom_tree))?;
-        writeln!(pp, "//  --- END ---")
-    });
-
     let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
 
     /*

@@ -29,12 +29,6 @@ fn main() {
         contents
     };
 
-    {
-        let wrt = IoAsFmt(std::io::stdout());
-        let pp = Box::new(pp::PrettyPrinter::start(wrt));
-        pp::debug::set_pp(pp);
-    }
-
     let out = std::io::stdout();
     let mut out = pp::PrettyPrinter::start(IoAsFmt(out));
     let res = test_tool::run(&contents, &opts.function_name, &mut out);

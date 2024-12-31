@@ -58,22 +58,3 @@ impl<W: Write> Write for PrettyPrinter<W> {
         Ok(())
     }
 }
-
-pub mod debug {
-    use super::*;
-    use std::sync::Mutex;
-
-    static GLOBAL_PP: Mutex<Option<Box<dyn PP + Send>>> = Mutex::new(None);
-
-    pub fn set_pp(pp: Box<dyn PP + Send>) {
-        let mut global_pp = GLOBAL_PP.lock().unwrap();
-        *global_pp = Some(pp);
-    }
-
-    pub fn with_pp(action: impl FnOnce(&mut dyn PP) -> std::fmt::Result) {
-        let mut global_pp = GLOBAL_PP.lock().unwrap();
-        if let Some(global_pp) = &mut *global_pp {
-            action(global_pp.as_mut()).unwrap();
-        }
-    }
-}
