@@ -1,0 +1,24 @@
+---
+source: src/ty/dwarf.rs
+assertion_line: 381
+expression: buf
+---
+TypeSet (10 types) = {
+  <0> = "i8" i1
+  <1> = "i32" i4
+  <2> = "void" void
+  <3> = "point_init" func (p *point <5>) void <2>
+  <4> = *point <5>
+  <5> = "point" struct {
+            @  4 y unknown155 <6>
+            @  8 prev *point <5>
+            @ 16 next *point <5>
+        }
+  <6> = "unknown155" ?
+  <10> = "join" func (a *point <5>,
+                      b *point <5>) void <2>
+  <13> = "unknown89" ?
+  <14> = "unknown104" ?
+}
+1 non-fatal errors:
+offset 0x      76: unsupported DWARF entry tag: DW_TAG_base_type

@@ -21,7 +21,7 @@ pub enum Error {
     #[error("unsupported DWARF entry tag: {0}")]
     UnsupportedDwarfTag(gimli::DwTag),
 
-    #[error("required attribute is missing: {0}")]
+    #[error("required attribute is missing: {} ({})", .0.static_string().unwrap_or("?"), .0)]
     MissingRequiredAttr(gimli::DwAt),
 
     #[error("data type discarded due to exceeding maximum supported size")]
@@ -31,19 +31,16 @@ pub enum Error {
     InvalidValueType(usize, gimli::DwAt),
 }
 
-pub fn load_dwarf_types(contents: &[u8], types: &mut ty::TypeSet) -> Result<()> {
+pub struct Report {
+    errors: Vec<(usize, Error)>,
+}
+
+pub fn load_dwarf_types(contents: &[u8], types: &mut ty::TypeSet) -> Result<Report> {
     let parser = TypeParser::new(contents)?;
     parser.load_types(types)?;
 
     let errors = parser.errors.take();
-    if !errors.is_empty() {
-        eprintln!("{} errors while parsing DWARF:", errors.len());
-
-        for (ofs, err) in errors {
-            eprintln!("offset {:16}: {:?}", ofs, err);
-        }
-    }
-    Ok(())
+    Ok(Report { errors })
 }
 
 type ESlice<'d> = EndianSlice<'d, gimli::RunTimeEndian>;
@@ -369,11 +366,18 @@ mod tests {
             .contents();
 
         let mut types = ty::TypeSet::new();
-        load_dwarf_types(contents, &mut types).unwrap();
+        let report = load_dwarf_types(contents, &mut types).unwrap();
 
         let mut buf = String::new();
         let mut pp = crate::pp::PrettyPrinter::start(&mut buf);
         types.dump(&mut pp).unwrap();
+
+        use std::fmt::Write;
+        writeln!(buf, "{} non-fatal errors:", report.errors.len()).unwrap();
+        for (ofs, err) in &report.errors {
+            writeln!(buf, "offset 0x{:8x}: {}", ofs, err).unwrap();
+        }
+
         assert_snapshot!(buf);
     }
 }
