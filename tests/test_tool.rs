@@ -27,3 +27,10 @@ fn test_with_sample_matrix() {
     let out = test_with_sample(Path::new("integration/sample_matrix"), "sum_matrix").unwrap();
     assert_snapshot!(out);
 }
+
+#[ignore]
+#[test]
+fn test_with_redis_server() {
+    let out = test_with_sample(Path::new("integration/redis-server"), "main").unwrap();
+    assert_snapshot!(out);
+}
