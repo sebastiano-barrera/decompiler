@@ -101,7 +101,9 @@ impl TypeSet {
                 | Ty::Int(_)
                 | Ty::Enum(_)
                 | Ty::Ptr(_)
-                | Ty::Unknown(_) => {}
+                | Ty::Unknown(_)
+                | Ty::Bool(_)
+                | Ty::Float(_) => {}
                 Ty::Struct(struct_ty) => {
                     assert!(struct_ty.members.iter().all(|m| {
                         let size = self.bytes_size(m.tyid).unwrap();
@@ -157,7 +159,9 @@ impl TypeSet {
             | Ty::Int(_)
             | Ty::Enum(_)
             | Ty::Unknown(_)
-            | Ty::Subroutine(_) => Err(SelectError::InvalidRange),
+            | Ty::Subroutine(_)
+            | Ty::Float(_)
+            | Ty::Bool(_) => Err(SelectError::InvalidRange),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     // TODO avoid the hashmap lookup?
@@ -238,8 +242,10 @@ impl TypeSet {
                     Signedness::Signed => "i",
                     Signedness::Unsigned => "u",
                 };
-                write!(pp, "{}{}", prefix, size)?;
+                write!(pp, "{}{}", prefix, size * 8)?;
             }
+            Ty::Bool(Bool { size }) => write!(pp, "bool{}", *size * 8)?,
+            Ty::Float(Float { size }) => write!(pp, "float{}", *size * 8)?,
             Ty::Enum(_) => write!(pp, "enum")?,
             Ty::Struct(struct_ty) => {
                 write!(pp, "struct {{\n    ")?;
@@ -301,9 +307,11 @@ pub struct Type {
 #[derive(Debug)]
 pub enum Ty {
     Int(Int),
+    Bool(Bool),
     Enum(Enum),
     Struct(Struct),
     Ptr(TypeID),
+    Float(Float),
     Subroutine(Subroutine),
     Unknown(Unknown),
     Void,
@@ -312,6 +320,8 @@ impl Ty {
     fn bytes_size(&self) -> u32 {
         match self {
             Ty::Int(int_ty) => int_ty.size as u32,
+            Ty::Bool(Bool { size }) => *size as u32,
+            Ty::Float(Float { size }) => *size as u32,
             Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
             Ty::Struct(struct_ty) => struct_ty.size,
             Ty::Unknown(unk_ty) => unk_ty.size,
@@ -333,6 +343,16 @@ pub struct Int {
 pub enum Signedness {
     Signed,
     Unsigned,
+}
+
+#[derive(Debug)]
+pub struct Bool {
+    size: u8,
+}
+
+#[derive(Debug)]
+pub struct Float {
+    pub size: u8,
 }
 
 #[derive(Debug)]

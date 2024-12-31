@@ -29,6 +29,9 @@ pub enum Error {
 
     #[error("DIE at offset {0} has wrong type of value for attribute {1}")]
     InvalidValueType(usize, gimli::DwAt),
+
+    #[error("unsupported DWARF feature: {} {} ({})", .0, .1, .2.unwrap_or("?"))]
+    UnsupportedFeature(&'static str, gimli::DwAte, Option<&'static str>),
 }
 
 pub struct Report {
@@ -169,6 +172,7 @@ impl<'a> TypeParser<'a> {
             gimli::constants::DW_TAG_subprogram | gimli::constants::DW_TAG_subroutine_type => {
                 self.parse_subroutine_type(node, types)
             }
+            gimli::constants::DW_TAG_base_type => self.parse_base_type(node, types),
 
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
@@ -308,6 +312,60 @@ impl<'a> TypeParser<'a> {
 
         let tyid = self.try_parse_type_of(member, types)?;
         Ok(ty::StructMember { offset, name, tyid })
+    }
+
+    fn parse_base_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+        let entry = node.entry();
+        assert_eq!(entry.tag(), gimli::constants::DW_TAG_base_type);
+
+        let attr = get_required_attr(entry, gimli::DW_AT_encoding)?;
+        let enc = match attr.value() {
+            gimli::AttributeValue::Encoding(enc) => enc,
+            _ => return Err(Error::InvalidValueType(entry.offset().0, attr.name())),
+        };
+
+        let size = get_required_attr(entry, gimli::DW_AT_byte_size)?
+            .udata_value()
+            .ok_or(Error::InvalidValueType(
+                entry.offset().0,
+                gimli::DW_AT_byte_size,
+            ))?
+            .try_into()
+            .map_err(|_| Error::TypeTooLarge)?;
+
+        let ty = {
+            // DwAte is not an enum ... why?!
+            use gimli::constants::*;
+
+            if enc == DW_ATE_boolean {
+                ty::Ty::Bool(ty::Bool { size })
+            } else if enc == DW_ATE_float {
+                ty::Ty::Float(ty::Float { size })
+            } else if enc == DW_ATE_signed || enc == DW_ATE_signed_char {
+                ty::Ty::Int(ty::Int {
+                    size,
+                    signed: ty::Signedness::Signed,
+                })
+            } else if enc == DW_ATE_unsigned || enc == DW_ATE_unsigned_char {
+                ty::Ty::Int(ty::Int {
+                    size,
+                    signed: ty::Signedness::Unsigned,
+                })
+            } else {
+                return Err(Error::UnsupportedFeature(
+                    "base type encoding",
+                    enc,
+                    enc.static_string(),
+                ));
+            }
+        };
+
+        let name = self.get_name(entry)?.unwrap_or("").to_owned();
+
+        Ok(ty::Type {
+            name: Rc::new(name),
+            ty,
+        })
     }
 
     fn try_parse_type_of(
