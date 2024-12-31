@@ -493,5 +493,6 @@ mod tests {
                 }],
             }),
         });
+        types.assert_invariants();
     }
 }
