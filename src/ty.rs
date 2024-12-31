@@ -3,7 +3,7 @@ use std::{collections::HashMap, ops::Range, rc::Rc};
 use smallvec::{smallvec, SmallVec};
 use thiserror::Error;
 
-mod dwarf;
+pub mod dwarf;
 
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
@@ -182,7 +182,6 @@ impl TypeSet {
         }
     }
 
-    #[cfg(test)]
     pub fn dump<W: std::fmt::Write>(
         &self,
         pp: &mut crate::pp::PrettyPrinter<W>,
@@ -209,7 +208,6 @@ impl TypeSet {
         writeln!(pp, "}}")
     }
 
-    #[cfg(test)]
     pub fn dump_type_ref<W: std::fmt::Write>(
         &self,
         pp: &mut crate::pp::PrettyPrinter<W>,
@@ -225,7 +223,6 @@ impl TypeSet {
         }
     }
 
-    #[cfg(test)]
     pub fn dump_type<W: std::fmt::Write>(
         &self,
         pp: &mut crate::pp::PrettyPrinter<W>,

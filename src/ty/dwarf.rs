@@ -9,9 +9,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("unsupported executable format (only ELF is supported)")]
-    UnsupportedExecFormat,
-
     #[error("no compilation unit in DWARF debug info")]
     NoCompileUnit,
 
@@ -35,11 +32,15 @@ pub enum Error {
 }
 
 pub struct Report {
-    errors: Vec<(usize, Error)>,
+    pub errors: Vec<(usize, Error)>,
 }
 
-pub fn load_dwarf_types(contents: &[u8], types: &mut ty::TypeSet) -> Result<Report> {
-    let parser = TypeParser::new(contents)?;
+pub fn load_dwarf_types(
+    elf: &goblin::elf::Elf,
+    raw_elf: &[u8],
+    types: &mut ty::TypeSet,
+) -> Result<Report> {
+    let parser = TypeParser::new(elf, raw_elf)?;
     parser.load_types(types)?;
 
     let errors = parser.errors.take();
@@ -59,13 +60,7 @@ struct TypeParser<'a> {
 type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
 
 impl<'a> TypeParser<'a> {
-    fn new(contents: &'a [u8]) -> Result<Self> {
-        let object = goblin::Object::parse(&contents).expect("could not parse ELF");
-        let elf = match object {
-            goblin::Object::Elf(elf) => elf,
-            _ => return Err(Error::UnsupportedExecFormat),
-        };
-
+    fn new(elf: &goblin::elf::Elf<'a>, contents: &'a [u8]) -> Result<Self> {
         let endianity = if elf.little_endian {
             gimli::RunTimeEndian::Little
         } else {
@@ -416,15 +411,21 @@ mod tests {
     use super::super::tests::DATA_DIR;
     use super::*;
 
+    fn load_test_elf(rel_path: &str) -> (goblin::elf::Elf, &[u8]) {
+        let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
+        let object = goblin::Object::parse(&raw).expect("could not parse ELF");
+        let elf = match object {
+            goblin::Object::Elf(elf) => elf,
+            _ => panic!("unsupported exec format: {:?}", object),
+        };
+        (elf, raw)
+    }
+
     #[test]
     fn struct_type() {
-        let contents = DATA_DIR
-            .get_file("test_composite_type.so")
-            .unwrap()
-            .contents();
-
+        let (elf, raw) = load_test_elf("test_composite_type.so");
         let mut types = ty::TypeSet::new();
-        let report = load_dwarf_types(contents, &mut types).unwrap();
+        let report = load_dwarf_types(&elf, raw, &mut types).unwrap();
 
         let mut buf = String::new();
         let mut pp = crate::pp::PrettyPrinter::start(&mut buf);

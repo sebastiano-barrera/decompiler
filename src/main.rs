@@ -66,6 +66,27 @@ fn main() {
         }
     };
 
+    {
+        let mut types = ty::TypeSet::new();
+        let res = ty::dwarf::load_dwarf_types(&elf, &contents, &mut types);
+        println!("parsing dwarf types --[[");
+        match res {
+            Ok(report) => {
+                let out = std::io::stdout().lock();
+                let mut pp = PrettyPrinter::start(IoAsFmt(out));
+                types.dump(&mut pp).unwrap();
+
+                println!();
+                println!("{} non-fatal errors:", report.errors.len());
+                for (ofs, err) in &report.errors {
+                    println!("offset 0x{:8x}: {}", ofs, err);
+                }
+            }
+            Err(err) => println!("fatal error: {}", err),
+        }
+        println!("]]--");
+    }
+
     let func_sym = elf
         .syms
         .iter()
