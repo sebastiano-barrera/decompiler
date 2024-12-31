@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 use crate::{
     cfg::{self, BlockID},
     mil,
-    pp::{PrettyPrinter, PP},
+    pp::PP,
     ssa, ty,
 };
 
@@ -118,6 +118,11 @@ enum Node {
     Undefined,
     Nop,
     Pre(&'static str),
+    Widen {
+        from_sz: u8,
+        to_sz: u8,
+        reg: NodeID,
+    },
 }
 
 impl Node {
@@ -534,6 +539,54 @@ impl<'a> Builder<'a> {
             Insn::V8WithL4(a, b) => {
                 Node::WithL4(self.add_node_of_value(a), self.add_node_of_value(b))
             }
+            Insn::Widen1_2(x) => {
+                let x = self.add_node_of_value(x);
+                Node::Widen {
+                    from_sz: 1,
+                    to_sz: 2,
+                    reg: x,
+                }
+            }
+            Insn::Widen1_4(x) => {
+                let x = self.add_node_of_value(x);
+                Node::Widen {
+                    from_sz: 1,
+                    to_sz: 4,
+                    reg: x,
+                }
+            }
+            Insn::Widen1_8(x) => {
+                let x = self.add_node_of_value(x);
+                Node::Widen {
+                    from_sz: 1,
+                    to_sz: 8,
+                    reg: x,
+                }
+            }
+            Insn::Widen2_4(x) => {
+                let x = self.add_node_of_value(x);
+                Node::Widen {
+                    from_sz: 2,
+                    to_sz: 4,
+                    reg: x,
+                }
+            }
+            Insn::Widen2_8(x) => {
+                let x = self.add_node_of_value(x);
+                Node::Widen {
+                    from_sz: 2,
+                    to_sz: 8,
+                    reg: x,
+                }
+            }
+            Insn::Widen4_8(x) => {
+                let x = self.add_node_of_value(x);
+                Node::Widen {
+                    from_sz: 4,
+                    to_sz: 8,
+                    reg: x,
+                }
+            }
 
             Insn::Arith1(op, a, b)
             | Insn::Arith2(op, a, b)
@@ -905,6 +958,16 @@ impl Ast {
                 pp.close_box();
 
                 Ok(())
+            }
+            Node::Widen {
+                from_sz,
+                to_sz,
+                reg,
+            } => {
+                write!(pp, "(")?;
+                self.pretty_print_node(pp, *reg)?;
+                write!(pp, ")")?;
+                write!(pp, ".widen[{}->{}]", from_sz, to_sz)
             }
 
             Node::Not(arg) => {
