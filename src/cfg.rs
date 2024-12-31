@@ -239,7 +239,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             match dest_of_insn(program, last_ndx) {
                 (None, None) => panic!("all instructions must lead *somewhere*!"),
 
-                (None, Some(dest)) if dest == program.len() => {}
+                (Some(dest), None) | (None, Some(dest)) if dest == program.len() => {}
 
                 (Some(dest), None) | (None, Some(dest)) => {
                     let dest = *block_at.get(&dest).unwrap();
@@ -375,14 +375,17 @@ fn dest_of_insn(
 ) -> (Option<mil::Index>, Option<mil::Index>) {
     let insn = program.get(ndx).unwrap().insn.get();
     match insn {
-        mil::Insn::JmpI(_) => todo!("indirect jump"),
         mil::Insn::Jmp(ndx) => (None, Some(ndx)),
         mil::Insn::JmpIf { target, .. } => (Some(ndx + 1), Some(target)),
-        mil::Insn::Ret(_) => {
+        // indirect jumps (Insn::JmpI, x86_64: jmp [reg]) are treated like
+        // "jumps to somewhere else".  They potentially exit the function, or
+        // re-enter it at some unknown location; we can only know at runtime.
+        // With the little information we have, we can only treat it as "exit".
+        mil::Insn::Ret(_) | mil::Insn::JmpI(_) => {
             // one-past-the-end of the program is a valid index; signifies "exit the function"
             (None, Some(program.len()))
         }
-        // external jumps are currently handled as non-control-flow instruction
+        // external are currently handled as non-control-flow instruction
         // (mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. })
         _ => (Some(ndx + 1), None),
     }

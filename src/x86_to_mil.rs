@@ -264,7 +264,8 @@ impl Builder {
                             self.emit(v0, mil::Insn::JmpExt(target));
                         }
                         _ => {
-                            todo!("indirect jmp");
+                            let addr = self.emit_compute_address(&insn);
+                            self.emit(addr, mil::Insn::JmpI(addr));
                         }
                     }
                 }
@@ -480,6 +481,10 @@ impl Builder {
                     }
                     MemorySize::UInt64 | MemorySize::Int64 => {
                         self.emit(v0, mil::Insn::LoadMem8(addr))
+                    }
+                    MemorySize::QwordOffset => {
+                        self.emit(v0, mil::Insn::LoadMem8(addr));
+                        self.emit(v0, mil::Insn::LoadMem8(v0))
                     }
                     other => todo!("unsupported size for memory operand: {:?}", other),
                 }
