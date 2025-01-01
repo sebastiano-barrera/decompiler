@@ -4,6 +4,7 @@ expression: output
 ---
                0: lea eax,[rdi+rdi]
                0: ret
+
 mil program = 
 program  40 instrs
     0 r12 <- #pre:stack_bottom
@@ -50,9 +51,9 @@ program  40 instrs
 
 ssa program  7 instrs
 .B0:  in[]     ;; 0x0  40 insn 0 phis
-  (  2)  r13 <- #pre:RDI
+         r13 <- #pre:RDI
          r15 <- #pre:RAX
-         r35 <- get      r13
+         r35 <- #pre:RDI
          r36 <- mulk     r13,1 qword
          r37 <- add      r35,r36  qword
          r38 <- v8.l4=   r15 ← r37

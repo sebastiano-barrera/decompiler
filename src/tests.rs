@@ -55,13 +55,14 @@ mod logical_vars {
         }
 
         let prog = x86_to_mil::translate(instrs.iter().copied()).unwrap();
+        writeln!(out)?;
         writeln!(out, "mil program = ")?;
         writeln!(out, "{:?}", prog)?;
-        writeln!(out,)?;
 
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         crate::xform::fold_constants(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
+        writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
 
         // TODO print AST as well?
@@ -110,7 +111,7 @@ mod constant_folding {
             Insn::ArithK8(ArithOp::Add, Reg(0), 10)
         );
         assert_eq!(insns.insns[5].get(), Insn::Const8(49));
-        assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
+        assert_eq!(insns.insns[8].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
     }
 
     #[test]
@@ -142,6 +143,6 @@ mod constant_folding {
             Insn::ArithK8(ArithOp::Mul, Reg(0), 25)
         );
         assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
-        assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
+        assert_eq!(insns.insns[8].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
     }
 }

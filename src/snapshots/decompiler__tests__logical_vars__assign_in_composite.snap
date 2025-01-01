@@ -6,6 +6,7 @@ expression: output
                0: mov qword ptr [rdi+8],0
                0: mov qword ptr [rdi],0
                0: ret
+
 mil program = 
 program  47 instrs
     0 r12 <- #pre:stack_bottom
@@ -59,7 +60,7 @@ program  47 instrs
 
 ssa program  12 instrs
 .B0:  in[]     ;; 0x0  47 insn 0 phis
-  (  3)  r13 <- #pre:RDI
+  (  2)  r13 <- #pre:RDI
          r15 <- #pre:RAX
          r34 <- const8   0 (0x0)
          r36 <- addk     r13,16 qword
@@ -68,6 +69,6 @@ ssa program  12 instrs
          r40 <- addk     r13,8 qword
          r41 <- store    *r40 ← r38
          r42 <- const8   0 (0x0)
-         r44 <- get      r13
+         r44 <- #pre:RDI
          r45 <- store    *r44 ← r42
          r46 <- ret      r15

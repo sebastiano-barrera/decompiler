@@ -1098,27 +1098,27 @@ program  267 instrs
   266 r28 <- jmp      228
 
 
-ssa program  106 instrs
+ssa program  97 instrs
 .B0:  in[]     ;; 0x0  118 insn 0 phis
          r10 <- #pre:RBP
-         r11 <- #pre:RSP
+  (  3)  r11 <- #pre:RSP
          r13 <- #pre:RDI
          r14 <- #pre:RSI
   (  4)  r16 <- #pre:RBX
   (  2)  r17 <- #pre:RCX
          r23 <- #pre:R12
-  (  2)  r34 <- addk     r11,-8 qword
+         r34 <- addk     r11,-8 qword
          r35 <- store    *r34 ← r23
          r36 <- const4   8 (0x8)
   (  2)  r37 <- v8.l4=   r14 ← r36
          r38 <- const4   3 (0x3)
          r39 <- v8.l4=   r13 ← r38
-  (  2)  r40 <- addk     r34,-8 qword
+         r40 <- addk     r11,-16 qword
          r41 <- store    *r40 ← r10
-  (  2)  r42 <- addk     r40,-8 qword
+  (  3)  r42 <- addk     r11,-24 qword
          r43 <- store    *r42 ← r16
-         r44 <- const8   16 (0x10)
-  (  6)  r45 <- sub      r42,r44  qword
+  (  2)  r44 <- const8   16 (0x10)
+  (  5)  r45 <- sub      r42,r44  qword
          r54 <- const8   4198512 (0x401070)
          r55 <- call     r54
          r56 <- carg     r39
@@ -1126,8 +1126,7 @@ ssa program  106 instrs
          r58 <- carg     r45
          r59 <- carg     r17
          r78 <- TODO     unsupported: jne 0000000000401140h
-         r79 <- const8   0 (0x0)
-         r80 <- get      r45
+         r80 <- sub      r42,r44  qword
   (  3)  r81 <- loadm8   addr:r80
          r86 <- TODO     unsupported: xor r8d,r8d
          r88 <- const4   4096 (0x1000)
@@ -1148,27 +1147,20 @@ ssa program  106 instrs
 .B1:  in[.B0 ]     ;; 0x4010dd  93 insn 0 phis
          r118 <- TODO     unsupported: xor ebx,ebx
          r119 <- TODO     unsupported: nop
-         r121 <- const8   8 (0x8)
          r122 <- addk     r45,8 qword
-         r123 <- loadm8   addr:r122
          r125 <- const4   4203193 (0x4022b9)
          r126 <- v8.l4=   r81 ← r125
          r127 <- const1   5 (0x5)
          r128 <- widen    1->8 r127
          r129 <- shl      r16,r128  qword
          r135 <- sub      r129,r16  qword
-         r143 <- const8   1 (0x1)
          r144 <- addk     r16,1 qword
-         r152 <- const8   0 (0x0)
-         r153 <- get      r123
+         r153 <- loadm8   addr:r122
          r154 <- mulk     r135,8 qword
   (  3)  r155 <- add      r153,r154  qword
-         r157 <- const8   8 (0x8)
          r158 <- addk     r155,8 qword
          r159 <- loadm8   addr:r158
-         r161 <- const8   74 (0x4a)
   (  3)  r162 <- addk     r155,74 qword
-         r164 <- const8   42 (0x2a)
   (  3)  r165 <- addk     r155,42 qword
          r167 <- TODO     unsupported: xor eax,eax
          r168 <- const8   4198480 (0x401050)
@@ -1179,7 +1171,6 @@ ssa program  106 instrs
          r173 <- carg     r162
   (  2)  r183 <- sub      r95,r144  qword
          r190 <- TODO     unsupported: jne short 00000000004010E0h
-         r191 <- const8   8 (0x8)
          r192 <- addk     r45,8 qword
          r193 <- loadm8   addr:r192
          r196 <- const8   4198464 (0x401040)
@@ -1214,14 +1205,13 @@ ssa program  106 instrs
 
 
 'T0: {
+    let r11 = <pre:RSP>;
     let r16 = <pre:RBX>;
     let r17 = <pre:RCX>;
-    let r34 = <pre:RSP> + -8;
-    [r34]:8 = <pre:R12>;
+    [r11 + -8]:8 = <pre:R12>;
     let r37 = (<pre:RSI> with l4 = 8);
-    let r40 = r34 + -8;
-    [r40]:8 = <pre:RBP>;
-    let r42 = r40 + -8;
+    [r11 + -16]:8 = <pre:RBP>;
+    let r42 = r11 + -24;
     [r42]:8 = r16;
     let r45 = r42 - 16;
     let r55 = 4198512(
@@ -1236,7 +1226,7 @@ ssa program  106 instrs
     let r91 = (r45 with l4 = 8);
     let r93 = (r37 with l4 = 4203184);
     let r95 = 4198496(
-                [r45]:8,
+                [r42 - 16]:8,
                 r93,
                 r91,
                 r89,
@@ -1250,7 +1240,7 @@ ssa program  106 instrs
         let r165 = r155 + 42;
         <-- TODO: unsupported: xor eax,eax -->;
         let r169 = 4198480(
-                     ([r45]:8 with l4 = 4203193),
+                     ([r42 - 16]:8 with l4 = 4203193),
                      [r155 + 8]:8,
                      r165,
                      r162,
@@ -1275,7 +1265,7 @@ ssa program  106 instrs
         }
     } else {
         let r250 = 4198448(
-                     ([r45]:8 with l4 = 4203208),
+                     ([r42 - 16]:8 with l4 = 4203208),
                      r93,
                      r91,
                      r89,
