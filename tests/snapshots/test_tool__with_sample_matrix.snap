@@ -384,29 +384,26 @@ ssa program  72 instrs
 
 
 'T0: {
-    let r11 = <pre:RSP>;
-    let r13 = <pre:RDI>;
-    let r14 = <pre:RSI>;
-    [r11 + -8]:8 = <pre:RBP>;
-    [r11 + -40]:8 = r13;
-    [r11 + -32]:8 = r14;
-    [r11 + -12]:4 = 0;
-    [r11 + -16]:4 = 0;
-    [r11 + -20]:4 = 0;
-    let r70 = (r13 with l4 = [r11 + -28]:4);
+    [<pre:RSP> + -8]:8 = <pre:RBP>;
+    [<pre:RSP> + -40]:8 = <pre:RDI>;
+    [<pre:RSP> + -32]:8 = <pre:RSI>;
+    [<pre:RSP> + -12]:4 = 0;
+    [<pre:RSP> + -16]:4 = 0;
+    [<pre:RSP> + -20]:4 = 0;
+    let r70 = (<pre:RDI> with l4 = [<pre:RSP> + -28]:4);
     <-- TODO: unsupported: imul eax,[rbp-8] -->;
-    let r77 = (r70 with l4 = [r11 + -20]:4);
+    let r77 = (r70 with l4 = [<pre:RSP> + -20]:4);
     <-- TODO: unsupported: cdqe -->;
-    let r91 = (r77 with l4 = r77.l4 + (r14 with l4 = r70.l4).l4) << (2).widen[1->8];
-    let r108 = (r91 + [r11 + -40]:8 with l4 = [r91 + [r11 + -40]:8]:4);
-    [r11 + -12]:4 = [r11 + -12]:4 + r108.l4;
-    [r11 + -20]:8 = [r11 + -20]:4 + 1;
+    let r91 = (r77 with l4 = r77.l4 + (<pre:RSI> with l4 = r70.l4).l4) << (2).widen[1->8];
+    let r108 = (r91 + [<pre:RSP> + -40]:8 with l4 = [r91 + [<pre:RSP> + -40]:8]:4);
+    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + r108.l4;
+    [<pre:RSP> + -20]:8 = [<pre:RSP> + -20]:4 + 1;
     {
         <-- TODO: unsupported: jl short 00000000004011FFh -->;
-        [r11 + -16]:8 = [r11 + -16]:4 + 1;
+        [<pre:RSP> + -16]:8 = [<pre:RSP> + -16]:4 + 1;
         {
             <-- TODO: unsupported: jl short 00000000004011F6h -->;
-            return (((r108 with l4 = [r11 + -28]:4) with l4 = [r11 + -32]:4) with l4 = [r11 + -12]:4)
+            return (((r108 with l4 = [<pre:RSP> + -28]:4) with l4 = [<pre:RSP> + -32]:4) with l4 = [<pre:RSP> + -12]:4)
         }
     }
 }

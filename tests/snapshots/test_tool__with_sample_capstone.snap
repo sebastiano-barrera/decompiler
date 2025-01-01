@@ -1205,24 +1205,21 @@ ssa program  97 instrs
 
 
 'T0: {
-    let r11 = <pre:RSP>;
-    let r16 = <pre:RBX>;
-    let r17 = <pre:RCX>;
-    [r11 + -8]:8 = <pre:R12>;
+    [<pre:RSP> + -8]:8 = <pre:R12>;
     let r37 = (<pre:RSI> with l4 = 8);
-    [r11 + -16]:8 = <pre:RBP>;
-    let r42 = r11 + -24;
-    [r42]:8 = r16;
+    [<pre:RSP> + -16]:8 = <pre:RBP>;
+    let r42 = <pre:RSP> + -24;
+    [r42]:8 = <pre:RBX>;
     let r45 = r42 - 16;
     let r55 = 4198512(
                 (<pre:RDI> with l4 = 3),
                 r37,
                 r45,
-                r17,
+                <pre:RCX>,
               );
     <-- TODO: unsupported: jne 0000000000401140h -->;
     <-- TODO: unsupported: xor r8d,r8d -->;
-    let r89 = (r17 with l4 = 4096);
+    let r89 = (<pre:RCX> with l4 = 4096);
     let r91 = (r45 with l4 = 8);
     let r93 = (r37 with l4 = 4203184);
     let r95 = 4198496(
@@ -1235,7 +1232,7 @@ ssa program  97 instrs
     if r110 == 0 {
         <-- TODO: unsupported: xor ebx,ebx -->;
         <-- TODO: unsupported: nop -->;
-        let r155 = [r45 + 8]:8 + (r16 << (5).widen[1->8] - r16) * 8;
+        let r155 = [r45 + 8]:8 + (<pre:RBX> << (5).widen[1->8] - <pre:RBX>) * 8;
         let r162 = r155 + 74;
         let r165 = r155 + 42;
         <-- TODO: unsupported: xor eax,eax -->;
@@ -1245,7 +1242,7 @@ ssa program  97 instrs
                      r165,
                      r162,
                    );
-        let r183 = r95 - r16 + 1;
+        let r183 = r95 - <pre:RBX> + 1;
         <-- TODO: unsupported: jne short 00000000004010E0h -->;
         let r197 = 4198464(
                      [r45 + 8]:8,

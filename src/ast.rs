@@ -217,11 +217,13 @@ impl<'a> Builder<'a> {
                     mil::Insn::Const1(_)
                     | mil::Insn::Const2(_)
                     | mil::Insn::Const4(_)
-                    | mil::Insn::Const8(_) => false,
-                    mil::Insn::LoadMem1(_)
+                    | mil::Insn::Const8(_) 
+                    | mil::Insn::LoadMem1(_)
                     | mil::Insn::LoadMem2(_)
                     | mil::Insn::LoadMem4(_)
-                    | mil::Insn::LoadMem8(_) => false,
+                    | mil::Insn::LoadMem8(_)
+                    // ancestral values are akin to (named) consts
+                    | mil::Insn::Ancestral(_) => false,
                     mil::Insn::Phi1
                     | mil::Insn::Phi2
                     | mil::Insn::Phi4
