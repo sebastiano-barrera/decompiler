@@ -221,6 +221,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let ConversionParams { mut program, .. } = input;
 
     let cfg = cfg::analyze_mil(&program);
+
     let dom_tree = cfg.dom_tree();
     let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
 
@@ -601,10 +602,8 @@ fn narrow_phi_nodes(program: &mut Program) {
 /// In other words, for these are the variables, the block observes the values
 /// left there by other blocks.
 fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph, is_received: &mut RegMat<bool>) {
-    let order = cfg::traverse_postorder(graph);
-
     is_received.fill(false);
-    for &bid in order.block_ids() {
+    for bid in graph.block_ids_postorder() {
         for (dest, insn) in prog
             .slice(graph.insns_ndx_range(bid))
             .unwrap()
@@ -724,14 +723,12 @@ pub fn eliminate_dead_code(prog: &mut Program) {
         return;
     }
 
-    // in this ordering, each node is always processed  before any of its parents.  it starts with
-    // exit nodes.
-    let postorder = cfg::traverse_postorder(&prog.cfg);
-
     prog.is_alive.fill(false);
     prog.rdr_count.reset();
 
-    for &bid in postorder.block_ids() {
+    // in this ordering, each node is always processed  before any of its parents.  it starts with
+    // exit nodes.
+    for bid in prog.cfg.block_ids_postorder() {
         for ndx in prog.cfg.insns_ndx_range(bid).rev() {
             let item = prog.inner.get(ndx).unwrap();
             let dest = item.dest.get();

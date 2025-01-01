@@ -32,9 +32,7 @@ pub fn fold_constants(prog: &mut ssa::Program) {
         }
     }
 
-    let order = cfg::traverse_reverse_postorder(prog.cfg());
-
-    for &bid in order.block_ids() {
+    for bid in prog.cfg().block_ids_rpo() {
         let insns = prog.block_normal_insns(bid).unwrap();
         for (ndx, insn_cell) in insns.insns.iter().enumerate() {
             let repl_insn = match insn_cell.get() {

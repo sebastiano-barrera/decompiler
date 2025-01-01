@@ -10,7 +10,6 @@ use std::{
 use crate::{mil, pp::PP};
 
 /// A graph where nodes are blocks, and edges are successors/predecessors relationships.
-#[derive(Debug)]
 pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
@@ -19,6 +18,8 @@ pub struct Graph {
 
     dom_tree: DomTree,
     inv_dom_tree: DomTree,
+
+    reverse_postorder: Ordering,
 }
 
 pub struct Edges {
@@ -177,6 +178,22 @@ impl Graph {
     }
     pub fn inverse(&self) -> &Edges {
         &self.inverse
+    }
+
+    /// Iterate through the IDs of the blocks in this graph, in reverse post order.
+    ///
+    /// In this ordering, entry blocks are yielded first; then each block is
+    /// only yielded after all of its predecessors.
+    pub fn block_ids_rpo<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = BlockID> {
+        self.reverse_postorder.block_ids().iter().copied()
+    }
+
+    /// Iterate through the IDs of the blocks in this graph, in post order.
+    ///
+    /// In this ordering, exit blocks are yielded first; then each block is
+    /// only yielded after all of its children.
+    pub fn block_ids_postorder<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = BlockID> {
+        self.block_ids_rpo().rev()
     }
 }
 
@@ -350,6 +367,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
     let dom_tree = compute_dom_tree(&direct, &inverse);
     let inv_dom_tree = compute_dom_tree(&inverse, &direct);
+    let reverse_postorder = Ordering::new(reverse_postorder(&direct));
 
     Graph {
         bounds,
@@ -357,6 +375,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         inverse,
         dom_tree,
         inv_dom_tree,
+        reverse_postorder,
     }
 }
 
@@ -694,19 +713,6 @@ where
     }
 
     Some(ndx_a)
-}
-
-//
-// Traversals
-//
-pub fn traverse_reverse_postorder(graph: &Graph) -> Ordering {
-    Ordering::new(reverse_postorder(graph.direct()))
-}
-
-pub fn traverse_postorder(graph: &Graph) -> Ordering {
-    let mut order = reverse_postorder(graph.direct());
-    order.reverse();
-    Ordering::new(order)
 }
 
 fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
