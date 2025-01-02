@@ -140,7 +140,6 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
                     _ => break,
                 };
 
-                // actually, we should use the properly sized Get# insn
                 insn_cell.set(subreg_insn);
             }
         }
@@ -229,6 +228,7 @@ pub fn fold_get(prog: &mut ssa::Program) {
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 pub fn canonical(prog: &mut ssa::Program) {
     fold_subregs(prog);
+    fold_get(prog);
     fold_bitops(prog);
     fold_get(prog);
     fold_constants(prog);
