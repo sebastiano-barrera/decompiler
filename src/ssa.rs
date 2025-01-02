@@ -7,7 +7,7 @@ use std::{collections::HashMap, ops::Range};
 /// > Cooper, Keith & Harvey, Timothy & Kennedy, Ken. (2006).
 /// > A Simple, Fast Dominance Algorithm.
 /// > Rice University, CS Technical Report 06-33870.
-use crate::{cfg, mil, pp};
+use crate::{cfg, mil};
 
 pub struct Program {
     // an ssa::Program contains a mil::Program at its core, but never exposes it directly:
@@ -481,34 +481,10 @@ fn place_phi_nodes(
         return cfg::BlockMap::new(PhiInfo::empty(), block_count);
     }
 
-    // matrix [B * B] where B = #blocks
-    // matrix[i, j] = true iff block j is in block i's dominance frontier
-    let is_dom_front = compute_dominance_frontier(cfg, dom_tree);
-
-    let mut phis_set = RegMat::for_program(program, cfg, false);
-    find_received_vars(program, cfg, &mut phis_set);
-
-    // the rule is:
-    //   if variable v is written in block b,
-    //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
-    // (phis_set is to avoid having multiple phis for the same var)
-    for bid in cfg.block_ids() {
-        let slice = program.slice(cfg.insns_ndx_range(bid)).unwrap();
-        for dest in slice.dests.iter() {
-            let dest = dest.get();
-            for target_bid in cfg.block_ids() {
-                let phi_needed = *is_dom_front.item(bid.as_usize(), target_bid.as_usize());
-
-                phis_set.update(target_bid, dest, |prev| *prev && phi_needed);
-
-                if *phis_set.get(target_bid, dest) {
-                    eprintln!("placing phi node at block {target_bid:?}, var {dest:?}");
-                }
-            }
-        }
-    }
-
-    let var_count = count_variables(program);
+    let phis_set = compute_phis_set(program, cfg, dom_tree);
+    // overestimated, but fast
+    let var_count = phis_set.0.cols.try_into().unwrap();
+    assert_eq!(var_count, program.len());
 
     // translate `phis` into a representation such that inputs can be replaced with specific input
     // variables assigned in predecessors.
@@ -558,6 +534,43 @@ fn place_phi_nodes(
     phis
 }
 
+fn compute_phis_set(
+    program: &mut mil::Program,
+    cfg: &cfg::Graph,
+    dom_tree: &cfg::DomTree,
+) -> RegMat<bool> {
+    // matrix [B * B] where B = #blocks
+    // matrix[i, j] = true iff block j is in block i's dominance frontier
+    let is_dom_front = compute_dominance_frontier(cfg, dom_tree);
+    let block_uses_var = find_received_vars(program, cfg);
+    let mut phis_set = RegMat::for_program(program, cfg, false);
+
+    // the rule is:
+    //   if variable v is written in block b,
+    //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
+    // (phis_set is to avoid having multiple phis for the same var)
+    for bid in cfg.block_ids() {
+        let slice = program.slice(cfg.insns_ndx_range(bid)).unwrap();
+        for dest in slice.dests.iter() {
+            let dest = dest.get();
+            for target_bid in cfg.block_ids() {
+                if cfg.block_preds(target_bid).len() < 2 {
+                    continue;
+                }
+
+                let is_blk_in_df = *is_dom_front.item(bid.as_usize(), target_bid.as_usize());
+                let is_used = *block_uses_var.get(target_bid, dest);
+
+                if is_blk_in_df && is_used {
+                    phis_set.set(target_bid, dest, true);
+                }
+            }
+        }
+    }
+
+    phis_set
+}
+
 fn narrow_phi_nodes(program: &mut Program) {
     for iv in program.insns_unordered() {
         let dest = iv.dest.get();
@@ -601,8 +614,8 @@ fn narrow_phi_nodes(program: &mut Program) {
 /// This is the set of variables which are read before any write in the block.
 /// In other words, for these are the variables, the block observes the values
 /// left there by other blocks.
-fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph, is_received: &mut RegMat<bool>) {
-    is_received.fill(false);
+fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
+    let mut is_received = RegMat::for_program(prog, graph, false);
     for bid in graph.block_ids_postorder() {
         for (dest, insn) in prog
             .slice(graph.insns_ndx_range(bid))
@@ -616,6 +629,7 @@ fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph, is_received: &mut
             }
         }
     }
+    is_received
 }
 
 struct RegMat<T>(Mat<T>);
