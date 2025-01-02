@@ -1,5 +1,5 @@
 use crate::{
-    mil::{self, Insn},
+    mil::{self, ArithOp, Insn},
     ssa,
 };
 
@@ -171,6 +171,33 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
     }
 }
 
+pub fn fold_bitops(prog: &mut ssa::Program) {
+    for bid in prog.cfg().block_ids_rpo() {
+        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
+            let repl = match insn_cell.get() {
+                Insn::Arith1(ArithOp::BitXor, a, b) if a == b => Insn::Const1(0),
+                Insn::Arith2(ArithOp::BitXor, a, b) if a == b => Insn::Const2(0),
+                Insn::Arith4(ArithOp::BitXor, a, b) if a == b => Insn::Const4(0),
+                Insn::Arith8(ArithOp::BitXor, a, b) if a == b => Insn::Const8(0),
+
+                Insn::Arith1(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith2(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith4(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith8(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
+
+                Insn::Arith1(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith2(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith4(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith8(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
+
+                _ => continue,
+            };
+
+            insn_cell.set(repl);
+        }
+    }
+}
+
 /// Remove `Get` instructions.
 ///
 /// `Get` instructions are not really required in an SSA program. They generally
@@ -202,6 +229,7 @@ pub fn fold_get(prog: &mut ssa::Program) {
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 pub fn canonical(prog: &mut ssa::Program) {
     fold_subregs(prog);
+    fold_bitops(prog);
     fold_get(prog);
     fold_constants(prog);
     ssa::eliminate_dead_code(prog);

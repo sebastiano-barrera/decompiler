@@ -1141,7 +1141,7 @@ program  313 instrs
   312 r28 <- jmp      265
 
 
-ssa program  98 instrs
+ssa program  97 instrs
 .B0:  in[]     ;; 0x0  80 insn 0 phis
          r10 <- #pre:RBP
   (  3)  r11 <- #pre:RSP
@@ -1182,13 +1182,12 @@ ssa program  98 instrs
          r102 <- const4   4203184 (0x4022b0)
   (  3)  r103 <- v8.l4=   r14 ← r102
          r104 <- const8   4198496 (0x401060)
-  (  3)  r105 <- call     r104
+  (  2)  r105 <- call     r104
          r106 <- carg     r82
          r107 <- carg     r103
          r108 <- carg     r101
          r109 <- carg     r99
-         r120 <- and      r105,r105  qword
-         r122 <- is0      r120
+         r122 <- is0      r105
          r127 <- jmp.if   r122,284
 .B2:  in[.B1 ]     ;; 0x4010dd  10 insn 0 phis
          r130 <- xor      r16,r16  dword
@@ -1274,7 +1273,7 @@ ssa program  98 instrs
                      r101,
                      r99,
                    );
-        if r105 & r105 == 0 {
+        if r105 == 0 {
             let r131 = (<pre:RBX> with l4 = <pre:RBX> ^ <pre:RBX>);
             
             'T3: {

@@ -115,7 +115,7 @@ program  70 instrs
    69 r28 <- ret      r16
 
 
-ssa program  12 instrs
+ssa program  11 instrs
 .B0:  in[]     ;; 0x0  47 insn 0 phis
          r11 <- #pre:RSP
   (  3)  r15 <- #pre:RAX
@@ -124,9 +124,8 @@ ssa program  12 instrs
          r48 <- addk     r36,1 dword
          r49 <- v8.l4=   r15 ← r48
          r57 <- addk     r11,24 qword
-  (  2)  r58 <- loadm8   addr:r57
-         r60 <- and      r58,r58  qword
-         r62 <- is0      r60
+         r58 <- loadm8   addr:r57
+         r62 <- is0      r58
          r67 <- not      r62
          r68 <- jmp.if   r67,47
 .B2:  in[.B1 ]     ;; 0x114b  1 insn 0 phis
@@ -135,4 +134,4 @@ ssa program  12 instrs
 
 
 'T0: 
-'T1: if not [<pre:RSP> + 24]:8 & [<pre:RSP> + 24]:8 == 0 return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX> + 1) else goto T1
+'T1: if not [<pre:RSP> + 24]:8 == 0 return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX> + 1) else goto T1
