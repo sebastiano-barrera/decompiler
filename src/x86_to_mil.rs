@@ -308,6 +308,11 @@ impl Builder {
                 M::Je => {
                     self.emit_jmpif(insn, 0, Self::ZF);
                 }
+                M::Jne => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::ZF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
                 M::Jb => {
                     self.emit_jmpif(insn, 0, Self::CF);
                 }

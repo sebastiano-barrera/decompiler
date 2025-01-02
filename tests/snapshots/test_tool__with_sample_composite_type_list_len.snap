@@ -35,7 +35,7 @@ list_len 0x1130+28 (file 0x1130)
             114b: c3                      ret
 
 mil program = 
-program  70 instrs
+program  71 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -111,25 +111,34 @@ program  70 instrs
    66 r2 <- const1   0 (0x0)
    67 r10 <- const1   0 (0x0)
 0x1149:
-   68 r28 <- TODO     unsupported: jne short 0000000000001140h
+   68 r28 <- not      r5
+   69 r29 <- jmp.if   r28,48
 0x114b:
-   69 r28 <- ret      r16
+   70 r28 <- ret      r16
 
 
-ssa program  7 instrs
-.B0:  in[]     ;; 0x0  70 insn 0 phis
+ssa program  13 instrs
+.B0:  in[]     ;; 0x0  48 insn 0 phis
+         r11 <- #pre:RSP
   (  3)  r15 <- #pre:RAX
          r36 <- xor      r15,r15  dword
          r47 <- TODO     unsupported: nop [rax+rax]
+.B1:  in[.B0 .B1 ]     ;; 0x1140  22 insn 0 phis
          r49 <- addk     r36,1 dword
          r50 <- v8.l4=   r15 ← r49
-         r68 <- TODO     unsupported: jne short 0000000000001140h
-         r69 <- ret      r50
+         r58 <- addk     r11,24 qword
+  (  2)  r59 <- loadm8   addr:r58
+         r61 <- and      r59,r59  qword
+         r63 <- is0      r61
+         r68 <- not      r63
+         r69 <- jmp.if   r68,48
+.B2:  in[.B1 ]     ;; 0x114b  1 insn 0 phis
+         r70 <- ret      r50
 
 
 
 'T0: {
     <-- TODO: unsupported: nop [rax+rax] -->;
-    <-- TODO: unsupported: jne short 0000000000001140h -->;
-    return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX> + 1)
+    
+    'T1: if not [<pre:RSP> + 24]:8 & [<pre:RSP> + 24]:8 == 0 return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX> + 1) else goto T1
 }
