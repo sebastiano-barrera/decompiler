@@ -517,31 +517,23 @@ impl Builder {
                 }
             }
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                self.emit(v0, mil::Insn::Const8(insn.near_branch_target()))
+                self.emit(v0, mil::Insn::Const8(insn.near_branch_target() as i64))
             }
             OpKind::FarBranch16 | OpKind::FarBranch32 => {
                 todo!("not supported: far branch operands")
             }
 
-            OpKind::Immediate8 => self.emit(v0, mil::Insn::Const1(insn.immediate8())),
-            OpKind::Immediate8_2nd => self.emit(v0, mil::Insn::Const1(insn.immediate8_2nd())),
-            OpKind::Immediate16 => self.emit(v0, mil::Insn::Const2(insn.immediate16())),
-            OpKind::Immediate32 => self.emit(v0, mil::Insn::Const4(insn.immediate32())),
-            OpKind::Immediate64 => self.emit(v0, mil::Insn::Const8(insn.immediate64())),
+            OpKind::Immediate8 => self.emit(v0, mil::Insn::Const1(insn.immediate8() as i8)),
+            OpKind::Immediate8_2nd => self.emit(v0, mil::Insn::Const1(insn.immediate8_2nd() as i8)),
+            OpKind::Immediate16 => self.emit(v0, mil::Insn::Const2(insn.immediate16() as i16)),
+            OpKind::Immediate32 => self.emit(v0, mil::Insn::Const4(insn.immediate32() as i32)),
+            OpKind::Immediate64 => self.emit(v0, mil::Insn::Const8(insn.immediate64() as i64)),
             // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
             // so I think we don't lose any info (semantic or otherwise)
-            OpKind::Immediate8to16 => {
-                self.emit(v0, mil::Insn::Const2(insn.immediate8to16() as u16))
-            }
-            OpKind::Immediate8to32 => {
-                self.emit(v0, mil::Insn::Const4(insn.immediate8to32() as u32))
-            }
-            OpKind::Immediate8to64 => {
-                self.emit(v0, mil::Insn::Const8(insn.immediate8to64() as u64))
-            }
-            OpKind::Immediate32to64 => {
-                self.emit(v0, mil::Insn::Const8(insn.immediate32to64() as u64))
-            }
+            OpKind::Immediate8to16 => self.emit(v0, mil::Insn::Const2(insn.immediate8to16())),
+            OpKind::Immediate8to32 => self.emit(v0, mil::Insn::Const4(insn.immediate8to32())),
+            OpKind::Immediate8to64 => self.emit(v0, mil::Insn::Const8(insn.immediate8to64())),
+            OpKind::Immediate32to64 => self.emit(v0, mil::Insn::Const8(insn.immediate32to64())),
 
             OpKind::MemorySegSI
             | OpKind::MemorySegESI
@@ -682,7 +674,7 @@ impl Builder {
         );
 
         self.pb
-            .push(dest, mil::Insn::Const8(insn.memory_displacement64()));
+            .push(dest, mil::Insn::Const8(insn.memory_displacement64() as i64));
 
         match insn.memory_base() {
             Register::None => {}

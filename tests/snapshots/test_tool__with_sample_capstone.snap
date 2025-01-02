@@ -1128,7 +1128,7 @@ program  313 instrs
   301 r28 <- jmp      239
 0x401140:
   302 r28 <- l4       r16
-  303 r29 <- const4   4294967295 (0xffffffff)
+  303 r29 <- const4   -1 (0xffffffff)
   304 r28 <- or       r28,r29  dword
   305 r16 <- v8.l4=   r16 ← r28
   306 r10 <- false
@@ -1141,7 +1141,7 @@ program  313 instrs
   312 r28 <- jmp      265
 
 
-ssa program  116 instrs
+ssa program  115 instrs
 .B0:  in[]     ;; 0x0  80 insn 0 phis
          r10 <- #pre:RBP
   (  3)  r11 <- #pre:RSP
@@ -1160,8 +1160,7 @@ ssa program  116 instrs
          r41 <- store    *r40 ← r10
   (  3)  r42 <- addk     r11,-24 qword
          r43 <- store    *r42 ← r16
-  (  2)  r44 <- const8   16 (0x10)
-  (  5)  r45 <- sub      r42,r44  qword
+  (  5)  r45 <- subk     r42,16 qword
          r54 <- const8   4198512 (0x401070)
          r55 <- call     r54
          r56 <- carg     r39
@@ -1172,7 +1171,7 @@ ssa program  116 instrs
          r78 <- not      r73
          r79 <- jmp.if   r78,302
 .B1:  in[.B0 ]     ;; 0x4010b2  48 insn 0 phis
-         r81 <- sub      r42,r44  qword
+         r81 <- subk     r42,16 qword
   (  3)  r82 <- loadm8   addr:r81
          r98 <- const4   4096 (0x1000)
   (  3)  r99 <- v8.l4=   r17 ← r98

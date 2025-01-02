@@ -71,10 +71,10 @@ impl RegType {
 pub enum Insn {
     True,
     False,
-    Const1(u8),
-    Const2(u16),
-    Const4(u32),
-    Const8(u64),
+    Const1(i8),
+    Const2(i16),
+    Const4(i32),
+    Const8(i64),
 
     L1(Reg),
     L2(Reg),

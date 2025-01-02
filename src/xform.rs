@@ -10,10 +10,10 @@ pub fn fold_constants(prog: &mut ssa::Program) {
 
     fn widen(prog: &ssa::Program, reg: Reg) -> Insn {
         match prog.get(reg).unwrap().insn.get() {
-            Insn::Const1(k) => Insn::Const8(k as u64),
-            Insn::Const2(k) => Insn::Const8(k as u64),
-            Insn::Const4(k) => Insn::Const8(k as u64),
-            Insn::Const8(k) => Insn::Const8(k as u64),
+            Insn::Const1(k) => Insn::Const8(k as i64),
+            Insn::Const2(k) => Insn::Const8(k as i64),
+            Insn::Const4(k) => Insn::Const8(k as i64),
+            Insn::Const8(k) => Insn::Const8(k as i64),
 
             Insn::Arith1(op, a, b) => Insn::Arith8(op, a, b),
             Insn::Arith2(op, a, b) => Insn::Arith8(op, a, b),
@@ -29,14 +29,43 @@ pub fn fold_constants(prog: &mut ssa::Program) {
         }
     }
 
+    /// Evaluate expression (ak (op) bk)
+    fn eval_const(op: ArithOp, ak: i64, bk: i64) -> i64 {
+        match op {
+            ArithOp::Add => ak + bk,
+            ArithOp::Sub => ak - bk,
+            ArithOp::Mul => ak * bk,
+            ArithOp::Shl => ak << bk,
+            ArithOp::BitXor => ak ^ bk,
+            ArithOp::BitAnd => ak & bk,
+            ArithOp::BitOr => ak | bk,
+        }
+    }
+
+    /// Compute rk such that, for all x:
+    ///   (x <op> ak) <op> bk <===> x <op> rk
+    ///
+    /// Not all operators are supported. For the unsupported ones, None is returned.
+    fn assoc_const(op: ArithOp, ak: i64, bk: i64) -> Option<i64> {
+        match op {
+            ArithOp::Add => Some(ak + bk),
+            ArithOp::Sub => Some(ak + bk),
+            ArithOp::Mul => Some(ak * bk),
+            ArithOp::Shl => Some(ak + bk),
+            ArithOp::BitXor => None,
+            ArithOp::BitAnd => None,
+            ArithOp::BitOr => None,
+        }
+    }
+
     for bid in prog.cfg().block_ids_rpo() {
         let insns = prog.block_normal_insns(bid).unwrap();
         for (ndx, insn_cell) in insns.insns.iter().enumerate() {
             let repl_insn = match insn_cell.get() {
-                Insn::Arith1(op @ (ArithOp::Add | ArithOp::Mul), a, b)
-                | Insn::Arith2(op @ (ArithOp::Add | ArithOp::Mul), a, b)
-                | Insn::Arith4(op @ (ArithOp::Add | ArithOp::Mul), a, b)
-                | Insn::Arith8(op @ (ArithOp::Add | ArithOp::Mul), a, b) => {
+                Insn::Arith1(op, a, b)
+                | Insn::Arith2(op, a, b)
+                | Insn::Arith4(op, a, b)
+                | Insn::Arith8(op, a, b) => {
                     let wa = widen(prog, a);
                     let wb = widen(prog, b);
 
@@ -46,58 +75,38 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                         (ArithOp::Mul, Insn::Const8(1), wb) => wb,
                         (ArithOp::Mul, wa, Insn::Const8(1)) => wa,
 
-                        (ArithOp::Add, Insn::Const8(ak), Insn::Const8(bk)) => {
-                            Insn::Const8((ak + bk) as u64)
-                        }
-                        (ArithOp::Mul, Insn::Const8(ak), Insn::Const8(bk)) => {
-                            Insn::Const8((ak * bk) as u64)
+                        (op, Insn::Const8(ak), Insn::Const8(bk)) => {
+                            Insn::Const8(eval_const(op, ak, bk))
                         }
 
-                        (ArithOp::Add, Insn::Const8(ak), Insn::ArithK8(ArithOp::Add, r, bk)) => {
-                            Insn::ArithK8(ArithOp::Add, r, ak as i64 + bk)
-                        }
-                        (ArithOp::Add, Insn::ArithK8(ArithOp::Add, r, ak), Insn::Const8(bk)) => {
-                            Insn::ArithK8(ArithOp::Add, r, ak + bk as i64)
-                        }
-                        (ArithOp::Mul, Insn::Const8(ak), Insn::ArithK8(ArithOp::Mul, r, bk)) => {
-                            Insn::ArithK8(ArithOp::Mul, r, ak as i64 * bk)
-                        }
-                        (ArithOp::Mul, Insn::ArithK8(ArithOp::Mul, r, ak), Insn::Const8(bk)) => {
-                            Insn::ArithK8(ArithOp::Mul, r, ak * bk as i64)
+                        (op_out, Insn::ArithK8(op_in, r, k1), Insn::Const8(k2))
+                        | (op_out, Insn::Const8(k2), Insn::ArithK8(op_in, r, k1))
+                            if op_out == op_in =>
+                        {
+                            let Some(rk) = assoc_const(op_out, k2, k1) else {
+                                continue;
+                            };
+                            Insn::ArithK8(op_out, r, rk)
                         }
 
-                        (ArithOp::Add, Insn::Const8(ak), _) => {
-                            Insn::ArithK8(ArithOp::Add, b, ak as i64)
-                        }
-                        (ArithOp::Add, _, Insn::Const8(bk)) => {
-                            Insn::ArithK8(ArithOp::Add, a, bk as i64)
-                        }
-                        (ArithOp::Mul, Insn::Const8(ak), _) => {
-                            Insn::ArithK8(ArithOp::Mul, b, ak as i64)
-                        }
-                        (ArithOp::Mul, _, Insn::Const8(bk)) => {
-                            Insn::ArithK8(ArithOp::Mul, a, bk as i64)
-                        }
+                        (op, Insn::Const8(ak), _) => Insn::ArithK8(op, b, ak as i64),
+                        (op, _, Insn::Const8(bk)) => Insn::ArithK8(op, a, bk as i64),
 
                         _ => continue,
                     }
                 }
 
-                Insn::ArithK1(ArithOp::Add, a, bk)
-                | Insn::ArithK2(ArithOp::Add, a, bk)
-                | Insn::ArithK4(ArithOp::Add, a, bk)
-                | Insn::ArithK8(ArithOp::Add, a, bk) => match widen(prog, a) {
-                    Insn::Const8(ak) => Insn::Const8(ak + bk as u64),
-                    Insn::ArithK8(ArithOp::Add, ar, ak) => Insn::ArithK8(ArithOp::Add, ar, ak + bk),
-                    _ => continue,
-                },
-
-                Insn::ArithK1(ArithOp::Mul, a, bk)
-                | Insn::ArithK2(ArithOp::Mul, a, bk)
-                | Insn::ArithK4(ArithOp::Mul, a, bk)
-                | Insn::ArithK8(ArithOp::Mul, a, bk) => match widen(prog, a) {
-                    Insn::Const8(ak) => Insn::Const8(ak + bk as u64),
-                    Insn::ArithK8(ArithOp::Mul, ar, ak) => Insn::ArithK8(ArithOp::Mul, ar, ak * bk),
+                Insn::ArithK1(op, a, bk)
+                | Insn::ArithK2(op, a, bk)
+                | Insn::ArithK4(op, a, bk)
+                | Insn::ArithK8(op, a, bk) => match widen(prog, a) {
+                    Insn::Const8(ak) => Insn::Const8(eval_const(op, ak as i64, bk)),
+                    Insn::ArithK8(op_in, ar, ak) if op_in == op => {
+                        let Some(rk) = assoc_const(op, ak as i64, bk) else {
+                            continue;
+                        };
+                        Insn::ArithK8(op, ar, rk)
+                    }
                     _ => continue,
                 },
 
@@ -238,7 +247,7 @@ pub fn canonical(prog: &mut ssa::Program) {
 #[cfg(test)]
 mod tests {
     mod constant_folding {
-        use crate::{cfg, mil, ssa, xform};
+        use crate::{mil, ssa, xform};
 
         #[test]
         fn addk() {

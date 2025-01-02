@@ -61,10 +61,10 @@ enum Node {
         params: SmallVec<[Ident; 2]>,
     },
 
-    Const1(u8),
-    Const2(u16),
-    Const4(u32),
-    Const8(u64),
+    Const1(i8),
+    Const2(i16),
+    Const4(i32),
+    Const8(i64),
 
     L1(NodeID),
     L2(NodeID),
@@ -126,11 +126,11 @@ enum Node {
 }
 
 impl Node {
-    fn as_const(&self) -> Option<u64> {
+    fn as_const(&self) -> Option<i64> {
         match self {
-            Node::Const1(x) => Some(*x as u64),
-            Node::Const2(x) => Some(*x as u64),
-            Node::Const4(x) => Some(*x as u64),
+            Node::Const1(x) => Some(*x as i64),
+            Node::Const2(x) => Some(*x as i64),
+            Node::Const4(x) => Some(*x as i64),
             Node::Const8(x) => Some(*x),
             _ => None,
         }
@@ -607,7 +607,7 @@ impl<'a> Builder<'a> {
             | Insn::ArithK4(op, a, k)
             | Insn::ArithK8(op, a, k) => {
                 let a = self.add_node_of_value(a);
-                let b = self.add_node(Node::Const8(k as u64));
+                let b = self.add_node(Node::Const8(k));
                 self.fold_bin(op.into(), a, b)
             }
 
