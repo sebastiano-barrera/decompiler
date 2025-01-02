@@ -25,15 +25,13 @@ TypeSet (21 types) = {
              @ 12 cols int <9>
          }
   <17> = *unknown95 <10>
-  <22> = "unknown179" ?
-  <25> = "unknown203" ?
-  <29> = "unknown327" ?
-  <31> = "unknown407" ?
+  <22> = "printf" func (<unnamed> *unknown114 <13>) int <9>
+  <25> = "sum_matrix" func (mat mat <16>) int <9>
+  <28> = "main" func () int <9>
+  <30> = "unknown407" ?
 }
 
-2 non-fatal errors:
-offset 0x      b3: required attribute is missing: DW_AT_type (DW_AT_type)
-offset 0x      cb: required attribute is missing: DW_AT_type (DW_AT_type)
+0 non-fatal errors:
 ]]--
 sum_matrix 0x4011c9+115 (file 0x11c9)
           4011c9: 55                      push rbp

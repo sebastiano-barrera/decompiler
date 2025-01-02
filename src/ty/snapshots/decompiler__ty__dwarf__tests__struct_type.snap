@@ -17,7 +17,7 @@ TypeSet (10 types) = {
   <6> = "float" float32
   <10> = "join" func (a *point <5>,
                       b *point <5>) void <2>
-  <13> = "main" func () int <14>
+  <13> = "list_len" func (p point <5>) int <14>
   <14> = "int" i32
 }
 0 non-fatal errors:

@@ -676,7 +676,7 @@ TypeSet (363 types) = {
   <620> = "cs_free" func (<unnamed> *unknown24621 <612>,
                           <unnamed> unknown42 <3>) void <2>
   <621> = *unknown24621 <612>
-  <625> = "unknown24809" ?
+  <625> = "printf" func (<unnamed> *unknown218 <22>) int <16>
   <628> = "cs_disasm" func (<unnamed> unknown359 <37>,
                             <unnamed> *unknown288 <30>,
                             <unnamed> unknown42 <3>,
@@ -687,11 +687,11 @@ TypeSet (363 types) = {
   <638> = "cs_open" func (<unnamed> unknown508 <39>,
                           <unnamed> unknown914 <41>,
                           <unnamed> *unknown359 <37>) unknown24740 <614>
-  <643> = "unknown24919" ?
-  <648> = "__builtin_puts" func () void <2>
+  <643> = "main" func () int <16>
+  <645> = "__builtin_puts" func () void <2>
 }
 
-26 non-fatal errors:
+24 non-fatal errors:
 offset 0x     be6: unsupported DWARF entry tag: DW_TAG_array_type
 offset 0x    1f24: unsupported DWARF entry tag: DW_TAG_array_type
 offset 0x    241a: unsupported DWARF entry tag: DW_TAG_array_type
@@ -716,8 +716,6 @@ offset 0x    5f04: unsupported DWARF entry tag: DW_TAG_array_type
 offset 0x    5f3c: unsupported DWARF entry tag: DW_TAG_array_type
 offset 0x    5fcf: unsupported DWARF entry tag: DW_TAG_array_type
 offset 0x    5feb: unsupported DWARF entry tag: DW_TAG_array_type
-offset 0x    60e9: required attribute is missing: DW_AT_type (DW_AT_type)
-offset 0x    6157: required attribute is missing: DW_AT_type (DW_AT_type)
 ]]--
 main 0x401090+181 (file 0x1090)
           401090: 41 54                   push r12

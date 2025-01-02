@@ -218,9 +218,15 @@ impl<'a> TypeParser<'a> {
         let mut children = node.children();
         while let Some(child_node) = children.next()? {
             let child_entry = child_node.entry();
-            let name = self.get_name(child_entry)?.map(|s| Rc::new(s.to_owned()));
-            let tyid = self.try_parse_type_of(&child_entry, types)?;
-            params.push(ty::SubroutineParam { name, tyid });
+            match child_entry.tag() {
+                gimli::DW_TAG_formal_parameter => {
+                    let name = self.get_name(child_entry)?.map(|s| Rc::new(s.to_owned()));
+                    let tyid = self.try_parse_type_of(&child_entry, types)?;
+                    params.push(ty::SubroutineParam { name, tyid });
+                }
+                // not supported yet => ignored
+                _ => {}
+            }
         }
 
         Ok(ty::Type {
