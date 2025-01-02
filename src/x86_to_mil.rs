@@ -159,6 +159,22 @@ impl Builder {
                     self.emit_write(&insn, 0, a, a_sz);
                     self.emit_set_flags_arith(a);
                 }
+                M::Xor => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    assert_eq!(a_sz, b_sz, "xor: operands must be the same size");
+                    self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::BitXor);
+                    self.emit_write(&insn, 0, a, a_sz);
+
+                    self.emit(Self::OF, mil::Insn::False);
+                    self.emit(Self::CF, mil::Insn::False);
+                    // ignored: AF
+                    self.emit(Self::SF, mil::Insn::SignOf(a));
+                    self.emit(Self::ZF, mil::Insn::IsZero(a));
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(Self::PF, mil::Insn::Parity(v0));
+                }
 
                 M::Test => {
                     let (a, a_sz) = self.emit_read(&insn, 0);

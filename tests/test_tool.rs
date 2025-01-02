@@ -17,6 +17,12 @@ fn test_with_sample(rel_path: &Path, function_name: &str) -> test_tool::Result<S
 }
 
 #[test]
+fn test_with_sample_composite_type_list_len() {
+    let out = test_with_sample(Path::new("ty/test_composite_type.so"), "list_len").unwrap();
+    assert_snapshot!(out);
+}
+
+#[test]
 fn test_with_sample_capstone() {
     let out = test_with_sample(Path::new("integration/sample_capstone"), "main").unwrap();
     assert_snapshot!(out);

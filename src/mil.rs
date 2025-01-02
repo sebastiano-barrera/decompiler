@@ -69,6 +69,8 @@ impl RegType {
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
+    True,
+    False,
     Const1(u8),
     Const2(u16),
     Const4(u32),
@@ -196,6 +198,7 @@ pub enum ArithOp {
     #[allow(dead_code)]
     Mul,
     Shl,
+    BitXor,
     BitAnd,
     BitOr,
 }
@@ -230,7 +233,9 @@ impl Insn {
     // TODO There must be some macro magic to generate these two functions
     pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
         match self {
-            Insn::Const1(_)
+            Insn::False
+            | Insn::True
+            | Insn::Const1(_)
             | Insn::Const2(_)
             | Insn::Const4(_)
             | Insn::Const8(_)
@@ -301,7 +306,9 @@ impl Insn {
     }
     pub fn input_regs(&self) -> [Option<&Reg>; 2] {
         match self {
-            Insn::Const1(_)
+            Insn::False
+            | Insn::True
+            | Insn::Const1(_)
             | Insn::Const2(_)
             | Insn::Const4(_)
             | Insn::Const8(_)
@@ -369,7 +376,9 @@ impl Insn {
 
     pub fn has_side_effects(&self) -> bool {
         match self {
-            Insn::Const1(_)
+            Insn::False
+            | Insn::True
+            | Insn::Const1(_)
             | Insn::Const2(_)
             | Insn::Const4(_)
             | Insn::Const8(_)
@@ -451,6 +460,7 @@ fn fmt_arith(
         ArithOp::Shl => "shl",
         ArithOp::BitAnd => "and",
         ArithOp::BitOr => "or",
+        ArithOp::BitXor => "xor",
     };
     write!(f, "{:8} {:?},{:?}  {}", op, a, b, size_keyword(sz))
 }
@@ -469,6 +479,7 @@ fn fmt_arithk(
         ArithOp::Shl => "shlk",
         ArithOp::BitAnd => "andk",
         ArithOp::BitOr => "ork",
+        ArithOp::BitXor => "xork",
     };
     write!(f, "{:8} {:?},{:?} {}", op, a, k, size_keyword(sz))
 }
@@ -486,6 +497,8 @@ fn size_keyword(sz: u8) -> &'static str {
 impl std::fmt::Debug for Insn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Insn::True => write!(f, "true"),
+            Insn::False => write!(f, "false"),
             Insn::Const1(val) => write!(f, "{:8} {} (0x{:x})", "const1", *val as i64, val),
             Insn::Const2(val) => write!(f, "{:8} {} (0x{:x})", "const2", *val as i64, val),
             Insn::Const4(val) => write!(f, "{:8} {} (0x{:x})", "const4", *val as i64, val),
@@ -660,6 +673,8 @@ impl Program {
 
     pub fn value_type(&self, index: Index) -> RegType {
         match self.insns[index as usize].get() {
+            Insn::True => RegType::Bool,
+            Insn::False => RegType::Bool,
             Insn::Const1(_) => RegType::Bytes1,
             Insn::Const2(_) => RegType::Bytes2,
             Insn::Const4(_) => RegType::Bytes4,

@@ -150,6 +150,7 @@ enum BinOp {
     Shr,
     BitAnd,
     BitOr,
+    BitXor,
 }
 impl From<mil::ArithOp> for BinOp {
     fn from(value: mil::ArithOp) -> Self {
@@ -160,6 +161,7 @@ impl From<mil::ArithOp> for BinOp {
             mil::ArithOp::Shl => BinOp::Shl,
             mil::ArithOp::BitAnd => BinOp::BitAnd,
             mil::ArithOp::BitOr => BinOp::BitOr,
+            mil::ArithOp::BitXor => BinOp::BitXor,
         }
     }
 }
@@ -175,6 +177,7 @@ impl BinOp {
             BinOp::Shr => 2,
             BinOp::BitAnd => 3,
             BinOp::BitOr => 3,
+            BinOp::BitXor => 3,
         }
     }
 }
@@ -916,6 +919,7 @@ impl Ast {
                     BinOp::Shr => ">>",
                     BinOp::BitAnd => "&",
                     BinOp::BitOr => "|",
+                    BinOp::BitXor => "^",
                 };
 
                 for (ndx, &arg_nid) in [a, b].into_iter().enumerate() {
