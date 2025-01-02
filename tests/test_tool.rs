@@ -34,9 +34,8 @@ fn test_with_sample_matrix() {
     assert_snapshot!(out);
 }
 
-#[ignore]
 #[test]
-fn test_with_redis_server() {
-    let out = test_with_sample(Path::new("integration/redis-server"), "main").unwrap();
+fn test_with_redis_server_ctl_lookup() {
+    let out = test_with_sample(Path::new("integration/redis-server"), "ctl_lookup").unwrap();
     assert_snapshot!(out);
 }

@@ -1,0 +1,3520 @@
+---
+source: tests/test_tool.rs
+expression: out
+---
+dwarf types --[[
+TypeSet (329 types) = {
+  <0> = "i8" i8
+  <1> = "i32" i32
+  <2> = "void" void
+  <3> = "long unsigned int" u64
+  <4> = "double" float64
+  <5> = "unknown54" ?
+  <6> = func () void <2>
+  <7> = "unknown329" ?
+  <8> = "unknown378" ?
+  <9> = func () void <2>
+  <10> = func () void <2>
+  <11> = func () void <2>
+  <12> = func () void <2>
+  <13> = func () void <2>
+  <14> = "unknown987" ?
+  <15> = "unknown1327" ?
+  <16> = "unknown1449" ?
+  <17> = "unknown1491" ?
+  <18> = "unknown1533" ?
+  <19> = "unknown1661" ?
+  <20> = "unknown1703" ?
+  <21> = "unknown1957" ?
+  <22> = "unknown1999" ?
+  <23> = "unknown2041" ?
+  <24> = "unknown2089" ?
+  <25> = "unknown2299" ?
+  <26> = "unknown2433" ?
+  <27> = "unknown2481" ?
+  <28> = "unknown2529" ?
+  <29> = "unknown2571" ?
+  <30> = "unknown2613" ?
+  <31> = "unknown2648" ?
+  <32> = "unknown2696" ?
+  <33> = "unknown2744" ?
+  <34> = "unknown2899" ?
+  <35> = "unknown2934" ?
+  <36> = "unknown3701" ?
+  <37> = "unknown3756" ?
+  <38> = "unknown3946" ?
+  <39> = "unknown4214" ?
+  <40> = "unknown4733" ?
+  <41> = "unknown5079" ?
+  <42> = func () void <2>
+  <43> = "unknown5194" ?
+  <44> = "unknown5236" ?
+  <45> = func () void <2>
+  <46> = "unknown5397" ?
+  <47> = "unknown5671" ?
+  <48> = "unknown5758" ?
+  <49> = "unknown5813" ?
+  <50> = "unknown6067" ?
+  <51> = "unknown6102" ?
+  <52> = "unknown6179" ?
+  <53> = func () void <2>
+  <54> = "unknown6645" ?
+  <55> = "unknown6680" ?
+  <56> = func () void <2>
+  <57> = func () void <2>
+  <58> = "unknown6943" ?
+  <59> = "unknown7303" ?
+  <60> = "unknown7590" ?
+  <61> = "unknown7651" ?
+  <62> = "unknown7712" ?
+  <63> = "unknown7767" ?
+  <64> = func () void <2>
+  <65> = func () void <2>
+  <66> = "unknown7961" ?
+  <67> = "unknown8003" ?
+  <68> = "unknown8045" ?
+  <69> = func () void <2>
+  <70> = "unknown8156" ?
+  <71> = func () void <2>
+  <72> = func () void <2>
+  <73> = func () void <2>
+  <74> = func () void <2>
+  <75> = "unknown8479" ?
+  <76> = func () void <2>
+  <77> = "unknown8601" ?
+  <78> = func () void <2>
+  <79> = "unknown8866" ?
+  <80> = "unknown9181" ?
+  <81> = "unknown9496" ?
+  <82> = "unknown9649" ?
+  <83> = func () void <2>
+  <84> = "unknown10181" ?
+  <85> = "unknown10462" ?
+  <86> = "unknown10743" ?
+  <87> = "unknown10987" ?
+  <88> = "unknown11231" ?
+  <89> = func () void <2>
+  <90> = func () void <2>
+  <91> = func () void <2>
+  <92> = func () void <2>
+  <93> = "unknown11640" ?
+  <94> = func () void <2>
+  <95> = func () void <2>
+  <96> = func () void <2>
+  <97> = "unknown12798" ?
+  <98> = "unknown12910" ?
+  <99> = "unknown13037" ?
+  <100> = "unknown13540" ?
+  <101> = "unknown14434" ?
+  <102> = "unknown14561" ?
+  <103> = "unknown14688" ?
+  <104> = func () void <2>
+  <105> = "unknown15036" ?
+  <106> = func () void <2>
+  <107> = "unknown15652" ?
+  <108> = "unknown16005" ?
+  <109> = func () void <2>
+  <110> = func () void <2>
+  <111> = "unknown16476" ?
+  <112> = func () void <2>
+  <113> = func () void <2>
+  <114> = "unknown16786" ?
+  <115> = "unknown17018" ?
+  <116> = func () void <2>
+  <117> = "unknown17101" ?
+  <118> = func () void <2>
+  <119> = func () void <2>
+  <120> = func () void <2>
+  <121> = "unknown17225" ?
+  <122> = "unknown17381" ?
+  <123> = "unknown17662" ?
+  <124> = func () void <2>
+  <125> = "unknown17720" ?
+  <126> = "unknown17786" ?
+  <127> = "unknown17828" ?
+  <128> = "unknown17932" ?
+  <129> = "unknown18297" ?
+  <130> = "unknown18423" ?
+  <131> = "unknown18458" ?
+  <132> = "unknown18691" ?
+  <133> = "unknown19065" ?
+  <134> = "unknown19344" ?
+  <135> = "unknown19415" ?
+  <136> = "unknown19742" ?
+  <137> = "unknown20193" ?
+  <138> = "unknown20550" ?
+  <139> = "unknown20840" ?
+  <140> = "unknown21083" ?
+  <141> = "unknown21368" ?
+  <142> = "unknown21525" ?
+  <143> = "unknown21607" ?
+  <144> = func () void <2>
+  <145> = func () void <2>
+  <146> = "unknown21727" ?
+  <147> = func () void <2>
+  <148> = func () void <2>
+  <149> = func () void <2>
+  <150> = func () void <2>
+  <151> = func () void <2>
+  <152> = func () void <2>
+  <153> = "unknown22417" ?
+  <154> = "unknown22556" ?
+  <155> = "unknown22695" ?
+  <156> = "unknown22807" ?
+  <157> = "unknown22893" ?
+  <158> = func () void <2>
+  <159> = "unknown23646" ?
+  <160> = func () void <2>
+  <161> = "unknown24004" ?
+  <162> = "unknown24091" ?
+  <163> = "unknown24332" ?
+  <164> = "unknown24516" ?
+  <165> = "unknown24655" ?
+  <166> = "unknown24975" ?
+  <167> = "unknown25103" ?
+  <168> = "unknown25287" ?
+  <169> = func () void <2>
+  <170> = "unknown25506" ?
+  <171> = func () void <2>
+  <172> = func () void <2>
+  <173> = "unknown25692" ?
+  <174> = func () void <2>
+  <175> = "unknown26207" ?
+  <176> = "unknown26434" ?
+  <177> = "unknown27799" ?
+  <178> = "unknown28167" ?
+  <179> = "unknown28508" ?
+  <180> = "unknown29483" ?
+  <181> = "unknown30390" ?
+  <182> = "unknown30943" ?
+  <183> = "unknown31419" ?
+  <184> = "unknown32184" ?
+  <185> = "unknown32951" ?
+  <186> = "unknown33276" ?
+  <187> = "unknown33469" ?
+  <188> = "unknown33763" ?
+  <189> = "unknown33999" ?
+  <190> = "unknown34235" ?
+  <191> = "unknown34471" ?
+  <192> = "unknown34707" ?
+  <193> = "unknown34943" ?
+  <194> = "unknown35179" ?
+  <195> = "unknown35397" ?
+  <196> = "unknown35615" ?
+  <197> = "unknown35833" ?
+  <198> = "unknown36051" ?
+  <199> = "unknown36269" ?
+  <200> = "unknown36470" ?
+  <201> = "unknown36749" ?
+  <202> = "unknown38104" ?
+  <203> = "unknown39493" ?
+  <204> = "unknown39911" ?
+  <205> = "unknown40083" ?
+  <206> = "unknown40236" ?
+  <207> = func () void <2>
+  <208> = "unknown40395" ?
+  <209> = "unknown40681" ?
+  <210> = "unknown40863" ?
+  <211> = "unknown41101" ?
+  <212> = "unknown41339" ?
+  <213> = "unknown41708" ?
+  <214> = "unknown42029" ?
+  <215> = "unknown42146" ?
+  <216> = "unknown42976" ?
+  <217> = func () void <2>
+  <218> = func () void <2>
+  <219> = "unknown43441" ?
+  <220> = func () void <2>
+  <221> = func () void <2>
+  <222> = "unknown44808" ?
+  <223> = func () void <2>
+  <224> = "unknown45205" ?
+  <225> = func () void <2>
+  <226> = "unknown46228" ?
+  <227> = "unknown46488" ?
+  <228> = "unknown46777" ?
+  <229> = "unknown47174" ?
+  <230> = func () void <2>
+  <231> = func () void <2>
+  <232> = "unknown47377" ?
+  <233> = "unknown47829" ?
+  <234> = "unknown48350" ?
+  <235> = "unknown49246" ?
+  <236> = func () void <2>
+  <237> = "unknown49729" ?
+  <238> = "unknown50390" ?
+  <239> = func () void <2>
+  <240> = "unknown51168" ?
+  <241> = "unknown53665" ?
+  <242> = "unknown55115" ?
+  <243> = "unknown55758" ?
+  <244> = "unknown55885" ?
+  <245> = "unknown56012" ?
+  <246> = "unknown56536" ?
+  <247> = func () void <2>
+  <248> = "unknown57197" ?
+  <249> = func () void <2>
+  <250> = func () void <2>
+  <251> = "unknown57772" ?
+  <252> = func () void <2>
+  <253> = "unknown57981" ?
+  <254> = func () void <2>
+  <255> = func () void <2>
+  <256> = "unknown58232" ?
+  <257> = "unknown58731" ?
+  <258> = "unknown58824" ?
+  <259> = "unknown59420" ?
+  <260> = func () void <2>
+  <261> = "unknown59520" ?
+  <262> = func () void <2>
+  <263> = "unknown59620" ?
+  <264> = func () void <2>
+  <265> = "unknown60066" ?
+  <266> = func () void <2>
+  <267> = "unknown60421" ?
+  <268> = "unknown60501" ?
+  <269> = "unknown60851" ?
+  <270> = "unknown61937" ?
+  <271> = "unknown62101" ?
+  <272> = "unknown62243" ?
+  <273> = "unknown62693" ?
+  <274> = "unknown62802" ?
+  <275> = "unknown62925" ?
+  <276> = "unknown63070" ?
+  <277> = "unknown63219" ?
+  <278> = "unknown63523" ?
+  <279> = "unknown65302" ?
+  <280> = "unknown65389" ?
+  <281> = "unknown65476" ?
+  <282> = "unknown66255" ?
+  <283> = func () void <2>
+  <284> = func () void <2>
+  <285> = "unknown67021" ?
+  <286> = "unknown67646" ?
+  <287> = func () void <2>
+  <288> = "unknown67797" ?
+  <289> = func () void <2>
+  <290> = func () void <2>
+  <291> = func () void <2>
+  <292> = func () void <2>
+  <293> = func () void <2>
+  <294> = "unknown68777" ?
+  <295> = "unknown69294" ?
+  <296> = "unknown70587" ?
+  <297> = "unknown71615" ?
+  <298> = func () void <2>
+  <299> = "unknown74032" ?
+  <300> = "unknown75668" ?
+  <301> = func () void <2>
+  <302> = func () void <2>
+  <303> = "unknown76410" ?
+  <304> = func () void <2>
+  <305> = func () void <2>
+  <306> = "unknown78524" ?
+  <307> = "unknown79059" ?
+  <308> = "unknown79074" ?
+  <309> = "unknown79089" ?
+  <310> = "unknown79104" ?
+  <311> = "unknown79119" ?
+  <312> = "unknown79134" ?
+  <313> = "unknown79149" ?
+  <314> = "unknown79164" ?
+  <315> = "unknown79179" ?
+  <316> = "unknown79194" ?
+  <317> = "unknown79210" ?
+  <318> = "unknown79225" ?
+  <319> = "unknown79240" ?
+  <320> = "unknown79255" ?
+  <321> = "anetCreateSocket.constprop" func () void <2>
+  <322> = "_dictClear.constprop.isra" func () void <2>
+  <323> = "_ebPrint.constprop" func () void <2>
+  <324> = "__builtin_memcpy" func () void <2>
+  <325> = "__builtin_memset" func () void <2>
+  <326> = "__builtin_memcmp" func () void <2>
+  <327> = "lpNew.constprop" func () void <2>
+  <328> = "__builtin_puts" func () void <2>
+}
+
+215 non-fatal errors:
+offset 0x      36: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     149: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     17a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     3db: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     52f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     5a9: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     5d3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     5fd: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     67d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     6a7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     7a5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     7cf: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     7f9: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     829: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     8fb: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     981: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     9b1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     9e1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     a0b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     a35: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     a58: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     a88: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     ab8: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     b53: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     b76: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     e75: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     eac: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x     f6a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1076: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    127d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    13d7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    144a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1474: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1515: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1627: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    167e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    16b5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    17b3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    17d6: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1823: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    19f5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1a18: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1b1f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1c87: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1da6: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1de3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1e20: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1e57: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1f19: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1f43: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1f6d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    1fdc: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    211f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    2199: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    22a2: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    23dd: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    2518: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    25b1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    27c5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    28de: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    29f7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    2aeb: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    2bdf: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    2d78: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    31fe: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    326e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    32ed: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    34e4: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    3862: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    38e1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    3960: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    3abc: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    3d24: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    3e85: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    405c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4192: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    427a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    42cd: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4349: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    43e5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    44fe: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4538: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    457a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    45a4: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    460c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4779: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    47f7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    481a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4903: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4a79: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4b90: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4bd7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4d1e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    4ee1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5046: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5168: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    525b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5378: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5415: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5467: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    54df: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5791: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    581c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    58a7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5917: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    596d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5c5e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5dc4: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5e1b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5f0c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    5fc4: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    604f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    618f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    620f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    62c7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    63a2: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    645c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    665f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    6742: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    6c97: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    6e07: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    6f5c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    732b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    76b6: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    78df: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    7abb: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    7db8: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    80b7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    81fc: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    82bd: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    83e3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    84cf: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    85bb: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    86a7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8793: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    887f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    896b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8a45: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8b1f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8bf9: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8cd3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8dad: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8e76: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    8f8d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    94d8: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9a45: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9be7: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9c93: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9d2c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9dcb: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9ee9: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    9f9f: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a08d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a17b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a2ec: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a42d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a4a2: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a7e0: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    a9b1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    af08: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    b095: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    b494: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    b598: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    b6b9: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    b846: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    b911: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    bad5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    bcde: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    c05e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    c241: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    c4d6: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    c7e0: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    d1a1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    d74b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    d9ce: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    da4d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    dacc: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    dcd8: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    df6d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e1ac: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e27d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e378: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e56b: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e5c8: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e81c: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e880: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    e8e4: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    eaa2: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    ec05: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    ec55: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    edb3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f1f1: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f295: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f323: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f4e5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f552: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f5cd: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f65e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f6f3: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    f823: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    ff16: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    ff6d: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x    ffc4: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   102cf: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   105cd: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   1083e: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   108d5: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   10ca9: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   10eae: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   113bb: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   117bf: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   12130: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   12794: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   12a7a: required attribute is missing: DW_AT_type (DW_AT_type)
+offset 0x   132bc: required attribute is missing: DW_AT_type (DW_AT_type)
+]]--
+ctl_lookup 0x5ddf40+1255 (file 0x1ddf40)
+          5ddf40: 41 57                   push r15
+          5ddf42: 41 56                   push r14
+          5ddf44: 49 89 f6                mov r14,rsi
+          5ddf47: be 2e 00 00 00          mov esi,2Eh
+          5ddf4c: 41 55                   push r13
+          5ddf4e: 41 54                   push r12
+          5ddf50: 55                      push rbp
+          5ddf51: 53                      push rbx
+          5ddf52: 48 89 cb                mov rbx,rcx
+          5ddf55: 48 83 ec 58             sub rsp,58h
+          5ddf59: 48 89 7c 24 40          mov [rsp+40h],rdi
+          5ddf5e: 48 89 d7                mov rdi,rdx
+          5ddf61: 4c 89 44 24 20          mov [rsp+20h],r8
+          5ddf66: 48 89 14 24             mov [rsp],rdx
+          5ddf6a: 4c 89 4c 24 18          mov [rsp+18h],r9
+          5ddf6f: e8 0c 33 e2 ff          call 0000000000401280h
+          5ddf74: 49 89 c0                mov r8,rax
+          5ddf77: 48 85 c0                test rax,rax
+          5ddf7a: 0f 84 80 04 00 00       je 00000000005DE400h
+          5ddf80: 48 8b 04 24             mov rax,[rsp]
+          5ddf84: 4c 89 c5                mov rbp,r8
+          5ddf87: 48 29 c5                sub rbp,rax
+          5ddf8a: 0f 84 a0 03 00 00       je 00000000005DE330h
+          5ddf90: 48 8b 54 24 18          mov rdx,[rsp+18h]
+          5ddf95: 48 83 3a 00             cmp qword ptr [rdx],0
+          5ddf99: 0f 84 80 04 00 00       je 00000000005DE41Fh
+          5ddf9f: 4d 8b 4e 18             mov r9,[r14+18h]
+          5ddfa3: 45 31 ff                xor r15d,r15d
+          5ddfa6: 48 89 5c 24 48          mov [rsp+48h],rbx
+          5ddfab: 41 80 39 00             cmp byte ptr [r9],0
+          5ddfaf: 0f 84 8a 02 00 00       je 00000000005DE23Fh
+          5ddfb5: 66 66 2e 0f 1f 84 00 00 nop [rax+rax]
+          5ddfc0: 49 8b 76 10             mov rsi,[r14+10h]
+          5ddfc4: 48 89 74 24 10          mov [rsp+10h],rsi
+          5ddfc9: 48 85 f6                test rsi,rsi
+          5ddfcc: 0f 84 5e 03 00 00       je 00000000005DE330h
+          5ddfd2: 4d 89 cc                mov r12,r9
+          5ddfd5: 31 db                   xor ebx,ebx
+          5ddfd7: 83 e6 03                and esi,3
+          5ddfda: 0f 84 c1 00 00 00       je 00000000005DE0A1h
+          5ddfe0: 48 83 fe 01             cmp rsi,1
+          5ddfe4: 74 78                   je short 00000000005DE05Eh
+          5ddfe6: 48 83 fe 02             cmp rsi,2
+          5ddfea: 74 3d                   je short 00000000005DE029h
+          5ddfec: 4d 8b 51 08             mov r10,[r9+8]
+          5ddff0: 4c 89 44 24 30          mov [rsp+30h],r8
+          5ddff5: 4d 89 cd                mov r13,r9
+          5ddff8: 4c 89 4c 24 28          mov [rsp+28h],r9
+          5ddffd: 4c 89 d7                mov rdi,r10
+          5de000: 4c 89 54 24 08          mov [rsp+8],r10
+          5de005: e8 d6 32 e2 ff          call 00000000004012E0h
+          5de00a: 48 8b 74 24 08          mov rsi,[rsp+8]
+          5de00f: 4c 8b 44 24 30          mov r8,[rsp+30h]
+          5de014: 4c 89 e7                mov rdi,r12
+          5de017: 48 39 e8                cmp rax,rbp
+          5de01a: 0f 84 b3 03 00 00       je 00000000005DE3D3h
+          5de020: bb 01 00 00 00          mov ebx,1
+          5de025: 4c 8d 67 28             lea r12,[rdi+28h]
+          5de029: 4d 8b 5c 24 08          mov r11,[r12+8]
+          5de02e: 4c 89 44 24 28          mov [rsp+28h],r8
+          5de033: 4d 89 e5                mov r13,r12
+          5de036: 4c 89 df                mov rdi,r11
+          5de039: 4c 89 5c 24 08          mov [rsp+8],r11
+          5de03e: e8 9d 32 e2 ff          call 00000000004012E0h
+          5de043: 48 8b 74 24 08          mov rsi,[rsp+8]
+          5de048: 4c 8b 44 24 28          mov r8,[rsp+28h]
+          5de04d: 48 39 e8                cmp rax,rbp
+          5de050: 0f 84 5a 03 00 00       je 00000000005DE3B0h
+          5de056: 48 83 c3 01             add rbx,1
+          5de05a: 49 83 c4 28             add r12,28h
+          5de05e: 49 8b 44 24 08          mov rax,[r12+8]
+          5de063: 4c 89 44 24 28          mov [rsp+28h],r8
+          5de068: 4d 89 e5                mov r13,r12
+          5de06b: 48 89 c7                mov rdi,rax
+          5de06e: 48 89 44 24 08          mov [rsp+8],rax
+          5de073: e8 68 32 e2 ff          call 00000000004012E0h
+          5de078: 48 8b 74 24 08          mov rsi,[rsp+8]
+          5de07d: 4c 8b 44 24 28          mov r8,[rsp+28h]
+          5de082: 48 39 e8                cmp rax,rbp
+          5de085: 0f 84 fd 02 00 00       je 00000000005DE388h
+          5de08b: 48 8b 54 24 10          mov rdx,[rsp+10h]
+          5de090: 48 83 c3 01             add rbx,1
+          5de094: 49 83 c4 28             add r12,28h
+          5de098: 48 39 d3                cmp rbx,rdx
+          5de09b: 0f 84 8f 02 00 00       je 00000000005DE330h
+          5de0a1: 4c 89 74 24 38          mov [rsp+38h],r14
+          5de0a6: 4d 89 e6                mov r14,r12
+          5de0a9: 4c 89 7c 24 28          mov [rsp+28h],r15
+          5de0ae: 4c 89 44 24 30          mov [rsp+30h],r8
+          5de0b3: e9 a2 00 00 00          jmp 00000000005DE15Ah
+          5de0b8: 0f 1f 84 00 00 00 00 00 nop [rax+rax]
+          5de0c0: 4d 8b 4e 30             mov r9,[r14+30h]
+          5de0c4: 4d 8d 7e 28             lea r15,[r14+28h]
+          5de0c8: 4c 8d 6b 01             lea r13,[rbx+1]
+          5de0cc: 4c 89 eb                mov rbx,r13
+          5de0cf: 4d 89 fe                mov r14,r15
+          5de0d2: 4d 89 fc                mov r12,r15
+          5de0d5: 4c 89 cf                mov rdi,r9
+          5de0d8: 4c 89 4c 24 08          mov [rsp+8],r9
+          5de0dd: e8 fe 31 e2 ff          call 00000000004012E0h
+          5de0e2: 48 8b 74 24 08          mov rsi,[rsp+8]
+          5de0e7: 48 39 e8                cmp rax,rbp
+          5de0ea: 0f 84 b0 00 00 00       je 00000000005DE1A0h
+          5de0f0: 49 8b 4f 30             mov rcx,[r15+30h]
+          5de0f4: 4d 8d 77 28             lea r14,[r15+28h]
+          5de0f8: 49 8d 5d 01             lea rbx,[r13+1]
+          5de0fc: 4d 89 f4                mov r12,r14
+          5de0ff: 48 89 cf                mov rdi,rcx
+          5de102: 48 89 4c 24 08          mov [rsp+8],rcx
+          5de107: e8 d4 31 e2 ff          call 00000000004012E0h
+          5de10c: 48 8b 74 24 08          mov rsi,[rsp+8]
+          5de111: 48 39 e8                cmp rax,rbp
+          5de114: 0f 84 d6 01 00 00       je 00000000005DE2F0h
+          5de11a: 49 8b 77 58             mov rsi,[r15+58h]
+          5de11e: 4d 8d 77 50             lea r14,[r15+50h]
+          5de122: 49 8d 5d 02             lea rbx,[r13+2]
+          5de126: 4d 89 f4                mov r12,r14
+          5de129: 48 89 f7                mov rdi,rsi
+          5de12c: 48 89 74 24 08          mov [rsp+8],rsi
+          5de131: e8 aa 31 e2 ff          call 00000000004012E0h
+          5de136: 48 8b 74 24 08          mov rsi,[rsp+8]
+          5de13b: 48 39 e8                cmp rax,rbp
+          5de13e: 0f 84 cc 01 00 00       je 00000000005DE310h
+          5de144: 4c 8b 54 24 10          mov r10,[rsp+10h]
+          5de149: 49 8d 5d 03             lea rbx,[r13+3]
+          5de14d: 4d 8d 77 78             lea r14,[r15+78h]
+          5de151: 4c 39 d3                cmp rbx,r10
+          5de154: 0f 84 d6 01 00 00       je 00000000005DE330h
+          5de15a: 4d 8b 7e 08             mov r15,[r14+8]
+          5de15e: 4d 89 f4                mov r12,r14
+          5de161: 4c 89 ff                mov rdi,r15
+          5de164: e8 77 31 e2 ff          call 00000000004012E0h
+          5de169: 48 39 e8                cmp rax,rbp
+          5de16c: 0f 85 4e ff ff ff       jne 00000000005DE0C0h
+          5de172: 48 8b 3c 24             mov rdi,[rsp]
+          5de176: 48 89 ea                mov rdx,rbp
+          5de179: 4c 89 fe                mov rsi,r15
+          5de17c: e8 bf 31 e2 ff          call 0000000000401340h
+          5de181: 85 c0                   test eax,eax
+          5de183: 0f 85 37 ff ff ff       jne 00000000005DE0C0h
+          5de189: 4d 89 f5                mov r13,r14
+          5de18c: 4c 8b 7c 24 28          mov r15,[rsp+28h]
+          5de191: 4c 8b 44 24 30          mov r8,[rsp+30h]
+          5de196: 4c 8b 74 24 38          mov r14,[rsp+38h]
+          5de19b: eb 2c                   jmp short 00000000005DE1C9h
+          5de19d: 0f 1f 00                nop [rax]
+          5de1a0: 48 8b 3c 24             mov rdi,[rsp]
+          5de1a4: 48 89 ea                mov rdx,rbp
+          5de1a7: e8 94 31 e2 ff          call 0000000000401340h
+          5de1ac: 85 c0                   test eax,eax
+          5de1ae: 0f 85 3c ff ff ff       jne 00000000005DE0F0h
+          5de1b4: 4d 89 e5                mov r13,r12
+          5de1b7: 4c 8b 7c 24 28          mov r15,[rsp+28h]
+          5de1bc: 4d 89 f4                mov r12,r14
+          5de1bf: 4c 8b 44 24 30          mov r8,[rsp+30h]
+          5de1c4: 4c 8b 74 24 38          mov r14,[rsp+38h]
+          5de1c9: 48 8b 6c 24 20          mov rbp,[rsp+20h]
+          5de1ce: 4a 89 5c fd 00          mov [rbp+r15*8],rbx
+          5de1d3: 4d 39 f4                cmp r12,r14
+          5de1d6: 0f 84 54 01 00 00       je 00000000005DE330h
+          5de1dc: 49 83 7d 20 00          cmp qword ptr [r13+20h],0
+          5de1e1: 41 0f b6 38             movzx edi,byte ptr [r8]
+          5de1e5: 0f 85 cb 00 00 00       jne 00000000005DE2B6h
+          5de1eb: 40 84 ff                test dil,dil
+          5de1ee: 0f 84 21 02 00 00       je 00000000005DE415h
+          5de1f4: 49 8d 78 01             lea rdi,[r8+1]
+          5de1f8: be 2e 00 00 00          mov esi,2Eh
+          5de1fd: 48 89 3c 24             mov [rsp],rdi
+          5de201: e8 7a 30 e2 ff          call 0000000000401280h
+          5de206: 49 89 c0                mov r8,rax
+          5de209: 48 85 c0                test rax,rax
+          5de20c: 0f 84 36 01 00 00       je 00000000005DE348h
+          5de212: 48 89 c5                mov rbp,rax
+          5de215: 4c 8b 1c 24             mov r11,[rsp]
+          5de219: 48 8b 44 24 18          mov rax,[rsp+18h]
+          5de21e: 49 83 c7 01             add r15,1
+          5de222: 4c 29 dd                sub rbp,r11
+          5de225: 4c 3b 38                cmp r15,[rax]
+          5de228: 0f 83 3f 01 00 00       jae 00000000005DE36Dh
+          5de22e: 4d 89 ee                mov r14,r13
+          5de231: 4d 8b 4e 18             mov r9,[r14+18h]
+          5de235: 41 80 39 00             cmp byte ptr [r9],0
+          5de239: 0f 85 81 fd ff ff       jne 00000000005DDFC0h
+          5de23f: 48 8b 3c 24             mov rdi,[rsp]
+          5de243: 31 f6                   xor esi,esi
+          5de245: ba 0a 00 00 00          mov edx,0Ah
+          5de24a: 4c 89 44 24 08          mov [rsp+8],r8
+          5de24f: e8 8c 8e 04 00          call 00000000006270E0h
+          5de254: 4c 8b 44 24 08          mov r8,[rsp+8]
+          5de259: 48 83 f8 ff             cmp rax,0FFFFFFFFFFFFFFFFh
+          5de25d: 48 89 c3                mov rbx,rax
+          5de260: 0f 84 ca 00 00 00       je 00000000005DE330h
+          5de266: 49 8b 6e 18             mov rbp,[r14+18h]
+          5de26a: 4c 89 04 24             mov [rsp],r8
+          5de26e: 80 7d 00 00             cmp byte ptr [rbp],0
+          5de272: 0f 85 cb 4e e2 ff       jne 0000000000403143h
+          5de278: 48 8b 4c 24 18          mov rcx,[rsp+18h]
+          5de27d: 4c 8b 74 24 20          mov r14,[rsp+20h]
+          5de282: 48 8b 7c 24 40          mov rdi,[rsp+40h]
+          5de287: 48 8b 11                mov rdx,[rcx]
+          5de28a: 4c 89 f6                mov rsi,r14
+          5de28d: 48 89 c1                mov rcx,rax
+          5de290: ff 55 08                call qword ptr [rbp+8]
+          5de293: 49 89 c5                mov r13,rax
+          5de296: 48 85 c0                test rax,rax
+          5de299: 0f 84 91 00 00 00       je 00000000005DE330h
+          5de29f: 4c 8b 04 24             mov r8,[rsp]
+          5de2a3: 49 83 7d 20 00          cmp qword ptr [r13+20h],0
+          5de2a8: 4b 89 1c fe             mov [r14+r15*8],rbx
+          5de2ac: 41 0f b6 38             movzx edi,byte ptr [r8]
+          5de2b0: 0f 84 35 ff ff ff       je 00000000005DE1EBh
+          5de2b6: 48 8b 5c 24 48          mov rbx,[rsp+48h]
+          5de2bb: 40 84 ff                test dil,dil
+          5de2be: 75 70                   jne short 00000000005DE330h
+          5de2c0: 4d 8d 47 01             lea r8,[r15+1]
+          5de2c4: 4c 8b 7c 24 18          mov r15,[rsp+18h]
+          5de2c9: 4d 89 07                mov [r15],r8
+          5de2cc: 48 85 db                test rbx,rbx
+          5de2cf: 0f 85 a6 00 00 00       jne 00000000005DE37Bh
+          5de2d5: 31 c0                   xor eax,eax
+          5de2d7: 48 83 c4 58             add rsp,58h
+          5de2db: 5b                      pop rbx
+          5de2dc: 5d                      pop rbp
+          5de2dd: 41 5c                   pop r12
+          5de2df: 41 5d                   pop r13
+          5de2e1: 41 5e                   pop r14
+          5de2e3: 41 5f                   pop r15
+          5de2e5: c3                      ret
+          5de2e6: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          5de2f0: 48 8b 3c 24             mov rdi,[rsp]
+          5de2f4: 48 89 ea                mov rdx,rbp
+          5de2f7: e8 44 30 e2 ff          call 0000000000401340h
+          5de2fc: 85 c0                   test eax,eax
+          5de2fe: 0f 85 16 fe ff ff       jne 00000000005DE11Ah
+          5de304: e9 ab fe ff ff          jmp 00000000005DE1B4h
+          5de309: 0f 1f 80 00 00 00 00    nop [rax]
+          5de310: 48 8b 3c 24             mov rdi,[rsp]
+          5de314: 48 89 ea                mov rdx,rbp
+          5de317: e8 24 30 e2 ff          call 0000000000401340h
+          5de31c: 85 c0                   test eax,eax
+          5de31e: 0f 85 20 fe ff ff       jne 00000000005DE144h
+          5de324: e9 8b fe ff ff          jmp 00000000005DE1B4h
+          5de329: 0f 1f 80 00 00 00 00    nop [rax]
+          5de330: 48 83 c4 58             add rsp,58h
+          5de334: b8 02 00 00 00          mov eax,2
+          5de339: 5b                      pop rbx
+          5de33a: 5d                      pop rbp
+          5de33b: 41 5c                   pop r12
+          5de33d: 41 5d                   pop r13
+          5de33f: 41 5e                   pop r14
+          5de341: 41 5f                   pop r15
+          5de343: c3                      ret
+          5de344: 0f 1f 40 00             nop [rax]
+          5de348: 4c 8b 24 24             mov r12,[rsp]
+          5de34c: 49 83 c7 01             add r15,1
+          5de350: 4c 89 e7                mov rdi,r12
+          5de353: e8 88 2f e2 ff          call 00000000004012E0h
+          5de358: 48 8b 54 24 18          mov rdx,[rsp+18h]
+          5de35d: 48 89 c5                mov rbp,rax
+          5de360: 4d 8d 04 04             lea r8,[r12+rax]
+          5de364: 4c 3b 3a                cmp r15,[rdx]
+          5de367: 0f 82 c1 fe ff ff       jb 00000000005DE22Eh
+          5de36d: 48 8b 5c 24 48          mov rbx,[rsp+48h]
+          5de372: 48 85 db                test rbx,rbx
+          5de375: 0f 84 5a ff ff ff       je 00000000005DE2D5h
+          5de37b: 4c 89 2b                mov [rbx],r13
+          5de37e: 31 c0                   xor eax,eax
+          5de380: e9 52 ff ff ff          jmp 00000000005DE2D7h
+          5de385: 0f 1f 00                nop [rax]
+          5de388: 48 8b 3c 24             mov rdi,[rsp]
+          5de38c: 48 89 ea                mov rdx,rbp
+          5de38f: 4c 89 44 24 08          mov [rsp+8],r8
+          5de394: e8 a7 2f e2 ff          call 0000000000401340h
+          5de399: 4c 8b 44 24 08          mov r8,[rsp+8]
+          5de39e: 85 c0                   test eax,eax
+          5de3a0: 0f 85 e5 fc ff ff       jne 00000000005DE08Bh
+          5de3a6: e9 1e fe ff ff          jmp 00000000005DE1C9h
+          5de3ab: 0f 1f 44 00 00          nop [rax+rax]
+          5de3b0: 48 8b 3c 24             mov rdi,[rsp]
+          5de3b4: 48 89 ea                mov rdx,rbp
+          5de3b7: 4c 89 44 24 08          mov [rsp+8],r8
+          5de3bc: e8 7f 2f e2 ff          call 0000000000401340h
+          5de3c1: 4c 8b 44 24 08          mov r8,[rsp+8]
+          5de3c6: 85 c0                   test eax,eax
+          5de3c8: 0f 85 88 fc ff ff       jne 00000000005DE056h
+          5de3ce: e9 f6 fd ff ff          jmp 00000000005DE1C9h
+          5de3d3: 48 8b 3c 24             mov rdi,[rsp]
+          5de3d7: 48 89 ea                mov rdx,rbp
+          5de3da: 4c 89 44 24 28          mov [rsp+28h],r8
+          5de3df: 4c 89 64 24 08          mov [rsp+8],r12
+          5de3e4: e8 57 2f e2 ff          call 0000000000401340h
+          5de3e9: 4c 8b 44 24 28          mov r8,[rsp+28h]
+          5de3ee: 4c 89 e7                mov rdi,r12
+          5de3f1: 85 c0                   test eax,eax
+          5de3f3: 0f 85 27 fc ff ff       jne 00000000005DE020h
+          5de3f9: e9 cb fd ff ff          jmp 00000000005DE1C9h
+          5de3fe: 66 90                   xchg ax,ax
+          5de400: 4c 8b 3c 24             mov r15,[rsp]
+          5de404: 4c 89 ff                mov rdi,r15
+          5de407: e8 d4 2e e2 ff          call 00000000004012E0h
+          5de40c: 4d 8d 04 07             lea r8,[r15+rax]
+          5de410: e9 6b fb ff ff          jmp 00000000005DDF80h
+          5de415: 48 8b 5c 24 48          mov rbx,[rsp+48h]
+          5de41a: e9 a1 fe ff ff          jmp 00000000005DE2C0h
+          5de41f: 4d 89 f5                mov r13,r14
+          5de422: e9 4b ff ff ff          jmp 00000000005DE372h
+
+mil program = 
+program  1333 instrs
+    0 r12 <- #pre:stack_bottom
+    1 r2 <- #pre:CF
+    2 r3 <- #pre:PF
+    3 r4 <- #pre:AF
+    4 r5 <- #pre:ZF
+    5 r6 <- #pre:SF
+    6 r7 <- #pre:TF
+    7 r8 <- #pre:IF
+    8 r9 <- #pre:DF
+    9 r10 <- #pre:OF
+   10 r11 <- #pre:RBP
+   11 r12 <- #pre:RSP
+   12 r13 <- #pre:RIP
+   13 r14 <- #pre:RDI
+   14 r15 <- #pre:RSI
+   15 r16 <- #pre:RAX
+   16 r17 <- #pre:RBX
+   17 r18 <- #pre:RCX
+   18 r19 <- #pre:RDX
+   19 r20 <- #pre:R8
+   20 r21 <- #pre:R9
+   21 r22 <- #pre:R10
+   22 r23 <- #pre:R11
+   23 r24 <- #pre:R12
+   24 r25 <- #pre:R13
+   25 r26 <- #pre:R14
+   26 r27 <- #pre:R15
+   27 r28 <- undef
+   28 r29 <- undef
+   29 r30 <- undef
+   30 r31 <- undef
+   31 r32 <- undef
+   32 r33 <- undef
+   33 r34 <- undef
+0x5ddf40:
+   34 r12 <- addk     r12,-8 qword
+   35 r29 <- store    *r12 ← r27
+0x5ddf42:
+   36 r12 <- addk     r12,-8 qword
+   37 r29 <- store    *r12 ← r26
+0x5ddf44:
+   38 r26 <- get      r15
+0x5ddf47:
+   39 r28 <- const4   46 (0x2e)
+   40 r15 <- v8.l4=   r15 ← r28
+0x5ddf4c:
+   41 r12 <- addk     r12,-8 qword
+   42 r29 <- store    *r12 ← r25
+0x5ddf4e:
+   43 r12 <- addk     r12,-8 qword
+   44 r29 <- store    *r12 ← r24
+0x5ddf50:
+   45 r12 <- addk     r12,-8 qword
+   46 r29 <- store    *r12 ← r11
+0x5ddf51:
+   47 r12 <- addk     r12,-8 qword
+   48 r29 <- store    *r12 ← r17
+0x5ddf52:
+   49 r17 <- get      r18
+0x5ddf55:
+   50 r29 <- const8   88 (0x58)
+   51 r12 <- sub      r12,r29  qword
+   52 r12 <- get      r12
+   53 r10 <- overflow r12
+   54 r2 <- carry    r12
+   55 r6 <- sign     r12
+   56 r5 <- is0      r12
+   57 r30 <- l1       r12
+   58 r3 <- parity   r30
+0x5ddf59:
+   59 r29 <- const8   64 (0x40)
+   60 r29 <- add      r29,r12  qword
+   61 r30 <- store    *r29 ← r14
+0x5ddf5e:
+   62 r14 <- get      r19
+0x5ddf61:
+   63 r29 <- const8   32 (0x20)
+   64 r29 <- add      r29,r12  qword
+   65 r30 <- store    *r29 ← r20
+0x5ddf66:
+   66 r29 <- const8   0 (0x0)
+   67 r29 <- add      r29,r12  qword
+   68 r30 <- store    *r29 ← r19
+0x5ddf6a:
+   69 r29 <- const8   24 (0x18)
+   70 r29 <- add      r29,r12  qword
+   71 r30 <- store    *r29 ← r21
+0x5ddf6f:
+   72 r28 <- const8   4199040 (0x401280)
+   73 r16 <- call     r28
+   74 r29 <- carg     r14
+   75 r30 <- carg     r15
+   76 r31 <- carg     r19
+   77 r32 <- carg     r18
+   78 r2 <- undef
+   79 r3 <- undef
+   80 r4 <- undef
+   81 r5 <- undef
+   82 r6 <- undef
+   83 r7 <- undef
+   84 r8 <- undef
+   85 r9 <- undef
+   86 r10 <- undef
+0x5ddf74:
+   87 r20 <- get      r16
+0x5ddf77:
+   88 r16 <- and      r16,r16  qword
+   89 r6 <- sign     r16
+   90 r5 <- is0      r16
+   91 r30 <- l1       r16
+   92 r3 <- parity   r16
+   93 r2 <- const1   0 (0x0)
+   94 r10 <- const1   0 (0x0)
+0x5ddf7a:
+   95 r28 <- jmp.if   r5,1300
+0x5ddf80:
+   96 r29 <- const8   0 (0x0)
+   97 r29 <- add      r29,r12  qword
+   98 r28 <- loadm8   addr:r29
+   99 r16 <- get      r28
+0x5ddf84:
+  100 r11 <- get      r20
+0x5ddf87:
+  101 r11 <- sub      r11,r16  qword
+  102 r11 <- get      r11
+  103 r10 <- overflow r11
+  104 r2 <- carry    r11
+  105 r6 <- sign     r11
+  106 r5 <- is0      r11
+  107 r30 <- l1       r11
+  108 r3 <- parity   r30
+0x5ddf8a:
+  109 r28 <- jmp.if   r5,1073
+0x5ddf90:
+  110 r29 <- const8   24 (0x18)
+  111 r29 <- add      r29,r12  qword
+  112 r28 <- loadm8   addr:r29
+  113 r19 <- get      r28
+0x5ddf95:
+  114 r29 <- const8   0 (0x0)
+  115 r29 <- add      r29,r19  qword
+  116 r28 <- loadm8   addr:r29
+  117 r30 <- const8   0 (0x0)
+  118 r28 <- sub      r28,r30  qword
+  119 r10 <- overflow r28
+  120 r2 <- carry    r28
+  121 r6 <- sign     r28
+  122 r5 <- is0      r28
+  123 r31 <- l1       r28
+  124 r3 <- parity   r31
+0x5ddf99:
+  125 r28 <- jmp.if   r5,1331
+0x5ddf9f:
+  126 r29 <- const8   24 (0x18)
+  127 r29 <- add      r29,r26  qword
+  128 r28 <- loadm8   addr:r29
+  129 r21 <- get      r28
+0x5ddfa3:
+  130 r28 <- l4       r27
+  131 r29 <- l4       r27
+  132 r28 <- xor      r28,r29  dword
+  133 r27 <- v8.l4=   r27 ← r28
+  134 r10 <- false
+  135 r2 <- false
+  136 r6 <- sign     r28
+  137 r5 <- is0      r28
+  138 r30 <- l1       r28
+  139 r3 <- parity   r30
+0x5ddfa6:
+  140 r29 <- const8   72 (0x48)
+  141 r29 <- add      r29,r12  qword
+  142 r30 <- store    *r29 ← r17
+0x5ddfab:
+  143 r29 <- const8   0 (0x0)
+  144 r29 <- add      r29,r21  qword
+  145 r28 <- loadm1   addr:r29
+  146 r30 <- const1   0 (0x0)
+  147 r28 <- sub      r28,r30  byte
+  148 r10 <- overflow r28
+  149 r2 <- carry    r28
+  150 r6 <- sign     r28
+  151 r5 <- is0      r28
+  152 r31 <- l1       r28
+  153 r3 <- parity   r31
+0x5ddfaf:
+  154 r28 <- jmp.if   r5,802
+0x5ddfc0:
+  155 r29 <- const8   16 (0x10)
+  156 r29 <- add      r29,r26  qword
+  157 r28 <- loadm8   addr:r29
+  158 r15 <- get      r28
+0x5ddfc4:
+  159 r29 <- const8   16 (0x10)
+  160 r29 <- add      r29,r12  qword
+  161 r30 <- store    *r29 ← r15
+0x5ddfc9:
+  162 r15 <- and      r15,r15  qword
+  163 r6 <- sign     r15
+  164 r5 <- is0      r15
+  165 r30 <- l1       r15
+  166 r3 <- parity   r15
+  167 r2 <- const1   0 (0x0)
+  168 r10 <- const1   0 (0x0)
+0x5ddfcc:
+  169 r28 <- jmp.if   r5,1073
+0x5ddfd2:
+  170 r24 <- get      r21
+0x5ddfd5:
+  171 r28 <- l4       r17
+  172 r29 <- l4       r17
+  173 r28 <- xor      r28,r29  dword
+  174 r17 <- v8.l4=   r17 ← r28
+  175 r10 <- false
+  176 r2 <- false
+  177 r6 <- sign     r28
+  178 r5 <- is0      r28
+  179 r30 <- l1       r28
+  180 r3 <- parity   r30
+0x5ddfd7:
+  181 r28 <- l4       r15
+  182 r29 <- const4   3 (0x3)
+  183 r28 <- and      r28,r29  dword
+  184 r15 <- v8.l4=   r15 ← r28
+  185 r10 <- false
+  186 r2 <- false
+  187 r6 <- sign     r28
+  188 r5 <- is0      r28
+  189 r30 <- l1       r28
+  190 r3 <- parity   r30
+0x5ddfda:
+  191 r28 <- jmp.if   r5,396
+0x5ddfe0:
+  192 r29 <- const8   1 (0x1)
+  193 r15 <- sub      r15,r29  qword
+  194 r10 <- overflow r15
+  195 r2 <- carry    r15
+  196 r6 <- sign     r15
+  197 r5 <- is0      r15
+  198 r30 <- l1       r15
+  199 r3 <- parity   r30
+0x5ddfe4:
+  200 r28 <- jmp.if   r5,323
+0x5ddfe6:
+  201 r29 <- const8   2 (0x2)
+  202 r15 <- sub      r15,r29  qword
+  203 r10 <- overflow r15
+  204 r2 <- carry    r15
+  205 r6 <- sign     r15
+  206 r5 <- is0      r15
+  207 r30 <- l1       r15
+  208 r3 <- parity   r30
+0x5ddfea:
+  209 r28 <- jmp.if   r5,262
+0x5ddfec:
+  210 r29 <- const8   8 (0x8)
+  211 r29 <- add      r29,r21  qword
+  212 r28 <- loadm8   addr:r29
+  213 r22 <- get      r28
+0x5ddff0:
+  214 r29 <- const8   48 (0x30)
+  215 r29 <- add      r29,r12  qword
+  216 r30 <- store    *r29 ← r20
+0x5ddff5:
+  217 r25 <- get      r21
+0x5ddff8:
+  218 r29 <- const8   40 (0x28)
+  219 r29 <- add      r29,r12  qword
+  220 r30 <- store    *r29 ← r21
+0x5ddffd:
+  221 r14 <- get      r22
+0x5de000:
+  222 r29 <- const8   8 (0x8)
+  223 r29 <- add      r29,r12  qword
+  224 r30 <- store    *r29 ← r22
+0x5de005:
+  225 r28 <- const8   4199136 (0x4012e0)
+  226 r16 <- call     r28
+  227 r29 <- carg     r14
+  228 r30 <- carg     r15
+  229 r31 <- carg     r19
+  230 r32 <- carg     r18
+  231 r2 <- undef
+  232 r3 <- undef
+  233 r4 <- undef
+  234 r5 <- undef
+  235 r6 <- undef
+  236 r7 <- undef
+  237 r8 <- undef
+  238 r9 <- undef
+  239 r10 <- undef
+0x5de00a:
+  240 r29 <- const8   8 (0x8)
+  241 r29 <- add      r29,r12  qword
+  242 r28 <- loadm8   addr:r29
+  243 r15 <- get      r28
+0x5de00f:
+  244 r29 <- const8   48 (0x30)
+  245 r29 <- add      r29,r12  qword
+  246 r28 <- loadm8   addr:r29
+  247 r20 <- get      r28
+0x5de014:
+  248 r14 <- get      r24
+0x5de017:
+  249 r16 <- sub      r16,r11  qword
+  250 r10 <- overflow r16
+  251 r2 <- carry    r16
+  252 r6 <- sign     r16
+  253 r5 <- is0      r16
+  254 r30 <- l1       r16
+  255 r3 <- parity   r30
+0x5de01a:
+  256 r28 <- jmp.if   r5,1257
+0x5de020:
+  257 r28 <- const4   1 (0x1)
+  258 r17 <- v8.l4=   r17 ← r28
+0x5de025:
+  259 r28 <- const8   40 (0x28)
+  260 r28 <- add      r28,r14  qword
+  261 r24 <- get      r28
+0x5de029:
+  262 r29 <- const8   8 (0x8)
+  263 r29 <- add      r29,r24  qword
+  264 r28 <- loadm8   addr:r29
+  265 r23 <- get      r28
+0x5de02e:
+  266 r29 <- const8   40 (0x28)
+  267 r29 <- add      r29,r12  qword
+  268 r30 <- store    *r29 ← r20
+0x5de033:
+  269 r25 <- get      r24
+0x5de036:
+  270 r14 <- get      r23
+0x5de039:
+  271 r29 <- const8   8 (0x8)
+  272 r29 <- add      r29,r12  qword
+  273 r30 <- store    *r29 ← r23
+0x5de03e:
+  274 r28 <- const8   4199136 (0x4012e0)
+  275 r16 <- call     r28
+  276 r29 <- carg     r14
+  277 r30 <- carg     r15
+  278 r31 <- carg     r19
+  279 r32 <- carg     r18
+  280 r2 <- undef
+  281 r3 <- undef
+  282 r4 <- undef
+  283 r5 <- undef
+  284 r6 <- undef
+  285 r7 <- undef
+  286 r8 <- undef
+  287 r9 <- undef
+  288 r10 <- undef
+0x5de043:
+  289 r29 <- const8   8 (0x8)
+  290 r29 <- add      r29,r12  qword
+  291 r28 <- loadm8   addr:r29
+  292 r15 <- get      r28
+0x5de048:
+  293 r29 <- const8   40 (0x28)
+  294 r29 <- add      r29,r12  qword
+  295 r28 <- loadm8   addr:r29
+  296 r20 <- get      r28
+0x5de04d:
+  297 r16 <- sub      r16,r11  qword
+  298 r10 <- overflow r16
+  299 r2 <- carry    r16
+  300 r6 <- sign     r16
+  301 r5 <- is0      r16
+  302 r30 <- l1       r16
+  303 r3 <- parity   r30
+0x5de050:
+  304 r28 <- jmp.if   r5,1218
+0x5de056:
+  305 r29 <- const8   1 (0x1)
+  306 r17 <- add      r17,r29  qword
+  307 r17 <- get      r17
+  308 r10 <- overflow r17
+  309 r2 <- carry    r17
+  310 r6 <- sign     r17
+  311 r5 <- is0      r17
+  312 r30 <- l1       r17
+  313 r3 <- parity   r30
+0x5de05a:
+  314 r29 <- const8   40 (0x28)
+  315 r24 <- add      r24,r29  qword
+  316 r24 <- get      r24
+  317 r10 <- overflow r24
+  318 r2 <- carry    r24
+  319 r6 <- sign     r24
+  320 r5 <- is0      r24
+  321 r30 <- l1       r24
+  322 r3 <- parity   r30
+0x5de05e:
+  323 r29 <- const8   8 (0x8)
+  324 r29 <- add      r29,r24  qword
+  325 r28 <- loadm8   addr:r29
+  326 r16 <- get      r28
+0x5de063:
+  327 r29 <- const8   40 (0x28)
+  328 r29 <- add      r29,r12  qword
+  329 r30 <- store    *r29 ← r20
+0x5de068:
+  330 r25 <- get      r24
+0x5de06b:
+  331 r14 <- get      r16
+0x5de06e:
+  332 r29 <- const8   8 (0x8)
+  333 r29 <- add      r29,r12  qword
+  334 r30 <- store    *r29 ← r16
+0x5de073:
+  335 r28 <- const8   4199136 (0x4012e0)
+  336 r16 <- call     r28
+  337 r29 <- carg     r14
+  338 r30 <- carg     r15
+  339 r31 <- carg     r19
+  340 r32 <- carg     r18
+  341 r2 <- undef
+  342 r3 <- undef
+  343 r4 <- undef
+  344 r5 <- undef
+  345 r6 <- undef
+  346 r7 <- undef
+  347 r8 <- undef
+  348 r9 <- undef
+  349 r10 <- undef
+0x5de078:
+  350 r29 <- const8   8 (0x8)
+  351 r29 <- add      r29,r12  qword
+  352 r28 <- loadm8   addr:r29
+  353 r15 <- get      r28
+0x5de07d:
+  354 r29 <- const8   40 (0x28)
+  355 r29 <- add      r29,r12  qword
+  356 r28 <- loadm8   addr:r29
+  357 r20 <- get      r28
+0x5de082:
+  358 r16 <- sub      r16,r11  qword
+  359 r10 <- overflow r16
+  360 r2 <- carry    r16
+  361 r6 <- sign     r16
+  362 r5 <- is0      r16
+  363 r30 <- l1       r16
+  364 r3 <- parity   r30
+0x5de085:
+  365 r28 <- jmp.if   r5,1179
+0x5de08b:
+  366 r29 <- const8   16 (0x10)
+  367 r29 <- add      r29,r12  qword
+  368 r28 <- loadm8   addr:r29
+  369 r19 <- get      r28
+0x5de090:
+  370 r29 <- const8   1 (0x1)
+  371 r17 <- add      r17,r29  qword
+  372 r17 <- get      r17
+  373 r10 <- overflow r17
+  374 r2 <- carry    r17
+  375 r6 <- sign     r17
+  376 r5 <- is0      r17
+  377 r30 <- l1       r17
+  378 r3 <- parity   r30
+0x5de094:
+  379 r29 <- const8   40 (0x28)
+  380 r24 <- add      r24,r29  qword
+  381 r24 <- get      r24
+  382 r10 <- overflow r24
+  383 r2 <- carry    r24
+  384 r6 <- sign     r24
+  385 r5 <- is0      r24
+  386 r30 <- l1       r24
+  387 r3 <- parity   r30
+0x5de098:
+  388 r17 <- sub      r17,r19  qword
+  389 r10 <- overflow r17
+  390 r2 <- carry    r17
+  391 r6 <- sign     r17
+  392 r5 <- is0      r17
+  393 r30 <- l1       r17
+  394 r3 <- parity   r30
+0x5de09b:
+  395 r28 <- jmp.if   r5,1073
+0x5de0a1:
+  396 r29 <- const8   56 (0x38)
+  397 r29 <- add      r29,r12  qword
+  398 r30 <- store    *r29 ← r26
+0x5de0a6:
+  399 r26 <- get      r24
+0x5de0a9:
+  400 r29 <- const8   40 (0x28)
+  401 r29 <- add      r29,r12  qword
+  402 r30 <- store    *r29 ← r27
+0x5de0ae:
+  403 r29 <- const8   48 (0x30)
+  404 r29 <- add      r29,r12  qword
+  405 r30 <- store    *r29 ← r20
+0x5de0b3:
+  406 r28 <- jmp      553
+0x5de0c0:
+  407 r29 <- const8   48 (0x30)
+  408 r29 <- add      r29,r26  qword
+  409 r28 <- loadm8   addr:r29
+  410 r21 <- get      r28
+0x5de0c4:
+  411 r28 <- const8   40 (0x28)
+  412 r28 <- add      r28,r26  qword
+  413 r27 <- get      r28
+0x5de0c8:
+  414 r28 <- const8   1 (0x1)
+  415 r28 <- add      r28,r17  qword
+  416 r25 <- get      r28
+0x5de0cc:
+  417 r17 <- get      r25
+0x5de0cf:
+  418 r26 <- get      r27
+0x5de0d2:
+  419 r24 <- get      r27
+0x5de0d5:
+  420 r14 <- get      r21
+0x5de0d8:
+  421 r29 <- const8   8 (0x8)
+  422 r29 <- add      r29,r12  qword
+  423 r30 <- store    *r29 ← r21
+0x5de0dd:
+  424 r28 <- const8   4199136 (0x4012e0)
+  425 r16 <- call     r28
+  426 r29 <- carg     r14
+  427 r30 <- carg     r15
+  428 r31 <- carg     r19
+  429 r32 <- carg     r18
+  430 r2 <- undef
+  431 r3 <- undef
+  432 r4 <- undef
+  433 r5 <- undef
+  434 r6 <- undef
+  435 r7 <- undef
+  436 r8 <- undef
+  437 r9 <- undef
+  438 r10 <- undef
+0x5de0e2:
+  439 r29 <- const8   8 (0x8)
+  440 r29 <- add      r29,r12  qword
+  441 r28 <- loadm8   addr:r29
+  442 r15 <- get      r28
+0x5de0e7:
+  443 r16 <- sub      r16,r11  qword
+  444 r10 <- overflow r16
+  445 r2 <- carry    r16
+  446 r6 <- sign     r16
+  447 r5 <- is0      r16
+  448 r30 <- l1       r16
+  449 r3 <- parity   r30
+0x5de0ea:
+  450 r28 <- jmp.if   r5,629
+0x5de0f0:
+  451 r29 <- const8   48 (0x30)
+  452 r29 <- add      r29,r27  qword
+  453 r28 <- loadm8   addr:r29
+  454 r18 <- get      r28
+0x5de0f4:
+  455 r28 <- const8   40 (0x28)
+  456 r28 <- add      r28,r27  qword
+  457 r26 <- get      r28
+0x5de0f8:
+  458 r28 <- const8   1 (0x1)
+  459 r28 <- add      r28,r25  qword
+  460 r17 <- get      r28
+0x5de0fc:
+  461 r24 <- get      r26
+0x5de0ff:
+  462 r14 <- get      r18
+0x5de102:
+  463 r29 <- const8   8 (0x8)
+  464 r29 <- add      r29,r12  qword
+  465 r30 <- store    *r29 ← r18
+0x5de107:
+  466 r28 <- const8   4199136 (0x4012e0)
+  467 r16 <- call     r28
+  468 r29 <- carg     r14
+  469 r30 <- carg     r15
+  470 r31 <- carg     r19
+  471 r32 <- carg     r18
+  472 r2 <- undef
+  473 r3 <- undef
+  474 r4 <- undef
+  475 r5 <- undef
+  476 r6 <- undef
+  477 r7 <- undef
+  478 r8 <- undef
+  479 r9 <- undef
+  480 r10 <- undef
+0x5de10c:
+  481 r29 <- const8   8 (0x8)
+  482 r29 <- add      r29,r12  qword
+  483 r28 <- loadm8   addr:r29
+  484 r15 <- get      r28
+0x5de111:
+  485 r16 <- sub      r16,r11  qword
+  486 r10 <- overflow r16
+  487 r2 <- carry    r16
+  488 r6 <- sign     r16
+  489 r5 <- is0      r16
+  490 r30 <- l1       r16
+  491 r3 <- parity   r30
+0x5de114:
+  492 r28 <- jmp.if   r5,1009
+0x5de11a:
+  493 r29 <- const8   88 (0x58)
+  494 r29 <- add      r29,r27  qword
+  495 r28 <- loadm8   addr:r29
+  496 r15 <- get      r28
+0x5de11e:
+  497 r28 <- const8   80 (0x50)
+  498 r28 <- add      r28,r27  qword
+  499 r26 <- get      r28
+0x5de122:
+  500 r28 <- const8   2 (0x2)
+  501 r28 <- add      r28,r25  qword
+  502 r17 <- get      r28
+0x5de126:
+  503 r24 <- get      r26
+0x5de129:
+  504 r14 <- get      r15
+0x5de12c:
+  505 r29 <- const8   8 (0x8)
+  506 r29 <- add      r29,r12  qword
+  507 r30 <- store    *r29 ← r15
+0x5de131:
+  508 r28 <- const8   4199136 (0x4012e0)
+  509 r16 <- call     r28
+  510 r29 <- carg     r14
+  511 r30 <- carg     r15
+  512 r31 <- carg     r19
+  513 r32 <- carg     r18
+  514 r2 <- undef
+  515 r3 <- undef
+  516 r4 <- undef
+  517 r5 <- undef
+  518 r6 <- undef
+  519 r7 <- undef
+  520 r8 <- undef
+  521 r9 <- undef
+  522 r10 <- undef
+0x5de136:
+  523 r29 <- const8   8 (0x8)
+  524 r29 <- add      r29,r12  qword
+  525 r28 <- loadm8   addr:r29
+  526 r15 <- get      r28
+0x5de13b:
+  527 r16 <- sub      r16,r11  qword
+  528 r10 <- overflow r16
+  529 r2 <- carry    r16
+  530 r6 <- sign     r16
+  531 r5 <- is0      r16
+  532 r30 <- l1       r16
+  533 r3 <- parity   r30
+0x5de13e:
+  534 r28 <- jmp.if   r5,1041
+0x5de144:
+  535 r29 <- const8   16 (0x10)
+  536 r29 <- add      r29,r12  qword
+  537 r28 <- loadm8   addr:r29
+  538 r22 <- get      r28
+0x5de149:
+  539 r28 <- const8   3 (0x3)
+  540 r28 <- add      r28,r25  qword
+  541 r17 <- get      r28
+0x5de14d:
+  542 r28 <- const8   120 (0x78)
+  543 r28 <- add      r28,r27  qword
+  544 r26 <- get      r28
+0x5de151:
+  545 r17 <- sub      r17,r22  qword
+  546 r10 <- overflow r17
+  547 r2 <- carry    r17
+  548 r6 <- sign     r17
+  549 r5 <- is0      r17
+  550 r30 <- l1       r17
+  551 r3 <- parity   r30
+0x5de154:
+  552 r28 <- jmp.if   r5,1073
+0x5de15a:
+  553 r29 <- const8   8 (0x8)
+  554 r29 <- add      r29,r26  qword
+  555 r28 <- loadm8   addr:r29
+  556 r27 <- get      r28
+0x5de15e:
+  557 r24 <- get      r26
+0x5de161:
+  558 r14 <- get      r27
+0x5de164:
+  559 r28 <- const8   4199136 (0x4012e0)
+  560 r16 <- call     r28
+  561 r29 <- carg     r14
+  562 r30 <- carg     r15
+  563 r31 <- carg     r19
+  564 r32 <- carg     r18
+  565 r2 <- undef
+  566 r3 <- undef
+  567 r4 <- undef
+  568 r5 <- undef
+  569 r6 <- undef
+  570 r7 <- undef
+  571 r8 <- undef
+  572 r9 <- undef
+  573 r10 <- undef
+0x5de169:
+  574 r16 <- sub      r16,r11  qword
+  575 r10 <- overflow r16
+  576 r2 <- carry    r16
+  577 r6 <- sign     r16
+  578 r5 <- is0      r16
+  579 r30 <- l1       r16
+  580 r3 <- parity   r30
+0x5de16c:
+  581 r28 <- not      r5
+  582 r29 <- jmp.if   r28,407
+0x5de172:
+  583 r29 <- const8   0 (0x0)
+  584 r29 <- add      r29,r12  qword
+  585 r28 <- loadm8   addr:r29
+  586 r14 <- get      r28
+0x5de176:
+  587 r19 <- get      r11
+0x5de179:
+  588 r15 <- get      r27
+0x5de17c:
+  589 r28 <- const8   4199232 (0x401340)
+  590 r16 <- call     r28
+  591 r29 <- carg     r14
+  592 r30 <- carg     r15
+  593 r31 <- carg     r19
+  594 r32 <- carg     r18
+  595 r2 <- undef
+  596 r3 <- undef
+  597 r4 <- undef
+  598 r5 <- undef
+  599 r6 <- undef
+  600 r7 <- undef
+  601 r8 <- undef
+  602 r9 <- undef
+  603 r10 <- undef
+0x5de181:
+  604 r28 <- l4       r16
+  605 r29 <- l4       r16
+  606 r28 <- and      r28,r29  dword
+  607 r6 <- sign     r28
+  608 r5 <- is0      r28
+  609 r30 <- l1       r28
+  610 r3 <- parity   r28
+  611 r2 <- const1   0 (0x0)
+  612 r10 <- const1   0 (0x0)
+0x5de183:
+  613 r28 <- not      r5
+  614 r29 <- jmp.if   r28,407
+0x5de189:
+  615 r25 <- get      r26
+0x5de18c:
+  616 r29 <- const8   40 (0x28)
+  617 r29 <- add      r29,r12  qword
+  618 r28 <- loadm8   addr:r29
+  619 r27 <- get      r28
+0x5de191:
+  620 r29 <- const8   48 (0x30)
+  621 r29 <- add      r29,r12  qword
+  622 r28 <- loadm8   addr:r29
+  623 r20 <- get      r28
+0x5de196:
+  624 r29 <- const8   56 (0x38)
+  625 r29 <- add      r29,r12  qword
+  626 r28 <- loadm8   addr:r29
+  627 r26 <- get      r28
+0x5de19b:
+  628 r28 <- jmp      674
+0x5de1a0:
+  629 r29 <- const8   0 (0x0)
+  630 r29 <- add      r29,r12  qword
+  631 r28 <- loadm8   addr:r29
+  632 r14 <- get      r28
+0x5de1a4:
+  633 r19 <- get      r11
+0x5de1a7:
+  634 r28 <- const8   4199232 (0x401340)
+  635 r16 <- call     r28
+  636 r29 <- carg     r14
+  637 r30 <- carg     r15
+  638 r31 <- carg     r19
+  639 r32 <- carg     r18
+  640 r2 <- undef
+  641 r3 <- undef
+  642 r4 <- undef
+  643 r5 <- undef
+  644 r6 <- undef
+  645 r7 <- undef
+  646 r8 <- undef
+  647 r9 <- undef
+  648 r10 <- undef
+0x5de1ac:
+  649 r28 <- l4       r16
+  650 r29 <- l4       r16
+  651 r28 <- and      r28,r29  dword
+  652 r6 <- sign     r28
+  653 r5 <- is0      r28
+  654 r30 <- l1       r28
+  655 r3 <- parity   r28
+  656 r2 <- const1   0 (0x0)
+  657 r10 <- const1   0 (0x0)
+0x5de1ae:
+  658 r28 <- not      r5
+  659 r29 <- jmp.if   r28,451
+0x5de1b4:
+  660 r25 <- get      r24
+0x5de1b7:
+  661 r29 <- const8   40 (0x28)
+  662 r29 <- add      r29,r12  qword
+  663 r28 <- loadm8   addr:r29
+  664 r27 <- get      r28
+0x5de1bc:
+  665 r24 <- get      r26
+0x5de1bf:
+  666 r29 <- const8   48 (0x30)
+  667 r29 <- add      r29,r12  qword
+  668 r28 <- loadm8   addr:r29
+  669 r20 <- get      r28
+0x5de1c4:
+  670 r29 <- const8   56 (0x38)
+  671 r29 <- add      r29,r12  qword
+  672 r28 <- loadm8   addr:r29
+  673 r26 <- get      r28
+0x5de1c9:
+  674 r29 <- const8   32 (0x20)
+  675 r29 <- add      r29,r12  qword
+  676 r28 <- loadm8   addr:r29
+  677 r11 <- get      r28
+0x5de1ce:
+  678 r29 <- const8   0 (0x0)
+  679 r29 <- add      r29,r11  qword
+  680 r30 <- mulk     r27,8 qword
+  681 r29 <- add      r29,r30  qword
+  682 r31 <- store    *r29 ← r17
+0x5de1d3:
+  683 r24 <- sub      r24,r26  qword
+  684 r10 <- overflow r24
+  685 r2 <- carry    r24
+  686 r6 <- sign     r24
+  687 r5 <- is0      r24
+  688 r30 <- l1       r24
+  689 r3 <- parity   r30
+0x5de1d6:
+  690 r28 <- jmp.if   r5,1073
+0x5de1dc:
+  691 r29 <- const8   32 (0x20)
+  692 r29 <- add      r29,r25  qword
+  693 r28 <- loadm8   addr:r29
+  694 r30 <- const8   0 (0x0)
+  695 r28 <- sub      r28,r30  qword
+  696 r10 <- overflow r28
+  697 r2 <- carry    r28
+  698 r6 <- sign     r28
+  699 r5 <- is0      r28
+  700 r31 <- l1       r28
+  701 r3 <- parity   r31
+0x5de1e1:
+  702 r28 <- TODO     unsupported: movzx edi,byte ptr [r8]
+0x5de1e5:
+  703 r28 <- not      r5
+  704 r29 <- jmp.if   r28,937
+0x5de1eb:
+  705 r28 <- l1       r14
+  706 r29 <- l1       r14
+  707 r28 <- and      r28,r29  byte
+  708 r6 <- sign     r28
+  709 r5 <- is0      r28
+  710 r30 <- l1       r28
+  711 r3 <- parity   r28
+  712 r2 <- const1   0 (0x0)
+  713 r10 <- const1   0 (0x0)
+0x5de1ee:
+  714 r28 <- jmp.if   r5,1326
+0x5de1f4:
+  715 r28 <- const8   1 (0x1)
+  716 r28 <- add      r28,r20  qword
+  717 r14 <- get      r28
+0x5de1f8:
+  718 r28 <- const4   46 (0x2e)
+  719 r15 <- v8.l4=   r15 ← r28
+0x5de1fd:
+  720 r29 <- const8   0 (0x0)
+  721 r29 <- add      r29,r12  qword
+  722 r30 <- store    *r29 ← r14
+0x5de201:
+  723 r28 <- const8   4199040 (0x401280)
+  724 r16 <- call     r28
+  725 r29 <- carg     r14
+  726 r30 <- carg     r15
+  727 r31 <- carg     r19
+  728 r32 <- carg     r18
+  729 r2 <- undef
+  730 r3 <- undef
+  731 r4 <- undef
+  732 r5 <- undef
+  733 r6 <- undef
+  734 r7 <- undef
+  735 r8 <- undef
+  736 r9 <- undef
+  737 r10 <- undef
+0x5de206:
+  738 r20 <- get      r16
+0x5de209:
+  739 r16 <- and      r16,r16  qword
+  740 r6 <- sign     r16
+  741 r5 <- is0      r16
+  742 r30 <- l1       r16
+  743 r3 <- parity   r16
+  744 r2 <- const1   0 (0x0)
+  745 r10 <- const1   0 (0x0)
+0x5de20c:
+  746 r28 <- jmp.if   r5,1103
+0x5de212:
+  747 r11 <- get      r16
+0x5de215:
+  748 r29 <- const8   0 (0x0)
+  749 r29 <- add      r29,r12  qword
+  750 r28 <- loadm8   addr:r29
+  751 r23 <- get      r28
+0x5de219:
+  752 r29 <- const8   24 (0x18)
+  753 r29 <- add      r29,r12  qword
+  754 r28 <- loadm8   addr:r29
+  755 r16 <- get      r28
+0x5de21e:
+  756 r29 <- const8   1 (0x1)
+  757 r27 <- add      r27,r29  qword
+  758 r27 <- get      r27
+  759 r10 <- overflow r27
+  760 r2 <- carry    r27
+  761 r6 <- sign     r27
+  762 r5 <- is0      r27
+  763 r30 <- l1       r27
+  764 r3 <- parity   r30
+0x5de222:
+  765 r11 <- sub      r11,r23  qword
+  766 r11 <- get      r11
+  767 r10 <- overflow r11
+  768 r2 <- carry    r11
+  769 r6 <- sign     r11
+  770 r5 <- is0      r11
+  771 r30 <- l1       r11
+  772 r3 <- parity   r30
+0x5de225:
+  773 r30 <- const8   0 (0x0)
+  774 r30 <- add      r30,r16  qword
+  775 r29 <- loadm8   addr:r30
+  776 r27 <- sub      r27,r29  qword
+  777 r10 <- overflow r27
+  778 r2 <- carry    r27
+  779 r6 <- sign     r27
+  780 r5 <- is0      r27
+  781 r31 <- l1       r27
+  782 r3 <- parity   r31
+0x5de228:
+  783 r28 <- TODO     unsupported: jae 00000000005DE36Dh
+0x5de22e:
+  784 r26 <- get      r25
+0x5de231:
+  785 r29 <- const8   24 (0x18)
+  786 r29 <- add      r29,r26  qword
+  787 r28 <- loadm8   addr:r29
+  788 r21 <- get      r28
+0x5de235:
+  789 r29 <- const8   0 (0x0)
+  790 r29 <- add      r29,r21  qword
+  791 r28 <- loadm1   addr:r29
+  792 r30 <- const1   0 (0x0)
+  793 r28 <- sub      r28,r30  byte
+  794 r10 <- overflow r28
+  795 r2 <- carry    r28
+  796 r6 <- sign     r28
+  797 r5 <- is0      r28
+  798 r31 <- l1       r28
+  799 r3 <- parity   r31
+0x5de239:
+  800 r28 <- not      r5
+  801 r29 <- jmp.if   r28,155
+0x5de23f:
+  802 r29 <- const8   0 (0x0)
+  803 r29 <- add      r29,r12  qword
+  804 r28 <- loadm8   addr:r29
+  805 r14 <- get      r28
+0x5de243:
+  806 r28 <- l4       r15
+  807 r29 <- l4       r15
+  808 r28 <- xor      r28,r29  dword
+  809 r15 <- v8.l4=   r15 ← r28
+  810 r10 <- false
+  811 r2 <- false
+  812 r6 <- sign     r28
+  813 r5 <- is0      r28
+  814 r30 <- l1       r28
+  815 r3 <- parity   r30
+0x5de245:
+  816 r28 <- const4   10 (0xa)
+  817 r19 <- v8.l4=   r19 ← r28
+0x5de24a:
+  818 r29 <- const8   8 (0x8)
+  819 r29 <- add      r29,r12  qword
+  820 r30 <- store    *r29 ← r20
+0x5de24f:
+  821 r28 <- const8   6451424 (0x6270e0)
+  822 r16 <- call     r28
+  823 r29 <- carg     r14
+  824 r30 <- carg     r15
+  825 r31 <- carg     r19
+  826 r32 <- carg     r18
+  827 r2 <- undef
+  828 r3 <- undef
+  829 r4 <- undef
+  830 r5 <- undef
+  831 r6 <- undef
+  832 r7 <- undef
+  833 r8 <- undef
+  834 r9 <- undef
+  835 r10 <- undef
+0x5de254:
+  836 r29 <- const8   8 (0x8)
+  837 r29 <- add      r29,r12  qword
+  838 r28 <- loadm8   addr:r29
+  839 r20 <- get      r28
+0x5de259:
+  840 r29 <- const8   -1 (0xffffffffffffffff)
+  841 r16 <- sub      r16,r29  qword
+  842 r10 <- overflow r16
+  843 r2 <- carry    r16
+  844 r6 <- sign     r16
+  845 r5 <- is0      r16
+  846 r30 <- l1       r16
+  847 r3 <- parity   r30
+0x5de25d:
+  848 r17 <- get      r16
+0x5de260:
+  849 r28 <- jmp.if   r5,1073
+0x5de266:
+  850 r29 <- const8   24 (0x18)
+  851 r29 <- add      r29,r26  qword
+  852 r28 <- loadm8   addr:r29
+  853 r11 <- get      r28
+0x5de26a:
+  854 r29 <- const8   0 (0x0)
+  855 r29 <- add      r29,r12  qword
+  856 r30 <- store    *r29 ← r20
+0x5de26e:
+  857 r29 <- const8   0 (0x0)
+  858 r29 <- add      r29,r11  qword
+  859 r28 <- loadm1   addr:r29
+  860 r30 <- const1   0 (0x0)
+  861 r28 <- sub      r28,r30  byte
+  862 r10 <- overflow r28
+  863 r2 <- carry    r28
+  864 r6 <- sign     r28
+  865 r5 <- is0      r28
+  866 r31 <- l1       r28
+  867 r3 <- parity   r31
+0x5de272:
+  868 r28 <- not      r5
+  869 r29 <- jmp.if   r28,0x403143 extern
+0x5de278:
+  870 r29 <- const8   24 (0x18)
+  871 r29 <- add      r29,r12  qword
+  872 r28 <- loadm8   addr:r29
+  873 r18 <- get      r28
+0x5de27d:
+  874 r29 <- const8   32 (0x20)
+  875 r29 <- add      r29,r12  qword
+  876 r28 <- loadm8   addr:r29
+  877 r26 <- get      r28
+0x5de282:
+  878 r29 <- const8   64 (0x40)
+  879 r29 <- add      r29,r12  qword
+  880 r28 <- loadm8   addr:r29
+  881 r14 <- get      r28
+0x5de287:
+  882 r29 <- const8   0 (0x0)
+  883 r29 <- add      r29,r18  qword
+  884 r28 <- loadm8   addr:r29
+  885 r19 <- get      r28
+0x5de28a:
+  886 r15 <- get      r26
+0x5de28d:
+  887 r18 <- get      r16
+0x5de290:
+  888 r29 <- const8   8 (0x8)
+  889 r29 <- add      r29,r11  qword
+  890 r28 <- loadm8   addr:r29
+  891 r28 <- loadm8   addr:r28
+  892 r16 <- call     r28
+  893 r30 <- carg     r14
+  894 r31 <- carg     r15
+  895 r32 <- carg     r19
+  896 r33 <- carg     r18
+  897 r2 <- undef
+  898 r3 <- undef
+  899 r4 <- undef
+  900 r5 <- undef
+  901 r6 <- undef
+  902 r7 <- undef
+  903 r8 <- undef
+  904 r9 <- undef
+  905 r10 <- undef
+0x5de293:
+  906 r25 <- get      r16
+0x5de296:
+  907 r16 <- and      r16,r16  qword
+  908 r6 <- sign     r16
+  909 r5 <- is0      r16
+  910 r30 <- l1       r16
+  911 r3 <- parity   r16
+  912 r2 <- const1   0 (0x0)
+  913 r10 <- const1   0 (0x0)
+0x5de299:
+  914 r28 <- jmp.if   r5,1073
+0x5de29f:
+  915 r29 <- const8   0 (0x0)
+  916 r29 <- add      r29,r12  qword
+  917 r28 <- loadm8   addr:r29
+  918 r20 <- get      r28
+0x5de2a3:
+  919 r29 <- const8   32 (0x20)
+  920 r29 <- add      r29,r25  qword
+  921 r28 <- loadm8   addr:r29
+  922 r30 <- const8   0 (0x0)
+  923 r28 <- sub      r28,r30  qword
+  924 r10 <- overflow r28
+  925 r2 <- carry    r28
+  926 r6 <- sign     r28
+  927 r5 <- is0      r28
+  928 r31 <- l1       r28
+  929 r3 <- parity   r31
+0x5de2a8:
+  930 r29 <- const8   0 (0x0)
+  931 r29 <- add      r29,r26  qword
+  932 r30 <- mulk     r27,8 qword
+  933 r29 <- add      r29,r30  qword
+  934 r31 <- store    *r29 ← r17
+0x5de2ac:
+  935 r28 <- TODO     unsupported: movzx edi,byte ptr [r8]
+0x5de2b0:
+  936 r28 <- jmp.if   r5,705
+0x5de2b6:
+  937 r29 <- const8   72 (0x48)
+  938 r29 <- add      r29,r12  qword
+  939 r28 <- loadm8   addr:r29
+  940 r17 <- get      r28
+0x5de2bb:
+  941 r28 <- l1       r14
+  942 r29 <- l1       r14
+  943 r28 <- and      r28,r29  byte
+  944 r6 <- sign     r28
+  945 r5 <- is0      r28
+  946 r30 <- l1       r28
+  947 r3 <- parity   r28
+  948 r2 <- const1   0 (0x0)
+  949 r10 <- const1   0 (0x0)
+0x5de2be:
+  950 r28 <- not      r5
+  951 r29 <- jmp.if   r28,1073
+0x5de2c0:
+  952 r28 <- const8   1 (0x1)
+  953 r28 <- add      r28,r27  qword
+  954 r20 <- get      r28
+0x5de2c4:
+  955 r29 <- const8   24 (0x18)
+  956 r29 <- add      r29,r12  qword
+  957 r28 <- loadm8   addr:r29
+  958 r27 <- get      r28
+0x5de2c9:
+  959 r29 <- const8   0 (0x0)
+  960 r29 <- add      r29,r27  qword
+  961 r30 <- store    *r29 ← r20
+0x5de2cc:
+  962 r17 <- and      r17,r17  qword
+  963 r6 <- sign     r17
+  964 r5 <- is0      r17
+  965 r30 <- l1       r17
+  966 r3 <- parity   r17
+  967 r2 <- const1   0 (0x0)
+  968 r10 <- const1   0 (0x0)
+0x5de2cf:
+  969 r28 <- not      r5
+  970 r29 <- jmp.if   r28,1165
+0x5de2d5:
+  971 r28 <- l4       r16
+  972 r29 <- l4       r16
+  973 r28 <- xor      r28,r29  dword
+  974 r16 <- v8.l4=   r16 ← r28
+  975 r10 <- false
+  976 r2 <- false
+  977 r6 <- sign     r28
+  978 r5 <- is0      r28
+  979 r30 <- l1       r28
+  980 r3 <- parity   r30
+0x5de2d7:
+  981 r29 <- const8   88 (0x58)
+  982 r12 <- add      r12,r29  qword
+  983 r12 <- get      r12
+  984 r10 <- overflow r12
+  985 r2 <- carry    r12
+  986 r6 <- sign     r12
+  987 r5 <- is0      r12
+  988 r30 <- l1       r12
+  989 r3 <- parity   r30
+0x5de2db:
+  990 r28 <- loadm8   addr:r12
+  991 r17 <- get      r28
+  992 r12 <- addk     r12,8 qword
+0x5de2dc:
+  993 r28 <- loadm8   addr:r12
+  994 r11 <- get      r28
+  995 r12 <- addk     r12,8 qword
+0x5de2dd:
+  996 r28 <- loadm8   addr:r12
+  997 r24 <- get      r28
+  998 r12 <- addk     r12,8 qword
+0x5de2df:
+  999 r28 <- loadm8   addr:r12
+ 1000 r25 <- get      r28
+ 1001 r12 <- addk     r12,8 qword
+0x5de2e1:
+ 1002 r28 <- loadm8   addr:r12
+ 1003 r26 <- get      r28
+ 1004 r12 <- addk     r12,8 qword
+0x5de2e3:
+ 1005 r28 <- loadm8   addr:r12
+ 1006 r27 <- get      r28
+ 1007 r12 <- addk     r12,8 qword
+0x5de2e5:
+ 1008 r28 <- ret      r16
+0x5de2f0:
+ 1009 r29 <- const8   0 (0x0)
+ 1010 r29 <- add      r29,r12  qword
+ 1011 r28 <- loadm8   addr:r29
+ 1012 r14 <- get      r28
+0x5de2f4:
+ 1013 r19 <- get      r11
+0x5de2f7:
+ 1014 r28 <- const8   4199232 (0x401340)
+ 1015 r16 <- call     r28
+ 1016 r29 <- carg     r14
+ 1017 r30 <- carg     r15
+ 1018 r31 <- carg     r19
+ 1019 r32 <- carg     r18
+ 1020 r2 <- undef
+ 1021 r3 <- undef
+ 1022 r4 <- undef
+ 1023 r5 <- undef
+ 1024 r6 <- undef
+ 1025 r7 <- undef
+ 1026 r8 <- undef
+ 1027 r9 <- undef
+ 1028 r10 <- undef
+0x5de2fc:
+ 1029 r28 <- l4       r16
+ 1030 r29 <- l4       r16
+ 1031 r28 <- and      r28,r29  dword
+ 1032 r6 <- sign     r28
+ 1033 r5 <- is0      r28
+ 1034 r30 <- l1       r28
+ 1035 r3 <- parity   r28
+ 1036 r2 <- const1   0 (0x0)
+ 1037 r10 <- const1   0 (0x0)
+0x5de2fe:
+ 1038 r28 <- not      r5
+ 1039 r29 <- jmp.if   r28,493
+0x5de304:
+ 1040 r28 <- jmp      660
+0x5de310:
+ 1041 r29 <- const8   0 (0x0)
+ 1042 r29 <- add      r29,r12  qword
+ 1043 r28 <- loadm8   addr:r29
+ 1044 r14 <- get      r28
+0x5de314:
+ 1045 r19 <- get      r11
+0x5de317:
+ 1046 r28 <- const8   4199232 (0x401340)
+ 1047 r16 <- call     r28
+ 1048 r29 <- carg     r14
+ 1049 r30 <- carg     r15
+ 1050 r31 <- carg     r19
+ 1051 r32 <- carg     r18
+ 1052 r2 <- undef
+ 1053 r3 <- undef
+ 1054 r4 <- undef
+ 1055 r5 <- undef
+ 1056 r6 <- undef
+ 1057 r7 <- undef
+ 1058 r8 <- undef
+ 1059 r9 <- undef
+ 1060 r10 <- undef
+0x5de31c:
+ 1061 r28 <- l4       r16
+ 1062 r29 <- l4       r16
+ 1063 r28 <- and      r28,r29  dword
+ 1064 r6 <- sign     r28
+ 1065 r5 <- is0      r28
+ 1066 r30 <- l1       r28
+ 1067 r3 <- parity   r28
+ 1068 r2 <- const1   0 (0x0)
+ 1069 r10 <- const1   0 (0x0)
+0x5de31e:
+ 1070 r28 <- not      r5
+ 1071 r29 <- jmp.if   r28,535
+0x5de324:
+ 1072 r28 <- jmp      660
+0x5de330:
+ 1073 r29 <- const8   88 (0x58)
+ 1074 r12 <- add      r12,r29  qword
+ 1075 r12 <- get      r12
+ 1076 r10 <- overflow r12
+ 1077 r2 <- carry    r12
+ 1078 r6 <- sign     r12
+ 1079 r5 <- is0      r12
+ 1080 r30 <- l1       r12
+ 1081 r3 <- parity   r30
+0x5de334:
+ 1082 r28 <- const4   2 (0x2)
+ 1083 r16 <- v8.l4=   r16 ← r28
+0x5de339:
+ 1084 r28 <- loadm8   addr:r12
+ 1085 r17 <- get      r28
+ 1086 r12 <- addk     r12,8 qword
+0x5de33a:
+ 1087 r28 <- loadm8   addr:r12
+ 1088 r11 <- get      r28
+ 1089 r12 <- addk     r12,8 qword
+0x5de33b:
+ 1090 r28 <- loadm8   addr:r12
+ 1091 r24 <- get      r28
+ 1092 r12 <- addk     r12,8 qword
+0x5de33d:
+ 1093 r28 <- loadm8   addr:r12
+ 1094 r25 <- get      r28
+ 1095 r12 <- addk     r12,8 qword
+0x5de33f:
+ 1096 r28 <- loadm8   addr:r12
+ 1097 r26 <- get      r28
+ 1098 r12 <- addk     r12,8 qword
+0x5de341:
+ 1099 r28 <- loadm8   addr:r12
+ 1100 r27 <- get      r28
+ 1101 r12 <- addk     r12,8 qword
+0x5de343:
+ 1102 r28 <- ret      r16
+0x5de348:
+ 1103 r29 <- const8   0 (0x0)
+ 1104 r29 <- add      r29,r12  qword
+ 1105 r28 <- loadm8   addr:r29
+ 1106 r24 <- get      r28
+0x5de34c:
+ 1107 r29 <- const8   1 (0x1)
+ 1108 r27 <- add      r27,r29  qword
+ 1109 r27 <- get      r27
+ 1110 r10 <- overflow r27
+ 1111 r2 <- carry    r27
+ 1112 r6 <- sign     r27
+ 1113 r5 <- is0      r27
+ 1114 r30 <- l1       r27
+ 1115 r3 <- parity   r30
+0x5de350:
+ 1116 r14 <- get      r24
+0x5de353:
+ 1117 r28 <- const8   4199136 (0x4012e0)
+ 1118 r16 <- call     r28
+ 1119 r29 <- carg     r14
+ 1120 r30 <- carg     r15
+ 1121 r31 <- carg     r19
+ 1122 r32 <- carg     r18
+ 1123 r2 <- undef
+ 1124 r3 <- undef
+ 1125 r4 <- undef
+ 1126 r5 <- undef
+ 1127 r6 <- undef
+ 1128 r7 <- undef
+ 1129 r8 <- undef
+ 1130 r9 <- undef
+ 1131 r10 <- undef
+0x5de358:
+ 1132 r29 <- const8   24 (0x18)
+ 1133 r29 <- add      r29,r12  qword
+ 1134 r28 <- loadm8   addr:r29
+ 1135 r19 <- get      r28
+0x5de35d:
+ 1136 r11 <- get      r16
+0x5de360:
+ 1137 r28 <- const8   0 (0x0)
+ 1138 r28 <- add      r28,r24  qword
+ 1139 r29 <- mulk     r16,1 qword
+ 1140 r28 <- add      r28,r29  qword
+ 1141 r20 <- get      r28
+0x5de364:
+ 1142 r30 <- const8   0 (0x0)
+ 1143 r30 <- add      r30,r19  qword
+ 1144 r29 <- loadm8   addr:r30
+ 1145 r27 <- sub      r27,r29  qword
+ 1146 r10 <- overflow r27
+ 1147 r2 <- carry    r27
+ 1148 r6 <- sign     r27
+ 1149 r5 <- is0      r27
+ 1150 r31 <- l1       r27
+ 1151 r3 <- parity   r31
+0x5de367:
+ 1152 r28 <- jmp.if   r2,784
+0x5de36d:
+ 1153 r29 <- const8   72 (0x48)
+ 1154 r29 <- add      r29,r12  qword
+ 1155 r28 <- loadm8   addr:r29
+ 1156 r17 <- get      r28
+0x5de372:
+ 1157 r17 <- and      r17,r17  qword
+ 1158 r6 <- sign     r17
+ 1159 r5 <- is0      r17
+ 1160 r30 <- l1       r17
+ 1161 r3 <- parity   r17
+ 1162 r2 <- const1   0 (0x0)
+ 1163 r10 <- const1   0 (0x0)
+0x5de375:
+ 1164 r28 <- jmp.if   r5,971
+0x5de37b:
+ 1165 r29 <- const8   0 (0x0)
+ 1166 r29 <- add      r29,r17  qword
+ 1167 r30 <- store    *r29 ← r25
+0x5de37e:
+ 1168 r28 <- l4       r16
+ 1169 r29 <- l4       r16
+ 1170 r28 <- xor      r28,r29  dword
+ 1171 r16 <- v8.l4=   r16 ← r28
+ 1172 r10 <- false
+ 1173 r2 <- false
+ 1174 r6 <- sign     r28
+ 1175 r5 <- is0      r28
+ 1176 r30 <- l1       r28
+ 1177 r3 <- parity   r30
+0x5de380:
+ 1178 r28 <- jmp      981
+0x5de388:
+ 1179 r29 <- const8   0 (0x0)
+ 1180 r29 <- add      r29,r12  qword
+ 1181 r28 <- loadm8   addr:r29
+ 1182 r14 <- get      r28
+0x5de38c:
+ 1183 r19 <- get      r11
+0x5de38f:
+ 1184 r29 <- const8   8 (0x8)
+ 1185 r29 <- add      r29,r12  qword
+ 1186 r30 <- store    *r29 ← r20
+0x5de394:
+ 1187 r28 <- const8   4199232 (0x401340)
+ 1188 r16 <- call     r28
+ 1189 r29 <- carg     r14
+ 1190 r30 <- carg     r15
+ 1191 r31 <- carg     r19
+ 1192 r32 <- carg     r18
+ 1193 r2 <- undef
+ 1194 r3 <- undef
+ 1195 r4 <- undef
+ 1196 r5 <- undef
+ 1197 r6 <- undef
+ 1198 r7 <- undef
+ 1199 r8 <- undef
+ 1200 r9 <- undef
+ 1201 r10 <- undef
+0x5de399:
+ 1202 r29 <- const8   8 (0x8)
+ 1203 r29 <- add      r29,r12  qword
+ 1204 r28 <- loadm8   addr:r29
+ 1205 r20 <- get      r28
+0x5de39e:
+ 1206 r28 <- l4       r16
+ 1207 r29 <- l4       r16
+ 1208 r28 <- and      r28,r29  dword
+ 1209 r6 <- sign     r28
+ 1210 r5 <- is0      r28
+ 1211 r30 <- l1       r28
+ 1212 r3 <- parity   r28
+ 1213 r2 <- const1   0 (0x0)
+ 1214 r10 <- const1   0 (0x0)
+0x5de3a0:
+ 1215 r28 <- not      r5
+ 1216 r29 <- jmp.if   r28,366
+0x5de3a6:
+ 1217 r28 <- jmp      674
+0x5de3b0:
+ 1218 r29 <- const8   0 (0x0)
+ 1219 r29 <- add      r29,r12  qword
+ 1220 r28 <- loadm8   addr:r29
+ 1221 r14 <- get      r28
+0x5de3b4:
+ 1222 r19 <- get      r11
+0x5de3b7:
+ 1223 r29 <- const8   8 (0x8)
+ 1224 r29 <- add      r29,r12  qword
+ 1225 r30 <- store    *r29 ← r20
+0x5de3bc:
+ 1226 r28 <- const8   4199232 (0x401340)
+ 1227 r16 <- call     r28
+ 1228 r29 <- carg     r14
+ 1229 r30 <- carg     r15
+ 1230 r31 <- carg     r19
+ 1231 r32 <- carg     r18
+ 1232 r2 <- undef
+ 1233 r3 <- undef
+ 1234 r4 <- undef
+ 1235 r5 <- undef
+ 1236 r6 <- undef
+ 1237 r7 <- undef
+ 1238 r8 <- undef
+ 1239 r9 <- undef
+ 1240 r10 <- undef
+0x5de3c1:
+ 1241 r29 <- const8   8 (0x8)
+ 1242 r29 <- add      r29,r12  qword
+ 1243 r28 <- loadm8   addr:r29
+ 1244 r20 <- get      r28
+0x5de3c6:
+ 1245 r28 <- l4       r16
+ 1246 r29 <- l4       r16
+ 1247 r28 <- and      r28,r29  dword
+ 1248 r6 <- sign     r28
+ 1249 r5 <- is0      r28
+ 1250 r30 <- l1       r28
+ 1251 r3 <- parity   r28
+ 1252 r2 <- const1   0 (0x0)
+ 1253 r10 <- const1   0 (0x0)
+0x5de3c8:
+ 1254 r28 <- not      r5
+ 1255 r29 <- jmp.if   r28,305
+0x5de3ce:
+ 1256 r28 <- jmp      674
+0x5de3d3:
+ 1257 r29 <- const8   0 (0x0)
+ 1258 r29 <- add      r29,r12  qword
+ 1259 r28 <- loadm8   addr:r29
+ 1260 r14 <- get      r28
+0x5de3d7:
+ 1261 r19 <- get      r11
+0x5de3da:
+ 1262 r29 <- const8   40 (0x28)
+ 1263 r29 <- add      r29,r12  qword
+ 1264 r30 <- store    *r29 ← r20
+0x5de3df:
+ 1265 r29 <- const8   8 (0x8)
+ 1266 r29 <- add      r29,r12  qword
+ 1267 r30 <- store    *r29 ← r24
+0x5de3e4:
+ 1268 r28 <- const8   4199232 (0x401340)
+ 1269 r16 <- call     r28
+ 1270 r29 <- carg     r14
+ 1271 r30 <- carg     r15
+ 1272 r31 <- carg     r19
+ 1273 r32 <- carg     r18
+ 1274 r2 <- undef
+ 1275 r3 <- undef
+ 1276 r4 <- undef
+ 1277 r5 <- undef
+ 1278 r6 <- undef
+ 1279 r7 <- undef
+ 1280 r8 <- undef
+ 1281 r9 <- undef
+ 1282 r10 <- undef
+0x5de3e9:
+ 1283 r29 <- const8   40 (0x28)
+ 1284 r29 <- add      r29,r12  qword
+ 1285 r28 <- loadm8   addr:r29
+ 1286 r20 <- get      r28
+0x5de3ee:
+ 1287 r14 <- get      r24
+0x5de3f1:
+ 1288 r28 <- l4       r16
+ 1289 r29 <- l4       r16
+ 1290 r28 <- and      r28,r29  dword
+ 1291 r6 <- sign     r28
+ 1292 r5 <- is0      r28
+ 1293 r30 <- l1       r28
+ 1294 r3 <- parity   r28
+ 1295 r2 <- const1   0 (0x0)
+ 1296 r10 <- const1   0 (0x0)
+0x5de3f3:
+ 1297 r28 <- not      r5
+ 1298 r29 <- jmp.if   r28,257
+0x5de3f9:
+ 1299 r28 <- jmp      674
+0x5de400:
+ 1300 r29 <- const8   0 (0x0)
+ 1301 r29 <- add      r29,r12  qword
+ 1302 r28 <- loadm8   addr:r29
+ 1303 r27 <- get      r28
+0x5de404:
+ 1304 r14 <- get      r27
+0x5de407:
+ 1305 r28 <- const8   4199136 (0x4012e0)
+ 1306 r16 <- call     r28
+ 1307 r29 <- carg     r14
+ 1308 r30 <- carg     r15
+ 1309 r31 <- carg     r19
+ 1310 r32 <- carg     r18
+ 1311 r2 <- undef
+ 1312 r3 <- undef
+ 1313 r4 <- undef
+ 1314 r5 <- undef
+ 1315 r6 <- undef
+ 1316 r7 <- undef
+ 1317 r8 <- undef
+ 1318 r9 <- undef
+ 1319 r10 <- undef
+0x5de40c:
+ 1320 r28 <- const8   0 (0x0)
+ 1321 r28 <- add      r28,r27  qword
+ 1322 r29 <- mulk     r16,1 qword
+ 1323 r28 <- add      r28,r29  qword
+ 1324 r20 <- get      r28
+0x5de410:
+ 1325 r28 <- jmp      96
+0x5de415:
+ 1326 r29 <- const8   72 (0x48)
+ 1327 r29 <- add      r29,r12  qword
+ 1328 r28 <- loadm8   addr:r29
+ 1329 r17 <- get      r28
+0x5de41a:
+ 1330 r28 <- jmp      952
+0x5de41f:
+ 1331 r25 <- get      r26
+0x5de422:
+ 1332 r28 <- jmp      1157
+
+
+ssa program  605 instrs
+.B0:  in[]     ;; 0x0  96 insn 0 phis
+         r10 <- #pre:RBP
+  (  6)  r11 <- #pre:RSP
+         r13 <- #pre:RDI
+  (  5)  r14 <- #pre:RSI
+         r16 <- #pre:RBX
+  ( 14)  r17 <- #pre:RCX
+  (  6)  r18 <- #pre:RDX
+         r19 <- #pre:R8
+         r20 <- #pre:R9
+         r23 <- #pre:R12
+  (  5)  r24 <- #pre:R13
+         r25 <- #pre:R14
+  (  2)  r26 <- #pre:R15
+         r34 <- addk     r11,-8 qword
+         r35 <- store    *r34 ← r26
+         r36 <- addk     r11,-16 qword
+         r37 <- store    *r36 ← r25
+         r39 <- const4   46 (0x2e)
+  (  3)  r40 <- v8.l4=   r14 ← r39
+         r41 <- addk     r11,-24 qword
+         r42 <- store    *r41 ← r24
+         r43 <- addk     r11,-32 qword
+         r44 <- store    *r43 ← r23
+         r45 <- addk     r11,-40 qword
+         r46 <- store    *r45 ← r10
+  ( 16)  r47 <- addk     r11,-48 qword
+         r48 <- store    *r47 ← r16
+  ( 15)  r50 <- const8   88 (0x58)
+  ( 49)  r51 <- sub      r47,r50  qword
+         r60 <- addk     r51,64 qword
+         r61 <- store    *r60 ← r13
+         r64 <- addk     r51,32 qword
+         r65 <- store    *r64 ← r19
+         r67 <- sub      r47,r50  qword
+         r68 <- store    *r67 ← r18
+         r70 <- addk     r51,24 qword
+         r71 <- store    *r70 ← r20
+         r72 <- const8   4199040 (0x401280)
+  (  2)  r73 <- call     r72
+         r74 <- carg     r18
+         r75 <- carg     r40
+         r76 <- carg     r18
+         r77 <- carg     r17
+         r90 <- is0      r73
+         r95 <- jmp.if   r90,1300
+.B1:  in[.B0 .B52 ]     ;; 0x5ddf80  14 insn 1 phis
+  (  7)  r1333 <- phi8
+         r1334 <- phiarg   r73
+         r1335 <- phiarg   r1323
+         r97 <- sub      r47,r50  qword
+  (  7)  r98 <- loadm8   addr:r97
+  ( 18)  r101 <- sub      r1333,r98  qword
+         r106 <- is0      r101
+         r109 <- jmp.if   r106,1073
+.B2:  in[.B1 ]     ;; 0x5ddf90  16 insn 0 phis
+  (  2)  r111 <- addk     r51,24 qword
+  (  8)  r112 <- loadm8   addr:r111
+         r115 <- loadm8   addr:r111
+         r116 <- loadm8   addr:r115
+         r117 <- const8   0 (0x0)
+         r118 <- sub      r116,r117  qword
+         r122 <- is0      r118
+         r125 <- jmp.if   r122,1331
+.B3:  in[.B2 ]     ;; 0x5ddf9f  29 insn 0 phis
+  (  2)  r127 <- addk     r14,24 qword
+  (  9)  r128 <- loadm8   addr:r127
+         r132 <- const4   0 (0x0)
+  (  7)  r133 <- v8.l4=   r26 ← r132
+         r141 <- addk     r51,72 qword
+         r142 <- store    *r141 ← r17
+         r144 <- loadm8   addr:r127
+         r145 <- loadm1   addr:r144
+         r146 <- const1   0 (0x0)
+         r147 <- sub      r145,r146  byte
+         r151 <- is0      r147
+         r154 <- jmp.if   r151,802
+.B4:  in[.B3 .B29 ]     ;; 0x5ddfc0  15 insn 1 phis
+  (  5)  r1336 <- phi8
+         r1337 <- phiarg   r14
+         r1338 <- phiarg   r24
+         r156 <- addk     r1336,16 qword
+  (  4)  r157 <- loadm8   addr:r156
+         r160 <- addk     r51,16 qword
+         r161 <- store    *r160 ← r157
+         r164 <- is0      r157
+         r169 <- jmp.if   r164,1073
+.B5:  in[.B4 ]     ;; 0x5ddfd2  22 insn 0 phis
+         r173 <- const4   0 (0x0)
+  (  7)  r174 <- v8.l4=   r17 ← r173
+         r182 <- const4   3 (0x3)
+  (  2)  r183 <- and      r157,r182  dword
+  (  2)  r184 <- v8.l4=   r157 ← r183
+         r188 <- is0      r183
+         r191 <- jmp.if   r188,396
+.B6:  in[.B5 ]     ;; 0x5ddfe0  9 insn 0 phis
+         r192 <- const8   1 (0x1)
+  (  3)  r193 <- sub      r184,r192  qword
+         r197 <- is0      r193
+         r200 <- jmp.if   r197,323
+.B7:  in[.B6 ]     ;; 0x5ddfe6  9 insn 0 phis
+         r201 <- const8   2 (0x2)
+  (  3)  r202 <- sub      r193,r201  qword
+         r206 <- is0      r202
+         r209 <- jmp.if   r206,262
+.B8:  in[.B7 ]     ;; 0x5ddfec  47 insn 0 phis
+         r211 <- addk     r128,8 qword
+  (  2)  r212 <- loadm8   addr:r211
+         r215 <- addk     r51,48 qword
+         r216 <- store    *r215 ← r1333
+         r219 <- addk     r51,40 qword
+         r220 <- store    *r219 ← r128
+         r223 <- addk     r51,8 qword
+         r224 <- store    *r223 ← r212
+         r225 <- const8   4199136 (0x4012e0)
+         r226 <- call     r225
+         r227 <- carg     r212
+         r228 <- carg     r202
+         r229 <- carg     r112
+         r230 <- carg     r17
+         r241 <- addk     r51,8 qword
+  (  2)  r242 <- loadm8   addr:r241
+         r245 <- addk     r51,48 qword
+  (  2)  r246 <- loadm8   addr:r245
+         r249 <- sub      r226,r101  qword
+         r253 <- is0      r249
+         r256 <- jmp.if   r253,1257
+.B9:  in[.B8 .B50 ]     ;; 0x5de020  5 insn 1 phis
+         r1339 <- phi8
+         r1340 <- phiarg   r128
+         r1341 <- phiarg   r128
+         r260 <- addk     r1339,40 qword
+.B10:  in[.B7 .B9 ]     ;; 0x5de029  43 insn 3 phis
+         r1342 <- phi8
+         r1343 <- phiarg   r202
+         r1344 <- phiarg   r242
+         r1345 <- phi8
+         r1346 <- phiarg   r1333
+         r1347 <- phiarg   r246
+  (  3)  r1348 <- phi8
+         r1349 <- phiarg   r128
+         r1350 <- phiarg   r260
+         r263 <- addk     r1348,8 qword
+  (  2)  r264 <- loadm8   addr:r263
+         r267 <- addk     r51,40 qword
+         r268 <- store    *r267 ← r1345
+         r272 <- addk     r51,8 qword
+         r273 <- store    *r272 ← r264
+         r274 <- const8   4199136 (0x4012e0)
+         r275 <- call     r274
+         r276 <- carg     r264
+         r277 <- carg     r1342
+         r278 <- carg     r112
+         r279 <- carg     r17
+         r290 <- addk     r51,8 qword
+  (  2)  r291 <- loadm8   addr:r290
+         r294 <- addk     r51,40 qword
+  (  2)  r295 <- loadm8   addr:r294
+         r297 <- sub      r275,r101  qword
+         r301 <- is0      r297
+         r304 <- jmp.if   r301,1218
+.B11:  in[.B10 .B48 ]     ;; 0x5de056  18 insn 0 phis
+         r315 <- addk     r1348,40 qword
+.B12:  in[.B6 .B11 ]     ;; 0x5de05e  43 insn 3 phis
+         r1351 <- phi8
+         r1352 <- phiarg   r193
+         r1353 <- phiarg   r291
+         r1354 <- phi8
+         r1355 <- phiarg   r1333
+         r1356 <- phiarg   r295
+  (  3)  r1357 <- phi8
+         r1358 <- phiarg   r128
+         r1359 <- phiarg   r315
+         r324 <- addk     r1357,8 qword
+  (  2)  r325 <- loadm8   addr:r324
+         r328 <- addk     r51,40 qword
+         r329 <- store    *r328 ← r1354
+         r333 <- addk     r51,8 qword
+         r334 <- store    *r333 ← r325
+         r335 <- const8   4199136 (0x4012e0)
+         r336 <- call     r335
+         r337 <- carg     r325
+         r338 <- carg     r1351
+         r339 <- carg     r112
+         r340 <- carg     r17
+         r351 <- addk     r51,8 qword
+         r352 <- loadm8   addr:r351
+         r355 <- addk     r51,40 qword
+  (  2)  r356 <- loadm8   addr:r355
+  (  2)  r358 <- sub      r336,r101  qword
+         r362 <- is0      r358
+         r365 <- jmp.if   r362,1179
+.B13:  in[.B12 .B46 ]     ;; 0x5de08b  30 insn 0 phis
+         r367 <- addk     r51,16 qword
+         r368 <- loadm8   addr:r367
+         r371 <- addk     r174,1 qword
+         r380 <- addk     r1357,40 qword
+         r388 <- sub      r371,r368  qword
+         r392 <- is0      r388
+         r395 <- jmp.if   r392,1073
+.B14:  in[.B5 .B13 ]     ;; 0x5de0a1  11 insn 2 phis
+         r1360 <- phi8
+         r1361 <- phiarg   r1333
+         r1362 <- phiarg   r356
+         r1363 <- phi8
+         r1364 <- phiarg   r128
+         r1365 <- phiarg   r380
+         r397 <- addk     r51,56 qword
+         r398 <- store    *r397 ← r1336
+         r401 <- addk     r51,40 qword
+         r402 <- store    *r401 ← r133
+         r404 <- addk     r51,48 qword
+         r405 <- store    *r404 ← r1360
+         r406 <- jmp      553
+.B15:  in[.B19 .B20 ]     ;; 0x5de0c0  44 insn 2 phis
+         r1366 <- phi8
+         r1367 <- phiarg   r1378
+         r1368 <- phiarg   r555
+  (  2)  r1369 <- phi8
+         r1370 <- phiarg   r112
+         r1371 <- phiarg   r101
+         r408 <- addk     r1384,48 qword
+  (  2)  r409 <- loadm8   addr:r408
+         r412 <- addk     r1384,40 qword
+         r415 <- addk     r174,1 qword
+         r422 <- addk     r51,8 qword
+         r423 <- store    *r422 ← r409
+         r424 <- const8   4199136 (0x4012e0)
+         r425 <- call     r424
+         r426 <- carg     r409
+         r427 <- carg     r1366
+         r428 <- carg     r1369
+         r429 <- carg     r1381
+         r440 <- addk     r51,8 qword
+  (  2)  r441 <- loadm8   addr:r440
+         r443 <- sub      r425,r101  qword
+         r447 <- is0      r443
+         r450 <- jmp.if   r447,629
+.B16:  in[.B15 .B22 ]     ;; 0x5de0f0  42 insn 1 phis
+  (  2)  r1372 <- phi8
+         r1373 <- phiarg   r1369
+         r1374 <- phiarg   r101
+         r452 <- addk     r1384,88 qword
+  (  7)  r453 <- loadm8   addr:r452
+         r456 <- addk     r1384,80 qword
+         r464 <- addk     r51,8 qword
+         r465 <- store    *r464 ← r453
+         r466 <- const8   4199136 (0x4012e0)
+         r467 <- call     r466
+         r468 <- carg     r453
+         r469 <- carg     r441
+         r470 <- carg     r1372
+         r471 <- carg     r453
+         r482 <- addk     r51,8 qword
+         r483 <- loadm8   addr:r482
+         r485 <- sub      r467,r101  qword
+         r489 <- is0      r485
+         r492 <- jmp.if   r489,1009
+.B17:  in[.B16 .B37 ]     ;; 0x5de11a  42 insn 1 phis
+         r1375 <- phi8
+         r1376 <- phiarg   r1372
+         r1377 <- phiarg   r101
+         r494 <- addk     r1384,128 qword
+  (  3)  r495 <- loadm8   addr:r494
+         r498 <- addk     r1384,120 qword
+         r506 <- addk     r51,8 qword
+         r507 <- store    *r506 ← r495
+         r508 <- const8   4199136 (0x4012e0)
+         r509 <- call     r508
+         r510 <- carg     r495
+         r511 <- carg     r495
+         r512 <- carg     r1375
+         r513 <- carg     r453
+         r524 <- addk     r51,8 qword
+  (  2)  r525 <- loadm8   addr:r524
+  (  2)  r527 <- sub      r509,r101  qword
+         r531 <- is0      r527
+         r534 <- jmp.if   r531,1041
+.B18:  in[.B17 .B39 ]     ;; 0x5de144  18 insn 0 phis
+         r536 <- addk     r51,16 qword
+         r537 <- loadm8   addr:r536
+         r540 <- addk     r174,4 qword
+         r545 <- sub      r540,r537  qword
+         r549 <- is0      r545
+         r552 <- jmp.if   r549,1073
+.B19:  in[.B14 .B18 ]     ;; 0x5de15a  30 insn 3 phis
+  (  2)  r1378 <- phi8
+         r1379 <- phiarg   r184
+         r1380 <- phiarg   r525
+  (  4)  r1381 <- phi8
+         r1382 <- phiarg   r17
+         r1383 <- phiarg   r453
+  (  8)  r1384 <- phi8
+         r1385 <- phiarg   r1363
+         r1386 <- phiarg   r543
+         r554 <- addk     r1384,8 qword
+  (  3)  r555 <- loadm8   addr:r554
+         r559 <- const8   4199136 (0x4012e0)
+         r560 <- call     r559
+         r561 <- carg     r555
+         r562 <- carg     r1378
+         r563 <- carg     r112
+         r564 <- carg     r1381
+         r574 <- sub      r560,r101  qword
+         r578 <- is0      r574
+         r581 <- not      r578
+         r582 <- jmp.if   r581,407
+.B20:  in[.B19 ]     ;; 0x5de172  32 insn 0 phis
+         r584 <- sub      r47,r50  qword
+         r585 <- loadm8   addr:r584
+         r589 <- const8   4199232 (0x401340)
+         r590 <- call     r589
+         r591 <- carg     r585
+         r592 <- carg     r555
+         r593 <- carg     r101
+         r594 <- carg     r1381
+         r608 <- is0      r590
+         r613 <- not      r608
+         r614 <- jmp.if   r613,407
+.B21:  in[.B20 ]     ;; 0x5de189  14 insn 0 phis
+         r617 <- addk     r51,40 qword
+         r618 <- loadm8   addr:r617
+         r625 <- addk     r51,56 qword
+         r626 <- loadm8   addr:r625
+         r628 <- jmp      674
+.B22:  in[.B15 ]     ;; 0x5de1a0  31 insn 0 phis
+         r630 <- sub      r47,r50  qword
+         r631 <- loadm8   addr:r630
+         r634 <- const8   4199232 (0x401340)
+         r635 <- call     r634
+         r636 <- carg     r631
+         r637 <- carg     r441
+         r638 <- carg     r101
+         r639 <- carg     r1381
+         r653 <- is0      r635
+         r658 <- not      r653
+         r659 <- jmp.if   r658,451
+.B23:  in[.B22 .B38 .B40 ]     ;; 0x5de1b4  14 insn 2 phis
+         r1391 <- phi8
+         r1392 <- phiarg   r412
+         r1393 <- phiarg   r456
+         r1394 <- phiarg   r498
+         r662 <- addk     r51,40 qword
+         r663 <- loadm8   addr:r662
+         r671 <- addk     r51,56 qword
+         r672 <- loadm8   addr:r671
+.B24:  in[.B21 .B23 .B47 .B49 .B51 ]     ;; 0x5de1c9  17 insn 4 phis
+         r1395 <- phi8
+         r1396 <- phiarg   r174
+         r1397 <- phiarg   r415
+         r1398 <- phiarg   r174
+         r1399 <- phiarg   r174
+         r1400 <- phiarg   r174
+         r1401 <- phi8
+         r1402 <- phiarg   r1384
+         r1403 <- phiarg   r1391
+         r1404 <- phiarg   r1357
+         r1405 <- phiarg   r1348
+         r1406 <- phiarg   r128
+         r1407 <- phi8
+         r1408 <- phiarg   r626
+         r1409 <- phiarg   r672
+         r1410 <- phiarg   r1336
+         r1411 <- phiarg   r1336
+         r1412 <- phiarg   r1336
+         r1413 <- phi8
+         r1414 <- phiarg   r618
+         r1415 <- phiarg   r663
+         r1416 <- phiarg   r133
+         r1417 <- phiarg   r133
+         r1418 <- phiarg   r133
+         r675 <- addk     r51,32 qword
+         r679 <- loadm8   addr:r675
+         r680 <- mulk     r1413,8 qword
+         r681 <- add      r679,r680  qword
+         r682 <- store    *r681 ← r1395
+         r683 <- sub      r1401,r1407  qword
+         r687 <- is0      r683
+         r690 <- jmp.if   r687,1073
+.B25:  in[.B24 ]     ;; 0x5de1dc  14 insn 0 phis
+         r692 <- addk     r24,32 qword
+         r693 <- loadm8   addr:r692
+         r694 <- const8   0 (0x0)
+         r695 <- sub      r693,r694  qword
+         r699 <- is0      r695
+         r702 <- TODO     unsupported: movzx edi,byte ptr [r8]
+         r703 <- not      r699
+         r704 <- jmp.if   r703,937
+.B26:  in[.B25 .B32 ]     ;; 0x5de1eb  10 insn 1 phis
+         r1419 <- phi8
+         r1420 <- phiarg   r18
+         r1421 <- phiarg   r880
+         r709 <- is0      r1419
+         r714 <- jmp.if   r709,1326
+.B27:  in[.B26 ]     ;; 0x5de1f4  32 insn 0 phis
+  (  2)  r716 <- addk     r1333,1 qword
+         r718 <- const4   46 (0x2e)
+  (  3)  r719 <- v8.l4=   r14 ← r718
+         r721 <- sub      r47,r50  qword
+         r722 <- store    *r721 ← r716
+         r723 <- const8   4199040 (0x401280)
+  (  2)  r724 <- call     r723
+         r725 <- carg     r716
+         r726 <- carg     r719
+         r727 <- carg     r112
+         r728 <- carg     r17
+         r741 <- is0      r724
+         r746 <- jmp.if   r741,1103
+.B28:  in[.B27 ]     ;; 0x5de212  37 insn 0 phis
+         r783 <- TODO     unsupported: jae 00000000005DE36Dh
+.B29:  in[.B28 .B42 ]     ;; 0x5de22e  18 insn 0 phis
+         r786 <- addk     r24,24 qword
+         r790 <- loadm8   addr:r786
+         r791 <- loadm1   addr:r790
+         r792 <- const1   0 (0x0)
+         r793 <- sub      r791,r792  byte
+         r797 <- is0      r793
+         r800 <- not      r797
+         r801 <- jmp.if   r800,155
+.B30:  in[.B3 .B29 ]     ;; 0x5de23f  48 insn 2 phis
+         r1422 <- phi8
+         r1423 <- phiarg   r40
+         r1424 <- phiarg   r719
+         r1425 <- phi8
+         r1426 <- phiarg   r1333
+         r1427 <- phiarg   r724
+         r803 <- sub      r47,r50  qword
+         r804 <- loadm8   addr:r803
+         r808 <- const4   0 (0x0)
+         r809 <- v8.l4=   r1422 ← r808
+         r816 <- const4   10 (0xa)
+         r817 <- v8.l4=   r112 ← r816
+         r819 <- addk     r51,8 qword
+         r820 <- store    *r819 ← r1425
+         r821 <- const8   6451424 (0x6270e0)
+         r822 <- call     r821
+         r823 <- carg     r804
+         r824 <- carg     r809
+         r825 <- carg     r817
+         r826 <- carg     r17
+         r837 <- addk     r51,8 qword
+         r838 <- loadm8   addr:r837
+         r840 <- const8   -1 (0xffffffffffffffff)
+  (  4)  r841 <- sub      r822,r840  qword
+         r845 <- is0      r841
+         r849 <- jmp.if   r845,1073
+.B31:  in[.B30 ]     ;; 0x5de266  65 insn 0 phis
+  (  2)  r851 <- addk     r14,24 qword
+         r852 <- loadm8   addr:r851
+         r855 <- sub      r47,r50  qword
+         r856 <- store    *r855 ← r838
+         r858 <- loadm8   addr:r851
+         r859 <- loadm1   addr:r858
+         r860 <- const1   0 (0x0)
+         r861 <- sub      r859,r860  byte
+         r865 <- is0      r861
+         r868 <- not      r865
+         r869 <- jmp.if   r868,0x403143 extern
+         r871 <- addk     r51,24 qword
+  (  2)  r875 <- addk     r51,32 qword
+         r876 <- loadm8   addr:r875
+         r879 <- addk     r51,64 qword
+  (  3)  r880 <- loadm8   addr:r879
+         r883 <- loadm8   addr:r871
+         r884 <- loadm8   addr:r883
+         r889 <- addk     r852,8 qword
+         r890 <- loadm8   addr:r889
+         r891 <- loadm8   addr:r890
+  (  3)  r892 <- call     r891
+         r893 <- carg     r880
+         r894 <- carg     r876
+         r895 <- carg     r884
+         r896 <- carg     r841
+         r907 <- get      r892
+         r909 <- is0      r892
+         r914 <- jmp.if   r909,1073
+.B32:  in[.B31 ]     ;; 0x5de29f  22 insn 0 phis
+         r920 <- addk     r892,32 qword
+         r921 <- loadm8   addr:r920
+         r922 <- const8   0 (0x0)
+         r923 <- sub      r921,r922  qword
+         r927 <- is0      r923
+         r931 <- loadm8   addr:r875
+         r932 <- mulk     r133,8 qword
+         r933 <- add      r931,r932  qword
+         r934 <- store    *r933 ← r841
+         r935 <- TODO     unsupported: movzx edi,byte ptr [r8]
+         r936 <- jmp.if   r927,705
+.B33:  in[.B25 .B32 ]     ;; 0x5de2b6  15 insn 1 phis
+         r1428 <- phi8
+         r1429 <- phiarg   r18
+         r1430 <- phiarg   r880
+         r938 <- addk     r51,72 qword
+         r939 <- loadm8   addr:r938
+         r945 <- is0      r1428
+         r950 <- not      r945
+         r951 <- jmp.if   r950,1073
+.B34:  in[.B33 .B53 ]     ;; 0x5de2c0  19 insn 1 phis
+         r1431 <- phi8
+         r1432 <- phiarg   r939
+         r1433 <- phiarg   r1328
+         r953 <- addk     r133,1 qword
+         r956 <- addk     r51,24 qword
+         r960 <- loadm8   addr:r956
+         r961 <- store    *r960 ← r953
+         r964 <- is0      r1431
+         r969 <- not      r964
+         r970 <- jmp.if   r969,1165
+.B35:  in[.B34 .B44 ]     ;; 0x5de2d5  10 insn 1 phis
+         r1434 <- phi8
+         r1435 <- phiarg   r98
+         r1436 <- phiarg   r1118
+         r973 <- const4   0 (0x0)
+         r974 <- v8.l4=   r1434 ← r973
+.B36:  in[.B35 .B45 ]     ;; 0x5de2d7  28 insn 1 phis
+         r1437 <- phi8
+         r1438 <- phiarg   r974
+         r1439 <- phiarg   r1171
+         r1008 <- ret      r1437
+.B37:  in[.B16 ]     ;; 0x5de2f0  31 insn 0 phis
+         r1010 <- sub      r47,r50  qword
+         r1011 <- loadm8   addr:r1010
+         r1014 <- const8   4199232 (0x401340)
+         r1015 <- call     r1014
+         r1016 <- carg     r1011
+         r1017 <- carg     r483
+         r1018 <- carg     r101
+         r1019 <- carg     r453
+         r1033 <- is0      r1015
+         r1038 <- not      r1033
+         r1039 <- jmp.if   r1038,493
+.B38:  in[.B37 ]     ;; 0x5de304  1 insn 0 phis
+         r1040 <- jmp      660
+.B39:  in[.B17 ]     ;; 0x5de310  31 insn 0 phis
+         r1042 <- sub      r47,r50  qword
+         r1043 <- loadm8   addr:r1042
+         r1046 <- const8   4199232 (0x401340)
+         r1047 <- call     r1046
+         r1048 <- carg     r1043
+         r1049 <- carg     r525
+         r1050 <- carg     r101
+         r1051 <- carg     r453
+         r1065 <- is0      r1047
+         r1070 <- not      r1065
+         r1071 <- jmp.if   r1070,535
+.B40:  in[.B39 ]     ;; 0x5de324  1 insn 0 phis
+         r1072 <- jmp      660
+.B41:  in[.B1 .B4 .B13 .B18 .B24 .B30 .B31 .B33 ]     ;; 0x5de330  30 insn 1 phis
+         r1440 <- phi8
+         r1441 <- phiarg   r98
+         r1442 <- phiarg   r98
+         r1443 <- phiarg   r358
+         r1444 <- phiarg   r527
+         r1445 <- phiarg   r98
+         r1446 <- phiarg   r841
+         r1447 <- phiarg   r907
+         r1448 <- phiarg   r98
+         r1082 <- const4   2 (0x2)
+         r1083 <- v8.l4=   r1440 ← r1082
+         r1102 <- ret      r1083
+.B42:  in[.B27 ]     ;; 0x5de348  50 insn 0 phis
+         r1104 <- sub      r47,r50  qword
+         r1105 <- loadm8   addr:r1104
+         r1108 <- addk     r133,1 qword
+         r1117 <- const8   4199136 (0x4012e0)
+  (  2)  r1118 <- call     r1117
+         r1119 <- carg     r1105
+         r1120 <- carg     r719
+         r1121 <- carg     r112
+         r1122 <- carg     r17
+         r1133 <- addk     r51,24 qword
+         r1143 <- loadm8   addr:r1133
+         r1144 <- loadm8   addr:r1143
+         r1145 <- sub      r1108,r1144  qword
+         r1147 <- carry    r1145
+         r1152 <- jmp.if   r1147,784
+.B43:  in[.B42 ]     ;; 0x5de36d  4 insn 0 phis
+         r1154 <- addk     r51,72 qword
+         r1155 <- loadm8   addr:r1154
+.B44:  in[.B43 ]     ;; 0x5de372  8 insn 0 phis
+         r1159 <- is0      r1155
+         r1164 <- jmp.if   r1159,971
+.B45:  in[.B34 .B44 ]     ;; 0x5de37b  14 insn 2 phis
+         r1449 <- phi8
+         r1450 <- phiarg   r98
+         r1451 <- phiarg   r1118
+         r1166 <- phi8
+         r1167 <- store    *r1166 ← r24
+         r1170 <- const4   0 (0x0)
+         r1171 <- v8.l4=   r1449 ← r1170
+         r1178 <- jmp      981
+.B46:  in[.B12 ]     ;; 0x5de388  38 insn 0 phis
+         r1180 <- sub      r47,r50  qword
+         r1181 <- loadm8   addr:r1180
+         r1185 <- addk     r51,8 qword
+         r1186 <- store    *r1185 ← r356
+         r1187 <- const8   4199232 (0x401340)
+         r1188 <- call     r1187
+         r1189 <- carg     r1181
+         r1190 <- carg     r352
+         r1191 <- carg     r101
+         r1192 <- carg     r17
+         r1210 <- is0      r1188
+         r1215 <- not      r1210
+         r1216 <- jmp.if   r1215,366
+.B47:  in[.B46 ]     ;; 0x5de3a6  1 insn 0 phis
+         r1217 <- jmp      674
+.B48:  in[.B10 ]     ;; 0x5de3b0  38 insn 0 phis
+         r1219 <- sub      r47,r50  qword
+         r1220 <- loadm8   addr:r1219
+         r1224 <- addk     r51,8 qword
+         r1225 <- store    *r1224 ← r295
+         r1226 <- const8   4199232 (0x401340)
+         r1227 <- call     r1226
+         r1228 <- carg     r1220
+         r1229 <- carg     r291
+         r1230 <- carg     r101
+         r1231 <- carg     r17
+         r1249 <- is0      r1227
+         r1254 <- not      r1249
+         r1255 <- jmp.if   r1254,305
+.B49:  in[.B48 ]     ;; 0x5de3ce  1 insn 0 phis
+         r1256 <- jmp      674
+.B50:  in[.B8 ]     ;; 0x5de3d3  42 insn 0 phis
+         r1258 <- sub      r47,r50  qword
+         r1259 <- loadm8   addr:r1258
+         r1263 <- addk     r51,40 qword
+         r1264 <- store    *r1263 ← r246
+         r1266 <- addk     r51,8 qword
+         r1267 <- store    *r1266 ← r128
+         r1268 <- const8   4199232 (0x401340)
+         r1269 <- call     r1268
+         r1270 <- carg     r1259
+         r1271 <- carg     r242
+         r1272 <- carg     r101
+         r1273 <- carg     r17
+         r1292 <- is0      r1269
+         r1297 <- not      r1292
+         r1298 <- jmp.if   r1297,257
+.B51:  in[.B50 ]     ;; 0x5de3f9  1 insn 0 phis
+         r1299 <- jmp      674
+.B52:  in[.B0 ]     ;; 0x5de400  26 insn 0 phis
+  (  2)  r1301 <- sub      r47,r50  qword
+         r1302 <- loadm8   addr:r1301
+         r1305 <- const8   4199136 (0x4012e0)
+         r1306 <- call     r1305
+         r1307 <- carg     r1302
+         r1308 <- carg     r40
+         r1309 <- carg     r18
+         r1310 <- carg     r17
+         r1321 <- loadm8   addr:r1301
+         r1322 <- mulk     r1306,1 qword
+         r1323 <- add      r1321,r1322  qword
+         r1325 <- jmp      96
+.B53:  in[.B26 ]     ;; 0x5de415  5 insn 0 phis
+         r1327 <- addk     r51,72 qword
+         r1328 <- loadm8   addr:r1327
+         r1330 <- jmp      952
+.B54:  in[.B2 .B36 .B41 ]     ;; 0x5de41f  2 insn 1 phis
+         r1332 <- jmp      1157
+
+
+
+'T0: {
+    [<pre:RSP> + -8]:8 = <pre:R15>;
+    [<pre:RSP> + -16]:8 = <pre:R14>;
+    let r40 = (<pre:RSI> with l4 = 46);
+    [<pre:RSP> + -24]:8 = <pre:R13>;
+    [<pre:RSP> + -32]:8 = <pre:R12>;
+    [<pre:RSP> + -40]:8 = <pre:RBP>;
+    let r47 = <pre:RSP> + -48;
+    [r47]:8 = <pre:RBX>;
+    let r51 = r47 - 88;
+    [r51 + 64]:8 = <pre:RDI>;
+    [r51 + 32]:8 = <pre:R8>;
+    [r47 - 88]:8 = <pre:RDX>;
+    [r51 + 24]:8 = <pre:R9>;
+    let r73 = 4199040(
+                <pre:RDX>,
+                r40,
+                <pre:RDX>,
+                <pre:RCX>,
+              );
+    if r73 == 0 {
+        let mut r1333 = r73;
+        
+        'T1(r1333): {
+            let r101 = r1333 - [r47 - 88]:8;
+            if r101 == 0 {
+                let r111 = r51 + 24;
+                if [[r111]:8]:8 == 0 {
+                    let r127 = <pre:RSI> + 24;
+                    let r133 = (<pre:R15> with l4 = 0);
+                    [r51 + 72]:8 = <pre:RCX>;
+                    if [[r127]:8]:1 == 0 {
+                        let mut r1336 = <pre:RSI>;
+                        
+                        'T4(r1336): {
+                            [r51 + 16]:8 = [r1336 + 16]:8;
+                            if [r1336 + 16]:8 == 0 {
+                                let r174 = (<pre:RCX> with l4 = 0);
+                                let r183 = [r1336 + 16]:8 & 3;
+                                let r184 = ([r1336 + 16]:8 with l4 = r183);
+                                if r183 == 0 {
+                                    let r193 = r184 - 1;
+                                    if r193 == 0 {
+                                        let r202 = r193 - 2;
+                                        if r202 == 0 {
+                                            [r51 + 48]:8 = r1333;
+                                            [r51 + 40]:8 = [r127]:8;
+                                            [r51 + 8]:8 = [[r127]:8 + 8]:8;
+                                            let r226 = 4199136(
+                                                         [[r127]:8 + 8]:8,
+                                                         r202,
+                                                         [r111]:8,
+                                                         <pre:RCX>,
+                                                       );
+                                            if r226 - r101 == 0 {
+                                                let mut r1339 = [r127]:8;
+                                                
+                                                'T9(r1339): goto T10 with (r1342 = [r51 + 8]:8,
+                                                                           r1345 = [r51 + 48]:8,
+                                                                           r1348 = r1339 + 40)
+                                            } else {
+                                                [r51 + 40]:8 = [r51 + 48]:8;
+                                                [r51 + 8]:8 = [r127]:8;
+                                                let r1269 = 4199232(
+                                                              [r47 - 88]:8,
+                                                              [r51 + 8]:8,
+                                                              r101,
+                                                              <pre:RCX>,
+                                                            );
+                                                if not r1269 == 0 goto T24 with (r1395 = r174,
+                                                                                 r1401 = [r127]:8,
+                                                                                 r1407 = r1336,
+                                                                                 r1413 = r133) else goto T9 (r1339 = [r127]:8)
+                                            }
+                                        } else {
+                                            let mut r1342 = r202;
+                                            let mut r1345 = r1333;
+                                            let mut r1348 = [r127]:8;
+                                            
+                                            'T10(r1342, r1345, r1348): {
+                                                [r51 + 40]:8 = r1345;
+                                                [r51 + 8]:8 = [r1348 + 8]:8;
+                                                let r275 = 4199136(
+                                                             [r1348 + 8]:8,
+                                                             r1342,
+                                                             [r111]:8,
+                                                             <pre:RCX>,
+                                                           );
+                                                if r275 - r101 == 0 
+                                                'T11: goto T12 with (r1351 = [r51 + 8]:8,
+                                                                     r1354 = [r51 + 40]:8,
+                                                                     r1357 = r1348 + 40) else {
+                                                    [r51 + 8]:8 = [r51 + 40]:8;
+                                                    let r1227 = 4199232(
+                                                                  [r47 - 88]:8,
+                                                                  [r51 + 8]:8,
+                                                                  r101,
+                                                                  <pre:RCX>,
+                                                                );
+                                                    if not r1227 == 0 goto T24 with (r1395 = r174,
+                                                                                     r1401 = r1348,
+                                                                                     r1407 = r1336,
+                                                                                     r1413 = r133) else goto T11
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        let mut r1351 = r193;
+                                        let mut r1354 = r1333;
+                                        let mut r1357 = [r127]:8;
+                                        
+                                        'T12(r1351, r1354, r1357): {
+                                            [r51 + 40]:8 = r1354;
+                                            [r51 + 8]:8 = [r1357 + 8]:8;
+                                            let r336 = 4199136(
+                                                         [r1357 + 8]:8,
+                                                         r1351,
+                                                         [r111]:8,
+                                                         <pre:RCX>,
+                                                       );
+                                            let r358 = r336 - r101;
+                                            if r358 == 0 
+                                            'T13: if r174 + 1 - [r51 + 16]:8 == 0 goto T14 with (r1360 = [r51 + 40]:8,
+                                                                                                 r1363 = r1357 + 40) else goto T41 (r1440 = r358) else {
+                                                [r51 + 8]:8 = [r51 + 40]:8;
+                                                let r1188 = 4199232(
+                                                              [r47 - 88]:8,
+                                                              [r51 + 8]:8,
+                                                              r101,
+                                                              <pre:RCX>,
+                                                            );
+                                                if not r1188 == 0 goto T24 with (r1395 = r174,
+                                                                                 r1401 = r1357,
+                                                                                 r1407 = r1336,
+                                                                                 r1413 = r133) else goto T13
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    let mut r1360 = r1333;
+                                    let mut r1363 = [r127]:8;
+                                    
+                                    'T14(r1360, r1363): {
+                                        [r51 + 56]:8 = r1336;
+                                        [r51 + 40]:8 = r133;
+                                        [r51 + 48]:8 = r1360;
+                                        let mut r1378 = r184;
+                                        let mut r1381 = <pre:RCX>;
+                                        let mut r1384 = r1363;
+                                        
+                                        'T19(r1378, r1381, r1384): {
+                                            let r560 = 4199136(
+                                                         [r1384 + 8]:8,
+                                                         r1378,
+                                                         [r111]:8,
+                                                         r1381,
+                                                       );
+                                            if not r560 - r101 == 0 {
+                                                let r590 = 4199232(
+                                                             [r47 - 88]:8,
+                                                             [r1384 + 8]:8,
+                                                             r101,
+                                                             r1381,
+                                                           );
+                                                if not r590 == 0 goto T24 with (r1395 = r174,
+                                                                                r1401 = r1384,
+                                                                                r1407 = [r51 + 56]:8,
+                                                                                r1413 = [r51 + 40]:8) else goto T15 with (r1366 = [r1384 + 8]:8,
+                                                                                                                          r1369 = r101)
+                                            } else {
+                                                let mut r1366 = r1378;
+                                                let mut r1369 = [r111]:8;
+                                                
+                                                'T15(r1366, r1369): {
+                                                    [r51 + 8]:8 = [r1384 + 48]:8;
+                                                    let r425 = 4199136(
+                                                                 [r1384 + 48]:8,
+                                                                 r1366,
+                                                                 r1369,
+                                                                 r1381,
+                                                               );
+                                                    if r425 - r101 == 0 {
+                                                        let mut r1372 = r1369;
+                                                        
+                                                        'T16(r1372): {
+                                                            [r51 + 8]:8 = [r1384 + 88]:8;
+                                                            let r467 = 4199136(
+                                                                         [r1384 + 88]:8,
+                                                                         [r51 + 8]:8,
+                                                                         r1372,
+                                                                         [r1384 + 88]:8,
+                                                                       );
+                                                            if r467 - r101 == 0 {
+                                                                let mut r1375 = r1372;
+                                                                
+                                                                'T17(r1375): {
+                                                                    [r51 + 8]:8 = [r1384 + 128]:8;
+                                                                    let r509 = 4199136(
+                                                                                 [r1384 + 128]:8,
+                                                                                 [r1384 + 128]:8,
+                                                                                 r1375,
+                                                                                 [r1384 + 88]:8,
+                                                                               );
+                                                                    let r527 = r509 - r101;
+                                                                    if r527 == 0 
+                                                                    'T18: if r174 + 4 - [r51 + 16]:8 == 0 goto T19 with (r1378 = [r51 + 8]:8,
+                                                                                                                         r1381 = [r1384 + 88]:8,
+                                                                                                                         r1384 = r1384 + 160) else goto T41 (r1440 = r527) else {
+                                                                        let r1047 = 4199232(
+                                                                                      [r47 - 88]:8,
+                                                                                      [r51 + 8]:8,
+                                                                                      r101,
+                                                                                      [r1384 + 88]:8,
+                                                                                    );
+                                                                        if not r1047 == 0 goto T23 (r1391 = r1384 + 120) else goto T18
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                let r1015 = 4199232(
+                                                                              [r47 - 88]:8,
+                                                                              [r51 + 8]:8,
+                                                                              r101,
+                                                                              [r1384 + 88]:8,
+                                                                            );
+                                                                if not r1015 == 0 goto T23 (r1391 = r1384 + 80) else goto T17 (r1375 = r101)
+                                                            }
+                                                        }
+                                                    } else {
+                                                        let r635 = 4199232(
+                                                                     [r47 - 88]:8,
+                                                                     [r51 + 8]:8,
+                                                                     r101,
+                                                                     r1381,
+                                                                   );
+                                                        if not r635 == 0 goto T23 (r1391 = r1384 + 40) else goto T16 (r1372 = r101)
+                                                    };
+                                                    
+                                                    'T23(r1391): goto T24 with (r1395 = r174 + 1,
+                                                                                r1401 = r1391,
+                                                                                r1407 = [r51 + 56]:8,
+                                                                                r1413 = [r51 + 40]:8)
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+                                
+                                'T24(r1395, r1401, r1407, r1413): {
+                                    [[r51 + 32]:8 + r1413 * 8]:8 = r1395;
+                                    if r1401 - r1407 == 0 {
+                                        <-- TODO: unsupported: movzx edi,byte ptr [r8] -->;
+                                        if not [<pre:R13> + 32]:8 == 0 goto T26 (r1419 = <pre:RDX>) else goto T33 (r1428 = <pre:RDX>)
+                                    } else goto T41 (r1440 = [r47 - 88]:8)
+                                }
+                            } else goto T41 (r1440 = [r47 - 88]:8)
+                        }
+                    } else {
+                        let mut r1422 = r40;
+                        let mut r1425 = r1333;
+                        
+                        'T30(r1422, r1425): {
+                            [r51 + 8]:8 = r1425;
+                            let r822 = 6451424(
+                                         [r47 - 88]:8,
+                                         (r1422 with l4 = 0),
+                                         ([r111]:8 with l4 = 10),
+                                         <pre:RCX>,
+                                       );
+                            let r841 = r822 - -1;
+                            if r841 == 0 {
+                                let r851 = <pre:RSI> + 24;
+                                [r47 - 88]:8 = [r51 + 8]:8;
+                                let r875 = r51 + 32;
+                                let r892 = [[[r851]:8 + 8]:8]:8(
+                                             [r51 + 64]:8,
+                                             [r875]:8,
+                                             [[r51 + 24]:8]:8,
+                                             r841,
+                                           );
+                                if r892 == 0 {
+                                    [[r875]:8 + r133 * 8]:8 = r841;
+                                    <-- TODO: unsupported: movzx edi,byte ptr [r8] -->;
+                                    if [r892 + 32]:8 == 0 goto T33 (r1428 = [r51 + 64]:8) else goto T26 (r1419 = [r51 + 64]:8)
+                                } else goto T41 (r1440 = r892)
+                            } else goto T41 (r1440 = r841)
+                        }
+                    };
+                    
+                    'T26(r1419): if r1419 == 0 {
+                        let r716 = r1333 + 1;
+                        let r719 = (<pre:RSI> with l4 = 46);
+                        [r47 - 88]:8 = r716;
+                        let r724 = 4199040(
+                                     r716,
+                                     r719,
+                                     [r111]:8,
+                                     <pre:RCX>,
+                                   );
+                        if r724 == 0 {
+                            <-- TODO: unsupported: jae 00000000005DE36Dh -->;
+                            goto T29
+                        } else {
+                            let r1118 = 4199136(
+                                          [r47 - 88]:8,
+                                          r719,
+                                          [r111]:8,
+                                          <pre:RCX>,
+                                        );
+                            if r133 + 1 < [[r51 + 24]:8]:8 if [r51 + 72]:8 == 0 goto T45 (r1449 = r1118) else goto T35 (r1434 = r1118) else goto T29
+                        };
+                        
+                        'T29: if not [[<pre:R13> + 24]:8]:1 == 0 goto T30 with (r1422 = r719,
+                                                                                r1425 = r724) else goto T4 (r1336 = <pre:R13>)
+                    } else goto T34 (r1431 = [r51 + 72]:8);
+                    
+                    'T33(r1428): if not r1428 == 0 goto T34 (r1431 = [r51 + 72]:8) else goto T41 (r1440 = [r47 - 88]:8);
+                    
+                    'T34(r1431): {
+                        [[r51 + 24]:8]:8 = r133 + 1;
+                        if not r1431 == 0 goto T35 (r1434 = [r47 - 88]:8) else goto T45 (r1449 = [r47 - 88]:8)
+                    };
+                    
+                    'T35(r1434): goto T36 (r1437 = (r1434 with l4 = 0));
+                    
+                    'T36(r1437): {
+                        return r1437;
+                        goto T54
+                    };
+                    
+                    'T45(r1449): {
+                        let r1166 = phi(
+                                      
+                                    );
+                        [r1166]:8 = <pre:R13>;
+                        goto T36 (r1437 = (r1449 with l4 = 0))
+                    }
+                } else goto T54
+            } else {
+                let mut r1440 = [r47 - 88]:8;
+                
+                'T41(r1440): {
+                    return (r1440 with l4 = 2);
+                    goto T54
+                }
+            };
+            
+            'T54: {
+                
+            }
+        }
+    } else {
+        let r1301 = r47 - 88;
+        let r1306 = 4199136(
+                      [r1301]:8,
+                      r40,
+                      <pre:RDX>,
+                      <pre:RCX>,
+                    );
+        goto T1 (r1333 = [r1301]:8 + r1306 * 1)
+    }
+}
