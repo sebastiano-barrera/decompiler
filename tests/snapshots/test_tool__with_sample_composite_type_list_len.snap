@@ -115,15 +115,23 @@ program  70 instrs
    69 r28 <- ret      r16
 
 
-ssa program  11 instrs
+ssa program  19 instrs
 .B0:  in[]     ;; 0x0  47 insn 0 phis
          r11 <- #pre:RSP
-  (  3)  r15 <- #pre:RAX
-         r36 <- xor      r15,r15  dword
-.B1:  in[.B0 .B1 ]     ;; 0x1140  22 insn 0 phis
-         r48 <- addk     r36,1 dword
-         r49 <- v8.l4=   r15 ← r48
-         r57 <- addk     r11,24 qword
+         r15 <- #pre:RAX
+         r36 <- const4   0 (0x0)
+         r37 <- v8.l4=   r15 ← r36
+         r45 <- addk     r11,8 qword
+.B1:  in[.B0 .B1 ]     ;; 0x1140  22 insn 2 phis
+  (  2)  r70 <- phi8
+         r71 <- phiarg   r37
+         r72 <- phiarg   r49
+         r73 <- phi8
+         r74 <- phiarg   r45
+         r75 <- phiarg   r60
+         r48 <- addk     r70,1 dword
+  (  2)  r49 <- v8.l4=   r70 ← r48
+         r57 <- addk     r73,16 qword
          r58 <- loadm8   addr:r57
          r62 <- is0      r58
          r67 <- not      r62
@@ -133,5 +141,13 @@ ssa program  11 instrs
 
 
 
-'T0: 
-'T1: if not [<pre:RSP> + 24]:8 == 0 return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX> + 1) else goto T1
+'T0: {
+    let mut r70 = (<pre:RAX> with l4 = 0);
+    let mut r73 = <pre:RSP> + 8;
+    
+    'T1(r70, r73): {
+        let r49 = (r70 with l4 = r70 + 1);
+        if not [r73 + 16]:8 == 0 return r49 else goto T1 with (r70 = r49,
+                                                               r73 = [r73 + 16]:8)
+    }
+}

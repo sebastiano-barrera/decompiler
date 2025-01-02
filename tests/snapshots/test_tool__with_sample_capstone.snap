@@ -1141,13 +1141,13 @@ program  313 instrs
   312 r28 <- jmp      265
 
 
-ssa program  97 instrs
+ssa program  122 instrs
 .B0:  in[]     ;; 0x0  80 insn 0 phis
          r10 <- #pre:RBP
   (  3)  r11 <- #pre:RSP
          r13 <- #pre:RDI
   (  2)  r14 <- #pre:RSI
-  (  4)  r16 <- #pre:RBX
+  (  2)  r16 <- #pre:RBX
   (  2)  r17 <- #pre:RCX
          r23 <- #pre:R12
          r34 <- addk     r11,-8 qword
@@ -1168,8 +1168,7 @@ ssa program  97 instrs
          r57 <- carg     r37
          r58 <- carg     r45
          r59 <- carg     r17
-         r71 <- and      r55,r55  dword
-         r73 <- is0      r71
+         r73 <- is0      r55
          r78 <- not      r73
          r79 <- jmp.if   r78,302
 .B1:  in[.B0 ]     ;; 0x4010b2  48 insn 0 phis
@@ -1190,31 +1189,40 @@ ssa program  97 instrs
          r122 <- is0      r105
          r127 <- jmp.if   r122,284
 .B2:  in[.B1 ]     ;; 0x4010dd  10 insn 0 phis
-         r130 <- xor      r16,r16  dword
-  (  3)  r131 <- v8.l4=   r16 ← r130
-.B3:  in[.B2 .B3 ]     ;; 0x4010e0  81 insn 0 phis
+         r130 <- const4   0 (0x0)
+         r131 <- v8.l4=   r16 ← r130
+.B3:  in[.B2 .B3 ]     ;; 0x4010e0  81 insn 3 phis
+         r313 <- phi8
+         r314 <- phiarg   r105
+         r315 <- phiarg   r210
+         r316 <- phi8
+         r317 <- phiarg   r82
+         r318 <- phiarg   r144
+  (  3)  r319 <- phi8
+         r320 <- phiarg   r131
+         r321 <- phiarg   r162
          r140 <- addk     r45,8 qword
          r143 <- const4   4203193 (0x4022b9)
-         r144 <- v8.l4=   r82 ← r143
+  (  2)  r144 <- v8.l4=   r316 ← r143
          r145 <- const1   5 (0x5)
          r146 <- widen    1->8 r145
-         r147 <- shl      r131,r146  qword
-         r153 <- sub      r147,r131  qword
-         r162 <- addk     r131,1 qword
+         r147 <- shl      r319,r146  qword
+         r153 <- sub      r147,r319  qword
+  (  2)  r162 <- addk     r319,1 qword
          r171 <- loadm8   addr:r140
          r172 <- mulk     r153,8 qword
   (  3)  r173 <- add      r171,r172  qword
          r176 <- addk     r173,8 qword
          r177 <- loadm8   addr:r176
-  (  2)  r180 <- addk     r173,74 qword
-  (  2)  r183 <- addk     r173,42 qword
+  (  3)  r180 <- addk     r173,74 qword
+  (  3)  r183 <- addk     r173,42 qword
          r195 <- const8   4198480 (0x401050)
          r196 <- call     r195
          r197 <- carg     r144
          r198 <- carg     r177
          r199 <- carg     r183
          r200 <- carg     r180
-  (  2)  r210 <- sub      r105,r162  qword
+  (  4)  r210 <- sub      r313,r162  qword
          r214 <- is0      r210
          r217 <- not      r214
          r218 <- jmp.if   r217,138
@@ -1227,15 +1235,29 @@ ssa program  97 instrs
          r227 <- carg     r210
          r228 <- carg     r183
          r229 <- carg     r180
-.B5:  in[.B4 .B7 ]     ;; 0x401121  26 insn 0 phis
+.B5:  in[.B4 .B7 ]     ;; 0x401121  26 insn 3 phis
+         r322 <- phi8
+         r323 <- phiarg   r210
+         r324 <- phiarg   r103
+         r325 <- phi8
+         r326 <- phiarg   r180
+         r327 <- phiarg   r99
+         r328 <- phi8
+         r329 <- phiarg   r183
+         r330 <- phiarg   r101
          r240 <- const8   4198528 (0x401080)
          r241 <- call     r240
          r242 <- carg     r45
-         r243 <- carg     r103
-         r244 <- carg     r101
-         r245 <- carg     r99
-.B6:  in[.B5 .B8 ]     ;; 0x40112b  19 insn 0 phis
-         r283 <- ret      r55
+         r243 <- carg     r322
+         r244 <- carg     r328
+         r245 <- carg     r325
+         r257 <- const4   0 (0x0)
+         r258 <- v8.l4=   r241 ← r257
+.B6:  in[.B5 .B8 ]     ;; 0x40112b  19 insn 1 phis
+         r331 <- phi8
+         r332 <- phiarg   r258
+         r333 <- phiarg   r305
+         r283 <- ret      r331
 .B7:  in[.B1 ]     ;; 0x401134  18 insn 0 phis
          r284 <- const4   4203208 (0x4022c8)
          r285 <- v8.l4=   r82 ← r284
@@ -1247,6 +1269,9 @@ ssa program  97 instrs
          r291 <- carg     r99
          r301 <- jmp      239
 .B8:  in[.B0 ]     ;; 0x401140  11 insn 0 phis
+         r303 <- const4   4294967295 (0xffffffff)
+         r304 <- or       r55,r303  dword
+         r305 <- v8.l4=   r55 ← r304
          r312 <- jmp      265
 
 
@@ -1263,7 +1288,7 @@ ssa program  97 instrs
                 r45,
                 <pre:RCX>,
               );
-    if not r55 & r55 == 0 {
+    if not r55 == 0 {
         let r99 = (<pre:RCX> with l4 = 4096);
         let r101 = (r45 with l4 = 8);
         let r103 = (<pre:RSI> with l4 = 4203184);
@@ -1274,19 +1299,23 @@ ssa program  97 instrs
                      r99,
                    );
         if r105 == 0 {
-            let r131 = (<pre:RBX> with l4 = <pre:RBX> ^ <pre:RBX>);
+            let mut r313 = r105;
+            let mut r316 = [r42 - 16]:8;
+            let mut r319 = (<pre:RBX> with l4 = 0);
             
-            'T3: {
-                let r173 = [r45 + 8]:8 + (r131 << (5).widen[1->8] - r131) * 8;
+            'T3(r313, r316, r319): {
+                let r144 = (r316 with l4 = 4203193);
+                let r162 = r319 + 1;
+                let r173 = [r45 + 8]:8 + (r319 << (5).widen[1->8] - r319) * 8;
                 let r180 = r173 + 74;
                 let r183 = r173 + 42;
                 let r196 = 4198480(
-                             ([r42 - 16]:8 with l4 = 4203193),
+                             r144,
                              [r173 + 8]:8,
                              r183,
                              r180,
                            );
-                let r210 = r105 - r131 + 1;
+                let r210 = r313 - r162;
                 if not r210 == 0 {
                     let r225 = 4198464(
                                  [r45 + 8]:8,
@@ -1294,8 +1323,12 @@ ssa program  97 instrs
                                  r183,
                                  r180,
                                );
-                    goto T5
-                } else goto T3
+                    goto T5 with (r322 = r210,
+                                  r325 = r180,
+                                  r328 = r183)
+                } else goto T3 with (r313 = r210,
+                                     r316 = r144,
+                                     r319 = r162)
             }
         } else {
             let r287 = 4198448(
@@ -1304,19 +1337,21 @@ ssa program  97 instrs
                          r101,
                          r99,
                        );
-            goto T5
+            goto T5 with (r322 = r103,
+                          r325 = r99,
+                          r328 = r101)
         };
         
-        'T5: {
+        'T5(r322, r325, r328): {
             let r241 = 4198528(
                          r45,
-                         r103,
-                         r101,
-                         r99,
+                         r322,
+                         r328,
+                         r325,
                        );
-            goto T6
+            goto T6 (r331 = (r241 with l4 = 0))
         }
-    } else goto T6;
+    } else goto T6 (r331 = (r55 with l4 = r55 | -1));
     
-    'T6: return r55
+    'T6(r331): return r331
 }
