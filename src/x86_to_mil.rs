@@ -96,6 +96,8 @@ impl Builder {
 
             use iced_x86::Mnemonic as M;
             match insn.mnemonic() {
+                M::Nop => {}
+
                 M::Push => {
                     assert_eq!(insn.op_count(), 1);
 
