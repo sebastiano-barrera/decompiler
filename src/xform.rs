@@ -262,7 +262,9 @@ mod tests {
             xform::fold_constants(&mut prog);
 
             assert_eq!(prog.cfg().block_count(), 1);
-            let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
+            let insns = prog
+                .block_normal_insns(prog.cfg().entry_block_id())
+                .unwrap();
             assert_eq!(insns.insns.len(), 10);
             assert_eq!(insns.insns[3].get(), Insn::ArithK8(ArithOp::Add, Reg(0), 5));
             assert_eq!(
@@ -294,7 +296,9 @@ mod tests {
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             xform::fold_constants(&mut prog);
 
-            let insns = prog.block_normal_insns(cfg::ENTRY_BID).unwrap();
+            let insns = prog
+                .block_normal_insns(prog.cfg().entry_block_id())
+                .unwrap();
             assert_eq!(insns.insns.len(), 10);
             assert_eq!(insns.insns[3].get(), Insn::ArithK8(ArithOp::Mul, Reg(0), 5));
             assert_eq!(

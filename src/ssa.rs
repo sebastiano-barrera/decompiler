@@ -309,7 +309,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         Finish,
         Start(cfg::BlockID),
     }
-    let mut queue = vec![Cmd::Finish, Cmd::Start(cfg::ENTRY_BID)];
+    let mut queue = vec![Cmd::Finish, Cmd::Start(cfg.entry_block_id())];
 
     while let Some(cmd) = queue.pop() {
         match cmd {
@@ -639,7 +639,7 @@ impl<T: Clone> RegMat<T> {
         // we overestimate number of variables as number of instructions, but
         // it's very likely still OK
         let num_vars = program.len() as usize;
-        RegMat(Mat::new(value, graph.block_count(), num_vars))
+        RegMat(Mat::new(value, graph.block_count() as usize, num_vars))
     }
 
     fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
@@ -709,7 +709,7 @@ impl<T: Clone> Mat<T> {
 }
 
 fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Mat<bool> {
-    let count = graph.block_count();
+    let count = graph.block_count() as usize;
     let mut mat = Mat::new(false, count, count);
 
     for bid in graph.block_ids() {

@@ -265,7 +265,8 @@ impl<'a> Builder<'a> {
     }
 
     pub fn compile(self) -> Ast {
-        self.compile_with_entry(cfg::ENTRY_BID)
+        let start_bid = self.ssa.cfg().entry_block_id();
+        self.compile_with_entry(start_bid)
     }
 }
 

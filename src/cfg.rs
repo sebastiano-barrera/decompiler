@@ -23,13 +23,14 @@ pub struct Graph {
 }
 
 pub struct Edges {
-    entries: BlockMap<bool>,
+    entry_bid: BlockID,
+    exit_bid: BlockID,
+    succ_ndxr: BlockMap<Range<usize>>,
     // these probably should be Box<[T]>
-    target: Vec<BlockID>,
-    // corresponds to 'target'. each item is the "predecessor index" of the edge
+    succ: Vec<BlockID>,
+    // corresponds to 'succs'. each item is the "predecessor index" of the edge
     // a->b, such that if the value is p, then a is the pth predecessor of b.
-    pred_ndx: Vec<u8>,
-    ndx_range: BlockMap<Range<usize>>,
+    succ_pred_ndx: Vec<u8>,
     nonbackedge_preds_count: BlockMap<u16>,
 }
 
@@ -37,23 +38,27 @@ impl std::ops::Index<BlockID> for Edges {
     type Output = [BlockID];
 
     fn index(&self, bid: BlockID) -> &Self::Output {
-        let range = self.ndx_range[bid].clone();
-        &self.target[range]
+        let range = self.succ_ndxr[bid].clone();
+        &self.succ[range]
     }
 }
 
 impl Edges {
     fn assert_invariants(&self) {
-        assert_eq!(self.pred_ndx.len(), self.target.len());
-        assert_eq!(self.entries.block_count(), self.ndx_range.block_count());
+        assert_eq!(self.succ_pred_ndx.len(), self.succ.len());
+        assert!(self.entry_bid.as_number() < self.succ_ndxr.block_count());
         assert_eq!(
-            self.entries.block_count(),
+            self.succ_ndxr.block_count(),
             self.nonbackedge_preds_count.block_count()
         );
+        assert!(self.successors(self.exit_bid).len() == 0);
     }
 
-    fn block_count(&self) -> usize {
-        self.ndx_range.block_count()
+    pub fn block_ids(&self) -> impl DoubleEndedIterator<Item = BlockID> {
+        (0..self.block_count()).map(BlockID)
+    }
+    fn block_count(&self) -> u16 {
+        self.succ_ndxr.block_count()
     }
 
     pub fn nonbackedge_predecessor_count(&self, bid: BlockID) -> u16 {
@@ -61,15 +66,15 @@ impl Edges {
     }
 
     pub fn successors(&self, bndx: BlockID) -> &[BlockID] {
-        let range = &self.ndx_range[bndx];
-        &self.target[range.start..range.end]
+        let range = &self.succ_ndxr[bndx];
+        &self.succ[range.start..range.end]
     }
 }
 
 impl std::fmt::Debug for Edges {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "digraph {{")?;
-        for (bid, _) in self.ndx_range.items() {
+        for (bid, _) in self.succ_ndxr.items() {
             for succ in &self[bid] {
                 writeln!(f, "  block{} -> block{};", bid.0, succ.0)?;
             }
@@ -111,8 +116,6 @@ impl BlockCont {
 #[derive(PartialEq, Eq, Debug, Copy, Clone, Hash)]
 pub struct BlockID(u16);
 
-pub const ENTRY_BID: BlockID = BlockID(0);
-
 impl BlockID {
     #[inline(always)]
     pub fn as_number(&self) -> u16 {
@@ -127,8 +130,8 @@ impl BlockID {
 
 impl Graph {
     #[inline(always)]
-    pub fn block_count(&self) -> usize {
-        self.bounds.len() - 1
+    pub fn block_count(&self) -> u16 {
+        (self.bounds.len() - 1).try_into().unwrap()
     }
 
     pub fn block_ids(&self) -> impl Iterator<Item = BlockID> {
@@ -140,9 +143,9 @@ impl Graph {
     }
 
     pub fn block_cont(&self, bid: BlockID) -> BlockCont {
-        let range = &self.direct.ndx_range[bid];
-        let successors = &self.direct.target[range.clone()];
-        let pred_ndxs = &self.direct.pred_ndx[range.clone()];
+        let range = &self.direct.succ_ndxr[bid];
+        let successors = &self.direct.succ[range.clone()];
+        let pred_ndxs = &self.direct.succ_pred_ndx[range.clone()];
 
         match successors {
             [] => BlockCont::End,
@@ -180,6 +183,10 @@ impl Graph {
         &self.inverse
     }
 
+    pub fn entry_block_id(&self) -> BlockID {
+        self.direct.entry_bid
+    }
+
     /// Iterate through the IDs of the blocks in this graph, in reverse post order.
     ///
     /// In this ordering, entry blocks are yielded first; then each block is
@@ -198,6 +205,17 @@ impl Graph {
 }
 
 pub fn analyze_mil(program: &mil::Program) -> Graph {
+    // graphs with multiple exit nodes are converted into graphs with exactly 1
+    // exit node. this algorithm makes sure to add exactly 1 virtual exit node,
+    // and to link the "real" exits from the program to these.
+    //
+    // we already assume that the program can only start "at the beginning", so
+    // there IS always a single entry node.
+    //
+    // many algorithms assume one single entry node per graph, including the
+    // inverse graph. This yield significantly simpler algorithms (and easier to
+    // get right, too).
+
     // if bounds == [b0, b1, b2, b3, ...]
     // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
     // in particular, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
@@ -223,15 +241,18 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
         }
 
+        // virtual exit node has bounds coinciding with the program's exit
+        bounds.push(program.len());
         bounds.push(program.len());
         bounds.sort();
         bounds.dedup();
         bounds
     };
 
-    let block_count = bounds.len() - 1;
+    // "real" because it does not include the 2 virtual blocks
+    let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
 
-    let block_at: HashMap<_, _> = bounds[..block_count]
+    let block_at: HashMap<_, _> = bounds[..block_count as usize]
         .iter()
         .enumerate()
         .map(|(bndx, start_ndx)| {
@@ -248,43 +269,56 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let mut pred_count = BlockMap::new(0, block_count);
         let mut pred_ndx = Vec::new();
 
+        let exit_bid = BlockID(block_count - 1);
+
         for (insn_end_ndx, blk_ndx) in bounds[1..].iter().zip(0..) {
-            let last_ndx = insn_end_ndx - 1;
+            let ndx_range_start = target.len();
 
-            let start_ndx = target.len();
-            // predecessor indices are fixed up later
-            match dest_of_insn(program, last_ndx) {
-                (None, None) => panic!("all instructions must lead *somewhere*!"),
+            debug_assert_eq!(*insn_end_ndx, bounds[blk_ndx + 1]);
 
-                (Some(dest), None) | (None, Some(dest)) if dest == program.len() => {}
+            if *insn_end_ndx - bounds[blk_ndx] != 0 {
+                // non-empty block
 
-                (Some(dest), None) | (None, Some(dest)) => {
-                    let dest = *block_at.get(&dest).unwrap();
-                    target.push(dest);
-                    pred_ndx.push(pred_count[dest]);
-                    pred_count[dest] += 1;
-                }
+                let last_ndx = insn_end_ndx - 1;
+                // predecessor indices are fixed up later
+                match dest_of_insn(program, last_ndx) {
+                    (None, None) => panic!("all instructions must lead *somewhere*!"),
 
-                (Some(straight_dest), Some(side_dest)) => {
-                    for dest in [straight_dest, side_dest] {
-                        let dest = *block_at.get(&dest).unwrap();
+                    (Some(dest), None) | (None, Some(dest)) => {
+                        let dest = if dest == program.len() {
+                            // exit node
+                            exit_bid
+                        } else {
+                            *block_at.get(&dest).unwrap()
+                        };
                         target.push(dest);
                         pred_ndx.push(pred_count[dest]);
                         pred_count[dest] += 1;
                     }
-                }
-            };
 
-            ndx_range[BlockID(blk_ndx)] = start_ndx..target.len();
+                    (Some(straight_dest), Some(side_dest)) => {
+                        for dest in [straight_dest, side_dest] {
+                            let dest = *block_at.get(&dest).unwrap();
+                            target.push(dest);
+                            pred_ndx.push(pred_count[dest]);
+                            pred_count[dest] += 1;
+                        }
+                    }
+                };
+            }
+
+            let bid = BlockID(blk_ndx.try_into().unwrap());
+            ndx_range[bid] = ndx_range_start..target.len();
         }
 
-        let mut entries = BlockMap::new(false, block_count);
-        entries[ENTRY_BID] = true;
+        ndx_range[exit_bid] = target.len()..target.len();
+
         let mut edges = Edges {
-            entries,
-            ndx_range,
-            pred_ndx,
-            target,
+            entry_bid: BlockID(0),
+            exit_bid,
+            succ_ndxr: ndx_range,
+            succ_pred_ndx: pred_ndx,
+            succ: target,
             nonbackedge_preds_count: BlockMap::new(0, block_count),
         };
         edges.assert_invariants();
@@ -294,35 +328,31 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
     let inverse = {
         let mut ndx_range = BlockMap::new(0..0, block_count);
-        let mut target = Vec::with_capacity(block_count * 2);
-        let mut entries = BlockMap::new(false, block_count);
-        let mut pred_ndx = Vec::with_capacity(direct.target.len());
+        let mut target = Vec::with_capacity(block_count as usize * 2);
+        let mut pred_ndx = Vec::with_capacity(direct.succ.len());
 
         // quadratic, but you know how life goes
-        for succ in (0..block_count as u16).map(BlockID) {
-            let offset = target.len();
+        for succ in direct.block_ids() {
+            let ndx_range_start = target.len();
 
-            for pred in (0..block_count as u16).map(BlockID) {
+            for pred in direct.block_ids() {
                 for pred_succ in direct.successors(pred) {
                     if *pred_succ == succ {
-                        pred_ndx.push((target.len() - offset).try_into().unwrap());
+                        pred_ndx.push((target.len() - ndx_range_start).try_into().unwrap());
                         target.push(pred);
                     }
                 }
             }
 
-            ndx_range[succ] = offset..target.len();
-
-            if direct.successors(succ).is_empty() {
-                entries[succ] = true;
-            }
+            ndx_range[succ] = ndx_range_start..target.len();
         }
 
         let mut edges = Edges {
-            entries,
-            ndx_range,
-            pred_ndx,
-            target,
+            entry_bid: direct.exit_bid,
+            exit_bid: direct.entry_bid,
+            succ_ndxr: ndx_range,
+            succ_pred_ndx: pred_ndx,
+            succ: target,
             nonbackedge_preds_count: BlockMap::new(0, block_count),
         };
         edges.assert_invariants();
@@ -482,7 +512,7 @@ impl DomTree {
         let count = parent.block_count();
 
         let mut children_ndx_range = BlockMap::new(0..0, count);
-        let mut children = Vec::with_capacity(count);
+        let mut children = Vec::with_capacity(count as usize);
 
         for bid in parent.block_ids() {
             let clen_before = children.len();
@@ -496,7 +526,7 @@ impl DomTree {
 
         // entry nodes are nobody's child in the dom tree
         let entries_count = parent.items().filter(|(_, p)| p.is_none()).count();
-        assert_eq!(children.len(), count - entries_count);
+        assert_eq!(children.len(), count as usize - entries_count);
         DomTree {
             parent,
             children_ndx_range,
@@ -549,11 +579,9 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     let mut parent = BlockMap::new(None, block_count);
 
     // process the entry node(s) "manually", so the algorithm can rely on it for successors
-    for (bid, &is_entry) in fwd_edges.entries.items() {
-        if is_entry {
-            parent[bid] = Some(bid);
-        }
-    }
+    // TODO remove this. should no longer be useful with our `common_ancestor`
+    // that includes the `changed` flag
+    parent[fwd_edges.entry_bid] = Some(fwd_edges.entry_bid);
 
     let mut changed = true;
     while changed {
@@ -626,54 +654,14 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     // we hand the tree out with a slightly different convention: the entry node(s) has no parent in
     // the tree, so the corresponding item is None.  up to this point the root is linked to itself,
     // as required by the algorithm by how it's formulated
-    for (bid, &is_entry) in fwd_edges.entries.items() {
-        if is_entry {
-            assert_eq!(parent[bid], Some(bid));
-            parent[bid] = None;
-        }
-    }
+    let entry = fwd_edges.entry_bid;
+    assert_eq!(parent[entry], Some(entry));
+    parent[entry] = None;
+
     for (bid, parent) in parent.items() {
         assert_ne!(*parent, Some(bid));
     }
     DomTree::from_parent(parent)
-}
-
-fn assert_is_tree(parent_of: &BlockMap<Option<BlockID>>) {
-    let count = parent_of.block_count();
-
-    let mut visited = BlockMap::new(false, count);
-
-    for bid in parent_of.block_ids() {
-        for (_, item) in visited.items_mut() {
-            *item = false;
-        }
-
-        let mut cur = bid;
-        loop {
-            // this function also supports the formulation where "no parent"
-            // is represented with a node's parent set to itself
-
-            let parent = match parent_of[cur] {
-                None => cur,
-                Some(p) => p,
-            };
-            if parent == cur {
-                assert_eq!(
-                    cur, ENTRY_BID,
-                    "path starting from {bid:?} does not connect to entry BlockID"
-                );
-                break;
-            }
-
-            visited[cur] = true;
-            assert!(
-                !visited[parent],
-                "cycle detected, starting at index {:?}, landing at index {:?}",
-                bid, parent
-            );
-            cur = parent;
-        }
-    }
 }
 
 /// Find the common ancestor of two nodes in a tree.
@@ -721,18 +709,14 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     // Remaining predecessors count
     let mut rem_preds_count = edges.nonbackedge_preds_count.clone();
 
-    let mut order = Vec::with_capacity(count);
-    let mut queue = Vec::with_capacity(count / 2);
+    let mut order = Vec::with_capacity(count as usize);
+    let mut queue = Vec::with_capacity(count as usize / 2);
     // we must avoid re-visiting a fully processed node. this happens when processing backedges.
     let mut visited = BlockMap::new(false, count);
 
-    for (bid, &is_entry) in edges.entries.items() {
-        if is_entry {
-            queue.push(bid);
-            // formally incorrect, but aligns it with the rest of the algorithm
-            rem_preds_count[bid] = 1;
-        }
-    }
+    queue.push(edges.entry_bid);
+    // formally incorrect, but aligns it with the rest of the algorithm
+    rem_preds_count[edges.entry_bid] = 1;
 
     while let Some(bid) = queue.pop() {
         // each node X must be processed (added to the ordering) only after all its P predecessors
@@ -759,7 +743,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     if let Some(max) = rem_preds_count.items().map(|(_, count)| *count).max() {
         assert_eq!(0, max);
     }
-    assert_eq!(order.len(), count);
+    assert_eq!(order.len(), count as usize);
     order
 }
 
@@ -776,13 +760,9 @@ fn recount_nonbackedge_predecessors(edges: &mut Edges) {
         Enter(BlockID),
         Exit(BlockID),
     }
-    let mut queue = Vec::with_capacity(count / 2);
-    for (bid, &is_entry) in edges.entries.items() {
-        if is_entry {
-            queue.push(Cmd::Exit(bid));
-            queue.push(Cmd::Enter(bid));
-        }
-    }
+    let mut queue = Vec::with_capacity(count as usize / 2);
+    queue.push(Cmd::Exit(edges.entry_bid));
+    queue.push(Cmd::Enter(edges.entry_bid));
 
     while let Some(cmd) = queue.pop() {
         match cmd {
@@ -826,8 +806,9 @@ pub struct Ordering {
 
 impl Ordering {
     pub fn new(order: Vec<BlockID>) -> Self {
-        let mut pos_of = BlockMap::new(0, order.len());
-        let mut occurs_count = BlockMap::new(0, order.len());
+        let count = order.len().try_into().unwrap();
+        let mut pos_of = BlockMap::new(0, count);
+        let mut occurs_count = BlockMap::new(0, count);
         for (pos, &bid) in order.iter().enumerate() {
             occurs_count[bid] += 1;
             pos_of[bid] = pos;
@@ -854,8 +835,8 @@ impl Ordering {
 pub struct BlockMap<T>(Vec<T>);
 
 impl<T: Clone> BlockMap<T> {
-    pub fn new(init: T, count: usize) -> Self {
-        let vec = vec![init; count];
+    pub fn new(init: T, count: u16) -> Self {
+        let vec = vec![init; count as usize];
         BlockMap(vec)
     }
 
@@ -866,8 +847,8 @@ impl<T: Clone> BlockMap<T> {
         Self(cfg.block_ids().map(init_item).collect())
     }
 
-    pub fn block_count(&self) -> usize {
-        self.0.len()
+    pub fn block_count(&self) -> u16 {
+        self.0.len().try_into().unwrap()
     }
 }
 
