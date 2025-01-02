@@ -35,7 +35,7 @@ list_len 0x1130+28 (file 0x1130)
             114b: c3                      ret
 
 mil program = 
-program  62 instrs
+program  70 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -88,41 +88,48 @@ program  62 instrs
 0x1137:
    47 r28 <- TODO     unsupported: nop [rax+rax]
 0x1140:
-   48 r28 <- TODO     unsupported: inc eax
+   48 r28 <- l4       r16
+   49 r28 <- addk     r28,1 dword
+   50 r16 <- v8.l4=   r16 ← r28
+   51 r10 <- false
+   52 r2 <- false
+   53 r6 <- sign     r28
+   54 r5 <- is0      r28
+   55 r29 <- l1       r28
+   56 r3 <- parity   r29
 0x1142:
-   49 r29 <- const8   16 (0x10)
-   50 r29 <- add      r29,r18  qword
-   51 r28 <- loadm8   addr:r29
-   52 r18 <- get      r28
+   57 r29 <- const8   16 (0x10)
+   58 r29 <- add      r29,r18  qword
+   59 r28 <- loadm8   addr:r29
+   60 r18 <- get      r28
 0x1146:
-   53 r18 <- and      r18,r18  qword
-   54 r6 <- sign     r18
-   55 r5 <- is0      r18
-   56 r30 <- l1       r18
-   57 r3 <- parity   r18
-   58 r2 <- const1   0 (0x0)
-   59 r10 <- const1   0 (0x0)
+   61 r18 <- and      r18,r18  qword
+   62 r6 <- sign     r18
+   63 r5 <- is0      r18
+   64 r30 <- l1       r18
+   65 r3 <- parity   r18
+   66 r2 <- const1   0 (0x0)
+   67 r10 <- const1   0 (0x0)
 0x1149:
-   60 r28 <- TODO     unsupported: jne short 0000000000001140h
+   68 r28 <- TODO     unsupported: jne short 0000000000001140h
 0x114b:
-   61 r28 <- ret      r16
+   69 r28 <- ret      r16
 
 
 ssa program  7 instrs
-.B0:  in[]     ;; 0x0  62 insn 0 phis
+.B0:  in[]     ;; 0x0  70 insn 0 phis
   (  3)  r15 <- #pre:RAX
          r36 <- xor      r15,r15  dword
-         r37 <- v8.l4=   r15 ← r36
          r47 <- TODO     unsupported: nop [rax+rax]
-         r48 <- TODO     unsupported: inc eax
-         r60 <- TODO     unsupported: jne short 0000000000001140h
-         r61 <- ret      r37
+         r49 <- addk     r36,1 dword
+         r50 <- v8.l4=   r15 ← r49
+         r68 <- TODO     unsupported: jne short 0000000000001140h
+         r69 <- ret      r50
 
 
 
 'T0: {
     <-- TODO: unsupported: nop [rax+rax] -->;
-    <-- TODO: unsupported: inc eax -->;
     <-- TODO: unsupported: jne short 0000000000001140h -->;
-    return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX>)
+    return (<pre:RAX> with l4 = <pre:RAX> ^ <pre:RAX> + 1)
 }

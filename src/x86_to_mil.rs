@@ -168,7 +168,27 @@ impl Builder {
 
                     self.emit(Self::OF, mil::Insn::False);
                     self.emit(Self::CF, mil::Insn::False);
-                    // ignored: AF
+                    // TODO implement: AF
+                    self.emit(Self::SF, mil::Insn::SignOf(a));
+                    self.emit(Self::ZF, mil::Insn::IsZero(a));
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(Self::PF, mil::Insn::Parity(v0));
+                }
+                M::Inc => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    match a_sz {
+                        1 => self.emit(a, mil::Insn::ArithK1(mil::ArithOp::Add, a, 1)),
+                        2 => self.emit(a, mil::Insn::ArithK2(mil::ArithOp::Add, a, 1)),
+                        4 => self.emit(a, mil::Insn::ArithK4(mil::ArithOp::Add, a, 1)),
+                        8 => self.emit(a, mil::Insn::ArithK8(mil::ArithOp::Add, a, 1)),
+                        _ => panic!("invalid size: {}", a_sz),
+                    };
+                    self.emit_write(&insn, 0, a, a_sz);
+
+                    self.emit(Self::OF, mil::Insn::False);
+                    self.emit(Self::CF, mil::Insn::False);
+                    // TODO implement: AF
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
                     let v0 = self.reg_gen.next();
@@ -371,7 +391,7 @@ impl Builder {
     fn emit_set_flags_arith(&mut self, a: mil::Reg) {
         self.emit(Self::OF, mil::Insn::OverflowOf(a));
         self.emit(Self::CF, mil::Insn::CarryOf(a));
-        // ignored: AF
+        // TODO implement: AF
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
         let v0 = self.reg_gen.next();
