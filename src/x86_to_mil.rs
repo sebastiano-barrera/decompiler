@@ -164,19 +164,19 @@ impl Builder {
                 M::Xor => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
-                    assert_eq!(a_sz, b_sz, "xor: operands must be the same size");
-                    self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::BitXor);
-                    self.emit_write(&insn, 0, a, a_sz);
-
-                    self.emit(Self::OF, mil::Insn::False);
-                    self.emit(Self::CF, mil::Insn::False);
-                    // TODO implement: AF
-                    self.emit(Self::SF, mil::Insn::SignOf(a));
-                    self.emit(Self::ZF, mil::Insn::IsZero(a));
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::L1(a));
-                    self.emit(Self::PF, mil::Insn::Parity(v0));
+                    self.emit_bit_op(a_sz, b_sz, a, b, mil::ArithOp::BitXor, insn);
                 }
+                M::Or => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    self.emit_bit_op(a_sz, b_sz, a, b, mil::ArithOp::BitOr, insn);
+                }
+                M::And => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    self.emit_bit_op(a_sz, b_sz, a, b, mil::ArithOp::BitAnd, insn);
+                }
+
                 M::Inc => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     match a_sz {
@@ -378,14 +378,30 @@ impl Builder {
         Ok(self.build())
     }
 
-    fn emit_arith(
+    fn emit_bit_op(
         &mut self,
+        a_sz: u8,
+        b_sz: u8,
         a: mil::Reg,
-        mut a_sz: u8,
         b: mil::Reg,
-        mut b_sz: u8,
-        op: mil::ArithOp,
+        arith_op: mil::ArithOp,
+        insn: iced_x86::Instruction,
     ) {
+        assert_eq!(a_sz, b_sz, "bit op: operands must be the same size");
+        self.emit_arith(a, a_sz, b, b_sz, arith_op);
+        self.emit_write(&insn, 0, a, a_sz);
+
+        self.emit(Self::OF, mil::Insn::False);
+        self.emit(Self::CF, mil::Insn::False);
+        // TODO implement: AF
+        self.emit(Self::SF, mil::Insn::SignOf(a));
+        self.emit(Self::ZF, mil::Insn::IsZero(a));
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::L1(a));
+        self.emit(Self::PF, mil::Insn::Parity(v0));
+    }
+
+    fn emit_arith(&mut self, a: mil::Reg, a_sz: u8, b: mil::Reg, b_sz: u8, op: mil::ArithOp) {
         assert!([1, 2, 4, 8].contains(&a_sz));
         assert!([1, 2, 4, 8].contains(&b_sz));
         let sz = a_sz.max(b_sz);

@@ -773,7 +773,7 @@ main 0x401090+181 (file 0x1090)
           401143: eb e6                   jmp short 000000000040112Bh
 
 mil program = 
-program  304 instrs
+program  313 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -1127,12 +1127,21 @@ program  304 instrs
 0x40113e:
   301 r28 <- jmp      239
 0x401140:
-  302 r28 <- TODO     unsupported: or eax,0FFFFFFFFh
+  302 r28 <- l4       r16
+  303 r29 <- const4   4294967295 (0xffffffff)
+  304 r28 <- or       r28,r29  dword
+  305 r16 <- v8.l4=   r16 ← r28
+  306 r10 <- false
+  307 r2 <- false
+  308 r6 <- sign     r28
+  309 r5 <- is0      r28
+  310 r30 <- l1       r28
+  311 r3 <- parity   r30
 0x401143:
-  303 r28 <- jmp      265
+  312 r28 <- jmp      265
 
 
-ssa program  99 instrs
+ssa program  98 instrs
 .B0:  in[]     ;; 0x0  80 insn 0 phis
          r10 <- #pre:RBP
   (  3)  r11 <- #pre:RSP
@@ -1238,9 +1247,8 @@ ssa program  99 instrs
          r290 <- carg     r101
          r291 <- carg     r99
          r301 <- jmp      239
-.B8:  in[.B0 ]     ;; 0x401140  2 insn 0 phis
-         r302 <- TODO     unsupported: or eax,0FFFFFFFFh
-         r303 <- jmp      265
+.B8:  in[.B0 ]     ;; 0x401140  11 insn 0 phis
+         r312 <- jmp      265
 
 
 
@@ -1309,10 +1317,7 @@ ssa program  99 instrs
                        );
             goto T6
         }
-    } else {
-        <-- TODO: unsupported: or eax,0FFFFFFFFh -->;
-        goto T6
-    };
+    } else goto T6;
     
     'T6: return r55
 }
