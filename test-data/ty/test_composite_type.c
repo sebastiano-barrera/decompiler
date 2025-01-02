@@ -18,4 +18,17 @@ void join(struct point *a, struct point *b) {
     b->prev = a;
 }
 
-int main() {}
+extern float sqrtf(float);
+
+// test: pass by value calling convention
+int list_len(struct point p) {
+    int count = 0;
+    struct point *cur = &p;
+    for(; cur; cur = cur->next) {
+        count++;
+    }
+
+    return count;
+}
+
+
