@@ -1103,14 +1103,14 @@ ssa program  97 instrs
          r10 <- #pre:RBP
   (  3)  r11 <- #pre:RSP
          r13 <- #pre:RDI
-         r14 <- #pre:RSI
+  (  2)  r14 <- #pre:RSI
   (  4)  r16 <- #pre:RBX
   (  2)  r17 <- #pre:RCX
          r23 <- #pre:R12
          r34 <- addk     r11,-8 qword
          r35 <- store    *r34 ← r23
          r36 <- const4   8 (0x8)
-  (  2)  r37 <- v8.l4=   r14 ← r36
+         r37 <- v8.l4=   r14 ← r36
          r38 <- const4   3 (0x3)
          r39 <- v8.l4=   r13 ← r38
          r40 <- addk     r11,-16 qword
@@ -1134,7 +1134,7 @@ ssa program  97 instrs
          r90 <- const4   8 (0x8)
   (  2)  r91 <- v8.l4=   r45 ← r90
          r92 <- const4   4203184 (0x4022b0)
-  (  2)  r93 <- v8.l4=   r37 ← r92
+  (  2)  r93 <- v8.l4=   r14 ← r92
          r94 <- const8   4198496 (0x401060)
   (  3)  r95 <- call     r94
          r96 <- carg     r81
@@ -1206,14 +1206,13 @@ ssa program  97 instrs
 
 'T0: {
     [<pre:RSP> + -8]:8 = <pre:R12>;
-    let r37 = (<pre:RSI> with l4 = 8);
     [<pre:RSP> + -16]:8 = <pre:RBP>;
     let r42 = <pre:RSP> + -24;
     [r42]:8 = <pre:RBX>;
     let r45 = r42 - 16;
     let r55 = 4198512(
                 (<pre:RDI> with l4 = 3),
-                r37,
+                (<pre:RSI> with l4 = 8),
                 r45,
                 <pre:RCX>,
               );
@@ -1221,7 +1220,7 @@ ssa program  97 instrs
     <-- TODO: unsupported: xor r8d,r8d -->;
     let r89 = (<pre:RCX> with l4 = 4096);
     let r91 = (r45 with l4 = 8);
-    let r93 = (r37 with l4 = 4203184);
+    let r93 = (<pre:RSI> with l4 = 4203184);
     let r95 = 4198496(
                 [r42 - 16]:8,
                 r93,

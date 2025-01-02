@@ -118,6 +118,36 @@ pub fn fold_constants(prog: &mut ssa::Program) {
 pub fn fold_subregs(prog: &mut ssa::Program) {
     for bid in prog.cfg().block_ids_rpo() {
         for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
+            let mut subreg_insn = insn_cell.get();
+            let mut arg = match subreg_insn {
+                Insn::V8WithL1(big, _) | Insn::V8WithL2(big, _) | Insn::V8WithL4(big, _) => big,
+                _ => continue,
+            };
+
+            loop {
+                let arg_def = prog.get(arg).unwrap().insn.get();
+
+                (arg, subreg_insn) = match (subreg_insn, arg_def) {
+                    (Insn::V8WithL1(_, small), Insn::V8WithL1(big, _)) => {
+                        (big, Insn::V8WithL1(big, small))
+                    }
+                    (Insn::V8WithL2(_, small), Insn::V8WithL2(big, _)) => {
+                        (big, Insn::V8WithL2(big, small))
+                    }
+                    (Insn::V8WithL4(_, small), Insn::V8WithL4(big, _)) => {
+                        (big, Insn::V8WithL4(big, small))
+                    }
+                    _ => break,
+                };
+
+                // actually, we should use the properly sized Get# insn
+                insn_cell.set(subreg_insn);
+            }
+        }
+    }
+
+    for bid in prog.cfg().block_ids_rpo() {
+        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
             let subreg_insn = insn_cell.get();
             let mut arg = match subreg_insn {
                 Insn::L1(x) | Insn::L2(x) | Insn::L4(x) => x,
