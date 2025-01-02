@@ -72,7 +72,7 @@ sum_matrix 0x4011c9+115 (file 0x11c9)
           40123b: c3                      ret
 
 mil program = 
-program  191 instrs
+program  195 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -142,7 +142,7 @@ program  191 instrs
    55 r29 <- add      r29,r11  qword
    56 r30 <- store    *r29 ← r28
 0x4011f4:
-   57 r28 <- jmp      167
+   57 r28 <- jmp      169
 0x4011f6:
    58 r28 <- const4   0 (0x0)
    59 r29 <- const8   -12 (0xfffffffffffffff4)
@@ -254,59 +254,63 @@ program  191 instrs
   150 r31 <- l1       r28
   151 r3 <- parity   r31
 0x401229:
-  152 r28 <- TODO     unsupported: jl short 00000000004011FFh
+  152 r28 <- ==       r6,r10
+  153 r28 <- not      r28
+  154 r29 <- jmp.if   r28,63
 0x40122b:
-  153 r29 <- const8   -8 (0xfffffffffffffff8)
-  154 r29 <- add      r29,r11  qword
-  155 r28 <- loadm4   addr:r29
-  156 r30 <- const4   1 (0x1)
-  157 r28 <- add      r28,r30  dword
-  158 r31 <- const8   -8 (0xfffffffffffffff8)
-  159 r31 <- add      r31,r11  qword
-  160 r32 <- store    *r31 ← r28
-  161 r10 <- overflow r28
-  162 r2 <- carry    r28
-  163 r6 <- sign     r28
-  164 r5 <- is0      r28
-  165 r33 <- l1       r28
-  166 r3 <- parity   r33
+  155 r29 <- const8   -8 (0xfffffffffffffff8)
+  156 r29 <- add      r29,r11  qword
+  157 r28 <- loadm4   addr:r29
+  158 r30 <- const4   1 (0x1)
+  159 r28 <- add      r28,r30  dword
+  160 r31 <- const8   -8 (0xfffffffffffffff8)
+  161 r31 <- add      r31,r11  qword
+  162 r32 <- store    *r31 ← r28
+  163 r10 <- overflow r28
+  164 r2 <- carry    r28
+  165 r6 <- sign     r28
+  166 r5 <- is0      r28
+  167 r33 <- l1       r28
+  168 r3 <- parity   r33
 0x40122f:
-  167 r29 <- const8   -24 (0xffffffffffffffe8)
-  168 r29 <- add      r29,r11  qword
-  169 r28 <- loadm4   addr:r29
-  170 r16 <- v8.l4=   r16 ← r28
+  169 r29 <- const8   -24 (0xffffffffffffffe8)
+  170 r29 <- add      r29,r11  qword
+  171 r28 <- loadm4   addr:r29
+  172 r16 <- v8.l4=   r16 ← r28
 0x401232:
-  171 r29 <- const8   -8 (0xfffffffffffffff8)
-  172 r29 <- add      r29,r11  qword
-  173 r28 <- loadm4   addr:r29
-  174 r30 <- l4       r16
-  175 r28 <- sub      r28,r30  dword
-  176 r10 <- overflow r28
-  177 r2 <- carry    r28
-  178 r6 <- sign     r28
-  179 r5 <- is0      r28
-  180 r31 <- l1       r28
-  181 r3 <- parity   r31
+  173 r29 <- const8   -8 (0xfffffffffffffff8)
+  174 r29 <- add      r29,r11  qword
+  175 r28 <- loadm4   addr:r29
+  176 r30 <- l4       r16
+  177 r28 <- sub      r28,r30  dword
+  178 r10 <- overflow r28
+  179 r2 <- carry    r28
+  180 r6 <- sign     r28
+  181 r5 <- is0      r28
+  182 r31 <- l1       r28
+  183 r3 <- parity   r31
 0x401235:
-  182 r28 <- TODO     unsupported: jl short 00000000004011F6h
+  184 r28 <- ==       r6,r10
+  185 r28 <- not      r28
+  186 r29 <- jmp.if   r28,58
 0x401237:
-  183 r29 <- const8   -4 (0xfffffffffffffffc)
-  184 r29 <- add      r29,r11  qword
-  185 r28 <- loadm4   addr:r29
-  186 r16 <- v8.l4=   r16 ← r28
+  187 r29 <- const8   -4 (0xfffffffffffffffc)
+  188 r29 <- add      r29,r11  qword
+  189 r28 <- loadm4   addr:r29
+  190 r16 <- v8.l4=   r16 ← r28
 0x40123a:
-  187 r28 <- loadm8   addr:r12
-  188 r11 <- get      r28
-  189 r12 <- addk     r12,8 qword
+  191 r28 <- loadm8   addr:r12
+  192 r11 <- get      r28
+  193 r12 <- addk     r12,8 qword
 0x40123b:
-  190 r28 <- ret      r16
+  194 r28 <- ret      r16
 
 
-ssa program  58 instrs
-.B0:  in[]     ;; 0x0  137 insn 0 phis
+ssa program  75 instrs
+.B0:  in[]     ;; 0x0  58 insn 0 phis
          r10 <- #pre:RBP
-  ( 16)  r11 <- #pre:RSP
-  (  2)  r13 <- #pre:RDI
+  ( 20)  r11 <- #pre:RSP
+  (  3)  r13 <- #pre:RDI
          r14 <- #pre:RSI
          r34 <- addk     r11,-8 qword
          r35 <- store    *r34 ← r10
@@ -320,13 +324,15 @@ ssa program  58 instrs
          r53 <- const4   0 (0x0)
          r55 <- addk     r11,-16 qword
          r56 <- store    *r55 ← r53
-         r57 <- jmp      167
+         r57 <- jmp      169
+.B1:  in[.B5 ]     ;; 0x4011f6  5 insn 0 phis
          r58 <- const4   0 (0x0)
          r60 <- addk     r11,-20 qword
          r61 <- store    *r60 ← r58
          r62 <- jmp      137
+.B2:  in[.B3 ]     ;; 0x4011ff  74 insn 0 phis
          r64 <- addk     r11,-40 qword
-  (  2)  r65 <- loadm8   addr:r64
+         r65 <- loadm8   addr:r64
          r68 <- addk     r11,-28 qword
          r69 <- loadm4   addr:r68
          r71 <- TODO     unsupported: imul eax,[rbp-8]
@@ -337,8 +343,7 @@ ssa program  58 instrs
          r88 <- TODO     unsupported: cdqe
          r89 <- const1   2 (0x2)
          r90 <- widen    1->8 r89
-  (  2)  r91 <- shl      r81,r90  qword
-         r97 <- add      r91,r65  qword
+         r91 <- shl      r81,r90  qword
          r106 <- add      r91,r65  qword
          r107 <- loadm4   addr:r106
          r110 <- addk     r11,-12 qword
@@ -351,19 +356,39 @@ ssa program  58 instrs
          r127 <- addk     r125,1 qword
          r129 <- addk     r11,-20 qword
          r130 <- store    *r129 ← r127
-.B1:  in[.B0 ]     ;; 0x401223  30 insn 0 phis
-         r152 <- TODO     unsupported: jl short 00000000004011FFh
-         r154 <- addk     r11,-16 qword
-         r155 <- loadm4   addr:r154
-         r157 <- addk     r155,1 qword
-         r159 <- addk     r11,-16 qword
-         r160 <- store    *r159 ← r157
-.B2:  in[.B1 ]     ;; 0x40122f  24 insn 0 phis
-         r182 <- TODO     unsupported: jl short 00000000004011F6h
-         r184 <- addk     r11,-12 qword
-         r185 <- loadm4   addr:r184
-         r186 <- v8.l4=   r97 ← r185
-         r190 <- ret      r186
+.B3:  in[.B1 .B2 ]     ;; 0x401223  18 insn 0 phis
+         r138 <- addk     r11,-28 qword
+         r139 <- loadm4   addr:r138
+         r142 <- addk     r11,-20 qword
+         r143 <- loadm4   addr:r142
+  (  2)  r145 <- sub      r143,r139  dword
+         r146 <- overflow r145
+         r148 <- sign     r145
+         r152 <- ==       r148,r146
+         r153 <- not      r152
+         r154 <- jmp.if   r153,63
+.B4:  in[.B3 ]     ;; 0x40122b  14 insn 0 phis
+         r156 <- addk     r11,-16 qword
+         r157 <- loadm4   addr:r156
+         r159 <- addk     r157,1 qword
+         r161 <- addk     r11,-16 qword
+         r162 <- store    *r161 ← r159
+.B5:  in[.B0 .B4 ]     ;; 0x40122f  18 insn 0 phis
+         r170 <- addk     r11,-32 qword
+         r171 <- loadm4   addr:r170
+         r174 <- addk     r11,-16 qword
+         r175 <- loadm4   addr:r174
+  (  2)  r177 <- sub      r175,r171  dword
+         r178 <- overflow r177
+         r180 <- sign     r177
+         r184 <- ==       r180,r178
+         r185 <- not      r184
+         r186 <- jmp.if   r185,58
+.B6:  in[.B5 ]     ;; 0x401237  8 insn 0 phis
+         r188 <- addk     r11,-12 qword
+         r189 <- loadm4   addr:r188
+         r190 <- v8.l4=   r13 ← r189
+         r194 <- ret      r190
 
 
 
@@ -373,18 +398,25 @@ ssa program  58 instrs
     [<pre:RSP> + -32]:8 = <pre:RSI>;
     [<pre:RSP> + -12]:4 = 0;
     [<pre:RSP> + -16]:4 = 0;
-    [<pre:RSP> + -20]:4 = 0;
-    <-- TODO: unsupported: imul eax,[rbp-8] -->;
-    <-- TODO: unsupported: cdqe -->;
-    let r91 = (<pre:RDI> with l4 = [<pre:RSP> + -20]:4 + [<pre:RSP> + -28]:4) << (2).widen[1->8];
-    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + [r91 + [<pre:RSP> + -40]:8]:4;
-    [<pre:RSP> + -20]:8 = [<pre:RSP> + -20]:4 + 1;
-    {
-        <-- TODO: unsupported: jl short 00000000004011FFh -->;
-        [<pre:RSP> + -16]:8 = [<pre:RSP> + -16]:4 + 1;
-        {
-            <-- TODO: unsupported: jl short 00000000004011F6h -->;
-            return (r91 + [<pre:RSP> + -40]:8 with l4 = [<pre:RSP> + -12]:4)
+    
+    'T5: {
+        let r177 = [<pre:RSP> + -16]:4 - [<pre:RSP> + -32]:4;
+        if not sign (r177) == overflow (r177) return (<pre:RDI> with l4 = [<pre:RSP> + -12]:4) else {
+            [<pre:RSP> + -20]:4 = 0;
+            
+            'T3: {
+                let r145 = [<pre:RSP> + -20]:4 - [<pre:RSP> + -28]:4;
+                if not sign (r145) == overflow (r145) {
+                    [<pre:RSP> + -16]:8 = [<pre:RSP> + -16]:4 + 1;
+                    goto T5
+                } else {
+                    <-- TODO: unsupported: imul eax,[rbp-8] -->;
+                    <-- TODO: unsupported: cdqe -->;
+                    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + [(<pre:RDI> with l4 = [<pre:RSP> + -20]:4 + [<pre:RSP> + -28]:4) << (2).widen[1->8] + [<pre:RSP> + -40]:8]:4;
+                    [<pre:RSP> + -20]:8 = [<pre:RSP> + -20]:4 + 1;
+                    goto T3
+                }
+            }
         }
     }
 }
