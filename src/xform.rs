@@ -1,11 +1,14 @@
-use crate::{mil, ssa};
+use crate::{
+    mil::{self, Insn},
+    ssa,
+};
 
 // TODO Fix the algorithm to work with different instruction output sizes.
 // NOTE Right now folding is done across instructions of different sizes. It's a known limitation.
 pub fn fold_constants(prog: &mut ssa::Program) {
     use mil::{ArithOp, Insn, Reg};
 
-    fn widen(prog: &ssa::Program, mut reg: mil::Reg) -> Insn {
+    fn widen(prog: &ssa::Program, mut reg: Reg) -> Insn {
         loop {
             #[rustfmt::skip]
             match prog.get(reg).unwrap().insn.get() {
@@ -118,6 +121,32 @@ pub fn fold_constants(prog: &mut ssa::Program) {
     }
 }
 
+pub fn fold_subregs(prog: &mut ssa::Program) {
+    for bid in prog.cfg().block_ids_rpo() {
+        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
+            let subreg_insn = insn_cell.get();
+            let mut arg = match subreg_insn {
+                Insn::L1(x) | Insn::L2(x) | Insn::L4(x) => x,
+                _ => continue,
+            };
+
+            loop {
+                let arg_def = prog.get(arg).unwrap().insn.get();
+
+                arg = match (subreg_insn, arg_def) {
+                    (Insn::L1(_), Insn::V8WithL1(_, small)) => small,
+                    (Insn::L2(_), Insn::V8WithL2(_, small)) => small,
+                    (Insn::L4(_), Insn::V8WithL4(_, small)) => small,
+                    _ => break,
+                };
+            }
+
+            // actually, we should use the properly sized Get# insn
+            insn_cell.set(Insn::Get8(arg));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     mod constant_folding {
@@ -186,6 +215,47 @@ mod tests {
             );
             assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
             assert_eq!(insns.insns[8].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+        }
+    }
+
+    mod subreg_folding {
+        use crate::{mil, ssa, xform};
+
+        #[test]
+        fn simple_l4() {
+            simple_tmpl(mil::Insn::V8WithL4, mil::Insn::L4);
+        }
+
+        #[test]
+        fn simple_l2() {
+            simple_tmpl(mil::Insn::V8WithL2, mil::Insn::L2);
+        }
+
+        #[test]
+        fn simple_l1() {
+            simple_tmpl(mil::Insn::V8WithL1, mil::Insn::L1);
+        }
+
+        fn simple_tmpl(
+            replacer: fn(mil::Reg, mil::Reg) -> mil::Insn,
+            selector: fn(mil::Reg) -> mil::Insn,
+        ) {
+            use mil::{Insn, Reg};
+
+            let prog = {
+                let mut b = mil::ProgramBuilder::new();
+                b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+                b.push(Reg(1), Insn::Const8(123));
+                b.push(Reg(0), replacer(Reg(0), Reg(1)));
+                b.push(Reg(1), selector(Reg(0)));
+                b.push(Reg(1), Insn::Ret(Reg(1)));
+                b.build()
+            };
+            let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+            xform::fold_subregs(&mut prog);
+            eprintln!("{:?}", prog);
+
+            assert_eq!(prog.get(Reg(3)).unwrap().insn.get(), Insn::Get8(Reg(1)));
         }
     }
 }
