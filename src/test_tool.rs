@@ -131,8 +131,7 @@ pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) 
 
     writeln!(out)?;
     let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-    xform::fold_constants(&mut prog);
-    ssa::eliminate_dead_code(&mut prog);
+    xform::canonical(&mut prog);
     writeln!(out, "{:?}", prog)?;
 
     writeln!(out)?;

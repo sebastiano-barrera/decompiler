@@ -8,30 +8,24 @@ use crate::{
 pub fn fold_constants(prog: &mut ssa::Program) {
     use mil::{ArithOp, Insn, Reg};
 
-    fn widen(prog: &ssa::Program, mut reg: Reg) -> Insn {
-        loop {
-            #[rustfmt::skip]
-            match prog.get(reg).unwrap().insn.get() {
-                Insn::Const1(k) => return Insn::Const8(k as u64),
-                Insn::Const2(k) => return Insn::Const8(k as u64),
-                Insn::Const4(k) => return Insn::Const8(k as u64),
-                Insn::Const8(k) => return Insn::Const8(k as u64),
+    fn widen(prog: &ssa::Program, reg: Reg) -> Insn {
+        match prog.get(reg).unwrap().insn.get() {
+            Insn::Const1(k) => Insn::Const8(k as u64),
+            Insn::Const2(k) => Insn::Const8(k as u64),
+            Insn::Const4(k) => Insn::Const8(k as u64),
+            Insn::Const8(k) => Insn::Const8(k as u64),
 
-                Insn::Arith1(op, a, b) => return Insn::Arith8(op, a, b),
-                Insn::Arith2(op, a, b) => return Insn::Arith8(op, a, b),
-                Insn::Arith4(op, a, b) => return Insn::Arith8(op, a, b),
-                Insn::Arith8(op, a, b) => return Insn::Arith8(op, a, b),
+            Insn::Arith1(op, a, b) => Insn::Arith8(op, a, b),
+            Insn::Arith2(op, a, b) => Insn::Arith8(op, a, b),
+            Insn::Arith4(op, a, b) => Insn::Arith8(op, a, b),
+            Insn::Arith8(op, a, b) => Insn::Arith8(op, a, b),
 
-                Insn::ArithK1(op, r, k) => return Insn::ArithK8(op, r, k as i64),
-                Insn::ArithK2(op, r, k) => return Insn::ArithK8(op, r, k as i64),
-                Insn::ArithK4(op, r, k) => return Insn::ArithK8(op, r, k as i64),
-                Insn::ArithK8(op, r, k) => return Insn::ArithK8(op, r, k),
+            Insn::ArithK1(op, r, k) => Insn::ArithK8(op, r, k as i64),
+            Insn::ArithK2(op, r, k) => Insn::ArithK8(op, r, k as i64),
+            Insn::ArithK4(op, r, k) => Insn::ArithK8(op, r, k as i64),
+            Insn::ArithK8(op, r, k) => Insn::ArithK8(op, r, k),
 
-                Insn::Get8(r) => {
-                    reg = r;
-                }
-                insn => return insn,
-            };
+            insn => insn,
         }
     }
 
@@ -145,6 +139,42 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
             insn_cell.set(Insn::Get8(arg));
         }
     }
+}
+
+/// Remove `Get` instructions.
+///
+/// `Get` instructions are not really required in an SSA program. They generally
+/// come out of several transform passes as a way to simplify the transform
+/// algorithm themselves. They can then be safely removed by this pass.
+///
+/// (Actually, this pass removes the *dependency* on these insns; as a
+/// result, they merely become dead and will be properly eliminated by
+/// `ssa::eliminate_dead_code`)
+pub fn fold_get(prog: &mut ssa::Program) {
+    for bid in prog.cfg().block_ids_rpo() {
+        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
+            // Get instructions are affected too!
+            // this allows us to skip entire chains of multiple Get insns
+
+            let mut insn = insn_cell.get();
+            for input_reg in insn.input_regs_mut().into_iter().flatten() {
+                let input_def = prog.get(*input_reg).unwrap().insn.get();
+                if let Insn::Get8(x) = input_def {
+                    *input_reg = x;
+                }
+            }
+
+            insn_cell.set(insn);
+        }
+    }
+}
+
+/// Perform the standard chain of transformations that we intend to generally apply to programs
+pub fn canonical(prog: &mut ssa::Program) {
+    fold_subregs(prog);
+    fold_get(prog);
+    fold_constants(prog);
+    ssa::eliminate_dead_code(prog);
 }
 
 #[cfg(test)]

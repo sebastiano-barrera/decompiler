@@ -60,7 +60,7 @@ mod logical_vars {
         writeln!(out, "{:?}", prog)?;
 
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-        crate::xform::fold_constants(&mut prog);
+        crate::xform::canonical(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;

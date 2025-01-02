@@ -304,12 +304,12 @@ program  191 instrs
   190 r28 <- ret      r16
 
 
-ssa program  72 instrs
+ssa program  67 instrs
 .B0:  in[]     ;; 0x0  137 insn 0 phis
          r10 <- #pre:RBP
   ( 18)  r11 <- #pre:RSP
   (  2)  r13 <- #pre:RDI
-  (  2)  r14 <- #pre:RSI
+         r14 <- #pre:RSI
          r34 <- addk     r11,-8 qword
          r35 <- store    *r34 ← r10
          r44 <- addk     r11,-40 qword
@@ -330,17 +330,13 @@ ssa program  72 instrs
          r64 <- addk     r11,-40 qword
   (  2)  r65 <- loadm8   addr:r64
          r68 <- addk     r11,-28 qword
-         r69 <- loadm4   addr:r68
-  (  2)  r70 <- v8.l4=   r13 ← r69
+  (  2)  r69 <- loadm4   addr:r68
+         r70 <- v8.l4=   r13 ← r69
          r71 <- TODO     unsupported: imul eax,[rbp-8]
-         r72 <- l4       r70
-         r73 <- v8.l4=   r14 ← r72
          r75 <- addk     r11,-20 qword
-         r76 <- loadm4   addr:r75
-  (  2)  r77 <- v8.l4=   r70 ← r76
-         r78 <- l4       r77
-         r79 <- l4       r73
-         r80 <- add      r78,r79  dword
+  (  2)  r76 <- loadm4   addr:r75
+         r77 <- v8.l4=   r70 ← r76
+         r80 <- add      r76,r69  dword
          r81 <- v8.l4=   r77 ← r80
          r88 <- TODO     unsupported: cdqe
          r89 <- const1   2 (0x2)
@@ -348,12 +344,11 @@ ssa program  72 instrs
   (  2)  r91 <- shl      r81,r90  qword
          r97 <- add      r91,r65  qword
          r106 <- add      r91,r65  qword
-         r107 <- loadm4   addr:r106
-  (  2)  r108 <- v8.l4=   r97 ← r107
+  (  2)  r107 <- loadm4   addr:r106
+         r108 <- v8.l4=   r97 ← r107
          r110 <- addk     r11,-12 qword
          r111 <- loadm4   addr:r110
-         r112 <- l4       r108
-         r113 <- add      r111,r112  dword
+         r113 <- add      r111,r107  dword
          r115 <- addk     r11,-12 qword
          r116 <- store    *r115 ← r113
          r124 <- addk     r11,-20 qword
@@ -390,20 +385,17 @@ ssa program  72 instrs
     [<pre:RSP> + -12]:4 = 0;
     [<pre:RSP> + -16]:4 = 0;
     [<pre:RSP> + -20]:4 = 0;
-    let r70 = (<pre:RDI> with l4 = [<pre:RSP> + -28]:4);
     <-- TODO: unsupported: imul eax,[rbp-8] -->;
-    let r77 = (r70 with l4 = [<pre:RSP> + -20]:4);
     <-- TODO: unsupported: cdqe -->;
-    let r91 = (r77 with l4 = r77.l4 + (<pre:RSI> with l4 = r70.l4).l4) << (2).widen[1->8];
-    let r108 = (r91 + [<pre:RSP> + -40]:8 with l4 = [r91 + [<pre:RSP> + -40]:8]:4);
-    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + r108.l4;
+    let r91 = (((<pre:RDI> with l4 = [<pre:RSP> + -28]:4) with l4 = [<pre:RSP> + -20]:4) with l4 = [<pre:RSP> + -20]:4 + [<pre:RSP> + -28]:4) << (2).widen[1->8];
+    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + [r91 + [<pre:RSP> + -40]:8]:4;
     [<pre:RSP> + -20]:8 = [<pre:RSP> + -20]:4 + 1;
     {
         <-- TODO: unsupported: jl short 00000000004011FFh -->;
         [<pre:RSP> + -16]:8 = [<pre:RSP> + -16]:4 + 1;
         {
             <-- TODO: unsupported: jl short 00000000004011F6h -->;
-            return (((r108 with l4 = [<pre:RSP> + -28]:4) with l4 = [<pre:RSP> + -32]:4) with l4 = [<pre:RSP> + -12]:4)
+            return ((((r91 + [<pre:RSP> + -40]:8 with l4 = [r91 + [<pre:RSP> + -40]:8]:4) with l4 = [<pre:RSP> + -28]:4) with l4 = [<pre:RSP> + -32]:4) with l4 = [<pre:RSP> + -12]:4)
         }
     }
 }
