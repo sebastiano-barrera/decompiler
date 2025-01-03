@@ -65,6 +65,8 @@ enum Node {
     Const2(i16),
     Const4(i32),
     Const8(i64),
+    True,
+    False,
 
     L1(NodeID),
     L2(NodeID),
@@ -151,6 +153,8 @@ enum BinOp {
     BitAnd,
     BitOr,
     BitXor,
+    BoolAnd,
+    BoolOr,
 }
 impl From<mil::ArithOp> for BinOp {
     fn from(value: mil::ArithOp) -> Self {
@@ -169,15 +173,17 @@ impl BinOp {
     fn precedence(&self) -> u8 {
         // higher number means higher precedence
         match self {
-            BinOp::Add => 0,
-            BinOp::Sub => 0,
-            BinOp::Mul => 1,
-            BinOp::Div => 1,
-            BinOp::Shl => 2,
-            BinOp::Shr => 2,
-            BinOp::BitAnd => 3,
-            BinOp::BitOr => 3,
-            BinOp::BitXor => 3,
+            BinOp::Add => 1,
+            BinOp::Sub => 1,
+            BinOp::Mul => 2,
+            BinOp::Div => 2,
+            BinOp::Shl => 3,
+            BinOp::Shr => 3,
+            BinOp::BitAnd => 4,
+            BinOp::BitOr => 4,
+            BinOp::BitXor => 4,
+            BinOp::BoolAnd => 0,
+            BinOp::BoolOr => 0,
         }
     }
 }
@@ -220,7 +226,7 @@ impl<'a> Builder<'a> {
                     mil::Insn::Const1(_)
                     | mil::Insn::Const2(_)
                     | mil::Insn::Const4(_)
-                    | mil::Insn::Const8(_) 
+                    | mil::Insn::Const8(_)
                     | mil::Insn::LoadMem1(_)
                     | mil::Insn::LoadMem2(_)
                     | mil::Insn::LoadMem4(_)
@@ -530,6 +536,8 @@ impl<'a> Builder<'a> {
             Insn::Const2(val) => Node::Const2(val),
             Insn::Const4(val) => Node::Const4(val),
             Insn::Const8(val) => Node::Const8(val),
+            Insn::True => Node::True,
+            Insn::False => Node::False,
 
             Insn::L1(reg) => Node::L1(self.add_node_of_value(reg)),
             Insn::L2(reg) => Node::L2(self.add_node_of_value(reg)),
@@ -627,6 +635,16 @@ impl<'a> Builder<'a> {
             Insn::LoadMem4(addr_reg) => Node::LoadMem4(self.add_node_of_value(addr_reg)),
             Insn::LoadMem8(addr_reg) => Node::LoadMem8(self.add_node_of_value(addr_reg)),
 
+            Insn::Bool(bool_op, a, b) => {
+                let op = match bool_op {
+                    mil::BoolOp::Or => BinOp::BoolOr,
+                    mil::BoolOp::And => BinOp::BoolAnd,
+                };
+                let a = self.add_node_of_value(a);
+                let b = self.add_node_of_value(b);
+                Node::Bin { op, a, b }
+            }
+
             Insn::OverflowOf(arg) => Node::OverflowOf(self.add_node_of_value(arg)),
             Insn::CarryOf(arg) => Node::CarryOf(self.add_node_of_value(arg)),
             Insn::SignOf(arg) => Node::SignOf(self.add_node_of_value(arg)),
@@ -636,7 +654,11 @@ impl<'a> Builder<'a> {
             Insn::Undefined => Node::Undefined,
             Insn::Ancestral(anc) => Node::Pre(anc.name()),
 
-            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
+            mil::Insn::Phi1
+            | mil::Insn::Phi2
+            | mil::Insn::Phi4
+            | mil::Insn::Phi8
+            | mil::Insn::PhiBool => {
                 let mut args = SmallVec::new();
 
                 for (pred_ndx, value) in self.ssa.get_phi_args(reg).enumerate() {
@@ -647,19 +669,23 @@ impl<'a> Builder<'a> {
 
                 Node::Phi(args)
             }
+            mil::Insn::PhiArg(reg) => panic!("PhiArg passed to collect_expr"),
 
-            other => {
-                if other.has_side_effects() {
-                    panic!(
-                        "side-effecting instruction passed to collect_expr: {:?}",
-                        other
-                    )
-                } else {
-                    panic!(
-                        "invalid/forbidden instruction passed to collect_expr: {:?}",
-                        other
-                    )
-                }
+            insn @ (Insn::Call { .. }
+            | Insn::CArg { .. }
+            | Insn::Ret(_)
+            | Insn::StoreMem(_, _)
+            | Insn::JmpI(_)
+            | Insn::JmpExt(_)
+            | Insn::Jmp(_)
+            | Insn::JmpExtIf { .. }
+            | Insn::JmpIf { .. }
+            | Insn::TODO(_)) => {
+                assert!(insn.has_side_effects());
+                panic!(
+                    "side-effecting instruction passed to collect_expr: {:?}",
+                    insn
+                )
             }
         }
     }
@@ -876,6 +902,8 @@ impl Ast {
             Node::Const2(val) => write!(pp, "{}", *val as i16),
             Node::Const4(val) => write!(pp, "{}", *val as i32),
             Node::Const8(val) => write!(pp, "{}", *val as i64),
+            Node::True => write!(pp, "true"),
+            Node::False => write!(pp, "false"),
 
             Node::L1(arg) => {
                 self.pretty_print_node(pp, *arg)?;
@@ -921,6 +949,8 @@ impl Ast {
                     BinOp::BitAnd => "&",
                     BinOp::BitOr => "|",
                     BinOp::BitXor => "^",
+                    BinOp::BoolAnd => "&&",
+                    BinOp::BoolOr => "||",
                 };
 
                 for (ndx, &arg_nid) in [a, b].into_iter().enumerate() {
