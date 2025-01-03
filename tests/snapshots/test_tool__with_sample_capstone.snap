@@ -1144,7 +1144,7 @@ program  313 instrs
 ssa program  115 instrs
 .B0:  in[]     ;; 0x0  80 insn 0 phis
          r10 <- #pre:RBP
-  (  3)  r11 <- #pre:RSP
+  (  7)  r11 <- #pre:RSP
          r13 <- #pre:RDI
   (  2)  r14 <- #pre:RSI
   (  2)  r16 <- #pre:RBX
@@ -1158,9 +1158,9 @@ ssa program  115 instrs
          r39 <- v8.l4=   r13 ← r38
          r40 <- addk     r11,-16 qword
          r41 <- store    *r40 ← r10
-  (  3)  r42 <- addk     r11,-24 qword
+         r42 <- addk     r11,-24 qword
          r43 <- store    *r42 ← r16
-  (  5)  r45 <- subk     r42,16 qword
+  (  3)  r45 <- subk     r11,-8 qword
          r54 <- const8   4198512 (0x401070)
          r55 <- call     r54
          r56 <- carg     r39
@@ -1171,7 +1171,7 @@ ssa program  115 instrs
          r78 <- not      r73
          r79 <- jmp.if   r78,302
 .B1:  in[.B0 ]     ;; 0x4010b2  48 insn 0 phis
-         r81 <- subk     r42,16 qword
+         r81 <- subk     r11,-8 qword
   (  3)  r82 <- loadm8   addr:r81
          r98 <- const4   4096 (0x1000)
   (  3)  r99 <- v8.l4=   r17 ← r98
@@ -1200,7 +1200,7 @@ ssa program  115 instrs
   (  3)  r319 <- phi8
          r320 <- phiarg   r131
          r321 <- phiarg   r162
-         r140 <- addk     r45,8 qword
+         r140 <- subk     r11,16 qword
          r143 <- const4   4203193 (0x4022b9)
   (  2)  r144 <- v8.l4=   r316 ← r143
          r145 <- const1   5 (0x5)
@@ -1226,7 +1226,7 @@ ssa program  115 instrs
          r217 <- not      r214
          r218 <- jmp.if   r217,138
 .B4:  in[.B3 ]     ;; 0x401114  20 insn 0 phis
-         r220 <- addk     r45,8 qword
+         r220 <- subk     r11,16 qword
          r221 <- loadm8   addr:r220
          r224 <- const8   4198464 (0x401040)
          r225 <- call     r224
@@ -1272,9 +1272,8 @@ ssa program  115 instrs
 'T0: {
     [<pre:RSP> + -8]:8 = <pre:R12>;
     [<pre:RSP> + -16]:8 = <pre:RBP>;
-    let r42 = <pre:RSP> + -24;
-    [r42]:8 = <pre:RBX>;
-    let r45 = r42 - 16;
+    [<pre:RSP> + -24]:8 = <pre:RBX>;
+    let r45 = <pre:RSP> - -8;
     let r55 = 4198512(
                 (<pre:RDI> with l4 = 3),
                 (<pre:RSI> with l4 = 8),
@@ -1286,20 +1285,20 @@ ssa program  115 instrs
         let r101 = (r45 with l4 = 8);
         let r103 = (<pre:RSI> with l4 = 4203184);
         let r105 = 4198496(
-                     [r42 - 16]:8,
+                     [<pre:RSP> - -8]:8,
                      r103,
                      r101,
                      r99,
                    );
         if r105 == 0 {
             let mut r313 = r105;
-            let mut r316 = [r42 - 16]:8;
+            let mut r316 = [<pre:RSP> - -8]:8;
             let mut r319 = (<pre:RBX> with l4 = 0);
             
             'T3(r313, r316, r319): {
                 let r144 = (r316 with l4 = 4203193);
                 let r162 = r319 + 1;
-                let r173 = [r45 + 8]:8 + (r319 << (5).widen[1->8] - r319) * 8;
+                let r173 = [<pre:RSP> - 16]:8 + (r319 << (5).widen[1->8] - r319) * 8;
                 let r180 = r173 + 74;
                 let r183 = r173 + 42;
                 let r196 = 4198480(
@@ -1311,7 +1310,7 @@ ssa program  115 instrs
                 let r210 = r313 - r162;
                 if not r210 == 0 {
                     let r225 = 4198464(
-                                 [r45 + 8]:8,
+                                 [<pre:RSP> - 16]:8,
                                  r210,
                                  r183,
                                  r180,
@@ -1325,7 +1324,7 @@ ssa program  115 instrs
             }
         } else {
             let r287 = 4198448(
-                         ([r42 - 16]:8 with l4 = 4203208),
+                         ([<pre:RSP> - -8]:8 with l4 = 4203208),
                          r103,
                          r101,
                          r99,

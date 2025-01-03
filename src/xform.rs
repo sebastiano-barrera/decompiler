@@ -43,18 +43,20 @@ pub fn fold_constants(prog: &mut ssa::Program) {
     }
 
     /// Compute rk such that, for all x:
-    ///   (x <op> ak) <op> bk <===> x <op> rk
+    ///   (x <op_in> ak) <op_out> bk <===> x <op_res> rk
     ///
     /// Not all operators are supported. For the unsupported ones, None is returned.
-    fn assoc_const(op: ArithOp, ak: i64, bk: i64) -> Option<i64> {
-        match op {
-            ArithOp::Add => Some(ak + bk),
-            ArithOp::Sub => Some(ak + bk),
-            ArithOp::Mul => Some(ak * bk),
-            ArithOp::Shl => Some(ak + bk),
-            ArithOp::BitXor => None,
-            ArithOp::BitAnd => None,
-            ArithOp::BitOr => None,
+    fn assoc_const(op_in: ArithOp, op_out: ArithOp, ak: i64, bk: i64) -> Option<(ArithOp, i64)> {
+        match (op_in, op_out) {
+            (ArithOp::Add, ArithOp::Add) => Some((ArithOp::Add, (ak + bk))),
+            (ArithOp::Sub, ArithOp::Sub) => Some((ArithOp::Sub, (ak + bk))),
+
+            (ArithOp::Sub, ArithOp::Add) => Some((ArithOp::Sub, (ak + bk))),
+            (ArithOp::Add, ArithOp::Sub) => Some((ArithOp::Sub, (ak - bk))),
+
+            (ArithOp::Mul, ArithOp::Mul) => Some((ArithOp::Mul, (ak * bk))),
+            (ArithOp::Shl, ArithOp::Shl) => Some((ArithOp::Shl, (ak + bk))),
+            _ => None,
         }
     }
 
@@ -80,13 +82,11 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                         }
 
                         (op_out, Insn::ArithK8(op_in, r, k1), Insn::Const8(k2))
-                        | (op_out, Insn::Const8(k2), Insn::ArithK8(op_in, r, k1))
-                            if op_out == op_in =>
-                        {
-                            let Some(rk) = assoc_const(op_out, k2, k1) else {
+                        | (op_out, Insn::Const8(k2), Insn::ArithK8(op_in, r, k1)) => {
+                            let Some((op, rk)) = assoc_const(op_out, op_in, k2, k1) else {
                                 continue;
                             };
-                            Insn::ArithK8(op_out, r, rk)
+                            Insn::ArithK8(op, r, rk)
                         }
 
                         (op, Insn::Const8(ak), _) => Insn::ArithK8(op, b, ak as i64),
@@ -101,8 +101,9 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                 | Insn::ArithK4(op, a, bk)
                 | Insn::ArithK8(op, a, bk) => match widen(prog, a) {
                     Insn::Const8(ak) => Insn::Const8(eval_const(op, ak as i64, bk)),
-                    Insn::ArithK8(op_in, ar, ak) if op_in == op => {
-                        let Some(rk) = assoc_const(op, ak as i64, bk) else {
+                    Insn::ArithK8(op_in, ar, ak) => {
+                        let op_out = op;
+                        let Some((op, rk)) = assoc_const(op_in, op_out, ak as i64, bk) else {
                             continue;
                         };
                         Insn::ArithK8(op, ar, rk)
