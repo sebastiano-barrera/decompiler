@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::ty;
 
@@ -315,7 +315,7 @@ impl<'a> TypeParser<'a> {
         Ok(ty::StructMember { offset, name, tyid })
     }
 
-    fn parse_base_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+    fn parse_base_type(&self, node: GimliNode, _types: &mut ty::TypeSet) -> Result<ty::Type> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_base_type);
 

@@ -15,6 +15,8 @@ pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
+    reg_count: Index,
+
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
     // instruction back to the original machine code / assembly
@@ -654,6 +656,11 @@ impl Program {
     }
 
     #[inline(always)]
+    pub fn reg_count(&self) -> Index {
+        self.reg_count
+    }
+
+    #[inline(always)]
     pub fn len(&self) -> Index {
         self.insns.len().try_into().unwrap()
     }
@@ -840,10 +847,30 @@ impl ProgramBuilder {
             }
         }
 
+        let reg_count = {
+            let max_dest = dests
+                .iter()
+                .map(|reg| reg.get().reg_index())
+                .max()
+                .unwrap_or(0);
+            let max_input = insns
+                .iter()
+                .flat_map(|insn| {
+                    insn.get()
+                        .input_regs_iter()
+                        .map(|reg| reg.reg_index())
+                        .max()
+                })
+                .max()
+                .unwrap_or(0);
+            1 + max_dest.max(max_input)
+        };
+
         Program {
             insns,
             dests,
             addrs,
+            reg_count,
             mil_of_input_addr,
             anc_types: self.anc_types,
         }

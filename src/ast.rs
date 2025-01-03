@@ -669,24 +669,7 @@ impl<'a> Builder<'a> {
 
                 Node::Phi(args)
             }
-            mil::Insn::PhiArg(reg) => panic!("PhiArg passed to collect_expr"),
-
-            insn @ (Insn::Call { .. }
-            | Insn::CArg { .. }
-            | Insn::Ret(_)
-            | Insn::StoreMem(_, _)
-            | Insn::JmpI(_)
-            | Insn::JmpExt(_)
-            | Insn::Jmp(_)
-            | Insn::JmpExtIf { .. }
-            | Insn::JmpIf { .. }
-            | Insn::TODO(_)) => {
-                assert!(insn.has_side_effects());
-                panic!(
-                    "side-effecting instruction passed to collect_expr: {:?}",
-                    insn
-                )
-            }
+            mil::Insn::PhiArg(_) => panic!("PhiArg passed to collect_expr"),
         }
     }
 

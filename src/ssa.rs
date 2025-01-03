@@ -106,16 +106,6 @@ impl Program {
     }
 }
 
-// private utility functions
-impl Program {
-    fn check_invariants(&self) {
-        let len = self.inner.len() as usize;
-        assert_eq!(len, self.is_alive.len());
-        assert_eq!(len, self.rdr_count.0.len());
-        // TODO more?
-    }
-}
-
 #[derive(Clone)]
 pub struct PhiInfo {
     ndxs: Range<mil::Index>,
@@ -302,7 +292,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let var_count = count_variables(&program);
+    let var_count = program.reg_count();
     let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
@@ -482,9 +472,8 @@ fn place_phi_nodes(
     }
 
     let phis_set = compute_phis_set(program, cfg, dom_tree);
-    // overestimated, but fast
     let var_count = phis_set.0.cols.try_into().unwrap();
-    assert_eq!(var_count, program.len());
+    assert_eq!(var_count, program.reg_count());
 
     // translate `phis` into a representation such that inputs can be replaced with specific input
     // variables assigned in predecessors.
@@ -636,10 +625,8 @@ struct RegMat<T>(Mat<T>);
 
 impl<T: Clone> RegMat<T> {
     fn for_program(program: &mil::Program, graph: &cfg::Graph, value: T) -> Self {
-        // we overestimate number of variables as number of instructions, but
-        // it's very likely still OK
-        let num_vars = program.len() as usize;
-        RegMat(Mat::new(value, graph.block_count() as usize, num_vars))
+        let var_count = program.reg_count() as usize;
+        RegMat(Mat::new(value, graph.block_count() as usize, var_count))
     }
 
     fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
@@ -652,31 +639,6 @@ impl<T: Clone> RegMat<T> {
             .0
             .item_mut(bid.as_number() as usize, reg.reg_index() as usize) = value;
     }
-    fn update<F: FnOnce(&T) -> T>(&mut self, bid: cfg::BlockID, reg: mil::Reg, func: F) {
-        let prev = self.get(bid, reg);
-        self.set(bid, reg, func(prev))
-    }
-
-    fn fill(&mut self, value: T) {
-        self.0.fill(value);
-    }
-}
-
-// TODO cache this info somewhere. it's so weird to recompute it twice!
-fn count_variables(program: &mil::Program) -> mil::Index {
-    let max_dest = program
-        .iter()
-        .map(|iv| iv.dest.get().reg_index())
-        .max()
-        .unwrap_or(0);
-    let max_arg = program
-        .iter()
-        .flat_map(|iv| iv.insn.get().input_regs().map(|arg| arg.copied()))
-        .flatten() // remove None's
-        .map(|r| r.reg_index())
-        .max()
-        .unwrap_or(0);
-    1 + max_dest.max(max_arg)
 }
 
 struct Mat<T> {
@@ -702,9 +664,6 @@ impl<T: Clone> Mat<T> {
     fn new(init: T, rows: usize, cols: usize) -> Self {
         let items = vec![init; rows * cols].into_boxed_slice();
         Mat { items, rows, cols }
-    }
-    fn fill(&mut self, value: T) {
-        self.items.fill(value);
     }
 }
 
