@@ -861,7 +861,7 @@ ctl_lookup 0x5ddf40+1255 (file 0x1ddf40)
           5de422: e9 4b ff ff ff          jmp 00000000005DE372h
 
 mil program = 
-program  1333 instrs
+program  1334 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -976,7 +976,7 @@ program  1333 instrs
    93 r2 <- const1   0 (0x0)
    94 r10 <- const1   0 (0x0)
 0x5ddf7a:
-   95 r28 <- jmp.if   r5,1300
+   95 r28 <- jmp.if   r5,1301
 0x5ddf80:
    96 r29 <- const8   0 (0x0)
    97 r29 <- add      r29,r12  qword
@@ -994,7 +994,7 @@ program  1333 instrs
   107 r30 <- l1       r11
   108 r3 <- parity   r30
 0x5ddf8a:
-  109 r28 <- jmp.if   r5,1073
+  109 r28 <- jmp.if   r5,1074
 0x5ddf90:
   110 r29 <- const8   24 (0x18)
   111 r29 <- add      r29,r12  qword
@@ -1013,7 +1013,7 @@ program  1333 instrs
   123 r31 <- l1       r28
   124 r3 <- parity   r31
 0x5ddf99:
-  125 r28 <- jmp.if   r5,1331
+  125 r28 <- jmp.if   r5,1332
 0x5ddf9f:
   126 r29 <- const8   24 (0x18)
   127 r29 <- add      r29,r26  qword
@@ -1047,7 +1047,7 @@ program  1333 instrs
   152 r31 <- l1       r28
   153 r3 <- parity   r31
 0x5ddfaf:
-  154 r28 <- jmp.if   r5,802
+  154 r28 <- jmp.if   r5,803
 0x5ddfc0:
   155 r29 <- const8   16 (0x10)
   156 r29 <- add      r29,r26  qword
@@ -1066,7 +1066,7 @@ program  1333 instrs
   167 r2 <- const1   0 (0x0)
   168 r10 <- const1   0 (0x0)
 0x5ddfcc:
-  169 r28 <- jmp.if   r5,1073
+  169 r28 <- jmp.if   r5,1074
 0x5ddfd2:
   170 r24 <- get      r21
 0x5ddfd5:
@@ -1173,7 +1173,7 @@ program  1333 instrs
   254 r30 <- l1       r16
   255 r3 <- parity   r30
 0x5de01a:
-  256 r28 <- jmp.if   r5,1257
+  256 r28 <- jmp.if   r5,1258
 0x5de020:
   257 r28 <- const4   1 (0x1)
   258 r17 <- v8.l4=   r17 ← r28
@@ -1233,7 +1233,7 @@ program  1333 instrs
   302 r30 <- l1       r16
   303 r3 <- parity   r30
 0x5de050:
-  304 r28 <- jmp.if   r5,1218
+  304 r28 <- jmp.if   r5,1219
 0x5de056:
   305 r29 <- const8   1 (0x1)
   306 r17 <- add      r17,r29  qword
@@ -1306,7 +1306,7 @@ program  1333 instrs
   363 r30 <- l1       r16
   364 r3 <- parity   r30
 0x5de085:
-  365 r28 <- jmp.if   r5,1179
+  365 r28 <- jmp.if   r5,1180
 0x5de08b:
   366 r29 <- const8   16 (0x10)
   367 r29 <- add      r29,r12  qword
@@ -1341,7 +1341,7 @@ program  1333 instrs
   393 r30 <- l1       r17
   394 r3 <- parity   r30
 0x5de09b:
-  395 r28 <- jmp.if   r5,1073
+  395 r28 <- jmp.if   r5,1074
 0x5de0a1:
   396 r29 <- const8   56 (0x38)
   397 r29 <- add      r29,r12  qword
@@ -1465,7 +1465,7 @@ program  1333 instrs
   490 r30 <- l1       r16
   491 r3 <- parity   r30
 0x5de114:
-  492 r28 <- jmp.if   r5,1009
+  492 r28 <- jmp.if   r5,1010
 0x5de11a:
   493 r29 <- const8   88 (0x58)
   494 r29 <- add      r29,r27  qword
@@ -1517,7 +1517,7 @@ program  1333 instrs
   532 r30 <- l1       r16
   533 r3 <- parity   r30
 0x5de13e:
-  534 r28 <- jmp.if   r5,1041
+  534 r28 <- jmp.if   r5,1042
 0x5de144:
   535 r29 <- const8   16 (0x10)
   536 r29 <- add      r29,r12  qword
@@ -1540,7 +1540,7 @@ program  1333 instrs
   550 r30 <- l1       r17
   551 r3 <- parity   r30
 0x5de154:
-  552 r28 <- jmp.if   r5,1073
+  552 r28 <- jmp.if   r5,1074
 0x5de15a:
   553 r29 <- const8   8 (0x8)
   554 r29 <- add      r29,r26  qword
@@ -1709,7 +1709,7 @@ program  1333 instrs
   688 r30 <- l1       r24
   689 r3 <- parity   r30
 0x5de1d6:
-  690 r28 <- jmp.if   r5,1073
+  690 r28 <- jmp.if   r5,1074
 0x5de1dc:
   691 r29 <- const8   32 (0x20)
   692 r29 <- add      r29,r25  qword
@@ -1726,7 +1726,7 @@ program  1333 instrs
   702 r28 <- TODO     unsupported: movzx edi,byte ptr [r8]
 0x5de1e5:
   703 r28 <- not      r5
-  704 r29 <- jmp.if   r28,937
+  704 r29 <- jmp.if   r28,938
 0x5de1eb:
   705 r28 <- l1       r14
   706 r29 <- l1       r14
@@ -1738,7 +1738,7 @@ program  1333 instrs
   712 r2 <- const1   0 (0x0)
   713 r10 <- const1   0 (0x0)
 0x5de1ee:
-  714 r28 <- jmp.if   r5,1326
+  714 r28 <- jmp.if   r5,1327
 0x5de1f4:
   715 r28 <- const8   1 (0x1)
   716 r28 <- add      r28,r20  qword
@@ -1777,7 +1777,7 @@ program  1333 instrs
   744 r2 <- const1   0 (0x0)
   745 r10 <- const1   0 (0x0)
 0x5de20c:
-  746 r28 <- jmp.if   r5,1103
+  746 r28 <- jmp.if   r5,1104
 0x5de212:
   747 r11 <- get      r16
 0x5de215:
@@ -1821,682 +1821,683 @@ program  1333 instrs
   781 r31 <- l1       r27
   782 r3 <- parity   r31
 0x5de228:
-  783 r28 <- TODO     unsupported: jae 00000000005DE36Dh
+  783 r28 <- not      r2
+  784 r29 <- jmp.if   r28,1154
 0x5de22e:
-  784 r26 <- get      r25
+  785 r26 <- get      r25
 0x5de231:
-  785 r29 <- const8   24 (0x18)
-  786 r29 <- add      r29,r26  qword
-  787 r28 <- loadm8   addr:r29
-  788 r21 <- get      r28
+  786 r29 <- const8   24 (0x18)
+  787 r29 <- add      r29,r26  qword
+  788 r28 <- loadm8   addr:r29
+  789 r21 <- get      r28
 0x5de235:
-  789 r29 <- const8   0 (0x0)
-  790 r29 <- add      r29,r21  qword
-  791 r28 <- loadm1   addr:r29
-  792 r30 <- const1   0 (0x0)
-  793 r28 <- sub      r28,r30  byte
-  794 r10 <- overflow r28
-  795 r2 <- carry    r28
-  796 r6 <- sign     r28
-  797 r5 <- is0      r28
-  798 r31 <- l1       r28
-  799 r3 <- parity   r31
+  790 r29 <- const8   0 (0x0)
+  791 r29 <- add      r29,r21  qword
+  792 r28 <- loadm1   addr:r29
+  793 r30 <- const1   0 (0x0)
+  794 r28 <- sub      r28,r30  byte
+  795 r10 <- overflow r28
+  796 r2 <- carry    r28
+  797 r6 <- sign     r28
+  798 r5 <- is0      r28
+  799 r31 <- l1       r28
+  800 r3 <- parity   r31
 0x5de239:
-  800 r28 <- not      r5
-  801 r29 <- jmp.if   r28,155
+  801 r28 <- not      r5
+  802 r29 <- jmp.if   r28,155
 0x5de23f:
-  802 r29 <- const8   0 (0x0)
-  803 r29 <- add      r29,r12  qword
-  804 r28 <- loadm8   addr:r29
-  805 r14 <- get      r28
+  803 r29 <- const8   0 (0x0)
+  804 r29 <- add      r29,r12  qword
+  805 r28 <- loadm8   addr:r29
+  806 r14 <- get      r28
 0x5de243:
-  806 r28 <- l4       r15
-  807 r29 <- l4       r15
-  808 r28 <- xor      r28,r29  dword
-  809 r15 <- v8.l4=   r15 ← r28
-  810 r10 <- false
-  811 r2 <- false
-  812 r6 <- sign     r28
-  813 r5 <- is0      r28
-  814 r30 <- l1       r28
-  815 r3 <- parity   r30
+  807 r28 <- l4       r15
+  808 r29 <- l4       r15
+  809 r28 <- xor      r28,r29  dword
+  810 r15 <- v8.l4=   r15 ← r28
+  811 r10 <- false
+  812 r2 <- false
+  813 r6 <- sign     r28
+  814 r5 <- is0      r28
+  815 r30 <- l1       r28
+  816 r3 <- parity   r30
 0x5de245:
-  816 r28 <- const4   10 (0xa)
-  817 r19 <- v8.l4=   r19 ← r28
+  817 r28 <- const4   10 (0xa)
+  818 r19 <- v8.l4=   r19 ← r28
 0x5de24a:
-  818 r29 <- const8   8 (0x8)
-  819 r29 <- add      r29,r12  qword
-  820 r30 <- store    *r29 ← r20
+  819 r29 <- const8   8 (0x8)
+  820 r29 <- add      r29,r12  qword
+  821 r30 <- store    *r29 ← r20
 0x5de24f:
-  821 r28 <- const8   6451424 (0x6270e0)
-  822 r16 <- call     r28
-  823 r29 <- carg     r14
-  824 r30 <- carg     r15
-  825 r31 <- carg     r19
-  826 r32 <- carg     r18
-  827 r2 <- undef
-  828 r3 <- undef
-  829 r4 <- undef
-  830 r5 <- undef
-  831 r6 <- undef
-  832 r7 <- undef
-  833 r8 <- undef
-  834 r9 <- undef
-  835 r10 <- undef
+  822 r28 <- const8   6451424 (0x6270e0)
+  823 r16 <- call     r28
+  824 r29 <- carg     r14
+  825 r30 <- carg     r15
+  826 r31 <- carg     r19
+  827 r32 <- carg     r18
+  828 r2 <- undef
+  829 r3 <- undef
+  830 r4 <- undef
+  831 r5 <- undef
+  832 r6 <- undef
+  833 r7 <- undef
+  834 r8 <- undef
+  835 r9 <- undef
+  836 r10 <- undef
 0x5de254:
-  836 r29 <- const8   8 (0x8)
-  837 r29 <- add      r29,r12  qword
-  838 r28 <- loadm8   addr:r29
-  839 r20 <- get      r28
+  837 r29 <- const8   8 (0x8)
+  838 r29 <- add      r29,r12  qword
+  839 r28 <- loadm8   addr:r29
+  840 r20 <- get      r28
 0x5de259:
-  840 r29 <- const8   -1 (0xffffffffffffffff)
-  841 r16 <- sub      r16,r29  qword
-  842 r10 <- overflow r16
-  843 r2 <- carry    r16
-  844 r6 <- sign     r16
-  845 r5 <- is0      r16
-  846 r30 <- l1       r16
-  847 r3 <- parity   r30
+  841 r29 <- const8   -1 (0xffffffffffffffff)
+  842 r16 <- sub      r16,r29  qword
+  843 r10 <- overflow r16
+  844 r2 <- carry    r16
+  845 r6 <- sign     r16
+  846 r5 <- is0      r16
+  847 r30 <- l1       r16
+  848 r3 <- parity   r30
 0x5de25d:
-  848 r17 <- get      r16
+  849 r17 <- get      r16
 0x5de260:
-  849 r28 <- jmp.if   r5,1073
+  850 r28 <- jmp.if   r5,1074
 0x5de266:
-  850 r29 <- const8   24 (0x18)
-  851 r29 <- add      r29,r26  qword
-  852 r28 <- loadm8   addr:r29
-  853 r11 <- get      r28
+  851 r29 <- const8   24 (0x18)
+  852 r29 <- add      r29,r26  qword
+  853 r28 <- loadm8   addr:r29
+  854 r11 <- get      r28
 0x5de26a:
-  854 r29 <- const8   0 (0x0)
-  855 r29 <- add      r29,r12  qword
-  856 r30 <- store    *r29 ← r20
+  855 r29 <- const8   0 (0x0)
+  856 r29 <- add      r29,r12  qword
+  857 r30 <- store    *r29 ← r20
 0x5de26e:
-  857 r29 <- const8   0 (0x0)
-  858 r29 <- add      r29,r11  qword
-  859 r28 <- loadm1   addr:r29
-  860 r30 <- const1   0 (0x0)
-  861 r28 <- sub      r28,r30  byte
-  862 r10 <- overflow r28
-  863 r2 <- carry    r28
-  864 r6 <- sign     r28
-  865 r5 <- is0      r28
-  866 r31 <- l1       r28
-  867 r3 <- parity   r31
+  858 r29 <- const8   0 (0x0)
+  859 r29 <- add      r29,r11  qword
+  860 r28 <- loadm1   addr:r29
+  861 r30 <- const1   0 (0x0)
+  862 r28 <- sub      r28,r30  byte
+  863 r10 <- overflow r28
+  864 r2 <- carry    r28
+  865 r6 <- sign     r28
+  866 r5 <- is0      r28
+  867 r31 <- l1       r28
+  868 r3 <- parity   r31
 0x5de272:
-  868 r28 <- not      r5
-  869 r29 <- jmp.if   r28,0x403143 extern
+  869 r28 <- not      r5
+  870 r29 <- jmp.if   r28,0x403143 extern
 0x5de278:
-  870 r29 <- const8   24 (0x18)
-  871 r29 <- add      r29,r12  qword
-  872 r28 <- loadm8   addr:r29
-  873 r18 <- get      r28
+  871 r29 <- const8   24 (0x18)
+  872 r29 <- add      r29,r12  qword
+  873 r28 <- loadm8   addr:r29
+  874 r18 <- get      r28
 0x5de27d:
-  874 r29 <- const8   32 (0x20)
-  875 r29 <- add      r29,r12  qword
-  876 r28 <- loadm8   addr:r29
-  877 r26 <- get      r28
+  875 r29 <- const8   32 (0x20)
+  876 r29 <- add      r29,r12  qword
+  877 r28 <- loadm8   addr:r29
+  878 r26 <- get      r28
 0x5de282:
-  878 r29 <- const8   64 (0x40)
-  879 r29 <- add      r29,r12  qword
-  880 r28 <- loadm8   addr:r29
-  881 r14 <- get      r28
+  879 r29 <- const8   64 (0x40)
+  880 r29 <- add      r29,r12  qword
+  881 r28 <- loadm8   addr:r29
+  882 r14 <- get      r28
 0x5de287:
-  882 r29 <- const8   0 (0x0)
-  883 r29 <- add      r29,r18  qword
-  884 r28 <- loadm8   addr:r29
-  885 r19 <- get      r28
+  883 r29 <- const8   0 (0x0)
+  884 r29 <- add      r29,r18  qword
+  885 r28 <- loadm8   addr:r29
+  886 r19 <- get      r28
 0x5de28a:
-  886 r15 <- get      r26
+  887 r15 <- get      r26
 0x5de28d:
-  887 r18 <- get      r16
+  888 r18 <- get      r16
 0x5de290:
-  888 r29 <- const8   8 (0x8)
-  889 r29 <- add      r29,r11  qword
-  890 r28 <- loadm8   addr:r29
-  891 r28 <- loadm8   addr:r28
-  892 r16 <- call     r28
-  893 r30 <- carg     r14
-  894 r31 <- carg     r15
-  895 r32 <- carg     r19
-  896 r33 <- carg     r18
-  897 r2 <- undef
-  898 r3 <- undef
-  899 r4 <- undef
-  900 r5 <- undef
-  901 r6 <- undef
-  902 r7 <- undef
-  903 r8 <- undef
-  904 r9 <- undef
-  905 r10 <- undef
+  889 r29 <- const8   8 (0x8)
+  890 r29 <- add      r29,r11  qword
+  891 r28 <- loadm8   addr:r29
+  892 r28 <- loadm8   addr:r28
+  893 r16 <- call     r28
+  894 r30 <- carg     r14
+  895 r31 <- carg     r15
+  896 r32 <- carg     r19
+  897 r33 <- carg     r18
+  898 r2 <- undef
+  899 r3 <- undef
+  900 r4 <- undef
+  901 r5 <- undef
+  902 r6 <- undef
+  903 r7 <- undef
+  904 r8 <- undef
+  905 r9 <- undef
+  906 r10 <- undef
 0x5de293:
-  906 r25 <- get      r16
+  907 r25 <- get      r16
 0x5de296:
-  907 r16 <- and      r16,r16  qword
-  908 r6 <- sign     r16
-  909 r5 <- is0      r16
-  910 r30 <- l1       r16
-  911 r3 <- parity   r16
-  912 r2 <- const1   0 (0x0)
-  913 r10 <- const1   0 (0x0)
+  908 r16 <- and      r16,r16  qword
+  909 r6 <- sign     r16
+  910 r5 <- is0      r16
+  911 r30 <- l1       r16
+  912 r3 <- parity   r16
+  913 r2 <- const1   0 (0x0)
+  914 r10 <- const1   0 (0x0)
 0x5de299:
-  914 r28 <- jmp.if   r5,1073
+  915 r28 <- jmp.if   r5,1074
 0x5de29f:
-  915 r29 <- const8   0 (0x0)
-  916 r29 <- add      r29,r12  qword
-  917 r28 <- loadm8   addr:r29
-  918 r20 <- get      r28
+  916 r29 <- const8   0 (0x0)
+  917 r29 <- add      r29,r12  qword
+  918 r28 <- loadm8   addr:r29
+  919 r20 <- get      r28
 0x5de2a3:
-  919 r29 <- const8   32 (0x20)
-  920 r29 <- add      r29,r25  qword
-  921 r28 <- loadm8   addr:r29
-  922 r30 <- const8   0 (0x0)
-  923 r28 <- sub      r28,r30  qword
-  924 r10 <- overflow r28
-  925 r2 <- carry    r28
-  926 r6 <- sign     r28
-  927 r5 <- is0      r28
-  928 r31 <- l1       r28
-  929 r3 <- parity   r31
+  920 r29 <- const8   32 (0x20)
+  921 r29 <- add      r29,r25  qword
+  922 r28 <- loadm8   addr:r29
+  923 r30 <- const8   0 (0x0)
+  924 r28 <- sub      r28,r30  qword
+  925 r10 <- overflow r28
+  926 r2 <- carry    r28
+  927 r6 <- sign     r28
+  928 r5 <- is0      r28
+  929 r31 <- l1       r28
+  930 r3 <- parity   r31
 0x5de2a8:
-  930 r29 <- const8   0 (0x0)
-  931 r29 <- add      r29,r26  qword
-  932 r30 <- mulk     r27,8 qword
-  933 r29 <- add      r29,r30  qword
-  934 r31 <- store    *r29 ← r17
+  931 r29 <- const8   0 (0x0)
+  932 r29 <- add      r29,r26  qword
+  933 r30 <- mulk     r27,8 qword
+  934 r29 <- add      r29,r30  qword
+  935 r31 <- store    *r29 ← r17
 0x5de2ac:
-  935 r28 <- TODO     unsupported: movzx edi,byte ptr [r8]
+  936 r28 <- TODO     unsupported: movzx edi,byte ptr [r8]
 0x5de2b0:
-  936 r28 <- jmp.if   r5,705
+  937 r28 <- jmp.if   r5,705
 0x5de2b6:
-  937 r29 <- const8   72 (0x48)
-  938 r29 <- add      r29,r12  qword
-  939 r28 <- loadm8   addr:r29
-  940 r17 <- get      r28
+  938 r29 <- const8   72 (0x48)
+  939 r29 <- add      r29,r12  qword
+  940 r28 <- loadm8   addr:r29
+  941 r17 <- get      r28
 0x5de2bb:
-  941 r28 <- l1       r14
-  942 r29 <- l1       r14
-  943 r28 <- and      r28,r29  byte
-  944 r6 <- sign     r28
-  945 r5 <- is0      r28
-  946 r30 <- l1       r28
-  947 r3 <- parity   r28
-  948 r2 <- const1   0 (0x0)
-  949 r10 <- const1   0 (0x0)
+  942 r28 <- l1       r14
+  943 r29 <- l1       r14
+  944 r28 <- and      r28,r29  byte
+  945 r6 <- sign     r28
+  946 r5 <- is0      r28
+  947 r30 <- l1       r28
+  948 r3 <- parity   r28
+  949 r2 <- const1   0 (0x0)
+  950 r10 <- const1   0 (0x0)
 0x5de2be:
-  950 r28 <- not      r5
-  951 r29 <- jmp.if   r28,1073
+  951 r28 <- not      r5
+  952 r29 <- jmp.if   r28,1074
 0x5de2c0:
-  952 r28 <- const8   1 (0x1)
-  953 r28 <- add      r28,r27  qword
-  954 r20 <- get      r28
+  953 r28 <- const8   1 (0x1)
+  954 r28 <- add      r28,r27  qword
+  955 r20 <- get      r28
 0x5de2c4:
-  955 r29 <- const8   24 (0x18)
-  956 r29 <- add      r29,r12  qword
-  957 r28 <- loadm8   addr:r29
-  958 r27 <- get      r28
+  956 r29 <- const8   24 (0x18)
+  957 r29 <- add      r29,r12  qword
+  958 r28 <- loadm8   addr:r29
+  959 r27 <- get      r28
 0x5de2c9:
-  959 r29 <- const8   0 (0x0)
-  960 r29 <- add      r29,r27  qword
-  961 r30 <- store    *r29 ← r20
+  960 r29 <- const8   0 (0x0)
+  961 r29 <- add      r29,r27  qword
+  962 r30 <- store    *r29 ← r20
 0x5de2cc:
-  962 r17 <- and      r17,r17  qword
-  963 r6 <- sign     r17
-  964 r5 <- is0      r17
-  965 r30 <- l1       r17
-  966 r3 <- parity   r17
-  967 r2 <- const1   0 (0x0)
-  968 r10 <- const1   0 (0x0)
+  963 r17 <- and      r17,r17  qword
+  964 r6 <- sign     r17
+  965 r5 <- is0      r17
+  966 r30 <- l1       r17
+  967 r3 <- parity   r17
+  968 r2 <- const1   0 (0x0)
+  969 r10 <- const1   0 (0x0)
 0x5de2cf:
-  969 r28 <- not      r5
-  970 r29 <- jmp.if   r28,1165
+  970 r28 <- not      r5
+  971 r29 <- jmp.if   r28,1166
 0x5de2d5:
-  971 r28 <- l4       r16
-  972 r29 <- l4       r16
-  973 r28 <- xor      r28,r29  dword
-  974 r16 <- v8.l4=   r16 ← r28
-  975 r10 <- false
-  976 r2 <- false
-  977 r6 <- sign     r28
-  978 r5 <- is0      r28
-  979 r30 <- l1       r28
-  980 r3 <- parity   r30
+  972 r28 <- l4       r16
+  973 r29 <- l4       r16
+  974 r28 <- xor      r28,r29  dword
+  975 r16 <- v8.l4=   r16 ← r28
+  976 r10 <- false
+  977 r2 <- false
+  978 r6 <- sign     r28
+  979 r5 <- is0      r28
+  980 r30 <- l1       r28
+  981 r3 <- parity   r30
 0x5de2d7:
-  981 r29 <- const8   88 (0x58)
-  982 r12 <- add      r12,r29  qword
-  983 r12 <- get      r12
-  984 r10 <- overflow r12
-  985 r2 <- carry    r12
-  986 r6 <- sign     r12
-  987 r5 <- is0      r12
-  988 r30 <- l1       r12
-  989 r3 <- parity   r30
+  982 r29 <- const8   88 (0x58)
+  983 r12 <- add      r12,r29  qword
+  984 r12 <- get      r12
+  985 r10 <- overflow r12
+  986 r2 <- carry    r12
+  987 r6 <- sign     r12
+  988 r5 <- is0      r12
+  989 r30 <- l1       r12
+  990 r3 <- parity   r30
 0x5de2db:
-  990 r28 <- loadm8   addr:r12
-  991 r17 <- get      r28
-  992 r12 <- addk     r12,8 qword
+  991 r28 <- loadm8   addr:r12
+  992 r17 <- get      r28
+  993 r12 <- addk     r12,8 qword
 0x5de2dc:
-  993 r28 <- loadm8   addr:r12
-  994 r11 <- get      r28
-  995 r12 <- addk     r12,8 qword
+  994 r28 <- loadm8   addr:r12
+  995 r11 <- get      r28
+  996 r12 <- addk     r12,8 qword
 0x5de2dd:
-  996 r28 <- loadm8   addr:r12
-  997 r24 <- get      r28
-  998 r12 <- addk     r12,8 qword
+  997 r28 <- loadm8   addr:r12
+  998 r24 <- get      r28
+  999 r12 <- addk     r12,8 qword
 0x5de2df:
-  999 r28 <- loadm8   addr:r12
- 1000 r25 <- get      r28
- 1001 r12 <- addk     r12,8 qword
+ 1000 r28 <- loadm8   addr:r12
+ 1001 r25 <- get      r28
+ 1002 r12 <- addk     r12,8 qword
 0x5de2e1:
- 1002 r28 <- loadm8   addr:r12
- 1003 r26 <- get      r28
- 1004 r12 <- addk     r12,8 qword
+ 1003 r28 <- loadm8   addr:r12
+ 1004 r26 <- get      r28
+ 1005 r12 <- addk     r12,8 qword
 0x5de2e3:
- 1005 r28 <- loadm8   addr:r12
- 1006 r27 <- get      r28
- 1007 r12 <- addk     r12,8 qword
+ 1006 r28 <- loadm8   addr:r12
+ 1007 r27 <- get      r28
+ 1008 r12 <- addk     r12,8 qword
 0x5de2e5:
- 1008 r28 <- ret      r16
+ 1009 r28 <- ret      r16
 0x5de2f0:
- 1009 r29 <- const8   0 (0x0)
- 1010 r29 <- add      r29,r12  qword
- 1011 r28 <- loadm8   addr:r29
- 1012 r14 <- get      r28
+ 1010 r29 <- const8   0 (0x0)
+ 1011 r29 <- add      r29,r12  qword
+ 1012 r28 <- loadm8   addr:r29
+ 1013 r14 <- get      r28
 0x5de2f4:
- 1013 r19 <- get      r11
+ 1014 r19 <- get      r11
 0x5de2f7:
- 1014 r28 <- const8   4199232 (0x401340)
- 1015 r16 <- call     r28
- 1016 r29 <- carg     r14
- 1017 r30 <- carg     r15
- 1018 r31 <- carg     r19
- 1019 r32 <- carg     r18
- 1020 r2 <- undef
- 1021 r3 <- undef
- 1022 r4 <- undef
- 1023 r5 <- undef
- 1024 r6 <- undef
- 1025 r7 <- undef
- 1026 r8 <- undef
- 1027 r9 <- undef
- 1028 r10 <- undef
+ 1015 r28 <- const8   4199232 (0x401340)
+ 1016 r16 <- call     r28
+ 1017 r29 <- carg     r14
+ 1018 r30 <- carg     r15
+ 1019 r31 <- carg     r19
+ 1020 r32 <- carg     r18
+ 1021 r2 <- undef
+ 1022 r3 <- undef
+ 1023 r4 <- undef
+ 1024 r5 <- undef
+ 1025 r6 <- undef
+ 1026 r7 <- undef
+ 1027 r8 <- undef
+ 1028 r9 <- undef
+ 1029 r10 <- undef
 0x5de2fc:
- 1029 r28 <- l4       r16
- 1030 r29 <- l4       r16
- 1031 r28 <- and      r28,r29  dword
- 1032 r6 <- sign     r28
- 1033 r5 <- is0      r28
- 1034 r30 <- l1       r28
- 1035 r3 <- parity   r28
- 1036 r2 <- const1   0 (0x0)
- 1037 r10 <- const1   0 (0x0)
+ 1030 r28 <- l4       r16
+ 1031 r29 <- l4       r16
+ 1032 r28 <- and      r28,r29  dword
+ 1033 r6 <- sign     r28
+ 1034 r5 <- is0      r28
+ 1035 r30 <- l1       r28
+ 1036 r3 <- parity   r28
+ 1037 r2 <- const1   0 (0x0)
+ 1038 r10 <- const1   0 (0x0)
 0x5de2fe:
- 1038 r28 <- not      r5
- 1039 r29 <- jmp.if   r28,493
+ 1039 r28 <- not      r5
+ 1040 r29 <- jmp.if   r28,493
 0x5de304:
- 1040 r28 <- jmp      660
+ 1041 r28 <- jmp      660
 0x5de310:
- 1041 r29 <- const8   0 (0x0)
- 1042 r29 <- add      r29,r12  qword
- 1043 r28 <- loadm8   addr:r29
- 1044 r14 <- get      r28
+ 1042 r29 <- const8   0 (0x0)
+ 1043 r29 <- add      r29,r12  qword
+ 1044 r28 <- loadm8   addr:r29
+ 1045 r14 <- get      r28
 0x5de314:
- 1045 r19 <- get      r11
+ 1046 r19 <- get      r11
 0x5de317:
- 1046 r28 <- const8   4199232 (0x401340)
- 1047 r16 <- call     r28
- 1048 r29 <- carg     r14
- 1049 r30 <- carg     r15
- 1050 r31 <- carg     r19
- 1051 r32 <- carg     r18
- 1052 r2 <- undef
- 1053 r3 <- undef
- 1054 r4 <- undef
- 1055 r5 <- undef
- 1056 r6 <- undef
- 1057 r7 <- undef
- 1058 r8 <- undef
- 1059 r9 <- undef
- 1060 r10 <- undef
+ 1047 r28 <- const8   4199232 (0x401340)
+ 1048 r16 <- call     r28
+ 1049 r29 <- carg     r14
+ 1050 r30 <- carg     r15
+ 1051 r31 <- carg     r19
+ 1052 r32 <- carg     r18
+ 1053 r2 <- undef
+ 1054 r3 <- undef
+ 1055 r4 <- undef
+ 1056 r5 <- undef
+ 1057 r6 <- undef
+ 1058 r7 <- undef
+ 1059 r8 <- undef
+ 1060 r9 <- undef
+ 1061 r10 <- undef
 0x5de31c:
- 1061 r28 <- l4       r16
- 1062 r29 <- l4       r16
- 1063 r28 <- and      r28,r29  dword
- 1064 r6 <- sign     r28
- 1065 r5 <- is0      r28
- 1066 r30 <- l1       r28
- 1067 r3 <- parity   r28
- 1068 r2 <- const1   0 (0x0)
- 1069 r10 <- const1   0 (0x0)
+ 1062 r28 <- l4       r16
+ 1063 r29 <- l4       r16
+ 1064 r28 <- and      r28,r29  dword
+ 1065 r6 <- sign     r28
+ 1066 r5 <- is0      r28
+ 1067 r30 <- l1       r28
+ 1068 r3 <- parity   r28
+ 1069 r2 <- const1   0 (0x0)
+ 1070 r10 <- const1   0 (0x0)
 0x5de31e:
- 1070 r28 <- not      r5
- 1071 r29 <- jmp.if   r28,535
+ 1071 r28 <- not      r5
+ 1072 r29 <- jmp.if   r28,535
 0x5de324:
- 1072 r28 <- jmp      660
+ 1073 r28 <- jmp      660
 0x5de330:
- 1073 r29 <- const8   88 (0x58)
- 1074 r12 <- add      r12,r29  qword
- 1075 r12 <- get      r12
- 1076 r10 <- overflow r12
- 1077 r2 <- carry    r12
- 1078 r6 <- sign     r12
- 1079 r5 <- is0      r12
- 1080 r30 <- l1       r12
- 1081 r3 <- parity   r30
+ 1074 r29 <- const8   88 (0x58)
+ 1075 r12 <- add      r12,r29  qword
+ 1076 r12 <- get      r12
+ 1077 r10 <- overflow r12
+ 1078 r2 <- carry    r12
+ 1079 r6 <- sign     r12
+ 1080 r5 <- is0      r12
+ 1081 r30 <- l1       r12
+ 1082 r3 <- parity   r30
 0x5de334:
- 1082 r28 <- const4   2 (0x2)
- 1083 r16 <- v8.l4=   r16 ← r28
+ 1083 r28 <- const4   2 (0x2)
+ 1084 r16 <- v8.l4=   r16 ← r28
 0x5de339:
- 1084 r28 <- loadm8   addr:r12
- 1085 r17 <- get      r28
- 1086 r12 <- addk     r12,8 qword
+ 1085 r28 <- loadm8   addr:r12
+ 1086 r17 <- get      r28
+ 1087 r12 <- addk     r12,8 qword
 0x5de33a:
- 1087 r28 <- loadm8   addr:r12
- 1088 r11 <- get      r28
- 1089 r12 <- addk     r12,8 qword
+ 1088 r28 <- loadm8   addr:r12
+ 1089 r11 <- get      r28
+ 1090 r12 <- addk     r12,8 qword
 0x5de33b:
- 1090 r28 <- loadm8   addr:r12
- 1091 r24 <- get      r28
- 1092 r12 <- addk     r12,8 qword
+ 1091 r28 <- loadm8   addr:r12
+ 1092 r24 <- get      r28
+ 1093 r12 <- addk     r12,8 qword
 0x5de33d:
- 1093 r28 <- loadm8   addr:r12
- 1094 r25 <- get      r28
- 1095 r12 <- addk     r12,8 qword
+ 1094 r28 <- loadm8   addr:r12
+ 1095 r25 <- get      r28
+ 1096 r12 <- addk     r12,8 qword
 0x5de33f:
- 1096 r28 <- loadm8   addr:r12
- 1097 r26 <- get      r28
- 1098 r12 <- addk     r12,8 qword
+ 1097 r28 <- loadm8   addr:r12
+ 1098 r26 <- get      r28
+ 1099 r12 <- addk     r12,8 qword
 0x5de341:
- 1099 r28 <- loadm8   addr:r12
- 1100 r27 <- get      r28
- 1101 r12 <- addk     r12,8 qword
+ 1100 r28 <- loadm8   addr:r12
+ 1101 r27 <- get      r28
+ 1102 r12 <- addk     r12,8 qword
 0x5de343:
- 1102 r28 <- ret      r16
+ 1103 r28 <- ret      r16
 0x5de348:
- 1103 r29 <- const8   0 (0x0)
- 1104 r29 <- add      r29,r12  qword
- 1105 r28 <- loadm8   addr:r29
- 1106 r24 <- get      r28
+ 1104 r29 <- const8   0 (0x0)
+ 1105 r29 <- add      r29,r12  qword
+ 1106 r28 <- loadm8   addr:r29
+ 1107 r24 <- get      r28
 0x5de34c:
- 1107 r29 <- const8   1 (0x1)
- 1108 r27 <- add      r27,r29  qword
- 1109 r27 <- get      r27
- 1110 r10 <- overflow r27
- 1111 r2 <- carry    r27
- 1112 r6 <- sign     r27
- 1113 r5 <- is0      r27
- 1114 r30 <- l1       r27
- 1115 r3 <- parity   r30
+ 1108 r29 <- const8   1 (0x1)
+ 1109 r27 <- add      r27,r29  qword
+ 1110 r27 <- get      r27
+ 1111 r10 <- overflow r27
+ 1112 r2 <- carry    r27
+ 1113 r6 <- sign     r27
+ 1114 r5 <- is0      r27
+ 1115 r30 <- l1       r27
+ 1116 r3 <- parity   r30
 0x5de350:
- 1116 r14 <- get      r24
+ 1117 r14 <- get      r24
 0x5de353:
- 1117 r28 <- const8   4199136 (0x4012e0)
- 1118 r16 <- call     r28
- 1119 r29 <- carg     r14
- 1120 r30 <- carg     r15
- 1121 r31 <- carg     r19
- 1122 r32 <- carg     r18
- 1123 r2 <- undef
- 1124 r3 <- undef
- 1125 r4 <- undef
- 1126 r5 <- undef
- 1127 r6 <- undef
- 1128 r7 <- undef
- 1129 r8 <- undef
- 1130 r9 <- undef
- 1131 r10 <- undef
+ 1118 r28 <- const8   4199136 (0x4012e0)
+ 1119 r16 <- call     r28
+ 1120 r29 <- carg     r14
+ 1121 r30 <- carg     r15
+ 1122 r31 <- carg     r19
+ 1123 r32 <- carg     r18
+ 1124 r2 <- undef
+ 1125 r3 <- undef
+ 1126 r4 <- undef
+ 1127 r5 <- undef
+ 1128 r6 <- undef
+ 1129 r7 <- undef
+ 1130 r8 <- undef
+ 1131 r9 <- undef
+ 1132 r10 <- undef
 0x5de358:
- 1132 r29 <- const8   24 (0x18)
- 1133 r29 <- add      r29,r12  qword
- 1134 r28 <- loadm8   addr:r29
- 1135 r19 <- get      r28
+ 1133 r29 <- const8   24 (0x18)
+ 1134 r29 <- add      r29,r12  qword
+ 1135 r28 <- loadm8   addr:r29
+ 1136 r19 <- get      r28
 0x5de35d:
- 1136 r11 <- get      r16
+ 1137 r11 <- get      r16
 0x5de360:
- 1137 r28 <- const8   0 (0x0)
- 1138 r28 <- add      r28,r24  qword
- 1139 r29 <- mulk     r16,1 qword
- 1140 r28 <- add      r28,r29  qword
- 1141 r20 <- get      r28
+ 1138 r28 <- const8   0 (0x0)
+ 1139 r28 <- add      r28,r24  qword
+ 1140 r29 <- mulk     r16,1 qword
+ 1141 r28 <- add      r28,r29  qword
+ 1142 r20 <- get      r28
 0x5de364:
- 1142 r30 <- const8   0 (0x0)
- 1143 r30 <- add      r30,r19  qword
- 1144 r29 <- loadm8   addr:r30
- 1145 r27 <- sub      r27,r29  qword
- 1146 r10 <- overflow r27
- 1147 r2 <- carry    r27
- 1148 r6 <- sign     r27
- 1149 r5 <- is0      r27
- 1150 r31 <- l1       r27
- 1151 r3 <- parity   r31
+ 1143 r30 <- const8   0 (0x0)
+ 1144 r30 <- add      r30,r19  qword
+ 1145 r29 <- loadm8   addr:r30
+ 1146 r27 <- sub      r27,r29  qword
+ 1147 r10 <- overflow r27
+ 1148 r2 <- carry    r27
+ 1149 r6 <- sign     r27
+ 1150 r5 <- is0      r27
+ 1151 r31 <- l1       r27
+ 1152 r3 <- parity   r31
 0x5de367:
- 1152 r28 <- jmp.if   r2,784
+ 1153 r28 <- jmp.if   r2,785
 0x5de36d:
- 1153 r29 <- const8   72 (0x48)
- 1154 r29 <- add      r29,r12  qword
- 1155 r28 <- loadm8   addr:r29
- 1156 r17 <- get      r28
+ 1154 r29 <- const8   72 (0x48)
+ 1155 r29 <- add      r29,r12  qword
+ 1156 r28 <- loadm8   addr:r29
+ 1157 r17 <- get      r28
 0x5de372:
- 1157 r17 <- and      r17,r17  qword
- 1158 r6 <- sign     r17
- 1159 r5 <- is0      r17
- 1160 r30 <- l1       r17
- 1161 r3 <- parity   r17
- 1162 r2 <- const1   0 (0x0)
- 1163 r10 <- const1   0 (0x0)
+ 1158 r17 <- and      r17,r17  qword
+ 1159 r6 <- sign     r17
+ 1160 r5 <- is0      r17
+ 1161 r30 <- l1       r17
+ 1162 r3 <- parity   r17
+ 1163 r2 <- const1   0 (0x0)
+ 1164 r10 <- const1   0 (0x0)
 0x5de375:
- 1164 r28 <- jmp.if   r5,971
+ 1165 r28 <- jmp.if   r5,972
 0x5de37b:
- 1165 r29 <- const8   0 (0x0)
- 1166 r29 <- add      r29,r17  qword
- 1167 r30 <- store    *r29 ← r25
+ 1166 r29 <- const8   0 (0x0)
+ 1167 r29 <- add      r29,r17  qword
+ 1168 r30 <- store    *r29 ← r25
 0x5de37e:
- 1168 r28 <- l4       r16
- 1169 r29 <- l4       r16
- 1170 r28 <- xor      r28,r29  dword
- 1171 r16 <- v8.l4=   r16 ← r28
- 1172 r10 <- false
- 1173 r2 <- false
- 1174 r6 <- sign     r28
- 1175 r5 <- is0      r28
- 1176 r30 <- l1       r28
- 1177 r3 <- parity   r30
+ 1169 r28 <- l4       r16
+ 1170 r29 <- l4       r16
+ 1171 r28 <- xor      r28,r29  dword
+ 1172 r16 <- v8.l4=   r16 ← r28
+ 1173 r10 <- false
+ 1174 r2 <- false
+ 1175 r6 <- sign     r28
+ 1176 r5 <- is0      r28
+ 1177 r30 <- l1       r28
+ 1178 r3 <- parity   r30
 0x5de380:
- 1178 r28 <- jmp      981
+ 1179 r28 <- jmp      982
 0x5de388:
- 1179 r29 <- const8   0 (0x0)
- 1180 r29 <- add      r29,r12  qword
- 1181 r28 <- loadm8   addr:r29
- 1182 r14 <- get      r28
+ 1180 r29 <- const8   0 (0x0)
+ 1181 r29 <- add      r29,r12  qword
+ 1182 r28 <- loadm8   addr:r29
+ 1183 r14 <- get      r28
 0x5de38c:
- 1183 r19 <- get      r11
+ 1184 r19 <- get      r11
 0x5de38f:
- 1184 r29 <- const8   8 (0x8)
- 1185 r29 <- add      r29,r12  qword
- 1186 r30 <- store    *r29 ← r20
+ 1185 r29 <- const8   8 (0x8)
+ 1186 r29 <- add      r29,r12  qword
+ 1187 r30 <- store    *r29 ← r20
 0x5de394:
- 1187 r28 <- const8   4199232 (0x401340)
- 1188 r16 <- call     r28
- 1189 r29 <- carg     r14
- 1190 r30 <- carg     r15
- 1191 r31 <- carg     r19
- 1192 r32 <- carg     r18
- 1193 r2 <- undef
- 1194 r3 <- undef
- 1195 r4 <- undef
- 1196 r5 <- undef
- 1197 r6 <- undef
- 1198 r7 <- undef
- 1199 r8 <- undef
- 1200 r9 <- undef
- 1201 r10 <- undef
+ 1188 r28 <- const8   4199232 (0x401340)
+ 1189 r16 <- call     r28
+ 1190 r29 <- carg     r14
+ 1191 r30 <- carg     r15
+ 1192 r31 <- carg     r19
+ 1193 r32 <- carg     r18
+ 1194 r2 <- undef
+ 1195 r3 <- undef
+ 1196 r4 <- undef
+ 1197 r5 <- undef
+ 1198 r6 <- undef
+ 1199 r7 <- undef
+ 1200 r8 <- undef
+ 1201 r9 <- undef
+ 1202 r10 <- undef
 0x5de399:
- 1202 r29 <- const8   8 (0x8)
- 1203 r29 <- add      r29,r12  qword
- 1204 r28 <- loadm8   addr:r29
- 1205 r20 <- get      r28
+ 1203 r29 <- const8   8 (0x8)
+ 1204 r29 <- add      r29,r12  qword
+ 1205 r28 <- loadm8   addr:r29
+ 1206 r20 <- get      r28
 0x5de39e:
- 1206 r28 <- l4       r16
- 1207 r29 <- l4       r16
- 1208 r28 <- and      r28,r29  dword
- 1209 r6 <- sign     r28
- 1210 r5 <- is0      r28
- 1211 r30 <- l1       r28
- 1212 r3 <- parity   r28
- 1213 r2 <- const1   0 (0x0)
- 1214 r10 <- const1   0 (0x0)
+ 1207 r28 <- l4       r16
+ 1208 r29 <- l4       r16
+ 1209 r28 <- and      r28,r29  dword
+ 1210 r6 <- sign     r28
+ 1211 r5 <- is0      r28
+ 1212 r30 <- l1       r28
+ 1213 r3 <- parity   r28
+ 1214 r2 <- const1   0 (0x0)
+ 1215 r10 <- const1   0 (0x0)
 0x5de3a0:
- 1215 r28 <- not      r5
- 1216 r29 <- jmp.if   r28,366
+ 1216 r28 <- not      r5
+ 1217 r29 <- jmp.if   r28,366
 0x5de3a6:
- 1217 r28 <- jmp      674
+ 1218 r28 <- jmp      674
 0x5de3b0:
- 1218 r29 <- const8   0 (0x0)
- 1219 r29 <- add      r29,r12  qword
- 1220 r28 <- loadm8   addr:r29
- 1221 r14 <- get      r28
+ 1219 r29 <- const8   0 (0x0)
+ 1220 r29 <- add      r29,r12  qword
+ 1221 r28 <- loadm8   addr:r29
+ 1222 r14 <- get      r28
 0x5de3b4:
- 1222 r19 <- get      r11
+ 1223 r19 <- get      r11
 0x5de3b7:
- 1223 r29 <- const8   8 (0x8)
- 1224 r29 <- add      r29,r12  qword
- 1225 r30 <- store    *r29 ← r20
+ 1224 r29 <- const8   8 (0x8)
+ 1225 r29 <- add      r29,r12  qword
+ 1226 r30 <- store    *r29 ← r20
 0x5de3bc:
- 1226 r28 <- const8   4199232 (0x401340)
- 1227 r16 <- call     r28
- 1228 r29 <- carg     r14
- 1229 r30 <- carg     r15
- 1230 r31 <- carg     r19
- 1231 r32 <- carg     r18
- 1232 r2 <- undef
- 1233 r3 <- undef
- 1234 r4 <- undef
- 1235 r5 <- undef
- 1236 r6 <- undef
- 1237 r7 <- undef
- 1238 r8 <- undef
- 1239 r9 <- undef
- 1240 r10 <- undef
+ 1227 r28 <- const8   4199232 (0x401340)
+ 1228 r16 <- call     r28
+ 1229 r29 <- carg     r14
+ 1230 r30 <- carg     r15
+ 1231 r31 <- carg     r19
+ 1232 r32 <- carg     r18
+ 1233 r2 <- undef
+ 1234 r3 <- undef
+ 1235 r4 <- undef
+ 1236 r5 <- undef
+ 1237 r6 <- undef
+ 1238 r7 <- undef
+ 1239 r8 <- undef
+ 1240 r9 <- undef
+ 1241 r10 <- undef
 0x5de3c1:
- 1241 r29 <- const8   8 (0x8)
- 1242 r29 <- add      r29,r12  qword
- 1243 r28 <- loadm8   addr:r29
- 1244 r20 <- get      r28
+ 1242 r29 <- const8   8 (0x8)
+ 1243 r29 <- add      r29,r12  qword
+ 1244 r28 <- loadm8   addr:r29
+ 1245 r20 <- get      r28
 0x5de3c6:
- 1245 r28 <- l4       r16
- 1246 r29 <- l4       r16
- 1247 r28 <- and      r28,r29  dword
- 1248 r6 <- sign     r28
- 1249 r5 <- is0      r28
- 1250 r30 <- l1       r28
- 1251 r3 <- parity   r28
- 1252 r2 <- const1   0 (0x0)
- 1253 r10 <- const1   0 (0x0)
+ 1246 r28 <- l4       r16
+ 1247 r29 <- l4       r16
+ 1248 r28 <- and      r28,r29  dword
+ 1249 r6 <- sign     r28
+ 1250 r5 <- is0      r28
+ 1251 r30 <- l1       r28
+ 1252 r3 <- parity   r28
+ 1253 r2 <- const1   0 (0x0)
+ 1254 r10 <- const1   0 (0x0)
 0x5de3c8:
- 1254 r28 <- not      r5
- 1255 r29 <- jmp.if   r28,305
+ 1255 r28 <- not      r5
+ 1256 r29 <- jmp.if   r28,305
 0x5de3ce:
- 1256 r28 <- jmp      674
+ 1257 r28 <- jmp      674
 0x5de3d3:
- 1257 r29 <- const8   0 (0x0)
- 1258 r29 <- add      r29,r12  qword
- 1259 r28 <- loadm8   addr:r29
- 1260 r14 <- get      r28
+ 1258 r29 <- const8   0 (0x0)
+ 1259 r29 <- add      r29,r12  qword
+ 1260 r28 <- loadm8   addr:r29
+ 1261 r14 <- get      r28
 0x5de3d7:
- 1261 r19 <- get      r11
+ 1262 r19 <- get      r11
 0x5de3da:
- 1262 r29 <- const8   40 (0x28)
- 1263 r29 <- add      r29,r12  qword
- 1264 r30 <- store    *r29 ← r20
+ 1263 r29 <- const8   40 (0x28)
+ 1264 r29 <- add      r29,r12  qword
+ 1265 r30 <- store    *r29 ← r20
 0x5de3df:
- 1265 r29 <- const8   8 (0x8)
- 1266 r29 <- add      r29,r12  qword
- 1267 r30 <- store    *r29 ← r24
+ 1266 r29 <- const8   8 (0x8)
+ 1267 r29 <- add      r29,r12  qword
+ 1268 r30 <- store    *r29 ← r24
 0x5de3e4:
- 1268 r28 <- const8   4199232 (0x401340)
- 1269 r16 <- call     r28
- 1270 r29 <- carg     r14
- 1271 r30 <- carg     r15
- 1272 r31 <- carg     r19
- 1273 r32 <- carg     r18
- 1274 r2 <- undef
- 1275 r3 <- undef
- 1276 r4 <- undef
- 1277 r5 <- undef
- 1278 r6 <- undef
- 1279 r7 <- undef
- 1280 r8 <- undef
- 1281 r9 <- undef
- 1282 r10 <- undef
+ 1269 r28 <- const8   4199232 (0x401340)
+ 1270 r16 <- call     r28
+ 1271 r29 <- carg     r14
+ 1272 r30 <- carg     r15
+ 1273 r31 <- carg     r19
+ 1274 r32 <- carg     r18
+ 1275 r2 <- undef
+ 1276 r3 <- undef
+ 1277 r4 <- undef
+ 1278 r5 <- undef
+ 1279 r6 <- undef
+ 1280 r7 <- undef
+ 1281 r8 <- undef
+ 1282 r9 <- undef
+ 1283 r10 <- undef
 0x5de3e9:
- 1283 r29 <- const8   40 (0x28)
- 1284 r29 <- add      r29,r12  qword
- 1285 r28 <- loadm8   addr:r29
- 1286 r20 <- get      r28
+ 1284 r29 <- const8   40 (0x28)
+ 1285 r29 <- add      r29,r12  qword
+ 1286 r28 <- loadm8   addr:r29
+ 1287 r20 <- get      r28
 0x5de3ee:
- 1287 r14 <- get      r24
+ 1288 r14 <- get      r24
 0x5de3f1:
- 1288 r28 <- l4       r16
- 1289 r29 <- l4       r16
- 1290 r28 <- and      r28,r29  dword
- 1291 r6 <- sign     r28
- 1292 r5 <- is0      r28
- 1293 r30 <- l1       r28
- 1294 r3 <- parity   r28
- 1295 r2 <- const1   0 (0x0)
- 1296 r10 <- const1   0 (0x0)
+ 1289 r28 <- l4       r16
+ 1290 r29 <- l4       r16
+ 1291 r28 <- and      r28,r29  dword
+ 1292 r6 <- sign     r28
+ 1293 r5 <- is0      r28
+ 1294 r30 <- l1       r28
+ 1295 r3 <- parity   r28
+ 1296 r2 <- const1   0 (0x0)
+ 1297 r10 <- const1   0 (0x0)
 0x5de3f3:
- 1297 r28 <- not      r5
- 1298 r29 <- jmp.if   r28,257
+ 1298 r28 <- not      r5
+ 1299 r29 <- jmp.if   r28,257
 0x5de3f9:
- 1299 r28 <- jmp      674
+ 1300 r28 <- jmp      674
 0x5de400:
- 1300 r29 <- const8   0 (0x0)
- 1301 r29 <- add      r29,r12  qword
- 1302 r28 <- loadm8   addr:r29
- 1303 r27 <- get      r28
+ 1301 r29 <- const8   0 (0x0)
+ 1302 r29 <- add      r29,r12  qword
+ 1303 r28 <- loadm8   addr:r29
+ 1304 r27 <- get      r28
 0x5de404:
- 1304 r14 <- get      r27
+ 1305 r14 <- get      r27
 0x5de407:
- 1305 r28 <- const8   4199136 (0x4012e0)
- 1306 r16 <- call     r28
- 1307 r29 <- carg     r14
- 1308 r30 <- carg     r15
- 1309 r31 <- carg     r19
- 1310 r32 <- carg     r18
- 1311 r2 <- undef
- 1312 r3 <- undef
- 1313 r4 <- undef
- 1314 r5 <- undef
- 1315 r6 <- undef
- 1316 r7 <- undef
- 1317 r8 <- undef
- 1318 r9 <- undef
- 1319 r10 <- undef
+ 1306 r28 <- const8   4199136 (0x4012e0)
+ 1307 r16 <- call     r28
+ 1308 r29 <- carg     r14
+ 1309 r30 <- carg     r15
+ 1310 r31 <- carg     r19
+ 1311 r32 <- carg     r18
+ 1312 r2 <- undef
+ 1313 r3 <- undef
+ 1314 r4 <- undef
+ 1315 r5 <- undef
+ 1316 r6 <- undef
+ 1317 r7 <- undef
+ 1318 r8 <- undef
+ 1319 r9 <- undef
+ 1320 r10 <- undef
 0x5de40c:
- 1320 r28 <- const8   0 (0x0)
- 1321 r28 <- add      r28,r27  qword
- 1322 r29 <- mulk     r16,1 qword
- 1323 r28 <- add      r28,r29  qword
- 1324 r20 <- get      r28
+ 1321 r28 <- const8   0 (0x0)
+ 1322 r28 <- add      r28,r27  qword
+ 1323 r29 <- mulk     r16,1 qword
+ 1324 r28 <- add      r28,r29  qword
+ 1325 r20 <- get      r28
 0x5de410:
- 1325 r28 <- jmp      96
+ 1326 r28 <- jmp      96
 0x5de415:
- 1326 r29 <- const8   72 (0x48)
- 1327 r29 <- add      r29,r12  qword
- 1328 r28 <- loadm8   addr:r29
- 1329 r17 <- get      r28
+ 1327 r29 <- const8   72 (0x48)
+ 1328 r29 <- add      r29,r12  qword
+ 1329 r28 <- loadm8   addr:r29
+ 1330 r17 <- get      r28
 0x5de41a:
- 1330 r28 <- jmp      952
+ 1331 r28 <- jmp      953
 0x5de41f:
- 1331 r25 <- get      r26
+ 1332 r25 <- get      r26
 0x5de422:
- 1332 r28 <- jmp      1157
+ 1333 r28 <- jmp      1158
 
 
-ssa program  593 instrs
+ssa program  601 instrs
 .B0:  in[]     ;; 0x0  96 insn 0 phis
          r10 <- #pre:RBP
-  ( 69)  r11 <- #pre:RSP
+  ( 70)  r11 <- #pre:RSP
          r13 <- #pre:RDI
   (  5)  r14 <- #pre:RSI
          r16 <- #pre:RBX
@@ -2537,16 +2538,16 @@ ssa program  593 instrs
          r76 <- carg     r18
          r77 <- carg     r17
          r90 <- is0      r73
-         r95 <- jmp.if   r90,1300
+         r95 <- jmp.if   r90,1301
 .B1:  in[.B0 .B52 ]     ;; 0x5ddf80  14 insn 1 phis
-  (  7)  r1333 <- phi8
-         r1334 <- phiarg   r73
-         r1335 <- phiarg   r1323
+  (  7)  r1334 <- phi8
+         r1335 <- phiarg   r73
+         r1336 <- phiarg   r1324
          r97 <- subk     r11,40 qword
   (  7)  r98 <- loadm8   addr:r97
-  ( 18)  r101 <- sub      r1333,r98  qword
+  ( 18)  r101 <- sub      r1334,r98  qword
          r106 <- is0      r101
-         r109 <- jmp.if   r106,1073
+         r109 <- jmp.if   r106,1074
 .B2:  in[.B1 ]     ;; 0x5ddf90  16 insn 0 phis
   (  2)  r111 <- subk     r11,-16 qword
   (  8)  r112 <- loadm8   addr:r111
@@ -2554,29 +2555,29 @@ ssa program  593 instrs
          r116 <- loadm8   addr:r115
          r118 <- subk     r116,0 qword
          r122 <- is0      r118
-         r125 <- jmp.if   r122,1331
+         r125 <- jmp.if   r122,1332
 .B3:  in[.B2 ]     ;; 0x5ddf9f  29 insn 0 phis
   (  2)  r127 <- addk     r14,24 qword
   (  9)  r128 <- loadm8   addr:r127
          r132 <- const4   0 (0x0)
-  (  7)  r133 <- v8.l4=   r26 ← r132
+  (  8)  r133 <- v8.l4=   r26 ← r132
          r141 <- subk     r11,32 qword
          r142 <- store    *r141 ← r17
          r144 <- loadm8   addr:r127
          r145 <- loadm1   addr:r144
          r147 <- subk     r145,0 qword
          r151 <- is0      r147
-         r154 <- jmp.if   r151,802
+         r154 <- jmp.if   r151,803
 .B4:  in[.B3 .B29 ]     ;; 0x5ddfc0  15 insn 1 phis
-  (  5)  r1336 <- phi8
-         r1337 <- phiarg   r14
-         r1338 <- phiarg   r24
-         r156 <- addk     r1336,16 qword
+  (  5)  r1337 <- phi8
+         r1338 <- phiarg   r14
+         r1339 <- phiarg   r24
+         r156 <- addk     r1337,16 qword
   (  4)  r157 <- loadm8   addr:r156
          r160 <- subk     r11,-24 qword
          r161 <- store    *r160 ← r157
          r164 <- is0      r157
-         r169 <- jmp.if   r164,1073
+         r169 <- jmp.if   r164,1074
 .B5:  in[.B4 ]     ;; 0x5ddfd2  22 insn 0 phis
          r173 <- const4   0 (0x0)
   (  7)  r174 <- v8.l4=   r17 ← r173
@@ -2596,7 +2597,7 @@ ssa program  593 instrs
          r211 <- addk     r128,8 qword
   (  2)  r212 <- loadm8   addr:r211
          r215 <- subk     r11,8 qword
-         r216 <- store    *r215 ← r1333
+         r216 <- store    *r215 ← r1334
          r219 <- subk     r11,0 qword
          r220 <- store    *r219 ← r128
          r223 <- subk     r11,-32 qword
@@ -2613,32 +2614,32 @@ ssa program  593 instrs
   (  2)  r246 <- loadm8   addr:r245
          r249 <- sub      r226,r101  qword
          r253 <- is0      r249
-         r256 <- jmp.if   r253,1257
+         r256 <- jmp.if   r253,1258
 .B9:  in[.B8 .B50 ]     ;; 0x5de020  5 insn 1 phis
-         r1339 <- phi8
-         r1340 <- phiarg   r128
+         r1340 <- phi8
          r1341 <- phiarg   r128
-         r260 <- addk     r1339,40 qword
+         r1342 <- phiarg   r128
+         r260 <- addk     r1340,40 qword
 .B10:  in[.B7 .B9 ]     ;; 0x5de029  43 insn 3 phis
-         r1342 <- phi8
-         r1343 <- phiarg   r202
-         r1344 <- phiarg   r242
-         r1345 <- phi8
-         r1346 <- phiarg   r1333
-         r1347 <- phiarg   r246
-  (  3)  r1348 <- phi8
-         r1349 <- phiarg   r128
-         r1350 <- phiarg   r260
-         r263 <- addk     r1348,8 qword
+         r1343 <- phi8
+         r1344 <- phiarg   r202
+         r1345 <- phiarg   r242
+         r1346 <- phi8
+         r1347 <- phiarg   r1334
+         r1348 <- phiarg   r246
+  (  3)  r1349 <- phi8
+         r1350 <- phiarg   r128
+         r1351 <- phiarg   r260
+         r263 <- addk     r1349,8 qword
   (  2)  r264 <- loadm8   addr:r263
          r267 <- subk     r11,0 qword
-         r268 <- store    *r267 ← r1345
+         r268 <- store    *r267 ← r1346
          r272 <- subk     r11,-32 qword
          r273 <- store    *r272 ← r264
          r274 <- const8   4199136 (0x4012e0)
          r275 <- call     r274
          r276 <- carg     r264
-         r277 <- carg     r1342
+         r277 <- carg     r1343
          r278 <- carg     r112
          r279 <- carg     r17
          r290 <- subk     r11,-32 qword
@@ -2647,29 +2648,29 @@ ssa program  593 instrs
   (  2)  r295 <- loadm8   addr:r294
          r297 <- sub      r275,r101  qword
          r301 <- is0      r297
-         r304 <- jmp.if   r301,1218
+         r304 <- jmp.if   r301,1219
 .B11:  in[.B10 .B48 ]     ;; 0x5de056  18 insn 0 phis
-         r315 <- addk     r1348,40 qword
+         r315 <- addk     r1349,40 qword
 .B12:  in[.B6 .B11 ]     ;; 0x5de05e  43 insn 3 phis
-         r1351 <- phi8
-         r1352 <- phiarg   r193
-         r1353 <- phiarg   r291
-         r1354 <- phi8
-         r1355 <- phiarg   r1333
-         r1356 <- phiarg   r295
-  (  3)  r1357 <- phi8
-         r1358 <- phiarg   r128
-         r1359 <- phiarg   r315
-         r324 <- addk     r1357,8 qword
+         r1352 <- phi8
+         r1353 <- phiarg   r193
+         r1354 <- phiarg   r291
+         r1355 <- phi8
+         r1356 <- phiarg   r1334
+         r1357 <- phiarg   r295
+  (  3)  r1358 <- phi8
+         r1359 <- phiarg   r128
+         r1360 <- phiarg   r315
+         r324 <- addk     r1358,8 qword
   (  2)  r325 <- loadm8   addr:r324
          r328 <- subk     r11,0 qword
-         r329 <- store    *r328 ← r1354
+         r329 <- store    *r328 ← r1355
          r333 <- subk     r11,-32 qword
          r334 <- store    *r333 ← r325
          r335 <- const8   4199136 (0x4012e0)
          r336 <- call     r335
          r337 <- carg     r325
-         r338 <- carg     r1351
+         r338 <- carg     r1352
          r339 <- carg     r112
          r340 <- carg     r17
          r351 <- subk     r11,-32 qword
@@ -2678,118 +2679,118 @@ ssa program  593 instrs
   (  2)  r356 <- loadm8   addr:r355
   (  2)  r358 <- sub      r336,r101  qword
          r362 <- is0      r358
-         r365 <- jmp.if   r362,1179
+         r365 <- jmp.if   r362,1180
 .B13:  in[.B12 .B46 ]     ;; 0x5de08b  30 insn 0 phis
          r367 <- subk     r11,-24 qword
          r368 <- loadm8   addr:r367
          r371 <- addk     r174,1 qword
-         r380 <- addk     r1357,40 qword
+         r380 <- addk     r1358,40 qword
          r388 <- sub      r371,r368  qword
          r392 <- is0      r388
-         r395 <- jmp.if   r392,1073
+         r395 <- jmp.if   r392,1074
 .B14:  in[.B5 .B13 ]     ;; 0x5de0a1  11 insn 2 phis
-         r1360 <- phi8
-         r1361 <- phiarg   r1333
-         r1362 <- phiarg   r356
-         r1363 <- phi8
-         r1364 <- phiarg   r128
-         r1365 <- phiarg   r380
+         r1361 <- phi8
+         r1362 <- phiarg   r1334
+         r1363 <- phiarg   r356
+         r1364 <- phi8
+         r1365 <- phiarg   r128
+         r1366 <- phiarg   r380
          r397 <- subk     r11,16 qword
-         r398 <- store    *r397 ← r1336
+         r398 <- store    *r397 ← r1337
          r401 <- subk     r11,0 qword
          r402 <- store    *r401 ← r133
          r404 <- subk     r11,8 qword
-         r405 <- store    *r404 ← r1360
+         r405 <- store    *r404 ← r1361
          r406 <- jmp      553
 .B15:  in[.B19 .B20 ]     ;; 0x5de0c0  44 insn 2 phis
-         r1366 <- phi8
-         r1367 <- phiarg   r1378
-         r1368 <- phiarg   r555
-  (  2)  r1369 <- phi8
-         r1370 <- phiarg   r112
-         r1371 <- phiarg   r101
-         r408 <- addk     r1384,48 qword
+         r1367 <- phi8
+         r1368 <- phiarg   r1379
+         r1369 <- phiarg   r555
+  (  2)  r1370 <- phi8
+         r1371 <- phiarg   r112
+         r1372 <- phiarg   r101
+         r408 <- addk     r1385,48 qword
   (  2)  r409 <- loadm8   addr:r408
-         r412 <- addk     r1384,40 qword
+         r412 <- addk     r1385,40 qword
          r415 <- addk     r174,1 qword
          r422 <- subk     r11,-32 qword
          r423 <- store    *r422 ← r409
          r424 <- const8   4199136 (0x4012e0)
          r425 <- call     r424
          r426 <- carg     r409
-         r427 <- carg     r1366
-         r428 <- carg     r1369
-         r429 <- carg     r1381
+         r427 <- carg     r1367
+         r428 <- carg     r1370
+         r429 <- carg     r1382
          r440 <- subk     r11,-32 qword
   (  2)  r441 <- loadm8   addr:r440
          r443 <- sub      r425,r101  qword
          r447 <- is0      r443
          r450 <- jmp.if   r447,629
 .B16:  in[.B15 .B22 ]     ;; 0x5de0f0  42 insn 1 phis
-  (  2)  r1372 <- phi8
-         r1373 <- phiarg   r1369
-         r1374 <- phiarg   r101
-         r452 <- addk     r1384,88 qword
+  (  2)  r1373 <- phi8
+         r1374 <- phiarg   r1370
+         r1375 <- phiarg   r101
+         r452 <- addk     r1385,88 qword
   (  7)  r453 <- loadm8   addr:r452
-         r456 <- addk     r1384,80 qword
+         r456 <- addk     r1385,80 qword
          r464 <- subk     r11,-32 qword
          r465 <- store    *r464 ← r453
          r466 <- const8   4199136 (0x4012e0)
          r467 <- call     r466
          r468 <- carg     r453
          r469 <- carg     r441
-         r470 <- carg     r1372
+         r470 <- carg     r1373
          r471 <- carg     r453
          r482 <- subk     r11,-32 qword
          r483 <- loadm8   addr:r482
          r485 <- sub      r467,r101  qword
          r489 <- is0      r485
-         r492 <- jmp.if   r489,1009
+         r492 <- jmp.if   r489,1010
 .B17:  in[.B16 .B37 ]     ;; 0x5de11a  42 insn 1 phis
-         r1375 <- phi8
-         r1376 <- phiarg   r1372
-         r1377 <- phiarg   r101
-         r494 <- addk     r1384,128 qword
+         r1376 <- phi8
+         r1377 <- phiarg   r1373
+         r1378 <- phiarg   r101
+         r494 <- addk     r1385,128 qword
   (  3)  r495 <- loadm8   addr:r494
-         r498 <- addk     r1384,120 qword
+         r498 <- addk     r1385,120 qword
          r506 <- subk     r11,-32 qword
          r507 <- store    *r506 ← r495
          r508 <- const8   4199136 (0x4012e0)
          r509 <- call     r508
          r510 <- carg     r495
          r511 <- carg     r495
-         r512 <- carg     r1375
+         r512 <- carg     r1376
          r513 <- carg     r453
          r524 <- subk     r11,-32 qword
   (  2)  r525 <- loadm8   addr:r524
   (  2)  r527 <- sub      r509,r101  qword
          r531 <- is0      r527
-         r534 <- jmp.if   r531,1041
+         r534 <- jmp.if   r531,1042
 .B18:  in[.B17 .B39 ]     ;; 0x5de144  18 insn 0 phis
          r536 <- subk     r11,-24 qword
          r537 <- loadm8   addr:r536
          r540 <- addk     r174,4 qword
          r545 <- sub      r540,r537  qword
          r549 <- is0      r545
-         r552 <- jmp.if   r549,1073
+         r552 <- jmp.if   r549,1074
 .B19:  in[.B14 .B18 ]     ;; 0x5de15a  30 insn 3 phis
-  (  2)  r1378 <- phi8
-         r1379 <- phiarg   r184
-         r1380 <- phiarg   r525
-  (  4)  r1381 <- phi8
-         r1382 <- phiarg   r17
-         r1383 <- phiarg   r453
-  (  8)  r1384 <- phi8
-         r1385 <- phiarg   r1363
-         r1386 <- phiarg   r543
-         r554 <- addk     r1384,8 qword
+  (  2)  r1379 <- phi8
+         r1380 <- phiarg   r184
+         r1381 <- phiarg   r525
+  (  4)  r1382 <- phi8
+         r1383 <- phiarg   r17
+         r1384 <- phiarg   r453
+  (  8)  r1385 <- phi8
+         r1386 <- phiarg   r1364
+         r1387 <- phiarg   r543
+         r554 <- addk     r1385,8 qword
   (  3)  r555 <- loadm8   addr:r554
          r559 <- const8   4199136 (0x4012e0)
          r560 <- call     r559
          r561 <- carg     r555
-         r562 <- carg     r1378
+         r562 <- carg     r1379
          r563 <- carg     r112
-         r564 <- carg     r1381
+         r564 <- carg     r1382
          r574 <- sub      r560,r101  qword
          r578 <- is0      r574
          r581 <- not      r578
@@ -2802,7 +2803,7 @@ ssa program  593 instrs
          r591 <- carg     r585
          r592 <- carg     r555
          r593 <- carg     r101
-         r594 <- carg     r1381
+         r594 <- carg     r1382
          r608 <- is0      r590
          r613 <- not      r608
          r614 <- jmp.if   r613,407
@@ -2820,52 +2821,52 @@ ssa program  593 instrs
          r636 <- carg     r631
          r637 <- carg     r441
          r638 <- carg     r101
-         r639 <- carg     r1381
+         r639 <- carg     r1382
          r653 <- is0      r635
          r658 <- not      r653
          r659 <- jmp.if   r658,451
 .B23:  in[.B22 .B38 .B40 ]     ;; 0x5de1b4  14 insn 2 phis
-         r1391 <- phi8
-         r1392 <- phiarg   r412
-         r1393 <- phiarg   r456
-         r1394 <- phiarg   r498
+         r1392 <- phi8
+         r1393 <- phiarg   r412
+         r1394 <- phiarg   r456
+         r1395 <- phiarg   r498
          r662 <- subk     r11,0 qword
          r663 <- loadm8   addr:r662
          r671 <- subk     r11,16 qword
          r672 <- loadm8   addr:r671
 .B24:  in[.B21 .B23 .B47 .B49 .B51 ]     ;; 0x5de1c9  17 insn 4 phis
-         r1395 <- phi8
-         r1396 <- phiarg   r174
-         r1397 <- phiarg   r415
-         r1398 <- phiarg   r174
+         r1396 <- phi8
+         r1397 <- phiarg   r174
+         r1398 <- phiarg   r415
          r1399 <- phiarg   r174
          r1400 <- phiarg   r174
-         r1401 <- phi8
-         r1402 <- phiarg   r1384
-         r1403 <- phiarg   r1391
-         r1404 <- phiarg   r1357
-         r1405 <- phiarg   r1348
-         r1406 <- phiarg   r128
-         r1407 <- phi8
-         r1408 <- phiarg   r626
-         r1409 <- phiarg   r672
-         r1410 <- phiarg   r1336
-         r1411 <- phiarg   r1336
-         r1412 <- phiarg   r1336
-         r1413 <- phi8
-         r1414 <- phiarg   r618
-         r1415 <- phiarg   r663
-         r1416 <- phiarg   r133
+         r1401 <- phiarg   r174
+         r1402 <- phi8
+         r1403 <- phiarg   r1385
+         r1404 <- phiarg   r1392
+         r1405 <- phiarg   r1358
+         r1406 <- phiarg   r1349
+         r1407 <- phiarg   r128
+         r1408 <- phi8
+         r1409 <- phiarg   r626
+         r1410 <- phiarg   r672
+         r1411 <- phiarg   r1337
+         r1412 <- phiarg   r1337
+         r1413 <- phiarg   r1337
+         r1414 <- phi8
+         r1415 <- phiarg   r618
+         r1416 <- phiarg   r663
          r1417 <- phiarg   r133
          r1418 <- phiarg   r133
+         r1419 <- phiarg   r133
          r675 <- subk     r11,-8 qword
          r679 <- loadm8   addr:r675
-         r680 <- mulk     r1413,8 qword
+         r680 <- mulk     r1414,8 qword
          r681 <- add      r679,r680  qword
-         r682 <- store    *r681 ← r1395
-         r683 <- sub      r1401,r1407  qword
+         r682 <- store    *r681 ← r1396
+         r683 <- sub      r1402,r1408  qword
          r687 <- is0      r683
-         r690 <- jmp.if   r687,1073
+         r690 <- jmp.if   r687,1074
 .B25:  in[.B24 ]     ;; 0x5de1dc  14 insn 0 phis
          r692 <- addk     r24,32 qword
          r693 <- loadm8   addr:r692
@@ -2873,275 +2874,283 @@ ssa program  593 instrs
          r699 <- is0      r695
          r702 <- TODO     unsupported: movzx edi,byte ptr [r8]
          r703 <- not      r699
-         r704 <- jmp.if   r703,937
+         r704 <- jmp.if   r703,938
 .B26:  in[.B25 .B32 ]     ;; 0x5de1eb  10 insn 1 phis
-         r1419 <- phi8
-         r1420 <- phiarg   r18
-         r1421 <- phiarg   r880
-         r709 <- is0      r1419
-         r714 <- jmp.if   r709,1326
+         r1420 <- phi8
+         r1421 <- phiarg   r18
+         r1422 <- phiarg   r881
+         r709 <- is0      r1420
+         r714 <- jmp.if   r709,1327
 .B27:  in[.B26 ]     ;; 0x5de1f4  32 insn 0 phis
-  (  2)  r716 <- addk     r1333,1 qword
+  (  2)  r716 <- addk     r1334,1 qword
          r718 <- const4   46 (0x2e)
   (  3)  r719 <- v8.l4=   r14 ← r718
          r721 <- subk     r11,40 qword
          r722 <- store    *r721 ← r716
          r723 <- const8   4199040 (0x401280)
-  (  2)  r724 <- call     r723
+  (  3)  r724 <- call     r723
          r725 <- carg     r716
          r726 <- carg     r719
          r727 <- carg     r112
          r728 <- carg     r17
+  (  2)  r739 <- get      r724
          r741 <- is0      r724
-         r746 <- jmp.if   r741,1103
-.B28:  in[.B27 ]     ;; 0x5de212  37 insn 0 phis
-         r783 <- TODO     unsupported: jae 00000000005DE36Dh
+         r746 <- jmp.if   r741,1104
+.B28:  in[.B27 ]     ;; 0x5de212  38 insn 0 phis
+         r753 <- subk     r11,-16 qword
+         r757 <- addk     r133,1 qword
+         r774 <- loadm8   addr:r753
+         r775 <- loadm8   addr:r774
+         r776 <- sub      r757,r775  qword
+         r778 <- carry    r776
+         r783 <- not      r778
+         r784 <- jmp.if   r783,1154
 .B29:  in[.B28 .B42 ]     ;; 0x5de22e  18 insn 0 phis
-         r786 <- addk     r24,24 qword
-         r790 <- loadm8   addr:r786
-         r791 <- loadm1   addr:r790
-         r793 <- subk     r791,0 qword
-         r797 <- is0      r793
-         r800 <- not      r797
-         r801 <- jmp.if   r800,155
+         r787 <- addk     r24,24 qword
+         r791 <- loadm8   addr:r787
+         r792 <- loadm1   addr:r791
+         r794 <- subk     r792,0 qword
+         r798 <- is0      r794
+         r801 <- not      r798
+         r802 <- jmp.if   r801,155
 .B30:  in[.B3 .B29 ]     ;; 0x5de23f  48 insn 2 phis
-         r1422 <- phi8
-         r1423 <- phiarg   r40
-         r1424 <- phiarg   r719
-         r1425 <- phi8
-         r1426 <- phiarg   r1333
-         r1427 <- phiarg   r724
-         r803 <- subk     r11,40 qword
-         r804 <- loadm8   addr:r803
-         r808 <- const4   0 (0x0)
-         r809 <- v8.l4=   r1422 ← r808
-         r816 <- const4   10 (0xa)
-         r817 <- v8.l4=   r112 ← r816
-         r819 <- subk     r11,-32 qword
-         r820 <- store    *r819 ← r1425
-         r821 <- const8   6451424 (0x6270e0)
-         r822 <- call     r821
-         r823 <- carg     r804
-         r824 <- carg     r809
-         r825 <- carg     r817
-         r826 <- carg     r17
-         r837 <- subk     r11,-32 qword
-         r838 <- loadm8   addr:r837
-  (  4)  r841 <- subk     r822,-1 qword
-         r845 <- is0      r841
-         r849 <- jmp.if   r845,1073
+         r1423 <- phi8
+         r1424 <- phiarg   r40
+         r1425 <- phiarg   r719
+         r1426 <- phi8
+         r1427 <- phiarg   r1334
+         r1428 <- phiarg   r724
+         r804 <- subk     r11,40 qword
+         r805 <- loadm8   addr:r804
+         r809 <- const4   0 (0x0)
+         r810 <- v8.l4=   r1423 ← r809
+         r817 <- const4   10 (0xa)
+         r818 <- v8.l4=   r112 ← r817
+         r820 <- subk     r11,-32 qword
+         r821 <- store    *r820 ← r1426
+         r822 <- const8   6451424 (0x6270e0)
+         r823 <- call     r822
+         r824 <- carg     r805
+         r825 <- carg     r810
+         r826 <- carg     r818
+         r827 <- carg     r17
+         r838 <- subk     r11,-32 qword
+         r839 <- loadm8   addr:r838
+  (  4)  r842 <- subk     r823,-1 qword
+         r846 <- is0      r842
+         r850 <- jmp.if   r846,1074
 .B31:  in[.B30 ]     ;; 0x5de266  65 insn 0 phis
-  (  2)  r851 <- addk     r14,24 qword
-         r852 <- loadm8   addr:r851
-         r855 <- subk     r11,40 qword
-         r856 <- store    *r855 ← r838
-         r858 <- loadm8   addr:r851
-         r859 <- loadm1   addr:r858
-         r861 <- subk     r859,0 qword
-         r865 <- is0      r861
-         r868 <- not      r865
-         r869 <- jmp.if   r868,0x403143 extern
-         r871 <- subk     r11,-16 qword
-  (  2)  r875 <- subk     r11,-8 qword
-         r876 <- loadm8   addr:r875
-         r879 <- subk     r11,24 qword
-  (  3)  r880 <- loadm8   addr:r879
-         r883 <- loadm8   addr:r871
-         r884 <- loadm8   addr:r883
-         r889 <- addk     r852,8 qword
-         r890 <- loadm8   addr:r889
+  (  2)  r852 <- addk     r14,24 qword
+         r853 <- loadm8   addr:r852
+         r856 <- subk     r11,40 qword
+         r857 <- store    *r856 ← r839
+         r859 <- loadm8   addr:r852
+         r860 <- loadm1   addr:r859
+         r862 <- subk     r860,0 qword
+         r866 <- is0      r862
+         r869 <- not      r866
+         r870 <- jmp.if   r869,0x403143 extern
+         r872 <- subk     r11,-16 qword
+  (  2)  r876 <- subk     r11,-8 qword
+         r877 <- loadm8   addr:r876
+         r880 <- subk     r11,24 qword
+  (  3)  r881 <- loadm8   addr:r880
+         r884 <- loadm8   addr:r872
+         r885 <- loadm8   addr:r884
+         r890 <- addk     r853,8 qword
          r891 <- loadm8   addr:r890
-  (  3)  r892 <- call     r891
-         r893 <- carg     r880
-         r894 <- carg     r876
-         r895 <- carg     r884
-         r896 <- carg     r841
-         r907 <- get      r892
-         r909 <- is0      r892
-         r914 <- jmp.if   r909,1073
+         r892 <- loadm8   addr:r891
+  (  3)  r893 <- call     r892
+         r894 <- carg     r881
+         r895 <- carg     r877
+         r896 <- carg     r885
+         r897 <- carg     r842
+         r908 <- get      r893
+         r910 <- is0      r893
+         r915 <- jmp.if   r910,1074
 .B32:  in[.B31 ]     ;; 0x5de29f  22 insn 0 phis
-         r920 <- addk     r892,32 qword
-         r921 <- loadm8   addr:r920
-         r923 <- subk     r921,0 qword
-         r927 <- is0      r923
-         r931 <- loadm8   addr:r875
-         r932 <- mulk     r133,8 qword
-         r933 <- add      r931,r932  qword
-         r934 <- store    *r933 ← r841
-         r935 <- TODO     unsupported: movzx edi,byte ptr [r8]
-         r936 <- jmp.if   r927,705
+         r921 <- addk     r893,32 qword
+         r922 <- loadm8   addr:r921
+         r924 <- subk     r922,0 qword
+         r928 <- is0      r924
+         r932 <- loadm8   addr:r876
+         r933 <- mulk     r133,8 qword
+         r934 <- add      r932,r933  qword
+         r935 <- store    *r934 ← r842
+         r936 <- TODO     unsupported: movzx edi,byte ptr [r8]
+         r937 <- jmp.if   r928,705
 .B33:  in[.B25 .B32 ]     ;; 0x5de2b6  15 insn 1 phis
-         r1428 <- phi8
-         r1429 <- phiarg   r18
-         r1430 <- phiarg   r880
-         r938 <- subk     r11,32 qword
-         r939 <- loadm8   addr:r938
-         r945 <- is0      r1428
-         r950 <- not      r945
-         r951 <- jmp.if   r950,1073
+         r1429 <- phi8
+         r1430 <- phiarg   r18
+         r1431 <- phiarg   r881
+         r939 <- subk     r11,32 qword
+         r940 <- loadm8   addr:r939
+         r946 <- is0      r1429
+         r951 <- not      r946
+         r952 <- jmp.if   r951,1074
 .B34:  in[.B33 .B53 ]     ;; 0x5de2c0  19 insn 1 phis
-         r1431 <- phi8
-         r1432 <- phiarg   r939
-         r1433 <- phiarg   r1328
-         r953 <- addk     r133,1 qword
-         r956 <- subk     r11,-16 qword
-         r960 <- loadm8   addr:r956
-         r961 <- store    *r960 ← r953
-         r964 <- is0      r1431
-         r969 <- not      r964
-         r970 <- jmp.if   r969,1165
+         r1432 <- phi8
+         r1433 <- phiarg   r940
+         r1434 <- phiarg   r1329
+         r954 <- addk     r133,1 qword
+         r957 <- subk     r11,-16 qword
+         r961 <- loadm8   addr:r957
+         r962 <- store    *r961 ← r954
+         r965 <- is0      r1432
+         r970 <- not      r965
+         r971 <- jmp.if   r970,1166
 .B35:  in[.B34 .B44 ]     ;; 0x5de2d5  10 insn 1 phis
-         r1434 <- phi8
-         r1435 <- phiarg   r98
-         r1436 <- phiarg   r1118
-         r973 <- const4   0 (0x0)
-         r974 <- v8.l4=   r1434 ← r973
+         r1435 <- phi8
+         r1436 <- phiarg   r98
+         r1437 <- phiarg   r739
+         r974 <- const4   0 (0x0)
+         r975 <- v8.l4=   r1435 ← r974
 .B36:  in[.B35 .B45 ]     ;; 0x5de2d7  28 insn 1 phis
-         r1437 <- phi8
-         r1438 <- phiarg   r974
-         r1439 <- phiarg   r1171
-         r1008 <- ret      r1437
+         r1438 <- phi8
+         r1439 <- phiarg   r975
+         r1440 <- phiarg   r1172
+         r1009 <- ret      r1438
 .B37:  in[.B16 ]     ;; 0x5de2f0  31 insn 0 phis
-         r1010 <- subk     r11,40 qword
-         r1011 <- loadm8   addr:r1010
-         r1014 <- const8   4199232 (0x401340)
-         r1015 <- call     r1014
-         r1016 <- carg     r1011
-         r1017 <- carg     r483
-         r1018 <- carg     r101
-         r1019 <- carg     r453
-         r1033 <- is0      r1015
-         r1038 <- not      r1033
-         r1039 <- jmp.if   r1038,493
+         r1011 <- subk     r11,40 qword
+         r1012 <- loadm8   addr:r1011
+         r1015 <- const8   4199232 (0x401340)
+         r1016 <- call     r1015
+         r1017 <- carg     r1012
+         r1018 <- carg     r483
+         r1019 <- carg     r101
+         r1020 <- carg     r453
+         r1034 <- is0      r1016
+         r1039 <- not      r1034
+         r1040 <- jmp.if   r1039,493
 .B38:  in[.B37 ]     ;; 0x5de304  1 insn 0 phis
-         r1040 <- jmp      660
+         r1041 <- jmp      660
 .B39:  in[.B17 ]     ;; 0x5de310  31 insn 0 phis
-         r1042 <- subk     r11,40 qword
-         r1043 <- loadm8   addr:r1042
-         r1046 <- const8   4199232 (0x401340)
-         r1047 <- call     r1046
-         r1048 <- carg     r1043
-         r1049 <- carg     r525
-         r1050 <- carg     r101
-         r1051 <- carg     r453
-         r1065 <- is0      r1047
-         r1070 <- not      r1065
-         r1071 <- jmp.if   r1070,535
+         r1043 <- subk     r11,40 qword
+         r1044 <- loadm8   addr:r1043
+         r1047 <- const8   4199232 (0x401340)
+         r1048 <- call     r1047
+         r1049 <- carg     r1044
+         r1050 <- carg     r525
+         r1051 <- carg     r101
+         r1052 <- carg     r453
+         r1066 <- is0      r1048
+         r1071 <- not      r1066
+         r1072 <- jmp.if   r1071,535
 .B40:  in[.B39 ]     ;; 0x5de324  1 insn 0 phis
-         r1072 <- jmp      660
+         r1073 <- jmp      660
 .B41:  in[.B1 .B4 .B13 .B18 .B24 .B30 .B31 .B33 ]     ;; 0x5de330  30 insn 1 phis
-         r1440 <- phi8
-         r1441 <- phiarg   r98
+         r1441 <- phi8
          r1442 <- phiarg   r98
-         r1443 <- phiarg   r358
-         r1444 <- phiarg   r527
-         r1445 <- phiarg   r98
-         r1446 <- phiarg   r841
-         r1447 <- phiarg   r907
-         r1448 <- phiarg   r98
-         r1082 <- const4   2 (0x2)
-         r1083 <- v8.l4=   r1440 ← r1082
-         r1102 <- ret      r1083
+         r1443 <- phiarg   r98
+         r1444 <- phiarg   r358
+         r1445 <- phiarg   r527
+         r1446 <- phiarg   r98
+         r1447 <- phiarg   r842
+         r1448 <- phiarg   r908
+         r1449 <- phiarg   r98
+         r1083 <- const4   2 (0x2)
+         r1084 <- v8.l4=   r1441 ← r1083
+         r1103 <- ret      r1084
 .B42:  in[.B27 ]     ;; 0x5de348  50 insn 0 phis
-         r1104 <- subk     r11,40 qword
-         r1105 <- loadm8   addr:r1104
-         r1108 <- addk     r133,1 qword
-         r1117 <- const8   4199136 (0x4012e0)
-  (  2)  r1118 <- call     r1117
-         r1119 <- carg     r1105
-         r1120 <- carg     r719
-         r1121 <- carg     r112
-         r1122 <- carg     r17
-         r1133 <- subk     r11,-16 qword
-         r1143 <- loadm8   addr:r1133
-         r1144 <- loadm8   addr:r1143
-         r1145 <- sub      r1108,r1144  qword
-         r1147 <- carry    r1145
-         r1152 <- jmp.if   r1147,784
-.B43:  in[.B42 ]     ;; 0x5de36d  4 insn 0 phis
-         r1154 <- subk     r11,32 qword
-         r1155 <- loadm8   addr:r1154
+         r1105 <- subk     r11,40 qword
+         r1106 <- loadm8   addr:r1105
+         r1109 <- addk     r133,1 qword
+         r1118 <- const8   4199136 (0x4012e0)
+         r1119 <- call     r1118
+         r1120 <- carg     r1106
+         r1121 <- carg     r719
+         r1122 <- carg     r112
+         r1123 <- carg     r17
+         r1134 <- subk     r11,-16 qword
+         r1144 <- loadm8   addr:r1134
+         r1145 <- loadm8   addr:r1144
+         r1146 <- sub      r1109,r1145  qword
+         r1148 <- carry    r1146
+         r1153 <- jmp.if   r1148,785
+.B43:  in[.B28 .B42 ]     ;; 0x5de36d  4 insn 0 phis
+         r1155 <- subk     r11,32 qword
+         r1156 <- loadm8   addr:r1155
 .B44:  in[.B43 ]     ;; 0x5de372  8 insn 0 phis
-         r1159 <- is0      r1155
-         r1164 <- jmp.if   r1159,971
+         r1160 <- is0      r1156
+         r1165 <- jmp.if   r1160,972
 .B45:  in[.B34 .B44 ]     ;; 0x5de37b  14 insn 2 phis
-         r1449 <- phi8
-         r1450 <- phiarg   r98
-         r1451 <- phiarg   r1118
-         r1166 <- phi8
-         r1167 <- store    *r1166 ← r24
-         r1170 <- const4   0 (0x0)
-         r1171 <- v8.l4=   r1449 ← r1170
-         r1178 <- jmp      981
+         r1450 <- phi8
+         r1451 <- phiarg   r98
+         r1452 <- phiarg   r739
+         r1167 <- phi8
+         r1168 <- store    *r1167 ← r24
+         r1171 <- const4   0 (0x0)
+         r1172 <- v8.l4=   r1450 ← r1171
+         r1179 <- jmp      982
 .B46:  in[.B12 ]     ;; 0x5de388  38 insn 0 phis
-         r1180 <- subk     r11,40 qword
-         r1181 <- loadm8   addr:r1180
-         r1185 <- subk     r11,-32 qword
-         r1186 <- store    *r1185 ← r356
-         r1187 <- const8   4199232 (0x401340)
-         r1188 <- call     r1187
-         r1189 <- carg     r1181
-         r1190 <- carg     r352
-         r1191 <- carg     r101
-         r1192 <- carg     r17
-         r1210 <- is0      r1188
-         r1215 <- not      r1210
-         r1216 <- jmp.if   r1215,366
+         r1181 <- subk     r11,40 qword
+         r1182 <- loadm8   addr:r1181
+         r1186 <- subk     r11,-32 qword
+         r1187 <- store    *r1186 ← r356
+         r1188 <- const8   4199232 (0x401340)
+         r1189 <- call     r1188
+         r1190 <- carg     r1182
+         r1191 <- carg     r352
+         r1192 <- carg     r101
+         r1193 <- carg     r17
+         r1211 <- is0      r1189
+         r1216 <- not      r1211
+         r1217 <- jmp.if   r1216,366
 .B47:  in[.B46 ]     ;; 0x5de3a6  1 insn 0 phis
-         r1217 <- jmp      674
+         r1218 <- jmp      674
 .B48:  in[.B10 ]     ;; 0x5de3b0  38 insn 0 phis
-         r1219 <- subk     r11,40 qword
-         r1220 <- loadm8   addr:r1219
-         r1224 <- subk     r11,-32 qword
-         r1225 <- store    *r1224 ← r295
-         r1226 <- const8   4199232 (0x401340)
-         r1227 <- call     r1226
-         r1228 <- carg     r1220
-         r1229 <- carg     r291
-         r1230 <- carg     r101
-         r1231 <- carg     r17
-         r1249 <- is0      r1227
-         r1254 <- not      r1249
-         r1255 <- jmp.if   r1254,305
+         r1220 <- subk     r11,40 qword
+         r1221 <- loadm8   addr:r1220
+         r1225 <- subk     r11,-32 qword
+         r1226 <- store    *r1225 ← r295
+         r1227 <- const8   4199232 (0x401340)
+         r1228 <- call     r1227
+         r1229 <- carg     r1221
+         r1230 <- carg     r291
+         r1231 <- carg     r101
+         r1232 <- carg     r17
+         r1250 <- is0      r1228
+         r1255 <- not      r1250
+         r1256 <- jmp.if   r1255,305
 .B49:  in[.B48 ]     ;; 0x5de3ce  1 insn 0 phis
-         r1256 <- jmp      674
+         r1257 <- jmp      674
 .B50:  in[.B8 ]     ;; 0x5de3d3  42 insn 0 phis
-         r1258 <- subk     r11,40 qword
-         r1259 <- loadm8   addr:r1258
-         r1263 <- subk     r11,0 qword
-         r1264 <- store    *r1263 ← r246
-         r1266 <- subk     r11,-32 qword
-         r1267 <- store    *r1266 ← r128
-         r1268 <- const8   4199232 (0x401340)
-         r1269 <- call     r1268
-         r1270 <- carg     r1259
-         r1271 <- carg     r242
-         r1272 <- carg     r101
-         r1273 <- carg     r17
-         r1292 <- is0      r1269
-         r1297 <- not      r1292
-         r1298 <- jmp.if   r1297,257
+         r1259 <- subk     r11,40 qword
+         r1260 <- loadm8   addr:r1259
+         r1264 <- subk     r11,0 qword
+         r1265 <- store    *r1264 ← r246
+         r1267 <- subk     r11,-32 qword
+         r1268 <- store    *r1267 ← r128
+         r1269 <- const8   4199232 (0x401340)
+         r1270 <- call     r1269
+         r1271 <- carg     r1260
+         r1272 <- carg     r242
+         r1273 <- carg     r101
+         r1274 <- carg     r17
+         r1293 <- is0      r1270
+         r1298 <- not      r1293
+         r1299 <- jmp.if   r1298,257
 .B51:  in[.B50 ]     ;; 0x5de3f9  1 insn 0 phis
-         r1299 <- jmp      674
+         r1300 <- jmp      674
 .B52:  in[.B0 ]     ;; 0x5de400  26 insn 0 phis
-  (  2)  r1301 <- subk     r11,40 qword
-         r1302 <- loadm8   addr:r1301
-         r1305 <- const8   4199136 (0x4012e0)
-         r1306 <- call     r1305
-         r1307 <- carg     r1302
-         r1308 <- carg     r40
-         r1309 <- carg     r18
-         r1310 <- carg     r17
-         r1321 <- loadm8   addr:r1301
-         r1322 <- mulk     r1306,1 qword
-         r1323 <- add      r1321,r1322  qword
-         r1325 <- jmp      96
+  (  2)  r1302 <- subk     r11,40 qword
+         r1303 <- loadm8   addr:r1302
+         r1306 <- const8   4199136 (0x4012e0)
+         r1307 <- call     r1306
+         r1308 <- carg     r1303
+         r1309 <- carg     r40
+         r1310 <- carg     r18
+         r1311 <- carg     r17
+         r1322 <- loadm8   addr:r1302
+         r1323 <- mulk     r1307,1 qword
+         r1324 <- add      r1322,r1323  qword
+         r1326 <- jmp      96
 .B53:  in[.B26 ]     ;; 0x5de415  5 insn 0 phis
-         r1327 <- subk     r11,32 qword
-         r1328 <- loadm8   addr:r1327
-         r1330 <- jmp      952
+         r1328 <- subk     r11,32 qword
+         r1329 <- loadm8   addr:r1328
+         r1331 <- jmp      953
 .B54:  in[.B2 .B36 .B41 ]     ;; 0x5de41f  2 insn 1 phis
-         r1332 <- jmp      1157
+         r1333 <- jmp      1158
 
 
 
@@ -3164,10 +3173,10 @@ ssa program  593 instrs
                 <pre:RCX>,
               );
     if r73 == 0 {
-        let mut r1333 = r73;
+        let mut r1334 = r73;
         
-        'T1(r1333): {
-            let r101 = r1333 - [<pre:RSP> - 40]:8;
+        'T1(r1334): {
+            let r101 = r1334 - [<pre:RSP> - 40]:8;
             if r101 == 0 {
                 let r111 = <pre:RSP> - -16;
                 if [[r111]:8]:8 == 0 {
@@ -3175,20 +3184,20 @@ ssa program  593 instrs
                     let r133 = (<pre:R15> with l4 = 0);
                     [<pre:RSP> - 32]:8 = <pre:RCX>;
                     if [[r127]:8]:1 == 0 {
-                        let mut r1336 = <pre:RSI>;
+                        let mut r1337 = <pre:RSI>;
                         
-                        'T4(r1336): {
-                            [<pre:RSP> - -24]:8 = [r1336 + 16]:8;
-                            if [r1336 + 16]:8 == 0 {
+                        'T4(r1337): {
+                            [<pre:RSP> - -24]:8 = [r1337 + 16]:8;
+                            if [r1337 + 16]:8 == 0 {
                                 let r174 = (<pre:RCX> with l4 = 0);
-                                let r183 = [r1336 + 16]:8 & 3;
-                                let r184 = ([r1336 + 16]:8 with l4 = r183);
+                                let r183 = [r1337 + 16]:8 & 3;
+                                let r184 = ([r1337 + 16]:8 with l4 = r183);
                                 if r183 == 0 {
                                     let r193 = r184 - 1;
                                     if r193 == 0 {
                                         let r202 = r184 - 3;
                                         if r202 == 0 {
-                                            [<pre:RSP> - 8]:8 = r1333;
+                                            [<pre:RSP> - 8]:8 = r1334;
                                             [<pre:RSP>]:8 = [r127]:8;
                                             [<pre:RSP> - -32]:8 = [[r127]:8 + 8]:8;
                                             let r226 = 4199136(
@@ -3198,176 +3207,176 @@ ssa program  593 instrs
                                                          <pre:RCX>,
                                                        );
                                             if r226 - r101 == 0 {
-                                                let mut r1339 = [r127]:8;
+                                                let mut r1340 = [r127]:8;
                                                 
-                                                'T9(r1339): goto T10 with (r1342 = [<pre:RSP> - -32]:8,
-                                                                           r1345 = [<pre:RSP> - 8]:8,
-                                                                           r1348 = r1339 + 40)
+                                                'T9(r1340): goto T10 with (r1343 = [<pre:RSP> - -32]:8,
+                                                                           r1346 = [<pre:RSP> - 8]:8,
+                                                                           r1349 = r1340 + 40)
                                             } else {
                                                 [<pre:RSP>]:8 = [<pre:RSP> - 8]:8;
                                                 [<pre:RSP> - -32]:8 = [r127]:8;
-                                                let r1269 = 4199232(
+                                                let r1270 = 4199232(
                                                               [<pre:RSP> - 40]:8,
                                                               [<pre:RSP> - -32]:8,
                                                               r101,
                                                               <pre:RCX>,
                                                             );
-                                                if not r1269 == 0 goto T24 with (r1395 = r174,
-                                                                                 r1401 = [r127]:8,
-                                                                                 r1407 = r1336,
-                                                                                 r1413 = r133) else goto T9 (r1339 = [r127]:8)
+                                                if not r1270 == 0 goto T24 with (r1396 = r174,
+                                                                                 r1402 = [r127]:8,
+                                                                                 r1408 = r1337,
+                                                                                 r1414 = r133) else goto T9 (r1340 = [r127]:8)
                                             }
                                         } else {
-                                            let mut r1342 = r202;
-                                            let mut r1345 = r1333;
-                                            let mut r1348 = [r127]:8;
+                                            let mut r1343 = r202;
+                                            let mut r1346 = r1334;
+                                            let mut r1349 = [r127]:8;
                                             
-                                            'T10(r1342, r1345, r1348): {
-                                                [<pre:RSP>]:8 = r1345;
-                                                [<pre:RSP> - -32]:8 = [r1348 + 8]:8;
+                                            'T10(r1343, r1346, r1349): {
+                                                [<pre:RSP>]:8 = r1346;
+                                                [<pre:RSP> - -32]:8 = [r1349 + 8]:8;
                                                 let r275 = 4199136(
-                                                             [r1348 + 8]:8,
-                                                             r1342,
+                                                             [r1349 + 8]:8,
+                                                             r1343,
                                                              [r111]:8,
                                                              <pre:RCX>,
                                                            );
                                                 if r275 - r101 == 0 
-                                                'T11: goto T12 with (r1351 = [<pre:RSP> - -32]:8,
-                                                                     r1354 = [<pre:RSP>]:8,
-                                                                     r1357 = r1348 + 40) else {
+                                                'T11: goto T12 with (r1352 = [<pre:RSP> - -32]:8,
+                                                                     r1355 = [<pre:RSP>]:8,
+                                                                     r1358 = r1349 + 40) else {
                                                     [<pre:RSP> - -32]:8 = [<pre:RSP>]:8;
-                                                    let r1227 = 4199232(
+                                                    let r1228 = 4199232(
                                                                   [<pre:RSP> - 40]:8,
                                                                   [<pre:RSP> - -32]:8,
                                                                   r101,
                                                                   <pre:RCX>,
                                                                 );
-                                                    if not r1227 == 0 goto T24 with (r1395 = r174,
-                                                                                     r1401 = r1348,
-                                                                                     r1407 = r1336,
-                                                                                     r1413 = r133) else goto T11
+                                                    if not r1228 == 0 goto T24 with (r1396 = r174,
+                                                                                     r1402 = r1349,
+                                                                                     r1408 = r1337,
+                                                                                     r1414 = r133) else goto T11
                                                 }
                                             }
                                         }
                                     } else {
-                                        let mut r1351 = r193;
-                                        let mut r1354 = r1333;
-                                        let mut r1357 = [r127]:8;
+                                        let mut r1352 = r193;
+                                        let mut r1355 = r1334;
+                                        let mut r1358 = [r127]:8;
                                         
-                                        'T12(r1351, r1354, r1357): {
-                                            [<pre:RSP>]:8 = r1354;
-                                            [<pre:RSP> - -32]:8 = [r1357 + 8]:8;
+                                        'T12(r1352, r1355, r1358): {
+                                            [<pre:RSP>]:8 = r1355;
+                                            [<pre:RSP> - -32]:8 = [r1358 + 8]:8;
                                             let r336 = 4199136(
-                                                         [r1357 + 8]:8,
-                                                         r1351,
+                                                         [r1358 + 8]:8,
+                                                         r1352,
                                                          [r111]:8,
                                                          <pre:RCX>,
                                                        );
                                             let r358 = r336 - r101;
                                             if r358 == 0 
-                                            'T13: if r174 + 1 - [<pre:RSP> - -24]:8 == 0 goto T14 with (r1360 = [<pre:RSP>]:8,
-                                                                                                        r1363 = r1357 + 40) else goto T41 (r1440 = r358) else {
+                                            'T13: if r174 + 1 - [<pre:RSP> - -24]:8 == 0 goto T14 with (r1361 = [<pre:RSP>]:8,
+                                                                                                        r1364 = r1358 + 40) else goto T41 (r1441 = r358) else {
                                                 [<pre:RSP> - -32]:8 = [<pre:RSP>]:8;
-                                                let r1188 = 4199232(
+                                                let r1189 = 4199232(
                                                               [<pre:RSP> - 40]:8,
                                                               [<pre:RSP> - -32]:8,
                                                               r101,
                                                               <pre:RCX>,
                                                             );
-                                                if not r1188 == 0 goto T24 with (r1395 = r174,
-                                                                                 r1401 = r1357,
-                                                                                 r1407 = r1336,
-                                                                                 r1413 = r133) else goto T13
+                                                if not r1189 == 0 goto T24 with (r1396 = r174,
+                                                                                 r1402 = r1358,
+                                                                                 r1408 = r1337,
+                                                                                 r1414 = r133) else goto T13
                                             }
                                         }
                                     }
                                 } else {
-                                    let mut r1360 = r1333;
-                                    let mut r1363 = [r127]:8;
+                                    let mut r1361 = r1334;
+                                    let mut r1364 = [r127]:8;
                                     
-                                    'T14(r1360, r1363): {
-                                        [<pre:RSP> - 16]:8 = r1336;
+                                    'T14(r1361, r1364): {
+                                        [<pre:RSP> - 16]:8 = r1337;
                                         [<pre:RSP>]:8 = r133;
-                                        [<pre:RSP> - 8]:8 = r1360;
-                                        let mut r1378 = r184;
-                                        let mut r1381 = <pre:RCX>;
-                                        let mut r1384 = r1363;
+                                        [<pre:RSP> - 8]:8 = r1361;
+                                        let mut r1379 = r184;
+                                        let mut r1382 = <pre:RCX>;
+                                        let mut r1385 = r1364;
                                         
-                                        'T19(r1378, r1381, r1384): {
+                                        'T19(r1379, r1382, r1385): {
                                             let r560 = 4199136(
-                                                         [r1384 + 8]:8,
-                                                         r1378,
+                                                         [r1385 + 8]:8,
+                                                         r1379,
                                                          [r111]:8,
-                                                         r1381,
+                                                         r1382,
                                                        );
                                             if not r560 - r101 == 0 {
                                                 let r590 = 4199232(
                                                              [<pre:RSP> - 40]:8,
-                                                             [r1384 + 8]:8,
+                                                             [r1385 + 8]:8,
                                                              r101,
-                                                             r1381,
+                                                             r1382,
                                                            );
-                                                if not r590 == 0 goto T24 with (r1395 = r174,
-                                                                                r1401 = r1384,
-                                                                                r1407 = [<pre:RSP> - 16]:8,
-                                                                                r1413 = [<pre:RSP>]:8) else goto T15 with (r1366 = [r1384 + 8]:8,
-                                                                                                                           r1369 = r101)
+                                                if not r590 == 0 goto T24 with (r1396 = r174,
+                                                                                r1402 = r1385,
+                                                                                r1408 = [<pre:RSP> - 16]:8,
+                                                                                r1414 = [<pre:RSP>]:8) else goto T15 with (r1367 = [r1385 + 8]:8,
+                                                                                                                           r1370 = r101)
                                             } else {
-                                                let mut r1366 = r1378;
-                                                let mut r1369 = [r111]:8;
+                                                let mut r1367 = r1379;
+                                                let mut r1370 = [r111]:8;
                                                 
-                                                'T15(r1366, r1369): {
-                                                    [<pre:RSP> - -32]:8 = [r1384 + 48]:8;
+                                                'T15(r1367, r1370): {
+                                                    [<pre:RSP> - -32]:8 = [r1385 + 48]:8;
                                                     let r425 = 4199136(
-                                                                 [r1384 + 48]:8,
-                                                                 r1366,
-                                                                 r1369,
-                                                                 r1381,
+                                                                 [r1385 + 48]:8,
+                                                                 r1367,
+                                                                 r1370,
+                                                                 r1382,
                                                                );
                                                     if r425 - r101 == 0 {
-                                                        let mut r1372 = r1369;
+                                                        let mut r1373 = r1370;
                                                         
-                                                        'T16(r1372): {
-                                                            [<pre:RSP> - -32]:8 = [r1384 + 88]:8;
+                                                        'T16(r1373): {
+                                                            [<pre:RSP> - -32]:8 = [r1385 + 88]:8;
                                                             let r467 = 4199136(
-                                                                         [r1384 + 88]:8,
+                                                                         [r1385 + 88]:8,
                                                                          [<pre:RSP> - -32]:8,
-                                                                         r1372,
-                                                                         [r1384 + 88]:8,
+                                                                         r1373,
+                                                                         [r1385 + 88]:8,
                                                                        );
                                                             if r467 - r101 == 0 {
-                                                                let mut r1375 = r1372;
+                                                                let mut r1376 = r1373;
                                                                 
-                                                                'T17(r1375): {
-                                                                    [<pre:RSP> - -32]:8 = [r1384 + 128]:8;
+                                                                'T17(r1376): {
+                                                                    [<pre:RSP> - -32]:8 = [r1385 + 128]:8;
                                                                     let r509 = 4199136(
-                                                                                 [r1384 + 128]:8,
-                                                                                 [r1384 + 128]:8,
-                                                                                 r1375,
-                                                                                 [r1384 + 88]:8,
+                                                                                 [r1385 + 128]:8,
+                                                                                 [r1385 + 128]:8,
+                                                                                 r1376,
+                                                                                 [r1385 + 88]:8,
                                                                                );
                                                                     let r527 = r509 - r101;
                                                                     if r527 == 0 
-                                                                    'T18: if r174 + 4 - [<pre:RSP> - -24]:8 == 0 goto T19 with (r1378 = [<pre:RSP> - -32]:8,
-                                                                                                                                r1381 = [r1384 + 88]:8,
-                                                                                                                                r1384 = r1384 + 160) else goto T41 (r1440 = r527) else {
-                                                                        let r1047 = 4199232(
+                                                                    'T18: if r174 + 4 - [<pre:RSP> - -24]:8 == 0 goto T19 with (r1379 = [<pre:RSP> - -32]:8,
+                                                                                                                                r1382 = [r1385 + 88]:8,
+                                                                                                                                r1385 = r1385 + 160) else goto T41 (r1441 = r527) else {
+                                                                        let r1048 = 4199232(
                                                                                       [<pre:RSP> - 40]:8,
                                                                                       [<pre:RSP> - -32]:8,
                                                                                       r101,
-                                                                                      [r1384 + 88]:8,
+                                                                                      [r1385 + 88]:8,
                                                                                     );
-                                                                        if not r1047 == 0 goto T23 (r1391 = r1384 + 120) else goto T18
+                                                                        if not r1048 == 0 goto T23 (r1392 = r1385 + 120) else goto T18
                                                                     }
                                                                 }
                                                             } else {
-                                                                let r1015 = 4199232(
+                                                                let r1016 = 4199232(
                                                                               [<pre:RSP> - 40]:8,
                                                                               [<pre:RSP> - -32]:8,
                                                                               r101,
-                                                                              [r1384 + 88]:8,
+                                                                              [r1385 + 88]:8,
                                                                             );
-                                                                if not r1015 == 0 goto T23 (r1391 = r1384 + 80) else goto T17 (r1375 = r101)
+                                                                if not r1016 == 0 goto T23 (r1392 = r1385 + 80) else goto T17 (r1376 = r101)
                                                             }
                                                         }
                                                     } else {
@@ -3375,64 +3384,64 @@ ssa program  593 instrs
                                                                      [<pre:RSP> - 40]:8,
                                                                      [<pre:RSP> - -32]:8,
                                                                      r101,
-                                                                     r1381,
+                                                                     r1382,
                                                                    );
-                                                        if not r635 == 0 goto T23 (r1391 = r1384 + 40) else goto T16 (r1372 = r101)
+                                                        if not r635 == 0 goto T23 (r1392 = r1385 + 40) else goto T16 (r1373 = r101)
                                                     };
                                                     
-                                                    'T23(r1391): goto T24 with (r1395 = r174 + 1,
-                                                                                r1401 = r1391,
-                                                                                r1407 = [<pre:RSP> - 16]:8,
-                                                                                r1413 = [<pre:RSP>]:8)
+                                                    'T23(r1392): goto T24 with (r1396 = r174 + 1,
+                                                                                r1402 = r1392,
+                                                                                r1408 = [<pre:RSP> - 16]:8,
+                                                                                r1414 = [<pre:RSP>]:8)
                                                 }
                                             }
                                         }
                                     }
                                 };
                                 
-                                'T24(r1395, r1401, r1407, r1413): {
-                                    [[<pre:RSP> - -8]:8 + r1413 * 8]:8 = r1395;
-                                    if r1401 - r1407 == 0 {
+                                'T24(r1396, r1402, r1408, r1414): {
+                                    [[<pre:RSP> - -8]:8 + r1414 * 8]:8 = r1396;
+                                    if r1402 - r1408 == 0 {
                                         <-- TODO: unsupported: movzx edi,byte ptr [r8] -->;
-                                        if not [<pre:R13> + 32]:8 == 0 goto T26 (r1419 = <pre:RDX>) else goto T33 (r1428 = <pre:RDX>)
-                                    } else goto T41 (r1440 = [<pre:RSP> - 40]:8)
+                                        if not [<pre:R13> + 32]:8 == 0 goto T26 (r1420 = <pre:RDX>) else goto T33 (r1429 = <pre:RDX>)
+                                    } else goto T41 (r1441 = [<pre:RSP> - 40]:8)
                                 }
-                            } else goto T41 (r1440 = [<pre:RSP> - 40]:8)
+                            } else goto T41 (r1441 = [<pre:RSP> - 40]:8)
                         }
                     } else {
-                        let mut r1422 = r40;
-                        let mut r1425 = r1333;
+                        let mut r1423 = r40;
+                        let mut r1426 = r1334;
                         
-                        'T30(r1422, r1425): {
-                            [<pre:RSP> - -32]:8 = r1425;
-                            let r822 = 6451424(
+                        'T30(r1423, r1426): {
+                            [<pre:RSP> - -32]:8 = r1426;
+                            let r823 = 6451424(
                                          [<pre:RSP> - 40]:8,
-                                         (r1422 with l4 = 0),
+                                         (r1423 with l4 = 0),
                                          ([r111]:8 with l4 = 10),
                                          <pre:RCX>,
                                        );
-                            let r841 = r822 - -1;
-                            if r841 == 0 {
-                                let r851 = <pre:RSI> + 24;
+                            let r842 = r823 - -1;
+                            if r842 == 0 {
+                                let r852 = <pre:RSI> + 24;
                                 [<pre:RSP> - 40]:8 = [<pre:RSP> - -32]:8;
-                                let r875 = <pre:RSP> - -8;
-                                let r892 = [[[r851]:8 + 8]:8]:8(
+                                let r876 = <pre:RSP> - -8;
+                                let r893 = [[[r852]:8 + 8]:8]:8(
                                              [<pre:RSP> - 24]:8,
-                                             [r875]:8,
+                                             [r876]:8,
                                              [[<pre:RSP> - -16]:8]:8,
-                                             r841,
+                                             r842,
                                            );
-                                if r892 == 0 {
-                                    [[r875]:8 + r133 * 8]:8 = r841;
+                                if r893 == 0 {
+                                    [[r876]:8 + r133 * 8]:8 = r842;
                                     <-- TODO: unsupported: movzx edi,byte ptr [r8] -->;
-                                    if [r892 + 32]:8 == 0 goto T33 (r1428 = [<pre:RSP> - 24]:8) else goto T26 (r1419 = [<pre:RSP> - 24]:8)
-                                } else goto T41 (r1440 = r892)
-                            } else goto T41 (r1440 = r841)
+                                    if [r893 + 32]:8 == 0 goto T33 (r1429 = [<pre:RSP> - 24]:8) else goto T26 (r1420 = [<pre:RSP> - 24]:8)
+                                } else goto T41 (r1441 = r893)
+                            } else goto T41 (r1441 = r842)
                         }
                     };
                     
-                    'T26(r1419): if r1419 == 0 {
-                        let r716 = r1333 + 1;
+                    'T26(r1420): if r1420 == 0 {
+                        let r716 = r1334 + 1;
                         let r719 = (<pre:RSI> with l4 = 46);
                         [<pre:RSP> - 40]:8 = r716;
                         let r724 = 4199040(
@@ -3441,50 +3450,50 @@ ssa program  593 instrs
                                      [r111]:8,
                                      <pre:RCX>,
                                    );
-                        if r724 == 0 {
-                            <-- TODO: unsupported: jae 00000000005DE36Dh -->;
-                            goto T29
-                        } else {
-                            let r1118 = 4199136(
+                        let r739 = r724;
+                        if r724 == 0 if not r133 + 1 < [[<pre:RSP> - -16]:8]:8 goto T29 else goto T43 else {
+                            let r1119 = 4199136(
                                           [<pre:RSP> - 40]:8,
                                           r719,
                                           [r111]:8,
                                           <pre:RCX>,
                                         );
-                            if r133 + 1 < [[<pre:RSP> - -16]:8]:8 if [<pre:RSP> - 32]:8 == 0 goto T45 (r1449 = r1118) else goto T35 (r1434 = r1118) else goto T29
+                            if r133 + 1 < [[<pre:RSP> - -16]:8]:8 goto T43 else goto T29
                         };
                         
-                        'T29: if not [[<pre:R13> + 24]:8]:1 == 0 goto T30 with (r1422 = r719,
-                                                                                r1425 = r724) else goto T4 (r1336 = <pre:R13>)
-                    } else goto T34 (r1431 = [<pre:RSP> - 32]:8);
+                        'T29: if not [[<pre:R13> + 24]:8]:1 == 0 goto T30 with (r1423 = r719,
+                                                                                r1426 = r724) else goto T4 (r1337 = <pre:R13>);
+                        
+                        'T43: if [<pre:RSP> - 32]:8 == 0 goto T45 (r1450 = r739) else goto T35 (r1435 = r739)
+                    } else goto T34 (r1432 = [<pre:RSP> - 32]:8);
                     
-                    'T33(r1428): if not r1428 == 0 goto T34 (r1431 = [<pre:RSP> - 32]:8) else goto T41 (r1440 = [<pre:RSP> - 40]:8);
+                    'T33(r1429): if not r1429 == 0 goto T34 (r1432 = [<pre:RSP> - 32]:8) else goto T41 (r1441 = [<pre:RSP> - 40]:8);
                     
-                    'T34(r1431): {
+                    'T34(r1432): {
                         [[<pre:RSP> - -16]:8]:8 = r133 + 1;
-                        if not r1431 == 0 goto T35 (r1434 = [<pre:RSP> - 40]:8) else goto T45 (r1449 = [<pre:RSP> - 40]:8)
+                        if not r1432 == 0 goto T35 (r1435 = [<pre:RSP> - 40]:8) else goto T45 (r1450 = [<pre:RSP> - 40]:8)
                     };
                     
-                    'T35(r1434): goto T36 (r1437 = (r1434 with l4 = 0));
+                    'T35(r1435): goto T36 (r1438 = (r1435 with l4 = 0));
                     
-                    'T36(r1437): {
-                        return r1437;
+                    'T36(r1438): {
+                        return r1438;
                         goto T54
                     };
                     
-                    'T45(r1449): {
-                        let r1166 = phi(
+                    'T45(r1450): {
+                        let r1167 = phi(
                                       
                                     );
-                        [r1166]:8 = <pre:R13>;
-                        goto T36 (r1437 = (r1449 with l4 = 0))
+                        [r1167]:8 = <pre:R13>;
+                        goto T36 (r1438 = (r1450 with l4 = 0))
                     }
                 } else goto T54
             } else {
-                let mut r1440 = [<pre:RSP> - 40]:8;
+                let mut r1441 = [<pre:RSP> - 40]:8;
                 
-                'T41(r1440): {
-                    return (r1440 with l4 = 2);
+                'T41(r1441): {
+                    return (r1441 with l4 = 2);
                     goto T54
                 }
             };
@@ -3494,13 +3503,13 @@ ssa program  593 instrs
             }
         }
     } else {
-        let r1301 = <pre:RSP> - 40;
-        let r1306 = 4199136(
-                      [r1301]:8,
+        let r1302 = <pre:RSP> - 40;
+        let r1307 = 4199136(
+                      [r1302]:8,
                       r40,
                       <pre:RDX>,
                       <pre:RCX>,
                     );
-        goto T1 (r1333 = [r1301]:8 + r1306 * 1)
+        goto T1 (r1334 = [r1302]:8 + r1307 * 1)
     }
 }

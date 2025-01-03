@@ -293,6 +293,9 @@ impl Builder {
                     self.emit(Self::OF, mil::Insn::Undefined);
                 }
 
+                //
+                // Jumps
+                //
                 M::Jmp => {
                     // refactor with emit_jmpif?
                     match insn.op0_kind() {
@@ -307,6 +310,16 @@ impl Builder {
                         }
                     }
                 }
+                M::Ja => {
+                    // jmp if !SF && !ZF
+                    // also jnbe
+                    let v0 = self.reg_gen.next();
+                    let v1 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::SF));
+                    self.emit(v1, mil::Insn::Not(Self::ZF));
+                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
+                    self.emit_jmpif(insn, 0, v0);
+                }
                 M::Je => {
                     self.emit_jmpif(insn, 0, Self::ZF);
                 }
@@ -316,6 +329,7 @@ impl Builder {
                     self.emit_jmpif(insn, 0, v0);
                 }
                 M::Jb => {
+                    // also Jc, Jnae
                     self.emit_jmpif(insn, 0, Self::CF);
                 }
                 M::Jl => {
@@ -333,38 +347,71 @@ impl Builder {
                     self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, v0, Self::ZF));
                     self.emit_jmpif(insn, 0, v0);
                 }
+                M::Jae => {
+                    // also jnb, jnc
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::CF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jbe => {
+                    // also jna
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, Self::CF, Self::ZF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jcxz => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::IsZero(Self::RCX));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jecxz => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::IsZero(Self::RCX));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jg => {
+                    let v0 = self.reg_gen.next();
+                    let v1 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::ZF));
+                    self.emit(v1, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
+                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jge => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jno => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::OF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jnp => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::PF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jns => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::Not(Self::SF));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Jo => {
+                    self.emit_jmpif(insn, 0, Self::OF);
+                }
+                M::Jp => {
+                    self.emit_jmpif(insn, 0, Self::PF);
+                }
+                M::Jrcxz => {
+                    let v0 = self.reg_gen.next();
+                    self.emit(v0, mil::Insn::IsZero(Self::RCX));
+                    self.emit_jmpif(insn, 0, v0);
+                }
+                M::Js => {
+                    self.emit_jmpif(insn, 0, Self::SF);
+                }
 
-                /*
-                Jump insns yet to be implemented:
-                JA      Jump if above (CF=0 and ZF=0).
-                JAE     Jump if above or equal (CF=0).
-                JBE     Jump if below or equal (CF=1 or ZF=1).
-                JC      Jump if carry (CF=1).
-                JCXZ    Jump if CX register is 0.
-                JECXZ   Jump if ECX register is 0.
-                JG      Jump if greater (ZF=0 and SF=OF).
-                JGE     Jump if greater or equal (SF=OF).
-                JNA     Jump if not above (CF=1 or ZF=1).
-                JNAE    Jump if not above or equal (CF=1).
-                JNB     Jump if not below (CF=0).
-                JNBE    Jump if not below or equal (CF=0 and ZF=0).
-                JNC     Jump if not carry (CF=0).
-                JNG     Jump if not greater (ZF=1 or SF≠ OF).
-                JNGE    Jump if not greater or equal (SF≠ OF).
-                JNL     Jump if not less (SF=OF).
-                JNLE    Jump if not less or equal (ZF=0 and SF=OF).
-                JNO     Jump if not overflow (OF=0).
-                JNP     Jump if not parity (PF=0).
-                JNS     Jump if not sign (SF=0).
-                JNZ     Jump if not zero (ZF=0).
-                JO      Jump if overflow (OF=1).
-                JP      Jump if parity (PF=1).
-                JPE     Jump if parity even (PF=1).
-                JPO     Jump if parity odd (PF=0).
-                JRCXZ   Jump if RCX register is 0.
-                JS      Jump if sign (SF=1).
-                JZ      Jump if 0 (ZF=1).
-                */
                 _ => {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
