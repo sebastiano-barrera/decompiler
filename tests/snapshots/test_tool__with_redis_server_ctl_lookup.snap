@@ -1945,71 +1945,40 @@ program  1334 instrs
 
 
 ssa pre-xform:
-ssa program  1460 instrs
+ssa program  684 instrs
 .B0:  in[]     ;; 0x0  96 insn 0 phis
-         r0 <- #pre:stack_bottom
-         r1 <- #pre:CF
-         r2 <- #pre:PF
-         r3 <- #pre:AF
-         r4 <- #pre:ZF
-         r5 <- #pre:SF
-         r6 <- #pre:TF
-         r7 <- #pre:IF
-         r8 <- #pre:DF
-         r9 <- #pre:OF
          r10 <- #pre:RBP
          r11 <- #pre:RSP
-         r12 <- #pre:RIP
          r13 <- #pre:RDI
-         r14 <- #pre:RSI
-         r15 <- #pre:RAX
+  (  6)  r14 <- #pre:RSI
          r16 <- #pre:RBX
-         r17 <- #pre:RCX
-         r18 <- #pre:RDX
+  ( 19)  r17 <- #pre:RCX
+  (  6)  r18 <- #pre:RDX
          r19 <- #pre:R8
          r20 <- #pre:R9
-         r21 <- #pre:R10
-         r22 <- #pre:R11
          r23 <- #pre:R12
-         r24 <- #pre:R13
+  (  7)  r24 <- #pre:R13
          r25 <- #pre:R14
-         r26 <- #pre:R15
-         r27 <- undef
-         r28 <- undef
-         r29 <- undef
-         r30 <- undef
-         r31 <- undef
-         r32 <- undef
-         r33 <- undef
-         r34 <- addk     r11,-8 qword
+  (  4)  r26 <- #pre:R15
+  (  2)  r34 <- addk     r11,-8 qword
          r35 <- store    *r34 ← r26
-         r36 <- addk     r34,-8 qword
+  (  2)  r36 <- addk     r34,-8 qword
          r37 <- store    *r36 ← r25
-         r38 <- get      r14
          r39 <- const4   46 (0x2e)
-         r40 <- v8.l4=   r14 ← r39
-         r41 <- addk     r36,-8 qword
+  (  5)  r40 <- v8.l4=   r14 ← r39
+  (  2)  r41 <- addk     r36,-8 qword
          r42 <- store    *r41 ← r24
-         r43 <- addk     r41,-8 qword
+  (  2)  r43 <- addk     r41,-8 qword
          r44 <- store    *r43 ← r23
-         r45 <- addk     r43,-8 qword
+  (  2)  r45 <- addk     r43,-8 qword
          r46 <- store    *r45 ← r10
-         r47 <- addk     r45,-8 qword
+  (  2)  r47 <- addk     r45,-8 qword
          r48 <- store    *r47 ← r16
-         r49 <- get      r17
          r50 <- const8   88 (0x58)
-         r51 <- sub      r47,r50  qword
-         r52 <- get      r51
-         r53 <- overflow r51
-         r54 <- carry    r51
-         r55 <- sign     r51
-         r56 <- is0      r51
-         r57 <- l1       r51
-         r58 <- parity   r57
+  ( 64)  r51 <- sub      r47,r50  qword
          r59 <- const8   64 (0x40)
          r60 <- add      r59,r51  qword
          r61 <- store    *r60 ← r13
-         r62 <- get      r18
          r63 <- const8   32 (0x20)
          r64 <- add      r63,r51  qword
          r65 <- store    *r64 ← r19
@@ -2019,80 +1988,42 @@ ssa program  1460 instrs
          r69 <- const8   24 (0x18)
          r70 <- add      r69,r51  qword
          r71 <- store    *r70 ← r20
-         r72 <- const8   4199040 (0x401280)
-         r73 <- call     r72
+  (  2)  r72 <- const8   4199040 (0x401280)
+  (  4)  r73 <- call     r72
          r74 <- carg     r18
          r75 <- carg     r40
          r76 <- carg     r18
          r77 <- carg     r17
-         r78 <- undef
-         r79 <- undef
-         r80 <- undef
-         r81 <- undef
-         r82 <- undef
-         r83 <- undef
-         r84 <- undef
-         r85 <- undef
-         r86 <- undef
-         r87 <- get      r73
          r88 <- and      r73,r73  qword
-         r89 <- sign     r88
          r90 <- is0      r88
-         r91 <- l1       r88
-         r92 <- parity   r88
-         r93 <- const1   0 (0x0)
-         r94 <- const1   0 (0x0)
          r95 <- jmp.if   r90,1301
 .B1:  in[.B0 .B52 ]     ;; 0x5ddf80  14 insn 1 phis
-         r1334 <- phi8
-         r1335 <- phiarg   r73
-         r1336 <- phiarg   r1324
+  (  7)  r1334 <- phi8
          r96 <- const8   0 (0x0)
          r97 <- add      r96,r51  qword
-         r98 <- loadm8   addr:r97
-         r99 <- get      r98
-         r100 <- get      r1334
-         r101 <- sub      r1334,r98  qword
-         r102 <- get      r101
-         r103 <- overflow r101
-         r104 <- carry    r101
-         r105 <- sign     r101
+  (  9)  r98 <- loadm8   addr:r97
+  ( 18)  r101 <- sub      r1334,r98  qword
          r106 <- is0      r101
-         r107 <- l1       r101
-         r108 <- parity   r107
          r109 <- jmp.if   r106,1074
 .B2:  in[.B1 ]     ;; 0x5ddf90  16 insn 0 phis
          r110 <- const8   24 (0x18)
          r111 <- add      r110,r51  qword
-         r112 <- loadm8   addr:r111
-         r113 <- get      r112
+  (  9)  r112 <- loadm8   addr:r111
          r114 <- const8   0 (0x0)
          r115 <- add      r114,r112  qword
          r116 <- loadm8   addr:r115
          r117 <- const8   0 (0x0)
          r118 <- sub      r116,r117  qword
-         r119 <- overflow r118
-         r120 <- carry    r118
-         r121 <- sign     r118
          r122 <- is0      r118
-         r123 <- l1       r118
-         r124 <- parity   r123
          r125 <- jmp.if   r122,1332
 .B3:  in[.B2 ]     ;; 0x5ddf9f  29 insn 0 phis
          r126 <- const8   24 (0x18)
          r127 <- add      r126,r14  qword
-         r128 <- loadm8   addr:r127
-         r129 <- get      r128
+  ( 10)  r128 <- loadm8   addr:r127
          r130 <- l4       r26
          r131 <- l4       r26
          r132 <- xor      r130,r131  dword
-         r133 <- v8.l4=   r26 ← r132
-         r134 <- false
-         r135 <- false
-         r136 <- sign     r132
-         r137 <- is0      r132
-         r138 <- l1       r132
-         r139 <- parity   r138
+  (  8)  r133 <- v8.l4=   r26 ← r132
          r140 <- const8   72 (0x48)
          r141 <- add      r140,r51  qword
          r142 <- store    *r141 ← r17
@@ -2101,299 +2032,148 @@ ssa program  1460 instrs
          r145 <- loadm1   addr:r144
          r146 <- const1   0 (0x0)
          r147 <- sub      r145,r146  byte
-         r148 <- overflow r147
-         r149 <- carry    r147
-         r150 <- sign     r147
          r151 <- is0      r147
-         r152 <- l1       r147
-         r153 <- parity   r152
          r154 <- jmp.if   r151,803
 .B4:  in[.B3 .B29 ]     ;; 0x5ddfc0  15 insn 1 phis
-         r1337 <- phi8
-         r1338 <- phiarg   r14
-         r1339 <- phiarg   r24
+  (  5)  r1337 <- phi8
          r155 <- const8   16 (0x10)
-         r156 <- add      r155,r1337  qword
-         r157 <- loadm8   addr:r156
-         r158 <- get      r157
+  (  2)  r156 <- add      r155,r1337  qword
+  (  5)  r157 <- loadm8   addr:r156
          r159 <- const8   16 (0x10)
          r160 <- add      r159,r51  qword
          r161 <- store    *r160 ← r157
-         r162 <- and      r157,r157  qword
-         r163 <- sign     r162
+  (  3)  r162 <- and      r157,r157  qword
          r164 <- is0      r162
-         r165 <- l1       r162
-         r166 <- parity   r162
-         r167 <- const1   0 (0x0)
-         r168 <- const1   0 (0x0)
          r169 <- jmp.if   r164,1074
 .B5:  in[.B4 ]     ;; 0x5ddfd2  22 insn 0 phis
-         r170 <- get      r128
          r171 <- l4       r17
          r172 <- l4       r17
-         r173 <- xor      r171,r172  dword
-         r174 <- v8.l4=   r17 ← r173
-         r175 <- false
-         r176 <- false
-         r177 <- sign     r173
-         r178 <- is0      r173
-         r179 <- l1       r173
-         r180 <- parity   r179
+  (  4)  r173 <- xor      r171,r172  dword
+  (  6)  r174 <- v8.l4=   r17 ← r173
          r181 <- l4       r162
          r182 <- const4   3 (0x3)
-         r183 <- and      r181,r182  dword
-         r184 <- v8.l4=   r162 ← r183
-         r185 <- false
-         r186 <- false
-         r187 <- sign     r183
+  (  2)  r183 <- and      r181,r182  dword
+  (  2)  r184 <- v8.l4=   r162 ← r183
          r188 <- is0      r183
-         r189 <- l1       r183
-         r190 <- parity   r189
          r191 <- jmp.if   r188,396
 .B6:  in[.B5 ]     ;; 0x5ddfe0  9 insn 0 phis
          r192 <- const8   1 (0x1)
-         r193 <- sub      r184,r192  qword
-         r194 <- overflow r193
-         r195 <- carry    r193
-         r196 <- sign     r193
+  (  3)  r193 <- sub      r184,r192  qword
          r197 <- is0      r193
-         r198 <- l1       r193
-         r199 <- parity   r198
          r200 <- jmp.if   r197,323
 .B7:  in[.B6 ]     ;; 0x5ddfe6  9 insn 0 phis
          r201 <- const8   2 (0x2)
-         r202 <- sub      r193,r201  qword
-         r203 <- overflow r202
-         r204 <- carry    r202
-         r205 <- sign     r202
+  (  3)  r202 <- sub      r193,r201  qword
          r206 <- is0      r202
-         r207 <- l1       r202
-         r208 <- parity   r207
          r209 <- jmp.if   r206,262
 .B8:  in[.B7 ]     ;; 0x5ddfec  47 insn 0 phis
          r210 <- const8   8 (0x8)
          r211 <- add      r210,r128  qword
-         r212 <- loadm8   addr:r211
-         r213 <- get      r212
+  (  2)  r212 <- loadm8   addr:r211
          r214 <- const8   48 (0x30)
          r215 <- add      r214,r51  qword
          r216 <- store    *r215 ← r1334
-         r217 <- get      r128
          r218 <- const8   40 (0x28)
          r219 <- add      r218,r51  qword
          r220 <- store    *r219 ← r128
-         r221 <- get      r212
          r222 <- const8   8 (0x8)
          r223 <- add      r222,r51  qword
          r224 <- store    *r223 ← r212
-         r225 <- const8   4199136 (0x4012e0)
-         r226 <- call     r225
+  (  2)  r225 <- const8   4199136 (0x4012e0)
+  (  2)  r226 <- call     r225
          r227 <- carg     r212
          r228 <- carg     r202
          r229 <- carg     r112
          r230 <- carg     r17
-         r231 <- undef
-         r232 <- undef
-         r233 <- undef
-         r234 <- undef
-         r235 <- undef
-         r236 <- undef
-         r237 <- undef
-         r238 <- undef
-         r239 <- undef
          r240 <- const8   8 (0x8)
          r241 <- add      r240,r51  qword
-         r242 <- loadm8   addr:r241
-         r243 <- get      r242
+  (  2)  r242 <- loadm8   addr:r241
          r244 <- const8   48 (0x30)
          r245 <- add      r244,r51  qword
-         r246 <- loadm8   addr:r245
-         r247 <- get      r246
-         r248 <- get      r128
+  (  2)  r246 <- loadm8   addr:r245
          r249 <- sub      r226,r101  qword
-         r250 <- overflow r249
-         r251 <- carry    r249
-         r252 <- sign     r249
          r253 <- is0      r249
-         r254 <- l1       r249
-         r255 <- parity   r254
          r256 <- jmp.if   r253,1258
 .B9:  in[.B8 .B50 ]     ;; 0x5de020  5 insn 1 phis
          r1340 <- phi8
-         r1341 <- phiarg   r128
-         r1342 <- phiarg   r128
-         r257 <- const4   1 (0x1)
-         r258 <- v8.l4=   r174 ← r257
          r259 <- const8   40 (0x28)
          r260 <- add      r259,r1340  qword
-         r261 <- get      r260
 .B10:  in[.B7 .B9 ]     ;; 0x5de029  43 insn 3 phis
          r1343 <- phi8
-         r1344 <- phiarg   r202
-         r1345 <- phiarg   r242
          r1346 <- phi8
-         r1347 <- phiarg   r1334
-         r1348 <- phiarg   r246
-         r1349 <- phi8
-         r1350 <- phiarg   r128
-         r1351 <- phiarg   r260
+  (  3)  r1349 <- phi8
          r262 <- const8   8 (0x8)
          r263 <- add      r262,r1349  qword
-         r264 <- loadm8   addr:r263
-         r265 <- get      r264
+  (  2)  r264 <- loadm8   addr:r263
          r266 <- const8   40 (0x28)
          r267 <- add      r266,r51  qword
          r268 <- store    *r267 ← r1346
-         r269 <- get      r1349
-         r270 <- get      r264
          r271 <- const8   8 (0x8)
          r272 <- add      r271,r51  qword
          r273 <- store    *r272 ← r264
-         r274 <- const8   4199136 (0x4012e0)
-         r275 <- call     r274
+  (  2)  r274 <- const8   4199136 (0x4012e0)
+  (  2)  r275 <- call     r274
          r276 <- carg     r264
          r277 <- carg     r1343
          r278 <- carg     r112
          r279 <- carg     r17
-         r280 <- undef
-         r281 <- undef
-         r282 <- undef
-         r283 <- undef
-         r284 <- undef
-         r285 <- undef
-         r286 <- undef
-         r287 <- undef
-         r288 <- undef
          r289 <- const8   8 (0x8)
          r290 <- add      r289,r51  qword
-         r291 <- loadm8   addr:r290
-         r292 <- get      r291
+  (  2)  r291 <- loadm8   addr:r290
          r293 <- const8   40 (0x28)
          r294 <- add      r293,r51  qword
-         r295 <- loadm8   addr:r294
-         r296 <- get      r295
+  (  2)  r295 <- loadm8   addr:r294
          r297 <- sub      r275,r101  qword
-         r298 <- overflow r297
-         r299 <- carry    r297
-         r300 <- sign     r297
          r301 <- is0      r297
-         r302 <- l1       r297
-         r303 <- parity   r302
          r304 <- jmp.if   r301,1219
 .B11:  in[.B10 .B48 ]     ;; 0x5de056  18 insn 0 phis
-         r305 <- const8   1 (0x1)
-         r306 <- add      r174,r305  qword
-         r307 <- get      r306
-         r308 <- overflow r306
-         r309 <- carry    r306
-         r310 <- sign     r306
-         r311 <- is0      r306
-         r312 <- l1       r306
-         r313 <- parity   r312
          r314 <- const8   40 (0x28)
          r315 <- add      r1349,r314  qword
-         r316 <- get      r315
-         r317 <- overflow r315
-         r318 <- carry    r315
-         r319 <- sign     r315
-         r320 <- is0      r315
-         r321 <- l1       r315
-         r322 <- parity   r321
 .B12:  in[.B6 .B11 ]     ;; 0x5de05e  43 insn 3 phis
          r1352 <- phi8
-         r1353 <- phiarg   r193
-         r1354 <- phiarg   r291
          r1355 <- phi8
-         r1356 <- phiarg   r1334
-         r1357 <- phiarg   r295
-         r1358 <- phi8
-         r1359 <- phiarg   r128
-         r1360 <- phiarg   r315
+  (  3)  r1358 <- phi8
          r323 <- const8   8 (0x8)
          r324 <- add      r323,r1358  qword
-         r325 <- loadm8   addr:r324
-         r326 <- get      r325
+  (  2)  r325 <- loadm8   addr:r324
          r327 <- const8   40 (0x28)
          r328 <- add      r327,r51  qword
          r329 <- store    *r328 ← r1355
-         r330 <- get      r1358
-         r331 <- get      r325
          r332 <- const8   8 (0x8)
          r333 <- add      r332,r51  qword
          r334 <- store    *r333 ← r325
-         r335 <- const8   4199136 (0x4012e0)
-         r336 <- call     r335
+  (  2)  r335 <- const8   4199136 (0x4012e0)
+  (  2)  r336 <- call     r335
          r337 <- carg     r325
          r338 <- carg     r1352
          r339 <- carg     r112
          r340 <- carg     r17
-         r341 <- undef
-         r342 <- undef
-         r343 <- undef
-         r344 <- undef
-         r345 <- undef
-         r346 <- undef
-         r347 <- undef
-         r348 <- undef
-         r349 <- undef
          r350 <- const8   8 (0x8)
          r351 <- add      r350,r51  qword
          r352 <- loadm8   addr:r351
-         r353 <- get      r352
          r354 <- const8   40 (0x28)
          r355 <- add      r354,r51  qword
-         r356 <- loadm8   addr:r355
-         r357 <- get      r356
-         r358 <- sub      r336,r101  qword
-         r359 <- overflow r358
-         r360 <- carry    r358
-         r361 <- sign     r358
+  (  2)  r356 <- loadm8   addr:r355
+  (  2)  r358 <- sub      r336,r101  qword
          r362 <- is0      r358
-         r363 <- l1       r358
-         r364 <- parity   r363
          r365 <- jmp.if   r362,1180
 .B13:  in[.B12 .B46 ]     ;; 0x5de08b  30 insn 0 phis
          r366 <- const8   16 (0x10)
          r367 <- add      r366,r51  qword
          r368 <- loadm8   addr:r367
-         r369 <- get      r368
          r370 <- const8   1 (0x1)
          r371 <- add      r174,r370  qword
-         r372 <- get      r371
-         r373 <- overflow r371
-         r374 <- carry    r371
-         r375 <- sign     r371
-         r376 <- is0      r371
-         r377 <- l1       r371
-         r378 <- parity   r377
          r379 <- const8   40 (0x28)
          r380 <- add      r1358,r379  qword
-         r381 <- get      r380
-         r382 <- overflow r380
-         r383 <- carry    r380
-         r384 <- sign     r380
-         r385 <- is0      r380
-         r386 <- l1       r380
-         r387 <- parity   r386
          r388 <- sub      r371,r368  qword
-         r389 <- overflow r388
-         r390 <- carry    r388
-         r391 <- sign     r388
          r392 <- is0      r388
-         r393 <- l1       r388
-         r394 <- parity   r393
          r395 <- jmp.if   r392,1074
 .B14:  in[.B5 .B13 ]     ;; 0x5de0a1  11 insn 2 phis
          r1361 <- phi8
-         r1362 <- phiarg   r1334
-         r1363 <- phiarg   r356
          r1364 <- phi8
-         r1365 <- phiarg   r128
-         r1366 <- phiarg   r380
          r396 <- const8   56 (0x38)
          r397 <- add      r396,r51  qword
          r398 <- store    *r397 ← r1337
-         r399 <- get      r1364
          r400 <- const8   40 (0x28)
          r401 <- add      r400,r51  qword
          r402 <- store    *r401 ← r133
@@ -2403,350 +2183,164 @@ ssa program  1460 instrs
          r406 <- jmp      553
 .B15:  in[.B19 .B20 ]     ;; 0x5de0c0  44 insn 2 phis
          r1367 <- phi8
-         r1368 <- phiarg   r1379
-         r1369 <- phiarg   r555
-         r1370 <- phi8
-         r1371 <- phiarg   r112
-         r1372 <- phiarg   r101
+  (  2)  r1370 <- phi8
          r407 <- const8   48 (0x30)
          r408 <- add      r407,r1385  qword
-         r409 <- loadm8   addr:r408
-         r410 <- get      r409
+  (  2)  r409 <- loadm8   addr:r408
          r411 <- const8   40 (0x28)
-         r412 <- add      r411,r1385  qword
-         r413 <- get      r412
+  (  6)  r412 <- add      r411,r1385  qword
          r414 <- const8   1 (0x1)
-         r415 <- add      r414,r174  qword
-         r416 <- get      r415
-         r417 <- get      r415
-         r418 <- get      r412
-         r419 <- get      r412
-         r420 <- get      r409
+  (  2)  r415 <- add      r414,r174  qword
          r421 <- const8   8 (0x8)
          r422 <- add      r421,r51  qword
          r423 <- store    *r422 ← r409
-         r424 <- const8   4199136 (0x4012e0)
-         r425 <- call     r424
+  (  2)  r424 <- const8   4199136 (0x4012e0)
+  (  2)  r425 <- call     r424
          r426 <- carg     r409
          r427 <- carg     r1367
          r428 <- carg     r1370
          r429 <- carg     r1382
-         r430 <- undef
-         r431 <- undef
-         r432 <- undef
-         r433 <- undef
-         r434 <- undef
-         r435 <- undef
-         r436 <- undef
-         r437 <- undef
-         r438 <- undef
          r439 <- const8   8 (0x8)
          r440 <- add      r439,r51  qword
-         r441 <- loadm8   addr:r440
-         r442 <- get      r441
+  (  2)  r441 <- loadm8   addr:r440
          r443 <- sub      r425,r101  qword
-         r444 <- overflow r443
-         r445 <- carry    r443
-         r446 <- sign     r443
          r447 <- is0      r443
-         r448 <- l1       r443
-         r449 <- parity   r448
          r450 <- jmp.if   r447,629
 .B16:  in[.B15 .B22 ]     ;; 0x5de0f0  42 insn 1 phis
-         r1373 <- phi8
-         r1374 <- phiarg   r1370
-         r1375 <- phiarg   r101
+  (  2)  r1373 <- phi8
          r451 <- const8   48 (0x30)
          r452 <- add      r451,r412  qword
-         r453 <- loadm8   addr:r452
-         r454 <- get      r453
+  (  7)  r453 <- loadm8   addr:r452
          r455 <- const8   40 (0x28)
          r456 <- add      r455,r412  qword
-         r457 <- get      r456
-         r458 <- const8   1 (0x1)
-         r459 <- add      r458,r415  qword
-         r460 <- get      r459
-         r461 <- get      r456
-         r462 <- get      r453
          r463 <- const8   8 (0x8)
          r464 <- add      r463,r51  qword
          r465 <- store    *r464 ← r453
-         r466 <- const8   4199136 (0x4012e0)
-         r467 <- call     r466
+  (  2)  r466 <- const8   4199136 (0x4012e0)
+  (  2)  r467 <- call     r466
          r468 <- carg     r453
          r469 <- carg     r441
          r470 <- carg     r1373
          r471 <- carg     r453
-         r472 <- undef
-         r473 <- undef
-         r474 <- undef
-         r475 <- undef
-         r476 <- undef
-         r477 <- undef
-         r478 <- undef
-         r479 <- undef
-         r480 <- undef
          r481 <- const8   8 (0x8)
          r482 <- add      r481,r51  qword
          r483 <- loadm8   addr:r482
-         r484 <- get      r483
          r485 <- sub      r467,r101  qword
-         r486 <- overflow r485
-         r487 <- carry    r485
-         r488 <- sign     r485
          r489 <- is0      r485
-         r490 <- l1       r485
-         r491 <- parity   r490
          r492 <- jmp.if   r489,1010
 .B17:  in[.B16 .B37 ]     ;; 0x5de11a  42 insn 1 phis
          r1376 <- phi8
-         r1377 <- phiarg   r1373
-         r1378 <- phiarg   r101
          r493 <- const8   88 (0x58)
          r494 <- add      r493,r412  qword
-         r495 <- loadm8   addr:r494
-         r496 <- get      r495
+  (  3)  r495 <- loadm8   addr:r494
          r497 <- const8   80 (0x50)
          r498 <- add      r497,r412  qword
-         r499 <- get      r498
-         r500 <- const8   2 (0x2)
-         r501 <- add      r500,r415  qword
-         r502 <- get      r501
-         r503 <- get      r498
-         r504 <- get      r495
          r505 <- const8   8 (0x8)
          r506 <- add      r505,r51  qword
          r507 <- store    *r506 ← r495
-         r508 <- const8   4199136 (0x4012e0)
-         r509 <- call     r508
+  (  2)  r508 <- const8   4199136 (0x4012e0)
+  (  2)  r509 <- call     r508
          r510 <- carg     r495
          r511 <- carg     r495
          r512 <- carg     r1376
          r513 <- carg     r453
-         r514 <- undef
-         r515 <- undef
-         r516 <- undef
-         r517 <- undef
-         r518 <- undef
-         r519 <- undef
-         r520 <- undef
-         r521 <- undef
-         r522 <- undef
          r523 <- const8   8 (0x8)
          r524 <- add      r523,r51  qword
-         r525 <- loadm8   addr:r524
-         r526 <- get      r525
-         r527 <- sub      r509,r101  qword
-         r528 <- overflow r527
-         r529 <- carry    r527
-         r530 <- sign     r527
+  (  2)  r525 <- loadm8   addr:r524
+  (  2)  r527 <- sub      r509,r101  qword
          r531 <- is0      r527
-         r532 <- l1       r527
-         r533 <- parity   r532
          r534 <- jmp.if   r531,1042
 .B18:  in[.B17 .B39 ]     ;; 0x5de144  18 insn 0 phis
          r535 <- const8   16 (0x10)
          r536 <- add      r535,r51  qword
          r537 <- loadm8   addr:r536
-         r538 <- get      r537
          r539 <- const8   3 (0x3)
          r540 <- add      r539,r415  qword
-         r541 <- get      r540
          r542 <- const8   120 (0x78)
          r543 <- add      r542,r412  qword
-         r544 <- get      r543
          r545 <- sub      r540,r537  qword
-         r546 <- overflow r545
-         r547 <- carry    r545
-         r548 <- sign     r545
          r549 <- is0      r545
-         r550 <- l1       r545
-         r551 <- parity   r550
          r552 <- jmp.if   r549,1074
 .B19:  in[.B14 .B18 ]     ;; 0x5de15a  30 insn 3 phis
-         r1379 <- phi8
-         r1380 <- phiarg   r184
-         r1381 <- phiarg   r525
-         r1382 <- phi8
-         r1383 <- phiarg   r17
-         r1384 <- phiarg   r453
-         r1385 <- phi8
-         r1386 <- phiarg   r1364
-         r1387 <- phiarg   r543
+  (  2)  r1379 <- phi8
+  (  4)  r1382 <- phi8
+  (  4)  r1385 <- phi8
          r553 <- const8   8 (0x8)
          r554 <- add      r553,r1385  qword
-         r555 <- loadm8   addr:r554
-         r556 <- get      r555
-         r557 <- get      r1385
-         r558 <- get      r555
-         r559 <- const8   4199136 (0x4012e0)
-         r560 <- call     r559
+  (  3)  r555 <- loadm8   addr:r554
+  (  2)  r559 <- const8   4199136 (0x4012e0)
+  (  2)  r560 <- call     r559
          r561 <- carg     r555
          r562 <- carg     r1379
          r563 <- carg     r112
          r564 <- carg     r1382
-         r565 <- undef
-         r566 <- undef
-         r567 <- undef
-         r568 <- undef
-         r569 <- undef
-         r570 <- undef
-         r571 <- undef
-         r572 <- undef
-         r573 <- undef
          r574 <- sub      r560,r101  qword
-         r575 <- overflow r574
-         r576 <- carry    r574
-         r577 <- sign     r574
          r578 <- is0      r574
-         r579 <- l1       r574
-         r580 <- parity   r579
          r581 <- not      r578
          r582 <- jmp.if   r581,407
 .B20:  in[.B19 ]     ;; 0x5de172  32 insn 0 phis
          r583 <- const8   0 (0x0)
          r584 <- add      r583,r51  qword
          r585 <- loadm8   addr:r584
-         r586 <- get      r585
-         r587 <- get      r101
-         r588 <- get      r555
-         r589 <- const8   4199232 (0x401340)
-         r590 <- call     r589
+  (  2)  r589 <- const8   4199232 (0x401340)
+  (  3)  r590 <- call     r589
          r591 <- carg     r585
          r592 <- carg     r555
          r593 <- carg     r101
          r594 <- carg     r1382
-         r595 <- undef
-         r596 <- undef
-         r597 <- undef
-         r598 <- undef
-         r599 <- undef
-         r600 <- undef
-         r601 <- undef
-         r602 <- undef
-         r603 <- undef
          r604 <- l4       r590
          r605 <- l4       r590
          r606 <- and      r604,r605  dword
-         r607 <- sign     r606
          r608 <- is0      r606
-         r609 <- l1       r606
-         r610 <- parity   r606
-         r611 <- const1   0 (0x0)
-         r612 <- const1   0 (0x0)
          r613 <- not      r608
          r614 <- jmp.if   r613,407
 .B21:  in[.B20 ]     ;; 0x5de189  14 insn 0 phis
-         r615 <- get      r1385
          r616 <- const8   40 (0x28)
          r617 <- add      r616,r51  qword
          r618 <- loadm8   addr:r617
-         r619 <- get      r618
-         r620 <- const8   48 (0x30)
-         r621 <- add      r620,r51  qword
-         r622 <- loadm8   addr:r621
-         r623 <- get      r622
          r624 <- const8   56 (0x38)
          r625 <- add      r624,r51  qword
          r626 <- loadm8   addr:r625
-         r627 <- get      r626
          r628 <- jmp      674
 .B22:  in[.B15 ]     ;; 0x5de1a0  31 insn 0 phis
          r629 <- const8   0 (0x0)
          r630 <- add      r629,r51  qword
          r631 <- loadm8   addr:r630
-         r632 <- get      r631
-         r633 <- get      r101
-         r634 <- const8   4199232 (0x401340)
-         r635 <- call     r634
+  (  2)  r634 <- const8   4199232 (0x401340)
+  (  3)  r635 <- call     r634
          r636 <- carg     r631
          r637 <- carg     r441
          r638 <- carg     r101
          r639 <- carg     r1382
-         r640 <- undef
-         r641 <- undef
-         r642 <- undef
-         r643 <- undef
-         r644 <- undef
-         r645 <- undef
-         r646 <- undef
-         r647 <- undef
-         r648 <- undef
          r649 <- l4       r635
          r650 <- l4       r635
          r651 <- and      r649,r650  dword
-         r652 <- sign     r651
          r653 <- is0      r651
-         r654 <- l1       r651
-         r655 <- parity   r651
-         r656 <- const1   0 (0x0)
-         r657 <- const1   0 (0x0)
          r658 <- not      r653
          r659 <- jmp.if   r658,451
 .B23:  in[.B22 .B38 .B40 ]     ;; 0x5de1b4  14 insn 2 phis
-         r1388 <- phi8
-         r1389 <- phiarg   r412
-         r1390 <- phiarg   r456
-         r1391 <- phiarg   r498
          r1392 <- phi8
-         r1393 <- phiarg   r412
-         r1394 <- phiarg   r456
-         r1395 <- phiarg   r498
-         r660 <- get      r1388
          r661 <- const8   40 (0x28)
          r662 <- add      r661,r51  qword
          r663 <- loadm8   addr:r662
-         r664 <- get      r663
-         r665 <- get      r1392
-         r666 <- const8   48 (0x30)
-         r667 <- add      r666,r51  qword
-         r668 <- loadm8   addr:r667
-         r669 <- get      r668
          r670 <- const8   56 (0x38)
          r671 <- add      r670,r51  qword
          r672 <- loadm8   addr:r671
-         r673 <- get      r672
 .B24:  in[.B21 .B23 .B47 .B49 .B51 ]     ;; 0x5de1c9  17 insn 4 phis
          r1396 <- phi8
-         r1397 <- phiarg   r174
-         r1398 <- phiarg   r415
-         r1399 <- phiarg   r174
-         r1400 <- phiarg   r174
-         r1401 <- phiarg   r174
          r1402 <- phi8
-         r1403 <- phiarg   r1385
-         r1404 <- phiarg   r1392
-         r1405 <- phiarg   r1358
-         r1406 <- phiarg   r1349
-         r1407 <- phiarg   r128
          r1408 <- phi8
-         r1409 <- phiarg   r626
-         r1410 <- phiarg   r672
-         r1411 <- phiarg   r1337
-         r1412 <- phiarg   r1337
-         r1413 <- phiarg   r1337
          r1414 <- phi8
-         r1415 <- phiarg   r618
-         r1416 <- phiarg   r663
-         r1417 <- phiarg   r133
-         r1418 <- phiarg   r133
-         r1419 <- phiarg   r133
          r674 <- const8   32 (0x20)
          r675 <- add      r674,r51  qword
          r676 <- loadm8   addr:r675
-         r677 <- get      r676
          r678 <- const8   0 (0x0)
          r679 <- add      r678,r676  qword
          r680 <- mulk     r1414,8 qword
          r681 <- add      r679,r680  qword
          r682 <- store    *r681 ← r1396
          r683 <- sub      r1402,r1408  qword
-         r684 <- overflow r683
-         r685 <- carry    r683
-         r686 <- sign     r683
          r687 <- is0      r683
-         r688 <- l1       r683
-         r689 <- parity   r688
          r690 <- jmp.if   r687,1074
 .B25:  in[.B24 ]     ;; 0x5de1dc  14 insn 0 phis
          r691 <- const8   32 (0x20)
@@ -2754,180 +2348,91 @@ ssa program  1460 instrs
          r693 <- loadm8   addr:r692
          r694 <- const8   0 (0x0)
          r695 <- sub      r693,r694  qword
-         r696 <- overflow r695
-         r697 <- carry    r695
-         r698 <- sign     r695
          r699 <- is0      r695
-         r700 <- l1       r695
-         r701 <- parity   r700
          r702 <- TODO     unsupported: movzx edi,byte ptr [r8]
          r703 <- not      r699
          r704 <- jmp.if   r703,938
 .B26:  in[.B25 .B32 ]     ;; 0x5de1eb  10 insn 1 phis
-         r1420 <- phi8
-         r1421 <- phiarg   r18
-         r1422 <- phiarg   r881
+  (  2)  r1420 <- phi8
          r705 <- l1       r1420
          r706 <- l1       r1420
          r707 <- and      r705,r706  byte
-         r708 <- sign     r707
          r709 <- is0      r707
-         r710 <- l1       r707
-         r711 <- parity   r707
-         r712 <- const1   0 (0x0)
-         r713 <- const1   0 (0x0)
          r714 <- jmp.if   r709,1327
 .B27:  in[.B26 ]     ;; 0x5de1f4  32 insn 0 phis
          r715 <- const8   1 (0x1)
-         r716 <- add      r715,r1334  qword
-         r717 <- get      r716
+  (  2)  r716 <- add      r715,r1334  qword
          r718 <- const4   46 (0x2e)
-         r719 <- v8.l4=   r40 ← r718
+  (  4)  r719 <- v8.l4=   r40 ← r718
          r720 <- const8   0 (0x0)
          r721 <- add      r720,r51  qword
          r722 <- store    *r721 ← r716
-         r723 <- const8   4199040 (0x401280)
-         r724 <- call     r723
+  (  3)  r723 <- const8   4199040 (0x401280)
+  (  4)  r724 <- call     r723
          r725 <- carg     r716
          r726 <- carg     r719
          r727 <- carg     r112
          r728 <- carg     r17
-         r729 <- undef
-         r730 <- undef
-         r731 <- undef
-         r732 <- undef
-         r733 <- undef
-         r734 <- undef
-         r735 <- undef
-         r736 <- undef
-         r737 <- undef
-         r738 <- get      r724
-         r739 <- and      r724,r724  qword
-         r740 <- sign     r739
+  (  5)  r739 <- and      r724,r724  qword
          r741 <- is0      r739
-         r742 <- l1       r739
-         r743 <- parity   r739
-         r744 <- const1   0 (0x0)
-         r745 <- const1   0 (0x0)
          r746 <- jmp.if   r741,1104
 .B28:  in[.B27 ]     ;; 0x5de212  38 insn 0 phis
-         r747 <- get      r739
-         r748 <- const8   0 (0x0)
-         r749 <- add      r748,r51  qword
-         r750 <- loadm8   addr:r749
-         r751 <- get      r750
          r752 <- const8   24 (0x18)
          r753 <- add      r752,r51  qword
          r754 <- loadm8   addr:r753
-         r755 <- get      r754
          r756 <- const8   1 (0x1)
          r757 <- add      r133,r756  qword
-         r758 <- get      r757
-         r759 <- overflow r757
-         r760 <- carry    r757
-         r761 <- sign     r757
-         r762 <- is0      r757
-         r763 <- l1       r757
-         r764 <- parity   r763
-         r765 <- sub      r739,r750  qword
-         r766 <- get      r765
-         r767 <- overflow r765
-         r768 <- carry    r765
-         r769 <- sign     r765
-         r770 <- is0      r765
-         r771 <- l1       r765
-         r772 <- parity   r771
          r773 <- const8   0 (0x0)
          r774 <- add      r773,r754  qword
          r775 <- loadm8   addr:r774
          r776 <- sub      r757,r775  qword
-         r777 <- overflow r776
          r778 <- carry    r776
-         r779 <- sign     r776
-         r780 <- is0      r776
-         r781 <- l1       r776
-         r782 <- parity   r781
          r783 <- not      r778
          r784 <- jmp.if   r783,1154
 .B29:  in[.B28 .B42 ]     ;; 0x5de22e  18 insn 0 phis
-         r785 <- get      r24
          r786 <- const8   24 (0x18)
          r787 <- add      r786,r24  qword
          r788 <- loadm8   addr:r787
-         r789 <- get      r788
          r790 <- const8   0 (0x0)
          r791 <- add      r790,r788  qword
          r792 <- loadm1   addr:r791
          r793 <- const1   0 (0x0)
          r794 <- sub      r792,r793  byte
-         r795 <- overflow r794
-         r796 <- carry    r794
-         r797 <- sign     r794
          r798 <- is0      r794
-         r799 <- l1       r794
-         r800 <- parity   r799
          r801 <- not      r798
          r802 <- jmp.if   r801,155
 .B30:  in[.B3 .B29 ]     ;; 0x5de23f  48 insn 2 phis
-         r1423 <- phi8
-         r1424 <- phiarg   r40
-         r1425 <- phiarg   r719
+  (  3)  r1423 <- phi8
          r1426 <- phi8
-         r1427 <- phiarg   r1334
-         r1428 <- phiarg   r724
          r803 <- const8   0 (0x0)
          r804 <- add      r803,r51  qword
          r805 <- loadm8   addr:r804
-         r806 <- get      r805
          r807 <- l4       r1423
          r808 <- l4       r1423
          r809 <- xor      r807,r808  dword
          r810 <- v8.l4=   r1423 ← r809
-         r811 <- false
-         r812 <- false
-         r813 <- sign     r809
-         r814 <- is0      r809
-         r815 <- l1       r809
-         r816 <- parity   r815
          r817 <- const4   10 (0xa)
          r818 <- v8.l4=   r112 ← r817
          r819 <- const8   8 (0x8)
          r820 <- add      r819,r51  qword
          r821 <- store    *r820 ← r1426
-         r822 <- const8   6451424 (0x6270e0)
-         r823 <- call     r822
+  (  2)  r822 <- const8   6451424 (0x6270e0)
+  (  2)  r823 <- call     r822
          r824 <- carg     r805
          r825 <- carg     r810
          r826 <- carg     r818
          r827 <- carg     r17
-         r828 <- undef
-         r829 <- undef
-         r830 <- undef
-         r831 <- undef
-         r832 <- undef
-         r833 <- undef
-         r834 <- undef
-         r835 <- undef
-         r836 <- undef
          r837 <- const8   8 (0x8)
          r838 <- add      r837,r51  qword
          r839 <- loadm8   addr:r838
-         r840 <- get      r839
          r841 <- const8   -1 (0xffffffffffffffff)
-         r842 <- sub      r823,r841  qword
-         r843 <- overflow r842
-         r844 <- carry    r842
-         r845 <- sign     r842
+  (  4)  r842 <- sub      r823,r841  qword
          r846 <- is0      r842
-         r847 <- l1       r842
-         r848 <- parity   r847
-         r849 <- get      r842
          r850 <- jmp.if   r846,1074
 .B31:  in[.B30 ]     ;; 0x5de266  65 insn 0 phis
          r851 <- const8   24 (0x18)
          r852 <- add      r851,r14  qword
-         r853 <- loadm8   addr:r852
-         r854 <- get      r853
+  (  2)  r853 <- loadm8   addr:r852
          r855 <- const8   0 (0x0)
          r856 <- add      r855,r51  qword
          r857 <- store    *r856 ← r839
@@ -2936,75 +2441,40 @@ ssa program  1460 instrs
          r860 <- loadm1   addr:r859
          r861 <- const1   0 (0x0)
          r862 <- sub      r860,r861  byte
-         r863 <- overflow r862
-         r864 <- carry    r862
-         r865 <- sign     r862
          r866 <- is0      r862
-         r867 <- l1       r862
-         r868 <- parity   r867
          r869 <- not      r866
          r870 <- jmp.if   r869,0x403143 extern
          r871 <- const8   24 (0x18)
          r872 <- add      r871,r51  qword
          r873 <- loadm8   addr:r872
-         r874 <- get      r873
          r875 <- const8   32 (0x20)
          r876 <- add      r875,r51  qword
-         r877 <- loadm8   addr:r876
-         r878 <- get      r877
+  (  2)  r877 <- loadm8   addr:r876
          r879 <- const8   64 (0x40)
          r880 <- add      r879,r51  qword
-         r881 <- loadm8   addr:r880
-         r882 <- get      r881
+  (  3)  r881 <- loadm8   addr:r880
          r883 <- const8   0 (0x0)
          r884 <- add      r883,r873  qword
          r885 <- loadm8   addr:r884
-         r886 <- get      r885
-         r887 <- get      r877
-         r888 <- get      r842
          r889 <- const8   8 (0x8)
          r890 <- add      r889,r853  qword
          r891 <- loadm8   addr:r890
-         r892 <- loadm8   addr:r891
-         r893 <- call     r892
+  (  3)  r892 <- loadm8   addr:r891
+  (  4)  r893 <- call     r892
          r894 <- carg     r881
          r895 <- carg     r877
          r896 <- carg     r885
          r897 <- carg     r842
-         r898 <- undef
-         r899 <- undef
-         r900 <- undef
-         r901 <- undef
-         r902 <- undef
-         r903 <- undef
-         r904 <- undef
-         r905 <- undef
-         r906 <- undef
-         r907 <- get      r893
-         r908 <- and      r893,r893  qword
-         r909 <- sign     r908
+  (  2)  r908 <- and      r893,r893  qword
          r910 <- is0      r908
-         r911 <- l1       r908
-         r912 <- parity   r908
-         r913 <- const1   0 (0x0)
-         r914 <- const1   0 (0x0)
          r915 <- jmp.if   r910,1074
 .B32:  in[.B31 ]     ;; 0x5de29f  22 insn 0 phis
-         r916 <- const8   0 (0x0)
-         r917 <- add      r916,r51  qword
-         r918 <- loadm8   addr:r917
-         r919 <- get      r918
          r920 <- const8   32 (0x20)
          r921 <- add      r920,r893  qword
          r922 <- loadm8   addr:r921
          r923 <- const8   0 (0x0)
          r924 <- sub      r922,r923  qword
-         r925 <- overflow r924
-         r926 <- carry    r924
-         r927 <- sign     r924
          r928 <- is0      r924
-         r929 <- l1       r924
-         r930 <- parity   r929
          r931 <- const8   0 (0x0)
          r932 <- add      r931,r877  qword
          r933 <- mulk     r133,8 qword
@@ -3013,123 +2483,53 @@ ssa program  1460 instrs
          r936 <- TODO     unsupported: movzx edi,byte ptr [r8]
          r937 <- jmp.if   r928,705
 .B33:  in[.B25 .B32 ]     ;; 0x5de2b6  15 insn 1 phis
-         r1429 <- phi8
-         r1430 <- phiarg   r18
-         r1431 <- phiarg   r881
+  (  2)  r1429 <- phi8
          r938 <- const8   72 (0x48)
          r939 <- add      r938,r51  qword
-         r940 <- loadm8   addr:r939
-         r941 <- get      r940
+  (  2)  r940 <- loadm8   addr:r939
          r942 <- l1       r1429
          r943 <- l1       r1429
          r944 <- and      r942,r943  byte
-         r945 <- sign     r944
          r946 <- is0      r944
-         r947 <- l1       r944
-         r948 <- parity   r944
-         r949 <- const1   0 (0x0)
-         r950 <- const1   0 (0x0)
          r951 <- not      r946
          r952 <- jmp.if   r951,1074
 .B34:  in[.B33 .B53 ]     ;; 0x5de2c0  19 insn 1 phis
-         r1432 <- phi8
-         r1433 <- phiarg   r940
-         r1434 <- phiarg   r1329
+  (  2)  r1432 <- phi8
          r953 <- const8   1 (0x1)
          r954 <- add      r953,r133  qword
-         r955 <- get      r954
          r956 <- const8   24 (0x18)
          r957 <- add      r956,r51  qword
          r958 <- loadm8   addr:r957
-         r959 <- get      r958
          r960 <- const8   0 (0x0)
          r961 <- add      r960,r958  qword
          r962 <- store    *r961 ← r954
-         r963 <- and      r1432,r1432  qword
-         r964 <- sign     r963
+  (  2)  r963 <- and      r1432,r1432  qword
          r965 <- is0      r963
-         r966 <- l1       r963
-         r967 <- parity   r963
-         r968 <- const1   0 (0x0)
-         r969 <- const1   0 (0x0)
          r970 <- not      r965
          r971 <- jmp.if   r970,1166
 .B35:  in[.B34 .B44 ]     ;; 0x5de2d5  10 insn 1 phis
-         r1435 <- phi8
-         r1436 <- phiarg   r98
-         r1437 <- phiarg   r739
+  (  3)  r1435 <- phi8
          r972 <- l4       r1435
          r973 <- l4       r1435
          r974 <- xor      r972,r973  dword
          r975 <- v8.l4=   r1435 ← r974
-         r976 <- false
-         r977 <- false
-         r978 <- sign     r974
-         r979 <- is0      r974
-         r980 <- l1       r974
-         r981 <- parity   r980
 .B36:  in[.B35 .B45 ]     ;; 0x5de2d7  28 insn 1 phis
          r1438 <- phi8
-         r1439 <- phiarg   r975
-         r1440 <- phiarg   r1172
-         r982 <- const8   88 (0x58)
-         r983 <- add      r51,r982  qword
-         r984 <- get      r983
-         r985 <- overflow r983
-         r986 <- carry    r983
-         r987 <- sign     r983
-         r988 <- is0      r983
-         r989 <- l1       r983
-         r990 <- parity   r989
-         r991 <- loadm8   addr:r983
-         r992 <- get      r991
-         r993 <- addk     r983,8 qword
-         r994 <- loadm8   addr:r993
-         r995 <- get      r994
-         r996 <- addk     r993,8 qword
-         r997 <- loadm8   addr:r996
-         r998 <- get      r997
-         r999 <- addk     r996,8 qword
-         r1000 <- loadm8   addr:r999
-         r1001 <- get      r1000
-         r1002 <- addk     r999,8 qword
-         r1003 <- loadm8   addr:r1002
-         r1004 <- get      r1003
-         r1005 <- addk     r1002,8 qword
-         r1006 <- loadm8   addr:r1005
-         r1007 <- get      r1006
-         r1008 <- addk     r1005,8 qword
          r1009 <- ret      r1438
 .B37:  in[.B16 ]     ;; 0x5de2f0  31 insn 0 phis
          r1010 <- const8   0 (0x0)
          r1011 <- add      r1010,r51  qword
          r1012 <- loadm8   addr:r1011
-         r1013 <- get      r1012
-         r1014 <- get      r101
-         r1015 <- const8   4199232 (0x401340)
-         r1016 <- call     r1015
+  (  2)  r1015 <- const8   4199232 (0x401340)
+  (  3)  r1016 <- call     r1015
          r1017 <- carg     r1012
          r1018 <- carg     r483
          r1019 <- carg     r101
          r1020 <- carg     r453
-         r1021 <- undef
-         r1022 <- undef
-         r1023 <- undef
-         r1024 <- undef
-         r1025 <- undef
-         r1026 <- undef
-         r1027 <- undef
-         r1028 <- undef
-         r1029 <- undef
          r1030 <- l4       r1016
          r1031 <- l4       r1016
          r1032 <- and      r1030,r1031  dword
-         r1033 <- sign     r1032
          r1034 <- is0      r1032
-         r1035 <- l1       r1032
-         r1036 <- parity   r1032
-         r1037 <- const1   0 (0x0)
-         r1038 <- const1   0 (0x0)
          r1039 <- not      r1034
          r1040 <- jmp.if   r1039,493
 .B38:  in[.B37 ]     ;; 0x5de304  1 insn 0 phis
@@ -3138,148 +2538,57 @@ ssa program  1460 instrs
          r1042 <- const8   0 (0x0)
          r1043 <- add      r1042,r51  qword
          r1044 <- loadm8   addr:r1043
-         r1045 <- get      r1044
-         r1046 <- get      r101
-         r1047 <- const8   4199232 (0x401340)
-         r1048 <- call     r1047
+  (  2)  r1047 <- const8   4199232 (0x401340)
+  (  3)  r1048 <- call     r1047
          r1049 <- carg     r1044
          r1050 <- carg     r525
          r1051 <- carg     r101
          r1052 <- carg     r453
-         r1053 <- undef
-         r1054 <- undef
-         r1055 <- undef
-         r1056 <- undef
-         r1057 <- undef
-         r1058 <- undef
-         r1059 <- undef
-         r1060 <- undef
-         r1061 <- undef
          r1062 <- l4       r1048
          r1063 <- l4       r1048
          r1064 <- and      r1062,r1063  dword
-         r1065 <- sign     r1064
          r1066 <- is0      r1064
-         r1067 <- l1       r1064
-         r1068 <- parity   r1064
-         r1069 <- const1   0 (0x0)
-         r1070 <- const1   0 (0x0)
          r1071 <- not      r1066
          r1072 <- jmp.if   r1071,535
 .B40:  in[.B39 ]     ;; 0x5de324  1 insn 0 phis
          r1073 <- jmp      660
 .B41:  in[.B1 .B4 .B13 .B18 .B24 .B30 .B31 .B33 ]     ;; 0x5de330  30 insn 1 phis
          r1441 <- phi8
-         r1442 <- phiarg   r98
-         r1443 <- phiarg   r98
-         r1444 <- phiarg   r358
-         r1445 <- phiarg   r527
-         r1446 <- phiarg   r98
-         r1447 <- phiarg   r842
-         r1448 <- phiarg   r908
-         r1449 <- phiarg   r98
-         r1074 <- const8   88 (0x58)
-         r1075 <- add      r51,r1074  qword
-         r1076 <- get      r1075
-         r1077 <- overflow r1075
-         r1078 <- carry    r1075
-         r1079 <- sign     r1075
-         r1080 <- is0      r1075
-         r1081 <- l1       r1075
-         r1082 <- parity   r1081
          r1083 <- const4   2 (0x2)
          r1084 <- v8.l4=   r1441 ← r1083
-         r1085 <- loadm8   addr:r1075
-         r1086 <- get      r1085
-         r1087 <- addk     r1075,8 qword
-         r1088 <- loadm8   addr:r1087
-         r1089 <- get      r1088
-         r1090 <- addk     r1087,8 qword
-         r1091 <- loadm8   addr:r1090
-         r1092 <- get      r1091
-         r1093 <- addk     r1090,8 qword
-         r1094 <- loadm8   addr:r1093
-         r1095 <- get      r1094
-         r1096 <- addk     r1093,8 qword
-         r1097 <- loadm8   addr:r1096
-         r1098 <- get      r1097
-         r1099 <- addk     r1096,8 qword
-         r1100 <- loadm8   addr:r1099
-         r1101 <- get      r1100
-         r1102 <- addk     r1099,8 qword
          r1103 <- ret      r1084
 .B42:  in[.B27 ]     ;; 0x5de348  50 insn 0 phis
          r1104 <- const8   0 (0x0)
          r1105 <- add      r1104,r51  qword
          r1106 <- loadm8   addr:r1105
-         r1107 <- get      r1106
          r1108 <- const8   1 (0x1)
          r1109 <- add      r133,r1108  qword
-         r1110 <- get      r1109
-         r1111 <- overflow r1109
-         r1112 <- carry    r1109
-         r1113 <- sign     r1109
-         r1114 <- is0      r1109
-         r1115 <- l1       r1109
-         r1116 <- parity   r1115
-         r1117 <- get      r1106
          r1118 <- const8   4199136 (0x4012e0)
          r1119 <- call     r1118
          r1120 <- carg     r1106
          r1121 <- carg     r719
          r1122 <- carg     r112
          r1123 <- carg     r17
-         r1124 <- undef
-         r1125 <- undef
-         r1126 <- undef
-         r1127 <- undef
-         r1128 <- undef
-         r1129 <- undef
-         r1130 <- undef
-         r1131 <- undef
-         r1132 <- undef
          r1133 <- const8   24 (0x18)
          r1134 <- add      r1133,r51  qword
          r1135 <- loadm8   addr:r1134
-         r1136 <- get      r1135
-         r1137 <- get      r1119
-         r1138 <- const8   0 (0x0)
-         r1139 <- add      r1138,r1106  qword
-         r1140 <- mulk     r1119,1 qword
-         r1141 <- add      r1139,r1140  qword
-         r1142 <- get      r1141
          r1143 <- const8   0 (0x0)
          r1144 <- add      r1143,r1135  qword
          r1145 <- loadm8   addr:r1144
          r1146 <- sub      r1109,r1145  qword
-         r1147 <- overflow r1146
          r1148 <- carry    r1146
-         r1149 <- sign     r1146
-         r1150 <- is0      r1146
-         r1151 <- l1       r1146
-         r1152 <- parity   r1151
          r1153 <- jmp.if   r1148,785
 .B43:  in[.B28 .B42 ]     ;; 0x5de36d  4 insn 0 phis
          r1154 <- const8   72 (0x48)
-         r1155 <- add      r1154,r51  qword
-         r1156 <- loadm8   addr:r1155
-         r1157 <- get      r1156
+  (  2)  r1155 <- add      r1154,r51  qword
+  (  2)  r1156 <- loadm8   addr:r1155
 .B44:  in[.B43 ]     ;; 0x5de372  8 insn 0 phis
-         r1158 <- and      r1156,r1156  qword
-         r1159 <- sign     r1158
+  (  2)  r1158 <- and      r1156,r1156  qword
          r1160 <- is0      r1158
-         r1161 <- l1       r1158
-         r1162 <- parity   r1158
-         r1163 <- const1   0 (0x0)
-         r1164 <- const1   0 (0x0)
          r1165 <- jmp.if   r1160,972
 .B45:  in[.B34 .B44 ]     ;; 0x5de37b  14 insn 2 phis
-         r1450 <- phi8
-         r1451 <- phiarg   r98
-         r1452 <- phiarg   r739
+  (  3)  r1450 <- phi8
          r1453 <- phi8
-         r1454 <- phiarg   r963
-         r1455 <- phiarg   r1158
          r1166 <- const8   0 (0x0)
          r1167 <- add      r1166,r1453  qword
          r1168 <- store    *r1167 ← r24
@@ -3287,50 +2596,24 @@ ssa program  1460 instrs
          r1170 <- l4       r1450
          r1171 <- xor      r1169,r1170  dword
          r1172 <- v8.l4=   r1450 ← r1171
-         r1173 <- false
-         r1174 <- false
-         r1175 <- sign     r1171
-         r1176 <- is0      r1171
-         r1177 <- l1       r1171
-         r1178 <- parity   r1177
          r1179 <- jmp      982
 .B46:  in[.B12 ]     ;; 0x5de388  38 insn 0 phis
          r1180 <- const8   0 (0x0)
          r1181 <- add      r1180,r51  qword
          r1182 <- loadm8   addr:r1181
-         r1183 <- get      r1182
-         r1184 <- get      r101
          r1185 <- const8   8 (0x8)
          r1186 <- add      r1185,r51  qword
          r1187 <- store    *r1186 ← r356
-         r1188 <- const8   4199232 (0x401340)
-         r1189 <- call     r1188
+  (  2)  r1188 <- const8   4199232 (0x401340)
+  (  3)  r1189 <- call     r1188
          r1190 <- carg     r1182
          r1191 <- carg     r352
          r1192 <- carg     r101
          r1193 <- carg     r17
-         r1194 <- undef
-         r1195 <- undef
-         r1196 <- undef
-         r1197 <- undef
-         r1198 <- undef
-         r1199 <- undef
-         r1200 <- undef
-         r1201 <- undef
-         r1202 <- undef
-         r1203 <- const8   8 (0x8)
-         r1204 <- add      r1203,r51  qword
-         r1205 <- loadm8   addr:r1204
-         r1206 <- get      r1205
          r1207 <- l4       r1189
          r1208 <- l4       r1189
          r1209 <- and      r1207,r1208  dword
-         r1210 <- sign     r1209
          r1211 <- is0      r1209
-         r1212 <- l1       r1209
-         r1213 <- parity   r1209
-         r1214 <- const1   0 (0x0)
-         r1215 <- const1   0 (0x0)
          r1216 <- not      r1211
          r1217 <- jmp.if   r1216,366
 .B47:  in[.B46 ]     ;; 0x5de3a6  1 insn 0 phis
@@ -3339,39 +2622,19 @@ ssa program  1460 instrs
          r1219 <- const8   0 (0x0)
          r1220 <- add      r1219,r51  qword
          r1221 <- loadm8   addr:r1220
-         r1222 <- get      r1221
-         r1223 <- get      r101
          r1224 <- const8   8 (0x8)
          r1225 <- add      r1224,r51  qword
          r1226 <- store    *r1225 ← r295
-         r1227 <- const8   4199232 (0x401340)
-         r1228 <- call     r1227
+  (  2)  r1227 <- const8   4199232 (0x401340)
+  (  3)  r1228 <- call     r1227
          r1229 <- carg     r1221
          r1230 <- carg     r291
          r1231 <- carg     r101
          r1232 <- carg     r17
-         r1233 <- undef
-         r1234 <- undef
-         r1235 <- undef
-         r1236 <- undef
-         r1237 <- undef
-         r1238 <- undef
-         r1239 <- undef
-         r1240 <- undef
-         r1241 <- undef
-         r1242 <- const8   8 (0x8)
-         r1243 <- add      r1242,r51  qword
-         r1244 <- loadm8   addr:r1243
-         r1245 <- get      r1244
          r1246 <- l4       r1228
          r1247 <- l4       r1228
          r1248 <- and      r1246,r1247  dword
-         r1249 <- sign     r1248
          r1250 <- is0      r1248
-         r1251 <- l1       r1248
-         r1252 <- parity   r1248
-         r1253 <- const1   0 (0x0)
-         r1254 <- const1   0 (0x0)
          r1255 <- not      r1250
          r1256 <- jmp.if   r1255,305
 .B49:  in[.B48 ]     ;; 0x5de3ce  1 insn 0 phis
@@ -3380,43 +2643,22 @@ ssa program  1460 instrs
          r1258 <- const8   0 (0x0)
          r1259 <- add      r1258,r51  qword
          r1260 <- loadm8   addr:r1259
-         r1261 <- get      r1260
-         r1262 <- get      r101
          r1263 <- const8   40 (0x28)
          r1264 <- add      r1263,r51  qword
          r1265 <- store    *r1264 ← r246
          r1266 <- const8   8 (0x8)
          r1267 <- add      r1266,r51  qword
          r1268 <- store    *r1267 ← r128
-         r1269 <- const8   4199232 (0x401340)
-         r1270 <- call     r1269
+  (  2)  r1269 <- const8   4199232 (0x401340)
+  (  3)  r1270 <- call     r1269
          r1271 <- carg     r1260
          r1272 <- carg     r242
          r1273 <- carg     r101
          r1274 <- carg     r17
-         r1275 <- undef
-         r1276 <- undef
-         r1277 <- undef
-         r1278 <- undef
-         r1279 <- undef
-         r1280 <- undef
-         r1281 <- undef
-         r1282 <- undef
-         r1283 <- undef
-         r1284 <- const8   40 (0x28)
-         r1285 <- add      r1284,r51  qword
-         r1286 <- loadm8   addr:r1285
-         r1287 <- get      r1286
-         r1288 <- get      r128
          r1289 <- l4       r1270
          r1290 <- l4       r1270
          r1291 <- and      r1289,r1290  dword
-         r1292 <- sign     r1291
          r1293 <- is0      r1291
-         r1294 <- l1       r1291
-         r1295 <- parity   r1291
-         r1296 <- const1   0 (0x0)
-         r1297 <- const1   0 (0x0)
          r1298 <- not      r1293
          r1299 <- jmp.if   r1298,257
 .B51:  in[.B50 ]     ;; 0x5de3f9  1 insn 0 phis
@@ -3424,59 +2666,41 @@ ssa program  1460 instrs
 .B52:  in[.B0 ]     ;; 0x5de400  26 insn 0 phis
          r1301 <- const8   0 (0x0)
          r1302 <- add      r1301,r51  qword
-         r1303 <- loadm8   addr:r1302
-         r1304 <- get      r1303
-         r1305 <- get      r1303
+  (  2)  r1303 <- loadm8   addr:r1302
          r1306 <- const8   4199136 (0x4012e0)
-         r1307 <- call     r1306
+  (  2)  r1307 <- call     r1306
          r1308 <- carg     r1303
          r1309 <- carg     r40
          r1310 <- carg     r18
          r1311 <- carg     r17
-         r1312 <- undef
-         r1313 <- undef
-         r1314 <- undef
-         r1315 <- undef
-         r1316 <- undef
-         r1317 <- undef
-         r1318 <- undef
-         r1319 <- undef
-         r1320 <- undef
          r1321 <- const8   0 (0x0)
          r1322 <- add      r1321,r1303  qword
          r1323 <- mulk     r1307,1 qword
          r1324 <- add      r1322,r1323  qword
-         r1325 <- get      r1324
          r1326 <- jmp      96
 .B53:  in[.B26 ]     ;; 0x5de415  5 insn 0 phis
          r1327 <- const8   72 (0x48)
          r1328 <- add      r1327,r51  qword
-         r1329 <- loadm8   addr:r1328
-         r1330 <- get      r1329
+  (  2)  r1329 <- loadm8   addr:r1328
          r1331 <- jmp      953
 .B54:  in[.B2 .B36 .B41 ]     ;; 0x5de41f  2 insn 1 phis
-         r1456 <- phi8
-         r1457 <- phiarg   r14
-         r1458 <- phiarg   r1003
-         r1459 <- phiarg   r1097
-         r1332 <- get      r1456
          r1333 <- jmp      1158
 
 
 ssa post-xform:
-ssa program  601 instrs
+ssa program  519 instrs
 .B0:  in[]     ;; 0x0  96 insn 0 phis
          r10 <- #pre:RBP
   ( 70)  r11 <- #pre:RSP
          r13 <- #pre:RDI
-  (  5)  r14 <- #pre:RSI
+  (  7)  r14 <- #pre:RSI
          r16 <- #pre:RBX
-  ( 14)  r17 <- #pre:RCX
+  ( 17)  r17 <- #pre:RCX
   (  6)  r18 <- #pre:RDX
          r19 <- #pre:R8
          r20 <- #pre:R9
          r23 <- #pre:R12
-  (  5)  r24 <- #pre:R13
+  (  7)  r24 <- #pre:R13
          r25 <- #pre:R14
   (  2)  r26 <- #pre:R15
          r34 <- addk     r11,-8 qword
@@ -3501,8 +2725,8 @@ ssa program  601 instrs
          r68 <- store    *r67 ← r18
          r70 <- subk     r11,-16 qword
          r71 <- store    *r70 ← r20
-         r72 <- const8   4199040 (0x401280)
-  (  2)  r73 <- call     r72
+  (  2)  r72 <- const8   4199040 (0x401280)
+  (  3)  r73 <- call     r72
          r74 <- carg     r18
          r75 <- carg     r40
          r76 <- carg     r18
@@ -3511,8 +2735,6 @@ ssa program  601 instrs
          r95 <- jmp.if   r90,1301
 .B1:  in[.B0 .B52 ]     ;; 0x5ddf80  14 insn 1 phis
   (  7)  r1334 <- phi8
-         r1335 <- phiarg   r73
-         r1336 <- phiarg   r1324
          r97 <- subk     r11,40 qword
   (  7)  r98 <- loadm8   addr:r97
   ( 18)  r101 <- sub      r1334,r98  qword
@@ -3540,16 +2762,14 @@ ssa program  601 instrs
          r154 <- jmp.if   r151,803
 .B4:  in[.B3 .B29 ]     ;; 0x5ddfc0  15 insn 1 phis
   (  5)  r1337 <- phi8
-         r1338 <- phiarg   r14
-         r1339 <- phiarg   r24
-         r156 <- addk     r1337,16 qword
+  (  2)  r156 <- addk     r1337,16 qword
   (  4)  r157 <- loadm8   addr:r156
          r160 <- subk     r11,-24 qword
          r161 <- store    *r160 ← r157
          r164 <- is0      r157
          r169 <- jmp.if   r164,1074
 .B5:  in[.B4 ]     ;; 0x5ddfd2  22 insn 0 phis
-         r173 <- const4   0 (0x0)
+  (  4)  r173 <- const4   0 (0x0)
   (  7)  r174 <- v8.l4=   r17 ← r173
   (  2)  r183 <- andk     r157,3 qword
   (  3)  r184 <- v8.l4=   r157 ← r183
@@ -3572,8 +2792,8 @@ ssa program  601 instrs
          r220 <- store    *r219 ← r128
          r223 <- subk     r11,-32 qword
          r224 <- store    *r223 ← r212
-         r225 <- const8   4199136 (0x4012e0)
-         r226 <- call     r225
+  (  2)  r225 <- const8   4199136 (0x4012e0)
+  (  2)  r226 <- call     r225
          r227 <- carg     r212
          r228 <- carg     r202
          r229 <- carg     r112
@@ -3587,27 +2807,19 @@ ssa program  601 instrs
          r256 <- jmp.if   r253,1258
 .B9:  in[.B8 .B50 ]     ;; 0x5de020  5 insn 1 phis
          r1340 <- phi8
-         r1341 <- phiarg   r128
-         r1342 <- phiarg   r128
          r260 <- addk     r1340,40 qword
 .B10:  in[.B7 .B9 ]     ;; 0x5de029  43 insn 3 phis
          r1343 <- phi8
-         r1344 <- phiarg   r202
-         r1345 <- phiarg   r242
          r1346 <- phi8
-         r1347 <- phiarg   r1334
-         r1348 <- phiarg   r246
   (  3)  r1349 <- phi8
-         r1350 <- phiarg   r128
-         r1351 <- phiarg   r260
          r263 <- addk     r1349,8 qword
   (  2)  r264 <- loadm8   addr:r263
          r267 <- subk     r11,0 qword
          r268 <- store    *r267 ← r1346
          r272 <- subk     r11,-32 qword
          r273 <- store    *r272 ← r264
-         r274 <- const8   4199136 (0x4012e0)
-         r275 <- call     r274
+  (  2)  r274 <- const8   4199136 (0x4012e0)
+  (  2)  r275 <- call     r274
          r276 <- carg     r264
          r277 <- carg     r1343
          r278 <- carg     r112
@@ -3623,22 +2835,16 @@ ssa program  601 instrs
          r315 <- addk     r1349,40 qword
 .B12:  in[.B6 .B11 ]     ;; 0x5de05e  43 insn 3 phis
          r1352 <- phi8
-         r1353 <- phiarg   r193
-         r1354 <- phiarg   r291
          r1355 <- phi8
-         r1356 <- phiarg   r1334
-         r1357 <- phiarg   r295
   (  3)  r1358 <- phi8
-         r1359 <- phiarg   r128
-         r1360 <- phiarg   r315
          r324 <- addk     r1358,8 qword
   (  2)  r325 <- loadm8   addr:r324
          r328 <- subk     r11,0 qword
          r329 <- store    *r328 ← r1355
          r333 <- subk     r11,-32 qword
          r334 <- store    *r333 ← r325
-         r335 <- const8   4199136 (0x4012e0)
-         r336 <- call     r335
+  (  2)  r335 <- const8   4199136 (0x4012e0)
+  (  2)  r336 <- call     r335
          r337 <- carg     r325
          r338 <- carg     r1352
          r339 <- carg     r112
@@ -3660,11 +2866,7 @@ ssa program  601 instrs
          r395 <- jmp.if   r392,1074
 .B14:  in[.B5 .B13 ]     ;; 0x5de0a1  11 insn 2 phis
          r1361 <- phi8
-         r1362 <- phiarg   r1334
-         r1363 <- phiarg   r356
          r1364 <- phi8
-         r1365 <- phiarg   r128
-         r1366 <- phiarg   r380
          r397 <- subk     r11,16 qword
          r398 <- store    *r397 ← r1337
          r401 <- subk     r11,0 qword
@@ -3674,19 +2876,15 @@ ssa program  601 instrs
          r406 <- jmp      553
 .B15:  in[.B19 .B20 ]     ;; 0x5de0c0  44 insn 2 phis
          r1367 <- phi8
-         r1368 <- phiarg   r1379
-         r1369 <- phiarg   r555
   (  2)  r1370 <- phi8
-         r1371 <- phiarg   r112
-         r1372 <- phiarg   r101
          r408 <- addk     r1385,48 qword
   (  2)  r409 <- loadm8   addr:r408
          r412 <- addk     r1385,40 qword
          r415 <- addk     r174,1 qword
          r422 <- subk     r11,-32 qword
          r423 <- store    *r422 ← r409
-         r424 <- const8   4199136 (0x4012e0)
-         r425 <- call     r424
+  (  2)  r424 <- const8   4199136 (0x4012e0)
+  (  2)  r425 <- call     r424
          r426 <- carg     r409
          r427 <- carg     r1367
          r428 <- carg     r1370
@@ -3698,15 +2896,13 @@ ssa program  601 instrs
          r450 <- jmp.if   r447,629
 .B16:  in[.B15 .B22 ]     ;; 0x5de0f0  42 insn 1 phis
   (  2)  r1373 <- phi8
-         r1374 <- phiarg   r1370
-         r1375 <- phiarg   r101
          r452 <- addk     r1385,88 qword
   (  7)  r453 <- loadm8   addr:r452
          r456 <- addk     r1385,80 qword
          r464 <- subk     r11,-32 qword
          r465 <- store    *r464 ← r453
-         r466 <- const8   4199136 (0x4012e0)
-         r467 <- call     r466
+  (  2)  r466 <- const8   4199136 (0x4012e0)
+  (  2)  r467 <- call     r466
          r468 <- carg     r453
          r469 <- carg     r441
          r470 <- carg     r1373
@@ -3718,15 +2914,13 @@ ssa program  601 instrs
          r492 <- jmp.if   r489,1010
 .B17:  in[.B16 .B37 ]     ;; 0x5de11a  42 insn 1 phis
          r1376 <- phi8
-         r1377 <- phiarg   r1373
-         r1378 <- phiarg   r101
          r494 <- addk     r1385,128 qword
   (  3)  r495 <- loadm8   addr:r494
          r498 <- addk     r1385,120 qword
          r506 <- subk     r11,-32 qword
          r507 <- store    *r506 ← r495
-         r508 <- const8   4199136 (0x4012e0)
-         r509 <- call     r508
+  (  2)  r508 <- const8   4199136 (0x4012e0)
+  (  2)  r509 <- call     r508
          r510 <- carg     r495
          r511 <- carg     r495
          r512 <- carg     r1376
@@ -3740,23 +2934,18 @@ ssa program  601 instrs
          r536 <- subk     r11,-24 qword
          r537 <- loadm8   addr:r536
          r540 <- addk     r174,4 qword
+         r543 <- addk     r1385,160 qword
          r545 <- sub      r540,r537  qword
          r549 <- is0      r545
          r552 <- jmp.if   r549,1074
 .B19:  in[.B14 .B18 ]     ;; 0x5de15a  30 insn 3 phis
   (  2)  r1379 <- phi8
-         r1380 <- phiarg   r184
-         r1381 <- phiarg   r525
   (  4)  r1382 <- phi8
-         r1383 <- phiarg   r17
-         r1384 <- phiarg   r453
-  (  8)  r1385 <- phi8
-         r1386 <- phiarg   r1364
-         r1387 <- phiarg   r543
+  (  9)  r1385 <- phi8
          r554 <- addk     r1385,8 qword
   (  3)  r555 <- loadm8   addr:r554
-         r559 <- const8   4199136 (0x4012e0)
-         r560 <- call     r559
+  (  2)  r559 <- const8   4199136 (0x4012e0)
+  (  2)  r560 <- call     r559
          r561 <- carg     r555
          r562 <- carg     r1379
          r563 <- carg     r112
@@ -3768,8 +2957,8 @@ ssa program  601 instrs
 .B20:  in[.B19 ]     ;; 0x5de172  32 insn 0 phis
          r584 <- subk     r11,40 qword
          r585 <- loadm8   addr:r584
-         r589 <- const8   4199232 (0x401340)
-         r590 <- call     r589
+  (  2)  r589 <- const8   4199232 (0x401340)
+  (  2)  r590 <- call     r589
          r591 <- carg     r585
          r592 <- carg     r555
          r593 <- carg     r101
@@ -3786,8 +2975,8 @@ ssa program  601 instrs
 .B22:  in[.B15 ]     ;; 0x5de1a0  31 insn 0 phis
          r630 <- subk     r11,40 qword
          r631 <- loadm8   addr:r630
-         r634 <- const8   4199232 (0x401340)
-         r635 <- call     r634
+  (  2)  r634 <- const8   4199232 (0x401340)
+  (  2)  r635 <- call     r634
          r636 <- carg     r631
          r637 <- carg     r441
          r638 <- carg     r101
@@ -3797,38 +2986,15 @@ ssa program  601 instrs
          r659 <- jmp.if   r658,451
 .B23:  in[.B22 .B38 .B40 ]     ;; 0x5de1b4  14 insn 2 phis
          r1392 <- phi8
-         r1393 <- phiarg   r412
-         r1394 <- phiarg   r456
-         r1395 <- phiarg   r498
          r662 <- subk     r11,0 qword
          r663 <- loadm8   addr:r662
          r671 <- subk     r11,16 qword
          r672 <- loadm8   addr:r671
 .B24:  in[.B21 .B23 .B47 .B49 .B51 ]     ;; 0x5de1c9  17 insn 4 phis
          r1396 <- phi8
-         r1397 <- phiarg   r174
-         r1398 <- phiarg   r415
-         r1399 <- phiarg   r174
-         r1400 <- phiarg   r174
-         r1401 <- phiarg   r174
          r1402 <- phi8
-         r1403 <- phiarg   r1385
-         r1404 <- phiarg   r1392
-         r1405 <- phiarg   r1358
-         r1406 <- phiarg   r1349
-         r1407 <- phiarg   r128
          r1408 <- phi8
-         r1409 <- phiarg   r626
-         r1410 <- phiarg   r672
-         r1411 <- phiarg   r1337
-         r1412 <- phiarg   r1337
-         r1413 <- phiarg   r1337
          r1414 <- phi8
-         r1415 <- phiarg   r618
-         r1416 <- phiarg   r663
-         r1417 <- phiarg   r133
-         r1418 <- phiarg   r133
-         r1419 <- phiarg   r133
          r675 <- subk     r11,-8 qword
          r679 <- loadm8   addr:r675
          r680 <- mulk     r1414,8 qword
@@ -3847,8 +3013,6 @@ ssa program  601 instrs
          r704 <- jmp.if   r703,938
 .B26:  in[.B25 .B32 ]     ;; 0x5de1eb  10 insn 1 phis
          r1420 <- phi8
-         r1421 <- phiarg   r18
-         r1422 <- phiarg   r881
          r709 <- is0      r1420
          r714 <- jmp.if   r709,1327
 .B27:  in[.B26 ]     ;; 0x5de1f4  32 insn 0 phis
@@ -3857,8 +3021,8 @@ ssa program  601 instrs
   (  3)  r719 <- v8.l4=   r14 ← r718
          r721 <- subk     r11,40 qword
          r722 <- store    *r721 ← r716
-         r723 <- const8   4199040 (0x401280)
-  (  3)  r724 <- call     r723
+  (  2)  r723 <- const8   4199040 (0x401280)
+  (  4)  r724 <- call     r723
          r725 <- carg     r716
          r726 <- carg     r719
          r727 <- carg     r112
@@ -3885,11 +3049,7 @@ ssa program  601 instrs
          r802 <- jmp.if   r801,155
 .B30:  in[.B3 .B29 ]     ;; 0x5de23f  48 insn 2 phis
          r1423 <- phi8
-         r1424 <- phiarg   r40
-         r1425 <- phiarg   r719
          r1426 <- phi8
-         r1427 <- phiarg   r1334
-         r1428 <- phiarg   r724
          r804 <- subk     r11,40 qword
          r805 <- loadm8   addr:r804
          r809 <- const4   0 (0x0)
@@ -3898,8 +3058,8 @@ ssa program  601 instrs
          r818 <- v8.l4=   r112 ← r817
          r820 <- subk     r11,-32 qword
          r821 <- store    *r820 ← r1426
-         r822 <- const8   6451424 (0x6270e0)
-         r823 <- call     r822
+  (  2)  r822 <- const8   6451424 (0x6270e0)
+  (  2)  r823 <- call     r822
          r824 <- carg     r805
          r825 <- carg     r810
          r826 <- carg     r818
@@ -3929,8 +3089,8 @@ ssa program  601 instrs
          r885 <- loadm8   addr:r884
          r890 <- addk     r853,8 qword
          r891 <- loadm8   addr:r890
-         r892 <- loadm8   addr:r891
-  (  3)  r893 <- call     r892
+  (  2)  r892 <- loadm8   addr:r891
+  (  4)  r893 <- call     r892
          r894 <- carg     r881
          r895 <- carg     r877
          r896 <- carg     r885
@@ -3951,8 +3111,6 @@ ssa program  601 instrs
          r937 <- jmp.if   r928,705
 .B33:  in[.B25 .B32 ]     ;; 0x5de2b6  15 insn 1 phis
          r1429 <- phi8
-         r1430 <- phiarg   r18
-         r1431 <- phiarg   r881
          r939 <- subk     r11,32 qword
          r940 <- loadm8   addr:r939
          r946 <- is0      r1429
@@ -3960,8 +3118,6 @@ ssa program  601 instrs
          r952 <- jmp.if   r951,1074
 .B34:  in[.B33 .B53 ]     ;; 0x5de2c0  19 insn 1 phis
          r1432 <- phi8
-         r1433 <- phiarg   r940
-         r1434 <- phiarg   r1329
          r954 <- addk     r133,1 qword
          r957 <- subk     r11,-16 qword
          r961 <- loadm8   addr:r957
@@ -3971,20 +3127,16 @@ ssa program  601 instrs
          r971 <- jmp.if   r970,1166
 .B35:  in[.B34 .B44 ]     ;; 0x5de2d5  10 insn 1 phis
          r1435 <- phi8
-         r1436 <- phiarg   r98
-         r1437 <- phiarg   r739
          r974 <- const4   0 (0x0)
          r975 <- v8.l4=   r1435 ← r974
 .B36:  in[.B35 .B45 ]     ;; 0x5de2d7  28 insn 1 phis
          r1438 <- phi8
-         r1439 <- phiarg   r975
-         r1440 <- phiarg   r1172
          r1009 <- ret      r1438
 .B37:  in[.B16 ]     ;; 0x5de2f0  31 insn 0 phis
          r1011 <- subk     r11,40 qword
          r1012 <- loadm8   addr:r1011
-         r1015 <- const8   4199232 (0x401340)
-         r1016 <- call     r1015
+  (  2)  r1015 <- const8   4199232 (0x401340)
+  (  2)  r1016 <- call     r1015
          r1017 <- carg     r1012
          r1018 <- carg     r483
          r1019 <- carg     r101
@@ -3997,8 +3149,8 @@ ssa program  601 instrs
 .B39:  in[.B17 ]     ;; 0x5de310  31 insn 0 phis
          r1043 <- subk     r11,40 qword
          r1044 <- loadm8   addr:r1043
-         r1047 <- const8   4199232 (0x401340)
-         r1048 <- call     r1047
+  (  2)  r1047 <- const8   4199232 (0x401340)
+  (  2)  r1048 <- call     r1047
          r1049 <- carg     r1044
          r1050 <- carg     r525
          r1051 <- carg     r101
@@ -4010,14 +3162,6 @@ ssa program  601 instrs
          r1073 <- jmp      660
 .B41:  in[.B1 .B4 .B13 .B18 .B24 .B30 .B31 .B33 ]     ;; 0x5de330  30 insn 1 phis
          r1441 <- phi8
-         r1442 <- phiarg   r98
-         r1443 <- phiarg   r98
-         r1444 <- phiarg   r358
-         r1445 <- phiarg   r527
-         r1446 <- phiarg   r98
-         r1447 <- phiarg   r842
-         r1448 <- phiarg   r908
-         r1449 <- phiarg   r98
          r1083 <- const4   2 (0x2)
          r1084 <- v8.l4=   r1441 ← r1083
          r1103 <- ret      r1084
@@ -4045,8 +3189,6 @@ ssa program  601 instrs
          r1165 <- jmp.if   r1160,972
 .B45:  in[.B34 .B44 ]     ;; 0x5de37b  14 insn 2 phis
          r1450 <- phi8
-         r1451 <- phiarg   r98
-         r1452 <- phiarg   r739
          r1167 <- phi8
          r1168 <- store    *r1167 ← r24
          r1171 <- const4   0 (0x0)
@@ -4057,8 +3199,8 @@ ssa program  601 instrs
          r1182 <- loadm8   addr:r1181
          r1186 <- subk     r11,-32 qword
          r1187 <- store    *r1186 ← r356
-         r1188 <- const8   4199232 (0x401340)
-         r1189 <- call     r1188
+  (  2)  r1188 <- const8   4199232 (0x401340)
+  (  2)  r1189 <- call     r1188
          r1190 <- carg     r1182
          r1191 <- carg     r352
          r1192 <- carg     r101
@@ -4073,8 +3215,8 @@ ssa program  601 instrs
          r1221 <- loadm8   addr:r1220
          r1225 <- subk     r11,-32 qword
          r1226 <- store    *r1225 ← r295
-         r1227 <- const8   4199232 (0x401340)
-         r1228 <- call     r1227
+  (  2)  r1227 <- const8   4199232 (0x401340)
+  (  2)  r1228 <- call     r1227
          r1229 <- carg     r1221
          r1230 <- carg     r291
          r1231 <- carg     r101
@@ -4091,8 +3233,8 @@ ssa program  601 instrs
          r1265 <- store    *r1264 ← r246
          r1267 <- subk     r11,-32 qword
          r1268 <- store    *r1267 ← r128
-         r1269 <- const8   4199232 (0x401340)
-         r1270 <- call     r1269
+  (  2)  r1269 <- const8   4199232 (0x401340)
+  (  2)  r1270 <- call     r1269
          r1271 <- carg     r1260
          r1272 <- carg     r242
          r1273 <- carg     r101
@@ -4106,7 +3248,7 @@ ssa program  601 instrs
   (  2)  r1302 <- subk     r11,40 qword
          r1303 <- loadm8   addr:r1302
          r1306 <- const8   4199136 (0x4012e0)
-         r1307 <- call     r1306
+  (  2)  r1307 <- call     r1306
          r1308 <- carg     r1303
          r1309 <- carg     r40
          r1310 <- carg     r18
@@ -4157,11 +3299,12 @@ ssa program  601 instrs
                         let mut r1337 = <pre:RSI>;
                         
                         'T4(r1337): {
-                            [<pre:RSP> - -24]:8 = [r1337 + 16]:8;
-                            if [r1337 + 16]:8 == 0 {
+                            let r156 = r1337 + 16;
+                            [<pre:RSP> - -24]:8 = [r156]:8;
+                            if [r156]:8 == 0 {
                                 let r174 = (<pre:RCX> with l4 = 0);
-                                let r183 = [r1337 + 16]:8 & 3;
-                                let r184 = ([r1337 + 16]:8 with l4 = r183);
+                                let r183 = [r156]:8 & 3;
+                                let r184 = ([r156]:8 with l4 = r183);
                                 if r183 == 0 {
                                     let r193 = r184 - 1;
                                     if r193 == 0 {

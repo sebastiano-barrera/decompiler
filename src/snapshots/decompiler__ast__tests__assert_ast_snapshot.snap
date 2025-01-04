@@ -3,6 +3,7 @@ source: src/ast.rs
 expression: out
 ---
 'T0: {
+    let r1 = <pre:arg0> + 8;
     <pre:arg0>.y = 123;
-    return <pre:arg0> + 8
+    return r1
 }

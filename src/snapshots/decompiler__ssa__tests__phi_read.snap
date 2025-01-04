@@ -2,7 +2,7 @@
 source: src/ssa.rs
 expression: prog
 ---
-ssa program  10 instrs
+ssa program  8 instrs
 .B0:  in[]     ;; 0xf0  2 insn 0 phis
          r0 <- const8   123 (0x7b)
          r1 <- jmp.if   r0,4
@@ -13,7 +13,5 @@ ssa program  10 instrs
          r4 <- const1   8 (0x8)
 .B3:  in[.B1 .B2 ]     ;; 0xf3  2 insn 1 phis
          r7 <- phi1
-         r8 <- phiarg   r2
-         r9 <- phiarg   r4
          r5 <- addk     r7,456 byte
          r6 <- ret      r5

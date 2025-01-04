@@ -26,7 +26,6 @@ pub struct Program {
     phis: cfg::BlockMap<PhiInfo>,
     cfg: cfg::Graph,
 
-    is_alive: Vec<bool>,
     rdr_count: ReaderCount,
 
     #[cfg(feature = "proto_typing")]
@@ -59,6 +58,10 @@ impl Program {
         Some(iv)
     }
 
+    pub fn reg_count(&self) -> mil::Index {
+        self.inner.len()
+    }
+
     pub fn readers_count(&self, reg: mil::Reg) -> usize {
         self.rdr_count.get(reg)
     }
@@ -68,16 +71,18 @@ impl Program {
     }
 
     pub fn is_alive(&self, reg: mil::Reg) -> bool {
-        self.is_alive[reg.0 as usize]
+        self.rdr_count.get(reg) > 0
+    }
+
+    pub fn live_regs(&self) -> impl '_ + Iterator<Item = mil::Reg> {
+        (0..self.reg_count())
+            .map(|ndx| mil::Reg(ndx))
+            .filter(|reg| self.is_alive(*reg))
     }
 
     /// Iterate through the instructions in the program, in no particular order
     pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView> {
-        self.inner
-            .iter()
-            .enumerate()
-            .filter(move |(ndx, _)| self.is_alive[*ndx])
-            .map(|(_, insn)| insn)
+        self.live_regs().map(|reg| self.get(reg).unwrap())
     }
 
     pub fn block_normal_insns(&self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
@@ -99,6 +104,34 @@ impl Program {
 
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
+        self.assert_inputs_alive();
+    }
+
+    fn assert_inputs_alive(&self) {
+        for bid in self.cfg.block_ids_rpo() {
+            for phi_reg in self.block_phi(bid).phi_regs() {
+                if !self.is_alive(phi_reg) {
+                    continue;
+                }
+
+                for arg in self.get_phi_args(phi_reg) {
+                    assert!(
+                        self.is_alive(arg),
+                        "{phi_reg:?}: phi input not alive: {arg:?}"
+                    );
+                }
+            }
+
+            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
+                if !self.is_alive(dest) {
+                    continue;
+                }
+
+                insn.input_regs_iter().for_each(|reg| {
+                    assert!(self.is_alive(reg), "{dest:?}: input not alive: {reg:?}");
+                });
+            }
+        }
     }
 
     fn assert_no_circular_refs(&self) {
@@ -202,7 +235,7 @@ impl PhiInfo {
 
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let count: usize = self.is_alive.iter().map(|x| *x as usize).sum();
+        let count: usize = self.live_regs().count();
         writeln!(f, "ssa program  {} instrs", count)?;
 
         for bid in self.cfg.block_ids() {
@@ -225,7 +258,8 @@ impl std::fmt::Debug for Program {
             )?;
 
             for ndx in phi_ndxs.chain(nor_ndxs) {
-                let is_alive = self.is_alive[ndx as usize];
+                let reg = mil::Reg(ndx);
+                let is_alive = self.is_alive(reg);
                 if !is_alive {
                     continue;
                 }
@@ -467,7 +501,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
     let var_count = program.len();
-    let is_alive = vec![true; var_count as usize];
     let rdr_count = ReaderCount::new(var_count);
 
     // establish SSA invariants
@@ -487,13 +520,13 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let mut ssa = Program {
         inner: program,
         cfg,
-        is_alive,
         phis,
         rdr_count,
 
         #[cfg(feature = "proto_typing")]
         ptr_regs: HashMap::new(),
     };
+    eliminate_dead_code(&mut ssa);
     narrow_phi_nodes(&mut ssa);
     ssa
 }
@@ -745,52 +778,50 @@ pub fn eliminate_dead_code(prog: &mut Program) {
         return;
     }
 
-    prog.is_alive.fill(false);
-    prog.rdr_count.reset();
+    let count = prog.reg_count();
+    let mut rdr_count = ReaderCount::new(count);
+    let mut visited = vec![false; count as usize];
 
-    // in this ordering, each node is always processed  before any of its parents.  it starts with
-    // exit nodes.
-    for bid in prog.cfg.block_ids_postorder() {
-        for ndx in prog.cfg.insns_ndx_range(bid).rev() {
-            let item = prog.inner.get(ndx).unwrap();
-            let dest = item.dest.get();
-            let insn = item.insn.get();
+    let mut queue: Vec<_> = prog
+        .inner
+        .iter()
+        .filter(|iv| iv.insn.get().has_side_effects())
+        .map(|iv| iv.dest.get())
+        .collect();
 
-            let is_alive = prog.is_alive.get_mut(dest.reg_index() as usize).unwrap();
-            *is_alive = insn.has_side_effects() || prog.rdr_count.get(dest) > 0;
-            if !*is_alive {
-                // this insn's reads don't count
-                continue;
-            }
+    for &side_fx_reg in &queue {
+        rdr_count.inc(side_fx_reg);
+    }
 
-            for &input in insn.input_regs().into_iter().flatten() {
-                prog.rdr_count.inc(input);
-            }
-        }
-
-        // at this point, rdr_count has been update for Insn::Phi  nodes; we extend is_alive to the
-        // corresponding Insn::PhiArg-s
-
-        // order of processing of phi nodes should not matter
-        let mut flag = false;
-        for ndx in prog.phis[bid].ndxs.clone() {
-            let reg = mil::Reg(ndx);
-            let is_alive = prog.is_alive.get_mut(reg.reg_index() as usize).unwrap();
-            *is_alive = prog.rdr_count.get(reg) > 0;
-            match prog.inner.get(ndx).unwrap().insn.get() {
-                mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
-                    flag = *is_alive;
-                }
-                mil::Insn::PhiArg(value) => {
-                    *is_alive = flag;
-                    if *is_alive {
-                        prog.rdr_count.inc(value);
+    while let Some(reg) = queue.pop() {
+        // we can assume no circular references
+        visited[reg.reg_index() as usize] = true;
+        let insn = prog.get(reg).unwrap().insn.get();
+        match insn {
+            mil::Insn::Phi1
+            | mil::Insn::Phi2
+            | mil::Insn::Phi4
+            | mil::Insn::Phi8
+            | mil::Insn::PhiBool => {
+                for input in prog.get_phi_args(reg) {
+                    rdr_count.inc(input);
+                    if !visited[input.reg_index() as usize] {
+                        queue.push(input);
                     }
                 }
-                _ => panic!("not phi!"),
+            }
+            _ => {
+                for input in insn.input_regs_iter() {
+                    rdr_count.inc(input);
+                    if !visited[input.reg_index() as usize] {
+                        queue.push(input);
+                    }
+                }
             }
         }
     }
+
+    prog.rdr_count = rdr_count;
 }
 
 #[derive(Debug)]
