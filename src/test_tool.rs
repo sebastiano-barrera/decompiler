@@ -23,6 +23,10 @@ pub enum Error {
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
+pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
+    Tester::start(raw_binary)?.process_function(function_name, out)
+}
+
 fn obj_format_name(object: &goblin::Object) -> &'static str {
     match object {
         goblin::Object::Elf(_) => "Elf",
@@ -34,102 +38,124 @@ fn obj_format_name(object: &goblin::Object) -> &'static str {
     }
 }
 
-pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
+pub struct Tester<'a> {
+    raw_binary: &'a [u8],
+    elf: goblin::elf::Elf<'a>,
+}
+
+impl<'a> Tester<'a> {
+    pub fn start(raw_binary: &'a [u8]) -> Result<Self> {
+        let elf = parse_elf(raw_binary)?;
+        Ok(Tester { raw_binary, elf })
+    }
+
+    pub fn process_function<W: pp::PP + ?Sized>(
+        &self,
+        function_name: &str,
+        out: &mut W,
+    ) -> std::result::Result<(), Error> {
+        let func_sym = self
+            .elf
+            .syms
+            .iter()
+            .find(|sym| self.elf.strtab.get_at(sym.st_name) == Some(function_name))
+            .expect("symbol not found");
+
+        if !func_sym.is_function() {
+            return Err(Error::NotAFunction(function_name.to_owned()));
+        }
+
+        let func_addr = func_sym.st_value as usize;
+        let func_size = func_sym.st_size as usize;
+        let func_end = func_addr + func_size;
+
+        let text_section = self
+            .elf
+            .section_headers
+            .iter()
+            .find(|sec| {
+                sec.is_executable() && self.elf.shdr_strtab.get_at(sec.sh_name) == Some(".text")
+            })
+            .expect("no .text section?!");
+
+        let vm_range = text_section.vm_range();
+        if vm_range.start > func_addr || vm_range.end < func_end {
+            writeln!(
+            out,
+            "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
+            func_addr, func_end, vm_range.start, vm_range.end
+        )?;
+        }
+
+        // function's offset into the file
+        let func_section_ofs = func_addr - vm_range.start;
+        let func_fofs = text_section.sh_offset as usize + func_section_ofs as usize;
+        let func_text = &self.raw_binary[func_fofs..func_fofs + func_size];
+        writeln!(
+            out,
+            "{} 0x{:x}+{} (file 0x{:x})",
+            function_name, func_addr, func_size, func_fofs,
+        )?;
+
+        let decoder = iced_x86::Decoder::with_ip(
+            64,
+            func_text,
+            func_addr.try_into().unwrap(),
+            iced_x86::DecoderOptions::NONE,
+        );
+        let mut formatter = iced_x86::IntelFormatter::new();
+        let mut instr_strbuf = String::new();
+        for instr in decoder {
+            write!(out, "{:16x}: ", instr.ip())?;
+            let ofs = instr.ip() as usize - func_addr;
+            let len = instr.len();
+            for i in 0..8 {
+                if i < len {
+                    write!(out, "{:02x} ", func_text[ofs + i])?;
+                } else {
+                    write!(out, "   ")?;
+                }
+            }
+
+            instr_strbuf.clear();
+            formatter.format(&instr, &mut instr_strbuf);
+            writeln!(out, "{}", instr_strbuf)?;
+        }
+
+        writeln!(out)?;
+        let mut decoder = iced_x86::Decoder::with_ip(
+            64,
+            func_text,
+            func_addr.try_into().unwrap(),
+            iced_x86::DecoderOptions::NONE,
+        );
+        let prog = x86_to_mil::translate(decoder.iter()).unwrap();
+        writeln!(out, "mil program = ")?;
+        writeln!(out, "{:?}", prog)?;
+
+        writeln!(out)?;
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        xform::canonical(&mut prog);
+        writeln!(out, "{:?}", prog)?;
+
+        writeln!(out)?;
+        let ast = ast::Builder::new(&prog).compile();
+        ast.pretty_print(out).unwrap();
+
+        Ok(())
+    }
+}
+
+fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
     let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
     let elf = match object {
         goblin::Object::Elf(elf) => elf,
         _ => return Err(Error::UnsupportedExecFormat(obj_format_name(&object))),
     };
-
     {
         let mut types = ty::TypeSet::new();
         let _ = ty::dwarf::load_dwarf_types(&elf, &raw_binary, &mut types)?;
         // types not used yet! we just delete them for now
     }
-
-    let func_sym = elf
-        .syms
-        .iter()
-        .find(|sym| elf.strtab.get_at(sym.st_name) == Some(function_name))
-        .expect("symbol not found");
-
-    if !func_sym.is_function() {
-        return Err(Error::NotAFunction(function_name.to_owned()));
-    }
-
-    let func_addr = func_sym.st_value as usize;
-    let func_size = func_sym.st_size as usize;
-    let func_end = func_addr + func_size;
-
-    let text_section = elf
-        .section_headers
-        .iter()
-        .find(|sec| sec.is_executable() && elf.shdr_strtab.get_at(sec.sh_name) == Some(".text"))
-        .expect("no .text section?!");
-
-    let vm_range = text_section.vm_range();
-    if vm_range.start > func_addr || vm_range.end < func_end {
-        writeln!(
-            out,
-            "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
-            func_addr, func_end, vm_range.start, vm_range.end
-        )?;
-    }
-
-    // function's offset into the file
-    let func_section_ofs = func_addr - vm_range.start;
-    let func_fofs = text_section.sh_offset as usize + func_section_ofs as usize;
-    let func_text = &raw_binary[func_fofs..func_fofs + func_size];
-    writeln!(
-        out,
-        "{} 0x{:x}+{} (file 0x{:x})",
-        function_name, func_addr, func_size, func_fofs,
-    )?;
-
-    let decoder = iced_x86::Decoder::with_ip(
-        64,
-        func_text,
-        func_addr.try_into().unwrap(),
-        iced_x86::DecoderOptions::NONE,
-    );
-    let mut formatter = iced_x86::IntelFormatter::new();
-    let mut instr_strbuf = String::new();
-    for instr in decoder {
-        write!(out, "{:16x}: ", instr.ip())?;
-        let ofs = instr.ip() as usize - func_addr;
-        let len = instr.len();
-        for i in 0..8 {
-            if i < len {
-                write!(out, "{:02x} ", func_text[ofs + i])?;
-            } else {
-                write!(out, "   ")?;
-            }
-        }
-
-        instr_strbuf.clear();
-        formatter.format(&instr, &mut instr_strbuf);
-        writeln!(out, "{}", instr_strbuf)?;
-    }
-
-    writeln!(out)?;
-    let mut decoder = iced_x86::Decoder::with_ip(
-        64,
-        func_text,
-        func_addr.try_into().unwrap(),
-        iced_x86::DecoderOptions::NONE,
-    );
-    let prog = x86_to_mil::translate(decoder.iter()).unwrap();
-    writeln!(out, "mil program = ")?;
-    writeln!(out, "{:?}", prog)?;
-
-    writeln!(out)?;
-    let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-    xform::canonical(&mut prog);
-    writeln!(out, "{:?}", prog)?;
-
-    writeln!(out)?;
-    let ast = ast::Builder::new(&prog).compile();
-    ast.pretty_print(out).unwrap();
-
-    Ok(())
+    Ok(elf)
 }

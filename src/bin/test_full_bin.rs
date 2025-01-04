@@ -57,14 +57,17 @@ fn main() {
         println!(" - {}", name);
     }
 
+    let tester = test_tool::Tester::start(&raw_binary).unwrap();
+
     for function_name in function_names {
+        println!("starting: {}", function_name);
         let filename = function_name.replace(|ch: char| !ch.is_alphanumeric(), "_");
         let path = opts.out_dir.join(filename);
 
         let res = std::panic::catch_unwind(|| {
             let out_file = File::create(&path).unwrap();
             let mut out = pp::PrettyPrinter::start(IoAsFmt(out_file));
-            let _ = test_tool::run(&raw_binary, &function_name, &mut out);
+            tester.process_function(&function_name, &mut out).unwrap();
         });
 
         if let Err(err) = res {
