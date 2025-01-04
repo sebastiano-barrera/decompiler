@@ -2,37 +2,6 @@
 source: tests/test_tool.rs
 expression: out
 ---
-dwarf types --[[
-TypeSet (21 types) = {
-  <0> = "i8" i8
-  <1> = "i32" i32
-  <2> = "void" void
-  <3> = "long unsigned int" u64
-  <4> = "unsigned int" u32
-  <5> = "unsigned char" u8
-  <6> = "short unsigned int" u16
-  <7> = "signed char" i8
-  <8> = "short int" i16
-  <9> = "int" i32
-  <10> = "unknown95" ?
-  <11> = "long int" i64
-  <12> = "char" i8
-  <13> = "unknown114" ?
-  <14> = *unknown114 <13>
-  <16> = "mat" struct {
-             @  0 numbers *unknown95 <10>
-             @  8 rows int <9>
-             @ 12 cols int <9>
-         }
-  <17> = *unknown95 <10>
-  <22> = "printf" func (<unnamed> *unknown114 <13>) int <9>
-  <25> = "sum_matrix" func (mat mat <16>) int <9>
-  <28> = "main" func () int <9>
-  <30> = "unknown407" ?
-}
-
-0 non-fatal errors:
-]]--
 sum_matrix 0x4011c9+115 (file 0x11c9)
           4011c9: 55                      push rbp
           4011ca: 48 89 e5                mov rbp,rsp

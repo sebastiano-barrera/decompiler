@@ -1,7 +1,11 @@
 use iced_x86::Formatter;
 use thiserror::Error;
 
-use crate::{ast, pp::PP, ssa, ty, x86_to_mil, xform};
+use crate::{
+    ast,
+    pp::{self, PP},
+    ssa, ty, x86_to_mil, xform,
+};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -13,6 +17,9 @@ pub enum Error {
 
     #[error("symbol `{0}` is not a function")]
     NotAFunction(String),
+
+    #[error("while parsing DWARF type info: {0}")]
+    DwarfTypeParserError(#[from] ty::dwarf::Error),
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -36,22 +43,8 @@ pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) 
 
     {
         let mut types = ty::TypeSet::new();
-        let res = ty::dwarf::load_dwarf_types(&elf, &raw_binary, &mut types);
-
-        writeln!(out, "dwarf types --[[")?;
-        match res {
-            Ok(report) => {
-                types.dump(out).unwrap();
-
-                writeln!(out)?;
-                writeln!(out, "{} non-fatal errors:", report.errors.len())?;
-                for (ofs, err) in &report.errors {
-                    writeln!(out, "offset 0x{:8x}: {}", ofs, err)?;
-                }
-            }
-            Err(err) => writeln!(out, "fatal error: {}", err)?,
-        }
-        writeln!(out, "]]--")?;
+        let _ = ty::dwarf::load_dwarf_types(&elf, &raw_binary, &mut types)?;
+        // types not used yet! we just delete them for now
     }
 
     let func_sym = elf

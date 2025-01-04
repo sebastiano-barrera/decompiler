@@ -5,7 +5,7 @@ use thiserror::Error;
 
 pub mod dwarf;
 
-use crate::pp::PP;
+use crate::pp::{self, PP};
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
@@ -411,6 +411,19 @@ pub enum SelectError {
 
     #[error("the given range is invalid for the type")]
     InvalidRange,
+}
+
+fn dump_types<W: pp::PP>(out: &mut W, report: &dwarf::Report, types: &TypeSet) -> std::fmt::Result {
+    writeln!(out, "dwarf types --[[")?;
+    types.dump(out).unwrap();
+
+    writeln!(out)?;
+    writeln!(out, "{} non-fatal errors:", report.errors.len())?;
+    for (ofs, err) in &report.errors {
+        writeln!(out, "offset 0x{:8x}: {}", ofs, err)?;
+    }
+    writeln!(out, "]]--")?;
+    Ok(())
 }
 
 #[cfg(test)]

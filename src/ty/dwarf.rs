@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::ty;
 
@@ -40,10 +40,47 @@ pub fn load_dwarf_types(
     raw_elf: &[u8],
     types: &mut ty::TypeSet,
 ) -> Result<Report> {
-    let parser = TypeParser::new(elf, raw_elf)?;
-    parser.load_types(types)?;
+    let endianity = if elf.little_endian {
+        gimli::RunTimeEndian::Little
+    } else {
+        gimli::RunTimeEndian::Big
+    };
 
-    let errors = parser.errors.take();
+    let dwarf = gimli::Dwarf::load(|section| -> std::result::Result<_, ()> {
+        let bytes = elf
+            .section_headers
+            .iter()
+            .find(|sec| elf.shdr_strtab.get_at(sec.sh_name) == Some(section.name()))
+            .and_then(|sec_hdr| {
+                let file_range = sec_hdr.file_range()?;
+                Some(&raw_elf[file_range])
+            })
+            .unwrap_or(&[]);
+        Ok(EndianSlice::new(bytes, endianity))
+    })
+    .unwrap(); // never fails...
+
+    // "unit" means "compilation unit" here
+    // we only parse .debug_info, not .debug_types
+    // an effort is only made to support DWARF5, not DWARF4
+    let mut errors = Vec::new();
+    let mut units = dwarf.debug_info.units();
+
+    let mut is_empty = true;
+    while let Some(unit_hdr) = units.next()? {
+        is_empty = false;
+
+        let unit = dwarf.unit(unit_hdr)?;
+        let parser = TypeParser::new(&dwarf, unit);
+        parser.load_types(types)?;
+
+        errors.extend(parser.errors.take());
+    }
+
+    if is_empty {
+        return Err(Error::NoCompileUnit);
+    }
+
     Ok(Report { errors })
 }
 
@@ -51,55 +88,22 @@ type ESlice<'d> = EndianSlice<'d, gimli::RunTimeEndian>;
 type GimliNode<'a, 'b, 'c, 'd> = gimli::EntriesTreeNode<'a, 'b, 'c, ESlice<'d>>;
 
 struct TypeParser<'a> {
-    dwarf: gimli::Dwarf<ESlice<'a>>,
+    dwarf: &'a gimli::Dwarf<ESlice<'a>>,
     unit: gimli::Unit<ESlice<'a>, usize>,
     errors: RefCell<Vec<(usize, Error)>>,
-    tyid_of_node: RefCell<HashMap<gimli::UnitOffset, ty::TypeID>>,
+    tyid_of_node: RefCell<HashMap<gimli::DebugInfoOffset, ty::TypeID>>,
 }
 
 type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
 
 impl<'a> TypeParser<'a> {
-    fn new(elf: &goblin::elf::Elf<'a>, contents: &'a [u8]) -> Result<Self> {
-        let endianity = if elf.little_endian {
-            gimli::RunTimeEndian::Little
-        } else {
-            gimli::RunTimeEndian::Big
-        };
-
-        let dwarf = gimli::Dwarf::load(|section| -> std::result::Result<_, ()> {
-            let bytes = elf
-                .section_headers
-                .iter()
-                .find(|sec| elf.shdr_strtab.get_at(sec.sh_name) == Some(section.name()))
-                .and_then(|sec_hdr| {
-                    let file_range = sec_hdr.file_range()?;
-                    Some(&contents[file_range])
-                })
-                .unwrap_or(&[]);
-            Ok(EndianSlice::new(bytes, endianity))
-        })
-        .unwrap(); // never fails...
-
-        // "unit" means "compilation unit" here
-        let unit_hdr = {
-            let mut units = dwarf.debug_info.units();
-            let Some(unit_hdr) = units.next()? else {
-                return Err(Error::NoCompileUnit);
-            };
-            if units.next()?.is_some() {
-                eprintln!("warning: the given ELF contains debug info for multiple compilation units. only one will be parsed; the others will be ignored.");
-            }
-            unit_hdr
-        };
-
-        let unit = dwarf.unit(unit_hdr)?;
-        Ok(TypeParser {
+    fn new(dwarf: &'a gimli::Dwarf<ESlice<'a>>, unit: gimli::Unit<ESlice<'a>, usize>) -> Self {
+        TypeParser {
             dwarf,
             unit,
             errors: RefCell::new(Vec::new()),
             tyid_of_node: RefCell::new(HashMap::new()),
-        })
+        }
     }
 
     fn load_types(&self, types: &'a mut ty::TypeSet) -> Result<()> {
@@ -135,7 +139,11 @@ impl<'a> TypeParser<'a> {
         //
         // This function is memoized via `self.tyid_of_node`.
         let tyid = types.alloc_type_id();
-        let key = node.entry().offset();
+        let key = node
+            .entry()
+            .offset()
+            .to_debug_info_offset(&self.unit.header)
+            .expect("unit must be in .debug_info section");
         {
             let mut tyid_of_node = self.tyid_of_node.borrow_mut();
             if let Some(&tyid) = tyid_of_node.get(&key) {
