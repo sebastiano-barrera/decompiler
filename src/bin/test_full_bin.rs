@@ -3,7 +3,7 @@ use decompiler::{
     test_tool,
 };
 
-// use rayon::prelude::*;
+use rayon::prelude::*;
 use std::{borrow::Cow, io::Write};
 use std::{fmt::Debug, fs::File, io::Read, path::PathBuf};
 
@@ -59,7 +59,7 @@ fn main() {
 
     let tester = test_tool::Tester::start(&raw_binary).unwrap();
 
-    for function_name in function_names {
+    function_names.par_iter().for_each(|function_name| {
         println!("starting: {}", function_name);
         let filename = function_name.replace(|ch: char| !ch.is_alphanumeric(), "_");
         let path = opts.out_dir.join(filename);
@@ -83,5 +83,5 @@ fn main() {
             writeln!(out_file, "---- error:").unwrap();
             writeln!(out_file, "{}", err).unwrap();
         }
-    }
+    });
 }
