@@ -687,9 +687,7 @@ impl<'a> Builder<'a> {
         let types = self.types?;
         let pt = self.ssa.ptr_type(base_reg)?;
 
-        let sel = types.select(pt.pointee_tyid, offset_range);
-        eprintln!("sel = {:?}", sel); // TODO delete this
-        let sel = sel.ok()?;
+        let sel = types.select(pt.pointee_tyid, offset_range).ok()?;
 
         let path = sel
             .path

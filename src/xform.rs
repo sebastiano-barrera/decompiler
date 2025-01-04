@@ -114,12 +114,6 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                 _ => continue,
             };
 
-            eprintln!(
-                "replacing [{}]: {:?} -> {:?}",
-                ndx,
-                insn_cell.get(),
-                repl_insn
-            );
             insn_cell.set(repl_insn);
         }
     }
