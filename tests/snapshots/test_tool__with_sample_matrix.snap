@@ -277,7 +277,7 @@ program  195 instrs
 
 ssa pre-xform:
 ssa program  112 instrs
-.B0:  in[]     ;; 0x0  58 insn 0 phis
+.B0:    ;;  addr:0x0; 58 insn 0 phis
          r10 <- #pre:RBP
          r11 <- #pre:RSP
   (  2)  r13 <- #pre:RDI
@@ -299,13 +299,47 @@ ssa program  112 instrs
          r55 <- add      r54,r34  qword
          r56 <- store    *r55 ← r53
          r57 <- jmp      169
-.B1:  in[.B5 ]     ;; 0x4011f6  5 insn 0 phis
+.B5:    ;;  preds:B0,B4  addr:0x40122f; 18 insn 1 phis
+                  ɸ  B0     B4     
+           r198   <- r13    r140   
+         r169 <- const8   -24 (0xffffffffffffffe8)
+         r170 <- add      r169,r34  qword
+         r171 <- loadm4   addr:r170
+  (  3)  r172 <- v8.l4=   r198 ← r171
+         r173 <- const8   -8 (0xfffffffffffffff8)
+         r174 <- add      r173,r34  qword
+         r175 <- loadm4   addr:r174
+         r176 <- l4       r172
+  (  2)  r177 <- sub      r175,r176  dword
+         r178 <- overflow r177
+         r180 <- sign     r177
+         r184 <- ==       r180,r178
+         r185 <- not      r184
+         r186 <- jmp.if   r185,58
+.B1:    ;;  preds:B5  addr:0x4011f6; 5 insn 0 phis
          r58 <- const4   0 (0x0)
          r59 <- const8   -12 (0xfffffffffffffff4)
          r60 <- add      r59,r34  qword
          r61 <- store    *r60 ← r58
          r62 <- jmp      137
-.B2:  in[.B3 ]     ;; 0x4011ff  74 insn 0 phis
+.B3:    ;;  preds:B1,B2  addr:0x401223; 18 insn 1 phis
+                  ɸ  B1     B2     
+           r195   <- r172   r108   
+         r137 <- const8   -20 (0xffffffffffffffec)
+         r138 <- add      r137,r34  qword
+         r139 <- loadm4   addr:r138
+  (  3)  r140 <- v8.l4=   r195 ← r139
+         r141 <- const8   -12 (0xfffffffffffffff4)
+         r142 <- add      r141,r34  qword
+         r143 <- loadm4   addr:r142
+         r144 <- l4       r140
+  (  2)  r145 <- sub      r143,r144  dword
+         r146 <- overflow r145
+         r148 <- sign     r145
+         r152 <- ==       r148,r146
+         r153 <- not      r152
+         r154 <- jmp.if   r153,63
+.B2:    ;;  preds:B3  addr:0x4011ff; 74 insn 0 phis
          r63 <- const8   -32 (0xffffffffffffffe0)
          r64 <- add      r63,r34  qword
   (  2)  r65 <- loadm8   addr:r64
@@ -349,23 +383,7 @@ ssa program  112 instrs
          r128 <- const8   -12 (0xfffffffffffffff4)
          r129 <- add      r128,r34  qword
          r130 <- store    *r129 ← r127
-.B3:  in[.B1 .B2 ]     ;; 0x401223  18 insn 1 phis
-         r195 <- phi8
-         r137 <- const8   -20 (0xffffffffffffffec)
-         r138 <- add      r137,r34  qword
-         r139 <- loadm4   addr:r138
-  (  3)  r140 <- v8.l4=   r195 ← r139
-         r141 <- const8   -12 (0xfffffffffffffff4)
-         r142 <- add      r141,r34  qword
-         r143 <- loadm4   addr:r142
-         r144 <- l4       r140
-  (  2)  r145 <- sub      r143,r144  dword
-         r146 <- overflow r145
-         r148 <- sign     r145
-         r152 <- ==       r148,r146
-         r153 <- not      r152
-         r154 <- jmp.if   r153,63
-.B4:  in[.B3 ]     ;; 0x40122b  14 insn 0 phis
+.B4:    ;;  preds:B3  addr:0x40122b; 14 insn 0 phis
          r155 <- const8   -8 (0xfffffffffffffff8)
          r156 <- add      r155,r34  qword
          r157 <- loadm4   addr:r156
@@ -374,23 +392,7 @@ ssa program  112 instrs
          r160 <- const8   -8 (0xfffffffffffffff8)
          r161 <- add      r160,r34  qword
          r162 <- store    *r161 ← r159
-.B5:  in[.B0 .B4 ]     ;; 0x40122f  18 insn 1 phis
-         r198 <- phi8
-         r169 <- const8   -24 (0xffffffffffffffe8)
-         r170 <- add      r169,r34  qword
-         r171 <- loadm4   addr:r170
-  (  3)  r172 <- v8.l4=   r198 ← r171
-         r173 <- const8   -8 (0xfffffffffffffff8)
-         r174 <- add      r173,r34  qword
-         r175 <- loadm4   addr:r174
-         r176 <- l4       r172
-  (  2)  r177 <- sub      r175,r176  dword
-         r178 <- overflow r177
-         r180 <- sign     r177
-         r184 <- ==       r180,r178
-         r185 <- not      r184
-         r186 <- jmp.if   r185,58
-.B6:  in[.B5 ]     ;; 0x401237  8 insn 0 phis
+.B6:    ;;  preds:B5  addr:0x401237; 8 insn 0 phis
          r187 <- const8   -4 (0xfffffffffffffffc)
          r188 <- add      r187,r34  qword
          r189 <- loadm4   addr:r188
@@ -400,7 +402,7 @@ ssa program  112 instrs
 
 ssa post-xform:
 ssa program  81 instrs
-.B0:  in[]     ;; 0x0  58 insn 0 phis
+.B0:    ;;  addr:0x0; 58 insn 0 phis
          r10 <- #pre:RBP
   ( 20)  r11 <- #pre:RSP
   (  2)  r13 <- #pre:RDI
@@ -418,12 +420,40 @@ ssa program  81 instrs
          r55 <- addk     r11,-16 qword
          r56 <- store    *r55 ← r53
          r57 <- jmp      169
-.B1:  in[.B5 ]     ;; 0x4011f6  5 insn 0 phis
+.B5:    ;;  preds:B0,B4  addr:0x40122f; 18 insn 1 phis
+                  ɸ  B0     B4     
+  (  2)    r198   <- r13    r140   
+         r170 <- addk     r11,-32 qword
+  (  2)  r171 <- loadm4   addr:r170
+         r172 <- v8.l4=   r198 ← r171
+         r174 <- addk     r11,-16 qword
+         r175 <- loadm4   addr:r174
+  (  2)  r177 <- sub      r175,r171  dword
+         r178 <- overflow r177
+         r180 <- sign     r177
+         r184 <- ==       r180,r178
+         r185 <- not      r184
+         r186 <- jmp.if   r185,58
+.B1:    ;;  preds:B5  addr:0x4011f6; 5 insn 0 phis
          r58 <- const4   0 (0x0)
          r60 <- addk     r11,-20 qword
          r61 <- store    *r60 ← r58
          r62 <- jmp      137
-.B2:  in[.B3 ]     ;; 0x4011ff  74 insn 0 phis
+.B3:    ;;  preds:B1,B2  addr:0x401223; 18 insn 1 phis
+                  ɸ  B1     B2     
+  (  2)    r195   <- r172   r108   
+         r138 <- addk     r11,-28 qword
+  (  2)  r139 <- loadm4   addr:r138
+         r140 <- v8.l4=   r195 ← r139
+         r142 <- addk     r11,-20 qword
+         r143 <- loadm4   addr:r142
+  (  2)  r145 <- sub      r143,r139  dword
+         r146 <- overflow r145
+         r148 <- sign     r145
+         r152 <- ==       r148,r146
+         r153 <- not      r152
+         r154 <- jmp.if   r153,63
+.B2:    ;;  preds:B3  addr:0x4011ff; 74 insn 0 phis
          r64 <- addk     r11,-40 qword
   (  2)  r65 <- loadm8   addr:r64
          r68 <- addk     r11,-28 qword
@@ -451,39 +481,13 @@ ssa program  81 instrs
          r127 <- addk     r125,1 qword
          r129 <- addk     r11,-20 qword
          r130 <- store    *r129 ← r127
-.B3:  in[.B1 .B2 ]     ;; 0x401223  18 insn 1 phis
-  (  2)  r195 <- phi8
-         r138 <- addk     r11,-28 qword
-  (  2)  r139 <- loadm4   addr:r138
-         r140 <- v8.l4=   r195 ← r139
-         r142 <- addk     r11,-20 qword
-         r143 <- loadm4   addr:r142
-  (  2)  r145 <- sub      r143,r139  dword
-         r146 <- overflow r145
-         r148 <- sign     r145
-         r152 <- ==       r148,r146
-         r153 <- not      r152
-         r154 <- jmp.if   r153,63
-.B4:  in[.B3 ]     ;; 0x40122b  14 insn 0 phis
+.B4:    ;;  preds:B3  addr:0x40122b; 14 insn 0 phis
          r156 <- addk     r11,-16 qword
          r157 <- loadm4   addr:r156
          r159 <- addk     r157,1 qword
          r161 <- addk     r11,-16 qword
          r162 <- store    *r161 ← r159
-.B5:  in[.B0 .B4 ]     ;; 0x40122f  18 insn 1 phis
-  (  2)  r198 <- phi8
-         r170 <- addk     r11,-32 qword
-  (  2)  r171 <- loadm4   addr:r170
-         r172 <- v8.l4=   r198 ← r171
-         r174 <- addk     r11,-16 qword
-         r175 <- loadm4   addr:r174
-  (  2)  r177 <- sub      r175,r171  dword
-         r178 <- overflow r177
-         r180 <- sign     r177
-         r184 <- ==       r180,r178
-         r185 <- not      r184
-         r186 <- jmp.if   r185,58
-.B6:  in[.B5 ]     ;; 0x401237  8 insn 0 phis
+.B6:    ;;  preds:B5  addr:0x401237; 8 insn 0 phis
          r188 <- addk     r11,-12 qword
          r189 <- loadm4   addr:r188
          r190 <- v8.l4=   r198 ← r189

@@ -95,7 +95,7 @@ program  70 instrs
 
 ssa pre-xform:
 ssa program  21 instrs
-.B0:  in[]     ;; 0x0  47 insn 0 phis
+.B0:    ;;  addr:0x0; 47 insn 0 phis
          r11 <- #pre:RSP
   (  3)  r15 <- #pre:RAX
          r34 <- l4       r15
@@ -104,9 +104,10 @@ ssa program  21 instrs
   (  2)  r37 <- v8.l4=   r15 ← r36
          r44 <- const8   8 (0x8)
          r45 <- add      r44,r11  qword
-.B1:  in[.B0 .B1 ]     ;; 0x1140  22 insn 2 phis
-  (  2)  r70 <- phi8
-         r73 <- phi8
+.B1:    ;;  preds:B0,B1  addr:0x1140; 22 insn 2 phis
+                  ɸ  B0     B1     
+  (  2)    r70    <- r37    r49    
+           r73    <- r45    r60    
          r47 <- l4       r70
          r48 <- addk     r47,1 dword
   (  3)  r49 <- v8.l4=   r70 ← r48
@@ -117,21 +118,22 @@ ssa program  21 instrs
          r62 <- is0      r60
          r67 <- not      r62
          r68 <- jmp.if   r67,47
-.B2:  in[.B1 ]     ;; 0x114b  1 insn 0 phis
+.B2:    ;;  preds:B1  addr:0x114b; 1 insn 0 phis
          r69 <- ret      r49
 
 
 ssa post-xform:
 ssa program  16 instrs
-.B0:  in[]     ;; 0x0  47 insn 0 phis
+.B0:    ;;  addr:0x0; 47 insn 0 phis
          r11 <- #pre:RSP
          r15 <- #pre:RAX
          r36 <- const4   0 (0x0)
   (  2)  r37 <- v8.l4=   r15 ← r36
          r45 <- addk     r11,8 qword
-.B1:  in[.B0 .B1 ]     ;; 0x1140  22 insn 2 phis
-  (  2)  r70 <- phi8
-         r73 <- phi8
+.B1:    ;;  preds:B0,B1  addr:0x1140; 22 insn 2 phis
+                  ɸ  B0     B1     
+  (  2)    r70    <- r37    r49    
+           r73    <- r45    r60    
          r48 <- addk     r70,1 dword
   (  3)  r49 <- v8.l4=   r70 ← r48
          r57 <- addk     r73,16 qword
@@ -140,7 +142,7 @@ ssa program  16 instrs
          r62 <- is0      r58
          r67 <- not      r62
          r68 <- jmp.if   r67,47
-.B2:  in[.B1 ]     ;; 0x114b  1 insn 0 phis
+.B2:    ;;  preds:B1  addr:0x114b; 1 insn 0 phis
          r69 <- ret      r49
 
 

@@ -59,7 +59,7 @@ program  47 instrs
 
 
 ssa program  12 instrs
-.B0:  in[]     ;; 0x0  47 insn 0 phis
+.B0:    ;;  addr:0x0; 47 insn 0 phis
   (  2)  r13 <- #pre:RDI
          r15 <- #pre:RAX
          r34 <- const8   0 (0x0)

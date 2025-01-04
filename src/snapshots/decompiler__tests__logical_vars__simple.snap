@@ -50,7 +50,7 @@ program  40 instrs
 
 
 ssa program  7 instrs
-.B0:  in[]     ;; 0x0  40 insn 0 phis
+.B0:    ;;  addr:0x0; 40 insn 0 phis
          r13 <- #pre:RDI
          r15 <- #pre:RAX
          r35 <- #pre:RDI

@@ -238,40 +238,65 @@ impl std::fmt::Debug for Program {
         let count: usize = self.live_regs().count();
         writeln!(f, "ssa program  {} instrs", count)?;
 
-        for bid in self.cfg.block_ids() {
-            let phis = &self.phis[bid];
-            let phi_ndxs = phis.ndxs.clone();
-            let nor_ndxs = self.cfg.insns_ndx_range(bid);
-            let block_addr = self.inner.get(nor_ndxs.start).unwrap().addr;
+        for bid in self.cfg.block_ids_rpo() {
+            let phis = self.block_phi(bid);
+            let block_addr = {
+                let nor_ndxs = self.cfg.insns_ndx_range(bid);
+                self.inner.get(nor_ndxs.start).unwrap().addr
+            };
+            let insns = self.block_normal_insns(bid).unwrap();
 
-            write!(f, ".B{}:  in[", bid.as_usize())?;
-            for pred in self.cfg.block_preds(bid) {
-                write!(f, ".B{} ", pred.as_number())?;
+            write!(f, ".B{}:    ;;  ", bid.as_usize())?;
+            let preds = self.cfg.block_preds(bid);
+            if preds.len() > 0 {
+                write!(f, "preds:")?;
+                for (ndx, pred) in preds.iter().enumerate() {
+                    if ndx > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "B{}", pred.as_number())?;
+                }
+                write!(f, "  ")?;
             }
-            write!(f, "]  ")?;
             writeln!(
                 f,
-                "   ;; 0x{:x}  {} insn {} phis",
+                "addr:0x{:x}; {} insn {} phis",
                 block_addr,
-                nor_ndxs.len(),
-                phis.phi_count,
+                insns.insns.len(),
+                phis.phi_count(),
             )?;
 
-            for ndx in phi_ndxs.chain(nor_ndxs) {
-                let reg = mil::Reg(ndx);
-                let is_alive = self.is_alive(reg);
-                if !is_alive {
-                    continue;
-                }
-
-                let item = self.inner.get(ndx).unwrap();
-                let rdr_count = self.rdr_count.get(item.dest.get());
+            let print_rdr_count = |f: &mut std::fmt::Formatter, reg| -> std::fmt::Result {
+                let rdr_count = self.rdr_count.get(reg);
                 if rdr_count > 1 {
                     write!(f, "  ({:3})  ", rdr_count)?;
                 } else {
                     write!(f, "         ")?;
                 }
-                writeln!(f, "{:?} <- {:?}", item.dest.get(), item.insn.get())?;
+                Ok(())
+            };
+
+            if phis.phi_count() > 0 {
+                write!(f, "                  ɸ  ")?;
+                for pred in preds {
+                    write!(f, "B{:<5} ", pred.as_number())?;
+                }
+                writeln!(f)?;
+                for phi in phis.phi_regs() {
+                    print_rdr_count(f, phi)?;
+                    write!(f, "  r{:<5} <- ", phi.0)?;
+                    for arg in self.get_phi_args(phi) {
+                        write!(f, "r{:<5} ", arg.0)?;
+                    }
+                    writeln!(f)?;
+                }
+            }
+
+            for (dest, insn) in insns.iter_copied() {
+                if self.is_alive(dest) {
+                    print_rdr_count(f, dest)?;
+                    writeln!(f, "{:?} <- {:?}", dest, insn)?;
+                }
             }
         }
 
