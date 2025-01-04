@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use iced_x86::Formatter;
 use thiserror::Error;
 
@@ -41,12 +43,38 @@ fn obj_format_name(object: &goblin::Object) -> &'static str {
 pub struct Tester<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
+    func_syms: HashMap<String, AddrRange>,
+}
+
+#[derive(Clone, Copy)]
+struct AddrRange {
+    base: usize,
+    size: usize,
 }
 
 impl<'a> Tester<'a> {
     pub fn start(raw_binary: &'a [u8]) -> Result<Self> {
         let elf = parse_elf(raw_binary)?;
-        Ok(Tester { raw_binary, elf })
+        let func_syms = elf
+            .syms
+            .iter()
+            .filter(|sym| sym.is_function())
+            .filter_map(|sym| {
+                let name = elf.strtab.get_at(sym.st_name)?;
+                let base = sym.st_value as usize;
+                let size = sym.st_size as usize;
+                Some((name.to_owned(), AddrRange { base, size }))
+            })
+            .collect();
+        Ok(Tester {
+            raw_binary,
+            elf,
+            func_syms,
+        })
+    }
+
+    pub fn function_names(&self) -> impl ExactSizeIterator<Item = &str> {
+        self.func_syms.keys().map(|s| s.as_str())
     }
 
     pub fn process_function<W: pp::PP + ?Sized>(
@@ -54,19 +82,15 @@ impl<'a> Tester<'a> {
         function_name: &str,
         out: &mut W,
     ) -> std::result::Result<(), Error> {
-        let func_sym = self
-            .elf
-            .syms
-            .iter()
-            .find(|sym| self.elf.strtab.get_at(sym.st_name) == Some(function_name))
-            .expect("symbol not found");
+        let AddrRange {
+            base: func_addr,
+            size: func_size,
+        } = self
+            .func_syms
+            .get(function_name)
+            .copied()
+            .ok_or(Error::NotAFunction(function_name.to_owned()))?;
 
-        if !func_sym.is_function() {
-            return Err(Error::NotAFunction(function_name.to_owned()));
-        }
-
-        let func_addr = func_sym.st_value as usize;
-        let func_size = func_sym.st_size as usize;
         let func_end = func_addr + func_size;
 
         let text_section = self

@@ -38,27 +38,14 @@ fn main() {
         contents
     };
 
-    let function_names: Vec<_> = {
-        let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
-        let elf = match object {
-            goblin::Object::Elf(elf) => elf,
-            _ => panic!("unsuppored binary format: {:?}", object),
-        };
+    let tester = test_tool::Tester::start(&raw_binary).unwrap();
 
-        elf.syms
-            .iter()
-            .filter(|sym| sym.is_function() && !sym.is_import())
-            .map(|sym| elf.strtab.get_at(sym.st_name).unwrap().to_owned())
-            .collect()
-    };
-
-    println!("parsing {} functions:", function_names.len());
-    for name in &function_names {
+    println!("parsing {} functions:", tester.function_names().len());
+    for name in tester.function_names() {
         println!(" - {}", name);
     }
 
-    let tester = test_tool::Tester::start(&raw_binary).unwrap();
-
+    let function_names: Vec<_> = tester.function_names().map(|s| s.to_owned()).collect();
     function_names.par_iter().for_each(|function_name| {
         println!("starting: {}", function_name);
         let filename = function_name.replace(|ch: char| !ch.is_alphanumeric(), "_");

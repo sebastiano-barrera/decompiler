@@ -575,8 +575,6 @@ impl Builder {
             OpKind::Immediate16 => self.emit(v0, mil::Insn::Const2(insn.immediate16() as i16)),
             OpKind::Immediate32 => self.emit(v0, mil::Insn::Const4(insn.immediate32() as i32)),
             OpKind::Immediate64 => self.emit(v0, mil::Insn::Const8(insn.immediate64() as i64)),
-            // these are sign-extended (to different sizes). the conversion to u64 keeps the same bits,
-            // so I think we don't lose any info (semantic or otherwise)
             OpKind::Immediate8to16 => self.emit(v0, mil::Insn::Const2(insn.immediate8to16())),
             OpKind::Immediate8to32 => self.emit(v0, mil::Insn::Const4(insn.immediate8to32())),
             OpKind::Immediate8to64 => self.emit(v0, mil::Insn::Const8(insn.immediate8to64())),
