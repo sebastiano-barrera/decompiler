@@ -62,7 +62,7 @@ pub fn fold_constants(prog: &mut ssa::Program) {
 
     for bid in prog.cfg().block_ids_rpo() {
         let insns = prog.block_normal_insns(bid).unwrap();
-        for (ndx, insn_cell) in insns.insns.iter().enumerate() {
+        for insn_cell in insns.insns.iter() {
             let repl_insn = match insn_cell.get() {
                 Insn::Arith1(op, a, b)
                 | Insn::Arith2(op, a, b)
@@ -231,12 +231,30 @@ pub fn fold_get(prog: &mut ssa::Program) {
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 pub fn canonical(prog: &mut ssa::Program) {
+    prog.assert_invariants();
+
     fold_subregs(prog);
+    #[cfg(debug_assertions)]
+    prog.assert_invariants();
+
     fold_get(prog);
+    #[cfg(debug_assertions)]
+    prog.assert_invariants();
+
     fold_bitops(prog);
+    #[cfg(debug_assertions)]
+    prog.assert_invariants();
+
     fold_get(prog);
+    #[cfg(debug_assertions)]
+    prog.assert_invariants();
+
     fold_constants(prog);
+    #[cfg(debug_assertions)]
+    prog.assert_invariants();
+
     ssa::eliminate_dead_code(prog);
+    prog.assert_invariants();
 }
 
 #[cfg(test)]

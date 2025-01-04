@@ -1,4 +1,7 @@
-use std::{collections::HashMap, ops::Range};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -93,6 +96,48 @@ impl Program {
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
         self.inner.value_type(reg.0)
     }
+
+    pub fn assert_invariants(&self) {
+        self.assert_no_circular_refs();
+    }
+
+    fn assert_no_circular_refs(&self) {
+        let mut defined = HashSet::new();
+        for bid in self.cfg.block_ids_rpo() {
+            for phi_reg in self.block_phi(bid).phi_regs() {
+                // phi arguments are not checked
+                let is_first_def = defined.insert(phi_reg);
+                assert!(is_first_def);
+            }
+
+            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
+                insn.input_regs_iter().for_each(|reg| {
+                    assert!(defined.contains(&reg), "{dest:?}: undefined reg: {reg:?}")
+                });
+
+                let is_first_def = defined.insert(dest);
+                assert!(is_first_def);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+#[should_panic]
+fn test_assert_no_circular_refs() {
+    use mil::{ArithOp, Insn, Reg};
+
+    let prog = {
+        let mut pb = mil::ProgramBuilder::new();
+        pb.set_input_addr(0xf0);
+        pb.push(Reg(0), Insn::Const8(123));
+        pb.push(Reg(1), Insn::Arith8(ArithOp::Add, Reg(0), Reg(2)));
+        pb.push(Reg(2), Insn::Arith8(ArithOp::Add, Reg(0), Reg(1)));
+        pb.build()
+    };
+    let prog = mil_to_ssa(ConversionParams::new(prog));
+    prog.assert_no_circular_refs();
 }
 
 #[cfg(feature = "proto_typing")]
@@ -127,7 +172,7 @@ impl PhiInfo {
         self.phi_count
     }
 
-    pub fn node_ndx(&self, phi_ndx: mil::Index) -> mil::Reg {
+    pub fn phi_reg(&self, phi_ndx: mil::Index) -> mil::Reg {
         assert!(phi_ndx < self.phi_count);
         assert_eq!(
             self.ndxs.len(),
@@ -135,6 +180,10 @@ impl PhiInfo {
         );
         let value_ndx = self.ndxs.start + phi_ndx * (1 + self.pred_count);
         mil::Reg(value_ndx)
+    }
+
+    pub fn phi_regs(&self) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
+        (0..self.phi_count).map(|phi_ndx| self.phi_reg(phi_ndx))
     }
 
     pub fn arg<'p>(&self, ssa: &'p Program, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
@@ -147,7 +196,7 @@ impl PhiInfo {
 
     fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
         assert!(pred_ndx < self.pred_count);
-        mil::Reg(self.node_ndx(phi_ndx).0 + 1 + pred_ndx)
+        mil::Reg(self.phi_reg(phi_ndx).0 + 1 + pred_ndx)
     }
 }
 

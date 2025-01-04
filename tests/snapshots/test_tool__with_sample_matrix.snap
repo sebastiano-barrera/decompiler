@@ -275,6 +275,219 @@ program  195 instrs
   194 r28 <- ret      r16
 
 
+ssa pre-xform:
+ssa program  201 instrs
+.B0:  in[]     ;; 0x0  58 insn 0 phis
+         r0 <- #pre:stack_bottom
+         r1 <- #pre:CF
+         r2 <- #pre:PF
+         r3 <- #pre:AF
+         r4 <- #pre:ZF
+         r5 <- #pre:SF
+         r6 <- #pre:TF
+         r7 <- #pre:IF
+         r8 <- #pre:DF
+         r9 <- #pre:OF
+         r10 <- #pre:RBP
+         r11 <- #pre:RSP
+         r12 <- #pre:RIP
+         r13 <- #pre:RDI
+         r14 <- #pre:RSI
+         r15 <- #pre:RAX
+         r16 <- #pre:RBX
+         r17 <- #pre:RCX
+         r18 <- #pre:RDX
+         r19 <- #pre:R8
+         r20 <- #pre:R9
+         r21 <- #pre:R10
+         r22 <- #pre:R11
+         r23 <- #pre:R12
+         r24 <- #pre:R13
+         r25 <- #pre:R14
+         r26 <- #pre:R15
+         r27 <- undef
+         r28 <- undef
+         r29 <- undef
+         r30 <- undef
+         r31 <- undef
+         r32 <- undef
+         r33 <- undef
+         r34 <- addk     r11,-8 qword
+         r35 <- store    *r34 ← r10
+         r36 <- get      r34
+         r37 <- get      r13
+         r38 <- get      r14
+         r39 <- get      r13
+         r40 <- const4   0 (0x0)
+         r41 <- v8.l4=   r18 ← r40
+         r42 <- get      r14
+         r43 <- const8   -32 (0xffffffffffffffe0)
+         r44 <- add      r43,r34  qword
+         r45 <- store    *r44 ← r13
+         r46 <- const8   -24 (0xffffffffffffffe8)
+         r47 <- add      r46,r34  qword
+         r48 <- store    *r47 ← r14
+         r49 <- const4   0 (0x0)
+         r50 <- const8   -4 (0xfffffffffffffffc)
+         r51 <- add      r50,r34  qword
+         r52 <- store    *r51 ← r49
+         r53 <- const4   0 (0x0)
+         r54 <- const8   -8 (0xfffffffffffffff8)
+         r55 <- add      r54,r34  qword
+         r56 <- store    *r55 ← r53
+         r57 <- jmp      169
+.B1:  in[.B5 ]     ;; 0x4011f6  5 insn 0 phis
+         r58 <- const4   0 (0x0)
+         r59 <- const8   -12 (0xfffffffffffffff4)
+         r60 <- add      r59,r34  qword
+         r61 <- store    *r60 ← r58
+         r62 <- jmp      137
+.B2:  in[.B3 ]     ;; 0x4011ff  74 insn 0 phis
+         r63 <- const8   -32 (0xffffffffffffffe0)
+         r64 <- add      r63,r34  qword
+         r65 <- loadm8   addr:r64
+         r66 <- get      r65
+         r67 <- const8   -20 (0xffffffffffffffec)
+         r68 <- add      r67,r34  qword
+         r69 <- loadm4   addr:r68
+         r70 <- v8.l4=   r140 ← r69
+         r71 <- TODO     unsupported: imul eax,[rbp-8]
+         r72 <- l4       r70
+         r73 <- v8.l4=   r14 ← r72
+         r74 <- const8   -12 (0xfffffffffffffff4)
+         r75 <- add      r74,r34  qword
+         r76 <- loadm4   addr:r75
+         r77 <- v8.l4=   r70 ← r76
+         r78 <- l4       r77
+         r79 <- l4       r73
+         r80 <- add      r78,r79  dword
+         r81 <- v8.l4=   r77 ← r80
+         r82 <- overflow r80
+         r83 <- carry    r80
+         r84 <- sign     r80
+         r85 <- is0      r80
+         r86 <- l1       r80
+         r87 <- parity   r86
+         r88 <- TODO     unsupported: cdqe
+         r89 <- const1   2 (0x2)
+         r90 <- widen    1->8 r89
+         r91 <- shl      r81,r90  qword
+         r92 <- get      r91
+         r93 <- sign     r91
+         r94 <- is0      r91
+         r95 <- l1       r91
+         r96 <- parity   r95
+         r97 <- add      r91,r65  qword
+         r98 <- get      r97
+         r99 <- overflow r97
+         r100 <- carry    r97
+         r101 <- sign     r97
+         r102 <- is0      r97
+         r103 <- l1       r97
+         r104 <- parity   r103
+         r105 <- const8   0 (0x0)
+         r106 <- add      r105,r97  qword
+         r107 <- loadm4   addr:r106
+         r108 <- v8.l4=   r97 ← r107
+         r109 <- const8   -4 (0xfffffffffffffffc)
+         r110 <- add      r109,r34  qword
+         r111 <- loadm4   addr:r110
+         r112 <- l4       r108
+         r113 <- add      r111,r112  dword
+         r114 <- const8   -4 (0xfffffffffffffffc)
+         r115 <- add      r114,r34  qword
+         r116 <- store    *r115 ← r113
+         r117 <- overflow r113
+         r118 <- carry    r113
+         r119 <- sign     r113
+         r120 <- is0      r113
+         r121 <- l1       r113
+         r122 <- parity   r121
+         r123 <- const8   -12 (0xfffffffffffffff4)
+         r124 <- add      r123,r34  qword
+         r125 <- loadm4   addr:r124
+         r126 <- const4   1 (0x1)
+         r127 <- add      r125,r126  dword
+         r128 <- const8   -12 (0xfffffffffffffff4)
+         r129 <- add      r128,r34  qword
+         r130 <- store    *r129 ← r127
+         r131 <- overflow r127
+         r132 <- carry    r127
+         r133 <- sign     r127
+         r134 <- is0      r127
+         r135 <- l1       r127
+         r136 <- parity   r135
+.B3:  in[.B1 .B2 ]     ;; 0x401223  18 insn 1 phis
+         r195 <- phi8
+         r196 <- phiarg   r172
+         r197 <- phiarg   r108
+         r137 <- const8   -20 (0xffffffffffffffec)
+         r138 <- add      r137,r34  qword
+         r139 <- loadm4   addr:r138
+         r140 <- v8.l4=   r195 ← r139
+         r141 <- const8   -12 (0xfffffffffffffff4)
+         r142 <- add      r141,r34  qword
+         r143 <- loadm4   addr:r142
+         r144 <- l4       r140
+         r145 <- sub      r143,r144  dword
+         r146 <- overflow r145
+         r147 <- carry    r145
+         r148 <- sign     r145
+         r149 <- is0      r145
+         r150 <- l1       r145
+         r151 <- parity   r150
+         r152 <- ==       r148,r146
+         r153 <- not      r152
+         r154 <- jmp.if   r153,63
+.B4:  in[.B3 ]     ;; 0x40122b  14 insn 0 phis
+         r155 <- const8   -8 (0xfffffffffffffff8)
+         r156 <- add      r155,r34  qword
+         r157 <- loadm4   addr:r156
+         r158 <- const4   1 (0x1)
+         r159 <- add      r157,r158  dword
+         r160 <- const8   -8 (0xfffffffffffffff8)
+         r161 <- add      r160,r34  qword
+         r162 <- store    *r161 ← r159
+         r163 <- overflow r159
+         r164 <- carry    r159
+         r165 <- sign     r159
+         r166 <- is0      r159
+         r167 <- l1       r159
+         r168 <- parity   r167
+.B5:  in[.B0 .B4 ]     ;; 0x40122f  18 insn 1 phis
+         r198 <- phi8
+         r199 <- phiarg   r13
+         r200 <- phiarg   r140
+         r169 <- const8   -24 (0xffffffffffffffe8)
+         r170 <- add      r169,r34  qword
+         r171 <- loadm4   addr:r170
+         r172 <- v8.l4=   r198 ← r171
+         r173 <- const8   -8 (0xfffffffffffffff8)
+         r174 <- add      r173,r34  qword
+         r175 <- loadm4   addr:r174
+         r176 <- l4       r172
+         r177 <- sub      r175,r176  dword
+         r178 <- overflow r177
+         r179 <- carry    r177
+         r180 <- sign     r177
+         r181 <- is0      r177
+         r182 <- l1       r177
+         r183 <- parity   r182
+         r184 <- ==       r180,r178
+         r185 <- not      r184
+         r186 <- jmp.if   r185,58
+.B6:  in[.B5 ]     ;; 0x401237  8 insn 0 phis
+         r187 <- const8   -4 (0xfffffffffffffffc)
+         r188 <- add      r187,r34  qword
+         r189 <- loadm4   addr:r188
+         r190 <- v8.l4=   r172 ← r189
+         r191 <- loadm8   addr:r34
+         r192 <- get      r191
+         r193 <- addk     r34,8 qword
+         r194 <- ret      r190
+
+
+ssa post-xform:
 ssa program  82 instrs
 .B0:  in[]     ;; 0x0  58 insn 0 phis
          r10 <- #pre:RBP

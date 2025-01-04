@@ -309,7 +309,7 @@ impl<'a> Builder<'a> {
     fn block_phis_to_param_names(&mut self, bid: BlockID) -> SmallVec<[Ident; 2]> {
         let phis = self.ssa.block_phi(bid);
         (0..phis.phi_count())
-            .map(|phi_ndx| phis.node_ndx(phi_ndx))
+            .map(|phi_ndx| phis.phi_reg(phi_ndx))
             .filter(|phi_reg| self.ssa.is_alive(*phi_reg))
             .map(|phi_reg| {
                 self.name_of_value
@@ -420,7 +420,7 @@ impl<'a> Builder<'a> {
         let args: SmallVec<_> = {
             let target_phis = self.ssa.block_phi(target_bid);
             (0..target_phis.phi_count())
-                .filter(|phi_ndx| self.ssa.is_alive(target_phis.node_ndx(*phi_ndx)))
+                .filter(|phi_ndx| self.ssa.is_alive(target_phis.phi_reg(*phi_ndx)))
                 .map(|phi_ndx| {
                     let reg = target_phis.arg(self.ssa, phi_ndx, pred_ndx.into());
                     self.add_node_of_value(reg)
