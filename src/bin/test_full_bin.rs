@@ -4,7 +4,7 @@ use decompiler::{
 };
 
 // use rayon::prelude::*;
-use std::io::Write;
+use std::{borrow::Cow, io::Write};
 use std::{fmt::Debug, fs::File, io::Read, path::PathBuf};
 
 struct Options {
@@ -68,9 +68,17 @@ fn main() {
         });
 
         if let Err(err) = res {
+            let err = match err.downcast::<String>() {
+                Ok(s) => Cow::Owned(*s),
+                Err(err) => match err.downcast::<&str>() {
+                    Ok(s) => Cow::Borrowed(*s),
+                    Err(_) => Cow::Borrowed("<panic value is not a string>"),
+                },
+            };
+
             let mut out_file = File::options().append(true).open(path).unwrap();
             writeln!(out_file, "---- error:").unwrap();
-            writeln!(out_file, "{:?}", err).unwrap();
+            writeln!(out_file, "{}", err).unwrap();
         }
     }
 }
