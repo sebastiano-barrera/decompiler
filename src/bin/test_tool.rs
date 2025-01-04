@@ -1,6 +1,9 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use decompiler::{pp, test_tool};
+use decompiler::{
+    pp::{self, IoAsFmt},
+    test_tool,
+};
 
 pub struct CliOptions {
     pub elf_filename: PathBuf,
@@ -47,13 +50,4 @@ fn parse_cli<S: AsRef<str>>(mut opts: impl Iterator<Item = S>) -> Option<CliOpti
         elf_filename,
         function_name,
     })
-}
-
-struct IoAsFmt<W>(W);
-
-impl<W: std::io::Write> std::fmt::Write for IoAsFmt<W> {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        self.0.write_all(s.as_bytes()).unwrap();
-        Ok(())
-    }
 }

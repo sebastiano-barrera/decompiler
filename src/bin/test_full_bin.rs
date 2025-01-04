@@ -1,24 +1,39 @@
-use decompiler::{pp, test_tool};
-use rayon::prelude::*;
-use std::{fs::File, io::Read};
+use decompiler::{
+    pp::{self, IoAsFmt},
+    test_tool,
+};
+
+// use rayon::prelude::*;
+use std::io::Write;
+use std::{fmt::Debug, fs::File, io::Read, path::PathBuf};
+
+struct Options {
+    exec_path: PathBuf,
+    out_dir: PathBuf,
+}
 
 fn main() {
-    let exec_path = {
+    let opts = {
         let mut args = std::env::args();
         let program_name = args.next().unwrap();
-        match args.next() {
-            Some(opts) => opts,
-            None => {
-                eprintln!("usage: {} EXEC", program_name);
-                eprintln!("      EXEC = path to the executable (only ELF is supported)");
-                return;
-            }
+        let exec_path = args.next();
+        let out_dir = args.next();
+
+        let (Some(exec_path), Some(out_dir)) = (exec_path, out_dir) else {
+            eprintln!("usage: {} EXEC", program_name);
+            eprintln!("      EXEC = path to the executable (only ELF is supported)");
+            return;
+        };
+
+        Options {
+            exec_path: exec_path.into(),
+            out_dir: out_dir.into(),
         }
     };
 
     let raw_binary = {
         let mut contents = Vec::new();
-        let mut elf = File::open(&exec_path).expect("could not open executable");
+        let mut elf = File::open(&opts.exec_path).expect("could not open executable");
         elf.read_to_end(&mut contents).expect("read error");
         contents
     };
@@ -43,15 +58,19 @@ fn main() {
     }
 
     for function_name in function_names {
-        let mut out = pp::PrettyPrinter::start(NullFmtSink);
-        let _ = test_tool::run(&raw_binary, &function_name, &mut out);
-    }
-}
+        let filename = function_name.replace(|ch: char| !ch.is_alphanumeric(), "_");
+        let path = opts.out_dir.join(filename);
 
-struct NullFmtSink;
+        let res = std::panic::catch_unwind(|| {
+            let out_file = File::create(&path).unwrap();
+            let mut out = pp::PrettyPrinter::start(IoAsFmt(out_file));
+            let _ = test_tool::run(&raw_binary, &function_name, &mut out);
+        });
 
-impl std::fmt::Write for NullFmtSink {
-    fn write_str(&mut self, _: &str) -> std::fmt::Result {
-        Ok(())
+        if let Err(err) = res {
+            let mut out_file = File::options().append(true).open(path).unwrap();
+            writeln!(out_file, "---- error:").unwrap();
+            writeln!(out_file, "{:?}", err).unwrap();
+        }
     }
 }
