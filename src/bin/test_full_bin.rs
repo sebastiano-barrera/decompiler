@@ -5,7 +5,7 @@ use decompiler::{
 
 use rayon::prelude::*;
 use std::{borrow::Cow, io::Write};
-use std::{fmt::Debug, fs::File, io::Read, path::PathBuf};
+use std::{fs::File, io::Read, path::PathBuf};
 
 struct Options {
     exec_path: PathBuf,

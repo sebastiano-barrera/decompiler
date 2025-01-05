@@ -1,6 +1,7 @@
-use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
+
+use std::{collections::HashMap, sync::Arc};
 
 use smallvec::SmallVec;
 
@@ -109,7 +110,7 @@ enum Node {
     MemberAccess {
         base: NodeID,
         // TODO replace with smallvec like in `ty`?
-        path: Vec<Rc<String>>,
+        path: Vec<Arc<String>>,
     },
 
     OverflowOf(NodeID),
@@ -694,7 +695,7 @@ impl<'a> Builder<'a> {
             .into_iter()
             .map(|step| match step {
                 ty::SelectStep::Index(_) => todo!(),
-                ty::SelectStep::Member(rc) => Rc::clone(&rc),
+                ty::SelectStep::Member(rc) => Arc::clone(&rc),
             })
             .collect();
 
@@ -1153,7 +1154,7 @@ mod nodeset {
 #[cfg(feature = "proto_typing")]
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     use crate::{ast, mil, ssa, ty};
     use mil::{ArithOp, Insn, Reg};
@@ -1177,7 +1178,44 @@ mod tests {
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
 
         let mut types = ty::TypeSet::new();
-        let type_id = types.add(sample_struct());
+        let tyid_i32 = types.add(ty::Type {
+            name: Arc::new("i32".to_owned()),
+            ty: ty::Ty::Int(ty::Int {
+                size: 4,
+                signed: ty::Signedness::Signed,
+            }),
+        });
+        let tyid_i8 = types.add(ty::Type {
+            name: Arc::new("i8".to_owned()),
+            ty: ty::Ty::Int(ty::Int {
+                size: 1,
+                signed: ty::Signedness::Signed,
+            }),
+        });
+        let type_id = types.add(ty::Type {
+            name: Arc::new("point".to_owned()),
+            ty: ty::Ty::Struct(ty::Struct {
+                size: 24,
+                members: vec![
+                    ty::StructMember {
+                        offset: 0,
+                        name: Arc::new("x".to_owned()),
+                        tyid: tyid_i32,
+                    },
+                    // a bit of padding
+                    ty::StructMember {
+                        offset: 8,
+                        name: Arc::new("y".to_owned()),
+                        tyid: tyid_i32,
+                    },
+                    ty::StructMember {
+                        offset: 12,
+                        name: Arc::new("cost".to_owned()),
+                        tyid: tyid_i8,
+                    },
+                ],
+            }),
+        });
 
         // TODO this shall be inferred by a dedicated SSA processing step, after
         // doing the following:
@@ -1196,33 +1234,6 @@ mod tests {
             builder.compile()
         };
         assert_ast_snapshot(&ast);
-    }
-
-    fn sample_struct() -> ty::Type {
-        ty::Type {
-            name: Rc::new("point".to_owned()),
-            ty: ty::Ty::Struct(ty::Struct {
-                size: 24,
-                members: vec![
-                    ty::StructMember {
-                        offset: 0,
-                        name: Rc::new("x".to_owned()),
-                        tyid: ty::TYID_I32,
-                    },
-                    // a bit of padding
-                    ty::StructMember {
-                        offset: 8,
-                        name: Rc::new("y".to_owned()),
-                        tyid: ty::TYID_I32,
-                    },
-                    ty::StructMember {
-                        offset: 12,
-                        name: Rc::new("cost".to_owned()),
-                        tyid: ty::TYID_I8,
-                    },
-                ],
-            }),
-        }
     }
 
     fn assert_ast_snapshot(ast: &ast::Ast) {

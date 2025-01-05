@@ -196,10 +196,5 @@ fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
         goblin::Object::Elf(elf) => elf,
         _ => return Err(Error::UnsupportedExecFormat(obj_format_name(&object))),
     };
-    {
-        let mut types = ty::TypeSet::new();
-        let _ = ty::dwarf::load_dwarf_types(&elf, &raw_binary, &mut types)?;
-        // types not used yet! we just delete them for now
-    }
     Ok(elf)
 }

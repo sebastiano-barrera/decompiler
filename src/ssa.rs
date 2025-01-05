@@ -33,8 +33,7 @@ pub struct Program {
 }
 
 #[cfg(feature = "proto_typing")]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct TypeID(pub u32);
+slotmap::new_key_type! { pub struct TypeID; }
 
 #[cfg(feature = "proto_typing")]
 pub struct Ptr {

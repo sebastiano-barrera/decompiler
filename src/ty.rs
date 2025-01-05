@@ -1,5 +1,6 @@
-use std::{collections::HashMap, ops::Range, rc::Rc};
+use std::{collections::HashMap, ops::Range, sync::Arc};
 
+use slotmap::SlotMap;
 use smallvec::{smallvec, SmallVec};
 use thiserror::Error;
 
@@ -21,77 +22,30 @@ pub use crate::ssa::TypeID;
 /// This is the only public API in `ty`. Data about types can be retrieved and
 /// manipulated via this API.
 pub struct TypeSet {
-    types: HashMap<TypeID, Type>,
-    next_tyid: TypeID,
+    types: SlotMap<TypeID, Type>,
     known_objects: HashMap<Addr, TypeID>,
 }
 
 pub type Addr = u64;
 
-pub const TYID_I8: TypeID = TypeID(0);
-pub const TYID_I32: TypeID = TypeID(1);
-pub const TYID_VOID: TypeID = TypeID(2);
-const TYID_FIRST_FREE: TypeID = TypeID(3);
-
 impl TypeSet {
     pub fn new() -> Self {
-        let mut types = HashMap::new();
-
-        types.insert(
-            TYID_I8,
-            Type {
-                name: Rc::new("i8".to_owned()),
-                ty: Ty::Int(Int {
-                    size: 1,
-                    signed: Signedness::Signed,
-                }),
-            },
-        );
-        types.insert(
-            TYID_I32,
-            Type {
-                name: Rc::new("i32".to_owned()),
-                ty: Ty::Int(Int {
-                    size: 4,
-                    signed: Signedness::Signed,
-                }),
-            },
-        );
-        types.insert(
-            TYID_VOID,
-            Type {
-                name: Rc::new("void".to_owned()),
-                ty: Ty::Void,
-            },
-        );
-
-        assert!(!types.contains_key(&TYID_FIRST_FREE));
         TypeSet {
-            types,
-            next_tyid: TYID_FIRST_FREE,
+            types: SlotMap::with_key(),
             known_objects: HashMap::new(),
         }
     }
 
-    pub fn add(&mut self, type_: Type) -> TypeID {
-        let tyid = self.alloc_type_id();
-        self.assign(tyid, type_);
-        tyid
+    pub fn add(&mut self, typ: Type) -> TypeID {
+        self.types.insert(typ)
     }
 
-    pub fn assign(&mut self, tyid: TypeID, type_: Type) {
-        let prev = self.types.insert(tyid, type_);
-        assert!(prev.is_none(), "Type ID {:?} already assigned", tyid);
-    }
-
-    pub fn alloc_type_id(&mut self) -> TypeID {
-        let tyid = self.next_tyid;
-        self.next_tyid.0 += 1;
-        tyid
+    pub fn set(&mut self, tyid: TypeID, typ: Type) {
+        *self.types.get_mut(tyid).unwrap() = typ;
     }
 
     pub fn get(&self, tyid: TypeID) -> Option<&Type> {
-        self.types.get(&tyid)
+        self.types.get(tyid)
     }
 
     pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
@@ -178,7 +132,7 @@ impl TypeSet {
                 if let Some(member) = member {
                     Ok(Selection {
                         tyid: member.tyid,
-                        path: smallvec![SelectStep::Member(Rc::clone(&member.name))],
+                        path: smallvec![SelectStep::Member(Arc::clone(&member.name))],
                     })
                 } else {
                     Err(SelectError::RangeCrossesBoundaries)
@@ -208,7 +162,7 @@ impl TypeSet {
 
         for tyid in tyids {
             let typ = self.types.get(tyid).unwrap();
-            write!(out, "  <{}> = ", tyid.0)?;
+            write!(out, "  <{:?}> = ", tyid)?;
             out.open_box();
             self.dump_type(out, typ)?;
             out.close_box();
@@ -222,7 +176,7 @@ impl TypeSet {
         if typ.name.is_empty() {
             self.dump_type(out, typ)
         } else {
-            write!(out, "{} <{}>", typ.name, tyid.0)
+            write!(out, "{} <{:?}>", typ.name, tyid)
         }
     }
 
@@ -290,15 +244,15 @@ impl TypeSet {
 //  - select(type, offset, size) => (type, access path) || invalid || cross-boundaries
 //
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Type {
     // TODO alignment, ...
     /// Human-readable name for the type
-    pub name: Rc<String>,
+    pub name: Arc<String>,
     pub ty: Ty,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Ty {
     Int(Int),
     Bool(Bool),
@@ -328,69 +282,69 @@ impl Ty {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Int {
     pub size: u8,
     pub signed: Signedness,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Signedness {
     Signed,
     Unsigned,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Bool {
     size: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Float {
     pub size: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Enum {
     pub variants: Vec<EnumVariant>,
     pub base_type: Int,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EnumVariant {
     pub value: i64,
-    pub name: Rc<String>,
+    pub name: Arc<String>,
 }
 
 /// Representation fo a structure or union type.
 ///
 /// Unions may be represented by adding overlapping members. All members'
 /// occupied byte range must fit into the structure's size.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Struct {
     pub members: Vec<StructMember>,
     pub size: u32,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StructMember {
     pub offset: u32,
-    pub name: Rc<String>,
+    pub name: Arc<String>,
     pub tyid: TypeID,
 }
 
 /// Placeholder for types that are not fully understood by the system.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Unknown {
     /// Size in bytes.  Types of unknown size have size 0.
     pub size: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Subroutine {
     pub return_tyid: TypeID,
     pub params: Vec<SubroutineParam>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubroutineParam {
-    pub name: Option<Rc<String>>,
+    pub name: Option<Arc<String>>,
     pub tyid: TypeID,
 }
 
@@ -406,7 +360,7 @@ pub struct Selection {
 #[derive(Debug, PartialEq, Eq)]
 pub enum SelectStep {
     Index(i64),
-    Member(Rc<String>),
+    Member(Arc<String>),
 }
 impl SelectStep {
     fn as_str(&self) -> Option<&str> {
@@ -451,26 +405,42 @@ mod tests {
     fn simple_struct() {
         let mut types = TypeSet::new();
 
+        let tyid_i32 = types.add(Type {
+            name: Arc::new("i32".to_owned()),
+            ty: Ty::Int(Int {
+                size: 4,
+                signed: Signedness::Signed,
+            }),
+        });
+
+        let tyid_i8 = types.add(Type {
+            name: Arc::new("i8".to_owned()),
+            ty: Ty::Int(Int {
+                size: 1,
+                signed: Signedness::Signed,
+            }),
+        });
+
         let ty_point = types.add(Type {
-            name: Rc::new("point".to_owned()),
+            name: Arc::new("point".to_owned()),
             ty: Ty::Struct(Struct {
                 size: 24,
                 members: vec![
                     StructMember {
                         offset: 0,
-                        name: Rc::new("x".to_owned()),
-                        tyid: TYID_I32,
+                        name: Arc::new("x".to_owned()),
+                        tyid: tyid_i32,
                     },
                     // a bit of padding
                     StructMember {
                         offset: 8,
-                        name: Rc::new("y".to_owned()),
-                        tyid: TYID_I32,
+                        name: Arc::new("y".to_owned()),
+                        tyid: tyid_i32,
                     },
                     StructMember {
                         offset: 12,
-                        name: Rc::new("cost".to_owned()),
-                        tyid: TYID_I8,
+                        name: Arc::new("cost".to_owned()),
+                        tyid: tyid_i8,
                     },
                 ],
             }),
@@ -478,7 +448,7 @@ mod tests {
 
         {
             let s = types.select(ty_point, 0..4).unwrap();
-            assert_eq!(s.tyid, TYID_I32);
+            assert_eq!(s.tyid, tyid_i32);
             assert_eq!(s.path.len(), 1);
             assert_eq!(s.path[0].as_str(), Some("x"));
         }
@@ -492,7 +462,7 @@ mod tests {
 
         {
             let s = types.select(ty_point, 12..13).unwrap();
-            assert_eq!(s.tyid, TYID_I8);
+            assert_eq!(s.tyid, tyid_i8);
             assert_eq!(s.path.len(), 1);
             assert_eq!(s.path[0].as_str(), Some("cost"));
         }
@@ -509,17 +479,27 @@ mod tests {
     #[should_panic]
     fn struct_size_out_of_bounds() {
         let mut types = TypeSet::new();
+
+        let tyid_i32 = types.add(Type {
+            name: Arc::new("i32".to_owned()),
+            ty: Ty::Int(Int {
+                size: 4,
+                signed: Signedness::Signed,
+            }),
+        });
+
         types.add(Type {
-            name: Rc::new("point".to_owned()),
+            name: Arc::new("point".to_owned()),
             ty: Ty::Struct(Struct {
                 size: 4,
                 members: vec![StructMember {
                     offset: 4,
-                    name: Rc::new("x".to_owned()),
-                    tyid: TYID_I32,
+                    name: Arc::new("x".to_owned()),
+                    tyid: tyid_i32,
                 }],
             }),
         });
+
         types.assert_invariants();
     }
 }

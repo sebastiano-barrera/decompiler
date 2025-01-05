@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use crate::ty;
 
@@ -92,6 +92,7 @@ struct TypeParser<'a> {
     unit: gimli::Unit<ESlice<'a>, usize>,
     errors: RefCell<Vec<(usize, Error)>>,
     tyid_of_node: RefCell<HashMap<gimli::DebugInfoOffset, ty::TypeID>>,
+    default_type: ty::Type,
 }
 
 type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
@@ -103,6 +104,10 @@ impl<'a> TypeParser<'a> {
             unit,
             errors: RefCell::new(Vec::new()),
             tyid_of_node: RefCell::new(HashMap::new()),
+            default_type: ty::Type {
+                name: Arc::new("unprocessed".to_owned()),
+                ty: ty::Ty::Unknown(ty::Unknown { size: 0 }),
+            },
         }
     }
 
@@ -138,19 +143,21 @@ impl<'a> TypeParser<'a> {
         // left as a `ty::Unknown`.
         //
         // This function is memoized via `self.tyid_of_node`.
-        let tyid = types.alloc_type_id();
         let key = node
             .entry()
             .offset()
             .to_debug_info_offset(&self.unit.header)
             .expect("unit must be in .debug_info section");
-        {
+        let tyid = {
             let mut tyid_of_node = self.tyid_of_node.borrow_mut();
             if let Some(&tyid) = tyid_of_node.get(&key) {
                 return Ok(tyid);
             }
+
+            let tyid = types.add(self.default_type.clone());
             tyid_of_node.insert(key, tyid);
-        }
+            tyid
+        };
 
         let entry = node.entry();
 
@@ -186,19 +193,10 @@ impl<'a> TypeParser<'a> {
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
 
-        match res {
-            Ok(typ) => {
-                types.assign(tyid, typ);
-                Ok(tyid)
-            }
-            Err(err) => {
-                let name = Rc::new(format!("unknown{}", key.0));
-                let ty = ty::Ty::Unknown(ty::Unknown { size: 0 });
-                let typ = ty::Type { name, ty };
-                types.assign(tyid, typ);
-                Err(err)
-            }
-        }
+        // otherwise, leave tyid assigned to a clone of default_type
+        let typ = res?;
+        types.set(tyid, typ);
+        Ok(tyid)
     }
 
     fn take_error<T>(&self, offset: usize, res: Result<T>) -> Option<T> {
@@ -224,7 +222,9 @@ impl<'a> TypeParser<'a> {
             .map(|s| s.to_owned())
             .unwrap_or_else(String::new);
         let return_tyid = match self.try_parse_type_of(entry, types) {
-            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => Ok(ty::TYID_VOID),
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => {
+                Ok(types.add(self.default_type.clone()))
+            }
             res => res,
         }?;
 
@@ -234,7 +234,7 @@ impl<'a> TypeParser<'a> {
             let child_entry = child_node.entry();
             match child_entry.tag() {
                 gimli::DW_TAG_formal_parameter => {
-                    let name = self.get_name(child_entry)?.map(|s| Rc::new(s.to_owned()));
+                    let name = self.get_name(child_entry)?.map(|s| Arc::new(s.to_owned()));
                     let tyid = self.try_parse_type_of(&child_entry, types)?;
                     params.push(ty::SubroutineParam { name, tyid });
                 }
@@ -244,7 +244,7 @@ impl<'a> TypeParser<'a> {
         }
 
         Ok(ty::Type {
-            name: Rc::new(name),
+            name: Arc::new(name),
             ty: ty::Ty::Subroutine(ty::Subroutine {
                 return_tyid,
                 params,
@@ -259,7 +259,7 @@ impl<'a> TypeParser<'a> {
         let pointee_tyid = self.try_parse_type_of(entry, types)?;
         Ok(ty::Type {
             // TODO make name optional
-            name: Rc::new(String::new()),
+            name: Arc::new(String::new()),
             ty: ty::Ty::Ptr(pointee_tyid),
         })
     }
@@ -298,7 +298,7 @@ impl<'a> TypeParser<'a> {
         }
 
         Ok(ty::Type {
-            name: Rc::new(name),
+            name: Arc::new(name),
             ty: ty::Ty::Struct(ty::Struct { members, size }),
         })
     }
@@ -319,7 +319,7 @@ impl<'a> TypeParser<'a> {
             .try_into()
             .map_err(|_| Error::TypeTooLarge)?;
 
-        let name = Rc::new(
+        let name = Arc::new(
             self.get_name(member)?
                 .map(|s| s.to_owned())
                 .unwrap_or_else(String::new),
@@ -378,7 +378,7 @@ impl<'a> TypeParser<'a> {
         let name = self.get_name(entry)?.unwrap_or("").to_owned();
 
         Ok(ty::Type {
-            name: Rc::new(name),
+            name: Arc::new(name),
             ty,
         })
     }
