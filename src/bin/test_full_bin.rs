@@ -10,6 +10,7 @@ use std::{fs::File, io::Read, path::PathBuf};
 struct Options {
     exec_path: PathBuf,
     out_dir: PathBuf,
+    skip_write: bool,
 }
 
 fn main() {
@@ -28,6 +29,7 @@ fn main() {
         Options {
             exec_path: exec_path.into(),
             out_dir: out_dir.into(),
+            skip_write: std::env::var("SKIP_WRITE").ok().as_deref() == Some("1"),
         }
     };
 
@@ -52,9 +54,14 @@ fn main() {
         let path = opts.out_dir.join(filename);
 
         let res = std::panic::catch_unwind(|| {
-            let out_file = File::create(&path).unwrap();
-            let mut out = pp::PrettyPrinter::start(IoAsFmt(out_file));
-            tester.process_function(&function_name, &mut out).unwrap();
+            if opts.skip_write {
+                let mut out = pp::PrettyPrinter::start(NullSink);
+                tester.process_function(&function_name, &mut out).unwrap();
+            } else {
+                let out_file = File::create(&path).unwrap();
+                let mut out = pp::PrettyPrinter::start(IoAsFmt(out_file));
+                tester.process_function(&function_name, &mut out).unwrap();
+            };
         });
 
         if let Err(err) = res {
@@ -71,4 +78,12 @@ fn main() {
             writeln!(out_file, "{}", err).unwrap();
         }
     });
+}
+
+struct NullSink;
+
+impl std::fmt::Write for NullSink {
+    fn write_str(&mut self, _: &str) -> std::fmt::Result {
+        Ok(())
+    }
 }
