@@ -1,4 +1,5 @@
 use crate::mil::{self, AncestralName, RegType};
+use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
@@ -8,21 +9,27 @@ pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<m
     Builder::new().translate(insns)
 }
 
-struct Builder {
+pub struct Builder<'a> {
     pb: mil::ProgramBuilder,
     reg_gen: RegGen,
+    types: Option<&'a ty::TypeSet>,
 }
 
-impl Builder {
-    fn new() -> Builder {
+impl<'a> Builder<'a> {
+    pub fn new() -> Self {
         Builder {
             pb: mil::ProgramBuilder::new(),
             reg_gen: Self::reset_reg_gen(),
+            types: None,
         }
     }
 
-    fn build(self) -> mil::Program {
+    pub fn build(self) -> mil::Program {
         self.pb.build()
+    }
+
+    pub fn use_types(&mut self, types: &'a ty::TypeSet) {
+        self.types = Some(types);
     }
 
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
@@ -30,7 +37,7 @@ impl Builder {
         self.pb.set_ancestral_type(anc_name, rt);
     }
 
-    fn translate(
+    pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
     ) -> std::result::Result<mil::Program, anyhow::Error> {
@@ -263,6 +270,17 @@ impl Builder {
                 }
 
                 M::Call => {
+                    if insn.op0_kind() == OpKind::NearBranch64 {
+                        let target = insn.near_branch_target();
+                        eprintln!("#call: to address 0x{:x}", target);
+                        if let Some(ts) = self.types {
+                            if let Some(tyid) = ts.get_known_object(target) {
+                                let typ = ts.get(tyid).unwrap();
+                                eprintln!("#call: resolved call to: {:?} = {:?}", tyid, typ);
+                            }
+                        }
+                    }
+
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
                         sz, 8,

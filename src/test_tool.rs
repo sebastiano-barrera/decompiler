@@ -44,6 +44,7 @@ pub struct Tester<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
     func_syms: HashMap<String, AddrRange>,
+    types: ty::TypeSet,
 }
 
 #[derive(Clone, Copy)]
@@ -66,10 +67,18 @@ impl<'a> Tester<'a> {
                 Some((name.to_owned(), AddrRange { base, size }))
             })
             .collect();
+
+        let types = {
+            let mut types = ty::TypeSet::new();
+            ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+            types
+        };
+
         Ok(Tester {
             raw_binary,
             elf,
             func_syms,
+            types,
         })
     }
 
@@ -153,7 +162,13 @@ impl<'a> Tester<'a> {
             func_addr.try_into().unwrap(),
             iced_x86::DecoderOptions::NONE,
         );
-        let prog = x86_to_mil::translate(decoder.iter()).unwrap();
+        let prog = {
+            let insns = decoder.iter();
+            let mut b = x86_to_mil::Builder::new();
+            b.use_types(&self.types);
+            b.translate(insns)
+        }
+        .unwrap();
         writeln!(out, "mil program = ")?;
         writeln!(out, "{:?}", prog)?;
 

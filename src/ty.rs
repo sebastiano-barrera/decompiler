@@ -23,7 +23,10 @@ pub use crate::ssa::TypeID;
 pub struct TypeSet {
     types: HashMap<TypeID, Type>,
     next_tyid: TypeID,
+    known_objects: HashMap<Addr, TypeID>,
 }
+
+pub type Addr = u64;
 
 pub const TYID_I8: TypeID = TypeID(0);
 pub const TYID_I32: TypeID = TypeID(1);
@@ -66,6 +69,7 @@ impl TypeSet {
         TypeSet {
             types,
             next_tyid: TYID_FIRST_FREE,
+            known_objects: HashMap::new(),
         }
     }
 
@@ -181,6 +185,15 @@ impl TypeSet {
                 }
             }
         }
+    }
+
+    pub fn set_known_object(&mut self, addr: Addr, tyid: TypeID) {
+        eprintln!("#call: discovered 0x{:x} -> {:?}", addr, tyid);
+        self.known_objects.insert(addr, tyid);
+    }
+
+    pub fn get_known_object(&self, addr: Addr) -> Option<TypeID> {
+        self.known_objects.get(&addr).copied()
     }
 
     pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::fmt::Result {

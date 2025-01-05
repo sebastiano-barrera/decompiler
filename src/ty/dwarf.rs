@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::ty;
 
@@ -153,6 +153,12 @@ impl<'a> TypeParser<'a> {
         }
 
         let entry = node.entry();
+
+        if let Some(gimli::AttributeValue::Addr(addr)) =
+            entry.attr_value(gimli::constants::DW_AT_low_pc)?
+        {
+            types.set_known_object(addr, tyid);
+        }
 
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
