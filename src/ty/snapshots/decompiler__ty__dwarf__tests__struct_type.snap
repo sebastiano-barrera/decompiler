@@ -2,22 +2,21 @@
 source: src/ty/dwarf.rs
 expression: buf
 ---
-TypeSet (10 types) = {
-  <0> = "i8" i8
-  <1> = "i32" i32
-  <2> = "void" void
-  <3> = "point_init" func (p *point <5>) void <2>
-  <4> = *point <5>
-  <5> = "point" struct {
-            @  0 x float <6>
-            @  4 y float <6>
-            @  8 prev *point <5>
-            @ 16 next *point <5>
-        }
-  <6> = "float" float32
-  <10> = "join" func (a *point <5>,
-                      b *point <5>) void <2>
-  <13> = "list_len" func (p point <5>) int <14>
-  <14> = "int" i32
+TypeSet (9 types) = {
+  <TypeID(1v1)> = "point_init" func (p *point <TypeID(4v1)>) void <TypeID(2v1)>
+  <TypeID(2v1)> = "void" void
+  <TypeID(3v1)> = *point <TypeID(4v1)>
+  <TypeID(4v1)> = "point" struct {
+                      @  0 x float <TypeID(5v1)>
+                      @  4 y float <TypeID(5v1)>
+                      @  8 prev *point <TypeID(4v1)>
+                      @ 16 next *point <TypeID(4v1)>
+                  }
+  <TypeID(5v1)> = "float" float32
+  <TypeID(6v1)> = "join" func (a *point <TypeID(4v1)>,
+                               b *point <TypeID(4v1)>) void <TypeID(7v1)>
+  <TypeID(7v1)> = "void" void
+  <TypeID(8v1)> = "list_len" func (p point <TypeID(4v1)>) int <TypeID(9v1)>
+  <TypeID(9v1)> = "int" i32
 }
 0 non-fatal errors:

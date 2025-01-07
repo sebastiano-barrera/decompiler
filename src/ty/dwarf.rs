@@ -93,6 +93,7 @@ struct TypeParser<'a> {
     errors: RefCell<Vec<(usize, Error)>>,
     tyid_of_node: RefCell<HashMap<gimli::DebugInfoOffset, ty::TypeID>>,
     default_type: ty::Type,
+    void_type: ty::Type,
 }
 
 type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
@@ -107,6 +108,10 @@ impl<'a> TypeParser<'a> {
             default_type: ty::Type {
                 name: Arc::new("unprocessed".to_owned()),
                 ty: ty::Ty::Unknown(ty::Unknown { size: 0 }),
+            },
+            void_type: ty::Type {
+                name: Arc::new("void".to_owned()),
+                ty: ty::Ty::Void,
             },
         }
     }
@@ -223,7 +228,7 @@ impl<'a> TypeParser<'a> {
             .unwrap_or_else(String::new);
         let return_tyid = match self.try_parse_type_of(entry, types) {
             Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => {
-                Ok(types.add(self.default_type.clone()))
+                Ok(types.add(self.void_type.clone()))
             }
             res => res,
         }?;
