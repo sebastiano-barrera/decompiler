@@ -440,7 +440,7 @@ impl Insn {
     }
 
     #[inline(always)]
-    fn is_phi(&self) -> bool {
+    pub fn is_phi(&self) -> bool {
         matches!(
             self,
             Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool
@@ -786,6 +786,7 @@ impl ProgramBuilder {
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
+        assert!(!insn.is_phi());
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);

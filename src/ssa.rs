@@ -104,6 +104,20 @@ impl Program {
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
         self.assert_inputs_alive();
+        self.assert_phis_separated();
+    }
+
+    fn assert_phis_separated(&self) {
+        for bid in self.cfg.block_ids() {
+            for phi_reg in self.block_phi(bid).phi_regs() {
+                let insn = self.get(phi_reg).unwrap().insn.get();
+                assert!(insn.is_phi());
+            }
+
+            for (_, insn_cell) in self.block_normal_insns(bid).unwrap().iter() {
+                assert!(!insn_cell.get().is_phi());
+            }
+        }
     }
 
     fn assert_inputs_alive(&self) {

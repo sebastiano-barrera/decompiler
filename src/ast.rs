@@ -1013,7 +1013,7 @@ impl Ast {
             }
             Node::TODO(msg) => write!(pp, "<-- TODO: {} -->", msg),
             Node::Phi(phi_args) => {
-                write!(pp, "phi(\n  ")?;
+                write!(pp, "phi(")?;
                 pp.open_box();
                 let mut first = true;
                 for (pred_ndx, value) in phi_args {
@@ -1026,7 +1026,7 @@ impl Ast {
                     write!(pp, ",")?;
                 }
                 pp.close_box();
-                write!(pp, "\n)")
+                write!(pp, ")")
             }
 
             Node::LoadMem1(arg) => self.pp_load_mem(pp, 1, *arg),

@@ -72,10 +72,10 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                     let wb = widen(prog, b);
 
                     match (op, wa, wb) {
-                        (ArithOp::Add, Insn::Const8(0), wb) => wb,
-                        (ArithOp::Add, wa, Insn::Const8(0)) => wa,
-                        (ArithOp::Mul, Insn::Const8(1), wb) => wb,
-                        (ArithOp::Mul, wa, Insn::Const8(1)) => wa,
+                        (ArithOp::Add, Insn::Const8(0), _) => Insn::Get8(b),
+                        (ArithOp::Add, _, Insn::Const8(0)) => Insn::Get8(a),
+                        (ArithOp::Mul, Insn::Const8(1), _) => Insn::Get8(b),
+                        (ArithOp::Mul, _, Insn::Const8(1)) => Insn::Get8(a),
 
                         (op, Insn::Const8(ak), Insn::Const8(bk)) => {
                             Insn::Const8(eval_const(op, ak, bk))
@@ -294,7 +294,7 @@ mod tests {
                 Insn::ArithK8(ArithOp::Add, Reg(0), 10)
             );
             assert_eq!(insns.insns[5].get(), Insn::Const8(49));
-            assert_eq!(insns.insns[8].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
         }
 
         #[test]
@@ -328,7 +328,7 @@ mod tests {
                 Insn::ArithK8(ArithOp::Mul, Reg(0), 25)
             );
             assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
-            assert_eq!(insns.insns[8].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
         }
     }
 
