@@ -27,8 +27,8 @@ pub enum Error {
     #[error("DIE at offset {0} has wrong type of value for attribute {1}")]
     InvalidValueType(usize, gimli::DwAt),
 
-    #[error("unsupported DWARF feature: {} {} ({})", .0, .1, .2.unwrap_or("?"))]
-    UnsupportedFeature(&'static str, gimli::DwAte, Option<&'static str>),
+    #[error("unsupported DWARF feature: {0}")]
+    UnsupportedFeature(String),
 }
 
 pub struct Report {
@@ -180,12 +180,12 @@ impl<'a> TypeParser<'a> {
             // - [ ] DW_TAG_union_type
             // - [ ] DW_TAG_enumeration_type
             // - [ ] DW_TAG_const_type
-            // - [ ] DW_TAG_base_type
             // - [ ] DW_TAG_array_type
             // - [ ] DW_TAG_subrange_type
             // - [x] DW_TAG_subroutine_type
             // - [x] DW_TAG_structure_type
             // - [x] DW_TAG_pointer_type
+            // - [x] DW_TAG_base_type
             gimli::constants::DW_TAG_structure_type => self.parse_struct_type(node, types),
             gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, types),
             // subprograms (functions, in C) are considered as subroutine types
@@ -338,6 +338,14 @@ impl<'a> TypeParser<'a> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_base_type);
 
+        if entry.attr(gimli::DW_AT_bit_size)?.is_some()
+            || entry.attr(gimli::DW_AT_data_bit_offset)?.is_some()
+        {
+            return Err(Error::UnsupportedFeature(
+                "bit field (base type with bit_size and/or data_bit_offset)".to_owned(),
+            ));
+        }
+
         let attr = get_required_attr(entry, gimli::DW_AT_encoding)?;
         let enc = match attr.value() {
             gimli::AttributeValue::Encoding(enc) => enc,
@@ -372,11 +380,12 @@ impl<'a> TypeParser<'a> {
                     signed: ty::Signedness::Unsigned,
                 })
             } else {
-                return Err(Error::UnsupportedFeature(
-                    "base type encoding",
-                    enc,
-                    enc.static_string(),
-                ));
+                let msg = format!(
+                    "base type encoding {} ({})",
+                    enc.0,
+                    enc.static_string().unwrap_or("?")
+                );
+                return Err(Error::UnsupportedFeature(msg));
             }
         };
 
