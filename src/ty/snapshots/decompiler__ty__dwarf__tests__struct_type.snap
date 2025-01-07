@@ -2,7 +2,7 @@
 source: src/ty/dwarf.rs
 expression: buf
 ---
-TypeSet (9 types) = {
+TypeSet (14 types) = {
   <TypeID(1v1)> = "point_init" func (p *point <TypeID(4v1)>) void <TypeID(2v1)>
   <TypeID(2v1)> = "void" void
   <TypeID(3v1)> = *point <TypeID(4v1)>
@@ -18,5 +18,13 @@ TypeSet (9 types) = {
   <TypeID(7v1)> = "void" void
   <TypeID(8v1)> = "list_len" func (p point <TypeID(4v1)>) int <TypeID(9v1)>
   <TypeID(9v1)> = "int" i32
+  <TypeID(10v1)> = "name_list_len" func (cur name_item <TypeID(11v1)>) int <TypeID(9v1)>
+  <TypeID(11v1)> = "name_item" struct {
+                       @  0 name *char <TypeID(13v1)>
+                       @  8 next *name_item <TypeID(11v1)>
+                   }
+  <TypeID(12v1)> = *char <TypeID(13v1)>
+  <TypeID(13v1)> = "char" i8
+  <TypeID(14v1)> = *name_item <TypeID(11v1)>
 }
 0 non-fatal errors:

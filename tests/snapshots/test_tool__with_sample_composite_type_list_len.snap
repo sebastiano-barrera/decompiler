@@ -2,15 +2,15 @@
 source: tests/test_tool.rs
 expression: out
 ---
-list_len 0x1130+28 (file 0x1130)
-            1130: 31 c0                   xor eax,eax
-            1132: 48 8d 4c 24 08          lea rcx,[rsp+8]
-            1137: 66 0f 1f 84 00 00 00 00 nop [rax+rax]
-            1140: ff c0                   inc eax
-            1142: 48 8b 49 10             mov rcx,[rcx+10h]
-            1146: 48 85 c9                test rcx,rcx
-            1149: 75 f5                   jne short 0000000000001140h
-            114b: c3                      ret
+list_len 0x1120+28 (file 0x1120)
+            1120: 31 c0                   xor eax,eax
+            1122: 48 8d 4c 24 08          lea rcx,[rsp+8]
+            1127: 66 0f 1f 84 00 00 00 00 nop [rax+rax]
+            1130: ff c0                   inc eax
+            1132: 48 8b 49 10             mov rcx,[rcx+10h]
+            1136: 48 85 c9                test rcx,rcx
+            1139: 75 f5                   jne short 0000000000001130h
+            113b: c3                      ret
 
 mil program = 
 program  70 instrs
@@ -48,7 +48,7 @@ program  70 instrs
    31 r32 <- undef
    32 r33 <- undef
    33 r34 <- undef
-0x1130:
+0x1120:
    34 r28 <- l4       r16
    35 r29 <- l4       r16
    36 r28 <- xor      r28,r29  dword
@@ -59,11 +59,11 @@ program  70 instrs
    41 r5 <- is0      r28
    42 r30 <- l1       r28
    43 r3 <- parity   r30
-0x1132:
+0x1122:
    44 r28 <- const8   8 (0x8)
    45 r28 <- add      r28,r12  qword
    46 r18 <- get      r28
-0x1140:
+0x1130:
    47 r28 <- l4       r16
    48 r28 <- addk     r28,1 dword
    49 r16 <- v8.l4=   r16 ← r28
@@ -73,12 +73,12 @@ program  70 instrs
    53 r5 <- is0      r28
    54 r29 <- l1       r28
    55 r3 <- parity   r29
-0x1142:
+0x1132:
    56 r29 <- const8   16 (0x10)
    57 r29 <- add      r29,r18  qword
    58 r28 <- loadm8   addr:r29
    59 r18 <- get      r28
-0x1146:
+0x1136:
    60 r18 <- and      r18,r18  qword
    61 r6 <- sign     r18
    62 r5 <- is0      r18
@@ -86,10 +86,10 @@ program  70 instrs
    64 r3 <- parity   r18
    65 r2 <- const1   0 (0x0)
    66 r10 <- const1   0 (0x0)
-0x1149:
+0x1139:
    67 r28 <- not      r5
    68 r29 <- jmp.if   r28,47
-0x114b:
+0x113b:
    69 r28 <- ret      r16
 
 
@@ -104,7 +104,7 @@ ssa program  21 instrs
   (  2)  r37 <- v8.l4=   r15 ← r36
          r44 <- const8   8 (0x8)
          r45 <- add      r44,r11  qword
-.B1:    ;;  preds:B0,B1  addr:0x1140; 22 insn 2 phis
+.B1:    ;;  preds:B0,B1  addr:0x1130; 22 insn 2 phis
                   ɸ  B0     B1     
   (  2)    r70    <- r37    r49    
            r73    <- r45    r60    
@@ -118,7 +118,7 @@ ssa program  21 instrs
          r62 <- is0      r60
          r67 <- not      r62
          r68 <- jmp.if   r67,47
-.B2:    ;;  preds:B1  addr:0x114b; 1 insn 0 phis
+.B2:    ;;  preds:B1  addr:0x113b; 1 insn 0 phis
          r69 <- ret      r49
 
 
@@ -130,7 +130,7 @@ ssa program  16 instrs
          r36 <- const4   0 (0x0)
   (  2)  r37 <- v8.l4=   r15 ← r36
          r45 <- addk     r11,8 qword
-.B1:    ;;  preds:B0,B1  addr:0x1140; 22 insn 2 phis
+.B1:    ;;  preds:B0,B1  addr:0x1130; 22 insn 2 phis
                   ɸ  B0     B1     
   (  2)    r70    <- r37    r49    
            r73    <- r45    r60    
@@ -142,7 +142,7 @@ ssa program  16 instrs
          r62 <- is0      r58
          r67 <- not      r62
          r68 <- jmp.if   r67,47
-.B2:    ;;  preds:B1  addr:0x114b; 1 insn 0 phis
+.B2:    ;;  preds:B1  addr:0x113b; 1 insn 0 phis
          r69 <- ret      r49
 
 

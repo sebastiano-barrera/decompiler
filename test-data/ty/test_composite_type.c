@@ -20,11 +20,29 @@ void join(struct point *a, struct point *b) {
 
 extern float sqrtf(float);
 
-// test: pass by value calling convention
+// test: pass by value, via the stack 
 int list_len(struct point p) {
     int count = 0;
     struct point *cur = &p;
     for(; cur; cur = cur->next) {
+        count++;
+    }
+
+    return count;
+}
+
+
+struct name_item {
+    char *name;
+    struct name_item *next;
+};
+
+
+// test: pass by value, via 2 registers
+//  (argument is small enough) 
+int name_list_len(struct name_item cur) {
+    int count = 1;
+    for(; cur.next; cur = *cur.next) {
         count++;
     }
 
