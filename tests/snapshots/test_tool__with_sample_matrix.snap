@@ -401,7 +401,7 @@ ssa program  112 instrs
 
 
 ssa post-xform:
-ssa program  81 instrs
+ssa program  80 instrs
 .B0:    ;;  addr:0x0; 58 insn 0 phis
          r10 <- #pre:RBP
   ( 20)  r11 <- #pre:RSP
@@ -467,9 +467,8 @@ ssa program  81 instrs
          r89 <- const1   2 (0x2)
          r90 <- widen    1->8 r89
   (  2)  r91 <- shl      r81,r90  qword
-         r97 <- add      r91,r65  qword
-         r106 <- add      r91,r65  qword
-  (  2)  r107 <- loadm4   addr:r106
+  (  2)  r97 <- add      r91,r65  qword
+  (  2)  r107 <- loadm4   addr:r97
          r108 <- v8.l4=   r97 ← r107
          r110 <- addk     r11,-12 qword
          r111 <- loadm4   addr:r110
@@ -518,9 +517,10 @@ ssa program  81 instrs
                     <-- TODO: unsupported: imul eax,[rbp-8] -->;
                     <-- TODO: unsupported: cdqe -->;
                     let r91 = (r195 with l4 = [<pre:RSP> + -20]:4 + [<pre:RSP> + -28]:4) << (2).widen[1->8];
-                    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + [r91 + [<pre:RSP> + -40]:8]:4;
+                    let r97 = r91 + [<pre:RSP> + -40]:8;
+                    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + [r97]:4;
                     [<pre:RSP> + -20]:8 = [<pre:RSP> + -20]:4 + 1;
-                    goto T3 (r195 = (r91 + [<pre:RSP> + -40]:8 with l4 = [r91 + [<pre:RSP> + -40]:8]:4))
+                    goto T3 (r195 = (r97 with l4 = [r97]:4))
                 }
             }
         }

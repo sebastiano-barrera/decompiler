@@ -565,10 +565,10 @@ ssa program  121 instrs
 
 
 ssa post-xform:
-ssa program  103 instrs
+ssa program  102 instrs
 .B0:    ;;  addr:0x0; 80 insn 0 phis
          r10 <- #pre:RBP
-  (  7)  r11 <- #pre:RSP
+  (  6)  r11 <- #pre:RSP
          r13 <- #pre:RDI
   (  2)  r14 <- #pre:RSI
   (  2)  r16 <- #pre:RBX
@@ -584,7 +584,7 @@ ssa program  103 instrs
          r41 <- store    *r40 ← r10
          r42 <- addk     r11,-24 qword
          r43 <- store    *r42 ← r16
-  (  3)  r45 <- subk     r11,-8 qword
+  (  4)  r45 <- subk     r11,-8 qword
   (  2)  r54 <- const8   4198512 (0x401070)
   (  2)  r55 <- call     r54
          r56 <- carg     r39
@@ -595,8 +595,7 @@ ssa program  103 instrs
          r78 <- not      r73
          r79 <- jmp.if   r78,302
 .B1:    ;;  preds:B0  addr:0x4010b2; 48 insn 0 phis
-         r81 <- subk     r11,-8 qword
-  (  3)  r82 <- loadm8   addr:r81
+  (  3)  r82 <- loadm8   addr:r45
          r98 <- const4   4096 (0x1000)
   (  3)  r99 <- v8.l4=   r17 ← r98
          r100 <- const4   8 (0x8)
@@ -630,6 +629,7 @@ ssa program  103 instrs
            r316   <- r82    r144   
   (  3)    r319   <- r131   r162   
          r140 <- subk     r11,16 qword
+         r141 <- loadm8   addr:r140
          r143 <- const4   4203193 (0x4022b9)
   (  2)  r144 <- v8.l4=   r316 ← r143
          r145 <- const1   5 (0x5)
@@ -637,9 +637,8 @@ ssa program  103 instrs
          r147 <- shl      r319,r146  qword
          r153 <- sub      r147,r319  qword
   (  2)  r162 <- addk     r319,1 qword
-         r171 <- loadm8   addr:r140
          r172 <- mulk     r153,8 qword
-  (  3)  r173 <- add      r171,r172  qword
+  (  3)  r173 <- add      r141,r172  qword
          r176 <- addk     r173,8 qword
          r177 <- loadm8   addr:r176
   (  3)  r180 <- addk     r173,74 qword
@@ -701,14 +700,14 @@ ssa program  103 instrs
         let r101 = (r45 with l4 = 8);
         let r103 = (<pre:RSI> with l4 = 4203184);
         let r105 = 4198496(
-                     [<pre:RSP> - -8]:8,
+                     [r45]:8,
                      r103,
                      r101,
                      r99,
                    );
         if r105 == 0 {
             let mut r313 = r105;
-            let mut r316 = [<pre:RSP> - -8]:8;
+            let mut r316 = [r45]:8;
             let mut r319 = (<pre:RBX> with l4 = 0);
             
             'T3(r313, r316, r319): {
@@ -740,7 +739,7 @@ ssa program  103 instrs
             }
         } else {
             let r287 = 4198448(
-                         ([<pre:RSP> - -8]:8 with l4 = 4203208),
+                         ([r45]:8 with l4 = 4203208),
                          r103,
                          r101,
                          r99,

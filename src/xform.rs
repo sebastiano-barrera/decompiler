@@ -212,15 +212,32 @@ pub fn fold_bitops(prog: &mut ssa::Program) {
 /// `ssa::eliminate_dead_code`)
 pub fn fold_get(prog: &mut ssa::Program) {
     for bid in prog.cfg().block_ids_rpo() {
+        for phi_reg in prog.block_phi(bid).phi_regs() {
+            prog.map_phi_args(phi_reg, |mut arg| loop {
+                match prog.get(arg).unwrap().insn.get() {
+                    Insn::Get8(x) => {
+                        arg = x;
+                    }
+                    _ => break arg,
+                }
+            });
+        }
+
         for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
             // Get instructions are affected too!
             // this allows us to skip entire chains of multiple Get insns
 
             let mut insn = insn_cell.get();
             for input_reg in insn.input_regs_mut().into_iter().flatten() {
-                let input_def = prog.get(*input_reg).unwrap().insn.get();
-                if let Insn::Get8(x) = input_def {
-                    *input_reg = x;
+                let mut resolved = *input_reg;
+                loop {
+                    let input_def = prog.get(resolved).unwrap().insn.get();
+                    if let Insn::Get8(x) = input_def {
+                        resolved = x;
+                    } else {
+                        *input_reg = resolved;
+                        break;
+                    }
                 }
             }
 
@@ -250,6 +267,10 @@ pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
 
     fold_constants(prog);
+    #[cfg(debug_assertions)]
+    prog.assert_invariants();
+
+    fold_get(prog);
     #[cfg(debug_assertions)]
     prog.assert_invariants();
 

@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 mod callconv_x86_64 {
-    use crate::{mil, ssa, ty, x86_to_mil};
+    use crate::pp::PrettyPrinter;
+    use crate::{ast, mil, ssa, ty, x86_to_mil};
 
     use iced_x86::code_asm::CodeAssembler;
     use iced_x86::Instruction;
@@ -84,11 +85,11 @@ mod callconv_x86_64 {
             b.translate(input.iter().copied())
         }
         .unwrap();
-        let output = finish_prog(prog).unwrap();
+        let output = finish_prog(prog, &types).unwrap();
         insta::assert_snapshot!(output);
     }
 
-    fn finish_prog(prog: mil::Program) -> Result<String, std::fmt::Error> {
+    fn finish_prog(prog: mil::Program, types: &ty::TypeSet) -> Result<String, std::fmt::Error> {
         use std::fmt::Write;
 
         let mut out = String::new();
@@ -102,14 +103,14 @@ mod callconv_x86_64 {
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
 
-        // TODO print AST as well?
-
-        // let out = std::io::stdout().lock();
-        // let mut pp = PrettyPrinter::start(IoAsFmt(out));
-
-        // println!();
-        // let ast = ast::ssa_to_ast(&prog);
-        // ast.pretty_print(&mut pp).unwrap()
+        let ast = {
+            let mut b = ast::Builder::new(&prog);
+            b.use_type_set(types);
+            b.compile()
+        };
+        writeln!(out)?;
+        let mut pp = PrettyPrinter::start(&mut out);
+        ast.pretty_print(&mut pp).unwrap();
 
         Ok(out)
     }

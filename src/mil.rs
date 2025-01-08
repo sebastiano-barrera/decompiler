@@ -672,6 +672,17 @@ impl Program {
             })
     }
 
+    pub fn map_phi_args(&self, ndx: Index, f: impl Fn(Reg) -> Reg) {
+        let ndx = ndx as usize;
+        let phi_insn = self.insns[ndx].get();
+        assert!(phi_insn.is_phi());
+        self.insns.iter().skip(ndx + 1).for_each(|i| {
+            if let Insn::PhiArg(arg) = i.get() {
+                i.set(Insn::PhiArg(f(arg)))
+            }
+        })
+    }
+
     #[inline(always)]
     pub fn reg_count(&self) -> Index {
         self.reg_count

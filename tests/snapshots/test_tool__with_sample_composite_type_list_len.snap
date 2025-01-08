@@ -123,7 +123,7 @@ ssa program  21 instrs
 
 
 ssa post-xform:
-ssa program  16 instrs
+ssa program  15 instrs
 .B0:    ;;  addr:0x0; 47 insn 0 phis
          r11 <- #pre:RSP
          r15 <- #pre:RAX
@@ -133,12 +133,11 @@ ssa program  16 instrs
 .B1:    ;;  preds:B0,B1  addr:0x1130; 22 insn 2 phis
                   ɸ  B0     B1     
   (  2)    r70    <- r37    r49    
-           r73    <- r45    r60    
+           r73    <- r45    r58    
          r48 <- addk     r70,1 dword
   (  3)  r49 <- v8.l4=   r70 ← r48
          r57 <- addk     r73,16 qword
   (  2)  r58 <- loadm8   addr:r57
-         r60 <- get      r58
          r62 <- is0      r58
          r67 <- not      r62
          r68 <- jmp.if   r67,47

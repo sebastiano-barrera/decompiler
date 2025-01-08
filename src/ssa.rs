@@ -97,6 +97,10 @@ impl Program {
         self.inner.get_phi_args(reg.0)
     }
 
+    pub fn map_phi_args(&self, reg: mil::Reg, f: impl Fn(mil::Reg) -> mil::Reg) {
+        self.inner.map_phi_args(reg.0, f)
+    }
+
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
         self.inner.value_type(reg.0)
     }
