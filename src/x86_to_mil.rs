@@ -3,7 +3,8 @@ use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use smallvec::SmallVec;
 
 pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<mil::Program> {
     Builder::new().translate(insns)
@@ -17,11 +18,48 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     pub fn new() -> Self {
-        Builder {
+        let mut bld = Builder {
             pb: mil::ProgramBuilder::new(),
             reg_gen: Self::reset_reg_gen(),
             types: None,
-        }
+        };
+
+        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes8);
+
+        // ensure all registers are initialized at least once. most of these
+        // instructions (if all goes well, all of them) get "deleted" (masked)
+        // if the program is valid and the decompilation correct.  if not, this
+        // allows the program to still be decompiled into something (albeit,
+        // with some "holes")
+
+        bld.init_ancestral(Self::CF, ANC_CF, RegType::Bool);
+        bld.init_ancestral(Self::PF, ANC_PF, RegType::Bool);
+        bld.init_ancestral(Self::AF, ANC_AF, RegType::Bool);
+        bld.init_ancestral(Self::ZF, ANC_ZF, RegType::Bool);
+        bld.init_ancestral(Self::SF, ANC_SF, RegType::Bool);
+        bld.init_ancestral(Self::TF, ANC_TF, RegType::Bool);
+        bld.init_ancestral(Self::IF, ANC_IF, RegType::Bool);
+        bld.init_ancestral(Self::DF, ANC_DF, RegType::Bool);
+        bld.init_ancestral(Self::OF, ANC_OF, RegType::Bool);
+        bld.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes8);
+        bld.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes8);
+        bld.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes8);
+        bld.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes8);
+        bld.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes8);
+        bld.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes8);
+        bld.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes8);
+        bld.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes8);
+        bld.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes8);
+        bld.init_ancestral(Self::R8, ANC_R8, RegType::Bytes8);
+        bld.init_ancestral(Self::R9, ANC_R9, RegType::Bytes8);
+        bld.init_ancestral(Self::R10, ANC_R10, RegType::Bytes8);
+        bld.init_ancestral(Self::R11, ANC_R11, RegType::Bytes8);
+        bld.init_ancestral(Self::R12, ANC_R12, RegType::Bytes8);
+        bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes8);
+        bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes8);
+        bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes8);
+
+        bld
     }
 
     pub fn build(self) -> mil::Program {
@@ -40,45 +78,10 @@ impl<'a> Builder<'a> {
     pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
-    ) -> std::result::Result<mil::Program, anyhow::Error> {
+    ) -> Result<mil::Program> {
         use iced_x86::{OpKind, Register};
 
         let mut formatter = IntelFormatter::new();
-
-        self.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes8);
-
-        // ensure all registers are initialized at least once. most of these
-        // instructions (if all goes well, all of them) get "deleted" (masked)
-        // if the program is valid and the decompilation correct.  if not, this
-        // allows the program to still be decompiled into something (albeit,
-        // with some "holes")
-
-        self.init_ancestral(Self::CF, ANC_CF, RegType::Bool);
-        self.init_ancestral(Self::PF, ANC_PF, RegType::Bool);
-        self.init_ancestral(Self::AF, ANC_AF, RegType::Bool);
-        self.init_ancestral(Self::ZF, ANC_ZF, RegType::Bool);
-        self.init_ancestral(Self::SF, ANC_SF, RegType::Bool);
-        self.init_ancestral(Self::TF, ANC_TF, RegType::Bool);
-        self.init_ancestral(Self::IF, ANC_IF, RegType::Bool);
-        self.init_ancestral(Self::DF, ANC_DF, RegType::Bool);
-        self.init_ancestral(Self::OF, ANC_OF, RegType::Bool);
-        self.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes8);
-        self.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes8);
-        self.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes8);
-        self.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes8);
-        self.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes8);
-        self.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes8);
-        self.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes8);
-        self.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes8);
-        self.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes8);
-        self.init_ancestral(Self::R8, ANC_R8, RegType::Bytes8);
-        self.init_ancestral(Self::R9, ANC_R9, RegType::Bytes8);
-        self.init_ancestral(Self::R10, ANC_R10, RegType::Bytes8);
-        self.init_ancestral(Self::R11, ANC_R11, RegType::Bytes8);
-        self.init_ancestral(Self::R12, ANC_R12, RegType::Bytes8);
-        self.init_ancestral(Self::R13, ANC_R13, RegType::Bytes8);
-        self.init_ancestral(Self::R14, ANC_R14, RegType::Bytes8);
-        self.init_ancestral(Self::R15, ANC_R15, RegType::Bytes8);
 
         // ensure that all possible temporary registers are initialized at least
         // once. this in turn ensures that all phi nodes always have a valid
@@ -667,15 +670,7 @@ impl<'a> Builder<'a> {
                     "mov: src and dest must have same size"
                 );
 
-                let full_dest = Builder::xlat_reg(dest.full_register());
-                let modifier = match value_size {
-                    1 => mil::Insn::V8WithL1(full_dest, value),
-                    2 => mil::Insn::V8WithL2(full_dest, value),
-                    4 => mil::Insn::V8WithL4(full_dest, value),
-                    8 => mil::Insn::Get8(value),
-                    _ => panic!("invalid dest size"),
-                };
-                self.emit(full_dest, modifier);
+                self.emit_write_machine_reg(dest, value_size, value);
             }
 
             OpKind::NearBranch16
@@ -724,6 +719,18 @@ impl<'a> Builder<'a> {
         }
     }
 
+    fn emit_write_machine_reg(&mut self, dest: Register, value_size: u8, value: mil::Reg) {
+        let full_dest = Builder::xlat_reg(dest.full_register());
+        let modifier = match value_size {
+            1 => mil::Insn::V8WithL1(full_dest, value),
+            2 => mil::Insn::V8WithL2(full_dest, value),
+            4 => mil::Insn::V8WithL4(full_dest, value),
+            8 => mil::Insn::Get8(value),
+            _ => panic!("invalid dest size"),
+        };
+        self.emit(full_dest, modifier);
+    }
+
     fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
         let v0 = self.reg_gen.next();
         self.emit_compute_address_into(insn, v0);
@@ -764,6 +771,133 @@ impl<'a> Builder<'a> {
                     .push(dest, mil::Insn::Arith8(mil::ArithOp::Add, dest, v1));
             }
         }
+    }
+
+    pub fn read_func_args(&mut self, arg_types: &[ty::TypeID]) -> Result<()> {
+        use ty::Ty;
+
+        if arg_types.len() > ANC_ARGS.len() {
+            eprintln!(
+                "warning: only {} arguments will be handled ({} were described)",
+                ANC_ARGS.len(),
+                arg_types.len()
+            );
+        }
+
+        let mut stack_pos = 0;
+        let rsp = Builder::xlat_reg(Register::RSP);
+        let mut read_to_stack = move |b: &mut Builder, src| {
+            let addr = b.reg_gen.next();
+            b.emit(
+                addr,
+                mil::Insn::ArithK8(mil::ArithOp::Sub, rsp, 8 * stack_pos),
+            );
+            b.emit(addr, mil::Insn::StoreMem(addr, src));
+            stack_pos += 1;
+        };
+
+        let mut integer_regs = [
+            Register::RDI,
+            Register::RSI,
+            Register::RDX,
+            Register::RCX,
+            Register::R8,
+            Register::R9,
+        ]
+        .into_iter();
+        let mut read_to_integer = move |b: &mut Builder, src, sz| match integer_regs.next() {
+            Some(reg) => {
+                b.emit_write_machine_reg(reg, sz, src);
+            }
+            None => read_to_stack(b, src),
+        };
+
+        let types = self.types.ok_or(anyhow!("TypeSet not provided"))?;
+
+        for (&arg_tyid, arg_anc) in arg_types.iter().zip(&ANC_ARGS) {
+            let arg_ty = &types
+                .get(arg_tyid)
+                .ok_or(anyhow!("undefined type: {arg_tyid:?}"))?
+                .ty;
+            assert_ne!(arg_ty.bytes_size(), 0);
+
+            let arg = self.reg_gen.next();
+            self.emit(arg, mil::Insn::Ancestral(*arg_anc));
+
+            match arg_ty {
+                Ty::Enum(ty::Enum {
+                    base_type: int_ty, ..
+                })
+                | Ty::Int(int_ty) => {
+                    if int_ty.size < 8 {
+                        read_to_integer(self, arg, int_ty.size);
+                    } else {
+                        assert_eq!(int_ty.size % 8, 0);
+                        let eightb_count = int_ty.size / 8;
+                        for eightb_ndx in 0..eightb_count {
+                            let eightb = self.reg_gen.next();
+                            self.emit(
+                                eightb,
+                                mil::Insn::StructGet8 {
+                                    struct_value: arg,
+                                    offset: 8 * eightb_ndx,
+                                },
+                            );
+                            read_to_integer(self, eightb, 8);
+                        }
+                    }
+                }
+                Ty::Ptr(_) => {
+                    read_to_integer(self, arg, 8);
+                }
+                Ty::Float(_) => todo!("SSE registers and float function parameters"),
+                Ty::Struct(struct_ty) => {
+                    let arg_struct_cls = classify_struct(struct_ty, types)?;
+                    match arg_struct_cls {
+                        ArgStructClass::Memory { eightb_count } => {
+                            for eightb_ndx in 0..eightb_count {
+                                let eightb = self.reg_gen.next();
+                                self.emit(
+                                    eightb,
+                                    mil::Insn::StructGet8 {
+                                        struct_value: arg,
+                                        offset: (8 * eightb_ndx).try_into().unwrap(),
+                                    },
+                                );
+                                read_to_stack(self, eightb);
+                            }
+                        }
+                        ArgStructClass::Registers(classes) => {
+                            for (ndx, cls) in classes.iter().enumerate() {
+                                match cls {
+                                    ArgClass::None => {}
+                                    ArgClass::Integer => {
+                                        let eightb = self.reg_gen.next();
+                                        self.emit(
+                                            eightb,
+                                            mil::Insn::StructGet8 {
+                                                struct_value: arg,
+                                                offset: (8 * ndx).try_into().unwrap(),
+                                            },
+                                        );
+                                        read_to_integer(self, eightb, 8);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Ty::Unknown(_) => {
+                    return Err(anyhow!("Function argument's type can't be `Unknown`"))
+                }
+                Ty::Subroutine(_) | Ty::Bool(_) | Ty::Void => {
+                    panic!("invalid type for a function argument: {arg_ty:?}")
+                }
+            }
+        }
+
+        Ok(())
     }
 
     // flags
@@ -837,6 +971,72 @@ impl<'a> Builder<'a> {
     }
 }
 
+#[inline(always)]
+fn div_ceil(size: usize, quot: usize) -> usize {
+    (size + quot - 1) / quot
+}
+
+#[derive(Clone, Copy)]
+enum ArgClass {
+    None,
+    Integer,
+}
+enum ArgStructClass {
+    Memory { eightb_count: usize },
+    Registers(SmallVec<[ArgClass; 8]>),
+}
+fn classify_struct(struct_ty: &ty::Struct, types: &ty::TypeSet) -> Result<ArgStructClass> {
+    // TODO Remove heap alloc
+    let eightb_count = div_ceil(struct_ty.size as usize, 8);
+    if eightb_count > 8 {
+        return Ok(ArgStructClass::Memory { eightb_count });
+    }
+
+    let mut buf = [ArgClass::None; 8];
+    let classes = &mut buf[..eightb_count];
+
+    let mut queue: SmallVec<[_; 8]> = smallvec::smallvec![(0, struct_ty)];
+    while let Some((struct_ofs, struct_ty)) = queue.pop() {
+        for memb in &struct_ty.members {
+            let typ = types.get(memb.tyid).unwrap();
+            let sz = typ.ty.bytes_size() as usize;
+            let memb_ofs = struct_ofs + memb.offset as usize;
+
+            if memb_ofs % sz != 0 {
+                // unaligned struct member
+                return Ok(ArgStructClass::Memory { eightb_count });
+            }
+
+            match &typ.ty {
+                ty::Ty::Int(_) | ty::Ty::Enum(_) | ty::Ty::Ptr(_) => {
+                    let memb_eightb_1 = memb_ofs / 8;
+                    let memb_eightb_n = (memb_ofs + sz) / 8;
+                    for i in memb_eightb_1..=memb_eightb_n {
+                        classes[i] = ArgClass::Integer;
+                    }
+                }
+                ty::Ty::Struct(substruct_ty) => {
+                    queue.push((memb_ofs, substruct_ty));
+                    continue;
+                }
+                ty::Ty::Float(_) => {
+                    return Err(anyhow!("not yet implemented: float struct members"))
+                }
+                ty::Ty::Unknown(_) => {
+                    return Err(anyhow!(
+                        "struct is partially known; can't determine parameter passing"
+                    ))
+                }
+                ty @ (ty::Ty::Subroutine(_) | ty::Ty::Bool(_) | ty::Ty::Void) => {
+                    panic!("invalid type for struct member: {ty:?}")
+                }
+            };
+        }
+    }
+
+    Ok(ArgStructClass::Registers(SmallVec::from_slice(classes)))
+}
+
 struct RegGen {
     next: mil::Reg,
     last: mil::Reg,
@@ -882,3 +1082,15 @@ define_ancestral_name!(ANC_R12, "R12");
 define_ancestral_name!(ANC_R13, "R13");
 define_ancestral_name!(ANC_R14, "R14");
 define_ancestral_name!(ANC_R15, "R15");
+
+define_ancestral_name!(ANC_ARG0, "arg0");
+define_ancestral_name!(ANC_ARG1, "arg1");
+define_ancestral_name!(ANC_ARG2, "arg2");
+define_ancestral_name!(ANC_ARG3, "arg3");
+define_ancestral_name!(ANC_ARG4, "arg4");
+define_ancestral_name!(ANC_ARG5, "arg5");
+define_ancestral_name!(ANC_ARG6, "arg6");
+define_ancestral_name!(ANC_ARG7, "arg7");
+const ANC_ARGS: [mil::AncestralName; 8] = [
+    ANC_ARG0, ANC_ARG1, ANC_ARG2, ANC_ARG3, ANC_ARG4, ANC_ARG5, ANC_ARG6, ANC_ARG7,
+];

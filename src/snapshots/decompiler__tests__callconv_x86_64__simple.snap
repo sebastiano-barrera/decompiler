@@ -1,0 +1,109 @@
+---
+source: src/tests.rs
+expression: output
+---
+mil program = 
+program  72 instrs
+    0 r12 <- #pre:stack_bottom
+    1 r2 <- #pre:CF
+    2 r3 <- #pre:PF
+    3 r4 <- #pre:AF
+    4 r5 <- #pre:ZF
+    5 r6 <- #pre:SF
+    6 r7 <- #pre:TF
+    7 r8 <- #pre:IF
+    8 r9 <- #pre:DF
+    9 r10 <- #pre:OF
+   10 r11 <- #pre:RBP
+   11 r12 <- #pre:RSP
+   12 r13 <- #pre:RIP
+   13 r14 <- #pre:RDI
+   14 r15 <- #pre:RSI
+   15 r16 <- #pre:RAX
+   16 r17 <- #pre:RBX
+   17 r18 <- #pre:RCX
+   18 r19 <- #pre:RDX
+   19 r20 <- #pre:R8
+   20 r21 <- #pre:R9
+   21 r22 <- #pre:R10
+   22 r23 <- #pre:R11
+   23 r24 <- #pre:R12
+   24 r25 <- #pre:R13
+   25 r26 <- #pre:R14
+   26 r27 <- #pre:R15
+   27 r28 <- #pre:arg0
+   28 r29 <- sget8    r28,0
+   29 r14 <- get      r29
+   30 r30 <- sget8    r28,8
+   31 r15 <- get      r30
+   32 r28 <- undef
+   33 r29 <- undef
+   34 r30 <- undef
+   35 r31 <- undef
+   36 r32 <- undef
+   37 r33 <- undef
+   38 r34 <- undef
+   39 r28 <- const4   1 (0x1)
+   40 r16 <- v8.l4=   r16 ← r28
+   41 r15 <- and      r15,r15  qword
+   42 r6 <- sign     r15
+   43 r5 <- is0      r15
+   44 r30 <- l1       r15
+   45 r3 <- parity   r15
+   46 r2 <- const1   0 (0x0)
+   47 r10 <- const1   0 (0x0)
+   48 r28 <- jmp.if   r5,71
+0x2:
+   49 r28 <- l4       r16
+   50 r28 <- addk     r28,1 dword
+   51 r16 <- v8.l4=   r16 ← r28
+   52 r10 <- false
+   53 r2 <- false
+   54 r6 <- sign     r28
+   55 r5 <- is0      r28
+   56 r29 <- l1       r28
+   57 r3 <- parity   r29
+0x0:
+   58 r29 <- const8   8 (0x8)
+   59 r29 <- add      r29,r15  qword
+   60 r28 <- loadm8   addr:r29
+   61 r15 <- get      r28
+   62 r15 <- and      r15,r15  qword
+   63 r6 <- sign     r15
+   64 r5 <- is0      r15
+   65 r30 <- l1       r15
+   66 r3 <- parity   r15
+   67 r2 <- const1   0 (0x0)
+   68 r10 <- const1   0 (0x0)
+   69 r28 <- not      r5
+   70 r29 <- jmp.if   r28,49
+0x1:
+   71 r28 <- ret      r16
+
+
+ssa program  20 instrs
+.B0:    ;;  addr:0x0; 49 insn 0 phis
+  (  2)  r15 <- #pre:RAX
+         r27 <- #pre:arg0
+  (  2)  r30 <- sget8    r27,8
+  (  2)  r39 <- const4   1 (0x1)
+  (  3)  r40 <- v8.l4=   r15 ← r39
+         r41 <- get      r30
+         r43 <- is0      r30
+         r48 <- jmp.if   r43,71
+.B1:    ;;  preds:B0,B1  addr:0x2; 22 insn 2 phis
+                  ɸ  B0     B1     
+           r72    <- r41    r62    
+  (  2)    r75    <- r40    r51    
+         r50 <- addk     r75,1 dword
+  (  3)  r51 <- v8.l4=   r75 ← r50
+         r59 <- addk     r72,8 qword
+  (  2)  r60 <- loadm8   addr:r59
+         r62 <- get      r60
+         r64 <- is0      r60
+         r69 <- not      r64
+         r70 <- jmp.if   r69,49
+.B2:    ;;  preds:B0,B1  addr:0x1; 1 insn 1 phis
+                  ɸ  B0     B1     
+           r78    <- r40    r51    
+         r71 <- ret      r78

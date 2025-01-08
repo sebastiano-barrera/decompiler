@@ -126,6 +126,10 @@ enum Node {
         to_sz: u8,
         reg: NodeID,
     },
+    StructGet8 {
+        struct_value: NodeID,
+        offset: u8,
+    },
 }
 
 impl Node {
@@ -671,6 +675,18 @@ impl<'a> Builder<'a> {
                 Node::Phi(args)
             }
             mil::Insn::PhiArg(_) => panic!("PhiArg passed to collect_expr"),
+
+            mil::Insn::StructGet8 {
+                struct_value,
+                offset,
+            } => {
+                let struct_value = self.add_node_of_value(struct_value);
+
+                Node::StructGet8 {
+                    struct_value,
+                    offset,
+                }
+            }
         }
     }
 
@@ -1083,6 +1099,14 @@ impl Ast {
             Node::Pre(tag) => write!(pp, "<pre:{}>", tag),
             Node::Undefined => write!(pp, "<undefined>"),
             Node::Nop => write!(pp, "nop"),
+
+            Node::StructGet8 {
+                struct_value,
+                offset,
+            } => {
+                self.pretty_print_node(pp, *struct_value)?;
+                write!(pp, "[{}]", offset)
+            }
         }
     }
 

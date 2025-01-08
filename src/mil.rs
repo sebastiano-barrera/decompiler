@@ -82,6 +82,10 @@ pub enum Insn {
     L2(Reg),
     L4(Reg),
     Get8(Reg),
+    StructGet8 {
+        struct_value: Reg,
+        offset: u8,
+    },
     V8WithL1(Reg, Reg),
     V8WithL2(Reg, Reg),
     V8WithL4(Reg, Reg),
@@ -288,7 +292,11 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg) => [Some(reg), None],
+            | Insn::PhiArg(reg)
+            | Insn::StructGet8 {
+                struct_value: reg,
+                offset: _,
+            } => [Some(reg), None],
 
             Insn::V8WithL1(a, b)
             | Insn::V8WithL2(a, b)
@@ -361,7 +369,11 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg) => [Some(reg), None],
+            | Insn::PhiArg(reg)
+            | Insn::StructGet8 {
+                struct_value: reg,
+                offset: _,
+            } => [Some(reg), None],
 
             Insn::V8WithL1(a, b)
             | Insn::V8WithL2(a, b)
@@ -424,7 +436,8 @@ impl Insn {
             | Insn::Phi4
             | Insn::Phi8
             | Insn::PhiBool
-            | Insn::PhiArg { .. } => false,
+            | Insn::PhiArg { .. }
+            | Insn::StructGet8 { .. } => false,
 
             Insn::Call { .. }
             | Insn::CArg { .. }
@@ -579,6 +592,10 @@ impl std::fmt::Debug for Insn {
             Insn::PhiArg(reg) => {
                 write!(f, "{:8} {:?}", "phiarg", reg)
             }
+            Insn::StructGet8 {
+                struct_value,
+                offset,
+            } => write!(f, "{:8} {:?},{}", "sget8", *struct_value, offset),
         }
     }
 }
@@ -739,6 +756,7 @@ impl Program {
             Insn::PhiBool => RegType::Bool,
             Insn::PhiArg(_) => RegType::Effect,
             Insn::Ancestral(anc_name) => self.anc_types.get(&anc_name).copied().unwrap(),
+            Insn::StructGet8 { .. } => RegType::Bytes8,
         }
     }
 }

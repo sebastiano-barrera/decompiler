@@ -265,7 +265,7 @@ pub enum Ty {
     Void,
 }
 impl Ty {
-    fn bytes_size(&self) -> u32 {
+    pub fn bytes_size(&self) -> u32 {
         match self {
             Ty::Int(int_ty) => int_ty.size as u32,
             Ty::Bool(Bool { size }) => *size as u32,
