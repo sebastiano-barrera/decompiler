@@ -10,6 +10,7 @@ use std::{
 use crate::{mil, pp::PP};
 
 /// A graph where nodes are blocks, and edges are successors/predecessors relationships.
+#[derive(Clone)]
 pub struct Graph {
     bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
@@ -22,6 +23,7 @@ pub struct Graph {
     reverse_postorder: Ordering,
 }
 
+#[derive(Clone)]
 pub struct Edges {
     entry_bid: BlockID,
     exit_bid: BlockID,
@@ -500,7 +502,7 @@ impl Graph {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DomTree {
     parent: BlockMap<Option<BlockID>>,
     children_ndx_range: BlockMap<Range<usize>>,
@@ -799,6 +801,7 @@ fn recount_nonbackedge_predecessors(edges: &mut Edges) {
     edges.nonbackedge_preds_count = incoming_count;
 }
 
+#[derive(Clone)]
 pub struct Ordering {
     order: Vec<BlockID>,
     pos_of: BlockMap<usize>,

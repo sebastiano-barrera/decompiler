@@ -11,6 +11,7 @@ use std::{cell::Cell, collections::HashMap, ops::Range};
 ///  - a corresponding address in the original machine code (`u64`).
 ///
 /// By convention, the entry point of the program is always at index 0.
+#[derive(Clone)]
 pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
@@ -457,6 +458,18 @@ impl Insn {
         matches!(
             self,
             Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool
+        )
+    }
+
+    #[inline(always)]
+    pub fn is_jump(&self) -> bool {
+        matches!(
+            self,
+            Insn::JmpI(_)
+                | Insn::JmpExt(_)
+                | Insn::Jmp(_)
+                | Insn::JmpExtIf { .. }
+                | Insn::JmpIf { .. }
         )
     }
 }
