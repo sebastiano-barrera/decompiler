@@ -1276,7 +1276,7 @@ mod tests {
 }
 
 mod ast_lite {
-    use std::borrow::{BorrowMut, Cow};
+    use std::borrow::Cow;
 
     use crate::{
         cfg,
@@ -1539,11 +1539,21 @@ mod ast_lite {
                 Insn::CArg(_) => "CArg".into(),
                 Insn::Ret(_) => "Ret".into(),
                 Insn::TODO(_) => "TODO".into(),
-                Insn::LoadMem1(_) => "LoadMem1".into(),
-                Insn::LoadMem2(_) => "LoadMem2".into(),
-                Insn::LoadMem4(_) => "LoadMem4".into(),
-                Insn::LoadMem8(_) => "LoadMem8".into(),
-                Insn::StoreMem(_, _) => "StoreMem".into(),
+                Insn::LoadMem1(addr) => return self.pp_load_mem(pp, addr, 1),
+                Insn::LoadMem2(addr) => return self.pp_load_mem(pp, addr, 2),
+                Insn::LoadMem4(addr) => return self.pp_load_mem(pp, addr, 4),
+                Insn::LoadMem8(addr) => return self.pp_load_mem(pp, addr, 8),
+                Insn::StoreMem(addr, value) => {
+                    write!(pp, "[")?;
+                    pp.open_box();
+                    self.pp_arg(pp, addr)?;
+                    pp.close_box();
+                    write!(pp, "] = ")?;
+                    pp.open_box();
+                    self.pp_arg(pp, value)?;
+                    pp.close_box();
+                    return Ok(());
+                }
                 Insn::OverflowOf(_) => "OverflowOf".into(),
                 Insn::CarryOf(_) => "CarryOf".into(),
                 Insn::SignOf(_) => "SignOf".into(),
@@ -1584,6 +1594,19 @@ mod ast_lite {
 
             write!(pp, ")")?;
             Ok(())
+        }
+
+        fn pp_load_mem<W: PP + ?Sized>(
+            &self,
+            pp: &mut W,
+            addr: Reg,
+            sz: i32,
+        ) -> Result<(), std::fmt::Error> {
+            write!(pp, "[")?;
+            pp.open_box();
+            self.pp_arg(pp, addr)?;
+            pp.close_box();
+            write!(pp, "]:{}", sz)
         }
 
         fn pp_arg<W: PP + ?Sized>(&self, pp: &mut W, arg: Reg) -> Result<(), std::fmt::Error> {
