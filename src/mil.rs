@@ -126,16 +126,16 @@ pub enum Insn {
     CArg(Reg),
     Ret(Reg),
     #[allow(dead_code)]
-    JmpI(Reg),
+    JmpInd(Reg),
     Jmp(Index),
-    JmpExt(u64),
     JmpIf {
         cond: Reg,
         target: Index,
     },
+    JmpExt(u64),
     JmpExtIf {
         cond: Reg,
-        target: u64,
+        addr: u64,
     },
 
     #[allow(clippy::upper_case_acronyms)]
@@ -273,11 +273,8 @@ impl Insn {
             | Insn::Widen4_8(reg)
             | Insn::Not(reg)
             | Insn::Ret(reg)
-            | Insn::JmpI(reg)
-            | Insn::JmpExtIf {
-                cond: reg,
-                target: _,
-            }
+            | Insn::JmpInd(reg)
+            | Insn::JmpExtIf { cond: reg, addr: _ }
             | Insn::JmpIf {
                 cond: reg,
                 target: _,
@@ -350,11 +347,8 @@ impl Insn {
             | Insn::Widen4_8(reg)
             | Insn::Not(reg)
             | Insn::Ret(reg)
-            | Insn::JmpI(reg)
-            | Insn::JmpExtIf {
-                cond: reg,
-                target: _,
-            }
+            | Insn::JmpInd(reg)
+            | Insn::JmpExtIf { cond: reg, addr: _ }
             | Insn::JmpIf {
                 cond: reg,
                 target: _,
@@ -444,7 +438,7 @@ impl Insn {
             | Insn::CArg { .. }
             | Insn::Ret(_)
             | Insn::StoreMem(_, _)
-            | Insn::JmpI(_)
+            | Insn::JmpInd(_)
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::JmpExtIf { .. }
@@ -458,18 +452,6 @@ impl Insn {
         matches!(
             self,
             Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool
-        )
-    }
-
-    #[inline(always)]
-    pub fn is_jump(&self) -> bool {
-        matches!(
-            self,
-            Insn::JmpI(_)
-                | Insn::JmpExt(_)
-                | Insn::Jmp(_)
-                | Insn::JmpExtIf { .. }
-                | Insn::JmpIf { .. }
         )
     }
 }
@@ -580,10 +562,10 @@ impl std::fmt::Debug for Insn {
             Insn::Call(callee) => write!(f, "{:8} {:?}", "call", callee),
             Insn::CArg(value) => write!(f, "{:8} {:?}", "carg", value),
             Insn::Ret(x) => write!(f, "{:8} {:?}", "ret", x),
-            Insn::JmpI(x) => write!(f, "{:8} *{:?}", "jmp", x),
+            Insn::JmpInd(x) => write!(f, "{:8} *{:?}", "jmp", x),
             Insn::Jmp(x) => write!(f, "{:8} {:?}", "jmp", x),
             Insn::JmpExt(target) => write!(f, "{:8} 0x{:x} extern", "jmp", target),
-            Insn::JmpExtIf { cond, target } => {
+            Insn::JmpExtIf { cond, addr: target } => {
                 write!(f, "{:8} {:?},0x{:x} extern", "jmp.if", cond, target)
             }
             Insn::JmpIf { cond, target } => write!(f, "{:8} {:?},{}", "jmp.if", cond, target),
@@ -756,7 +738,7 @@ impl Program {
             Insn::Call(_) => RegType::Bytes8,
             Insn::CArg(_) => RegType::Effect,
             Insn::Ret(_) => RegType::Effect,
-            Insn::JmpI(_) => RegType::Effect,
+            Insn::JmpInd(_) => RegType::Effect,
             Insn::Jmp(_) => RegType::Effect,
             Insn::JmpExt(_) => RegType::Effect,
             Insn::JmpIf { .. } => RegType::Effect,
@@ -881,7 +863,7 @@ impl ProgramBuilder {
                         insn.set(Insn::Jmp(*ndx));
                     }
                 }
-                Insn::JmpExtIf { cond, target } => {
+                Insn::JmpExtIf { cond, addr: target } => {
                     if let Some(ndx) = mil_of_input_addr.get(&target) {
                         insn.set(Insn::JmpIf { cond, target: *ndx });
                     }

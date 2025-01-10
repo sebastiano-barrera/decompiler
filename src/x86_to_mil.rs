@@ -327,7 +327,7 @@ impl<'a> Builder<'a> {
                         }
                         _ => {
                             let addr = self.emit_compute_address(&insn);
-                            self.emit(addr, mil::Insn::JmpI(addr));
+                            self.emit(addr, mil::Insn::JmpInd(addr));
                         }
                     }
                 }
@@ -505,7 +505,7 @@ impl<'a> Builder<'a> {
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                 let target = insn.near_branch_target();
                 let v0 = self.reg_gen.next();
-                self.emit(v0, mil::Insn::JmpExtIf { cond, target });
+                self.emit(v0, mil::Insn::JmpExtIf { cond, addr: target });
             }
             _ => {
                 todo!("indirect jmpif");

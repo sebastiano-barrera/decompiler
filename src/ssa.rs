@@ -904,7 +904,7 @@ mod tests {
                 Reg(1),
                 Insn::JmpExtIf {
                     cond: Reg(0),
-                    target: 0xf2,
+                    addr: 0xf2,
                 },
             );
 

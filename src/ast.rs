@@ -502,7 +502,7 @@ impl<'a> Builder<'a> {
             Insn::CArg { .. } => Node::Nop,
             Insn::Ret(arg) => Node::Return(self.add_node_of_value(arg)),
             Insn::JmpExt(target) => Node::ContinueToExtern(target),
-            Insn::JmpI(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {
+            Insn::JmpInd(_) | Insn::Jmp(_) | Insn::JmpExtIf { .. } | Insn::JmpIf { .. } => {
                 // skip.  the control fllow handling in compile_thunk shall take care of this
                 Node::Nop
             }
@@ -1276,7 +1276,7 @@ mod tests {
 }
 
 mod ast_lite {
-    use std::borrow::Cow;
+    use std::borrow::{BorrowMut, Cow};
 
     use crate::{
         cfg,
@@ -1316,7 +1316,7 @@ mod ast_lite {
                     | Insn::Phi8 => true,
 
                     Insn::Call { .. } => true,
-                    _ => insn.has_side_effects() || ssa.readers_count(dest) > 1,
+                    _ => ssa.readers_count(dest) > 1,
                 };
             }
 
@@ -1324,14 +1324,24 @@ mod ast_lite {
         }
 
         pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::fmt::Result {
-            let entry_bid = self.ssa.cfg().entry_block_id();
-            self.pp_block(pp, entry_bid)
+            let cfg = self.ssa.cfg();
+            let entry_bid = cfg.entry_block_id();
+            let mut block_visited = cfg::BlockMap::new(false, cfg.block_count());
+            self.pp_block(pp, &mut block_visited, entry_bid)
         }
 
-        fn pp_block<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::fmt::Result {
+        fn pp_block<W: PP + ?Sized>(
+            &self,
+            pp: &mut W,
+            block_visited: &mut cfg::BlockMap<bool>,
+            bid: cfg::BlockID,
+        ) -> std::fmt::Result {
+            assert!(!block_visited[bid]);
+            block_visited[bid] = true;
+
             let phis = self.ssa.block_phi(bid);
 
-            write!(pp, "\nT{}(", bid.as_number())?;
+            write!(pp, "T{}(", bid.as_number())?;
             for (ndx, phi_reg) in phis.phi_regs().enumerate() {
                 if ndx > 0 {
                     write!(pp, ", ")?;
@@ -1343,10 +1353,12 @@ mod ast_lite {
             pp.open_box();
 
             let insn_slice = self.ssa.block_normal_insns(bid).unwrap();
-            for (dest_cell, _) in insn_slice.iter() {
-                let dest = dest_cell.get();
-                if self.is_named(dest) {
-                    write!(pp, "let r{} = ", dest.reg_index())?;
+            for (dest, insn) in insn_slice.iter_copied() {
+                let is_named = self.is_named(dest);
+                if is_named || insn.has_side_effects() {
+                    if is_named {
+                        write!(pp, "let r{} = ", dest.reg_index())?;
+                    }
                     pp.open_box();
                     self.pp_insn(pp, dest)?;
                     pp.close_box();
@@ -1354,12 +1366,93 @@ mod ast_lite {
                 }
             }
 
-            for child in self.ssa.cfg().dom_tree().children_of(bid) {
-                self.pp_block(pp, *child)?;
+            match self.ssa.cfg().block_cont(bid) {
+                cfg::BlockCont::End => {
+                    // all done!
+                }
+                cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
+                    self.pp_continuation(pp, block_visited, tgt, pred_ndx as u16)?;
+                }
+                cfg::BlockCont::Alt {
+                    straight: (neg_pred_ndx, neg_bid),
+                    side: (pos_pred_ndx, pos_bid),
+                } => {
+                    let last_insn = insn_slice.insns.last().unwrap().get();
+                    let cond = match last_insn {
+                        Insn::JmpIf { cond, target: _ } => cond,
+                        _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
+                    };
+
+                    write!(pp, "if ")?;
+                    self.pp_arg(pp, cond)?;
+                    write!(pp, " {{\n  ")?;
+
+                    pp.open_box();
+                    self.pp_continuation(pp, block_visited, pos_bid, pos_pred_ndx as u16)?;
+                    pp.close_box();
+
+                    write!(pp, "\n}}\n")?;
+
+                    self.pp_continuation(pp, block_visited, neg_bid, neg_pred_ndx as u16)?;
+
+                    for &child in self.ssa.cfg().dom_tree().children_of(bid) {
+                        if !block_visited[bid] && child != pos_bid && child != neg_bid {
+                            self.pp_block(pp, block_visited, bid)?;
+                        }
+                    }
+                }
             }
 
             pp.close_box();
             write!(pp, "\n}}")
+        }
+
+        fn pp_continuation<W: PP + ?Sized>(
+            &self,
+            pp: &mut W,
+            block_visited: &mut cfg::BlockMap<bool>,
+            tgt_bid: cfg::BlockID,
+            pred_ndx: u16,
+        ) -> std::fmt::Result {
+            let phi = self.ssa.block_phi(tgt_bid);
+
+            let phi_count = phi.phi_count();
+            if block_visited[tgt_bid] {
+                if phi_count == 0 {
+                    write!(pp, "goto T{}", tgt_bid.as_number())?;
+                } else {
+                    write!(pp, "goto T{} (", tgt_bid.as_number())?;
+                    for phi_ndx in 0..phi_count {
+                        let phi_reg = phi.phi_reg(phi_ndx);
+                        write!(pp, "\n  r{} = ", phi_reg.0)?;
+
+                        let arg = phi.arg(&self.ssa, phi_ndx, pred_ndx);
+                        pp.open_box();
+                        self.pp_arg(pp, arg)?;
+                        pp.close_box();
+                    }
+
+                    write!(pp, "\n)")?;
+                }
+
+                Ok(())
+            } else {
+                if phi_count > 0 {
+                    write!(pp, "with")?;
+                    for phi_ndx in 0..phi_count {
+                        let phi_reg = phi.phi_reg(phi_ndx);
+                        write!(pp, "\n  r{} = ", phi_reg.0)?;
+
+                        let arg = phi.arg(&self.ssa, phi_ndx, pred_ndx);
+                        pp.open_box();
+                        self.pp_arg(pp, arg)?;
+                        pp.close_box();
+                    }
+                    writeln!(pp)?;
+                }
+
+                self.pp_block(pp, block_visited, tgt_bid)
+            }
         }
 
         fn is_named(&self, reg: Reg) -> bool {
@@ -1466,11 +1559,17 @@ mod ast_lite {
                 | Insn::PhiBool
                 | Insn::PhiArg(_) => panic!("phi insns should not be reachable here"),
 
-                Insn::JmpI(_)
-                | Insn::Jmp(_)
-                | Insn::JmpExt(_)
-                | Insn::JmpIf { .. }
-                | Insn::JmpExtIf { .. } => panic!("jmps don't go through here"),
+                Insn::JmpInd(_) => "JmpInd".into(),
+                Insn::JmpExt(addr) => return write!(pp, "JmpExt(0x{:x})", addr),
+                Insn::JmpExtIf { cond, addr } => {
+                    write!(pp, "if ")?;
+                    self.pp_arg(pp, cond)?;
+                    write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
+                    return Ok(());
+                }
+
+                // handled by pp_block
+                Insn::Jmp(_) | Insn::JmpIf { .. } => return Ok(()),
             };
 
             write!(pp, "{}(", op_s)?;

@@ -432,7 +432,7 @@ fn dest_of_insn(
         // "jumps to somewhere else".  They potentially exit the function, or
         // re-enter it at some unknown location; we can only know at runtime.
         // With the little information we have, we can only treat it as "exit".
-        mil::Insn::Ret(_) | mil::Insn::JmpI(_) => {
+        mil::Insn::Ret(_) | mil::Insn::JmpInd(_) => {
             // one-past-the-end of the program is a valid index; signifies "exit the function"
             (None, Some(program.len()))
         }
