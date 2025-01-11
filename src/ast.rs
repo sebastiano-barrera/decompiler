@@ -1361,8 +1361,8 @@ mod ast_lite {
                     }
                     pp.open_box();
                     self.pp_insn(pp, dest)?;
+                    writeln!(pp, ";")?;
                     pp.close_box();
-                    writeln!(pp)?;
                 }
             }
 
@@ -1404,7 +1404,7 @@ mod ast_lite {
             }
 
             pp.close_box();
-            write!(pp, "\n}}")
+            write!(pp, "}}")
         }
 
         fn pp_continuation<W: PP + ?Sized>(
@@ -1547,10 +1547,10 @@ mod ast_lite {
                     write!(pp, "[")?;
                     pp.open_box();
                     self.pp_arg(pp, addr)?;
-                    pp.close_box();
                     write!(pp, "] = ")?;
                     pp.open_box();
                     self.pp_arg(pp, value)?;
+                    pp.close_box();
                     pp.close_box();
                     return Ok(());
                 }
