@@ -1538,7 +1538,7 @@ mod ast_lite {
                 Insn::Call(_) => "Call".into(),
                 Insn::CArg(_) => "CArg".into(),
                 Insn::Ret(_) => "Ret".into(),
-                Insn::TODO(_) => "TODO".into(),
+                Insn::TODO(msg) => return write!(pp, "TODO /* {} */", msg),
                 Insn::LoadMem1(addr) => return self.pp_load_mem(pp, addr, 1),
                 Insn::LoadMem2(addr) => return self.pp_load_mem(pp, addr, 2),
                 Insn::LoadMem4(addr) => return self.pp_load_mem(pp, addr, 4),
