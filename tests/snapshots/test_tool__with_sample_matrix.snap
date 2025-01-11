@@ -532,14 +532,14 @@ T0(): {
           let r97 = r91 + [pre:RSP + -40]:8;
           [pre:RSP + -12] = [pre:RSP + -12]:4 + [r97]:4;
           [pre:RSP + -20] = [pre:RSP + -20]:4 + 1;
-          goto T3 (
+          loop T3 (
             r195 = V8WithL4(r97, [r97]:4)
           )
         }
         
         T4(): {
           [pre:RSP + -16] = [pre:RSP + -16]:4 + 1;
-          goto T5 (
+          loop T5 (
             r198 = V8WithL4(r195, [pre:RSP + -28]:4)
           )
         }
