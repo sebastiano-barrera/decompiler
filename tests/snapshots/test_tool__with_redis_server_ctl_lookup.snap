@@ -3309,7 +3309,13 @@ T0(): {
                                  pre:RDX,
                                  pre:RCX);
   if IsZero(r73) {
-    goto T52
+    let r1307 = 4012e0 /* 4199136 */([r51]:8,
+                                     r40,
+                                     pre:RDX,
+                                     pre:RCX);
+    goto T1 (
+      r1334 = [r51]:8 + r1307 * 1
+    )
   
   }
   goto T1 (
@@ -3324,598 +3330,490 @@ T0(): {
       )
     
     }
-    goto T2
+    if IsZero([[pre:RSP - -16]:8]:8 - 0) {
+      goto T54 (
+        r1456 = pre:RSI
+      )
     
-    T2(): {
-      if IsZero([[pre:RSP - -16]:8]:8 - 0) {
-        goto T54 (
-          r1456 = pre:RSI
+    }
+    let r133 = V8WithL4(pre:R15, 0 /* 0 */);
+    [pre:RSP - 32] = pre:RCX;
+    if IsZero([[pre:RSI + 24]:8]:1 - 0) {
+      goto T30 (
+        r1423 = r40
+        r1426 = r1334
+      )
+    
+    }
+    goto T4 (
+      r1337 = pre:RSI
+    )
+    
+    T4(r1337): {
+      let r156 = r1337 + 16;
+      [pre:RSP - -24] = [r156]:8;
+      if IsZero([r156]:8) {
+        goto T41 (
+          r1441 = [r51]:8
         )
       
       }
-      goto T3
+      let r174 = V8WithL4(pre:RCX, 0 /* 0 */);
+      let r183 = [r156]:8 & 3;
+      let r184 = V8WithL4([r156]:8, r183);
+      if IsZero(r183) {
+        goto T14 (
+          r1361 = r1334
+          r1364 = [pre:RSI + 24]:8
+        )
       
-      T3(): {
-        let r133 = V8WithL4(pre:R15, 0 /* 0 */);
-        [pre:RSP - 32] = pre:RCX;
-        if IsZero([[pre:RSI + 24]:8]:1 - 0) {
-          goto T30 (
-            r1423 = r40
-            r1426 = r1334
+      }
+      let r193 = r184 - 1;
+      if IsZero(r193) {
+        goto T12 (
+          r1352 = r193
+          r1355 = r1334
+          r1358 = [pre:RSI + 24]:8
+        )
+      
+      }
+      let r202 = r184 - 3;
+      if IsZero(r202) {
+        goto T10 (
+          r1343 = r202
+          r1346 = r1334
+          r1349 = [pre:RSI + 24]:8
+        )
+      
+      }
+      [pre:RSP - 8] = r1334;
+      [pre:RSP - 0] = [pre:RSI + 24]:8;
+      [pre:RSP - -32] = [[pre:RSI + 24]:8 + 8]:8;
+      let r226 = 4012e0 /* 4199136 */([[pre:RSI + 24]:8 + 8]:8,
+                                      r202,
+                                      [pre:RSP - -16]:8,
+                                      pre:RCX);
+      if IsZero(r226 - r101) {
+        [pre:RSP - 0] = [pre:RSP - 8]:8;
+        [pre:RSP - -32] = [pre:RSI + 24]:8;
+        let r1270 = 401340 /* 4199232 */([r51]:8,
+                                         [pre:RSP - -32]:8,
+                                         r101,
+                                         pre:RCX);
+        if !(IsZero(r1270)) {
+          goto T9 (
+            r1340 = [pre:RSI + 24]:8
           )
         
         }
-        goto T4 (
-          r1337 = pre:RSI
+        goto T24 (
+          r1396 = r174
+          r1402 = [pre:RSI + 24]:8
+          r1408 = r1337
+          r1414 = r133
         )
+      
+      }
+      goto T9 (
+        r1340 = [pre:RSI + 24]:8
+      )
+      
+      T9(r1340): {
+        goto T10 (
+          r1343 = [pre:RSP - -32]:8
+          r1346 = [pre:RSP - 8]:8
+          r1349 = r1340 + 40
+        )
+      }
+      
+      T10(r1343, r1346, r1349): {
+        [pre:RSP - 0] = r1346;
+        [pre:RSP - -32] = [r1349 + 8]:8;
+        let r275 = 4012e0 /* 4199136 */([r1349 + 8]:8,
+                                        r1343,
+                                        [pre:RSP - -16]:8,
+                                        pre:RCX);
+        if IsZero(r275 - r101) {
+          [pre:RSP - -32] = [pre:RSP - 0]:8;
+          let r1228 = 401340 /* 4199232 */([r51]:8,
+                                           [pre:RSP - -32]:8,
+                                           r101,
+                                           pre:RCX);
+          if !(IsZero(r1228)) {
+            goto T11
+          
+          }
+          goto T24 (
+            r1396 = r174
+            r1402 = r1349
+            r1408 = r1337
+            r1414 = r133
+          )
         
-        T4(r1337): {
-          let r156 = r1337 + 16;
-          [pre:RSP - -24] = [r156]:8;
-          if IsZero([r156]:8) {
+        }
+        goto T11
+        
+        T11(): {
+          goto T12 (
+            r1352 = [pre:RSP - -32]:8
+            r1355 = [pre:RSP - 0]:8
+            r1358 = r1349 + 40
+          )
+        }
+      }
+      
+      T12(r1352, r1355, r1358): {
+        [pre:RSP - 0] = r1355;
+        [pre:RSP - -32] = [r1358 + 8]:8;
+        let r336 = 4012e0 /* 4199136 */([r1358 + 8]:8,
+                                        r1352,
+                                        [pre:RSP - -16]:8,
+                                        pre:RCX);
+        let r358 = r336 - r101;
+        if IsZero(r358) {
+          [pre:RSP - -32] = [pre:RSP - 0]:8;
+          let r1189 = 401340 /* 4199232 */([r51]:8,
+                                           [pre:RSP - -32]:8,
+                                           r101,
+                                           pre:RCX);
+          if !(IsZero(r1189)) {
+            goto T13
+          
+          }
+          goto T24 (
+            r1396 = r174
+            r1402 = r1358
+            r1408 = r1337
+            r1414 = r133
+          )
+        
+        }
+        goto T13
+        
+        T13(): {
+          if IsZero(r174 + 1 - [pre:RSP - -24]:8) {
             goto T41 (
-              r1441 = [r51]:8
+              r1441 = r358
             )
           
           }
-          goto T5
+          goto T14 (
+            r1361 = [pre:RSP - 0]:8
+            r1364 = r1358 + 40
+          )
+        }
+      }
+      
+      T14(r1361, r1364): {
+        [pre:RSP - 16] = r1337;
+        [pre:RSP - 0] = r133;
+        [pre:RSP - 8] = r1361;
+        goto T19 (
+          r1379 = r184
+          r1382 = pre:RCX
+          r1385 = r1364
+        )
+        
+        T19(r1379, r1382, r1385): {
+          let r560 = 4012e0 /* 4199136 */([r1385 + 8]:8,
+                                          r1379,
+                                          [pre:RSP - -16]:8,
+                                          r1382);
+          if !(IsZero(r560 - r101)) {
+            goto T15 (
+              r1367 = r1379
+              r1370 = [pre:RSP - -16]:8
+            )
           
-          T5(): {
-            let r174 = V8WithL4(pre:RCX, 0 /* 0 */);
-            let r183 = [r156]:8 & 3;
-            let r184 = V8WithL4([r156]:8, r183);
-            if IsZero(r183) {
-              goto T14 (
-                r1361 = r1334
-                r1364 = [pre:RSI + 24]:8
-              )
-            
-            }
-            goto T6
-            
-            T6(): {
-              let r193 = r184 - 1;
-              if IsZero(r193) {
-                goto T12 (
-                  r1352 = r193
-                  r1355 = r1334
-                  r1358 = [pre:RSI + 24]:8
+          }
+          let r590 = 401340 /* 4199232 */([r51]:8,
+                                          [r1385 + 8]:8,
+                                          r101,
+                                          r1382);
+          if !(IsZero(r590)) {
+            goto T15 (
+              r1367 = [r1385 + 8]:8
+              r1370 = r101
+            )
+          
+          }
+          goto T24 (
+            r1396 = r174
+            r1402 = r1385
+            r1408 = [pre:RSP - 16]:8
+            r1414 = [pre:RSP - 0]:8
+          )
+          
+          T15(r1367, r1370): {
+            [pre:RSP - -32] = [r1385 + 48]:8;
+            let r425 = 4012e0 /* 4199136 */([r1385 + 48]:8,
+                                            r1367,
+                                            r1370,
+                                            r1382);
+            if IsZero(r425 - r101) {
+              let r635 = 401340 /* 4199232 */([r51]:8,
+                                              [pre:RSP - -32]:8,
+                                              r101,
+                                              r1382);
+              if !(IsZero(r635)) {
+                goto T16 (
+                  r1373 = r101
                 )
               
               }
-              goto T7
+              goto T23 (
+                r1388 = r1385 + 40
+                r1392 = r1385 + 40
+              )
+            
+            }
+            goto T16 (
+              r1373 = r1370
+            )
+            
+            T16(r1373): {
+              [pre:RSP - -32] = [r1385 + 88]:8;
+              let r467 = 4012e0 /* 4199136 */([r1385 + 88]:8,
+                                              [pre:RSP - -32]:8,
+                                              r1373,
+                                              [r1385 + 88]:8);
+              if IsZero(r467 - r101) {
+                let r1016 = 401340 /* 4199232 */([r51]:8,
+                                                 [pre:RSP - -32]:8,
+                                                 r101,
+                                                 [r1385 + 88]:8);
+                if !(IsZero(r1016)) {
+                  goto T17 (
+                    r1376 = r101
+                  )
+                
+                }
+                goto T23 (
+                  r1388 = r1385 + 80
+                  r1392 = r1385 + 80
+                )
               
-              T7(): {
-                let r202 = r184 - 3;
-                if IsZero(r202) {
-                  goto T10 (
-                    r1343 = r202
-                    r1346 = r1334
-                    r1349 = [pre:RSI + 24]:8
-                  )
-                
-                }
-                goto T8
-                
-                T8(): {
-                  [pre:RSP - 8] = r1334;
-                  [pre:RSP - 0] = [pre:RSI + 24]:8;
-                  [pre:RSP - -32] = [[pre:RSI + 24]:8 + 8]:8;
-                  let r226 = 4012e0 /* 4199136 */([[pre:RSI + 24]:8 + 8]:8,
-                                                  r202,
-                                                  [pre:RSP - -16]:8,
-                                                  pre:RCX);
-                  if IsZero(r226 - r101) {
-                    goto T50
-                  
-                  }
-                  goto T9 (
-                    r1340 = [pre:RSI + 24]:8
-                  )
-                  
-                  T9(r1340): {
-                    goto T10 (
-                      r1343 = [pre:RSP - -32]:8
-                      r1346 = [pre:RSP - 8]:8
-                      r1349 = r1340 + 40
-                    )
-                  }
-                  
-                  T50(): {
-                    [pre:RSP - 0] = [pre:RSP - 8]:8;
-                    [pre:RSP - -32] = [pre:RSI + 24]:8;
-                    let r1270 = 401340 /* 4199232 */([r51]:8,
-                                                     [pre:RSP - -32]:8,
-                                                     r101,
-                                                     pre:RCX);
-                    if !(IsZero(r1270)) {
-                      goto T9 (
-                        r1340 = [pre:RSI + 24]:8
-                      )
-                    
-                    }
-                    goto T51
-                    
-                    T51(): {
-                      goto T24 (
-                        r1396 = r174
-                        r1402 = [pre:RSI + 24]:8
-                        r1408 = r1337
-                        r1414 = r133
-                      )
-                    }
-                  }
-                }
-                
-                T10(r1343, r1346, r1349): {
-                  [pre:RSP - 0] = r1346;
-                  [pre:RSP - -32] = [r1349 + 8]:8;
-                  let r275 = 4012e0 /* 4199136 */([r1349 + 8]:8,
-                                                  r1343,
-                                                  [pre:RSP - -16]:8,
-                                                  pre:RCX);
-                  if IsZero(r275 - r101) {
-                    goto T48
-                  
-                  }
-                  goto T11
-                  
-                  T11(): {
-                    goto T12 (
-                      r1352 = [pre:RSP - -32]:8
-                      r1355 = [pre:RSP - 0]:8
-                      r1358 = r1349 + 40
-                    )
-                  }
-                  
-                  T48(): {
-                    [pre:RSP - -32] = [pre:RSP - 0]:8;
-                    let r1228 = 401340 /* 4199232 */([r51]:8,
-                                                     [pre:RSP - -32]:8,
-                                                     r101,
-                                                     pre:RCX);
-                    if !(IsZero(r1228)) {
-                      goto T11
-                    
-                    }
-                    goto T49
-                    
-                    T49(): {
-                      goto T24 (
-                        r1396 = r174
-                        r1402 = r1349
-                        r1408 = r1337
-                        r1414 = r133
-                      )
-                    }
-                  }
-                }
               }
+              goto T17 (
+                r1376 = r1373
+              )
               
-              T12(r1352, r1355, r1358): {
-                [pre:RSP - 0] = r1355;
-                [pre:RSP - -32] = [r1358 + 8]:8;
-                let r336 = 4012e0 /* 4199136 */([r1358 + 8]:8,
-                                                r1352,
-                                                [pre:RSP - -16]:8,
-                                                pre:RCX);
-                let r358 = r336 - r101;
-                if IsZero(r358) {
-                  goto T46
-                
-                }
-                goto T13
-                
-                T13(): {
-                  if IsZero(r174 + 1 - [pre:RSP - -24]:8) {
-                    goto T41 (
-                      r1441 = r358
-                    )
-                  
-                  }
-                  goto T14 (
-                    r1361 = [pre:RSP - 0]:8
-                    r1364 = r1358 + 40
-                  )
-                }
-                
-                T46(): {
-                  [pre:RSP - -32] = [pre:RSP - 0]:8;
-                  let r1189 = 401340 /* 4199232 */([r51]:8,
+              T17(r1376): {
+                [pre:RSP - -32] = [r1385 + 128]:8;
+                let r509 = 4012e0 /* 4199136 */([r1385 + 128]:8,
+                                                [r1385 + 128]:8,
+                                                r1376,
+                                                [r1385 + 88]:8);
+                let r527 = r509 - r101;
+                if IsZero(r527) {
+                  let r1048 = 401340 /* 4199232 */([r51]:8,
                                                    [pre:RSP - -32]:8,
                                                    r101,
-                                                   pre:RCX);
-                  if !(IsZero(r1189)) {
-                    goto T13
+                                                   [r1385 + 88]:8);
+                  if !(IsZero(r1048)) {
+                    goto T18
                   
                   }
-                  goto T47
-                  
-                  T47(): {
-                    goto T24 (
-                      r1396 = r174
-                      r1402 = r1358
-                      r1408 = r1337
-                      r1414 = r133
-                    )
-                  }
-                }
-              }
-            }
-            
-            T14(r1361, r1364): {
-              [pre:RSP - 16] = r1337;
-              [pre:RSP - 0] = r133;
-              [pre:RSP - 8] = r1361;
-              goto T19 (
-                r1379 = r184
-                r1382 = pre:RCX
-                r1385 = r1364
-              )
-              
-              T19(r1379, r1382, r1385): {
-                let r560 = 4012e0 /* 4199136 */([r1385 + 8]:8,
-                                                r1379,
-                                                [pre:RSP - -16]:8,
-                                                r1382);
-                if !(IsZero(r560 - r101)) {
-                  goto T15 (
-                    r1367 = r1379
-                    r1370 = [pre:RSP - -16]:8
+                  goto T23 (
+                    r1388 = r1385 + 120
+                    r1392 = r1385 + 120
                   )
                 
                 }
-                goto T20
+                goto T18
                 
-                T15(r1367, r1370): {
-                  [pre:RSP - -32] = [r1385 + 48]:8;
-                  let r425 = 4012e0 /* 4199136 */([r1385 + 48]:8,
-                                                  r1367,
-                                                  r1370,
-                                                  r1382);
-                  if IsZero(r425 - r101) {
-                    goto T22
+                T18(): {
+                  if IsZero(r174 + 4 - [pre:RSP - -24]:8) {
+                    goto T41 (
+                      r1441 = r527
+                    )
                   
                   }
-                  goto T16 (
-                    r1373 = r1370
+                  loop T19 (
+                    r1379 = [pre:RSP - -32]:8
+                    r1382 = [r1385 + 88]:8
+                    r1385 = r1385 + 160
                   )
-                  
-                  T16(r1373): {
-                    [pre:RSP - -32] = [r1385 + 88]:8;
-                    let r467 = 4012e0 /* 4199136 */([r1385 + 88]:8,
-                                                    [pre:RSP - -32]:8,
-                                                    r1373,
-                                                    [r1385 + 88]:8);
-                    if IsZero(r467 - r101) {
-                      goto T37
-                    
-                    }
-                    goto T17 (
-                      r1376 = r1373
-                    )
-                    
-                    T17(r1376): {
-                      [pre:RSP - -32] = [r1385 + 128]:8;
-                      let r509 = 4012e0 /* 4199136 */([r1385 + 128]:8,
-                                                      [r1385 + 128]:8,
-                                                      r1376,
-                                                      [r1385 + 88]:8);
-                      let r527 = r509 - r101;
-                      if IsZero(r527) {
-                        goto T39
-                      
-                      }
-                      goto T18
-                      
-                      T18(): {
-                        if IsZero(r174 + 4 - [pre:RSP - -24]:8) {
-                          goto T41 (
-                            r1441 = r527
-                          )
-                        
-                        }
-                        loop T19 (
-                          r1379 = [pre:RSP - -32]:8
-                          r1382 = [r1385 + 88]:8
-                          r1385 = r1385 + 160
-                        )
-                      }
-                      
-                      T39(): {
-                        let r1048 = 401340 /* 4199232 */([r51]:8,
-                                                         [pre:RSP - -32]:8,
-                                                         r101,
-                                                         [r1385 + 88]:8);
-                        if !(IsZero(r1048)) {
-                          goto T18
-                        
-                        }
-                        goto T40
-                        
-                        T40(): {
-                          goto T23 (
-                            r1388 = r1385 + 120
-                            r1392 = r1385 + 120
-                          )
-                        }
-                      }
-                    }
-                    
-                    T37(): {
-                      let r1016 = 401340 /* 4199232 */([r51]:8,
-                                                       [pre:RSP - -32]:8,
-                                                       r101,
-                                                       [r1385 + 88]:8);
-                      if !(IsZero(r1016)) {
-                        goto T17 (
-                          r1376 = r101
-                        )
-                      
-                      }
-                      goto T38
-                      
-                      T38(): {
-                        goto T23 (
-                          r1388 = r1385 + 80
-                          r1392 = r1385 + 80
-                        )
-                      }
-                    }
-                  }
-                  
-                  T22(): {
-                    let r635 = 401340 /* 4199232 */([r51]:8,
-                                                    [pre:RSP - -32]:8,
-                                                    r101,
-                                                    r1382);
-                    if !(IsZero(r635)) {
-                      goto T16 (
-                        r1373 = r101
-                      )
-                    
-                    }
-                    goto T23 (
-                      r1388 = r1385 + 40
-                      r1392 = r1385 + 40
-                    )
-                  }
-                  
-                  T23(r1388, r1392): {
-                    goto T24 (
-                      r1396 = r174 + 1
-                      r1402 = r1392
-                      r1408 = [pre:RSP - 16]:8
-                      r1414 = [pre:RSP - 0]:8
-                    )
-                  }
-                }
-                
-                T20(): {
-                  let r590 = 401340 /* 4199232 */([r51]:8,
-                                                  [r1385 + 8]:8,
-                                                  r101,
-                                                  r1382);
-                  if !(IsZero(r590)) {
-                    goto T15 (
-                      r1367 = [r1385 + 8]:8
-                      r1370 = r101
-                    )
-                  
-                  }
-                  goto T21
-                  
-                  T21(): {
-                    goto T24 (
-                      r1396 = r174
-                      r1402 = r1385
-                      r1408 = [pre:RSP - 16]:8
-                      r1414 = [pre:RSP - 0]:8
-                    )
-                  }
                 }
               }
             }
             
-            T24(r1396, r1402, r1408, r1414): {
-              [[pre:RSP - -8]:8 + r1414 * 8] = r1396;
-              if IsZero(r1402 - r1408) {
-                goto T41 (
-                  r1441 = [r51]:8
-                )
-              
-              }
-              goto T25
-              
-              T25(): {
-                TODO /* unsupported: movzx edi,byte ptr [r8] */;
-                if !(IsZero([pre:R13 + 32]:8 - 0)) {
-                  goto T33 (
-                    r1429 = pre:RDX
-                  )
-                
-                }
-                goto T26 (
-                  r1420 = pre:RDX
-                )
-              }
-            }
-          }
-        }
-        
-        T26(r1420): {
-          if IsZero(r1420) {
-            goto T53
-          
-          }
-          goto T27
-          
-          T27(): {
-            let r716 = r1334 + 1;
-            let r719 = V8WithL4(pre:RSI, 2e /* 46 */);
-            [r51] = r716;
-            let r724 = 401280 /* 4199040 */(r716,
-                                            r719,
-                                            [pre:RSP - -16]:8,
-                                            pre:RCX);
-            if IsZero(r724) {
-              goto T42
-            
-            }
-            goto T28
-            
-            T28(): {
-              if !(CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8)) {
-                goto T43
-              
-              }
-              goto T29
-            }
-            
-            T29(): {
-              if !(IsZero([[pre:R13 + 24]:8]:1 - 0)) {
-                goto T4 (
-                  r1337 = pre:R13
-                )
-              
-              }
-              goto T30 (
-                r1423 = r719
-                r1426 = r724
-              )
-            }
-            
-            T42(): {
-              let r1119 = 4012e0 /* 4199136 */([r51]:8,
-                                               r719,
-                                               [pre:RSP - -16]:8,
-                                               pre:RCX);
-              if CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8) {
-                goto T29
-              
-              }
-              goto T43
-            }
-            
-            T43(): {
-              goto T44
-              
-              T44(): {
-                if IsZero([pre:RSP - 32]:8) {
-                  goto T35 (
-                    r1435 = r724
-                  )
-                
-                }
-                goto T45 (
-                  r1450 = r724
-                  r1453 = [pre:RSP - 32]:8
-                )
-              }
-            }
-          }
-          
-          T53(): {
-            goto T34 (
-              r1432 = [pre:RSP - 32]:8
-            )
-          }
-        }
-        
-        T30(r1423, r1426): {
-          [pre:RSP - -32] = r1426;
-          let r823 = 6270e0 /* 6451424 */([r51]:8,
-                                          V8WithL4(r1423, 0 /* 0 */),
-                                          V8WithL4([pre:RSP - -16]:8, a /* 10 */),
-                                          pre:RCX);
-          let r842 = r823 - -1;
-          if IsZero(r842) {
-            goto T41 (
-              r1441 = r842
-            )
-          
-          }
-          goto T31
-          
-          T31(): {
-            [r51] = [pre:RSP - -32]:8;
-            if !(IsZero([[pre:RSI + 24]:8]:1 - 0)){
-              goto 0x403143
-            };
-            let r893 = [[[pre:RSI + 24]:8 + 8]:8]:8([pre:RSP - 24]:8,
-                                                    [pre:RSP - -8]:8,
-                                                    [[pre:RSP - -16]:8]:8,
-                                                    r842);
-            if IsZero(r893) {
-              goto T41 (
-                r1441 = r893
-              )
-            
-            }
-            goto T32
-            
-            T32(): {
-              [[pre:RSP - -8]:8 + r133 * 8] = r842;
-              TODO /* unsupported: movzx edi,byte ptr [r8] */;
-              if IsZero([r893 + 32]:8 - 0) {
-                goto T26 (
-                  r1420 = [pre:RSP - 24]:8
-                )
-              
-              }
-              goto T33 (
-                r1429 = [pre:RSP - 24]:8
+            T23(r1388, r1392): {
+              goto T24 (
+                r1396 = r174 + 1
+                r1402 = r1392
+                r1408 = [pre:RSP - 16]:8
+                r1414 = [pre:RSP - 0]:8
               )
             }
           }
-        }
-        
-        T33(r1429): {
-          if !(IsZero(r1429)) {
-            goto T41 (
-              r1441 = [r51]:8
-            )
-          
-          }
-          goto T34 (
-            r1432 = [pre:RSP - 32]:8
-          )
-        }
-        
-        T34(r1432): {
-          [[pre:RSP - -16]:8] = r133 + 1;
-          if !(IsZero(r1432)) {
-            goto T45 (
-              r1450 = [r51]:8
-              r1453 = r1432
-            )
-          
-          }
-          goto T35 (
-            r1435 = [r51]:8
-          )
-        }
-        
-        T35(r1435): {
-          goto T36 (
-            r1438 = V8WithL4(r1435, 0 /* 0 */)
-          )
-        }
-        
-        T36(r1438): {
-          Ret(r1438);
-          goto T54 (
-            r1456 = [pre:RSP - 80]:8
-          )
-        }
-        
-        T45(r1450, r1453): {
-          [r1453] = pre:R13;
-          goto T36 (
-            r1438 = V8WithL4(r1450, 0 /* 0 */)
-          )
         }
       }
+      
+      T24(r1396, r1402, r1408, r1414): {
+        [[pre:RSP - -8]:8 + r1414 * 8] = r1396;
+        if IsZero(r1402 - r1408) {
+          goto T41 (
+            r1441 = [r51]:8
+          )
+        
+        }
+        TODO /* unsupported: movzx edi,byte ptr [r8] */;
+        if !(IsZero([pre:R13 + 32]:8 - 0)) {
+          goto T33 (
+            r1429 = pre:RDX
+          )
+        
+        }
+        goto T26 (
+          r1420 = pre:RDX
+        )
+      }
+    }
+    
+    T26(r1420): {
+      if IsZero(r1420) {
+        goto T34 (
+          r1432 = [pre:RSP - 32]:8
+        )
+      
+      }
+      let r716 = r1334 + 1;
+      let r719 = V8WithL4(pre:RSI, 2e /* 46 */);
+      [r51] = r716;
+      let r724 = 401280 /* 4199040 */(r716,
+                                      r719,
+                                      [pre:RSP - -16]:8,
+                                      pre:RCX);
+      if IsZero(r724) {
+        let r1119 = 4012e0 /* 4199136 */([r51]:8,
+                                         r719,
+                                         [pre:RSP - -16]:8,
+                                         pre:RCX);
+        if CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8) {
+          goto T29
+        
+        }
+        goto T43
+      
+      }
+      if !(CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8)) {
+        goto T43
+      
+      }
+      goto T29
+      
+      T29(): {
+        if !(IsZero([[pre:R13 + 24]:8]:1 - 0)) {
+          goto T4 (
+            r1337 = pre:R13
+          )
+        
+        }
+        goto T30 (
+          r1423 = r719
+          r1426 = r724
+        )
+      }
+      
+      T43(): {
+        if IsZero([pre:RSP - 32]:8) {
+          goto T35 (
+            r1435 = r724
+          )
+        
+        }
+        goto T45 (
+          r1450 = r724
+          r1453 = [pre:RSP - 32]:8
+        )
+      }
+    }
+    
+    T30(r1423, r1426): {
+      [pre:RSP - -32] = r1426;
+      let r823 = 6270e0 /* 6451424 */([r51]:8,
+                                      V8WithL4(r1423, 0 /* 0 */),
+                                      V8WithL4([pre:RSP - -16]:8, a /* 10 */),
+                                      pre:RCX);
+      let r842 = r823 - -1;
+      if IsZero(r842) {
+        goto T41 (
+          r1441 = r842
+        )
+      
+      }
+      [r51] = [pre:RSP - -32]:8;
+      if !(IsZero([[pre:RSI + 24]:8]:1 - 0)){
+        goto 0x403143
+      };
+      let r893 = [[[pre:RSI + 24]:8 + 8]:8]:8([pre:RSP - 24]:8,
+                                              [pre:RSP - -8]:8,
+                                              [[pre:RSP - -16]:8]:8,
+                                              r842);
+      if IsZero(r893) {
+        goto T41 (
+          r1441 = r893
+        )
+      
+      }
+      [[pre:RSP - -8]:8 + r133 * 8] = r842;
+      TODO /* unsupported: movzx edi,byte ptr [r8] */;
+      if IsZero([r893 + 32]:8 - 0) {
+        goto T26 (
+          r1420 = [pre:RSP - 24]:8
+        )
+      
+      }
+      goto T33 (
+        r1429 = [pre:RSP - 24]:8
+      )
+    }
+    
+    T33(r1429): {
+      if !(IsZero(r1429)) {
+        goto T41 (
+          r1441 = [r51]:8
+        )
+      
+      }
+      goto T34 (
+        r1432 = [pre:RSP - 32]:8
+      )
+    }
+    
+    T34(r1432): {
+      [[pre:RSP - -16]:8] = r133 + 1;
+      if !(IsZero(r1432)) {
+        goto T45 (
+          r1450 = [r51]:8
+          r1453 = r1432
+        )
+      
+      }
+      goto T35 (
+        r1435 = [r51]:8
+      )
+    }
+    
+    T35(r1435): {
+      goto T36 (
+        r1438 = V8WithL4(r1435, 0 /* 0 */)
+      )
+    }
+    
+    T36(r1438): {
+      Ret(r1438);
+      goto T54 (
+        r1456 = [pre:RSP - 80]:8
+      )
+    }
+    
+    T45(r1450, r1453): {
+      [r1453] = pre:R13;
+      goto T36 (
+        r1438 = V8WithL4(r1450, 0 /* 0 */)
+      )
     }
     
     T41(r1441): {
@@ -3927,15 +3825,5 @@ T0(): {
     
     T54(r1456): {
       }
-  }
-  
-  T52(): {
-    let r1307 = 4012e0 /* 4199136 */([r51]:8,
-                                     r40,
-                                     pre:RDX,
-                                     pre:RCX);
-    goto T1 (
-      r1334 = [r51]:8 + r1307 * 1
-    )
   }
 }

@@ -1326,19 +1326,10 @@ mod ast_lite {
         pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::fmt::Result {
             let cfg = self.ssa.cfg();
             let entry_bid = cfg.entry_block_id();
-            let mut block_visited = cfg::BlockMap::new(false, cfg.block_count());
-            self.pp_block(pp, &mut block_visited, entry_bid)
+            self.pp_block(pp, entry_bid)
         }
 
-        fn pp_block<W: PP + ?Sized>(
-            &self,
-            pp: &mut W,
-            block_visited: &mut cfg::BlockMap<bool>,
-            bid: cfg::BlockID,
-        ) -> std::fmt::Result {
-            assert!(!block_visited[bid]);
-            block_visited[bid] = true;
-
+        fn pp_block<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::fmt::Result {
             let phis = self.ssa.block_phi(bid);
 
             write!(pp, "T{}(", bid.as_number())?;
@@ -1349,9 +1340,19 @@ mod ast_lite {
                 write!(pp, "{:?}", phi_reg)?;
             }
             write!(pp, "): {{\n  ")?;
-
             pp.open_box();
 
+            self.pp_block_inner(pp, bid)?;
+
+            pp.close_box();
+            writeln!(pp, "}}")
+        }
+
+        fn pp_block_inner<W: PP + ?Sized>(
+            &self,
+            pp: &mut W,
+            bid: cfg::BlockID,
+        ) -> Result<(), std::fmt::Error> {
             let insn_slice = self.ssa.block_normal_insns(bid).unwrap();
             for (dest, insn) in insn_slice.iter_copied() {
                 let is_named = self.is_named(dest);
@@ -1369,7 +1370,9 @@ mod ast_lite {
                 }
             }
 
-            match self.ssa.cfg().block_cont(bid) {
+            let cfg = self.ssa.cfg();
+
+            match cfg.block_cont(bid) {
                 cfg::BlockCont::End => {
                     // all done!
                 }
@@ -1400,13 +1403,14 @@ mod ast_lite {
                 }
             }
 
-            for &child in self.ssa.cfg().dom_tree().children_of(bid) {
-                writeln!(pp)?;
-                self.pp_block(pp, block_visited, child)?;
+            for &child in cfg.dom_tree().children_of(bid) {
+                if cfg.block_preds(child).len() > 1 {
+                    writeln!(pp)?;
+                    self.pp_block(pp, child)?;
+                }
             }
 
-            pp.close_box();
-            writeln!(pp, "}}")
+            Ok(())
         }
 
         fn pp_continuation<W: PP + ?Sized>(
@@ -1418,14 +1422,19 @@ mod ast_lite {
         ) -> std::fmt::Result {
             let phi = self.ssa.block_phi(tgt_bid);
 
-            let looping_back = self
-                .ssa
-                .cfg()
+            let cfg = self.ssa.cfg();
+            let looping_back = cfg
                 .dom_tree()
                 .imm_doms(src_bid)
                 .find(|i| *i == tgt_bid)
                 .is_some();
             let keyword = if looping_back { "loop" } else { "goto" };
+
+            let pred_count = cfg.block_preds(tgt_bid).len();
+            if pred_count == 1 {
+                assert_eq!(phi.phi_count(), 0);
+                return self.pp_block_inner(pp, tgt_bid);
+            }
 
             if phi.phi_count() == 0 {
                 write!(pp, "{keyword} T{}", tgt_bid.as_number())?;
