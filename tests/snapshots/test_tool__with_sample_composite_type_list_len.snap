@@ -146,7 +146,7 @@ ssa program  15 instrs
 
 
 T0(): {
-  let r37 = V8WithL4(pre:RAX, 0 /* 0 */);
+  let r37 = V8WithL4(pre:RAX, 0x0 /* 0 */);
   goto T1 (
     r70 = r37
     r73 = pre:RSP + 8

@@ -497,8 +497,8 @@ T0(): {
   [pre:RSP + -8] = pre:RBP;
   [pre:RSP + -40] = pre:RDI;
   [pre:RSP + -32] = pre:RSI;
-  [pre:RSP + -12] = 0 /* 0 */;
-  [pre:RSP + -16] = 0 /* 0 */;
+  [pre:RSP + -12] = 0x0 /* 0 */;
+  [pre:RSP + -16] = 0x0 /* 0 */;
   goto T5 (
     r198 = pre:RDI
   )
@@ -506,7 +506,7 @@ T0(): {
   T5(r198): {
     let r177 = [pre:RSP + -16]:4 - [pre:RSP + -32]:4;
     if !(EQ(SignOf(r177), OverflowOf(r177))) {
-      [pre:RSP + -20] = 0 /* 0 */;
+      [pre:RSP + -20] = 0x0 /* 0 */;
       goto T3 (
         r195 = V8WithL4(r198, [pre:RSP + -32]:4)
       )
@@ -516,7 +516,7 @@ T0(): {
         if !(EQ(SignOf(r145), OverflowOf(r145))) {
           TODO /* unsupported: imul eax,[rbp-8] */;
           TODO /* unsupported: cdqe */;
-          let r91 = V8WithL4(r195, [pre:RSP + -20]:4 + [pre:RSP + -28]:4) / Widen1_8(2 /* 2 */);
+          let r91 = V8WithL4(r195, [pre:RSP + -20]:4 + [pre:RSP + -28]:4) / Widen1_8(0x2 /* 2 */);
           let r97 = r91 + [pre:RSP + -40]:8;
           [pre:RSP + -12] = [pre:RSP + -12]:4 + [r97]:4;
           [pre:RSP + -20] = [pre:RSP + -20]:4 + 1;

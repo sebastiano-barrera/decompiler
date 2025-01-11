@@ -109,7 +109,7 @@ ssa program  18 instrs
 
 T0(): {
   let r30 = StructGet8[8](pre:arg0);
-  let r40 = V8WithL4(pre:RAX, 1 /* 1 */);
+  let r40 = V8WithL4(pre:RAX, 0x1 /* 1 */);
   if IsZero(r30) {
     goto T2 (
       r78 = r40
