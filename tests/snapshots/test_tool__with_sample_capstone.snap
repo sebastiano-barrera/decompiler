@@ -683,86 +683,87 @@ ssa program  102 instrs
          r312 <- jmp      265
 
 
-
-'T0: {
-    [<pre:RSP> + -8]:8 = <pre:R12>;
-    [<pre:RSP> + -16]:8 = <pre:RBP>;
-    [<pre:RSP> + -24]:8 = <pre:RBX>;
-    let r45 = <pre:RSP> - -8;
-    let r55 = 4198512(
-                (<pre:RDI> with l4 = 3),
-                (<pre:RSI> with l4 = 8),
-                r45,
-                <pre:RCX>,
-              );
-    if not r55 == 0 {
-        let r99 = (<pre:RCX> with l4 = 4096);
-        let r101 = (r45 with l4 = 8);
-        let r103 = (<pre:RSI> with l4 = 4203184);
-        let r105 = 4198496(
-                     [r45]:8,
-                     r103,
-                     r101,
-                     r99,
-                   );
-        if r105 == 0 {
-            let mut r313 = r105;
-            let mut r316 = [r45]:8;
-            let mut r319 = (<pre:RBX> with l4 = 0);
-            
-            'T3(r313, r316, r319): {
-                let r144 = (r316 with l4 = 4203193);
-                let r162 = r319 + 1;
-                let r173 = [<pre:RSP> - 16]:8 + (r319 << (5).widen[1->8] - r319) * 8;
-                let r180 = r173 + 74;
-                let r183 = r173 + 42;
-                let r196 = 4198480(
-                             r144,
-                             [r173 + 8]:8,
-                             r183,
-                             r180,
-                           );
-                let r210 = r313 - r162;
-                if not r210 == 0 {
-                    let r225 = 4198464(
-                                 [<pre:RSP> - 16]:8,
-                                 r210,
-                                 r183,
-                                 r180,
-                               );
-                    goto T5 with (r322 = r210,
-                                  r325 = r180,
-                                  r328 = r183)
-                } else goto T3 with (r313 = r210,
-                                     r316 = r144,
-                                     r319 = r162)
-            }
-        } else {
-            let r287 = 4198448(
-                         ([r45]:8 with l4 = 4203208),
-                         r103,
-                         r101,
-                         r99,
-                       );
-            goto T5 with (r322 = r103,
-                          r325 = r99,
-                          r328 = r101)
-        };
-        
-        'T5(r322, r325, r328): {
-            let r241 = 4198528(
-                         r45,
-                         r322,
-                         r328,
-                         r325,
-                       );
-            {
-                return (r241 with l4 = 0);
-                goto T8
-            }
-        }
-    } else 
-    'T8: {
-        
+T0(): {
+  [pre:RSP + -8] = pre:R12;
+  [pre:RSP + -16] = pre:RBP;
+  [pre:RSP + -24] = pre:RBX;
+  let r45 = pre:RSP - -8;
+  let r55 = 0x401070 /* 4198512 */(V8WithL4(pre:RDI, 0x3 /* 3 */),
+                                   V8WithL4(pre:RSI, 0x8 /* 8 */),
+                                   r45,
+                                   pre:RCX);
+  if !(IsZero(r55)) {
+    goto T8 (
+      r331 = r55
+    )
+  
+  }
+  let r99 = V8WithL4(pre:RCX, 0x1000 /* 4096 */);
+  let r101 = V8WithL4(r45, 0x8 /* 8 */);
+  let r103 = V8WithL4(pre:RSI, 0x4022b0 /* 4203184 */);
+  let r105 = 0x401060 /* 4198496 */([r45]:8,
+                                    r103,
+                                    r101,
+                                    r99);
+  if IsZero(r105) {
+    let r287 = 0x401030 /* 4198448 */(V8WithL4([r45]:8, 0x4022c8 /* 4203208 */),
+                                      r103,
+                                      r101,
+                                      r99);
+    goto T5 (
+      r322 = r103
+      r325 = r99
+      r328 = r101
+    )
+  
+  }
+  goto T3 (
+    r313 = r105
+    r316 = [r45]:8
+    r319 = V8WithL4(pre:RBX, 0x0 /* 0 */)
+  )
+  
+  T3(r313, r316, r319): {
+    let r144 = V8WithL4(r316, 0x4022b9 /* 4203193 */);
+    let r162 = r319 + 1;
+    let r173 = [pre:RSP - 16]:8 + r319 / Widen1_8(0x5 /* 5 */) - r319 * 8;
+    let r180 = r173 + 74;
+    let r183 = r173 + 42;
+    let r196 = 0x401050 /* 4198480 */(r144,
+                                      [r173 + 8]:8,
+                                      r183,
+                                      r180);
+    let r210 = r313 - r162;
+    if !(IsZero(r210)) {
+      goto T3 (
+        r313 = r210
+        r316 = r144
+        r319 = r162
+      )
+    
+    }
+    let r225 = 0x401040 /* 4198464 */([pre:RSP - 16]:8,
+                                      r210,
+                                      r183,
+                                      r180);
+    goto T5 (
+      r322 = r210
+      r325 = r180
+      r328 = r183
+    )
+  }
+  
+  T5(r322, r325, r328): {
+    let r241 = 0x401080 /* 4198528 */(r45,
+                                      r322,
+                                      r328,
+                                      r325);
+    Ret(V8WithL4(r241, 0x0 /* 0 */));
+    goto T8 (
+      r331 = V8WithL4(r241, 0x0 /* 0 */)
+    )
+  }
+  
+  T8(r331): {
     }
 }

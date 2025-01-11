@@ -107,22 +107,35 @@ ssa program  18 instrs
          r71 <- ret      r78
 
 
-
-'T0: {
-    let r30 = <pre:arg0>[8];
-    let r40 = (<pre:RAX> with l4 = 1);
-    if r30 == 0 {
-        let mut r72 = r30;
-        let mut r75 = r40;
-        
-        'T1(r72, r75): {
-            let r51 = (r75 with l4 = r75 + 1);
-            if not [r72 + 8]:8 == 0 goto T2 (r78 = r51) else goto T1 with (r72 = [r72 + 8]:8,
-                                                                           r75 = r51)
-        }
-    } else {
-        let mut r78 = r40;
-        
-        'T2(r78): return r78
+T0(): {
+  let r30 = StructGet8[8](pre:arg0);
+  let r40 = V8WithL4(pre:RAX, 0x1 /* 1 */);
+  if IsZero(r30) {
+    goto T2 (
+      r78 = r40
+    )
+  
+  }
+  goto T1 (
+    r72 = r30
+    r75 = r40
+  )
+  
+  T1(r72, r75): {
+    let r51 = V8WithL4(r75, r75 + 1);
+    if !(IsZero([r72 + 8]:8)) {
+      goto T1 (
+        r72 = [r72 + 8]:8
+        r75 = r51
+      )
+    
     }
+    goto T2 (
+      r78 = r51
+    )
+  }
+  
+  T2(r78): {
+    Ret(r78);
+  }
 }

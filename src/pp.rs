@@ -33,8 +33,10 @@ impl<W: Write> PP for PrettyPrinter<W> {
     }
 
     fn close_box(&mut self) {
-        let prev_indent = self.indent_stack.pop().unwrap_or(0);
-        self.cur_text += self.cur_indent - prev_indent;
+        let prev_indent = self.indent_stack.pop().unwrap();
+        if !self.indent_next_chunk {
+            self.cur_text += self.cur_indent - prev_indent;
+        }
         self.cur_indent = prev_indent;
     }
 }
@@ -48,19 +50,19 @@ impl<W: Write> Write for PrettyPrinter<W> {
                 for _ in 0..self.cur_indent {
                     self.wrt.write_char(' ')?;
                 }
-                cur_text = 0;
             }
 
-            cur_text += line.len();
             self.wrt.write_str(line)?;
-            self.indent_next_chunk = line.ends_with("\n");
+            if line.ends_with("\n") {
+                cur_text = 0;
+                self.indent_next_chunk = true;
+            } else {
+                cur_text += line.len();
+                self.indent_next_chunk = false;
+            }
         }
 
         self.cur_text = cur_text.try_into().unwrap();
-
-        for (ndx, line) in s.split('\n').enumerate() {
-            println!("CHUNK[{:2}]:{}<<", ndx, line);
-        }
 
         Ok(())
     }

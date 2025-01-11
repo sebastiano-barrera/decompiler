@@ -3291,356 +3291,539 @@ ssa program  499 instrs
          r1333 <- jmp      1158
 
 
-
-'T0: {
-    [<pre:RSP> + -8]:8 = <pre:R15>;
-    [<pre:RSP> + -16]:8 = <pre:R14>;
-    let r40 = (<pre:RSI> with l4 = 46);
-    [<pre:RSP> + -24]:8 = <pre:R13>;
-    [<pre:RSP> + -32]:8 = <pre:R12>;
-    [<pre:RSP> + -40]:8 = <pre:RBP>;
-    [<pre:RSP> + -48]:8 = <pre:RBX>;
-    let r51 = <pre:RSP> - 40;
-    [<pre:RSP> - 24]:8 = <pre:RDI>;
-    [<pre:RSP> - -8]:8 = <pre:R8>;
-    [r51]:8 = <pre:RDX>;
-    [<pre:RSP> - -16]:8 = <pre:R9>;
-    let r73 = 4199040(
-                <pre:RDX>,
-                r40,
-                <pre:RDX>,
-                <pre:RCX>,
-              );
-    if r73 == 0 {
-        let mut r1334 = r73;
-        
-        'T1(r1334): {
-            let r101 = r1334 - [r51]:8;
-            if r101 == 0 if [[<pre:RSP> - -16]:8]:8 == 0 {
-                let r133 = (<pre:R15> with l4 = 0);
-                [<pre:RSP> - 32]:8 = <pre:RCX>;
-                if [[<pre:RSI> + 24]:8]:1 == 0 {
-                    let mut r1337 = <pre:RSI>;
-                    
-                    'T4(r1337): {
-                        let r156 = r1337 + 16;
-                        [<pre:RSP> - -24]:8 = [r156]:8;
-                        if [r156]:8 == 0 {
-                            let r174 = (<pre:RCX> with l4 = 0);
-                            let r183 = [r156]:8 & 3;
-                            let r184 = ([r156]:8 with l4 = r183);
-                            if r183 == 0 {
-                                let r193 = r184 - 1;
-                                if r193 == 0 {
-                                    let r202 = r184 - 3;
-                                    if r202 == 0 {
-                                        [<pre:RSP> - 8]:8 = r1334;
-                                        [<pre:RSP>]:8 = [<pre:RSI> + 24]:8;
-                                        [<pre:RSP> - -32]:8 = [[<pre:RSI> + 24]:8 + 8]:8;
-                                        let r226 = 4199136(
-                                                     [[<pre:RSI> + 24]:8 + 8]:8,
-                                                     r202,
-                                                     [<pre:RSP> - -16]:8,
-                                                     <pre:RCX>,
-                                                   );
-                                        if r226 - r101 == 0 {
-                                            let mut r1340 = [<pre:RSI> + 24]:8;
-                                            
-                                            'T9(r1340): goto T10 with (r1343 = [<pre:RSP> - -32]:8,
-                                                                       r1346 = [<pre:RSP> - 8]:8,
-                                                                       r1349 = r1340 + 40)
-                                        } else {
-                                            [<pre:RSP>]:8 = [<pre:RSP> - 8]:8;
-                                            [<pre:RSP> - -32]:8 = [<pre:RSI> + 24]:8;
-                                            let r1270 = 4199232(
-                                                          [r51]:8,
-                                                          [<pre:RSP> - -32]:8,
-                                                          r101,
-                                                          <pre:RCX>,
-                                                        );
-                                            if not r1270 == 0 goto T24 with (r1396 = r174,
-                                                                             r1402 = [<pre:RSI> + 24]:8,
-                                                                             r1408 = r1337,
-                                                                             r1414 = r133) else goto T9 (r1340 = [<pre:RSI> + 24]:8)
-                                        }
-                                    } else {
-                                        let mut r1343 = r202;
-                                        let mut r1346 = r1334;
-                                        let mut r1349 = [<pre:RSI> + 24]:8;
-                                        
-                                        'T10(r1343, r1346, r1349): {
-                                            [<pre:RSP>]:8 = r1346;
-                                            [<pre:RSP> - -32]:8 = [r1349 + 8]:8;
-                                            let r275 = 4199136(
-                                                         [r1349 + 8]:8,
-                                                         r1343,
-                                                         [<pre:RSP> - -16]:8,
-                                                         <pre:RCX>,
-                                                       );
-                                            if r275 - r101 == 0 
-                                            'T11: goto T12 with (r1352 = [<pre:RSP> - -32]:8,
-                                                                 r1355 = [<pre:RSP>]:8,
-                                                                 r1358 = r1349 + 40) else {
-                                                [<pre:RSP> - -32]:8 = [<pre:RSP>]:8;
-                                                let r1228 = 4199232(
-                                                              [r51]:8,
-                                                              [<pre:RSP> - -32]:8,
-                                                              r101,
-                                                              <pre:RCX>,
-                                                            );
-                                                if not r1228 == 0 goto T24 with (r1396 = r174,
-                                                                                 r1402 = r1349,
-                                                                                 r1408 = r1337,
-                                                                                 r1414 = r133) else goto T11
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    let mut r1352 = r193;
-                                    let mut r1355 = r1334;
-                                    let mut r1358 = [<pre:RSI> + 24]:8;
-                                    
-                                    'T12(r1352, r1355, r1358): {
-                                        [<pre:RSP>]:8 = r1355;
-                                        [<pre:RSP> - -32]:8 = [r1358 + 8]:8;
-                                        let r336 = 4199136(
-                                                     [r1358 + 8]:8,
-                                                     r1352,
-                                                     [<pre:RSP> - -16]:8,
-                                                     <pre:RCX>,
-                                                   );
-                                        let r358 = r336 - r101;
-                                        if r358 == 0 
-                                        'T13: if r174 + 1 - [<pre:RSP> - -24]:8 == 0 goto T14 with (r1361 = [<pre:RSP>]:8,
-                                                                                                    r1364 = r1358 + 40) else goto T41 (r1441 = r358) else {
-                                            [<pre:RSP> - -32]:8 = [<pre:RSP>]:8;
-                                            let r1189 = 4199232(
-                                                          [r51]:8,
-                                                          [<pre:RSP> - -32]:8,
-                                                          r101,
-                                                          <pre:RCX>,
-                                                        );
-                                            if not r1189 == 0 goto T24 with (r1396 = r174,
-                                                                             r1402 = r1358,
-                                                                             r1408 = r1337,
-                                                                             r1414 = r133) else goto T13
-                                        }
-                                    }
-                                }
-                            } else {
-                                let mut r1361 = r1334;
-                                let mut r1364 = [<pre:RSI> + 24]:8;
-                                
-                                'T14(r1361, r1364): {
-                                    [<pre:RSP> - 16]:8 = r1337;
-                                    [<pre:RSP>]:8 = r133;
-                                    [<pre:RSP> - 8]:8 = r1361;
-                                    let mut r1379 = r184;
-                                    let mut r1382 = <pre:RCX>;
-                                    let mut r1385 = r1364;
-                                    
-                                    'T19(r1379, r1382, r1385): {
-                                        let r560 = 4199136(
-                                                     [r1385 + 8]:8,
-                                                     r1379,
-                                                     [<pre:RSP> - -16]:8,
-                                                     r1382,
-                                                   );
-                                        if not r560 - r101 == 0 {
-                                            let r590 = 4199232(
-                                                         [r51]:8,
-                                                         [r1385 + 8]:8,
-                                                         r101,
-                                                         r1382,
-                                                       );
-                                            if not r590 == 0 goto T24 with (r1396 = r174,
-                                                                            r1402 = r1385,
-                                                                            r1408 = [<pre:RSP> - 16]:8,
-                                                                            r1414 = [<pre:RSP>]:8) else goto T15 with (r1367 = [r1385 + 8]:8,
-                                                                                                                       r1370 = r101)
-                                        } else {
-                                            let mut r1367 = r1379;
-                                            let mut r1370 = [<pre:RSP> - -16]:8;
-                                            
-                                            'T15(r1367, r1370): {
-                                                [<pre:RSP> - -32]:8 = [r1385 + 48]:8;
-                                                let r425 = 4199136(
-                                                             [r1385 + 48]:8,
-                                                             r1367,
-                                                             r1370,
-                                                             r1382,
-                                                           );
-                                                if r425 - r101 == 0 {
-                                                    let mut r1373 = r1370;
-                                                    
-                                                    'T16(r1373): {
-                                                        [<pre:RSP> - -32]:8 = [r1385 + 88]:8;
-                                                        let r467 = 4199136(
-                                                                     [r1385 + 88]:8,
-                                                                     [<pre:RSP> - -32]:8,
-                                                                     r1373,
-                                                                     [r1385 + 88]:8,
-                                                                   );
-                                                        if r467 - r101 == 0 {
-                                                            let mut r1376 = r1373;
-                                                            
-                                                            'T17(r1376): {
-                                                                [<pre:RSP> - -32]:8 = [r1385 + 128]:8;
-                                                                let r509 = 4199136(
-                                                                             [r1385 + 128]:8,
-                                                                             [r1385 + 128]:8,
-                                                                             r1376,
-                                                                             [r1385 + 88]:8,
-                                                                           );
-                                                                let r527 = r509 - r101;
-                                                                if r527 == 0 
-                                                                'T18: if r174 + 4 - [<pre:RSP> - -24]:8 == 0 goto T19 with (r1379 = [<pre:RSP> - -32]:8,
-                                                                                                                            r1382 = [r1385 + 88]:8,
-                                                                                                                            r1385 = r1385 + 160) else goto T41 (r1441 = r527) else {
-                                                                    let r1048 = 4199232(
-                                                                                  [r51]:8,
-                                                                                  [<pre:RSP> - -32]:8,
-                                                                                  r101,
-                                                                                  [r1385 + 88]:8,
-                                                                                );
-                                                                    if not r1048 == 0 goto T23 (r1392 = r1385 + 120) else goto T18
-                                                                }
-                                                            }
-                                                        } else {
-                                                            let r1016 = 4199232(
-                                                                          [r51]:8,
-                                                                          [<pre:RSP> - -32]:8,
-                                                                          r101,
-                                                                          [r1385 + 88]:8,
-                                                                        );
-                                                            if not r1016 == 0 goto T23 (r1392 = r1385 + 80) else goto T17 (r1376 = r101)
-                                                        }
-                                                    }
-                                                } else {
-                                                    let r635 = 4199232(
-                                                                 [r51]:8,
-                                                                 [<pre:RSP> - -32]:8,
-                                                                 r101,
-                                                                 r1382,
-                                                               );
-                                                    if not r635 == 0 goto T23 (r1392 = r1385 + 40) else goto T16 (r1373 = r101)
-                                                };
-                                                
-                                                'T23(r1392): goto T24 with (r1396 = r174 + 1,
-                                                                            r1402 = r1392,
-                                                                            r1408 = [<pre:RSP> - 16]:8,
-                                                                            r1414 = [<pre:RSP>]:8)
-                                            }
-                                        }
-                                    }
-                                }
-                            };
-                            
-                            'T24(r1396, r1402, r1408, r1414): {
-                                [[<pre:RSP> - -8]:8 + r1414 * 8]:8 = r1396;
-                                if r1402 - r1408 == 0 {
-                                    <-- TODO: unsupported: movzx edi,byte ptr [r8] -->;
-                                    if not [<pre:R13> + 32]:8 == 0 goto T26 (r1420 = <pre:RDX>) else goto T33 (r1429 = <pre:RDX>)
-                                } else goto T41 (r1441 = [r51]:8)
-                            }
-                        } else goto T41 (r1441 = [r51]:8)
-                    }
-                } else {
-                    let mut r1423 = r40;
-                    let mut r1426 = r1334;
-                    
-                    'T30(r1423, r1426): {
-                        [<pre:RSP> - -32]:8 = r1426;
-                        let r823 = 6451424(
-                                     [r51]:8,
-                                     (r1423 with l4 = 0),
-                                     ([<pre:RSP> - -16]:8 with l4 = 10),
-                                     <pre:RCX>,
-                                   );
-                        let r842 = r823 - -1;
-                        if r842 == 0 {
-                            [r51]:8 = [<pre:RSP> - -32]:8;
-                            let r893 = [[[<pre:RSI> + 24]:8 + 8]:8]:8(
-                                         [<pre:RSP> - 24]:8,
-                                         [<pre:RSP> - -8]:8,
-                                         [[<pre:RSP> - -16]:8]:8,
-                                         r842,
-                                       );
-                            if r893 == 0 {
-                                [[<pre:RSP> - -8]:8 + r133 * 8]:8 = r842;
-                                <-- TODO: unsupported: movzx edi,byte ptr [r8] -->;
-                                if [r893 + 32]:8 == 0 goto T33 (r1429 = [<pre:RSP> - 24]:8) else goto T26 (r1420 = [<pre:RSP> - 24]:8)
-                            } else goto T41 (r1441 = r893)
-                        } else goto T41 (r1441 = r842)
-                    }
-                };
-                
-                'T26(r1420): if r1420 == 0 {
-                    let r716 = r1334 + 1;
-                    let r719 = (<pre:RSI> with l4 = 46);
-                    [r51]:8 = r716;
-                    let r724 = 4199040(
-                                 r716,
-                                 r719,
-                                 [<pre:RSP> - -16]:8,
-                                 <pre:RCX>,
-                               );
-                    if r724 == 0 if not r133 + 1 < [[<pre:RSP> - -16]:8]:8 goto T29 else goto T43 else {
-                        let r1119 = 4199136(
-                                      [r51]:8,
-                                      r719,
-                                      [<pre:RSP> - -16]:8,
-                                      <pre:RCX>,
-                                    );
-                        if r133 + 1 < [[<pre:RSP> - -16]:8]:8 goto T43 else goto T29
-                    };
-                    
-                    'T29: if not [[<pre:R13> + 24]:8]:1 == 0 goto T30 with (r1423 = r719,
-                                                                            r1426 = r724) else goto T4 (r1337 = <pre:R13>);
-                    
-                    'T43: if [<pre:RSP> - 32]:8 == 0 goto T45 with (r1450 = r724,
-                                                                    r1453 = [<pre:RSP> - 32]:8) else goto T35 (r1435 = r724)
-                } else goto T34 (r1432 = [<pre:RSP> - 32]:8);
-                
-                'T33(r1429): if not r1429 == 0 goto T34 (r1432 = [<pre:RSP> - 32]:8) else goto T41 (r1441 = [r51]:8);
-                
-                'T34(r1432): {
-                    [[<pre:RSP> - -16]:8]:8 = r133 + 1;
-                    if not r1432 == 0 goto T35 (r1435 = [r51]:8) else goto T45 with (r1450 = [r51]:8,
-                                                                                     r1453 = r1432)
-                };
-                
-                'T35(r1435): goto T36 (r1438 = (r1435 with l4 = 0));
-                
-                'T36(r1438): {
-                    return r1438;
-                    goto T54
-                };
-                
-                'T45(r1450, r1453): {
-                    [r1453]:8 = <pre:R13>;
-                    goto T36 (r1438 = (r1450 with l4 = 0))
-                }
-            } else goto T54 else {
-                let mut r1441 = [r51]:8;
-                
-                'T41(r1441): {
-                    return (r1441 with l4 = 2);
-                    goto T54
-                }
-            };
-            
-            'T54: {
-                
-            }
-        }
-    } else {
-        let r1307 = 4199136(
-                      [r51]:8,
-                      r40,
-                      <pre:RDX>,
-                      <pre:RCX>,
-                    );
-        goto T1 (r1334 = [r51]:8 + r1307 * 1)
+T0(): {
+  [pre:RSP + -8] = pre:R15;
+  [pre:RSP + -16] = pre:R14;
+  let r40 = V8WithL4(pre:RSI, 0x2e /* 46 */);
+  [pre:RSP + -24] = pre:R13;
+  [pre:RSP + -32] = pre:R12;
+  [pre:RSP + -40] = pre:RBP;
+  [pre:RSP + -48] = pre:RBX;
+  let r51 = pre:RSP - 40;
+  [pre:RSP - 24] = pre:RDI;
+  [pre:RSP - -8] = pre:R8;
+  [r51] = pre:RDX;
+  [pre:RSP - -16] = pre:R9;
+  let r73 = 0x401280 /* 4199040 */(pre:RDX,
+                                   r40,
+                                   pre:RDX,
+                                   pre:RCX);
+  if IsZero(r73) {
+    let r1307 = 0x4012e0 /* 4199136 */([r51]:8,
+                                       r40,
+                                       pre:RDX,
+                                       pre:RCX);
+    goto T1 (
+      r1334 = [r51]:8 + r1307 * 1
+    )
+  
+  }
+  goto T1 (
+    r1334 = r73
+  )
+  
+  T1(r1334): {
+    let r101 = r1334 - [r51]:8;
+    if IsZero(r101) {
+      goto T41 (
+        r1441 = [r51]:8
+      )
+    
     }
+    if IsZero([[pre:RSP - -16]:8]:8 - 0) {
+      goto T54 (
+        r1456 = pre:RSI
+      )
+    
+    }
+    let r133 = V8WithL4(pre:R15, 0x0 /* 0 */);
+    [pre:RSP - 32] = pre:RCX;
+    if IsZero([[pre:RSI + 24]:8]:1 - 0) {
+      goto T30 (
+        r1423 = r40
+        r1426 = r1334
+      )
+    
+    }
+    goto T4 (
+      r1337 = pre:RSI
+    )
+    
+    T4(r1337): {
+      let r156 = r1337 + 16;
+      [pre:RSP - -24] = [r156]:8;
+      if IsZero([r156]:8) {
+        goto T41 (
+          r1441 = [r51]:8
+        )
+      
+      }
+      let r174 = V8WithL4(pre:RCX, 0x0 /* 0 */);
+      let r183 = [r156]:8 & 3;
+      let r184 = V8WithL4([r156]:8, r183);
+      if IsZero(r183) {
+        goto T14 (
+          r1361 = r1334
+          r1364 = [pre:RSI + 24]:8
+        )
+      
+      }
+      let r193 = r184 - 1;
+      if IsZero(r193) {
+        goto T12 (
+          r1352 = r193
+          r1355 = r1334
+          r1358 = [pre:RSI + 24]:8
+        )
+      
+      }
+      let r202 = r184 - 3;
+      if IsZero(r202) {
+        goto T10 (
+          r1343 = r202
+          r1346 = r1334
+          r1349 = [pre:RSI + 24]:8
+        )
+      
+      }
+      [pre:RSP - 8] = r1334;
+      [pre:RSP - 0] = [pre:RSI + 24]:8;
+      [pre:RSP - -32] = [[pre:RSI + 24]:8 + 8]:8;
+      let r226 = 0x4012e0 /* 4199136 */([[pre:RSI + 24]:8 + 8]:8,
+                                        r202,
+                                        [pre:RSP - -16]:8,
+                                        pre:RCX);
+      if IsZero(r226 - r101) {
+        [pre:RSP - 0] = [pre:RSP - 8]:8;
+        [pre:RSP - -32] = [pre:RSI + 24]:8;
+        let r1270 = 0x401340 /* 4199232 */([r51]:8,
+                                           [pre:RSP - -32]:8,
+                                           r101,
+                                           pre:RCX);
+        if !(IsZero(r1270)) {
+          goto T9 (
+            r1340 = [pre:RSI + 24]:8
+          )
+        
+        }
+        goto T24 (
+          r1396 = r174
+          r1402 = [pre:RSI + 24]:8
+          r1408 = r1337
+          r1414 = r133
+        )
+      
+      }
+      goto T9 (
+        r1340 = [pre:RSI + 24]:8
+      )
+      
+      T9(r1340): {
+        goto T10 (
+          r1343 = [pre:RSP - -32]:8
+          r1346 = [pre:RSP - 8]:8
+          r1349 = r1340 + 40
+        )
+      }
+      
+      T10(r1343, r1346, r1349): {
+        [pre:RSP - 0] = r1346;
+        [pre:RSP - -32] = [r1349 + 8]:8;
+        let r275 = 0x4012e0 /* 4199136 */([r1349 + 8]:8,
+                                          r1343,
+                                          [pre:RSP - -16]:8,
+                                          pre:RCX);
+        if IsZero(r275 - r101) {
+          [pre:RSP - -32] = [pre:RSP - 0]:8;
+          let r1228 = 0x401340 /* 4199232 */([r51]:8,
+                                             [pre:RSP - -32]:8,
+                                             r101,
+                                             pre:RCX);
+          if !(IsZero(r1228)) {
+            goto T11
+          
+          }
+          goto T24 (
+            r1396 = r174
+            r1402 = r1349
+            r1408 = r1337
+            r1414 = r133
+          )
+        
+        }
+        goto T11
+        
+        T11(): {
+          goto T12 (
+            r1352 = [pre:RSP - -32]:8
+            r1355 = [pre:RSP - 0]:8
+            r1358 = r1349 + 40
+          )
+        }
+      }
+      
+      T12(r1352, r1355, r1358): {
+        [pre:RSP - 0] = r1355;
+        [pre:RSP - -32] = [r1358 + 8]:8;
+        let r336 = 0x4012e0 /* 4199136 */([r1358 + 8]:8,
+                                          r1352,
+                                          [pre:RSP - -16]:8,
+                                          pre:RCX);
+        let r358 = r336 - r101;
+        if IsZero(r358) {
+          [pre:RSP - -32] = [pre:RSP - 0]:8;
+          let r1189 = 0x401340 /* 4199232 */([r51]:8,
+                                             [pre:RSP - -32]:8,
+                                             r101,
+                                             pre:RCX);
+          if !(IsZero(r1189)) {
+            goto T13
+          
+          }
+          goto T24 (
+            r1396 = r174
+            r1402 = r1358
+            r1408 = r1337
+            r1414 = r133
+          )
+        
+        }
+        goto T13
+        
+        T13(): {
+          if IsZero(r174 + 1 - [pre:RSP - -24]:8) {
+            goto T41 (
+              r1441 = r358
+            )
+          
+          }
+          goto T14 (
+            r1361 = [pre:RSP - 0]:8
+            r1364 = r1358 + 40
+          )
+        }
+      }
+      
+      T14(r1361, r1364): {
+        [pre:RSP - 16] = r1337;
+        [pre:RSP - 0] = r133;
+        [pre:RSP - 8] = r1361;
+        goto T19 (
+          r1379 = r184
+          r1382 = pre:RCX
+          r1385 = r1364
+        )
+        
+        T19(r1379, r1382, r1385): {
+          let r560 = 0x4012e0 /* 4199136 */([r1385 + 8]:8,
+                                            r1379,
+                                            [pre:RSP - -16]:8,
+                                            r1382);
+          if !(IsZero(r560 - r101)) {
+            goto T15 (
+              r1367 = r1379
+              r1370 = [pre:RSP - -16]:8
+            )
+          
+          }
+          let r590 = 0x401340 /* 4199232 */([r51]:8,
+                                            [r1385 + 8]:8,
+                                            r101,
+                                            r1382);
+          if !(IsZero(r590)) {
+            goto T15 (
+              r1367 = [r1385 + 8]:8
+              r1370 = r101
+            )
+          
+          }
+          goto T24 (
+            r1396 = r174
+            r1402 = r1385
+            r1408 = [pre:RSP - 16]:8
+            r1414 = [pre:RSP - 0]:8
+          )
+          
+          T15(r1367, r1370): {
+            [pre:RSP - -32] = [r1385 + 48]:8;
+            let r425 = 0x4012e0 /* 4199136 */([r1385 + 48]:8,
+                                              r1367,
+                                              r1370,
+                                              r1382);
+            if IsZero(r425 - r101) {
+              let r635 = 0x401340 /* 4199232 */([r51]:8,
+                                                [pre:RSP - -32]:8,
+                                                r101,
+                                                r1382);
+              if !(IsZero(r635)) {
+                goto T16 (
+                  r1373 = r101
+                )
+              
+              }
+              goto T23 (
+                r1388 = r1385 + 40
+                r1392 = r1385 + 40
+              )
+            
+            }
+            goto T16 (
+              r1373 = r1370
+            )
+            
+            T16(r1373): {
+              [pre:RSP - -32] = [r1385 + 88]:8;
+              let r467 = 0x4012e0 /* 4199136 */([r1385 + 88]:8,
+                                                [pre:RSP - -32]:8,
+                                                r1373,
+                                                [r1385 + 88]:8);
+              if IsZero(r467 - r101) {
+                let r1016 = 0x401340 /* 4199232 */([r51]:8,
+                                                   [pre:RSP - -32]:8,
+                                                   r101,
+                                                   [r1385 + 88]:8);
+                if !(IsZero(r1016)) {
+                  goto T17 (
+                    r1376 = r101
+                  )
+                
+                }
+                goto T23 (
+                  r1388 = r1385 + 80
+                  r1392 = r1385 + 80
+                )
+              
+              }
+              goto T17 (
+                r1376 = r1373
+              )
+              
+              T17(r1376): {
+                [pre:RSP - -32] = [r1385 + 128]:8;
+                let r509 = 0x4012e0 /* 4199136 */([r1385 + 128]:8,
+                                                  [r1385 + 128]:8,
+                                                  r1376,
+                                                  [r1385 + 88]:8);
+                let r527 = r509 - r101;
+                if IsZero(r527) {
+                  let r1048 = 0x401340 /* 4199232 */([r51]:8,
+                                                     [pre:RSP - -32]:8,
+                                                     r101,
+                                                     [r1385 + 88]:8);
+                  if !(IsZero(r1048)) {
+                    goto T18
+                  
+                  }
+                  goto T23 (
+                    r1388 = r1385 + 120
+                    r1392 = r1385 + 120
+                  )
+                
+                }
+                goto T18
+                
+                T18(): {
+                  if IsZero(r174 + 4 - [pre:RSP - -24]:8) {
+                    goto T41 (
+                      r1441 = r527
+                    )
+                  
+                  }
+                  loop T19 (
+                    r1379 = [pre:RSP - -32]:8
+                    r1382 = [r1385 + 88]:8
+                    r1385 = r1385 + 160
+                  )
+                }
+              }
+            }
+            
+            T23(r1388, r1392): {
+              goto T24 (
+                r1396 = r174 + 1
+                r1402 = r1392
+                r1408 = [pre:RSP - 16]:8
+                r1414 = [pre:RSP - 0]:8
+              )
+            }
+          }
+        }
+      }
+      
+      T24(r1396, r1402, r1408, r1414): {
+        [[pre:RSP - -8]:8 + r1414 * 8] = r1396;
+        if IsZero(r1402 - r1408) {
+          goto T41 (
+            r1441 = [r51]:8
+          )
+        
+        }
+        TODO /* unsupported: movzx edi,byte ptr [r8] */;
+        if !(IsZero([pre:R13 + 32]:8 - 0)) {
+          goto T33 (
+            r1429 = pre:RDX
+          )
+        
+        }
+        goto T26 (
+          r1420 = pre:RDX
+        )
+      }
+    }
+    
+    T26(r1420): {
+      if IsZero(r1420) {
+        goto T34 (
+          r1432 = [pre:RSP - 32]:8
+        )
+      
+      }
+      let r716 = r1334 + 1;
+      let r719 = V8WithL4(pre:RSI, 0x2e /* 46 */);
+      [r51] = r716;
+      let r724 = 0x401280 /* 4199040 */(r716,
+                                        r719,
+                                        [pre:RSP - -16]:8,
+                                        pre:RCX);
+      if IsZero(r724) {
+        let r1119 = 0x4012e0 /* 4199136 */([r51]:8,
+                                           r719,
+                                           [pre:RSP - -16]:8,
+                                           pre:RCX);
+        if CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8) {
+          goto T29
+        
+        }
+        goto T43
+      
+      }
+      if !(CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8)) {
+        goto T43
+      
+      }
+      goto T29
+      
+      T29(): {
+        if !(IsZero([[pre:R13 + 24]:8]:1 - 0)) {
+          goto T4 (
+            r1337 = pre:R13
+          )
+        
+        }
+        goto T30 (
+          r1423 = r719
+          r1426 = r724
+        )
+      }
+      
+      T43(): {
+        if IsZero([pre:RSP - 32]:8) {
+          goto T35 (
+            r1435 = r724
+          )
+        
+        }
+        goto T45 (
+          r1450 = r724
+          r1453 = [pre:RSP - 32]:8
+        )
+      }
+    }
+    
+    T30(r1423, r1426): {
+      [pre:RSP - -32] = r1426;
+      let r823 = 0x6270e0 /* 6451424 */([r51]:8,
+                                        V8WithL4(r1423, 0x0 /* 0 */),
+                                        V8WithL4([pre:RSP - -16]:8, 0xa /* 10 */),
+                                        pre:RCX);
+      let r842 = r823 - -1;
+      if IsZero(r842) {
+        goto T41 (
+          r1441 = r842
+        )
+      
+      }
+      [r51] = [pre:RSP - -32]:8;
+      if !(IsZero([[pre:RSI + 24]:8]:1 - 0)){
+        goto 0x403143
+      };
+      let r893 = [[[pre:RSI + 24]:8 + 8]:8]:8([pre:RSP - 24]:8,
+                                              [pre:RSP - -8]:8,
+                                              [[pre:RSP - -16]:8]:8,
+                                              r842);
+      if IsZero(r893) {
+        goto T41 (
+          r1441 = r893
+        )
+      
+      }
+      [[pre:RSP - -8]:8 + r133 * 8] = r842;
+      TODO /* unsupported: movzx edi,byte ptr [r8] */;
+      if IsZero([r893 + 32]:8 - 0) {
+        goto T26 (
+          r1420 = [pre:RSP - 24]:8
+        )
+      
+      }
+      goto T33 (
+        r1429 = [pre:RSP - 24]:8
+      )
+    }
+    
+    T33(r1429): {
+      if !(IsZero(r1429)) {
+        goto T41 (
+          r1441 = [r51]:8
+        )
+      
+      }
+      goto T34 (
+        r1432 = [pre:RSP - 32]:8
+      )
+    }
+    
+    T34(r1432): {
+      [[pre:RSP - -16]:8] = r133 + 1;
+      if !(IsZero(r1432)) {
+        goto T45 (
+          r1450 = [r51]:8
+          r1453 = r1432
+        )
+      
+      }
+      goto T35 (
+        r1435 = [r51]:8
+      )
+    }
+    
+    T35(r1435): {
+      goto T36 (
+        r1438 = V8WithL4(r1435, 0x0 /* 0 */)
+      )
+    }
+    
+    T36(r1438): {
+      Ret(r1438);
+      goto T54 (
+        r1456 = [pre:RSP - 80]:8
+      )
+    }
+    
+    T45(r1450, r1453): {
+      [r1453] = pre:R13;
+      goto T36 (
+        r1438 = V8WithL4(r1450, 0x0 /* 0 */)
+      )
+    }
+    
+    T41(r1441): {
+      Ret(V8WithL4(r1441, 0x2 /* 2 */));
+      goto T54 (
+        r1456 = [pre:RSP - 80]:8
+      )
+    }
+    
+    T54(r1456): {
+      }
+  }
 }

@@ -12,6 +12,7 @@ use std::{
 /// > Rice University, CS Technical Report 06-33870.
 use crate::{cfg, mil};
 
+#[derive(Clone)]
 pub struct Program {
     // an ssa::Program contains a mil::Program at its core, but never exposes it directly:
     //
@@ -36,6 +37,7 @@ pub struct Program {
 slotmap::new_key_type! { pub struct TypeID; }
 
 #[cfg(feature = "proto_typing")]
+#[derive(Clone)]
 pub struct Ptr {
     pub pointee_tyid: TypeID,
 }
@@ -866,7 +868,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
     prog.rdr_count = rdr_count;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ReaderCount(Vec<usize>);
 impl ReaderCount {
     fn new(var_count: mil::Index) -> Self {
@@ -902,7 +904,7 @@ mod tests {
                 Reg(1),
                 Insn::JmpExtIf {
                     cond: Reg(0),
-                    target: 0xf2,
+                    addr: 0xf2,
                 },
             );
 
