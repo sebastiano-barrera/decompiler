@@ -5,6 +5,7 @@ pub struct PrettyPrinter<W> {
     indent_stack: Vec<u16>,
     cur_text: u16,
     cur_indent: u16,
+    indent_next_chunk: bool,
 }
 
 pub trait PP: Write {
@@ -19,6 +20,7 @@ impl<W: Write> PrettyPrinter<W> {
             indent_stack: Vec::new(),
             cur_text: 0,
             cur_indent: 0,
+            indent_next_chunk: false,
         }
     }
 }
@@ -40,21 +42,26 @@ impl<W: Write> PP for PrettyPrinter<W> {
 impl<W: Write> Write for PrettyPrinter<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         let mut cur_text = self.cur_text as usize;
-        for (ndx, line) in s.split('\n').enumerate() {
-            if ndx == 0 {
-                cur_text += line.len();
-            } else {
-                self.wrt.write_char('\n')?;
-                // better way?
+
+        for line in s.split_inclusive('\n') {
+            if self.indent_next_chunk {
                 for _ in 0..self.cur_indent {
                     self.wrt.write_char(' ')?;
                 }
-                cur_text = line.len();
+                cur_text = 0;
             }
+
+            cur_text += line.len();
             self.wrt.write_str(line)?;
+            self.indent_next_chunk = line.ends_with("\n");
         }
 
         self.cur_text = cur_text.try_into().unwrap();
+
+        for (ndx, line) in s.split('\n').enumerate() {
+            println!("CHUNK[{:2}]:{}<<", ndx, line);
+        }
+
         Ok(())
     }
 }
