@@ -493,36 +493,65 @@ ssa program  80 instrs
          r194 <- ret      r190
 
 
-
-'T0: {
-    [<pre:RSP> + -8]:8 = <pre:RBP>;
-    [<pre:RSP> + -40]:8 = <pre:RDI>;
-    [<pre:RSP> + -32]:8 = <pre:RSI>;
-    [<pre:RSP> + -12]:4 = 0;
-    [<pre:RSP> + -16]:4 = 0;
-    let mut r198 = <pre:RDI>;
+T0(): {
+  [pre:RSP + -8] = pre:RBP;
+  [pre:RSP + -40] = pre:RDI;
+  [pre:RSP + -32] = pre:RSI;
+  [pre:RSP + -12] = 0 /* 0 */;
+  [pre:RSP + -16] = 0 /* 0 */;
+  ;
+  goto T5 (
+    r198 = pre:RDI
+  )
+  
+  T5(r198): {
+    let r177 = [pre:RSP + -16]:4 - [pre:RSP + -32]:4;
+    ;
+    if !(EQ(SignOf(r177), OverflowOf(r177))) {
+      goto T1
     
-    'T5(r198): {
-        let r177 = [<pre:RSP> + -16]:4 - [<pre:RSP> + -32]:4;
-        if not sign (r177) == overflow (r177) return (r198 with l4 = [<pre:RSP> + -12]:4) else {
-            [<pre:RSP> + -20]:4 = 0;
-            let mut r195 = (r198 with l4 = [<pre:RSP> + -32]:4);
-            
-            'T3(r195): {
-                let r145 = [<pre:RSP> + -20]:4 - [<pre:RSP> + -28]:4;
-                if not sign (r145) == overflow (r145) {
-                    [<pre:RSP> + -16]:8 = [<pre:RSP> + -16]:4 + 1;
-                    goto T5 (r198 = (r195 with l4 = [<pre:RSP> + -28]:4))
-                } else {
-                    <-- TODO: unsupported: imul eax,[rbp-8] -->;
-                    <-- TODO: unsupported: cdqe -->;
-                    let r91 = (r195 with l4 = [<pre:RSP> + -20]:4 + [<pre:RSP> + -28]:4) << (2).widen[1->8];
-                    let r97 = r91 + [<pre:RSP> + -40]:8;
-                    [<pre:RSP> + -12]:4 = [<pre:RSP> + -12]:4 + [r97]:4;
-                    [<pre:RSP> + -20]:8 = [<pre:RSP> + -20]:4 + 1;
-                    goto T3 (r195 = (r97 with l4 = [r97]:4))
-                }
-            }
-        }
     }
+    goto T6
+    
+    T1(): {
+      [pre:RSP + -20] = 0 /* 0 */;
+      ;
+      goto T3 (
+        r195 = V8WithL4(r198, [pre:RSP + -32]:4)
+      )
+      
+      T3(r195): {
+        let r145 = [pre:RSP + -20]:4 - [pre:RSP + -28]:4;
+        ;
+        if !(EQ(SignOf(r145), OverflowOf(r145))) {
+          goto T2
+        
+        }
+        goto T4
+        
+        T2(): {
+          TODO /* unsupported: imul eax,[rbp-8] */;
+          TODO /* unsupported: cdqe */;
+          let r91 = V8WithL4(r195, [pre:RSP + -20]:4 + [pre:RSP + -28]:4) / Widen1_8(2 /* 2 */);
+          let r97 = r91 + [pre:RSP + -40]:8;
+          [pre:RSP + -12] = [pre:RSP + -12]:4 + [r97]:4;
+          [pre:RSP + -20] = [pre:RSP + -20]:4 + 1;
+          goto T3 (
+            r195 = V8WithL4(r97, [r97]:4)
+          )
+        }
+        
+        T4(): {
+          [pre:RSP + -16] = [pre:RSP + -16]:4 + 1;
+          goto T5 (
+            r198 = V8WithL4(r195, [pre:RSP + -28]:4)
+          )
+        }
+      }
+    }
+    
+    T6(): {
+      Ret(V8WithL4(r198, [pre:RSP + -12]:4));
+    }
+  }
 }

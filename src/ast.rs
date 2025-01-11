@@ -1371,7 +1371,7 @@ mod ast_lite {
                     // all done!
                 }
                 cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
-                    self.pp_continuation(pp, block_visited, tgt, pred_ndx as u16)?;
+                    self.pp_continuation(pp, tgt, pred_ndx as u16)?;
                 }
                 cfg::BlockCont::Alt {
                     straight: (neg_pred_ndx, neg_bid),
@@ -1388,71 +1388,49 @@ mod ast_lite {
                     write!(pp, " {{\n  ")?;
 
                     pp.open_box();
-                    self.pp_continuation(pp, block_visited, pos_bid, pos_pred_ndx as u16)?;
+                    self.pp_continuation(pp, pos_bid, pos_pred_ndx as u16)?;
                     pp.close_box();
 
                     write!(pp, "\n}}\n")?;
 
-                    self.pp_continuation(pp, block_visited, neg_bid, neg_pred_ndx as u16)?;
-
-                    for &child in self.ssa.cfg().dom_tree().children_of(bid) {
-                        if !block_visited[bid] && child != pos_bid && child != neg_bid {
-                            self.pp_block(pp, block_visited, bid)?;
-                        }
-                    }
+                    self.pp_continuation(pp, neg_bid, neg_pred_ndx as u16)?;
                 }
             }
 
+            for &child in self.ssa.cfg().dom_tree().children_of(bid) {
+                writeln!(pp)?;
+                self.pp_block(pp, block_visited, child)?;
+            }
+
             pp.close_box();
-            write!(pp, "}}")
+            writeln!(pp, "}}")
         }
 
         fn pp_continuation<W: PP + ?Sized>(
             &self,
             pp: &mut W,
-            block_visited: &mut cfg::BlockMap<bool>,
             tgt_bid: cfg::BlockID,
             pred_ndx: u16,
         ) -> std::fmt::Result {
             let phi = self.ssa.block_phi(tgt_bid);
-
-            let phi_count = phi.phi_count();
-            if block_visited[tgt_bid] {
-                if phi_count == 0 {
-                    write!(pp, "goto T{}", tgt_bid.as_number())?;
-                } else {
-                    write!(pp, "goto T{} (", tgt_bid.as_number())?;
-                    for phi_ndx in 0..phi_count {
-                        let phi_reg = phi.phi_reg(phi_ndx);
-                        write!(pp, "\n  r{} = ", phi_reg.0)?;
-
-                        let arg = phi.arg(&self.ssa, phi_ndx, pred_ndx);
-                        pp.open_box();
-                        self.pp_arg(pp, arg)?;
-                        pp.close_box();
-                    }
-
-                    write!(pp, "\n)")?;
-                }
-
-                Ok(())
+            if phi.phi_count() == 0 {
+                write!(pp, "goto T{}", tgt_bid.as_number())?;
             } else {
-                if phi_count > 0 {
-                    write!(pp, "with")?;
-                    for phi_ndx in 0..phi_count {
-                        let phi_reg = phi.phi_reg(phi_ndx);
-                        write!(pp, "\n  r{} = ", phi_reg.0)?;
+                write!(pp, "goto T{} (", tgt_bid.as_number())?;
+                for phi_ndx in 0..phi.phi_count() {
+                    let phi_reg = phi.phi_reg(phi_ndx);
+                    write!(pp, "\n  r{} = ", phi_reg.0)?;
 
-                        let arg = phi.arg(&self.ssa, phi_ndx, pred_ndx);
-                        pp.open_box();
-                        self.pp_arg(pp, arg)?;
-                        pp.close_box();
-                    }
-                    writeln!(pp)?;
+                    let arg = phi.arg(&(&self).ssa, phi_ndx, pred_ndx);
+                    pp.open_box();
+                    (&self).pp_arg(pp, arg)?;
+                    pp.close_box();
                 }
 
-                self.pp_block(pp, block_visited, tgt_bid)
+                write!(pp, "\n)")?;
             }
+
+            writeln!(pp)
         }
 
         fn is_named(&self, reg: Reg) -> bool {

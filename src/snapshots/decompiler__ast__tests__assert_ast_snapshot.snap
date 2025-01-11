@@ -2,8 +2,8 @@
 source: src/ast.rs
 expression: out
 ---
-'T0: {
-    let r1 = <pre:arg0> + 8;
-    <pre:arg0>.y = 123;
-    return r1
+T0(): {
+  let r1 = pre:arg0 + 8;
+  [r1] = 7b /* 123 */;
+  Ret(r1);
 }
