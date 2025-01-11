@@ -1355,7 +1355,10 @@ mod ast_lite {
             let insn_slice = self.ssa.block_normal_insns(bid).unwrap();
             for (dest, insn) in insn_slice.iter_copied() {
                 let is_named = self.is_named(dest);
-                if is_named || insn.has_side_effects() {
+                if is_named
+                    || (insn.has_side_effects()
+                        && !matches!(insn, Insn::Jmp(_) | Insn::JmpIf { .. }))
+                {
                     if is_named {
                         write!(pp, "let r{} = ", dest.reg_index())?;
                     }
@@ -1546,6 +1549,10 @@ mod ast_lite {
                 | Insn::Phi8
                 | Insn::PhiBool
                 | Insn::PhiArg(_) => panic!("phi insns should not be reachable here"),
+                // handled by pp_block
+                Insn::Jmp(_) | Insn::JmpIf { .. } => {
+                    panic!("jump insns should not be reachable here")
+                }
 
                 Insn::JmpInd(_) => "JmpInd".into(),
                 Insn::JmpExt(addr) => return write!(pp, "JmpExt(0x{:x})", addr),
@@ -1555,9 +1562,6 @@ mod ast_lite {
                     write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
                     return Ok(());
                 }
-
-                // handled by pp_block
-                Insn::Jmp(_) | Insn::JmpIf { .. } => return Ok(()),
             };
 
             write!(pp, "{}(", op_s)?;

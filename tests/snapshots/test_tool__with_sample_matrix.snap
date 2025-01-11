@@ -499,14 +499,12 @@ T0(): {
   [pre:RSP + -32] = pre:RSI;
   [pre:RSP + -12] = 0 /* 0 */;
   [pre:RSP + -16] = 0 /* 0 */;
-  ;
   goto T5 (
     r198 = pre:RDI
   )
   
   T5(r198): {
     let r177 = [pre:RSP + -16]:4 - [pre:RSP + -32]:4;
-    ;
     if !(EQ(SignOf(r177), OverflowOf(r177))) {
       goto T1
     
@@ -515,14 +513,12 @@ T0(): {
     
     T1(): {
       [pre:RSP + -20] = 0 /* 0 */;
-      ;
       goto T3 (
         r195 = V8WithL4(r198, [pre:RSP + -32]:4)
       )
       
       T3(r195): {
         let r145 = [pre:RSP + -20]:4 - [pre:RSP + -28]:4;
-        ;
         if !(EQ(SignOf(r145), OverflowOf(r145))) {
           goto T2
         

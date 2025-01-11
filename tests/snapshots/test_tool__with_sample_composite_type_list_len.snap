@@ -154,7 +154,6 @@ T0(): {
   
   T1(r70, r73): {
     let r49 = V8WithL4(r70, r70 + 1);
-    ;
     if !(IsZero([r73 + 16]:8)) {
       goto T1 (
         r70 = r49

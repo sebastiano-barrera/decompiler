@@ -110,7 +110,6 @@ ssa program  18 instrs
 T0(): {
   let r30 = StructGet8[8](pre:arg0);
   let r40 = V8WithL4(pre:RAX, 1 /* 1 */);
-  ;
   if IsZero(r30) {
     goto T2 (
       r78 = r40
@@ -124,7 +123,6 @@ T0(): {
   
   T1(r72, r75): {
     let r51 = V8WithL4(r75, r75 + 1);
-    ;
     if !(IsZero([r72 + 8]:8)) {
       goto T1 (
         r72 = [r72 + 8]:8

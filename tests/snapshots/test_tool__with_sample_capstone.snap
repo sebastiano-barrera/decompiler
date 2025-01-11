@@ -693,7 +693,6 @@ T0(): {
   CArg(V8WithL4(pre:RSI, 8 /* 8 */));
   CArg(r45);
   CArg(pre:RCX);
-  ;
   if !(IsZero(r55)) {
     goto T8 (
       r331 = r55
@@ -711,7 +710,6 @@ T0(): {
     CArg(r103);
     CArg(r101);
     CArg(r99);
-    ;
     if IsZero(r105) {
       goto T7
     
@@ -737,7 +735,6 @@ T0(): {
         CArg(r183);
         CArg(r180);
         let r210 = r313 - r162;
-        ;
         if !(IsZero(r210)) {
           goto T3 (
             r313 = r210
@@ -785,7 +782,6 @@ T0(): {
       CArg(r103);
       CArg(r101);
       CArg(r99);
-      ;
       goto T5 (
         r322 = r103
         r325 = r99
@@ -795,6 +791,5 @@ T0(): {
   }
   
   T8(r331): {
-    ;
-  }
+    }
 }
