@@ -103,11 +103,7 @@ mod callconv_x86_64 {
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
 
-        let ast = {
-            let mut b = ast::Builder::new(&prog);
-            b.use_type_set(types);
-            b.compile()
-        };
+        let ast = ast::Ast::new(&prog);
         writeln!(out)?;
         let mut pp = PrettyPrinter::start(&mut out);
         ast.pretty_print(&mut pp).unwrap();

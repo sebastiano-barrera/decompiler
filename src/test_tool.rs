@@ -183,7 +183,7 @@ impl<'a> Tester<'a> {
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;
-        let ast = ast::Builder::new(&prog).compile();
+        let ast = ast::Ast::new(&prog);
         ast.pretty_print(out).unwrap();
 
         Ok(())
