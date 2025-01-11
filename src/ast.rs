@@ -1357,7 +1357,7 @@ mod ast_lite {
                 let is_named = self.is_named(dest);
                 if is_named
                     || (insn.has_side_effects()
-                        && !matches!(insn, Insn::Jmp(_) | Insn::JmpIf { .. }))
+                        && !matches!(insn, Insn::CArg(_) | Insn::Jmp(_) | Insn::JmpIf { .. }))
                 {
                     if is_named {
                         write!(pp, "let r{} = ", dest.reg_index())?;
@@ -1516,8 +1516,21 @@ mod ast_lite {
                 }
                 .into(),
                 Insn::Not(_) => "!".into(),
-                Insn::Call(_) => "Call".into(),
-                Insn::CArg(_) => "CArg".into(),
+                Insn::Call(callee) => {
+                    self.pp_arg(pp, callee)?;
+                    write!(pp, "(")?;
+                    pp.open_box();
+                    for (ndx, arg) in self.ssa.get_call_args(reg).enumerate() {
+                        if ndx > 0 {
+                            writeln!(pp, ",")?;
+                        }
+                        self.pp_arg(pp, arg)?;
+                    }
+                    pp.close_box();
+                    write!(pp, ")")?;
+                    return Ok(());
+                }
+                Insn::CArg(_) => panic!("CArg not handled via this path!"),
                 Insn::Ret(_) => "Ret".into(),
                 Insn::TODO(msg) => return write!(pp, "TODO /* {} */", msg),
                 Insn::LoadMem1(addr) => return self.pp_load_mem(pp, addr, 1),

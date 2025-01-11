@@ -3304,11 +3304,10 @@ T0(): {
   [pre:RSP - -8] = pre:R8;
   [r51] = pre:RDX;
   [pre:RSP - -16] = pre:R9;
-  let r73 = Call(401280 /* 4199040 */);
-  CArg(pre:RDX);
-  CArg(r40);
-  CArg(pre:RDX);
-  CArg(pre:RCX);
+  let r73 = 401280 /* 4199040 */(pre:RDX,
+                                 r40,
+                                 pre:RDX,
+                                 pre:RCX);
   if IsZero(r73) {
     goto T52
   
@@ -3402,11 +3401,10 @@ T0(): {
                   [pre:RSP - 8] = r1334;
                   [pre:RSP - 0] = [pre:RSI + 24]:8;
                   [pre:RSP - -32] = [[pre:RSI + 24]:8 + 8]:8;
-                  let r226 = Call(4012e0 /* 4199136 */);
-                  CArg([[pre:RSI + 24]:8 + 8]:8);
-                  CArg(r202);
-                  CArg([pre:RSP - -16]:8);
-                  CArg(pre:RCX);
+                  let r226 = 4012e0 /* 4199136 */([[pre:RSI + 24]:8 + 8]:8,
+                                                  r202,
+                                                  [pre:RSP - -16]:8,
+                                                  pre:RCX);
                   if IsZero(r226 - r101) {
                     goto T50
                   
@@ -3426,11 +3424,10 @@ T0(): {
                   T50(): {
                     [pre:RSP - 0] = [pre:RSP - 8]:8;
                     [pre:RSP - -32] = [pre:RSI + 24]:8;
-                    let r1270 = Call(401340 /* 4199232 */);
-                    CArg([r51]:8);
-                    CArg([pre:RSP - -32]:8);
-                    CArg(r101);
-                    CArg(pre:RCX);
+                    let r1270 = 401340 /* 4199232 */([r51]:8,
+                                                     [pre:RSP - -32]:8,
+                                                     r101,
+                                                     pre:RCX);
                     if !(IsZero(r1270)) {
                       goto T9 (
                         r1340 = [pre:RSI + 24]:8
@@ -3453,11 +3450,10 @@ T0(): {
                 T10(r1343, r1346, r1349): {
                   [pre:RSP - 0] = r1346;
                   [pre:RSP - -32] = [r1349 + 8]:8;
-                  let r275 = Call(4012e0 /* 4199136 */);
-                  CArg([r1349 + 8]:8);
-                  CArg(r1343);
-                  CArg([pre:RSP - -16]:8);
-                  CArg(pre:RCX);
+                  let r275 = 4012e0 /* 4199136 */([r1349 + 8]:8,
+                                                  r1343,
+                                                  [pre:RSP - -16]:8,
+                                                  pre:RCX);
                   if IsZero(r275 - r101) {
                     goto T48
                   
@@ -3474,11 +3470,10 @@ T0(): {
                   
                   T48(): {
                     [pre:RSP - -32] = [pre:RSP - 0]:8;
-                    let r1228 = Call(401340 /* 4199232 */);
-                    CArg([r51]:8);
-                    CArg([pre:RSP - -32]:8);
-                    CArg(r101);
-                    CArg(pre:RCX);
+                    let r1228 = 401340 /* 4199232 */([r51]:8,
+                                                     [pre:RSP - -32]:8,
+                                                     r101,
+                                                     pre:RCX);
                     if !(IsZero(r1228)) {
                       goto T11
                     
@@ -3500,11 +3495,10 @@ T0(): {
               T12(r1352, r1355, r1358): {
                 [pre:RSP - 0] = r1355;
                 [pre:RSP - -32] = [r1358 + 8]:8;
-                let r336 = Call(4012e0 /* 4199136 */);
-                CArg([r1358 + 8]:8);
-                CArg(r1352);
-                CArg([pre:RSP - -16]:8);
-                CArg(pre:RCX);
+                let r336 = 4012e0 /* 4199136 */([r1358 + 8]:8,
+                                                r1352,
+                                                [pre:RSP - -16]:8,
+                                                pre:RCX);
                 let r358 = r336 - r101;
                 if IsZero(r358) {
                   goto T46
@@ -3527,11 +3521,10 @@ T0(): {
                 
                 T46(): {
                   [pre:RSP - -32] = [pre:RSP - 0]:8;
-                  let r1189 = Call(401340 /* 4199232 */);
-                  CArg([r51]:8);
-                  CArg([pre:RSP - -32]:8);
-                  CArg(r101);
-                  CArg(pre:RCX);
+                  let r1189 = 401340 /* 4199232 */([r51]:8,
+                                                   [pre:RSP - -32]:8,
+                                                   r101,
+                                                   pre:RCX);
                   if !(IsZero(r1189)) {
                     goto T13
                   
@@ -3561,11 +3554,10 @@ T0(): {
               )
               
               T19(r1379, r1382, r1385): {
-                let r560 = Call(4012e0 /* 4199136 */);
-                CArg([r1385 + 8]:8);
-                CArg(r1379);
-                CArg([pre:RSP - -16]:8);
-                CArg(r1382);
+                let r560 = 4012e0 /* 4199136 */([r1385 + 8]:8,
+                                                r1379,
+                                                [pre:RSP - -16]:8,
+                                                r1382);
                 if !(IsZero(r560 - r101)) {
                   goto T15 (
                     r1367 = r1379
@@ -3577,11 +3569,10 @@ T0(): {
                 
                 T15(r1367, r1370): {
                   [pre:RSP - -32] = [r1385 + 48]:8;
-                  let r425 = Call(4012e0 /* 4199136 */);
-                  CArg([r1385 + 48]:8);
-                  CArg(r1367);
-                  CArg(r1370);
-                  CArg(r1382);
+                  let r425 = 4012e0 /* 4199136 */([r1385 + 48]:8,
+                                                  r1367,
+                                                  r1370,
+                                                  r1382);
                   if IsZero(r425 - r101) {
                     goto T22
                   
@@ -3592,11 +3583,10 @@ T0(): {
                   
                   T16(r1373): {
                     [pre:RSP - -32] = [r1385 + 88]:8;
-                    let r467 = Call(4012e0 /* 4199136 */);
-                    CArg([r1385 + 88]:8);
-                    CArg([pre:RSP - -32]:8);
-                    CArg(r1373);
-                    CArg([r1385 + 88]:8);
+                    let r467 = 4012e0 /* 4199136 */([r1385 + 88]:8,
+                                                    [pre:RSP - -32]:8,
+                                                    r1373,
+                                                    [r1385 + 88]:8);
                     if IsZero(r467 - r101) {
                       goto T37
                     
@@ -3607,11 +3597,10 @@ T0(): {
                     
                     T17(r1376): {
                       [pre:RSP - -32] = [r1385 + 128]:8;
-                      let r509 = Call(4012e0 /* 4199136 */);
-                      CArg([r1385 + 128]:8);
-                      CArg([r1385 + 128]:8);
-                      CArg(r1376);
-                      CArg([r1385 + 88]:8);
+                      let r509 = 4012e0 /* 4199136 */([r1385 + 128]:8,
+                                                      [r1385 + 128]:8,
+                                                      r1376,
+                                                      [r1385 + 88]:8);
                       let r527 = r509 - r101;
                       if IsZero(r527) {
                         goto T39
@@ -3634,11 +3623,10 @@ T0(): {
                       }
                       
                       T39(): {
-                        let r1048 = Call(401340 /* 4199232 */);
-                        CArg([r51]:8);
-                        CArg([pre:RSP - -32]:8);
-                        CArg(r101);
-                        CArg([r1385 + 88]:8);
+                        let r1048 = 401340 /* 4199232 */([r51]:8,
+                                                         [pre:RSP - -32]:8,
+                                                         r101,
+                                                         [r1385 + 88]:8);
                         if !(IsZero(r1048)) {
                           goto T18
                         
@@ -3655,11 +3643,10 @@ T0(): {
                     }
                     
                     T37(): {
-                      let r1016 = Call(401340 /* 4199232 */);
-                      CArg([r51]:8);
-                      CArg([pre:RSP - -32]:8);
-                      CArg(r101);
-                      CArg([r1385 + 88]:8);
+                      let r1016 = 401340 /* 4199232 */([r51]:8,
+                                                       [pre:RSP - -32]:8,
+                                                       r101,
+                                                       [r1385 + 88]:8);
                       if !(IsZero(r1016)) {
                         goto T17 (
                           r1376 = r101
@@ -3678,11 +3665,10 @@ T0(): {
                   }
                   
                   T22(): {
-                    let r635 = Call(401340 /* 4199232 */);
-                    CArg([r51]:8);
-                    CArg([pre:RSP - -32]:8);
-                    CArg(r101);
-                    CArg(r1382);
+                    let r635 = 401340 /* 4199232 */([r51]:8,
+                                                    [pre:RSP - -32]:8,
+                                                    r101,
+                                                    r1382);
                     if !(IsZero(r635)) {
                       goto T16 (
                         r1373 = r101
@@ -3706,11 +3692,10 @@ T0(): {
                 }
                 
                 T20(): {
-                  let r590 = Call(401340 /* 4199232 */);
-                  CArg([r51]:8);
-                  CArg([r1385 + 8]:8);
-                  CArg(r101);
-                  CArg(r1382);
+                  let r590 = 401340 /* 4199232 */([r51]:8,
+                                                  [r1385 + 8]:8,
+                                                  r101,
+                                                  r1382);
                   if !(IsZero(r590)) {
                     goto T15 (
                       r1367 = [r1385 + 8]:8
@@ -3769,11 +3754,10 @@ T0(): {
             let r716 = r1334 + 1;
             let r719 = V8WithL4(pre:RSI, 2e /* 46 */);
             [r51] = r716;
-            let r724 = Call(401280 /* 4199040 */);
-            CArg(r716);
-            CArg(r719);
-            CArg([pre:RSP - -16]:8);
-            CArg(pre:RCX);
+            let r724 = 401280 /* 4199040 */(r716,
+                                            r719,
+                                            [pre:RSP - -16]:8,
+                                            pre:RCX);
             if IsZero(r724) {
               goto T42
             
@@ -3802,11 +3786,10 @@ T0(): {
             }
             
             T42(): {
-              let r1119 = Call(4012e0 /* 4199136 */);
-              CArg([r51]:8);
-              CArg(r719);
-              CArg([pre:RSP - -16]:8);
-              CArg(pre:RCX);
+              let r1119 = 4012e0 /* 4199136 */([r51]:8,
+                                               r719,
+                                               [pre:RSP - -16]:8,
+                                               pre:RCX);
               if CarryOf(r133 + 1 - [[pre:RSP - -16]:8]:8) {
                 goto T29
               
@@ -3841,11 +3824,10 @@ T0(): {
         
         T30(r1423, r1426): {
           [pre:RSP - -32] = r1426;
-          let r823 = Call(6270e0 /* 6451424 */);
-          CArg([r51]:8);
-          CArg(V8WithL4(r1423, 0 /* 0 */));
-          CArg(V8WithL4([pre:RSP - -16]:8, a /* 10 */));
-          CArg(pre:RCX);
+          let r823 = 6270e0 /* 6451424 */([r51]:8,
+                                          V8WithL4(r1423, 0 /* 0 */),
+                                          V8WithL4([pre:RSP - -16]:8, a /* 10 */),
+                                          pre:RCX);
           let r842 = r823 - -1;
           if IsZero(r842) {
             goto T41 (
@@ -3860,11 +3842,10 @@ T0(): {
             if !(IsZero([[pre:RSI + 24]:8]:1 - 0)){
               goto 0x403143
             };
-            let r893 = Call([[[pre:RSI + 24]:8 + 8]:8]:8);
-            CArg([pre:RSP - 24]:8);
-            CArg([pre:RSP - -8]:8);
-            CArg([[pre:RSP - -16]:8]:8);
-            CArg(r842);
+            let r893 = [[[pre:RSI + 24]:8 + 8]:8]:8([pre:RSP - 24]:8,
+                                                    [pre:RSP - -8]:8,
+                                                    [[pre:RSP - -16]:8]:8,
+                                                    r842);
             if IsZero(r893) {
               goto T41 (
                 r1441 = r893
@@ -3949,11 +3930,10 @@ T0(): {
   }
   
   T52(): {
-    let r1307 = Call(4012e0 /* 4199136 */);
-    CArg([r51]:8);
-    CArg(r40);
-    CArg(pre:RDX);
-    CArg(pre:RCX);
+    let r1307 = 4012e0 /* 4199136 */([r51]:8,
+                                     r40,
+                                     pre:RDX,
+                                     pre:RCX);
     goto T1 (
       r1334 = [r51]:8 + r1307 * 1
     )
