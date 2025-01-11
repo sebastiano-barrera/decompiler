@@ -880,15 +880,13 @@ impl Ast {
                         write!(pp, " with (")?;
                         pp.open_box();
                         for (ndx, (name, arg)) in args.names.iter().zip(&args.values).enumerate() {
-                            pp.open_box();
                             write!(pp, "{} = ", name.0.as_str())?;
                             self.pretty_print_node(pp, *arg)?;
                             if ndx == args_count - 1 {
                                 write!(pp, ")")?;
                             } else {
-                                writeln!(pp, ",")?;
+                                write!(pp, ",\n")?;
                             }
-                            pp.close_box();
                         }
                         pp.close_box();
                     }
