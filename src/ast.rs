@@ -1521,7 +1521,7 @@ mod ast_lite {
                         ArithOp::BitAnd => " & ",
                         ArithOp::BitOr => " | ",
                     };
-                    write!(pp, "{} {}", op_s, k)?;
+                    write!(pp, "{}{}", op_s, k)?;
                     return Ok(());
                 }
                 Insn::Cmp(cmp_op, _, _) => match cmp_op {
