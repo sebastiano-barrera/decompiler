@@ -6,6 +6,8 @@ use iced_x86::{OpKind, Register};
 use anyhow::{anyhow, Result};
 use smallvec::SmallVec;
 
+mod callconv;
+
 pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<mil::Program> {
     Builder::new().translate(insns)
 }

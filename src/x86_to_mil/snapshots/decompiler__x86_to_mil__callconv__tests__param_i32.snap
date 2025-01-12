@@ -1,0 +1,12 @@
+---
+source: src/x86_to_mil/callconv.rs
+expression: snap
+---
+params: [TypeID(1v1)]
+program:
+ssa program  4 instrs
+.B0:    ;;  addr:0x0; 30 insn 0 phis
+         r13 <- #pre:RDI
+         r27 <- #pre:arg0
+         r28 <- v8.l4=   r13 ← r27
+         r29 <- ret      r28

@@ -150,6 +150,28 @@ impl TypeSet {
         self.known_objects.get(&addr).copied()
     }
 
+    pub fn alignment(&self, tyid: TypeID) -> Option<u8> {
+        let typ = self.get(tyid)?;
+        match &typ.ty {
+            Ty::Int(int_ty) => Some(int_ty.alignment()),
+            Ty::Enum(enum_ty) => Some(enum_ty.base_type.alignment()),
+            Ty::Ptr(_) => Some(8),
+            Ty::Float(float_ty) => Some(float_ty.alignment()),
+
+            Ty::Void | Ty::Bool(_) | Ty::Subroutine(_) | Ty::Unknown(_) => None,
+
+            Ty::Struct(struct_ty) => {
+                // TODO any further check necessary?
+                // Zero-sized types currently return None
+                struct_ty
+                    .members
+                    .iter()
+                    .map(|memb| self.alignment(memb.tyid).unwrap())
+                    .max()
+            }
+        }
+    }
+
     pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::fmt::Result {
         writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
 
@@ -287,6 +309,11 @@ pub struct Int {
     pub size: u8,
     pub signed: Signedness,
 }
+impl Int {
+    fn alignment(&self) -> u8 {
+        self.size
+    }
+}
 #[derive(Debug, Clone)]
 pub enum Signedness {
     Signed,
@@ -301,6 +328,11 @@ pub struct Bool {
 #[derive(Debug, Clone)]
 pub struct Float {
     pub size: u8,
+}
+impl Float {
+    fn alignment(&self) -> u8 {
+        self.size
+    }
 }
 
 #[derive(Debug, Clone)]
