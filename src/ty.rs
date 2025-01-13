@@ -162,12 +162,14 @@ impl TypeSet {
 
             Ty::Struct(struct_ty) => {
                 // TODO any further check necessary?
-                // Zero-sized types currently return None
-                struct_ty
-                    .members
-                    .iter()
-                    .map(|memb| self.alignment(memb.tyid).unwrap())
-                    .max()
+                Some(
+                    struct_ty
+                        .members
+                        .iter()
+                        .map(|memb| self.alignment(memb.tyid).unwrap())
+                        .max()
+                        .unwrap_or(1),
+                )
             }
         }
     }
@@ -238,7 +240,12 @@ impl TypeSet {
                 write!(out, "func (")?;
                 out.open_box();
 
-                for (ndx, SubroutineParam { name, tyid }) in subr_ty.params.iter().enumerate() {
+                for (ndx, (name, tyid)) in subr_ty
+                    .param_names
+                    .iter()
+                    .zip(subr_ty.param_tyids.iter())
+                    .enumerate()
+                {
                     if ndx > 0 {
                         write!(out, ",\n")?;
                     }
@@ -372,12 +379,8 @@ pub struct Unknown {
 #[derive(Debug, Clone)]
 pub struct Subroutine {
     pub return_tyid: TypeID,
-    pub params: Vec<SubroutineParam>,
-}
-#[derive(Debug, Clone)]
-pub struct SubroutineParam {
-    pub name: Option<Arc<String>>,
-    pub tyid: TypeID,
+    pub param_names: Vec<Option<Arc<String>>>,
+    pub param_tyids: Vec<TypeID>,
 }
 
 //

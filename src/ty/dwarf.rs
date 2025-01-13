@@ -165,12 +165,7 @@ impl<'a> TypeParser<'a> {
         };
 
         let entry = node.entry();
-
-        if let Some(gimli::AttributeValue::Addr(addr)) =
-            entry.attr_value(gimli::constants::DW_AT_low_pc)?
-        {
-            types.set_known_object(addr, tyid);
-        }
+        let addr = entry.attr_value(gimli::constants::DW_AT_low_pc)?;
 
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
@@ -200,6 +195,13 @@ impl<'a> TypeParser<'a> {
 
         // otherwise, leave tyid assigned to a clone of default_type
         let typ = res?;
+
+        if !matches!(&typ.ty, ty::Ty::Unknown(_)) {
+            if let Some(gimli::AttributeValue::Addr(addr)) = addr {
+                types.set_known_object(addr, tyid);
+            }
+        }
+
         types.set(tyid, typ);
         Ok(tyid)
     }
@@ -233,7 +235,8 @@ impl<'a> TypeParser<'a> {
             res => res,
         }?;
 
-        let mut params = Vec::new();
+        let mut param_names = Vec::new();
+        let mut param_tyids = Vec::new();
         let mut children = node.children();
         while let Some(child_node) = children.next()? {
             let child_entry = child_node.entry();
@@ -241,18 +244,21 @@ impl<'a> TypeParser<'a> {
                 gimli::DW_TAG_formal_parameter => {
                     let name = self.get_name(child_entry)?.map(|s| Arc::new(s.to_owned()));
                     let tyid = self.try_parse_type_of(&child_entry, types)?;
-                    params.push(ty::SubroutineParam { name, tyid });
+                    param_names.push(name);
+                    param_tyids.push(tyid);
                 }
                 // not supported yet => ignored
                 _ => {}
             }
         }
 
+        assert_eq!(param_names.len(), param_tyids.len());
         Ok(ty::Type {
             name: Arc::new(name),
             ty: ty::Ty::Subroutine(ty::Subroutine {
                 return_tyid,
-                params,
+                param_names,
+                param_tyids,
             }),
         })
     }

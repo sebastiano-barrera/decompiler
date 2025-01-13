@@ -166,6 +166,28 @@ impl<'a> Tester<'a> {
             let insns = decoder.iter();
             let mut b = x86_to_mil::Builder::new();
             b.use_types(&self.types);
+
+            let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
+            if let Some(func_tyid) = func_tyid_opt {
+                let func_ty = match &self.types.get(func_tyid).unwrap().ty {
+                    ty::Ty::Subroutine(subr_ty) => subr_ty,
+                    other => panic!(
+                        "function type: 0x{func_addr:x}: type is not a subroutine: {:?}",
+                        other
+                    ),
+                };
+
+                writeln!(
+                    out,
+                    "function type: 0x{func_addr:x}: {:?}",
+                    func_ty.param_tyids
+                )?;
+
+                x86_to_mil::callconv::read_func_params(&mut b, &func_ty.param_tyids).unwrap();
+            } else {
+                writeln!(out, "function type: 0x{func_addr:x}: no type info")?;
+            }
+
             b.translate(insns)
         }
         .unwrap();
