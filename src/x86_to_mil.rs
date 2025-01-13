@@ -3,14 +3,9 @@ use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
-use anyhow::{anyhow, Result};
-use smallvec::SmallVec;
+use anyhow::Result;
 
-mod callconv;
-
-pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<mil::Program> {
-    Builder::new().translate(insns)
-}
+pub mod callconv;
 
 pub struct Builder<'a> {
     pb: mil::ProgramBuilder,
@@ -775,133 +770,6 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn read_func_args(&mut self, arg_types: &[ty::TypeID]) -> Result<()> {
-        use ty::Ty;
-
-        if arg_types.len() > ANC_ARGS.len() {
-            eprintln!(
-                "warning: only {} arguments will be handled ({} were described)",
-                ANC_ARGS.len(),
-                arg_types.len()
-            );
-        }
-
-        let mut stack_pos = 0;
-        let rsp = Builder::xlat_reg(Register::RSP);
-        let mut read_to_stack = move |b: &mut Builder, src| {
-            let addr = b.reg_gen.next();
-            b.emit(
-                addr,
-                mil::Insn::ArithK8(mil::ArithOp::Sub, rsp, 8 * stack_pos),
-            );
-            b.emit(addr, mil::Insn::StoreMem(addr, src));
-            stack_pos += 1;
-        };
-
-        let mut integer_regs = [
-            Register::RDI,
-            Register::RSI,
-            Register::RDX,
-            Register::RCX,
-            Register::R8,
-            Register::R9,
-        ]
-        .into_iter();
-        let mut read_to_integer = move |b: &mut Builder, src, sz| match integer_regs.next() {
-            Some(reg) => {
-                b.emit_write_machine_reg(reg, sz, src);
-            }
-            None => read_to_stack(b, src),
-        };
-
-        let types = self.types.ok_or(anyhow!("TypeSet not provided"))?;
-
-        for (&arg_tyid, arg_anc) in arg_types.iter().zip(&ANC_ARGS) {
-            let arg_ty = &types
-                .get(arg_tyid)
-                .ok_or(anyhow!("undefined type: {arg_tyid:?}"))?
-                .ty;
-            assert_ne!(arg_ty.bytes_size(), 0);
-
-            let arg = self.reg_gen.next();
-            self.emit(arg, mil::Insn::Ancestral(*arg_anc));
-
-            match arg_ty {
-                Ty::Enum(ty::Enum {
-                    base_type: int_ty, ..
-                })
-                | Ty::Int(int_ty) => {
-                    if int_ty.size < 8 {
-                        read_to_integer(self, arg, int_ty.size);
-                    } else {
-                        assert_eq!(int_ty.size % 8, 0);
-                        let eightb_count = int_ty.size / 8;
-                        for eightb_ndx in 0..eightb_count {
-                            let eightb = self.reg_gen.next();
-                            self.emit(
-                                eightb,
-                                mil::Insn::StructGet8 {
-                                    struct_value: arg,
-                                    offset: 8 * eightb_ndx,
-                                },
-                            );
-                            read_to_integer(self, eightb, 8);
-                        }
-                    }
-                }
-                Ty::Ptr(_) => {
-                    read_to_integer(self, arg, 8);
-                }
-                Ty::Float(_) => todo!("SSE registers and float function parameters"),
-                Ty::Struct(struct_ty) => {
-                    let arg_struct_cls = classify_struct(struct_ty, types)?;
-                    match arg_struct_cls {
-                        ArgStructClass::Memory { eightb_count } => {
-                            for eightb_ndx in 0..eightb_count {
-                                let eightb = self.reg_gen.next();
-                                self.emit(
-                                    eightb,
-                                    mil::Insn::StructGet8 {
-                                        struct_value: arg,
-                                        offset: (8 * eightb_ndx).try_into().unwrap(),
-                                    },
-                                );
-                                read_to_stack(self, eightb);
-                            }
-                        }
-                        ArgStructClass::Registers(classes) => {
-                            for (ndx, cls) in classes.iter().enumerate() {
-                                match cls {
-                                    ArgClass::None => {}
-                                    ArgClass::Integer => {
-                                        let eightb = self.reg_gen.next();
-                                        self.emit(
-                                            eightb,
-                                            mil::Insn::StructGet8 {
-                                                struct_value: arg,
-                                                offset: (8 * ndx).try_into().unwrap(),
-                                            },
-                                        );
-                                        read_to_integer(self, eightb, 8);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Ty::Unknown(_) => {
-                    return Err(anyhow!("Function argument's type can't be `Unknown`"))
-                }
-                Ty::Subroutine(_) | Ty::Bool(_) | Ty::Void => {
-                    panic!("invalid type for a function argument: {arg_ty:?}")
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     // flags
     const CF: mil::Reg = mil::Reg(2); // Carry flag
     const PF: mil::Reg = mil::Reg(3); // Parity flag      true=even false=odd
@@ -976,67 +844,6 @@ impl<'a> Builder<'a> {
 #[inline(always)]
 fn div_ceil(size: usize, quot: usize) -> usize {
     (size + quot - 1) / quot
-}
-
-#[derive(Clone, Copy)]
-enum ArgClass {
-    None,
-    Integer,
-}
-enum ArgStructClass {
-    Memory { eightb_count: usize },
-    Registers(SmallVec<[ArgClass; 8]>),
-}
-fn classify_struct(struct_ty: &ty::Struct, types: &ty::TypeSet) -> Result<ArgStructClass> {
-    // TODO Remove heap alloc
-    let eightb_count = div_ceil(struct_ty.size as usize, 8);
-    if eightb_count > 8 {
-        return Ok(ArgStructClass::Memory { eightb_count });
-    }
-
-    let mut buf = [ArgClass::None; 8];
-    let classes = &mut buf[..eightb_count];
-
-    let mut queue: SmallVec<[_; 8]> = smallvec::smallvec![(0, struct_ty)];
-    while let Some((struct_ofs, struct_ty)) = queue.pop() {
-        for memb in &struct_ty.members {
-            let typ = types.get(memb.tyid).unwrap();
-            let sz = typ.ty.bytes_size() as usize;
-            let memb_ofs = struct_ofs + memb.offset as usize;
-
-            if memb_ofs % sz != 0 {
-                // unaligned struct member
-                return Ok(ArgStructClass::Memory { eightb_count });
-            }
-
-            match &typ.ty {
-                ty::Ty::Int(_) | ty::Ty::Enum(_) | ty::Ty::Ptr(_) => {
-                    let memb_eightb_1 = memb_ofs / 8;
-                    let memb_eightb_n = (memb_ofs + sz) / 8;
-                    for i in memb_eightb_1..=memb_eightb_n {
-                        classes[i] = ArgClass::Integer;
-                    }
-                }
-                ty::Ty::Struct(substruct_ty) => {
-                    queue.push((memb_ofs, substruct_ty));
-                    continue;
-                }
-                ty::Ty::Float(_) => {
-                    return Err(anyhow!("not yet implemented: float struct members"))
-                }
-                ty::Ty::Unknown(_) => {
-                    return Err(anyhow!(
-                        "struct is partially known; can't determine parameter passing"
-                    ))
-                }
-                ty @ (ty::Ty::Subroutine(_) | ty::Ty::Bool(_) | ty::Ty::Void) => {
-                    panic!("invalid type for struct member: {ty:?}")
-                }
-            };
-        }
-    }
-
-    Ok(ArgStructClass::Registers(SmallVec::from_slice(classes)))
 }
 
 struct RegGen {

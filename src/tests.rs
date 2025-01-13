@@ -65,7 +65,7 @@ mod callconv_x86_64 {
                                 tyid: tyid_char_ptr,
                             },
                             ty::StructMember {
-                                offset: 0,
+                                offset: 8,
                                 name: "next".to_owned().into(),
                                 tyid: self_ptr,
                             },
@@ -81,7 +81,7 @@ mod callconv_x86_64 {
         let prog = {
             let mut b = x86_to_mil::Builder::new();
             b.use_types(&types);
-            b.read_func_args(&[tyid_name_item]).unwrap();
+            x86_to_mil::callconv::read_func_params(&mut b, &[tyid_name_item]).unwrap();
             b.translate(input.iter().copied())
         }
         .unwrap();

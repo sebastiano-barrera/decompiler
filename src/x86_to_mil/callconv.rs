@@ -7,7 +7,10 @@ use super::{div_ceil, Builder};
 
 use anyhow::anyhow;
 
-fn read_func_params<'a>(bld: &mut Builder<'a>, param_types: &[ty::TypeID]) -> anyhow::Result<()> {
+pub fn read_func_params<'a>(
+    bld: &mut Builder<'a>,
+    param_types: &[ty::TypeID],
+) -> anyhow::Result<()> {
     let types = bld
         .types
         .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
@@ -16,12 +19,13 @@ fn read_func_params<'a>(bld: &mut Builder<'a>, param_types: &[ty::TypeID]) -> an
     let mut state = State::default();
 
     for (param_ndx, &param_tyid) in param_types.iter().enumerate() {
-        let classes = &mut buf[param_ndx];
+        let param_buf = &mut buf[param_ndx];
 
-        let param_class = classify_param(types, param_tyid, classes);
+        let param_class = classify_param(types, param_tyid, param_buf);
+        println!("param {param_ndx}: {param_class:?}");
         let param_class = match param_class {
             ParamClass::Registers(clss) => {
-                if are_registers_available(&state, clss) {
+                if enough_registers_available(&state, clss) {
                     ParamClass::Registers(clss)
                 } else {
                     ParamClass::Memory
@@ -41,7 +45,7 @@ fn read_func_params<'a>(bld: &mut Builder<'a>, param_types: &[ty::TypeID]) -> an
     Ok(())
 }
 
-fn are_registers_available(state: &State, clss: &[RegClass]) -> bool {
+fn enough_registers_available(state: &State, clss: &[RegClass]) -> bool {
     let mut int_count = 0;
     let mut sse_count = 0;
 
@@ -94,6 +98,7 @@ fn emit_read_param<'a>(
                 bld.emit(dest, insn);
             }
             ty::Ty::Struct(_) => {
+                assert_eq!(eb_clss.len(), div_ceil(sz, 8));
                 for (eb_ndx, eb_cls) in eb_clss.iter().enumerate() {
                     let offset = eb_ndx * 8;
 
@@ -227,12 +232,13 @@ impl Default for State {
     }
 }
 
+#[derive(Debug)]
 enum ParamClass<'a> {
     Registers(&'a [RegClass]),
     Memory,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RegClass {
     Undefined,
     Integer,
@@ -264,7 +270,7 @@ fn classify_param<'a>(
     // eightbytes: count of how many were used
     let eb_count = classes
         .iter()
-        .filter(|&&slot| slot != RegClass::Undefined)
+        .take_while(|&&slot| slot != RegClass::Undefined)
         .count();
     ParamClass::Registers(&classes[..eb_count])
 }
@@ -278,22 +284,22 @@ fn classify_struct_member(
     let ty = &types.get(param_tyid).unwrap().ty;
     let sz = ty.bytes_size() as usize;
 
-    let eb_offset = (offset + sz) / 8;
-    if eb_offset >= classes.len() {
+    if div_ceil(offset + sz, 8) >= classes.len() {
         // not enough space for this member in 8 eightbytes
         return true;
     }
 
     let align = types.alignment(param_tyid).unwrap() as usize;
+    if offset % align != 0 {
+        // offset is not a multiple of the member's size, i.e. it's "unaligned"
+        return true;
+    }
 
     match &ty {
         // size is already in `sz`
-        ty::Ty::Enum(_) | ty::Ty::Int(_) => {
-            if offset % align != 0 {
-                // offset is not a multiple of the member's size, i.e. it's "unaligned"
-                return true;
-            }
-            let eb_count = div_ceil(align, 8);
+        ty::Ty::Ptr(_) | ty::Ty::Enum(_) | ty::Ty::Int(_) => {
+            let eb_offset = offset / 8;
+            let eb_count = div_ceil(sz, 8);
 
             for eb_ndx in 0..eb_count {
                 let slot = &mut classes[eb_offset + eb_ndx];
@@ -304,10 +310,7 @@ fn classify_struct_member(
         }
         ty::Ty::Struct(struct_ty) => {
             assert_ne!(struct_ty.size, 0);
-
-            if offset % align != 0 {
-                return true;
-            }
+            assert_ne!(struct_ty.members.len(), 0);
 
             for memb in &struct_ty.members {
                 if classify_struct_member(types, memb.tyid, memb.offset as usize, classes) {
@@ -317,7 +320,6 @@ fn classify_struct_member(
 
             false
         }
-        ty::Ty::Ptr(_) => todo!(),
         ty::Ty::Float(_) => todo!(),
 
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
