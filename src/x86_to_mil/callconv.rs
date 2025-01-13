@@ -5,7 +5,7 @@ use crate::{
 
 use super::{div_ceil, Builder};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 
 pub fn read_func_params<'a>(
     bld: &mut Builder<'a>,
@@ -22,16 +22,23 @@ pub fn read_func_params<'a>(
         let param_buf = &mut buf[param_ndx];
 
         let param_class = classify_param(types, param_tyid, param_buf);
-        println!("param {param_ndx}: {param_class:?}");
+        println!("param {param_ndx}: {param_class:#?}");
         let param_class = match param_class {
-            ParamClass::Registers(clss) => {
+            Ok(ParamClass::Registers(clss)) => {
                 if enough_registers_available(&state, clss) {
                     ParamClass::Registers(clss)
                 } else {
                     ParamClass::Memory
                 }
             }
-            ParamClass::Memory => ParamClass::Memory,
+            Ok(ParamClass::Memory) => ParamClass::Memory,
+            Err(_) => {
+                // stop parsing parameters
+                // (a problem in this parameter prevents us from parsing any further parameter type)
+                // TODO collect these errors and move them out
+                eprintln!("warning: read_func_params stopped after {param_ndx} parameters");
+                break;
+            }
         };
 
         let src_anc = state
@@ -261,10 +268,10 @@ fn classify_param<'a>(
     types: &ty::TypeSet,
     param_tyid: ty::TypeID,
     classes: &'a mut [RegClass; 8],
-) -> ParamClass<'a> {
+) -> anyhow::Result<ParamClass<'a>> {
     // scalar types are the same as a struct with a single member
-    if classify_struct_member(types, param_tyid, 0, classes) {
-        return ParamClass::Memory;
+    if classify_struct_member(types, param_tyid, 0, classes)? {
+        return Ok(ParamClass::Memory);
     }
 
     // eightbytes: count of how many were used
@@ -272,7 +279,7 @@ fn classify_param<'a>(
         .iter()
         .take_while(|&&slot| slot != RegClass::Undefined)
         .count();
-    ParamClass::Registers(&classes[..eb_count])
+    Ok(ParamClass::Registers(&classes[..eb_count]))
 }
 
 fn classify_struct_member(
@@ -280,19 +287,27 @@ fn classify_struct_member(
     param_tyid: ty::TypeID,
     offset: usize,
     classes: &mut [RegClass; 8],
-) -> bool {
+) -> anyhow::Result<bool> {
     let ty = &types.get(param_tyid).unwrap().ty;
     let sz = ty.bytes_size() as usize;
 
     if div_ceil(offset + sz, 8) >= classes.len() {
         // not enough space for this member in 8 eightbytes
-        return true;
+        return Ok(true);
     }
 
-    let align = types.alignment(param_tyid).unwrap() as usize;
+    let align = types.alignment(param_tyid).ok_or_else(|| {
+        let name = types.get(param_tyid).unwrap().name.as_str();
+        anyhow!(
+            "struct type is not fully known (name '{}', tyid {:?}, offset {})",
+            name,
+            param_tyid,
+            offset
+        )
+    })? as usize;
     if offset % align != 0 {
         // offset is not a multiple of the member's size, i.e. it's "unaligned"
-        return true;
+        return Ok(true);
     }
 
     match &ty {
@@ -306,19 +321,21 @@ fn classify_struct_member(
                 *slot = slot.merge_with(RegClass::Integer);
             }
 
-            false
+            Ok(false)
         }
         ty::Ty::Struct(struct_ty) => {
             assert_ne!(struct_ty.size, 0);
             assert_ne!(struct_ty.members.len(), 0);
 
-            for memb in &struct_ty.members {
-                if classify_struct_member(types, memb.tyid, memb.offset as usize, classes) {
-                    return true;
+            for (memb_ndx, memb) in struct_ty.members.iter().enumerate() {
+                if classify_struct_member(types, memb.tyid, memb.offset as usize, classes)
+                    .with_context(|| format!("member #{} offset {} tyid", memb_ndx, memb.offset))?
+                {
+                    return Ok(true);
                 }
             }
 
-            false
+            Ok(false)
         }
         ty::Ty::Float(_) => todo!(),
 
