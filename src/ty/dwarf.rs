@@ -165,7 +165,8 @@ impl<'a> TypeParser<'a> {
         };
 
         let entry = node.entry();
-        let addr = entry.attr_value(gimli::constants::DW_AT_low_pc)?;
+        let offset = entry.offset().0;
+        let addr_av = entry.attr_value(gimli::constants::DW_AT_low_pc)?;
 
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
@@ -197,7 +198,10 @@ impl<'a> TypeParser<'a> {
         let typ = res?;
 
         if !matches!(&typ.ty, ty::Ty::Unknown(_)) {
-            if let Some(gimli::AttributeValue::Addr(addr)) = addr {
+            if let Some(addr_attrvalue) = addr_av {
+                let addr = self.dwarf.attr_address(&self.unit, addr_attrvalue)?.ok_or(
+                    Error::InvalidValueType(offset, gimli::constants::DW_AT_low_pc),
+                )?;
                 types.set_known_object(addr, tyid);
             }
         }

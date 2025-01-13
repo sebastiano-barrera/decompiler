@@ -40,6 +40,7 @@ sum_matrix 0x4011c9+115 (file 0x11c9)
           40123a: 5d                      pop rbp
           40123b: c3                      ret
 
+function type: 0x4011c9: [TypeID(13v1)]
 mil program = 
 program  198 instrs
     0 r12 <- #pre:stack_bottom

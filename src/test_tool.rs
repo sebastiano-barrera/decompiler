@@ -68,11 +68,8 @@ impl<'a> Tester<'a> {
             })
             .collect();
 
-        let types = {
-            let mut types = ty::TypeSet::new();
-            ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
-            types
-        };
+        let mut types = ty::TypeSet::new();
+        ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
 
         Ok(Tester {
             raw_binary,
