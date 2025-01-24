@@ -3,7 +3,7 @@ use crate::{
     ty,
 };
 
-use super::{div_ceil, Builder};
+use super::Builder;
 
 use anyhow::{anyhow, Context};
 
@@ -15,22 +15,19 @@ pub fn read_func_params<'a>(
         .types
         .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
 
-    let mut buf = vec![[RegClass::Undefined; 8]; param_types.len()];
     let mut state = State::default();
 
     for (param_ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_buf = &mut buf[param_ndx];
-
+        let param_buf = &mut [RegClass::Undefined; 8];
         let param_class = classify_param(types, param_tyid, param_buf);
+
         println!("param {param_ndx}: {param_class:#?}");
+
         let param_class = match param_class {
-            Ok(ParamClass::Registers(clss)) => {
-                if enough_registers_available(&state, clss) {
-                    ParamClass::Registers(clss)
-                } else {
-                    ParamClass::Memory
-                }
+            Ok(ParamClass::Registers(clss)) if enough_registers_available(&state, clss) => {
+                ParamClass::Registers(clss)
             }
+            Ok(ParamClass::Registers(_)) => ParamClass::Memory,
             Ok(ParamClass::Memory) => ParamClass::Memory,
             Err(_) => {
                 // stop parsing parameters
@@ -105,7 +102,7 @@ fn emit_read_param<'a>(
                 bld.emit(dest, insn);
             }
             ty::Ty::Struct(_) => {
-                assert_eq!(eb_clss.len(), div_ceil(sz, 8));
+                assert_eq!(eb_clss.len(), sz.div_ceil(8));
                 for (eb_ndx, eb_cls) in eb_clss.iter().enumerate() {
                     let offset = eb_ndx * 8;
 
@@ -133,7 +130,7 @@ fn emit_read_param<'a>(
         },
         ParamClass::Memory => match ty {
             ty::Ty::Int(_) | ty::Ty::Enum(_) | ty::Ty::Ptr(_) => {
-                let slot_sz = 8 * div_ceil(sz, 8);
+                let slot_sz = 8 * sz.div_ceil(8);
 
                 let slot_ofs = state.pull_stack_slot(slot_sz) as i64;
                 let reg = bld.reg_gen.next();
@@ -142,7 +139,7 @@ fn emit_read_param<'a>(
             }
 
             ty::Ty::Struct(_) => {
-                let eb_count = div_ceil(sz, 8);
+                let eb_count = sz.div_ceil(8);
                 let reg_addr = bld.reg_gen.next();
                 let reg_part = bld.reg_gen.next();
 
@@ -284,27 +281,27 @@ fn classify_param<'a>(
 
 fn classify_struct_member(
     types: &ty::TypeSet,
-    param_tyid: ty::TypeID,
-    offset: usize,
+    tyid: ty::TypeID,
+    offset: u32,
     classes: &mut [RegClass; 8],
 ) -> anyhow::Result<bool> {
-    let ty = &types.get(param_tyid).unwrap().ty;
-    let sz = ty.bytes_size() as usize;
+    let ty = &types.get(tyid).unwrap().ty;
+    let sz = ty.bytes_size();
 
-    if div_ceil(offset + sz, 8) >= classes.len() {
+    if (offset + sz).div_ceil(8) as usize >= classes.len() {
         // not enough space for this member in 8 eightbytes
         return Ok(true);
     }
 
-    let align = types.alignment(param_tyid).ok_or_else(|| {
-        let name = types.get(param_tyid).unwrap().name.as_str();
+    let align = types.alignment(tyid).ok_or_else(|| {
+        let name = types.get(tyid).unwrap().name.as_str();
         anyhow!(
             "struct type is not fully known (name '{}', tyid {:?}, offset {})",
             name,
-            param_tyid,
+            tyid,
             offset
         )
-    })? as usize;
+    })? as u32;
     if offset % align != 0 {
         // offset is not a multiple of the member's size, i.e. it's "unaligned"
         return Ok(true);
@@ -314,10 +311,10 @@ fn classify_struct_member(
         // size is already in `sz`
         ty::Ty::Ptr(_) | ty::Ty::Enum(_) | ty::Ty::Int(_) => {
             let eb_offset = offset / 8;
-            let eb_count = div_ceil(sz, 8);
+            let eb_count = sz.div_ceil(8);
 
             for eb_ndx in 0..eb_count {
-                let slot = &mut classes[eb_offset + eb_ndx];
+                let slot = &mut classes[(eb_offset + eb_ndx) as usize];
                 *slot = slot.merge_with(RegClass::Integer);
             }
 
@@ -328,7 +325,7 @@ fn classify_struct_member(
             assert_ne!(struct_ty.members.len(), 0);
 
             for (memb_ndx, memb) in struct_ty.members.iter().enumerate() {
-                if classify_struct_member(types, memb.tyid, memb.offset as usize, classes)
+                if classify_struct_member(types, memb.tyid, memb.offset, classes)
                     .with_context(|| format!("member #{} offset {} tyid", memb_ndx, memb.offset))?
                 {
                     return Ok(true);
