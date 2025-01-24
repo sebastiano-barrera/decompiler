@@ -12,6 +12,7 @@ list_len 0x1120+28 (file 0x1120)
             1139: 75 f5                   jne short 0000000000001130h
             113b: c3                      ret
 
+function type: 0x1120: [TypeID(4v1)]
 mil program = 
 program  70 instrs
     0 r12 <- #pre:stack_bottom

@@ -337,7 +337,7 @@ fn classify_struct_member(
 
             Ok(false)
         }
-        ty::Ty::Float(_) => todo!(),
+        ty::Ty::Float(_) => Err(anyhow!("unsupported: function parameters of type float")),
 
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
             panic!("invalid types for struct members")
