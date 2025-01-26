@@ -14,7 +14,7 @@ list_len 0x1120+28 (file 0x1120)
 
 function type: 0x1120: [TypeID(4v1)]
 mil program = 
-program  70 instrs
+program  83 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -42,126 +42,169 @@ program  70 instrs
    24 r25 <- #pre:R13
    25 r26 <- #pre:R14
    26 r27 <- #pre:R15
-   27 r28 <- undef
-   28 r29 <- undef
-   29 r30 <- undef
-   30 r31 <- undef
-   31 r32 <- undef
-   32 r33 <- undef
-   33 r34 <- undef
+   27 r28 <- #pre:arg0
+   28 r30 <- memb     r28,"x"
+   29 r29 <- addk     r12,8 qword
+   30 r29 <- store    *r29 ← r30
+   31 r30 <- memb     r28,"y"
+   32 r29 <- addk     r12,12 qword
+   33 r29 <- store    *r29 ← r30
+   34 r30 <- memb     r28,"prev"
+   35 r29 <- addk     r12,16 qword
+   36 r29 <- store    *r29 ← r30
+   37 r30 <- memb     r28,"next"
+   38 r29 <- addk     r12,24 qword
+   39 r29 <- store    *r29 ← r30
+   40 r28 <- undef
+   41 r29 <- undef
+   42 r30 <- undef
+   43 r31 <- undef
+   44 r32 <- undef
+   45 r33 <- undef
+   46 r34 <- undef
 0x1120:
-   34 r28 <- l4       r16
-   35 r29 <- l4       r16
-   36 r28 <- xor      r28,r29  dword
-   37 r16 <- v8.l4=   r16 ← r28
-   38 r10 <- false
-   39 r2 <- false
-   40 r6 <- sign     r28
-   41 r5 <- is0      r28
-   42 r30 <- l1       r28
-   43 r3 <- parity   r30
-0x1122:
-   44 r28 <- const8   8 (0x8)
-   45 r28 <- add      r28,r12  qword
-   46 r18 <- get      r28
-0x1130:
    47 r28 <- l4       r16
-   48 r28 <- addk     r28,1 dword
-   49 r16 <- v8.l4=   r16 ← r28
-   50 r10 <- false
-   51 r2 <- false
-   52 r6 <- sign     r28
-   53 r5 <- is0      r28
-   54 r29 <- l1       r28
-   55 r3 <- parity   r29
-0x1132:
-   56 r29 <- const8   16 (0x10)
-   57 r29 <- add      r29,r18  qword
-   58 r28 <- loadm8   addr:r29
+   48 r29 <- l4       r16
+   49 r28 <- xor      r28,r29  dword
+   50 r16 <- v8.l4=   r16 ← r28
+   51 r10 <- false
+   52 r2 <- false
+   53 r6 <- sign     r28
+   54 r5 <- is0      r28
+   55 r30 <- l1       r28
+   56 r3 <- parity   r30
+0x1122:
+   57 r28 <- const8   8 (0x8)
+   58 r28 <- add      r28,r12  qword
    59 r18 <- get      r28
+0x1130:
+   60 r28 <- l4       r16
+   61 r28 <- addk     r28,1 dword
+   62 r16 <- v8.l4=   r16 ← r28
+   63 r10 <- false
+   64 r2 <- false
+   65 r6 <- sign     r28
+   66 r5 <- is0      r28
+   67 r29 <- l1       r28
+   68 r3 <- parity   r29
+0x1132:
+   69 r29 <- const8   16 (0x10)
+   70 r29 <- add      r29,r18  qword
+   71 r28 <- loadm8   addr:r29
+   72 r18 <- get      r28
 0x1136:
-   60 r18 <- and      r18,r18  qword
-   61 r6 <- sign     r18
-   62 r5 <- is0      r18
-   63 r30 <- l1       r18
-   64 r3 <- parity   r18
-   65 r2 <- const1   0 (0x0)
-   66 r10 <- const1   0 (0x0)
+   73 r18 <- and      r18,r18  qword
+   74 r6 <- sign     r18
+   75 r5 <- is0      r18
+   76 r30 <- l1       r18
+   77 r3 <- parity   r18
+   78 r2 <- const1   0 (0x0)
+   79 r10 <- const1   0 (0x0)
 0x1139:
-   67 r28 <- not      r5
-   68 r29 <- jmp.if   r28,47
+   80 r28 <- not      r5
+   81 r29 <- jmp.if   r28,60
 0x113b:
-   69 r28 <- ret      r16
+   82 r28 <- ret      r16
 
 
 ssa pre-xform:
-ssa program  21 instrs
-.B0:    ;;  addr:0x0; 47 insn 0 phis
-         r11 <- #pre:RSP
+ssa program  34 instrs
+.B0:    ;;  addr:0x0; 60 insn 0 phis
+  (  5)  r11 <- #pre:RSP
   (  3)  r15 <- #pre:RAX
-         r34 <- l4       r15
-         r35 <- l4       r15
-         r36 <- xor      r34,r35  dword
-  (  2)  r37 <- v8.l4=   r15 ← r36
-         r44 <- const8   8 (0x8)
-         r45 <- add      r44,r11  qword
+  (  4)  r27 <- #pre:arg0
+         r28 <- memb     r27,"x"
+         r29 <- addk     r11,8 qword
+         r30 <- store    *r29 ← r28
+         r31 <- memb     r27,"y"
+         r32 <- addk     r11,12 qword
+         r33 <- store    *r32 ← r31
+         r34 <- memb     r27,"prev"
+         r35 <- addk     r11,16 qword
+         r36 <- store    *r35 ← r34
+         r37 <- memb     r27,"next"
+         r38 <- addk     r11,24 qword
+         r39 <- store    *r38 ← r37
+         r47 <- l4       r15
+         r48 <- l4       r15
+         r49 <- xor      r47,r48  dword
+  (  2)  r50 <- v8.l4=   r15 ← r49
+         r57 <- const8   8 (0x8)
+         r58 <- add      r57,r11  qword
 .B1:    ;;  preds:B0,B1  addr:0x1130; 22 insn 2 phis
                   ɸ  B0     B1     
-  (  2)    r70    <- r37    r49    
-           r73    <- r45    r60    
-         r47 <- l4       r70
-         r48 <- addk     r47,1 dword
-  (  3)  r49 <- v8.l4=   r70 ← r48
-         r56 <- const8   16 (0x10)
-  (  2)  r57 <- add      r56,r73  qword
-  (  2)  r58 <- loadm8   addr:r57
-  (  2)  r60 <- and      r58,r58  qword
-         r62 <- is0      r60
-         r67 <- not      r62
-         r68 <- jmp.if   r67,47
+  (  2)    r83    <- r50    r62    
+           r86    <- r58    r73    
+         r60 <- l4       r83
+         r61 <- addk     r60,1 dword
+  (  3)  r62 <- v8.l4=   r83 ← r61
+         r69 <- const8   16 (0x10)
+  (  2)  r70 <- add      r69,r86  qword
+  (  2)  r71 <- loadm8   addr:r70
+  (  2)  r73 <- and      r71,r71  qword
+         r75 <- is0      r73
+         r80 <- not      r75
+         r81 <- jmp.if   r80,60
 .B2:    ;;  preds:B1  addr:0x113b; 1 insn 0 phis
-         r69 <- ret      r49
+         r82 <- ret      r62
 
 
 ssa post-xform:
-ssa program  15 instrs
-.B0:    ;;  addr:0x0; 47 insn 0 phis
-         r11 <- #pre:RSP
+ssa program  28 instrs
+.B0:    ;;  addr:0x0; 60 insn 0 phis
+  (  5)  r11 <- #pre:RSP
          r15 <- #pre:RAX
-         r36 <- const4   0 (0x0)
-  (  2)  r37 <- v8.l4=   r15 ← r36
-         r45 <- addk     r11,8 qword
+  (  4)  r27 <- #pre:arg0
+         r28 <- memb     r27,"x"
+         r29 <- addk     r11,8 qword
+         r30 <- store    *r29 ← r28
+         r31 <- memb     r27,"y"
+         r32 <- addk     r11,12 qword
+         r33 <- store    *r32 ← r31
+         r34 <- memb     r27,"prev"
+         r35 <- addk     r11,16 qword
+         r36 <- store    *r35 ← r34
+         r37 <- memb     r27,"next"
+         r38 <- addk     r11,24 qword
+         r39 <- store    *r38 ← r37
+         r49 <- const4   0 (0x0)
+  (  2)  r50 <- v8.l4=   r15 ← r49
+         r58 <- addk     r11,8 qword
 .B1:    ;;  preds:B0,B1  addr:0x1130; 22 insn 2 phis
                   ɸ  B0     B1     
-  (  2)    r70    <- r37    r49    
-           r73    <- r45    r58    
-         r48 <- addk     r70,1 dword
-  (  3)  r49 <- v8.l4=   r70 ← r48
-         r57 <- addk     r73,16 qword
-  (  2)  r58 <- loadm8   addr:r57
-         r62 <- is0      r58
-         r67 <- not      r62
-         r68 <- jmp.if   r67,47
+  (  2)    r83    <- r50    r62    
+           r86    <- r58    r71    
+         r61 <- addk     r83,1 dword
+  (  3)  r62 <- v8.l4=   r83 ← r61
+         r70 <- addk     r86,16 qword
+  (  2)  r71 <- loadm8   addr:r70
+         r75 <- is0      r71
+         r80 <- not      r75
+         r81 <- jmp.if   r80,60
 .B2:    ;;  preds:B1  addr:0x113b; 1 insn 0 phis
-         r69 <- ret      r49
+         r82 <- ret      r62
 
 
 T0(): {
-  let r37 = V8WithL4(pre:RAX, 0x0 /* 0 */);
+  [pre:RSP + 8] = pre:arg0."x";
+  [pre:RSP + 12] = pre:arg0."y";
+  [pre:RSP + 16] = pre:arg0."prev";
+  [pre:RSP + 24] = pre:arg0."next";
+  let r50 = V8WithL4(pre:RAX, 0x0 /* 0 */);
   goto T1 (
-    r70 = r37
-    r73 = pre:RSP + 8
+    r83 = r50
+    r86 = pre:RSP + 8
   )
   
-  T1(r70, r73): {
-    let r49 = V8WithL4(r70, r70 + 1);
-    if !(IsZero([r73 + 16]:8)) {
+  T1(r83, r86): {
+    let r62 = V8WithL4(r83, r83 + 1);
+    if !(IsZero([r86 + 16]:8)) {
       goto T1 (
-        r70 = r49
-        r73 = [r73 + 16]:8
+        r83 = r62
+        r86 = [r86 + 16]:8
       )
     
     }
-    Ret(r49);
+    Ret(r62);
   }
 }

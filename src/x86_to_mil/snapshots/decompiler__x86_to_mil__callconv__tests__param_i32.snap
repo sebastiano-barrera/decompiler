@@ -2,7 +2,7 @@
 source: src/x86_to_mil/callconv.rs
 expression: snap
 ---
-params: [TypeID(1v1)]
+params: [TypeID(3v1)]
 program:
 ssa program  4 instrs
 .B0:    ;;  addr:0x0; 30 insn 0 phis

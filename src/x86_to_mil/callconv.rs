@@ -17,158 +17,201 @@ pub fn read_func_params<'a>(
 
     let mut state = State::default();
 
-    for (param_ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_buf = &mut [RegClass::Undefined; 8];
-        let param_class = classify_param(types, param_tyid, param_buf);
-
-        println!("param {param_ndx}: {param_class:#?}");
-
-        let param_class = match param_class {
-            Ok(ParamClass::Registers(clss)) if enough_registers_available(&state, clss) => {
-                ParamClass::Registers(clss)
-            }
-            Ok(ParamClass::Registers(_)) => ParamClass::Memory,
-            Ok(ParamClass::Memory) => ParamClass::Memory,
-            Err(_) => {
-                // stop parsing parameters
-                // (a problem in this parameter prevents us from parsing any further parameter type)
-                // TODO collect these errors and move them out
-                eprintln!("warning: read_func_params stopped after {param_ndx} parameters");
-                break;
-            }
-        };
-
+    for &param_tyid in param_types.iter() {
         let src_anc = state
             .pull_arg()
             .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
         let src = bld.reg_gen.next();
         bld.emit(src, Insn::Ancestral(src_anc));
-        emit_read_param(bld, src, param_tyid, &param_class, &mut state)?;
+
+        let param_ty = &types.get(param_tyid).unwrap().ty;
+        let sz = param_ty.bytes_size();
+        match param_ty {
+            ty::Ty::Int(_) | ty::Ty::Bool(_) | ty::Ty::Ptr(_) | ty::Ty::Enum(_) => {
+                if let Some(dest) = state.pull_integer_reg() {
+                    emit_partial_write(bld, src, dest, 0, sz);
+                } else {
+                    let src_value = bld.reg_gen.next();
+                    emit_partial_write(bld, src, src_value, 0, sz);
+
+                    let slot_ofs = state.pull_stack_slot() as i64;
+                    let addr = bld.reg_gen.next();
+                    bld.emit(addr, Insn::ArithK8(ArithOp::Add, Builder::RSP, slot_ofs));
+                    bld.emit(addr, Insn::StoreMem(addr, src_value));
+                }
+            }
+
+            ty::Ty::Float(_) => {
+                if let Some(dest) = state.pull_sse_reg() {
+                    emit_partial_write(bld, src, dest, 0, sz);
+                } else {
+                    // TODO refactor, deduplicate
+                    let src_value = bld.reg_gen.next();
+                    emit_partial_write(bld, src, src_value, 0, sz);
+
+                    let slot_ofs = state.pull_stack_slot() as i64;
+                    let addr = bld.reg_gen.next();
+                    bld.emit(addr, Insn::ArithK8(ArithOp::Add, Builder::RSP, slot_ofs));
+                    bld.emit(addr, Insn::StoreMem(addr, src_value));
+                }
+            }
+
+            ty::Ty::Struct(_) => {
+                read_struct(bld, &mut state, &types, param_tyid, src)?;
+            }
+
+            other @ (ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void) => {
+                panic!("invalid types for function params: {:?}", other)
+            }
+        };
     }
 
     Ok(())
 }
 
-fn enough_registers_available(state: &State, clss: &[RegClass]) -> bool {
-    let mut int_count = 0;
-    let mut sse_count = 0;
+/// Try reading the struct type identified by `struct_tyid` from machine registers.
+///
+/// If, for some reason, the x86_64 calling convention does not allow the struct
+/// to be passed via machine registers, `None` is returned. In this case, no
+/// instructions are emitted, and `state` is not changed.
+///
+/// In the successful case where the calling convention allows passing via
+/// registers, then the necessary instructions are emitted, `state` is updated,
+/// and `Some(())` is returned.
+fn read_struct<'a>(
+    bld: &mut Builder<'a>,
+    state: &mut State,
+    types: &ty::TypeSet,
+    struct_tyid: ty::TypeID,
+    src: mil::Reg,
+) -> anyhow::Result<()> {
+    let ty = &types.get(struct_tyid).unwrap().ty;
+    let sz = ty.bytes_size();
 
-    for cls in clss {
-        match cls {
-            RegClass::Undefined => panic!(),
-            RegClass::Integer => {
-                int_count += 1;
+    let eb_count = sz.div_ceil(8) as usize;
+    assert!(eb_count > 0);
+    assert!(eb_count <= 8);
+
+    // TODO increase the limit to 8 to support {SSE, SSEUP, SSEUP, ...}
+    if eb_count > 2 {
+        return read_struct_from_memory(bld, state, types, struct_tyid, src);
+    }
+
+    let mut buf_cls = [RegClass::Unused; 8];
+    let pass_mode = classify_struct_member(types, struct_tyid, 0, &mut buf_cls)?;
+    if pass_mode != StructPassMode::Reg {
+        return read_struct_from_memory(bld, state, types, struct_tyid, src);
+    }
+
+    let clss = &buf_cls[..eb_count];
+    assert!(clss.iter().all(|&cls| cls != RegClass::Unused));
+
+    let mut buf_reg = [mil::Reg(u16::MAX); 8];
+    let Some(regs) = state.try_(|state| {
+        for (i, cls) in clss.iter().enumerate() {
+            buf_reg[i] = match cls {
+                RegClass::Unused => {
+                    panic!("reg class left Unused by classify_struct_member")
+                }
+                RegClass::Integer => state.pull_integer_reg()?,
+                RegClass::Sse => state.pull_sse_reg()?,
+            };
+        }
+        Some(&buf_reg[..clss.len()])
+    }) else {
+        return read_struct_from_memory(bld, state, types, struct_tyid, src);
+    };
+
+    // TODO flatten the struct...
+    let mut queue = Vec::with_capacity(16);
+    queue.push((0u32, src, ty));
+    while let Some((offset, src, ty)) = queue.pop() {
+        match ty {
+            ty::Ty::Int(_)
+            | ty::Ty::Bool(_)
+            | ty::Ty::Enum(_)
+            | ty::Ty::Ptr(_)
+            | ty::Ty::Float(_) => {
+                let eb_ndx = (offset / 8) as usize;
+                let ofs_in_eb = (offset % 8) as u8;
+                let size = ty.bytes_size();
+                let dest = regs[eb_ndx];
+                emit_partial_write(bld, src, dest, ofs_in_eb, size);
             }
-            RegClass::Sse => {
-                sse_count += 1;
+
+            ty::Ty::Struct(struct_ty) => {
+                let memb_value = bld.reg_gen.next();
+
+                for memb in &struct_ty.members {
+                    let memb_ty = &types.get(memb.tyid).unwrap().ty;
+                    bld.emit(
+                        memb_value,
+                        Insn::StructGetMember {
+                            struct_value: src,
+                            // TODO Allocate this somewhere where it makes sense
+                            name: memb.name.as_ref().clone().leak(),
+                        },
+                    );
+                    queue.push((memb.offset, memb_value, memb_ty));
+                }
+            }
+
+            ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
+                panic!("invalid type for a struct member: {:?}", ty)
             }
         }
     }
 
-    state.available_integer_regs() >= int_count && state.available_sse_regs() >= sse_count
+    Ok(())
 }
 
-fn emit_read_param<'a>(
+fn read_struct_from_memory<'a>(
     bld: &mut Builder<'a>,
-    src: mil::Reg,
-    param_tyid: ty::TypeID,
-    param_class: &ParamClass,
     state: &mut State,
+    types: &ty::TypeSet,
+    struct_tyid: ty::TypeID,
+    src: mil::Reg,
 ) -> anyhow::Result<()> {
-    // TODO redesign this thing so that we don't have to re-do this lookup all the time...
-    let types = bld.types.unwrap();
-    let ty = &types.get(param_tyid).unwrap().ty;
+    let addr = bld.reg_gen.next();
 
-    let sz = ty.bytes_size() as usize;
+    let ty::Ty::Struct(struct_ty) = &types.get(struct_tyid).unwrap().ty else {
+        panic!("must be called with a struct")
+    };
 
-    state.assert_stack_qword_aligned();
+    let eb_count = struct_ty.size.div_ceil(8) as usize;
+    let stack_base = state.pull_stack_slots(eb_count) as i64;
 
-    match param_class {
-        ParamClass::Registers(eb_clss) => match ty {
-            ty::Ty::Ptr(_) | ty::Ty::Enum(_) | ty::Ty::Int(_) => {
-                assert_eq!(eb_clss.len(), 1);
+    let memb_value = bld.reg_gen.next();
 
-                let eb_cls = eb_clss[0];
-                assert!(matches!(eb_cls, RegClass::Integer));
-
-                let dest = state.pull_integer_reg().unwrap();
-                let insn = match sz {
-                    1 => Insn::V8WithL1(dest, src),
-                    2 => Insn::V8WithL2(dest, src),
-                    4 => Insn::V8WithL4(dest, src),
-                    8 => Insn::Get8(src),
-                    _ => panic!("invalid size for an integer: {sz}"),
-                };
-                bld.emit(dest, insn);
-            }
-            ty::Ty::Struct(_) => {
-                assert_eq!(eb_clss.len(), sz.div_ceil(8));
-                for (eb_ndx, eb_cls) in eb_clss.iter().enumerate() {
-                    let offset = eb_ndx * 8;
-
-                    match eb_cls {
-                        RegClass::Undefined => panic!("unassigned class for param!"),
-                        RegClass::Integer => {
-                            // the case where there is no available integer reg is
-                            // excluded by `are_registers_available`
-                            let dest = state.pull_integer_reg().unwrap();
-                            let insn = Insn::StructGet8 {
-                                struct_value: src,
-                                offset: offset.try_into().unwrap(),
-                            };
-                            bld.emit(dest, insn);
-                        }
-                        RegClass::Sse => todo!("SSE registers not yet supported"),
-                    }
-                }
-            }
-            ty::Ty::Float(_) => todo!("float parameters not yet supported"),
-
-            ty::Ty::Bool(_) | ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
-                panic!("invalid type for parameter")
-            }
-        },
-        ParamClass::Memory => match ty {
-            ty::Ty::Int(_) | ty::Ty::Enum(_) | ty::Ty::Ptr(_) => {
-                let slot_sz = 8 * sz.div_ceil(8);
-
-                let slot_ofs = state.pull_stack_slot(slot_sz) as i64;
-                let reg = bld.reg_gen.next();
-                bld.emit(reg, Insn::ArithK8(ArithOp::Add, Builder::RSP, 8 + slot_ofs));
-                bld.emit(reg, Insn::StoreMem(reg, src));
-            }
-
-            ty::Ty::Struct(_) => {
-                let eb_count = sz.div_ceil(8);
-                let reg_addr = bld.reg_gen.next();
-                let reg_part = bld.reg_gen.next();
-
-                for eb_ndx in 0..eb_count {
-                    let slot_ofs = state.pull_stack_slot(8) as i64;
-                    bld.emit(
-                        reg_addr,
-                        Insn::ArithK8(ArithOp::Add, Builder::RSP, 8 + slot_ofs),
-                    );
-
-                    let eb_ndx: u8 = eb_ndx.try_into().unwrap();
-                    bld.emit(
-                        reg_part,
-                        Insn::StructGet8 {
-                            struct_value: src,
-                            offset: 8 * eb_ndx,
-                        },
-                    );
-                    bld.emit(reg_addr, Insn::StoreMem(reg_addr, reg_part));
-                }
-            }
-            ty::Ty::Float(_) => todo!("float parameters not yet supported"),
-            ty::Ty::Bool(_) | ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
-                panic!("invalid type for parameter")
-            }
-        },
+    for memb in &struct_ty.members {
+        bld.emit(
+            memb_value,
+            Insn::StructGetMember {
+                struct_value: src,
+                // TODO Allocate this somewhere where it makes sense
+                name: memb.name.as_ref().clone().leak(),
+            },
+        );
+        bld.emit(
+            addr,
+            Insn::ArithK8(ArithOp::Add, Builder::RSP, stack_base + memb.offset as i64),
+        );
+        bld.emit(addr, Insn::StoreMem(addr, memb_value));
     }
 
     Ok(())
+}
+
+fn emit_partial_write(bld: &mut Builder, src: mil::Reg, dest: mil::Reg, offset: u8, size: u32) {
+    let insn = match (offset, size) {
+        (0, 1) => Insn::V8WithL1(dest, src),
+        (0, 2) => Insn::V8WithL2(dest, src),
+        (0, 4) => Insn::V8WithL4(dest, src),
+        (0, 8) => Insn::Get8(src),
+        _ => panic!("unsupported offset/size ({offset}/{size}) for a partial write"),
+    };
+
+    bld.emit(dest, insn);
 }
 
 static INTEGER_REGS: [Reg; 6] = [
@@ -180,6 +223,7 @@ static INTEGER_REGS: [Reg; 6] = [
     Builder::R9,
 ];
 
+#[derive(Clone)]
 struct State {
     int_regs: &'static [Reg],
     sse_regs: &'static [Reg],
@@ -187,16 +231,20 @@ struct State {
     stack_offset: usize,
 }
 impl State {
-    fn available_integer_regs(&self) -> usize {
-        self.int_regs.len()
+    fn try_<F, R>(&mut self, action: F) -> Option<R>
+    where
+        F: FnOnce(&mut Self) -> Option<R>,
+    {
+        let self_bak = self.clone();
+        let ret = action(self);
+        if ret.is_none() {
+            *self = self_bak;
+        }
+        ret
     }
 
     fn pull_integer_reg(&mut self) -> Option<Reg> {
         pull_slice(&mut self.int_regs)
-    }
-
-    fn available_sse_regs(&self) -> usize {
-        self.sse_regs.len()
     }
 
     fn pull_sse_reg(&mut self) -> Option<Reg> {
@@ -207,13 +255,18 @@ impl State {
         pull_slice(&mut self.args)
     }
 
+    #[inline(always)]
     fn assert_stack_qword_aligned(&self) {
         assert_eq!(self.stack_offset % 8, 0);
     }
 
-    fn pull_stack_slot(&mut self, slot_sz: usize) -> usize {
+    fn pull_stack_slot(&mut self) -> usize {
+        self.pull_stack_slots(1)
+    }
+    fn pull_stack_slots(&mut self, count: usize) -> usize {
+        self.assert_stack_qword_aligned();
         let ofs = self.stack_offset;
-        self.stack_offset += slot_sz;
+        self.stack_offset += 8 * count;
         ofs
     }
 }
@@ -231,28 +284,29 @@ impl Default for State {
             // TODO!
             sse_regs: &[],
             args: &super::ANC_ARGS,
-            stack_offset: 0,
+            // we start at 8, because the first eightbyte in the stack is for the return address
+            stack_offset: 8,
         }
     }
 }
 
-#[derive(Debug)]
-enum ParamClass<'a> {
-    Registers(&'a [RegClass]),
+#[derive(Debug, PartialEq, Eq)]
+enum StructPassMode {
+    Reg,
     Memory,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RegClass {
-    Undefined,
+    Unused,
     Integer,
     Sse,
 }
 impl RegClass {
     fn merge_with(&self, other: Self) -> Self {
         match (self, &other) {
-            (_, RegClass::Undefined) => panic!("invalid merged ScalarClass: None"),
-            (RegClass::Undefined, other) => *other,
+            (_, RegClass::Unused) => panic!("invalid merged ScalarClass: Unused"),
+            (RegClass::Unused, other) => *other,
 
             (RegClass::Sse, RegClass::Sse) => RegClass::Sse,
 
@@ -261,78 +315,62 @@ impl RegClass {
     }
 }
 
-fn classify_param<'a>(
-    types: &ty::TypeSet,
-    param_tyid: ty::TypeID,
-    classes: &'a mut [RegClass; 8],
-) -> anyhow::Result<ParamClass<'a>> {
-    // scalar types are the same as a struct with a single member
-    if classify_struct_member(types, param_tyid, 0, classes)? {
-        return Ok(ParamClass::Memory);
-    }
-
-    // eightbytes: count of how many were used
-    let eb_count = classes
-        .iter()
-        .take_while(|&&slot| slot != RegClass::Undefined)
-        .count();
-    Ok(ParamClass::Registers(&classes[..eb_count]))
-}
-
-fn classify_struct_member(
+fn classify_struct_member<'a>(
     types: &ty::TypeSet,
     tyid: ty::TypeID,
     offset: u32,
     classes: &mut [RegClass; 8],
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<StructPassMode> {
     let ty = &types.get(tyid).unwrap().ty;
     let sz = ty.bytes_size();
 
-    if (offset + sz).div_ceil(8) as usize >= classes.len() {
+    assert_ne!(sz, 0);
+
+    let eb_start = offset as usize / 8;
+    let eb_end = (offset + sz).div_ceil(8) as usize;
+
+    if eb_end as usize >= classes.len() {
         // not enough space for this member in 8 eightbytes
-        return Ok(true);
+        return Ok(StructPassMode::Memory);
     }
 
-    let align = types.alignment(tyid).ok_or_else(|| {
+    let Some(align) = types.alignment(tyid) else {
         let name = types.get(tyid).unwrap().name.as_str();
-        anyhow!(
+        return Err(anyhow!(
             "struct type is not fully known (name '{}', tyid {:?}, offset {})",
             name,
             tyid,
             offset
-        )
-    })? as u32;
-    if offset % align != 0 {
+        ));
+    };
+    if offset % align as u32 != 0 {
         // offset is not a multiple of the member's size, i.e. it's "unaligned"
-        return Ok(true);
+        return Ok(StructPassMode::Memory);
     }
 
     match &ty {
-        // size is already in `sz`
         ty::Ty::Ptr(_) | ty::Ty::Enum(_) | ty::Ty::Int(_) => {
-            let eb_offset = offset / 8;
-            let eb_count = sz.div_ceil(8);
+            assert!(sz <= 8);
+            assert_eq!(eb_end, eb_start + 1);
 
-            for eb_ndx in 0..eb_count {
-                let slot = &mut classes[(eb_offset + eb_ndx) as usize];
-                *slot = slot.merge_with(RegClass::Integer);
-            }
+            let slot = &mut classes[eb_start];
+            *slot = slot.merge_with(RegClass::Integer);
 
-            Ok(false)
+            Ok(StructPassMode::Reg)
         }
         ty::Ty::Struct(struct_ty) => {
-            assert_ne!(struct_ty.size, 0);
             assert_ne!(struct_ty.members.len(), 0);
 
             for (memb_ndx, memb) in struct_ty.members.iter().enumerate() {
-                if classify_struct_member(types, memb.tyid, memb.offset, classes)
-                    .with_context(|| format!("member #{} offset {} tyid", memb_ndx, memb.offset))?
-                {
-                    return Ok(true);
+                let pass_mode = classify_struct_member(types, memb.tyid, memb.offset, classes)
+                    .with_context(|| format!("member #{} offset {} tyid", memb_ndx, memb.offset))?;
+
+                if let StructPassMode::Memory = pass_mode {
+                    return Ok(StructPassMode::Memory);
                 }
             }
 
-            Ok(false)
+            Ok(StructPassMode::Reg)
         }
         ty::Ty::Float(_) => Err(anyhow!("unsupported: function parameters of type float")),
 
@@ -345,6 +383,7 @@ fn classify_struct_member(
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
+    use ty::TypeID;
 
     use crate::ssa;
 
@@ -353,7 +392,7 @@ mod tests {
 
     #[test]
     fn param_i32() {
-        let types = make_types();
+        let types = make_scalars();
         let param_types = &[types.tyid_i32];
         let snap = check_types(&types, param_types);
         assert_snapshot!(snap);
@@ -376,62 +415,254 @@ mod tests {
 
     struct Types {
         types: ty::TypeSet,
+        tyid_i64: ty::TypeID,
         tyid_i32: ty::TypeID,
+        tyid_i16: ty::TypeID,
         tyid_i8: ty::TypeID,
-        tyid_point: ty::TypeID,
+        tyid_f32: ty::TypeID,
+        tyid_f64: ty::TypeID,
+        tyid_f256: ty::TypeID,
     }
 
-    fn make_types() -> Types {
-        use ty::{Int, Signedness, Struct, StructMember, Ty, Type, TypeSet};
+    // TOOD share the result (e.g. as a OnceCell)
+    fn make_scalars() -> Types {
+        use ty::{Int, Signedness, Ty, Type, TypeSet};
 
         let mut types = TypeSet::new();
 
-        let tyid_i32 = types.add(Type {
-            name: Arc::new("i32".to_owned()),
-            ty: Ty::Int(Int {
-                size: 4,
-                signed: Signedness::Signed,
-            }),
-        });
+        fn mk_int(name: &str, size: u8) -> Type {
+            Type {
+                name: Arc::new(name.to_owned()),
+                ty: Ty::Int(Int {
+                    size,
+                    signed: Signedness::Signed,
+                }),
+            }
+        }
 
-        let tyid_i8 = types.add(Type {
-            name: Arc::new("i8".to_owned()),
-            ty: Ty::Int(Int {
-                size: 1,
-                signed: Signedness::Signed,
-            }),
-        });
+        let tyid_i8 = types.add(mk_int("i8", 1));
+        let tyid_i16 = types.add(mk_int("i16", 2));
+        let tyid_i32 = types.add(mk_int("i32", 4));
+        let tyid_i64 = types.add(mk_int("i64", 8));
 
-        let tyid_point = types.add(Type {
-            name: Arc::new("point".to_owned()),
-            ty: Ty::Struct(Struct {
-                size: 24,
-                members: vec![
-                    StructMember {
-                        offset: 0,
-                        name: Arc::new("x".to_owned()),
-                        tyid: tyid_i32,
-                    },
-                    // a bit of padding
-                    StructMember {
-                        offset: 8,
-                        name: Arc::new("y".to_owned()),
-                        tyid: tyid_i32,
-                    },
-                    StructMember {
-                        offset: 12,
-                        name: Arc::new("cost".to_owned()),
-                        tyid: tyid_i8,
-                    },
-                ],
-            }),
+        let tyid_f32 = types.add(Type {
+            name: Arc::new("float32".to_owned()),
+            ty: Ty::Float(ty::Float { size: 4 }),
+        });
+        let tyid_f64 = types.add(Type {
+            name: Arc::new("float64".to_owned()),
+            ty: Ty::Float(ty::Float { size: 8 }),
+        });
+        let tyid_f256 = types.add(Type {
+            name: Arc::new("float256".to_owned()),
+            ty: Ty::Float(ty::Float { size: 32 }),
         });
 
         Types {
             types,
+            tyid_i64,
             tyid_i32,
+            tyid_i16,
             tyid_i8,
-            tyid_point,
+            tyid_f32,
+            tyid_f64,
+            tyid_f256,
         }
+    }
+
+    #[test]
+    fn classify_struct_one_int() {
+        let mut scas = make_scalars();
+
+        for sca_tyid in [scas.tyid_i8, scas.tyid_i16, scas.tyid_i32, scas.tyid_i64] {
+            let struct_tyid = make_sample_struct(&mut scas.types, &[(0, sca_tyid)]);
+
+            let buf = &mut [RegClass::Unused; 8];
+            let class = classify_struct_member(&scas.types, struct_tyid, 0, buf).unwrap();
+
+            assert_eq!(class, StructPassMode::Reg);
+            assert_eq!(
+                &buf[..],
+                &[
+                    RegClass::Integer,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn classify_struct_ints_fit_1_eb() {
+        let mut scas = make_scalars();
+
+        let cases: &[&[_]] = &[
+            &[
+                (0, scas.tyid_i8),
+                (1, scas.tyid_i8),
+                (2, scas.tyid_i8),
+                (3, scas.tyid_i8),
+                (4, scas.tyid_i8),
+                (5, scas.tyid_i8),
+                (6, scas.tyid_i8),
+                (7, scas.tyid_i8),
+            ],
+            &[(0, scas.tyid_i32), (4, scas.tyid_i32)],
+            &[(0, scas.tyid_i32), (4, scas.tyid_i16)],
+            &[(0, scas.tyid_i32), (4, scas.tyid_i8)],
+            &[(0, scas.tyid_i32), (6, scas.tyid_i16)],
+            &[(0, scas.tyid_i32), (7, scas.tyid_i8)],
+            &[(0, scas.tyid_i32), (4, scas.tyid_i32)],
+            &[(0, scas.tyid_i16), (4, scas.tyid_i32)],
+            &[(0, scas.tyid_i8), (4, scas.tyid_i32)],
+            &[(0, scas.tyid_i16), (4, scas.tyid_i32)],
+            &[(0, scas.tyid_i8), (4, scas.tyid_i32)],
+            &[(0, scas.tyid_i64)],
+        ];
+
+        for &members in cases {
+            let struct_tyid = make_sample_struct(&mut scas.types, members);
+
+            let buf = &mut [RegClass::Unused; 8];
+            let class = classify_struct_member(&scas.types, struct_tyid, 0, buf).unwrap();
+
+            assert_eq!(class, StructPassMode::Reg);
+            assert_eq!(
+                &buf[..],
+                &[
+                    RegClass::Integer,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn classify_struct_one_float() {
+        let mut scas = make_scalars();
+
+        for sca_tyid in [scas.tyid_f32, scas.tyid_f64] {
+            let struct_tyid = make_sample_struct(&mut scas.types, &[(0, sca_tyid)]);
+
+            let buf = &mut [RegClass::Unused; 8];
+            let class = classify_struct_member(&scas.types, struct_tyid, 0, buf).unwrap();
+
+            assert_eq!(class, StructPassMode::Reg);
+            assert_eq!(
+                &buf[..],
+                &[
+                    RegClass::Sse,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn classify_struct_two_ints() {
+        let mut scas = make_scalars();
+
+        let cases: &[&[_]] = &[
+            &[(0, scas.tyid_i8), (8, scas.tyid_i8)],
+            &[(0, scas.tyid_i8), (4, scas.tyid_i8), (8, scas.tyid_i8)],
+            &[
+                (0, scas.tyid_i8),
+                (8, scas.tyid_i8),
+                (9, scas.tyid_i8),
+                (12, scas.tyid_i8),
+            ],
+            &[(0, scas.tyid_i16), (8, scas.tyid_i16)],
+            &[(0, scas.tyid_i32), (8, scas.tyid_i32)],
+            &[(0, scas.tyid_i64), (8, scas.tyid_i64)],
+        ];
+
+        for &members in cases {
+            let struct_tyid = make_sample_struct(&mut scas.types, members);
+
+            let buf = &mut [RegClass::Unused; 8];
+            let class = classify_struct_member(&scas.types, struct_tyid, 0, buf).unwrap();
+
+            assert_eq!(class, StructPassMode::Reg);
+            assert_eq!(
+                &buf[..],
+                &[
+                    RegClass::Integer,
+                    RegClass::Integer,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                    RegClass::Unused,
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn classify_struct_larger() {
+        let mut scas = make_scalars();
+
+        let cases: &[&[_]] = &[
+            &[(0, scas.tyid_i8), (8, scas.tyid_i8), (64, scas.tyid_i8)],
+            &[(0, scas.tyid_i16), (8, scas.tyid_i16), (64, scas.tyid_i16)],
+            &[(0, scas.tyid_i32), (8, scas.tyid_i32), (64, scas.tyid_i32)],
+            &[(0, scas.tyid_i64), (8, scas.tyid_i64), (64, scas.tyid_i64)],
+            // unaligned members
+            &[(1, scas.tyid_i16)],
+            &[(1, scas.tyid_i32)],
+            &[(1, scas.tyid_i64)],
+        ];
+
+        for &members in cases {
+            println!("{:?}", members);
+            let struct_tyid = make_sample_struct(&mut scas.types, members);
+            let buf = &mut [RegClass::Unused; 8];
+            let class = classify_struct_member(&scas.types, struct_tyid, 0, buf).unwrap();
+            assert_eq!(class, StructPassMode::Memory);
+        }
+    }
+
+    fn make_sample_struct(types: &mut ty::TypeSet, members: &[(u32, TypeID)]) -> TypeID {
+        assert!(members.iter().is_sorted_by_key(|(ofs, _)| ofs));
+
+        let struct_sz = {
+            let &(ofs, tyid) = members.last().unwrap();
+            let sz = types.bytes_size(tyid).unwrap();
+            ofs + sz
+        };
+
+        let name = Arc::new("SampleStruct".to_owned());
+        types.add(ty::Type {
+            name,
+            ty: ty::Ty::Struct(ty::Struct {
+                size: struct_sz,
+                members: members
+                    .iter()
+                    .map(|&(offset, tyid)| ty::StructMember {
+                        offset,
+                        name: Arc::new(format!("x{}", offset)),
+                        tyid,
+                    })
+                    .collect(),
+            }),
+        })
     }
 }

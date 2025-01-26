@@ -314,6 +314,12 @@ impl<'a> Ast<'a> {
                 write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
                 return Ok(());
             }
+
+            Insn::StructGetMember { struct_value, name } => {
+                self.pp_arg(pp, struct_value)?;
+                write!(pp, ".\"{}\"", name);
+                return Ok(());
+            }
         };
 
         write!(pp, "{}(", op_s)?;

@@ -87,6 +87,10 @@ pub enum Insn {
         struct_value: Reg,
         offset: u8,
     },
+    StructGetMember {
+        struct_value: Reg,
+        name: &'static str,
+    },
     V8WithL1(Reg, Reg),
     V8WithL2(Reg, Reg),
     V8WithL4(Reg, Reg),
@@ -294,6 +298,10 @@ impl Insn {
             | Insn::StructGet8 {
                 struct_value: reg,
                 offset: _,
+            }
+            | Insn::StructGetMember {
+                struct_value: reg,
+                name: _,
             } => [Some(reg), None],
 
             Insn::V8WithL1(a, b)
@@ -368,6 +376,10 @@ impl Insn {
             | Insn::StructGet8 {
                 struct_value: reg,
                 offset: _,
+            }
+            | Insn::StructGetMember {
+                struct_value: reg,
+                name: _,
             } => [Some(reg), None],
 
             Insn::V8WithL1(a, b)
@@ -432,7 +444,8 @@ impl Insn {
             | Insn::Phi8
             | Insn::PhiBool
             | Insn::PhiArg { .. }
-            | Insn::StructGet8 { .. } => false,
+            | Insn::StructGet8 { .. }
+            | Insn::StructGetMember { .. } => false,
 
             Insn::Call { .. }
             | Insn::CArg { .. }
@@ -591,6 +604,9 @@ impl std::fmt::Debug for Insn {
                 struct_value,
                 offset,
             } => write!(f, "{:8} {:?},{}", "sget8", *struct_value, offset),
+            Insn::StructGetMember { struct_value, name } => {
+                write!(f, "{:8} {:?},\"{}\"", "memb", *struct_value, name)
+            }
         }
     }
 }
@@ -763,6 +779,7 @@ impl Program {
             Insn::PhiArg(_) => RegType::Effect,
             Insn::Ancestral(anc_name) => self.anc_types.get(&anc_name).copied().unwrap(),
             Insn::StructGet8 { .. } => RegType::Bytes8,
+            Insn::StructGetMember { .. } => RegType::Effect,
         }
     }
 }
