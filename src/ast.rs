@@ -32,10 +32,7 @@ impl<'a> Ast<'a> {
                     // ancestral values are akin to (named) consts
                     | Insn::Ancestral(_) => false,
 
-                    Insn::Phi1
-                    | Insn::Phi2
-                    | Insn::Phi4
-                    | Insn::Phi8 => true,
+                    Insn::Phi{size:_} => true,
 
                     Insn::Call { .. } => true,
                     _ => ssa.readers_count(dest) > 1,
@@ -298,7 +295,7 @@ impl<'a> Ast<'a> {
             Insn::Undefined => "Undefined".into(),
             Insn::Ancestral(anc_name) => return write!(pp, "pre:{}", anc_name.name()),
 
-            Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool | Insn::PhiArg(_) => {
+            Insn::Phi { size: _ } | Insn::PhiBool | Insn::PhiArg(_) => {
                 panic!("phi insns should not be reachable here")
             }
             // handled by pp_block
@@ -317,7 +314,7 @@ impl<'a> Ast<'a> {
 
             Insn::StructGetMember { struct_value, name } => {
                 self.pp_arg(pp, struct_value)?;
-                write!(pp, ".\"{}\"", name);
+                write!(pp, ".\"{}\"", name)?;
                 return Ok(());
             }
         };

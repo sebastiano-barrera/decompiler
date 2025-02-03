@@ -441,7 +441,10 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 for ndx in block_phis.ndxs.clone() {
                     let item = program.get(ndx).unwrap();
                     match item.insn.get() {
-                        mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
+                        mil::Insn::Phi { size: 1 }
+                        | mil::Insn::Phi { size: 2 }
+                        | mil::Insn::Phi { size: 4 }
+                        | mil::Insn::Phi { size: 8 } => {
                             var_map.set(item.dest.get(), mil::Reg(ndx));
                             item.dest.set(mil::Reg(ndx));
                         }
@@ -508,10 +511,12 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                             // These are not supposed to exist yet!
                             // Only Phi8 is added by place_phi_nodes; the others
                             // are only placed by narrow_phi_nodes
-                            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
+                            mil::Insn::Phi { size: 1 }
+                            | mil::Insn::Phi { size: 2 }
+                            | mil::Insn::Phi { size: 4 } => {
                                 panic!("unexpected narrow phi node at this phase of ssa conversion")
                             }
-                            mil::Insn::Phi8 => continue,
+                            mil::Insn::Phi { size: 8 } => continue,
                             mil::Insn::PhiArg(arg) => {
                                 // NOTE: the substitution of the *successor's* phi node's argument is
                                 // done in the context of *this* node (its predecessor)
@@ -616,7 +621,7 @@ fn place_phi_nodes(
             if *phis_set.get(bid, reg) {
                 // the largest-width Phi opcode is inserted here; will be
                 // narrowed down in a later phase of ssa construction
-                program.push(reg, mil::Insn::Phi8);
+                program.push(reg, mil::Insn::Phi { size: 8 });
                 phi_count += 1;
 
                 for _pred_ndx in 0..pred_count {
@@ -692,9 +697,10 @@ fn narrow_phi_nodes(program: &mut Program) {
         let insn = iv.insn.get();
 
         match insn {
-            mil::Insn::Phi8 => {}
-            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
-                panic!("narrow_phi_nodes: unexpected narrow phi node")
+            mil::Insn::Phi { size } => {
+                if size != 8 {
+                    panic!("narrow_phi_nodes: unexpected narrow phi node")
+                }
             }
             _ => continue,
         }
@@ -714,10 +720,7 @@ fn narrow_phi_nodes(program: &mut Program) {
 
         let repl_insn = match rt0 {
             mil::RegType::Effect => panic!("malformed ssa: phi node can't have Effect inputs"),
-            mil::RegType::Bytes1 => mil::Insn::Phi1,
-            mil::RegType::Bytes2 => mil::Insn::Phi2,
-            mil::RegType::Bytes4 => mil::Insn::Phi4,
-            mil::RegType::Bytes8 => mil::Insn::Phi8,
+            mil::RegType::Bytes(size) => mil::Insn::Phi { size },
             mil::RegType::Bool => mil::Insn::PhiBool,
         };
         iv.insn.set(repl_insn);
@@ -842,11 +845,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
         visited[reg.reg_index() as usize] = true;
         let insn = prog.get(reg).unwrap().insn.get();
         match insn {
-            mil::Insn::Phi1
-            | mil::Insn::Phi2
-            | mil::Insn::Phi4
-            | mil::Insn::Phi8
-            | mil::Insn::PhiBool => {
+            mil::Insn::Phi { size: _ } | mil::Insn::PhiBool => {
                 for input in prog.get_phi_args(reg) {
                     rdr_count.inc(input);
                     if !visited[input.reg_index() as usize] {

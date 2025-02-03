@@ -21,7 +21,7 @@ impl<'a> Builder<'a> {
             types: None,
         };
 
-        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes8);
+        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes(8));
 
         // ensure all registers are initialized at least once. most of these
         // instructions (if all goes well, all of them) get "deleted" (masked)
@@ -38,23 +38,23 @@ impl<'a> Builder<'a> {
         bld.init_ancestral(Self::IF, ANC_IF, RegType::Bool);
         bld.init_ancestral(Self::DF, ANC_DF, RegType::Bool);
         bld.init_ancestral(Self::OF, ANC_OF, RegType::Bool);
-        bld.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes8);
-        bld.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes8);
-        bld.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes8);
-        bld.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes8);
-        bld.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes8);
-        bld.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes8);
-        bld.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes8);
-        bld.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes8);
-        bld.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes8);
-        bld.init_ancestral(Self::R8, ANC_R8, RegType::Bytes8);
-        bld.init_ancestral(Self::R9, ANC_R9, RegType::Bytes8);
-        bld.init_ancestral(Self::R10, ANC_R10, RegType::Bytes8);
-        bld.init_ancestral(Self::R11, ANC_R11, RegType::Bytes8);
-        bld.init_ancestral(Self::R12, ANC_R12, RegType::Bytes8);
-        bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes8);
-        bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes8);
-        bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes8);
+        bld.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes(8));
+        bld.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes(8));
+        bld.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes(8));
+        bld.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes(8));
+        bld.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes(8));
+        bld.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes(8));
+        bld.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes(8));
+        bld.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes(8));
+        bld.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes(8));
+        bld.init_ancestral(Self::R8, ANC_R8, RegType::Bytes(8));
+        bld.init_ancestral(Self::R9, ANC_R9, RegType::Bytes(8));
+        bld.init_ancestral(Self::R10, ANC_R10, RegType::Bytes(8));
+        bld.init_ancestral(Self::R11, ANC_R11, RegType::Bytes(8));
+        bld.init_ancestral(Self::R12, ANC_R12, RegType::Bytes(8));
+        bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes(8));
+        bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes(8));
+        bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes(8));
 
         bld
     }
