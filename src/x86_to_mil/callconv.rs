@@ -28,6 +28,7 @@ pub fn read_func_params<'a>(
         let sz = param_ty.bytes_size();
         match param_ty {
             ty::Ty::Int(_) | ty::Ty::Bool(_) | ty::Ty::Ptr(_) | ty::Ty::Enum(_) => {
+                let sz = sz.try_into().unwrap();
                 if let Some(dest) = state.pull_integer_reg() {
                     emit_partial_write(bld, src, dest, 0, sz);
                 } else {
@@ -42,6 +43,7 @@ pub fn read_func_params<'a>(
             }
 
             ty::Ty::Float(_) => {
+                let sz = sz.try_into().unwrap();
                 if let Some(dest) = state.pull_sse_reg() {
                     emit_partial_write(bld, src, dest, 0, sz);
                 } else {
@@ -134,7 +136,7 @@ fn read_struct<'a>(
             | ty::Ty::Float(_) => {
                 let eb_ndx = (offset / 8) as usize;
                 let ofs_in_eb = (offset % 8) as u8;
-                let size = ty.bytes_size();
+                let size = ty.bytes_size().try_into().unwrap();
                 let dest = regs[eb_ndx];
                 emit_partial_write(bld, src, dest, ofs_in_eb, size);
             }
@@ -202,16 +204,40 @@ fn read_struct_from_memory<'a>(
     Ok(())
 }
 
-fn emit_partial_write(bld: &mut Builder, src: mil::Reg, dest: mil::Reg, offset: u8, size: u32) {
-    let insn = match (offset, size) {
-        (0, 1) => Insn::V8WithL1(dest, src),
-        (0, 2) => Insn::V8WithL2(dest, src),
-        (0, 4) => Insn::V8WithL4(dest, src),
-        (0, 8) => Insn::Get8(src),
-        _ => panic!("unsupported offset/size ({offset}/{size}) for a partial write"),
-    };
+fn emit_partial_write(bld: &mut Builder, src: mil::Reg, dest: mil::Reg, offset: u8, size: u8) {
+    // hi ^ lo = concat, then:
+    // dest[offset+size:8] ^ src[0:size] ^ dest[0:offset]
 
-    bld.emit(dest, insn);
+    let mid = bld.reg_gen.next();
+    let hi = bld.reg_gen.next();
+
+    bld.emit(
+        dest,
+        mil::Insn::Part {
+            src: dest, // tricky, pay attention!
+            offset: 0,
+            size: offset,
+        },
+    );
+    bld.emit(
+        mid,
+        mil::Insn::Part {
+            src,
+            offset: 0,
+            size,
+        },
+    );
+    bld.emit(
+        hi,
+        mil::Insn::Part {
+            src: dest, // tricky, pay attention!
+            offset: offset + size,
+            size: 8 - offset - size,
+        },
+    );
+
+    bld.emit(dest, mil::Insn::Concat { hi: mid, lo: dest });
+    bld.emit(dest, mil::Insn::Concat { hi, lo: dest });
 }
 
 static INTEGER_REGS: [Reg; 6] = [

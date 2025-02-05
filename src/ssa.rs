@@ -104,7 +104,67 @@ impl Program {
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
-        self.inner.value_type(reg.0)
+        use mil::{Insn, RegType};
+        match self.inner.get(reg.0).unwrap().insn.get() {
+            Insn::True => RegType::Bool,
+            Insn::False => RegType::Bool,
+            Insn::Const1(_) => RegType::Bytes(1),
+            Insn::Const2(_) => RegType::Bytes(2),
+            Insn::Const4(_) => RegType::Bytes(4),
+            Insn::Const8(_) => RegType::Bytes(8),
+            Insn::Part { size, .. } => RegType::Bytes(size),
+            Insn::Get8(_) => RegType::Bytes(8),
+            Insn::Concat { lo, hi } => {
+                let lo_size = self.value_type(lo).bytes_size().unwrap();
+                let hi_size = self.value_type(hi).bytes_size().unwrap();
+                RegType::Bytes(lo_size + hi_size)
+            }
+            Insn::Widen1_2(_) => RegType::Bytes(2),
+            Insn::Widen1_4(_) => RegType::Bytes(4),
+            Insn::Widen1_8(_) => RegType::Bytes(8),
+            Insn::Widen2_4(_) => RegType::Bytes(4),
+            Insn::Widen2_8(_) => RegType::Bytes(8),
+            Insn::Widen4_8(_) => RegType::Bytes(8),
+            Insn::Arith1(_, _, _) => RegType::Bytes(1),
+            Insn::Arith2(_, _, _) => RegType::Bytes(2),
+            Insn::Arith4(_, _, _) => RegType::Bytes(4),
+            Insn::Arith8(_, _, _) => RegType::Bytes(8),
+            Insn::ArithK1(_, _, _) => RegType::Bytes(1),
+            Insn::ArithK2(_, _, _) => RegType::Bytes(2),
+            Insn::ArithK4(_, _, _) => RegType::Bytes(4),
+            Insn::ArithK8(_, _, _) => RegType::Bytes(8),
+            Insn::Cmp(_, _, _) => RegType::Bool,
+            Insn::Bool(_, _, _) => RegType::Bool,
+            Insn::Not(_) => RegType::Bool,
+            // TODO This might have to change based on the use of calling
+            // convention and function type info
+            Insn::Call(_) => RegType::Bytes(8),
+            Insn::CArg(_) => RegType::Effect,
+            Insn::Ret(_) => RegType::Effect,
+            Insn::JmpInd(_) => RegType::Effect,
+            Insn::Jmp(_) => RegType::Effect,
+            Insn::JmpExt(_) => RegType::Effect,
+            Insn::JmpIf { .. } => RegType::Effect,
+            Insn::JmpExtIf { .. } => RegType::Effect,
+            Insn::TODO(_) => RegType::Effect,
+            Insn::LoadMem1(_) => RegType::Bytes(1),
+            Insn::LoadMem2(_) => RegType::Bytes(2),
+            Insn::LoadMem4(_) => RegType::Bytes(4),
+            Insn::LoadMem8(_) => RegType::Bytes(8),
+            Insn::StoreMem(_, _) => RegType::Effect,
+            Insn::OverflowOf(_) => RegType::Effect,
+            Insn::CarryOf(_) => RegType::Effect,
+            Insn::SignOf(_) => RegType::Effect,
+            Insn::IsZero(_) => RegType::Effect,
+            Insn::Parity(_) => RegType::Effect,
+            Insn::Undefined => RegType::Effect,
+            Insn::Phi { size } => RegType::Bytes(size),
+            Insn::PhiBool => RegType::Bool,
+            Insn::PhiArg(_) => RegType::Effect,
+            Insn::Ancestral(anc_name) => self.inner.ancestor_type(anc_name).unwrap(),
+            Insn::StructGet8 { .. } => RegType::Bytes(8),
+            Insn::StructGetMember { .. } => RegType::Effect,
+        }
     }
 
     pub fn assert_invariants(&self) {

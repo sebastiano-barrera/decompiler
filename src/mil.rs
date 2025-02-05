@@ -72,11 +72,18 @@ pub enum Insn {
     Const2(i16),
     Const4(i32),
     Const8(i64),
-
-    L1(Reg),
-    L2(Reg),
-    L4(Reg),
     Get8(Reg),
+
+    Part {
+        src: Reg,
+        offset: u8,
+        size: u8,
+    },
+    Concat {
+        lo: Reg,
+        hi: Reg,
+    },
+
     StructGet8 {
         struct_value: Reg,
         offset: u8,
@@ -85,9 +92,7 @@ pub enum Insn {
         struct_value: Reg,
         name: &'static str,
     },
-    V8WithL1(Reg, Reg),
-    V8WithL2(Reg, Reg),
-    V8WithL4(Reg, Reg),
+
     Widen1_2(Reg),
     Widen1_4(Reg),
     Widen1_8(Reg),
@@ -251,9 +256,11 @@ impl Insn {
             | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
-            Insn::L1(reg)
-            | Insn::L2(reg)
-            | Insn::L4(reg)
+            Insn::Part {
+                src: reg,
+                offset: _,
+                size: _,
+            }
             | Insn::Get8(reg)
             | Insn::ArithK1(_, reg, _)
             | Insn::ArithK2(_, reg, _)
@@ -294,9 +301,7 @@ impl Insn {
                 name: _,
             } => [Some(reg), None],
 
-            Insn::V8WithL1(a, b)
-            | Insn::V8WithL2(a, b)
-            | Insn::V8WithL4(a, b)
+            Insn::Concat { lo: a, hi: b }
             | Insn::Arith1(_, a, b)
             | Insn::Arith2(_, a, b)
             | Insn::Arith4(_, a, b)
@@ -326,9 +331,11 @@ impl Insn {
             | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
-            Insn::L1(reg)
-            | Insn::L2(reg)
-            | Insn::L4(reg)
+            Insn::Part {
+                src: reg,
+                offset: _,
+                size: _,
+            }
             | Insn::Get8(reg)
             | Insn::ArithK1(_, reg, _)
             | Insn::ArithK2(_, reg, _)
@@ -369,9 +376,7 @@ impl Insn {
                 name: _,
             } => [Some(reg), None],
 
-            Insn::V8WithL1(a, b)
-            | Insn::V8WithL2(a, b)
-            | Insn::V8WithL4(a, b)
+            Insn::Concat { lo: b, hi: a }
             | Insn::Arith1(_, a, b)
             | Insn::Arith2(_, a, b)
             | Insn::Arith4(_, a, b)
@@ -390,13 +395,9 @@ impl Insn {
             | Insn::Const2(_)
             | Insn::Const4(_)
             | Insn::Const8(_)
-            | Insn::L1(_)
-            | Insn::L2(_)
-            | Insn::L4(_)
+            | Insn::Part { .. }
             | Insn::Get8(_)
-            | Insn::V8WithL1(_, _)
-            | Insn::V8WithL2(_, _)
-            | Insn::V8WithL4(_, _)
+            | Insn::Concat { .. }
             | Insn::Widen1_2(_)
             | Insn::Widen1_4(_)
             | Insn::Widen1_8(_)
@@ -514,13 +515,11 @@ impl std::fmt::Debug for Insn {
             Insn::Const2(val) => write!(f, "{:8} {} (0x{:x})", "const2", *val as i64, val),
             Insn::Const4(val) => write!(f, "{:8} {} (0x{:x})", "const4", *val as i64, val),
             Insn::Const8(val) => write!(f, "{:8} {} (0x{:x})", "const8", *val as i64, val),
-            Insn::L1(x) => write!(f, "{:8} {:?}", "l1", x),
-            Insn::L2(x) => write!(f, "{:8} {:?}", "l2", x),
-            Insn::L4(x) => write!(f, "{:8} {:?}", "l4", x),
+            Insn::Part { src, offset, size } => {
+                write!(f, "{:8} {:?}[{}..{}]", "part", src, offset, offset + size)
+            }
             Insn::Get8(x) => write!(f, "{:8} {:?}", "get", x),
-            Insn::V8WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l1=", full, part),
-            Insn::V8WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l2=", full, part),
-            Insn::V8WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l4=", full, part),
+            Insn::Concat { lo, hi } => write!(f, "{:8} {:?}⌢{:?}", "concat", hi, lo),
             Insn::Widen1_2(x) => write!(f, "{:8} 1->2 {:?}", "widen", *x),
             Insn::Widen1_4(x) => write!(f, "{:8} 1->4 {:?}", "widen", *x),
             Insn::Widen1_8(x) => write!(f, "{:8} 1->8 {:?}", "widen", *x),
@@ -702,67 +701,8 @@ impl Program {
         index
     }
 
-    pub fn value_type(&self, index: Index) -> RegType {
-        match self.insns[index as usize].get() {
-            Insn::True => RegType::Bool,
-            Insn::False => RegType::Bool,
-            Insn::Const1(_) => RegType::Bytes(1),
-            Insn::Const2(_) => RegType::Bytes(2),
-            Insn::Const4(_) => RegType::Bytes(4),
-            Insn::Const8(_) => RegType::Bytes(8),
-            Insn::L1(_) => RegType::Bytes(1),
-            Insn::L2(_) => RegType::Bytes(2),
-            Insn::L4(_) => RegType::Bytes(4),
-            Insn::Get8(_) => RegType::Bytes(8),
-            Insn::V8WithL1(_, _) => RegType::Bytes(8),
-            Insn::V8WithL2(_, _) => RegType::Bytes(8),
-            Insn::V8WithL4(_, _) => RegType::Bytes(8),
-            Insn::Widen1_2(_) => RegType::Bytes(2),
-            Insn::Widen1_4(_) => RegType::Bytes(4),
-            Insn::Widen1_8(_) => RegType::Bytes(8),
-            Insn::Widen2_4(_) => RegType::Bytes(4),
-            Insn::Widen2_8(_) => RegType::Bytes(8),
-            Insn::Widen4_8(_) => RegType::Bytes(8),
-            Insn::Arith1(_, _, _) => RegType::Bytes(1),
-            Insn::Arith2(_, _, _) => RegType::Bytes(2),
-            Insn::Arith4(_, _, _) => RegType::Bytes(4),
-            Insn::Arith8(_, _, _) => RegType::Bytes(8),
-            Insn::ArithK1(_, _, _) => RegType::Bytes(1),
-            Insn::ArithK2(_, _, _) => RegType::Bytes(2),
-            Insn::ArithK4(_, _, _) => RegType::Bytes(4),
-            Insn::ArithK8(_, _, _) => RegType::Bytes(8),
-            Insn::Cmp(_, _, _) => RegType::Bool,
-            Insn::Bool(_, _, _) => RegType::Bool,
-            Insn::Not(_) => RegType::Bool,
-            // TODO This might have to change based on the use of calling
-            // convention and function type info
-            Insn::Call(_) => RegType::Bytes(8),
-            Insn::CArg(_) => RegType::Effect,
-            Insn::Ret(_) => RegType::Effect,
-            Insn::JmpInd(_) => RegType::Effect,
-            Insn::Jmp(_) => RegType::Effect,
-            Insn::JmpExt(_) => RegType::Effect,
-            Insn::JmpIf { .. } => RegType::Effect,
-            Insn::JmpExtIf { .. } => RegType::Effect,
-            Insn::TODO(_) => RegType::Effect,
-            Insn::LoadMem1(_) => RegType::Bytes(1),
-            Insn::LoadMem2(_) => RegType::Bytes(2),
-            Insn::LoadMem4(_) => RegType::Bytes(4),
-            Insn::LoadMem8(_) => RegType::Bytes(8),
-            Insn::StoreMem(_, _) => RegType::Effect,
-            Insn::OverflowOf(_) => RegType::Effect,
-            Insn::CarryOf(_) => RegType::Effect,
-            Insn::SignOf(_) => RegType::Effect,
-            Insn::IsZero(_) => RegType::Effect,
-            Insn::Parity(_) => RegType::Effect,
-            Insn::Undefined => RegType::Effect,
-            Insn::Phi { size } => RegType::Bytes(size),
-            Insn::PhiBool => RegType::Bool,
-            Insn::PhiArg(_) => RegType::Effect,
-            Insn::Ancestral(anc_name) => self.anc_types.get(&anc_name).copied().unwrap(),
-            Insn::StructGet8 { .. } => RegType::Bytes(8),
-            Insn::StructGetMember { .. } => RegType::Effect,
-        }
+    pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
+        self.anc_types.get(&anc_name).copied()
     }
 }
 

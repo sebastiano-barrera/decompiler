@@ -120,56 +120,67 @@ pub fn fold_constants(prog: &mut ssa::Program) {
 }
 
 pub fn fold_subregs(prog: &mut ssa::Program) {
-    for bid in prog.cfg().block_ids_rpo() {
-        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
-            let mut subreg_insn = insn_cell.get();
-            let mut arg = match subreg_insn {
-                Insn::V8WithL1(big, _) | Insn::V8WithL2(big, _) | Insn::V8WithL4(big, _) => big,
-                _ => continue,
-            };
+    // operators that matter here are:
+    // - subrange: src[a..b]
+    //      b > a; b <= 8; a, b >= 0
+    // - concatenation: hi :: lo
+    //
+    // two optimizations in one, where the argument may "skip over" the Concat,
+    // possibly shifting the range:
+    // - Part(Concat(...), ...)
+    // - Part(Part(...), ...)
 
-            loop {
-                let arg_def = prog.get(arg).unwrap().insn.get();
+    for bid in prog.cfg().block_ids_postorder() {
+        for (_, insn) in prog.block_normal_insns(bid).unwrap().iter() {
+            if let Insn::Part { src, offset, size } = insn.get() {
+                let end = offset + size;
 
-                (arg, subreg_insn) = match (subreg_insn, arg_def) {
-                    (Insn::V8WithL1(_, small), Insn::V8WithL1(big, _)) => {
-                        (big, Insn::V8WithL1(big, small))
+                let src_sz = prog.value_type(src).bytes_size().unwrap();
+                assert!(end <= src_sz);
+
+                let src = prog.get(src).unwrap();
+                match src.insn.get() {
+                    Insn::Part {
+                        src: up_src,
+                        offset: up_offset,
+                        size: up_size,
+                    } => {
+                        let up_end = up_offset + up_size;
+
+                        let up_src_sz = prog.value_type(up_src).bytes_size().unwrap();
+                        assert!(up_end <= up_src_sz);
+
+                        insn.set(Insn::Part {
+                            src: up_src,
+                            offset: offset + up_offset,
+                            size,
+                        });
                     }
-                    (Insn::V8WithL2(_, small), Insn::V8WithL2(big, _)) => {
-                        (big, Insn::V8WithL2(big, small))
+
+                    Insn::Concat { lo, hi } => {
+                        let lo_sz = prog.value_type(lo).bytes_size().unwrap();
+                        if end <= lo_sz {
+                            // offset..size falls entirely within lo
+                            insn.set(Insn::Part {
+                                src: lo,
+                                offset,
+                                size,
+                            });
+                        } else if offset >= lo_sz {
+                            // offset..size falls entirely within hi
+                            insn.set(Insn::Part {
+                                src: hi,
+                                offset: offset - lo_sz,
+                                size,
+                            });
+                        } else {
+                            // offset..size covers (at least part of) both lo and hi
+                        }
                     }
-                    (Insn::V8WithL4(_, small), Insn::V8WithL4(big, _)) => {
-                        (big, Insn::V8WithL4(big, small))
-                    }
-                    _ => break,
+
+                    _ => {}
                 };
-
-                insn_cell.set(subreg_insn);
             }
-        }
-    }
-
-    for bid in prog.cfg().block_ids_rpo() {
-        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
-            let subreg_insn = insn_cell.get();
-            let mut arg = match subreg_insn {
-                Insn::L1(x) | Insn::L2(x) | Insn::L4(x) => x,
-                _ => continue,
-            };
-
-            loop {
-                let arg_def = prog.get(arg).unwrap().insn.get();
-
-                arg = match (subreg_insn, arg_def) {
-                    (Insn::L1(_), Insn::V8WithL1(_, small)) => small,
-                    (Insn::L2(_), Insn::V8WithL2(_, small)) => small,
-                    (Insn::L4(_), Insn::V8WithL4(_, small)) => small,
-                    _ => break,
-                };
-            }
-
-            // actually, we should use the properly sized Get# insn
-            insn_cell.set(Insn::Get8(arg));
         }
     }
 }
@@ -356,41 +367,200 @@ mod tests {
     mod subreg_folding {
         use crate::{mil, ssa, xform};
 
-        #[test]
-        fn simple_l4() {
-            simple_tmpl(mil::Insn::V8WithL4, mil::Insn::L4);
-        }
+        define_ancestral_name!(ANC_A, "A");
+        define_ancestral_name!(ANC_B, "B");
 
         #[test]
-        fn simple_l2() {
-            simple_tmpl(mil::Insn::V8WithL2, mil::Insn::L2);
-        }
-
-        #[test]
-        fn simple_l1() {
-            simple_tmpl(mil::Insn::V8WithL1, mil::Insn::L1);
-        }
-
-        fn simple_tmpl(
-            replacer: fn(mil::Reg, mil::Reg) -> mil::Insn,
-            selector: fn(mil::Reg) -> mil::Insn,
-        ) {
+        fn part_of_concat() {
             use mil::{Insn, Reg};
 
-            let prog = {
+            #[derive(Clone, Copy)]
+            struct VariantParams {
+                anc_a_sz: u8,
+                anc_b_sz: u8,
+                offset: u8,
+                size: u8,
+            }
+            fn gen_prog(vp: VariantParams) -> mil::Program {
                 let mut b = mil::ProgramBuilder::new();
-                b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(1), Insn::Const8(123));
-                b.push(Reg(0), replacer(Reg(0), Reg(1)));
-                b.push(Reg(1), selector(Reg(0)));
-                b.push(Reg(1), Insn::Ret(Reg(1)));
+                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.anc_a_sz));
+                b.set_ancestral_type(ANC_B, mil::RegType::Bytes(vp.anc_b_sz));
+                b.push(Reg(0), Insn::Ancestral(ANC_A));
+                b.push(Reg(1), Insn::Ancestral(ANC_B));
+                b.push(
+                    Reg(2),
+                    Insn::Concat {
+                        lo: Reg(0),
+                        hi: Reg(1),
+                    },
+                );
+                b.push(
+                    Reg(3),
+                    Insn::Part {
+                        src: Reg(2),
+                        offset: vp.offset,
+                        size: vp.size,
+                    },
+                );
                 b.build()
-            };
-            let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-            xform::fold_subregs(&mut prog);
-            eprintln!("{:?}", prog);
+            }
 
-            assert_eq!(prog.get(Reg(3)).unwrap().insn.get(), Insn::Get8(Reg(1)));
+            for anc_a_sz in 1..=7 {
+                for anc_b_sz in 1..=(8 - anc_a_sz) {
+                    let concat_sz = anc_a_sz + anc_b_sz;
+
+                    // case: fall within lo
+                    for offset in 0..=(anc_a_sz - 1) {
+                        for size in 1..=(anc_a_sz - offset) {
+                            let prog = gen_prog(VariantParams {
+                                anc_a_sz,
+                                anc_b_sz,
+                                offset,
+                                size,
+                            });
+                            let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+                            xform::fold_subregs(&mut prog);
+
+                            assert_eq!(
+                                prog.get(Reg(3)).unwrap().insn.get(),
+                                Insn::Part {
+                                    src: Reg(0),
+                                    offset,
+                                    size
+                                }
+                            );
+                        }
+                    }
+
+                    // case: fall within hi
+                    for offset in anc_a_sz..concat_sz {
+                        for size in 1..=(concat_sz - offset) {
+                            let prog = gen_prog(VariantParams {
+                                anc_a_sz,
+                                anc_b_sz,
+                                offset,
+                                size,
+                            });
+                            let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+                            xform::fold_subregs(&mut prog);
+
+                            assert_eq!(
+                                prog.get(Reg(3)).unwrap().insn.get(),
+                                Insn::Part {
+                                    src: Reg(1),
+                                    offset: offset - anc_a_sz,
+                                    size,
+                                }
+                            );
+                        }
+                    }
+
+                    // case: crossing lo/hi
+                    for offset in 0..anc_a_sz {
+                        for end in (anc_a_sz + 1)..concat_sz {
+                            let size = end - offset;
+                            if size == 0 {
+                                continue;
+                            }
+
+                            dbg!((anc_a_sz, anc_b_sz, offset, size));
+
+                            let prog = gen_prog(VariantParams {
+                                anc_a_sz,
+                                anc_b_sz,
+                                offset,
+                                size,
+                            });
+                            let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+                            let orig_insn = prog.get(Reg(3)).unwrap().insn.get();
+
+                            xform::fold_subregs(&mut prog);
+                            assert_eq!(prog.get(Reg(3)).unwrap().insn.get(), orig_insn);
+                        }
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn part_of_part() {
+            use mil::{Insn, Reg};
+
+            #[derive(Clone, Copy)]
+            struct VariantParams {
+                src_sz: u8,
+                offs0: u8,
+                size0: u8,
+                offs1: u8,
+                size1: u8,
+            }
+
+            fn gen_prog(vp: VariantParams) -> mil::Program {
+                let mut b = mil::ProgramBuilder::new();
+                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.src_sz));
+                b.push(Reg(0), Insn::Ancestral(ANC_A));
+                b.push(
+                    Reg(1),
+                    Insn::Part {
+                        src: Reg(0),
+                        offset: vp.offs0,
+                        size: vp.size0,
+                    },
+                );
+                b.push(
+                    Reg(2),
+                    Insn::Part {
+                        src: Reg(1),
+                        offset: vp.offs1,
+                        size: vp.size1,
+                    },
+                );
+                b.build()
+            }
+
+            let sample_data = b"12345678";
+
+            for src_sz in 1..=8 {
+                for offs0 in 0..src_sz {
+                    for size0 in 1..=(src_sz - offs0) {
+                        for offs1 in 0..size0 {
+                            for size1 in 1..=(size0 - offs1) {
+                                let prog = gen_prog(VariantParams {
+                                    src_sz,
+                                    offs0,
+                                    size0,
+                                    offs1,
+                                    size1,
+                                });
+                                let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+                                xform::fold_subregs(&mut prog);
+
+                                let exp_offset = offs0 + offs1;
+                                let exp_size = size1;
+                                assert_eq!(
+                                    prog.get(Reg(2)).unwrap().insn.get(),
+                                    Insn::Part {
+                                        src: Reg(0),
+                                        offset: exp_offset,
+                                        size: exp_size,
+                                    }
+                                );
+
+                                let offs0 = offs0 as usize;
+                                let size0 = size0 as usize;
+                                let offs1 = offs1 as usize;
+                                let size1 = size1 as usize;
+                                let exp_offset = exp_offset as usize;
+                                let exp_size = exp_size as usize;
+                                let range0 = offs0..offs0 + size0;
+                                let range1 = offs1..offs1 + size1;
+                                let exp_range = exp_offset..exp_offset + exp_size;
+                                assert_eq!(&sample_data[range0][range1], &sample_data[exp_range]);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -201,7 +201,14 @@ impl<'a> Builder<'a> {
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
                     self.emit(Self::PF, mil::Insn::Parity(v0));
                 }
 
@@ -212,7 +219,14 @@ impl<'a> Builder<'a> {
                     self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::BitAnd);
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
-                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
                     self.emit(Self::PF, mil::Insn::Parity(a));
                     self.emit(Self::CF, mil::Insn::Const1(0));
                     self.emit(Self::OF, mil::Insn::Const1(0));
@@ -264,7 +278,14 @@ impl<'a> Builder<'a> {
                     self.emit(Self::SF, mil::Insn::SignOf(value));
                     self.emit(Self::ZF, mil::Insn::IsZero(value));
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::L1(value));
+                    self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: value,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
                     self.emit(Self::PF, mil::Insn::Parity(v0));
                     // ignored: AF
                 }
@@ -462,7 +483,14 @@ impl<'a> Builder<'a> {
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
         let v0 = self.reg_gen.next();
-        self.emit(v0, mil::Insn::L1(a));
+        self.emit(
+            v0,
+            mil::Insn::Part {
+                src: a,
+                offset: 0,
+                size: 1,
+            },
+        );
         self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
@@ -522,7 +550,14 @@ impl<'a> Builder<'a> {
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
         let v0 = self.reg_gen.next();
-        self.emit(v0, mil::Insn::L1(a));
+        self.emit(
+            v0,
+            mil::Insn::Part {
+                src: a,
+                offset: 0,
+                size: 1,
+            },
+        );
         self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
@@ -574,9 +609,30 @@ impl<'a> Builder<'a> {
                 let reg = insn.op_register(op_ndx);
                 let full_reg = Builder::xlat_reg(reg.full_register());
                 match reg.size() {
-                    1 => self.emit(v0, mil::Insn::L1(full_reg)),
-                    2 => self.emit(v0, mil::Insn::L2(full_reg)),
-                    4 => self.emit(v0, mil::Insn::L4(full_reg)),
+                    1 => self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: full_reg,
+                            offset: 0,
+                            size: 1,
+                        },
+                    ),
+                    2 => self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: full_reg,
+                            offset: 0,
+                            size: 2,
+                        },
+                    ),
+                    4 => self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: full_reg,
+                            offset: 0,
+                            size: 4,
+                        },
+                    ),
                     8 => full_reg,
                     other => panic!("invalid register size: {other}"),
                 }
@@ -718,14 +774,28 @@ impl<'a> Builder<'a> {
 
     fn emit_write_machine_reg(&mut self, dest: Register, value_size: u8, value: mil::Reg) {
         let full_dest = Builder::xlat_reg(dest.full_register());
-        let modifier = match value_size {
-            1 => mil::Insn::V8WithL1(full_dest, value),
-            2 => mil::Insn::V8WithL2(full_dest, value),
-            4 => mil::Insn::V8WithL4(full_dest, value),
-            8 => mil::Insn::Get8(value),
-            _ => panic!("invalid dest size"),
-        };
-        self.emit(full_dest, modifier);
+
+        if value_size == 8 {
+            self.emit(full_dest, mil::Insn::Get8(value));
+            return;
+        }
+
+        assert!(value_size < 8);
+        self.emit(
+            full_dest,
+            mil::Insn::Part {
+                src: full_dest,
+                offset: value_size,
+                size: 8 - value_size,
+            },
+        );
+        self.emit(
+            full_dest,
+            mil::Insn::Concat {
+                hi: full_dest,
+                lo: value,
+            },
+        );
     }
 
     fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
