@@ -72,7 +72,7 @@ pub enum Insn {
     Const2(i16),
     Const4(i32),
     Const8(i64),
-    Get8(Reg),
+    Get(Reg),
 
     Part {
         src: Reg,
@@ -256,7 +256,7 @@ impl Insn {
                 offset: _,
                 size: _,
             }
-            | Insn::Get8(reg)
+            | Insn::Get(reg)
             | Insn::ArithK1(_, reg, _)
             | Insn::ArithK2(_, reg, _)
             | Insn::ArithK4(_, reg, _)
@@ -306,6 +306,9 @@ impl Insn {
     pub fn input_regs_iter<'s>(&'s self) -> impl 's + Iterator<Item = Reg> {
         self.input_regs().into_iter().flatten().copied()
     }
+    pub fn input_regs_iter_mut<'s>(&'s mut self) -> impl 's + Iterator<Item = &'s mut Reg> {
+        self.input_regs_mut().into_iter().flatten()
+    }
     pub fn input_regs(&self) -> [Option<&Reg>; 2] {
         match self {
             Insn::False
@@ -327,7 +330,7 @@ impl Insn {
                 offset: _,
                 size: _,
             }
-            | Insn::Get8(reg)
+            | Insn::Get(reg)
             | Insn::ArithK1(_, reg, _)
             | Insn::ArithK2(_, reg, _)
             | Insn::ArithK4(_, reg, _)
@@ -383,7 +386,7 @@ impl Insn {
             | Insn::Const4(_)
             | Insn::Const8(_)
             | Insn::Part { .. }
-            | Insn::Get8(_)
+            | Insn::Get(_)
             | Insn::Concat { .. }
             | Insn::Widen1_2(_)
             | Insn::Widen1_4(_)
@@ -504,7 +507,7 @@ impl std::fmt::Debug for Insn {
             Insn::Part { src, offset, size } => {
                 write!(f, "{:8} {:?}[{}..{}]", "part", src, offset, offset + size)
             }
-            Insn::Get8(x) => write!(f, "{:8} {:?}", "get", x),
+            Insn::Get(x) => write!(f, "{:8} {:?}", "get", x),
             Insn::Concat { lo, hi } => write!(f, "{:8} {:?}⧺{:?}", "concat", hi, lo),
             Insn::Widen1_2(x) => write!(f, "{:8} 1->2 {:?}", "widen", *x),
             Insn::Widen1_4(x) => write!(f, "{:8} 1->4 {:?}", "widen", *x),

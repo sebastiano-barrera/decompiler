@@ -72,10 +72,10 @@ pub fn fold_constants(prog: &mut ssa::Program) {
                     let wb = widen(prog, b);
 
                     match (op, wa, wb) {
-                        (ArithOp::Add, Insn::Const8(0), _) => Insn::Get8(b),
-                        (ArithOp::Add, _, Insn::Const8(0)) => Insn::Get8(a),
-                        (ArithOp::Mul, Insn::Const8(1), _) => Insn::Get8(b),
-                        (ArithOp::Mul, _, Insn::Const8(1)) => Insn::Get8(a),
+                        (ArithOp::Add, Insn::Const8(0), _) => Insn::Get(b),
+                        (ArithOp::Add, _, Insn::Const8(0)) => Insn::Get(a),
+                        (ArithOp::Mul, Insn::Const8(1), _) => Insn::Get(b),
+                        (ArithOp::Mul, _, Insn::Const8(1)) => Insn::Get(a),
 
                         (op, Insn::Const8(ak), Insn::Const8(bk)) => {
                             Insn::Const8(eval_const(op, ak, bk))
@@ -194,65 +194,20 @@ pub fn fold_bitops(prog: &mut ssa::Program) {
                 Insn::Arith4(ArithOp::BitXor, a, b) if a == b => Insn::Const4(0),
                 Insn::Arith8(ArithOp::BitXor, a, b) if a == b => Insn::Const8(0),
 
-                Insn::Arith1(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
-                Insn::Arith2(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
-                Insn::Arith4(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
-                Insn::Arith8(ArithOp::BitAnd, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith1(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+                Insn::Arith2(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+                Insn::Arith4(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+                Insn::Arith8(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
 
-                Insn::Arith1(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
-                Insn::Arith2(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
-                Insn::Arith4(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
-                Insn::Arith8(ArithOp::BitOr, a, b) if a == b => Insn::Get8(a),
+                Insn::Arith1(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+                Insn::Arith2(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+                Insn::Arith4(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+                Insn::Arith8(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
 
                 _ => continue,
             };
 
             insn_cell.set(repl);
-        }
-    }
-}
-
-/// Remove `Get` instructions.
-///
-/// `Get` instructions are not really required in an SSA program. They generally
-/// come out of several transform passes as a way to simplify the transform
-/// algorithm themselves. They can then be safely removed by this pass.
-///
-/// (Actually, this pass removes the *dependency* on these insns; as a
-/// result, they merely become dead and will be properly eliminated by
-/// `ssa::eliminate_dead_code`)
-pub fn fold_get(prog: &mut ssa::Program) {
-    for bid in prog.cfg().block_ids_rpo() {
-        for phi_reg in prog.block_phi(bid).phi_regs() {
-            prog.map_phi_args(phi_reg, |mut arg| loop {
-                match prog.get(arg).unwrap().insn.get() {
-                    Insn::Get8(x) => {
-                        arg = x;
-                    }
-                    _ => break arg,
-                }
-            });
-        }
-
-        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
-            // Get instructions are affected too!
-            // this allows us to skip entire chains of multiple Get insns
-
-            let mut insn = insn_cell.get();
-            for input_reg in insn.input_regs_mut().into_iter().flatten() {
-                let mut resolved = *input_reg;
-                loop {
-                    let input_def = prog.get(resolved).unwrap().insn.get();
-                    if let Insn::Get8(x) = input_def {
-                        resolved = x;
-                    } else {
-                        *input_reg = resolved;
-                        break;
-                    }
-                }
-            }
-
-            insn_cell.set(insn);
         }
     }
 }
@@ -265,15 +220,7 @@ pub fn canonical(prog: &mut ssa::Program) {
     #[cfg(debug_assertions)]
     prog.assert_invariants();
 
-    fold_get(prog);
-    #[cfg(debug_assertions)]
-    prog.assert_invariants();
-
     fold_bitops(prog);
-    #[cfg(debug_assertions)]
-    prog.assert_invariants();
-
-    fold_get(prog);
     #[cfg(debug_assertions)]
     prog.assert_invariants();
 
@@ -281,11 +228,8 @@ pub fn canonical(prog: &mut ssa::Program) {
     #[cfg(debug_assertions)]
     prog.assert_invariants();
 
-    fold_get(prog);
-    #[cfg(debug_assertions)]
-    prog.assert_invariants();
-
     ssa::eliminate_dead_code(prog);
+    // last check stays in even in release
     prog.assert_invariants();
 }
 
@@ -326,7 +270,7 @@ mod tests {
                 Insn::ArithK8(ArithOp::Add, Reg(0), 10)
             );
             assert_eq!(insns.insns[5].get(), Insn::Const8(49));
-            assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
+            assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
         }
 
         #[test]
@@ -360,7 +304,7 @@ mod tests {
                 Insn::ArithK8(ArithOp::Mul, Reg(0), 25)
             );
             assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
-            assert_eq!(insns.insns[8].get(), Insn::Get8(Reg(7)));
+            assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
         }
     }
 
