@@ -198,7 +198,7 @@ impl<'a> Ast<'a> {
             }
             Insn::Concat { lo, hi } => {
                 self.pp_arg(pp, hi)?;
-                write!(pp, "⌢")?;
+                write!(pp, "⧺")?;
                 self.pp_arg(pp, lo)?;
                 return Ok(());
             }

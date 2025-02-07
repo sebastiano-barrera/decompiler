@@ -519,7 +519,7 @@ impl std::fmt::Debug for Insn {
                 write!(f, "{:8} {:?}[{}..{}]", "part", src, offset, offset + size)
             }
             Insn::Get8(x) => write!(f, "{:8} {:?}", "get", x),
-            Insn::Concat { lo, hi } => write!(f, "{:8} {:?}⌢{:?}", "concat", hi, lo),
+            Insn::Concat { lo, hi } => write!(f, "{:8} {:?}⧺{:?}", "concat", hi, lo),
             Insn::Widen1_2(x) => write!(f, "{:8} 1->2 {:?}", "widen", *x),
             Insn::Widen1_4(x) => write!(f, "{:8} 1->4 {:?}", "widen", *x),
             Insn::Widen1_8(x) => write!(f, "{:8} 1->8 {:?}", "widen", *x),

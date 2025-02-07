@@ -12,6 +12,6 @@ ssa program  8 instrs
   (  2)  r28 <- part     r13[0..0]
          r29 <- part     r27[0..4]
          r30 <- part     r28[4..8]
-         r31 <- concat   r29⌢r28
-         r32 <- concat   r30⌢r31
+         r31 <- concat   r29⧺r28
+         r32 <- concat   r30⧺r31
          r33 <- ret      r32
