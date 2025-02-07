@@ -471,16 +471,17 @@ mod tests {
         let mut types = ty::TypeSet::new();
         let report = load_dwarf_types(&elf, raw, &mut types).unwrap();
 
-        let mut buf = String::new();
+        let mut buf = Vec::new();
         let mut pp = crate::pp::PrettyPrinter::start(&mut buf);
         types.dump(&mut pp).unwrap();
 
-        use std::fmt::Write;
+        use std::io::Write;
         writeln!(buf, "{} non-fatal errors:", report.errors.len()).unwrap();
         for (ofs, err) in &report.errors {
             writeln!(buf, "offset 0x{:8x}: {}", ofs, err).unwrap();
         }
 
+        let buf = String::from_utf8(buf).unwrap();
         assert_snapshot!(buf);
     }
 }

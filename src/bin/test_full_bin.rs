@@ -1,5 +1,5 @@
 use decompiler::{
-    pp::{self, IoAsFmt},
+    pp::{self},
     test_tool,
 };
 
@@ -59,7 +59,7 @@ fn main() {
                 tester.process_function(&function_name, &mut out).unwrap();
             } else {
                 let out_file = File::create(&path).unwrap();
-                let mut out = pp::PrettyPrinter::start(IoAsFmt(out_file));
+                let mut out = pp::PrettyPrinter::start(out_file);
                 tester.process_function(&function_name, &mut out).unwrap();
             };
         });
@@ -82,8 +82,12 @@ fn main() {
 
 struct NullSink;
 
-impl std::fmt::Write for NullSink {
-    fn write_str(&mut self, _: &str) -> std::fmt::Result {
+impl std::io::Write for NullSink {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }

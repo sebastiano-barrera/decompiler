@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::io::Write;
 
 pub struct PrettyPrinter<W> {
     wrt: W,
@@ -42,18 +42,18 @@ impl<W: Write> PP for PrettyPrinter<W> {
 }
 
 impl<W: Write> Write for PrettyPrinter<W> {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+    fn write(&mut self, s: &[u8]) -> std::io::Result<usize> {
         let mut cur_text = self.cur_text as usize;
 
-        for line in s.split_inclusive('\n') {
+        for line in s.split_inclusive(|ch| *ch == b'\n') {
             if self.indent_next_chunk {
                 for _ in 0..self.cur_indent {
-                    self.wrt.write_char(' ')?;
+                    self.wrt.write(b" ")?;
                 }
             }
 
-            self.wrt.write_str(line)?;
-            if line.ends_with("\n") {
+            self.wrt.write(line)?;
+            if line.ends_with(b"\n") {
                 cur_text = 0;
                 self.indent_next_chunk = true;
             } else {
@@ -64,7 +64,11 @@ impl<W: Write> Write for PrettyPrinter<W> {
 
         self.cur_text = cur_text.try_into().unwrap();
 
-        Ok(())
+        Ok(s.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.wrt.flush()
     }
 }
 

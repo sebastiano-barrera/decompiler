@@ -89,10 +89,10 @@ mod callconv_x86_64 {
         insta::assert_snapshot!(output);
     }
 
-    fn finish_prog(prog: mil::Program, types: &ty::TypeSet) -> Result<String, std::fmt::Error> {
-        use std::fmt::Write;
+    fn finish_prog(prog: mil::Program, types: &ty::TypeSet) -> std::io::Result<String> {
+        use std::io::Write;
 
-        let mut out = String::new();
+        let mut out = Vec::new();
         writeln!(out)?;
         writeln!(out, "mil program = ")?;
         writeln!(out, "{:?}", prog)?;
@@ -108,7 +108,7 @@ mod callconv_x86_64 {
         let mut pp = PrettyPrinter::start(&mut out);
         ast.pretty_print(&mut pp).unwrap();
 
-        Ok(out)
+        Ok(String::from_utf8(out).unwrap())
     }
 
     fn print_asm(instrs: &[Instruction]) {
