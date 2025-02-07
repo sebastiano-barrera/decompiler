@@ -186,7 +186,7 @@ impl<'a> Ast<'a> {
             Insn::Const2(k) => return write!(pp, "0x{:x} /* {} */", k, k),
             Insn::Const4(k) => return write!(pp, "0x{:x} /* {} */", k, k),
             Insn::Const8(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Get8(_) => "Get8".into(),
+            Insn::Get(x) => return self.pp_insn(pp, x),
             Insn::StructGet8 {
                 struct_value: _,
                 offset,

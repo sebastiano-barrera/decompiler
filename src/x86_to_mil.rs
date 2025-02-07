@@ -136,7 +136,7 @@ impl<'a> Builder<'a> {
                     );
                 }
                 M::Leave => {
-                    self.emit(Self::RSP, mil::Insn::Get8(Self::RBP));
+                    self.emit(Self::RSP, mil::Insn::Get(Self::RBP));
                     self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
                     self.emit(
                         Self::RSP,
@@ -776,7 +776,7 @@ impl<'a> Builder<'a> {
         let full_dest = Builder::xlat_reg(dest.full_register());
 
         if value_size == 8 {
-            self.emit(full_dest, mil::Insn::Get8(value));
+            self.emit(full_dest, mil::Insn::Get(value));
             return;
         }
 

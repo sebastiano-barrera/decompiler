@@ -56,6 +56,18 @@ impl Program {
         // to transition to a more complex structure in the future.
         let iv = self.inner.get(reg.0)?;
         debug_assert_eq!(iv.dest.get(), reg);
+
+        // "Get" instructions are never really needed in SSA.
+        // If we have `y <- Get(x)`, then every usage of y could be replaced
+        // with x. But performing the replacement is relatively costly (linearly
+        // scanning the whole program). So, instead, we only "dereference"
+        // lookups done at the SSA level if they hit a Get, and do another
+        // trick in printing to make it look like the substitution is performed
+        // "textually".
+        if let mil::Insn::Get(x) = iv.insn.get() {
+            return self.get(x);
+        }
+
         Some(iv)
     }
 
@@ -113,7 +125,7 @@ impl Program {
             Insn::Const4(_) => RegType::Bytes(4),
             Insn::Const8(_) => RegType::Bytes(8),
             Insn::Part { size, .. } => RegType::Bytes(size),
-            Insn::Get8(_) => RegType::Bytes(8),
+            Insn::Get(_) => panic!("mil::Program::get returned a Get"),
             Insn::Concat { lo, hi } => {
                 let lo_size = self.value_type(lo).bytes_size().unwrap();
                 let hi_size = self.value_type(hi).bytes_size().unwrap();
@@ -371,8 +383,20 @@ impl std::fmt::Debug for Program {
                 }
             }
 
-            for (dest, insn) in insns.iter_copied() {
+            for (dest, mut insn) in insns.iter_copied() {
                 if self.is_alive(dest) {
+                    // modify insn (our copy) so that the registers skip/dereference any Get
+                    for input in insn.input_regs_iter_mut() {
+                        loop {
+                            let input_def = self.get(*input).unwrap().insn.get();
+                            if let mil::Insn::Get(x) = input_def {
+                                *input = x;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
                     print_rdr_count(f, dest)?;
                     writeln!(f, "{:?} <- {:?}", dest, insn)?;
                 }
@@ -536,7 +560,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
                     let old_name = iv.dest.replace(new_dest);
-                    let new_name = if let mil::Insn::Get8(input_reg) = iv.insn.get() {
+                    let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
                         input_reg
