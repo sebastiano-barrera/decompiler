@@ -4,9 +4,13 @@ expression: snap
 ---
 params: [TypeID(3v1)]
 program:
-ssa program  4 instrs
-.B0:    ;;  addr:0x0; 30 insn 0 phis
-         r13 <- #pre:RDI
+ssa program  8 instrs
+.B0:    ;;  addr:0x0; 34 insn 0 phis
+  (  2)  r13 <- #pre:RDI
          r27 <- #pre:arg0
-         r28 <- v8.l4=   r13 ← r27
-         r29 <- ret      r28
+         r28 <- part     r13[0..0]
+         r29 <- part     r27[0..4]
+         r30 <- concat   r29⧺r28
+         r31 <- part     r13[4..8]
+         r32 <- concat   r31⧺r30
+         r33 <- ret      r32

@@ -206,39 +206,37 @@ fn read_struct_from_memory<'a>(
 }
 
 fn emit_partial_write(bld: &mut Builder, src: mil::Reg, dest: mil::Reg, offset: u8, size: u8) {
-    // hi ^ lo = concat, then:
-    // dest[offset+size:8] ^ src[0:size] ^ dest[0:offset]
+    // dest[offset+size:8] ++ src[0:size] ++ dest[0:offset]
 
-    let mid = bld.reg_gen.next();
-    let hi = bld.reg_gen.next();
+    let t0 = bld.reg_gen.next();
+    let t1 = bld.reg_gen.next();
 
     bld.emit(
-        dest,
+        t0,
         mil::Insn::Part {
-            src: dest, // tricky, pay attention!
+            src: dest,
             offset: 0,
             size: offset,
         },
     );
     bld.emit(
-        mid,
+        t1,
         mil::Insn::Part {
             src,
             offset: 0,
             size,
         },
     );
+    bld.emit(t1, mil::Insn::Concat { lo: t0, hi: t1 });
     bld.emit(
-        hi,
+        t0,
         mil::Insn::Part {
-            src: dest, // tricky, pay attention!
+            src: dest,
             offset: offset + size,
             size: 8 - offset - size,
         },
     );
-
-    bld.emit(dest, mil::Insn::Concat { hi: mid, lo: dest });
-    bld.emit(dest, mil::Insn::Concat { hi, lo: dest });
+    bld.emit(dest, mil::Insn::Concat { lo: t1, hi: t0 });
 }
 
 static INTEGER_REGS: [Reg; 6] = [
@@ -412,7 +410,7 @@ mod tests {
     use insta::assert_snapshot;
     use ty::TypeID;
 
-    use crate::ssa;
+    use crate::{ssa, xform};
 
     use super::*;
     use std::sync::Arc;
@@ -435,7 +433,11 @@ mod tests {
         bld.emit(v0, Insn::Ret(Builder::RDI));
 
         let prog = bld.build();
-        let prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
+        eprintln!("pre-ssa:\n{:?}\n", prog);
+
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
+        eprintln!("ssa:\n{:?}", prog);
+        xform::fold_subregs(&mut prog);
         let snap = format!("params: {:?}\nprogram:\n{:?}", param_types, prog);
         snap
     }
