@@ -433,11 +433,8 @@ mod tests {
         bld.emit(v0, Insn::Ret(Builder::RDI));
 
         let prog = bld.build();
-        eprintln!("pre-ssa:\n{:?}\n", prog);
-
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
-        eprintln!("ssa:\n{:?}", prog);
-        xform::fold_subregs(&mut prog);
+        xform::simplify_half_null_concat(&mut prog);
         let snap = format!("params: {:?}\nprogram:\n{:?}", param_types, prog);
         snap
     }
