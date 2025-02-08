@@ -136,7 +136,7 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
                 let end = offset + size;
 
                 let src_sz = prog.value_type(src).bytes_size().unwrap();
-                assert!(end <= src_sz);
+                assert!(end as usize <= src_sz);
 
                 let src = prog.get(src).unwrap();
                 match src.insn.get() {
@@ -148,7 +148,7 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
                         let up_end = up_offset + up_size;
 
                         let up_src_sz = prog.value_type(up_src).bytes_size().unwrap();
-                        assert!(up_end <= up_src_sz);
+                        assert!(up_end as usize <= up_src_sz);
 
                         insn.set(Insn::Part {
                             src: up_src,
@@ -158,7 +158,12 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
                     }
 
                     Insn::Concat { lo, hi } => {
-                        let lo_sz = prog.value_type(lo).bytes_size().unwrap();
+                        let lo_sz = prog
+                            .value_type(lo)
+                            .bytes_size()
+                            .unwrap()
+                            .try_into()
+                            .expect("size is too large for Concat");
                         if end <= lo_sz {
                             // offset..size falls entirely within lo
                             insn.set(Insn::Part {
@@ -327,8 +332,8 @@ mod tests {
             }
             fn gen_prog(vp: VariantParams) -> mil::Program {
                 let mut b = mil::ProgramBuilder::new();
-                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.anc_a_sz));
-                b.set_ancestral_type(ANC_B, mil::RegType::Bytes(vp.anc_b_sz));
+                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.anc_a_sz as usize));
+                b.set_ancestral_type(ANC_B, mil::RegType::Bytes(vp.anc_b_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
                 b.push(Reg(1), Insn::Ancestral(ANC_B));
                 b.push(
@@ -441,7 +446,7 @@ mod tests {
 
             fn gen_prog(vp: VariantParams) -> mil::Program {
                 let mut b = mil::ProgramBuilder::new();
-                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.src_sz));
+                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.src_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
                 b.push(
                     Reg(1),
