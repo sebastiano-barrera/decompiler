@@ -387,17 +387,19 @@ impl std::fmt::Debug for Program {
             }
 
             for (dest, mut insn) in insns.iter_copied() {
+                // These are hidden; when other instructions depend on them,
+                // they get skipped (see `ssa::Program::get`)
+                if let mil::Insn::Get(_) = insn {
+                    continue;
+                }
+
                 if self.is_alive(dest) {
-                    // modify insn (our copy) so that the registers skip/dereference any Get
+                    // modify insn (our copy) so that the registers
+                    // skip/dereference any Get
                     for input in insn.input_regs_iter_mut() {
-                        loop {
-                            let input_def = self.get(*input).unwrap().insn.get();
-                            if let mil::Insn::Get(x) = input_def {
-                                *input = x;
-                            } else {
-                                break;
-                            }
-                        }
+                        // ssa::Program::get dereferences Get(_), so we can just
+                        // pluck `dest` from its return value
+                        *input = self.get(*input).unwrap().dest.get();
                     }
 
                     print_rdr_count(f, dest)?;
