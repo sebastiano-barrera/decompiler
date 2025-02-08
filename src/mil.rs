@@ -50,11 +50,11 @@ pub type Index = u16;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum RegType {
     Effect,
-    Bytes(u8),
+    Bytes(usize),
     Bool,
 }
 impl RegType {
-    pub(crate) fn bytes_size(&self) -> Option<u8> {
+    pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
             RegType::Effect => None,
             RegType::Bool => None,
@@ -164,7 +164,7 @@ pub enum Insn {
     /// Exists purely to give the phi node an index that the rest of the program can refer to (in
     /// SSA).
     Phi {
-        size: u8,
+        size: usize,
     },
     PhiBool,
 

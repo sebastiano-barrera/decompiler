@@ -124,7 +124,7 @@ impl Program {
             Insn::Const2(_) => RegType::Bytes(2),
             Insn::Const4(_) => RegType::Bytes(4),
             Insn::Const8(_) => RegType::Bytes(8),
-            Insn::Part { size, .. } => RegType::Bytes(size),
+            Insn::Part { size, .. } => RegType::Bytes(size as usize),
             Insn::Get(_) => panic!("mil::Program::get returned a Get"),
             Insn::Concat { lo, hi } => {
                 let lo_size = self.value_type(lo).bytes_size().unwrap();
@@ -170,10 +170,13 @@ impl Program {
             Insn::IsZero(_) => RegType::Effect,
             Insn::Parity(_) => RegType::Effect,
             Insn::Undefined => RegType::Effect,
-            Insn::Phi { size } => RegType::Bytes(size),
+            Insn::Phi { size } => RegType::Bytes(size as usize),
             Insn::PhiBool => RegType::Bool,
             Insn::PhiArg(_) => RegType::Effect,
-            Insn::Ancestral(anc_name) => self.inner.ancestor_type(anc_name).unwrap(),
+            Insn::Ancestral(anc_name) => self
+                .inner
+                .ancestor_type(anc_name)
+                .expect("ancestor has no defined type"),
             Insn::StructGet8 { .. } => RegType::Bytes(8),
             Insn::StructGetMember { .. } => RegType::Effect,
         }

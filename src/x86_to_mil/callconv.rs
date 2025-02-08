@@ -18,14 +18,15 @@ pub fn read_func_params<'a>(
     let mut state = State::default();
 
     for &param_tyid in param_types.iter() {
+        let param_ty = &types.get(param_tyid).unwrap().ty;
+        let sz = param_ty.bytes_size() as usize;
+
         let src_anc = state
             .pull_arg()
             .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
         let src = bld.reg_gen.next();
-        bld.emit(src, Insn::Ancestral(src_anc));
+        bld.init_ancestral(src, src_anc, mil::RegType::Bytes(sz));
 
-        let param_ty = &types.get(param_tyid).unwrap().ty;
-        let sz = param_ty.bytes_size();
         match param_ty {
             ty::Ty::Int(_) | ty::Ty::Bool(_) | ty::Ty::Ptr(_) | ty::Ty::Enum(_) => {
                 let sz = sz.try_into().unwrap();
@@ -65,7 +66,7 @@ pub fn read_func_params<'a>(
             other @ (ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void) => {
                 panic!("invalid types for function params: {:?}", other)
             }
-        };
+        }
     }
 
     Ok(())
