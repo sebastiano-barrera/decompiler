@@ -217,6 +217,22 @@ pub fn fold_bitops(prog: &mut ssa::Program) {
     }
 }
 
+pub fn simplify_half_null_concat(prog: &mut ssa::Program) {
+    for iv in prog.insns_unordered() {
+        if let Insn::Concat { lo, hi } = iv.insn.get() {
+            let is_lo_null = matches!(prog.get(lo).unwrap().insn.get(), Insn::Part { size: 0, .. });
+            let is_hi_null = matches!(prog.get(hi).unwrap().insn.get(), Insn::Part { size: 0, .. });
+
+            match (is_lo_null, is_hi_null) {
+                (true, true) => panic!("assertion error"),
+                (false, true) => iv.insn.set(Insn::Get(lo)),
+                (true, false) => iv.insn.set(Insn::Get(hi)),
+                (false, false) => {}
+            }
+        }
+    }
+}
+
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
