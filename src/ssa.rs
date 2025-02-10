@@ -178,7 +178,7 @@ impl Program {
                 .ancestor_type(anc_name)
                 .expect("ancestor has no defined type"),
             Insn::StructGet8 { .. } => RegType::Bytes(8),
-            Insn::StructGetMember { .. } => RegType::Effect,
+            Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
         }
     }
 
@@ -929,7 +929,10 @@ pub fn eliminate_dead_code(prog: &mut Program) {
         rdr_count.inc(side_fx_reg);
     }
 
+    println!("eliminate_dead_code --[[");
     while let Some(reg) = queue.pop() {
+        println!(" * {reg:?}");
+
         // we can assume no circular references
         visited[reg.reg_index() as usize] = true;
         let insn = prog.get(reg).unwrap().insn.get();
@@ -952,6 +955,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             }
         }
     }
+    println!("]]--");
 
     prog.rdr_count = rdr_count;
 }

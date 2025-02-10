@@ -153,6 +153,7 @@ fn read_struct<'a>(
                             struct_value: src,
                             // TODO Allocate this somewhere where it makes sense
                             name: memb.name.as_ref().clone().leak(),
+                            size: memb_ty.bytes_size(),
                         },
                     );
                     queue.push((memb.offset, memb_value, memb_ty));
@@ -187,12 +188,14 @@ fn read_struct_from_memory<'a>(
     let memb_value = bld.reg_gen.next();
 
     for memb in &struct_ty.members {
+        let size = types.bytes_size(memb.tyid).unwrap();
         bld.emit(
             memb_value,
             Insn::StructGetMember {
                 struct_value: src,
                 // TODO Allocate this somewhere where it makes sense
                 name: memb.name.as_ref().clone().leak(),
+                size,
             },
         );
         bld.emit(

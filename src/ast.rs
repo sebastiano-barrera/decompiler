@@ -313,7 +313,11 @@ impl<'a> Ast<'a> {
                 return Ok(());
             }
 
-            Insn::StructGetMember { struct_value, name } => {
+            Insn::StructGetMember {
+                struct_value,
+                name,
+                size: _,
+            } => {
                 self.pp_arg(pp, struct_value)?;
                 write!(pp, ".\"{}\"", name)?;
                 return Ok(());

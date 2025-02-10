@@ -91,6 +91,8 @@ pub enum Insn {
     StructGetMember {
         struct_value: Reg,
         name: &'static str,
+        // larger size are definitely possible
+        size: u32,
     },
 
     Widen1_2(Reg),
@@ -299,6 +301,7 @@ impl Insn {
             | Insn::StructGetMember {
                 struct_value: reg,
                 name: _,
+                size: _,
             } => [Some(reg), None],
 
             Insn::Concat { lo: a, hi: b }
@@ -377,6 +380,7 @@ impl Insn {
             | Insn::StructGetMember {
                 struct_value: reg,
                 name: _,
+                size: _,
             } => [Some(reg), None],
 
             Insn::Concat { lo: b, hi: a }
@@ -591,8 +595,16 @@ impl std::fmt::Debug for Insn {
                 struct_value,
                 offset,
             } => write!(f, "{:8} {:?},{}", "sget8", *struct_value, offset),
-            Insn::StructGetMember { struct_value, name } => {
-                write!(f, "{:8} {:?},\"{}\"", "memb", *struct_value, name)
+            Insn::StructGetMember {
+                struct_value,
+                name,
+                size,
+            } => {
+                write!(
+                    f,
+                    "{:8} {:?},\"{}\"  {}b",
+                    "memb", *struct_value, name, size
+                )
             }
         }
     }

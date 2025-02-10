@@ -78,6 +78,7 @@ mod callconv_x86_64 {
         };
 
         print_asm(&input);
+        println!();
         let prog = {
             let mut b = x86_to_mil::Builder::new();
             b.use_types(&types);
@@ -98,6 +99,10 @@ mod callconv_x86_64 {
         writeln!(out, "{:?}", prog)?;
 
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        println!("program (pre-canonical optimizations):");
+        println!("{:?}", prog);
+        println!();
+
         crate::xform::canonical(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
         writeln!(out)?;

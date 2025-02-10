@@ -135,7 +135,9 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
             if let Insn::Part { src, offset, size } = insn.get() {
                 let end = offset + size;
 
-                let src_sz = prog.value_type(src).bytes_size().unwrap();
+                let Some(src_sz) = prog.value_type(src).bytes_size() else {
+                    panic!("type of {:?} is not sized", src)
+                };
                 assert!(end as usize <= src_sz);
 
                 let src = prog.get(src).unwrap();
