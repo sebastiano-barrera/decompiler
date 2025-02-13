@@ -931,7 +931,7 @@ impl<'a> Builder<'a> {
     const R15: mil::Reg = mil::Reg(27);
 
     const R_TMP_FIRST: mil::Reg = mil::Reg(28);
-    const R_TMP_LAST: mil::Reg = mil::Reg(34);
+    const R_TMP_LAST: mil::Reg = mil::Reg(38);
 
     fn reset_reg_gen() -> RegGen {
         RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)

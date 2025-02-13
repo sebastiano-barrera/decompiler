@@ -447,7 +447,7 @@ impl Graph {
         &self,
         out: &mut W,
         dom_tree: Option<&DomTree>,
-    ) -> std::fmt::Result {
+    ) -> std::io::Result<()> {
         let count = self.block_count();
         writeln!(out, "digraph {{")?;
         writeln!(out, "  // {} blocks", count)?;

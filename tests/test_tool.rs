@@ -9,11 +9,12 @@ static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/");
 fn test_with_sample(rel_path: &Path, function_name: &str) -> test_tool::Result<String> {
     let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
 
-    let mut buf = String::with_capacity(8192);
+    let mut buf = Vec::new();
     let mut pp = PrettyPrinter::start(&mut buf);
     test_tool::run(raw, function_name, &mut pp)?;
 
-    Ok(buf)
+    let strbuf = String::from_utf8(buf).unwrap();
+    Ok(strbuf)
 }
 
 #[test]

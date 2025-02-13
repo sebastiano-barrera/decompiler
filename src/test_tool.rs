@@ -14,8 +14,8 @@ pub enum Error {
     #[error("unsupported executable format: {0}")]
     UnsupportedExecFormat(&'static str),
 
-    #[error("fmt: {0}")]
-    Fmt(#[from] std::fmt::Error),
+    #[error("I/O: {0}")]
+    Io(#[from] std::io::Error),
 
     #[error("symbol `{0}` is not a function")]
     NotAFunction(String),

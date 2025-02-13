@@ -45,13 +45,13 @@ impl<'a> Ast<'a> {
         Ast { ssa, is_named }
     }
 
-    pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::fmt::Result {
+    pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::io::Result<()> {
         let cfg = self.ssa.cfg();
         let entry_bid = cfg.entry_block_id();
         self.pp_block(pp, entry_bid)
     }
 
-    fn pp_block<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::fmt::Result {
+    fn pp_block<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
         let phis = self.ssa.block_phi(bid);
 
         write!(pp, "T{}(", bid.as_number())?;
@@ -70,11 +70,7 @@ impl<'a> Ast<'a> {
         writeln!(pp, "}}")
     }
 
-    fn pp_block_inner<W: PP + ?Sized>(
-        &self,
-        pp: &mut W,
-        bid: cfg::BlockID,
-    ) -> Result<(), std::fmt::Error> {
+    fn pp_block_inner<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
         let insn_slice = self.ssa.block_normal_insns(bid).unwrap();
         for (dest, insn) in insn_slice.iter_copied() {
             let is_named = self.is_named(dest);
@@ -141,7 +137,7 @@ impl<'a> Ast<'a> {
         src_bid: cfg::BlockID,
         tgt_bid: cfg::BlockID,
         pred_ndx: u16,
-    ) -> std::fmt::Result {
+    ) -> std::io::Result<()> {
         let phi = self.ssa.block_phi(tgt_bid);
 
         let cfg = self.ssa.cfg();
@@ -182,7 +178,7 @@ impl<'a> Ast<'a> {
         self.is_named[reg.reg_index() as usize]
     }
 
-    fn pp_insn<W: PP + ?Sized>(&self, pp: &mut W, reg: Reg) -> std::fmt::Result {
+    fn pp_insn<W: PP + ?Sized>(&self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
         let iv = self.ssa.get(reg).unwrap();
         let insn = iv.insn.get();
 
@@ -330,12 +326,7 @@ impl<'a> Ast<'a> {
         Ok(())
     }
 
-    fn pp_load_mem<W: PP + ?Sized>(
-        &self,
-        pp: &mut W,
-        addr: Reg,
-        sz: i32,
-    ) -> Result<(), std::fmt::Error> {
+    fn pp_load_mem<W: PP + ?Sized>(&self, pp: &mut W, addr: Reg, sz: i32) -> std::io::Result<()> {
         write!(pp, "[")?;
         pp.open_box();
         self.pp_arg(pp, addr)?;
@@ -343,7 +334,7 @@ impl<'a> Ast<'a> {
         write!(pp, "]:{}", sz)
     }
 
-    fn pp_arg<W: PP + ?Sized>(&self, pp: &mut W, arg: Reg) -> Result<(), std::fmt::Error> {
+    fn pp_arg<W: PP + ?Sized>(&self, pp: &mut W, arg: Reg) -> std::io::Result<()> {
         Ok(if self.is_named(arg) {
             write!(pp, "r{}", arg.reg_index())?;
         } else {

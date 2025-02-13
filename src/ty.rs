@@ -150,7 +150,7 @@ impl TypeSet {
         self.known_objects.get(&addr).copied()
     }
 
-    pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::fmt::Result {
+    pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
         writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
 
         // ensure that the iteration always happens in the same order
@@ -171,7 +171,7 @@ impl TypeSet {
         writeln!(out, "}}")
     }
 
-    pub fn dump_type_ref<W: PP + ?Sized>(&self, out: &mut W, tyid: TypeID) -> std::fmt::Result {
+    pub fn dump_type_ref<W: PP + ?Sized>(&self, out: &mut W, tyid: TypeID) -> std::io::Result<()> {
         let typ = self.get(tyid).unwrap();
         if typ.name.is_empty() {
             self.dump_type(out, typ)
@@ -180,7 +180,7 @@ impl TypeSet {
         }
     }
 
-    pub fn dump_type<W: PP + ?Sized>(&self, out: &mut W, typ: &Type) -> std::fmt::Result {
+    pub fn dump_type<W: PP + ?Sized>(&self, out: &mut W, typ: &Type) -> std::io::Result<()> {
         if !typ.name.is_empty() {
             write!(out, "\"{}\" ", typ.name)?;
         }
@@ -380,7 +380,11 @@ pub enum SelectError {
     InvalidRange,
 }
 
-fn dump_types<W: pp::PP>(out: &mut W, report: &dwarf::Report, types: &TypeSet) -> std::fmt::Result {
+fn dump_types<W: pp::PP>(
+    out: &mut W,
+    report: &dwarf::Report,
+    types: &TypeSet,
+) -> std::io::Result<()> {
     writeln!(out, "dwarf types --[[")?;
     types.dump(out).unwrap();
 
