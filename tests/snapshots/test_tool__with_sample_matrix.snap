@@ -41,456 +41,491 @@ sum_matrix 0x4011c9+115 (file 0x11c9)
           40123b: c3                      ret
 
 mil program = 
-program  195 instrs
-    0 r12 <- #pre:stack_bottom
-    1 r2 <- #pre:CF
-    2 r3 <- #pre:PF
-    3 r4 <- #pre:AF
-    4 r5 <- #pre:ZF
-    5 r6 <- #pre:SF
-    6 r7 <- #pre:TF
-    7 r8 <- #pre:IF
-    8 r9 <- #pre:DF
-    9 r10 <- #pre:OF
-   10 r11 <- #pre:RBP
-   11 r12 <- #pre:RSP
-   12 r13 <- #pre:RIP
-   13 r14 <- #pre:RDI
-   14 r15 <- #pre:RSI
-   15 r16 <- #pre:RAX
-   16 r17 <- #pre:RBX
-   17 r18 <- #pre:RCX
-   18 r19 <- #pre:RDX
-   19 r20 <- #pre:R8
-   20 r21 <- #pre:R9
-   21 r22 <- #pre:R10
-   22 r23 <- #pre:R11
-   23 r24 <- #pre:R12
-   24 r25 <- #pre:R13
-   25 r26 <- #pre:R14
-   26 r27 <- #pre:R15
-   27 r28 <- undef
-   28 r29 <- undef
-   29 r30 <- undef
-   30 r31 <- undef
-   31 r32 <- undef
-   32 r33 <- undef
-   33 r34 <- undef
+program  208 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Undefined
+   28 r29 <- Undefined
+   29 r30 <- Undefined
+   30 r31 <- Undefined
+   31 r32 <- Undefined
+   32 r33 <- Undefined
+   33 r34 <- Undefined
+   34 r35 <- Undefined
+   35 r36 <- Undefined
+   36 r37 <- Undefined
+   37 r38 <- Undefined
 0x4011c9:
-   34 r12 <- addk     r12,-8 qword
-   35 r29 <- store    *r12 ← r11
+   38 r12 <- ArithK8(Add, r12, -8)
+   39 r29 <- StoreMem(r12, r11)
 0x4011ca:
-   36 r11 <- get      r12
+   40 r11 <- Get(r12)
 0x4011cd:
-   37 r16 <- get      r14
+   41 r16 <- Get(r14)
 0x4011d0:
-   38 r18 <- get      r15
+   42 r18 <- Get(r15)
 0x4011d3:
-   39 r16 <- get      r16
+   43 r16 <- Get(r16)
 0x4011d6:
-   40 r28 <- const4   0 (0x0)
-   41 r19 <- v8.l4=   r19 ← r28
+   44 r28 <- Const4(0)
+   45 r19 <- Part { src: r19, offset: 4, size: 4 }
+   46 r19 <- Concat { lo: r28, hi: r19 }
 0x4011db:
-   42 r19 <- get      r18
+   47 r19 <- Get(r18)
 0x4011de:
-   43 r29 <- const8   -32 (0xffffffffffffffe0)
-   44 r29 <- add      r29,r11  qword
-   45 r30 <- store    *r29 ← r16
+   48 r29 <- Const8(-32)
+   49 r29 <- Arith8(Add, r29, r11)
+   50 r30 <- StoreMem(r29, r16)
 0x4011e2:
-   46 r29 <- const8   -24 (0xffffffffffffffe8)
-   47 r29 <- add      r29,r11  qword
-   48 r30 <- store    *r29 ← r19
+   51 r29 <- Const8(-24)
+   52 r29 <- Arith8(Add, r29, r11)
+   53 r30 <- StoreMem(r29, r19)
 0x4011e6:
-   49 r28 <- const4   0 (0x0)
-   50 r29 <- const8   -4 (0xfffffffffffffffc)
-   51 r29 <- add      r29,r11  qword
-   52 r30 <- store    *r29 ← r28
+   54 r28 <- Const4(0)
+   55 r29 <- Const8(-4)
+   56 r29 <- Arith8(Add, r29, r11)
+   57 r30 <- StoreMem(r29, r28)
 0x4011ed:
-   53 r28 <- const4   0 (0x0)
-   54 r29 <- const8   -8 (0xfffffffffffffff8)
-   55 r29 <- add      r29,r11  qword
-   56 r30 <- store    *r29 ← r28
+   58 r28 <- Const4(0)
+   59 r29 <- Const8(-8)
+   60 r29 <- Arith8(Add, r29, r11)
+   61 r30 <- StoreMem(r29, r28)
 0x4011f4:
-   57 r28 <- jmp      169
+   62 r28 <- Jmp(180)
 0x4011f6:
-   58 r28 <- const4   0 (0x0)
-   59 r29 <- const8   -12 (0xfffffffffffffff4)
-   60 r29 <- add      r29,r11  qword
-   61 r30 <- store    *r29 ← r28
+   63 r28 <- Const4(0)
+   64 r29 <- Const8(-12)
+   65 r29 <- Arith8(Add, r29, r11)
+   66 r30 <- StoreMem(r29, r28)
 0x4011fd:
-   62 r28 <- jmp      137
+   67 r28 <- Jmp(147)
 0x4011ff:
-   63 r29 <- const8   -32 (0xffffffffffffffe0)
-   64 r29 <- add      r29,r11  qword
-   65 r28 <- loadm8   addr:r29
-   66 r19 <- get      r28
+   68 r29 <- Const8(-32)
+   69 r29 <- Arith8(Add, r29, r11)
+   70 r28 <- LoadMem8(r29)
+   71 r19 <- Get(r28)
 0x401203:
-   67 r29 <- const8   -20 (0xffffffffffffffec)
-   68 r29 <- add      r29,r11  qword
-   69 r28 <- loadm4   addr:r29
-   70 r16 <- v8.l4=   r16 ← r28
+   72 r29 <- Const8(-20)
+   73 r29 <- Arith8(Add, r29, r11)
+   74 r28 <- LoadMem4(r29)
+   75 r16 <- Part { src: r16, offset: 4, size: 4 }
+   76 r16 <- Concat { lo: r28, hi: r16 }
 0x401206:
-   71 r28 <- TODO     unsupported: imul eax,[rbp-8]
+   77 r28 <- TODO("unsupported: imul eax,[rbp-8]")
 0x40120a:
-   72 r28 <- l4       r16
-   73 r18 <- v8.l4=   r18 ← r28
+   78 r28 <- Part { src: r16, offset: 0, size: 4 }
+   79 r18 <- Part { src: r18, offset: 4, size: 4 }
+   80 r18 <- Concat { lo: r28, hi: r18 }
 0x40120c:
-   74 r29 <- const8   -12 (0xfffffffffffffff4)
-   75 r29 <- add      r29,r11  qword
-   76 r28 <- loadm4   addr:r29
-   77 r16 <- v8.l4=   r16 ← r28
+   81 r29 <- Const8(-12)
+   82 r29 <- Arith8(Add, r29, r11)
+   83 r28 <- LoadMem4(r29)
+   84 r16 <- Part { src: r16, offset: 4, size: 4 }
+   85 r16 <- Concat { lo: r28, hi: r16 }
 0x40120f:
-   78 r28 <- l4       r16
-   79 r29 <- l4       r18
-   80 r28 <- add      r28,r29  dword
-   81 r16 <- v8.l4=   r16 ← r28
-   82 r10 <- overflow r28
-   83 r2 <- carry    r28
-   84 r6 <- sign     r28
-   85 r5 <- is0      r28
-   86 r30 <- l1       r28
-   87 r3 <- parity   r30
+   86 r28 <- Part { src: r16, offset: 0, size: 4 }
+   87 r29 <- Part { src: r18, offset: 0, size: 4 }
+   88 r28 <- Arith4(Add, r28, r29)
+   89 r16 <- Part { src: r16, offset: 4, size: 4 }
+   90 r16 <- Concat { lo: r28, hi: r16 }
+   91 r10 <- OverflowOf(r28)
+   92 r2 <- CarryOf(r28)
+   93 r6 <- SignOf(r28)
+   94 r5 <- IsZero(r28)
+   95 r30 <- Part { src: r28, offset: 0, size: 1 }
+   96 r3 <- Parity(r30)
 0x401211:
-   88 r28 <- TODO     unsupported: cdqe
+   97 r28 <- TODO("unsupported: cdqe")
 0x401213:
-   89 r29 <- const1   2 (0x2)
-   90 r29 <- widen    1->8 r29
-   91 r16 <- shl      r16,r29  qword
-   92 r16 <- get      r16
-   93 r6 <- sign     r16
-   94 r5 <- is0      r16
-   95 r30 <- l1       r16
-   96 r3 <- parity   r30
+   98 r29 <- Const1(2)
+   99 r29 <- Widen1_8(r29)
+  100 r16 <- Arith8(Shl, r16, r29)
+  101 r16 <- Get(r16)
+  102 r6 <- SignOf(r16)
+  103 r5 <- IsZero(r16)
+  104 r30 <- Part { src: r16, offset: 0, size: 1 }
+  105 r3 <- Parity(r30)
 0x401217:
-   97 r16 <- add      r16,r19  qword
-   98 r16 <- get      r16
-   99 r10 <- overflow r16
-  100 r2 <- carry    r16
-  101 r6 <- sign     r16
-  102 r5 <- is0      r16
-  103 r30 <- l1       r16
-  104 r3 <- parity   r30
+  106 r16 <- Arith8(Add, r16, r19)
+  107 r16 <- Get(r16)
+  108 r10 <- OverflowOf(r16)
+  109 r2 <- CarryOf(r16)
+  110 r6 <- SignOf(r16)
+  111 r5 <- IsZero(r16)
+  112 r30 <- Part { src: r16, offset: 0, size: 1 }
+  113 r3 <- Parity(r30)
 0x40121a:
-  105 r29 <- const8   0 (0x0)
-  106 r29 <- add      r29,r16  qword
-  107 r28 <- loadm4   addr:r29
-  108 r16 <- v8.l4=   r16 ← r28
+  114 r29 <- Const8(0)
+  115 r29 <- Arith8(Add, r29, r16)
+  116 r28 <- LoadMem4(r29)
+  117 r16 <- Part { src: r16, offset: 4, size: 4 }
+  118 r16 <- Concat { lo: r28, hi: r16 }
 0x40121c:
-  109 r29 <- const8   -4 (0xfffffffffffffffc)
-  110 r29 <- add      r29,r11  qword
-  111 r28 <- loadm4   addr:r29
-  112 r30 <- l4       r16
-  113 r28 <- add      r28,r30  dword
-  114 r31 <- const8   -4 (0xfffffffffffffffc)
-  115 r31 <- add      r31,r11  qword
-  116 r32 <- store    *r31 ← r28
-  117 r10 <- overflow r28
-  118 r2 <- carry    r28
-  119 r6 <- sign     r28
-  120 r5 <- is0      r28
-  121 r33 <- l1       r28
-  122 r3 <- parity   r33
+  119 r29 <- Const8(-4)
+  120 r29 <- Arith8(Add, r29, r11)
+  121 r28 <- LoadMem4(r29)
+  122 r30 <- Part { src: r16, offset: 0, size: 4 }
+  123 r28 <- Arith4(Add, r28, r30)
+  124 r31 <- Const8(-4)
+  125 r31 <- Arith8(Add, r31, r11)
+  126 r32 <- StoreMem(r31, r28)
+  127 r10 <- OverflowOf(r28)
+  128 r2 <- CarryOf(r28)
+  129 r6 <- SignOf(r28)
+  130 r5 <- IsZero(r28)
+  131 r33 <- Part { src: r28, offset: 0, size: 1 }
+  132 r3 <- Parity(r33)
 0x40121f:
-  123 r29 <- const8   -12 (0xfffffffffffffff4)
-  124 r29 <- add      r29,r11  qword
-  125 r28 <- loadm4   addr:r29
-  126 r30 <- const4   1 (0x1)
-  127 r28 <- add      r28,r30  dword
-  128 r31 <- const8   -12 (0xfffffffffffffff4)
-  129 r31 <- add      r31,r11  qword
-  130 r32 <- store    *r31 ← r28
-  131 r10 <- overflow r28
-  132 r2 <- carry    r28
-  133 r6 <- sign     r28
-  134 r5 <- is0      r28
-  135 r33 <- l1       r28
-  136 r3 <- parity   r33
+  133 r29 <- Const8(-12)
+  134 r29 <- Arith8(Add, r29, r11)
+  135 r28 <- LoadMem4(r29)
+  136 r30 <- Const4(1)
+  137 r28 <- Arith4(Add, r28, r30)
+  138 r31 <- Const8(-12)
+  139 r31 <- Arith8(Add, r31, r11)
+  140 r32 <- StoreMem(r31, r28)
+  141 r10 <- OverflowOf(r28)
+  142 r2 <- CarryOf(r28)
+  143 r6 <- SignOf(r28)
+  144 r5 <- IsZero(r28)
+  145 r33 <- Part { src: r28, offset: 0, size: 1 }
+  146 r3 <- Parity(r33)
 0x401223:
-  137 r29 <- const8   -20 (0xffffffffffffffec)
-  138 r29 <- add      r29,r11  qword
-  139 r28 <- loadm4   addr:r29
-  140 r16 <- v8.l4=   r16 ← r28
+  147 r29 <- Const8(-20)
+  148 r29 <- Arith8(Add, r29, r11)
+  149 r28 <- LoadMem4(r29)
+  150 r16 <- Part { src: r16, offset: 4, size: 4 }
+  151 r16 <- Concat { lo: r28, hi: r16 }
 0x401226:
-  141 r29 <- const8   -12 (0xfffffffffffffff4)
-  142 r29 <- add      r29,r11  qword
-  143 r28 <- loadm4   addr:r29
-  144 r30 <- l4       r16
-  145 r28 <- sub      r28,r30  dword
-  146 r10 <- overflow r28
-  147 r2 <- carry    r28
-  148 r6 <- sign     r28
-  149 r5 <- is0      r28
-  150 r31 <- l1       r28
-  151 r3 <- parity   r31
+  152 r29 <- Const8(-12)
+  153 r29 <- Arith8(Add, r29, r11)
+  154 r28 <- LoadMem4(r29)
+  155 r30 <- Part { src: r16, offset: 0, size: 4 }
+  156 r28 <- Arith4(Sub, r28, r30)
+  157 r10 <- OverflowOf(r28)
+  158 r2 <- CarryOf(r28)
+  159 r6 <- SignOf(r28)
+  160 r5 <- IsZero(r28)
+  161 r31 <- Part { src: r28, offset: 0, size: 1 }
+  162 r3 <- Parity(r31)
 0x401229:
-  152 r28 <- ==       r6,r10
-  153 r28 <- not      r28
-  154 r29 <- jmp.if   r28,63
+  163 r28 <- Cmp(EQ, r6, r10)
+  164 r28 <- Not(r28)
+  165 r29 <- JmpIf { cond: r28, target: 68 }
 0x40122b:
-  155 r29 <- const8   -8 (0xfffffffffffffff8)
-  156 r29 <- add      r29,r11  qword
-  157 r28 <- loadm4   addr:r29
-  158 r30 <- const4   1 (0x1)
-  159 r28 <- add      r28,r30  dword
-  160 r31 <- const8   -8 (0xfffffffffffffff8)
-  161 r31 <- add      r31,r11  qword
-  162 r32 <- store    *r31 ← r28
-  163 r10 <- overflow r28
-  164 r2 <- carry    r28
-  165 r6 <- sign     r28
-  166 r5 <- is0      r28
-  167 r33 <- l1       r28
-  168 r3 <- parity   r33
+  166 r29 <- Const8(-8)
+  167 r29 <- Arith8(Add, r29, r11)
+  168 r28 <- LoadMem4(r29)
+  169 r30 <- Const4(1)
+  170 r28 <- Arith4(Add, r28, r30)
+  171 r31 <- Const8(-8)
+  172 r31 <- Arith8(Add, r31, r11)
+  173 r32 <- StoreMem(r31, r28)
+  174 r10 <- OverflowOf(r28)
+  175 r2 <- CarryOf(r28)
+  176 r6 <- SignOf(r28)
+  177 r5 <- IsZero(r28)
+  178 r33 <- Part { src: r28, offset: 0, size: 1 }
+  179 r3 <- Parity(r33)
 0x40122f:
-  169 r29 <- const8   -24 (0xffffffffffffffe8)
-  170 r29 <- add      r29,r11  qword
-  171 r28 <- loadm4   addr:r29
-  172 r16 <- v8.l4=   r16 ← r28
+  180 r29 <- Const8(-24)
+  181 r29 <- Arith8(Add, r29, r11)
+  182 r28 <- LoadMem4(r29)
+  183 r16 <- Part { src: r16, offset: 4, size: 4 }
+  184 r16 <- Concat { lo: r28, hi: r16 }
 0x401232:
-  173 r29 <- const8   -8 (0xfffffffffffffff8)
-  174 r29 <- add      r29,r11  qword
-  175 r28 <- loadm4   addr:r29
-  176 r30 <- l4       r16
-  177 r28 <- sub      r28,r30  dword
-  178 r10 <- overflow r28
-  179 r2 <- carry    r28
-  180 r6 <- sign     r28
-  181 r5 <- is0      r28
-  182 r31 <- l1       r28
-  183 r3 <- parity   r31
+  185 r29 <- Const8(-8)
+  186 r29 <- Arith8(Add, r29, r11)
+  187 r28 <- LoadMem4(r29)
+  188 r30 <- Part { src: r16, offset: 0, size: 4 }
+  189 r28 <- Arith4(Sub, r28, r30)
+  190 r10 <- OverflowOf(r28)
+  191 r2 <- CarryOf(r28)
+  192 r6 <- SignOf(r28)
+  193 r5 <- IsZero(r28)
+  194 r31 <- Part { src: r28, offset: 0, size: 1 }
+  195 r3 <- Parity(r31)
 0x401235:
-  184 r28 <- ==       r6,r10
-  185 r28 <- not      r28
-  186 r29 <- jmp.if   r28,58
+  196 r28 <- Cmp(EQ, r6, r10)
+  197 r28 <- Not(r28)
+  198 r29 <- JmpIf { cond: r28, target: 63 }
 0x401237:
-  187 r29 <- const8   -4 (0xfffffffffffffffc)
-  188 r29 <- add      r29,r11  qword
-  189 r28 <- loadm4   addr:r29
-  190 r16 <- v8.l4=   r16 ← r28
+  199 r29 <- Const8(-4)
+  200 r29 <- Arith8(Add, r29, r11)
+  201 r28 <- LoadMem4(r29)
+  202 r16 <- Part { src: r16, offset: 4, size: 4 }
+  203 r16 <- Concat { lo: r28, hi: r16 }
 0x40123a:
-  191 r28 <- loadm8   addr:r12
-  192 r11 <- get      r28
-  193 r12 <- addk     r12,8 qword
+  204 r28 <- LoadMem8(r12)
+  205 r11 <- Get(r28)
+  206 r12 <- ArithK8(Add, r12, 8)
 0x40123b:
-  194 r28 <- ret      r16
+  207 r28 <- Ret(r16)
 
 
 ssa pre-xform:
-ssa program  112 instrs
-.B0:    ;;  addr:0x0; 58 insn 0 phis
-         r10 <- #pre:RBP
-         r11 <- #pre:RSP
-  (  2)  r13 <- #pre:RDI
-  (  2)  r14 <- #pre:RSI
-  ( 20)  r34 <- addk     r11,-8 qword
-         r35 <- store    *r34 ← r10
-         r43 <- const8   -32 (0xffffffffffffffe0)
-         r44 <- add      r43,r34  qword
-         r45 <- store    *r44 ← r13
-         r46 <- const8   -24 (0xffffffffffffffe8)
-         r47 <- add      r46,r34  qword
-         r48 <- store    *r47 ← r14
-         r49 <- const4   0 (0x0)
-         r50 <- const8   -4 (0xfffffffffffffffc)
-         r51 <- add      r50,r34  qword
-         r52 <- store    *r51 ← r49
-         r53 <- const4   0 (0x0)
-         r54 <- const8   -8 (0xfffffffffffffff8)
-         r55 <- add      r54,r34  qword
-         r56 <- store    *r55 ← r53
-         r57 <- jmp      169
-.B5:    ;;  preds:B0,B4  addr:0x40122f; 18 insn 1 phis
+ssa program  120 instrs
+.B0:    ;;  addr:0x0; 63 insn 0 phis
+         r10 <- Ancestral(AncestralName("RBP"))
+         r11 <- Ancestral(AncestralName("RSP"))
+  (  2)  r13 <- Ancestral(AncestralName("RDI"))
+  (  2)  r14 <- Ancestral(AncestralName("RSI"))
+  ( 20)  r38 <- ArithK8(Add, r11, -8)
+         r39 <- StoreMem(r38, r10)
+         r48 <- Const8(-32)
+         r49 <- Arith8(Add, r48, r38)
+         r50 <- StoreMem(r49, r13)
+         r51 <- Const8(-24)
+         r52 <- Arith8(Add, r51, r38)
+         r53 <- StoreMem(r52, r14)
+         r54 <- Const4(0)
+         r55 <- Const8(-4)
+         r56 <- Arith8(Add, r55, r38)
+         r57 <- StoreMem(r56, r54)
+         r58 <- Const4(0)
+         r59 <- Const8(-8)
+         r60 <- Arith8(Add, r59, r38)
+         r61 <- StoreMem(r60, r58)
+         r62 <- Jmp(180)
+.B5:    ;;  preds:B0,B4  addr:0x40122f; 19 insn 1 phis
                   ɸ  B0     B4     
-           r198   <- r13    r140   
-         r169 <- const8   -24 (0xffffffffffffffe8)
-         r170 <- add      r169,r34  qword
-         r171 <- loadm4   addr:r170
-  (  3)  r172 <- v8.l4=   r198 ← r171
-         r173 <- const8   -8 (0xfffffffffffffff8)
-         r174 <- add      r173,r34  qword
-         r175 <- loadm4   addr:r174
-         r176 <- l4       r172
-  (  2)  r177 <- sub      r175,r176  dword
-         r178 <- overflow r177
-         r180 <- sign     r177
-         r184 <- ==       r180,r178
-         r185 <- not      r184
-         r186 <- jmp.if   r185,58
+           r211   <- r13    r151   
+         r180 <- Const8(-24)
+         r181 <- Arith8(Add, r180, r38)
+         r182 <- LoadMem4(r181)
+         r183 <- Part { src: r211, offset: 4, size: 4 }
+  (  3)  r184 <- Concat { lo: r182, hi: r183 }
+         r185 <- Const8(-8)
+         r186 <- Arith8(Add, r185, r38)
+         r187 <- LoadMem4(r186)
+         r188 <- Part { src: r184, offset: 0, size: 4 }
+  (  2)  r189 <- Arith4(Sub, r187, r188)
+         r190 <- OverflowOf(r189)
+         r192 <- SignOf(r189)
+         r196 <- Cmp(EQ, r192, r190)
+         r197 <- Not(r196)
+         r198 <- JmpIf { cond: r197, target: 63 }
 .B1:    ;;  preds:B5  addr:0x4011f6; 5 insn 0 phis
-         r58 <- const4   0 (0x0)
-         r59 <- const8   -12 (0xfffffffffffffff4)
-         r60 <- add      r59,r34  qword
-         r61 <- store    *r60 ← r58
-         r62 <- jmp      137
-.B3:    ;;  preds:B1,B2  addr:0x401223; 18 insn 1 phis
+         r63 <- Const4(0)
+         r64 <- Const8(-12)
+         r65 <- Arith8(Add, r64, r38)
+         r66 <- StoreMem(r65, r63)
+         r67 <- Jmp(147)
+.B3:    ;;  preds:B1,B2  addr:0x401223; 19 insn 1 phis
                   ɸ  B1     B2     
-           r195   <- r172   r108   
-         r137 <- const8   -20 (0xffffffffffffffec)
-         r138 <- add      r137,r34  qword
-         r139 <- loadm4   addr:r138
-  (  3)  r140 <- v8.l4=   r195 ← r139
-         r141 <- const8   -12 (0xfffffffffffffff4)
-         r142 <- add      r141,r34  qword
-         r143 <- loadm4   addr:r142
-         r144 <- l4       r140
-  (  2)  r145 <- sub      r143,r144  dword
-         r146 <- overflow r145
-         r148 <- sign     r145
-         r152 <- ==       r148,r146
-         r153 <- not      r152
-         r154 <- jmp.if   r153,63
-.B2:    ;;  preds:B3  addr:0x4011ff; 74 insn 0 phis
-         r63 <- const8   -32 (0xffffffffffffffe0)
-         r64 <- add      r63,r34  qword
-  (  2)  r65 <- loadm8   addr:r64
-         r67 <- const8   -20 (0xffffffffffffffec)
-         r68 <- add      r67,r34  qword
-         r69 <- loadm4   addr:r68
-  (  3)  r70 <- v8.l4=   r140 ← r69
-         r71 <- TODO     unsupported: imul eax,[rbp-8]
-         r72 <- l4       r70
-         r73 <- v8.l4=   r14 ← r72
-         r74 <- const8   -12 (0xfffffffffffffff4)
-         r75 <- add      r74,r34  qword
-  (  2)  r76 <- loadm4   addr:r75
-  (  2)  r77 <- v8.l4=   r70 ← r76
-         r78 <- l4       r77
-         r79 <- l4       r73
-         r80 <- add      r78,r79  dword
-         r81 <- v8.l4=   r77 ← r80
-         r88 <- TODO     unsupported: cdqe
-         r89 <- const1   2 (0x2)
-         r90 <- widen    1->8 r89
-  (  2)  r91 <- shl      r81,r90  qword
-  (  2)  r97 <- add      r91,r65  qword
-         r105 <- const8   0 (0x0)
-         r106 <- add      r105,r97  qword
-         r107 <- loadm4   addr:r106
-  (  2)  r108 <- v8.l4=   r97 ← r107
-         r109 <- const8   -4 (0xfffffffffffffffc)
-         r110 <- add      r109,r34  qword
-         r111 <- loadm4   addr:r110
-         r112 <- l4       r108
-         r113 <- add      r111,r112  dword
-         r114 <- const8   -4 (0xfffffffffffffffc)
-         r115 <- add      r114,r34  qword
-         r116 <- store    *r115 ← r113
-         r123 <- const8   -12 (0xfffffffffffffff4)
-         r124 <- add      r123,r34  qword
-         r125 <- loadm4   addr:r124
-         r126 <- const4   1 (0x1)
-         r127 <- add      r125,r126  dword
-         r128 <- const8   -12 (0xfffffffffffffff4)
-         r129 <- add      r128,r34  qword
-         r130 <- store    *r129 ← r127
+           r208   <- r184   r118   
+         r147 <- Const8(-20)
+         r148 <- Arith8(Add, r147, r38)
+         r149 <- LoadMem4(r148)
+         r150 <- Part { src: r208, offset: 4, size: 4 }
+  (  3)  r151 <- Concat { lo: r149, hi: r150 }
+         r152 <- Const8(-12)
+         r153 <- Arith8(Add, r152, r38)
+         r154 <- LoadMem4(r153)
+         r155 <- Part { src: r151, offset: 0, size: 4 }
+  (  2)  r156 <- Arith4(Sub, r154, r155)
+         r157 <- OverflowOf(r156)
+         r159 <- SignOf(r156)
+         r163 <- Cmp(EQ, r159, r157)
+         r164 <- Not(r163)
+         r165 <- JmpIf { cond: r164, target: 68 }
+.B2:    ;;  preds:B3  addr:0x4011ff; 79 insn 0 phis
+         r68 <- Const8(-32)
+         r69 <- Arith8(Add, r68, r38)
+         r70 <- LoadMem8(r69)
+         r72 <- Const8(-20)
+         r73 <- Arith8(Add, r72, r38)
+         r74 <- LoadMem4(r73)
+         r75 <- Part { src: r151, offset: 4, size: 4 }
+  (  2)  r76 <- Concat { lo: r74, hi: r75 }
+         r77 <- TODO("unsupported: imul eax,[rbp-8]")
+         r78 <- Part { src: r76, offset: 0, size: 4 }
+         r79 <- Part { src: r14, offset: 4, size: 4 }
+         r80 <- Concat { lo: r78, hi: r79 }
+         r81 <- Const8(-12)
+         r82 <- Arith8(Add, r81, r38)
+         r83 <- LoadMem4(r82)
+         r84 <- Part { src: r76, offset: 4, size: 4 }
+  (  2)  r85 <- Concat { lo: r83, hi: r84 }
+         r86 <- Part { src: r85, offset: 0, size: 4 }
+         r87 <- Part { src: r80, offset: 0, size: 4 }
+         r88 <- Arith4(Add, r86, r87)
+         r89 <- Part { src: r85, offset: 4, size: 4 }
+         r90 <- Concat { lo: r88, hi: r89 }
+         r97 <- TODO("unsupported: cdqe")
+         r98 <- Const1(2)
+         r99 <- Widen1_8(r98)
+         r100 <- Arith8(Shl, r90, r99)
+  (  2)  r106 <- Arith8(Add, r100, r70)
+         r114 <- Const8(0)
+         r115 <- Arith8(Add, r114, r106)
+         r116 <- LoadMem4(r115)
+         r117 <- Part { src: r106, offset: 4, size: 4 }
+  (  2)  r118 <- Concat { lo: r116, hi: r117 }
+         r119 <- Const8(-4)
+         r120 <- Arith8(Add, r119, r38)
+         r121 <- LoadMem4(r120)
+         r122 <- Part { src: r118, offset: 0, size: 4 }
+         r123 <- Arith4(Add, r121, r122)
+         r124 <- Const8(-4)
+         r125 <- Arith8(Add, r124, r38)
+         r126 <- StoreMem(r125, r123)
+         r133 <- Const8(-12)
+         r134 <- Arith8(Add, r133, r38)
+         r135 <- LoadMem4(r134)
+         r136 <- Const4(1)
+         r137 <- Arith4(Add, r135, r136)
+         r138 <- Const8(-12)
+         r139 <- Arith8(Add, r138, r38)
+         r140 <- StoreMem(r139, r137)
 .B4:    ;;  preds:B3  addr:0x40122b; 14 insn 0 phis
-         r155 <- const8   -8 (0xfffffffffffffff8)
-         r156 <- add      r155,r34  qword
-         r157 <- loadm4   addr:r156
-         r158 <- const4   1 (0x1)
-         r159 <- add      r157,r158  dword
-         r160 <- const8   -8 (0xfffffffffffffff8)
-         r161 <- add      r160,r34  qword
-         r162 <- store    *r161 ← r159
-.B6:    ;;  preds:B5  addr:0x401237; 8 insn 0 phis
-         r187 <- const8   -4 (0xfffffffffffffffc)
-         r188 <- add      r187,r34  qword
-         r189 <- loadm4   addr:r188
-         r190 <- v8.l4=   r172 ← r189
-         r194 <- ret      r190
+         r166 <- Const8(-8)
+         r167 <- Arith8(Add, r166, r38)
+         r168 <- LoadMem4(r167)
+         r169 <- Const4(1)
+         r170 <- Arith4(Add, r168, r169)
+         r171 <- Const8(-8)
+         r172 <- Arith8(Add, r171, r38)
+         r173 <- StoreMem(r172, r170)
+.B6:    ;;  preds:B5  addr:0x401237; 9 insn 0 phis
+         r199 <- Const8(-4)
+         r200 <- Arith8(Add, r199, r38)
+         r201 <- LoadMem4(r200)
+         r202 <- Part { src: r184, offset: 4, size: 4 }
+         r203 <- Concat { lo: r201, hi: r202 }
+         r207 <- Ret(r203)
 
 
 ssa post-xform:
-ssa program  80 instrs
-.B0:    ;;  addr:0x0; 58 insn 0 phis
-         r10 <- #pre:RBP
-  ( 20)  r11 <- #pre:RSP
-  (  2)  r13 <- #pre:RDI
-         r14 <- #pre:RSI
-         r34 <- addk     r11,-8 qword
-         r35 <- store    *r34 ← r10
-         r44 <- addk     r11,-40 qword
-         r45 <- store    *r44 ← r13
-         r47 <- addk     r11,-32 qword
-         r48 <- store    *r47 ← r14
-         r49 <- const4   0 (0x0)
-         r51 <- addk     r11,-12 qword
-         r52 <- store    *r51 ← r49
-         r53 <- const4   0 (0x0)
-         r55 <- addk     r11,-16 qword
-         r56 <- store    *r55 ← r53
-         r57 <- jmp      169
-.B5:    ;;  preds:B0,B4  addr:0x40122f; 18 insn 1 phis
+ssa program  94 instrs
+.B0:    ;;  addr:0x0; 63 insn 0 phis
+         r10 <- Ancestral(AncestralName("RBP"))
+  ( 20)  r11 <- Ancestral(AncestralName("RSP"))
+  (  2)  r13 <- Ancestral(AncestralName("RDI"))
+         r14 <- Ancestral(AncestralName("RSI"))
+         r38 <- ArithK8(Add, r11, -8)
+         r39 <- StoreMem(r38, r10)
+         r49 <- ArithK8(Add, r11, -40)
+         r50 <- StoreMem(r49, r13)
+         r52 <- ArithK8(Add, r11, -32)
+         r53 <- StoreMem(r52, r14)
+         r54 <- Const4(0)
+         r56 <- ArithK8(Add, r11, -12)
+         r57 <- StoreMem(r56, r54)
+         r58 <- Const4(0)
+         r60 <- ArithK8(Add, r11, -16)
+         r61 <- StoreMem(r60, r58)
+         r62 <- Jmp(180)
+.B5:    ;;  preds:B0,B4  addr:0x40122f; 19 insn 1 phis
                   ɸ  B0     B4     
-  (  2)    r198   <- r13    r140   
-         r170 <- addk     r11,-32 qword
-  (  2)  r171 <- loadm4   addr:r170
-         r172 <- v8.l4=   r198 ← r171
-         r174 <- addk     r11,-16 qword
-         r175 <- loadm4   addr:r174
-  (  2)  r177 <- sub      r175,r171  dword
-         r178 <- overflow r177
-         r180 <- sign     r177
-         r184 <- ==       r180,r178
-         r185 <- not      r184
-         r186 <- jmp.if   r185,58
+           r211   <- r13    r151   
+         r181 <- ArithK8(Add, r11, -32)
+  (  2)  r182 <- LoadMem4(r181)
+  (  2)  r183 <- Part { src: r211, offset: 4, size: 4 }
+         r184 <- Concat { lo: r182, hi: r183 }
+         r186 <- ArithK8(Add, r11, -16)
+         r187 <- LoadMem4(r186)
+         r188 <- Part { src: r182, offset: 0, size: 4 }
+  (  2)  r189 <- Arith4(Sub, r187, r188)
+         r190 <- OverflowOf(r189)
+         r192 <- SignOf(r189)
+         r196 <- Cmp(EQ, r192, r190)
+         r197 <- Not(r196)
+         r198 <- JmpIf { cond: r197, target: 63 }
 .B1:    ;;  preds:B5  addr:0x4011f6; 5 insn 0 phis
-         r58 <- const4   0 (0x0)
-         r60 <- addk     r11,-20 qword
-         r61 <- store    *r60 ← r58
-         r62 <- jmp      137
-.B3:    ;;  preds:B1,B2  addr:0x401223; 18 insn 1 phis
+         r63 <- Const4(0)
+         r65 <- ArithK8(Add, r11, -20)
+         r66 <- StoreMem(r65, r63)
+         r67 <- Jmp(147)
+.B3:    ;;  preds:B1,B2  addr:0x401223; 19 insn 1 phis
                   ɸ  B1     B2     
-  (  2)    r195   <- r172   r108   
-         r138 <- addk     r11,-28 qword
-  (  2)  r139 <- loadm4   addr:r138
-         r140 <- v8.l4=   r195 ← r139
-         r142 <- addk     r11,-20 qword
-         r143 <- loadm4   addr:r142
-  (  2)  r145 <- sub      r143,r139  dword
-         r146 <- overflow r145
-         r148 <- sign     r145
-         r152 <- ==       r148,r146
-         r153 <- not      r152
-         r154 <- jmp.if   r153,63
-.B2:    ;;  preds:B3  addr:0x4011ff; 74 insn 0 phis
-         r64 <- addk     r11,-40 qword
-  (  2)  r65 <- loadm8   addr:r64
-         r68 <- addk     r11,-28 qword
-         r69 <- loadm4   addr:r68
-         r71 <- TODO     unsupported: imul eax,[rbp-8]
-         r75 <- addk     r11,-20 qword
-         r76 <- loadm4   addr:r75
-         r80 <- add      r76,r69  dword
-         r81 <- v8.l4=   r195 ← r80
-         r88 <- TODO     unsupported: cdqe
-         r89 <- const1   2 (0x2)
-         r90 <- widen    1->8 r89
-  (  2)  r91 <- shl      r81,r90  qword
-  (  2)  r97 <- add      r91,r65  qword
-  (  2)  r107 <- loadm4   addr:r97
-         r108 <- v8.l4=   r97 ← r107
-         r110 <- addk     r11,-12 qword
-         r111 <- loadm4   addr:r110
-         r113 <- add      r111,r107  dword
-         r115 <- addk     r11,-12 qword
-         r116 <- store    *r115 ← r113
-         r124 <- addk     r11,-20 qword
-         r125 <- loadm4   addr:r124
-         r127 <- addk     r125,1 qword
-         r129 <- addk     r11,-20 qword
-         r130 <- store    *r129 ← r127
+           r208   <- r184   r118   
+         r148 <- ArithK8(Add, r11, -28)
+  (  2)  r149 <- LoadMem4(r148)
+  (  2)  r150 <- Part { src: r208, offset: 4, size: 4 }
+         r151 <- Concat { lo: r149, hi: r150 }
+         r153 <- ArithK8(Add, r11, -20)
+         r154 <- LoadMem4(r153)
+         r155 <- Part { src: r149, offset: 0, size: 4 }
+  (  2)  r156 <- Arith4(Sub, r154, r155)
+         r157 <- OverflowOf(r156)
+         r159 <- SignOf(r156)
+         r163 <- Cmp(EQ, r159, r157)
+         r164 <- Not(r163)
+         r165 <- JmpIf { cond: r164, target: 68 }
+.B2:    ;;  preds:B3  addr:0x4011ff; 79 insn 0 phis
+         r69 <- ArithK8(Add, r11, -40)
+  (  2)  r70 <- LoadMem8(r69)
+         r73 <- ArithK8(Add, r11, -28)
+         r74 <- LoadMem4(r73)
+         r75 <- Part { src: r150, offset: 0, size: 4 }
+         r77 <- TODO("unsupported: imul eax,[rbp-8]")
+         r78 <- Part { src: r74, offset: 0, size: 4 }
+         r82 <- ArithK8(Add, r11, -20)
+         r83 <- LoadMem4(r82)
+         r84 <- Part { src: r75, offset: 0, size: 4 }
+         r86 <- Part { src: r83, offset: 0, size: 4 }
+         r87 <- Part { src: r78, offset: 0, size: 4 }
+         r88 <- Arith4(Add, r86, r87)
+         r89 <- Part { src: r84, offset: 0, size: 4 }
+         r90 <- Concat { lo: r88, hi: r89 }
+         r97 <- TODO("unsupported: cdqe")
+         r98 <- Const1(2)
+         r99 <- Widen1_8(r98)
+  (  2)  r100 <- Arith8(Shl, r90, r99)
+         r106 <- Arith8(Add, r100, r70)
+         r115 <- Get(r106)
+  (  2)  r116 <- LoadMem4(r115)
+         r117 <- Part { src: r106, offset: 4, size: 4 }
+         r118 <- Concat { lo: r116, hi: r117 }
+         r120 <- ArithK8(Add, r11, -12)
+         r121 <- LoadMem4(r120)
+         r122 <- Part { src: r116, offset: 0, size: 4 }
+         r123 <- Arith4(Add, r121, r122)
+         r125 <- ArithK8(Add, r11, -12)
+         r126 <- StoreMem(r125, r123)
+         r134 <- ArithK8(Add, r11, -20)
+         r135 <- LoadMem4(r134)
+         r137 <- ArithK8(Add, r135, 1)
+         r139 <- ArithK8(Add, r11, -20)
+         r140 <- StoreMem(r139, r137)
 .B4:    ;;  preds:B3  addr:0x40122b; 14 insn 0 phis
-         r156 <- addk     r11,-16 qword
-         r157 <- loadm4   addr:r156
-         r159 <- addk     r157,1 qword
-         r161 <- addk     r11,-16 qword
-         r162 <- store    *r161 ← r159
-.B6:    ;;  preds:B5  addr:0x401237; 8 insn 0 phis
-         r188 <- addk     r11,-12 qword
-         r189 <- loadm4   addr:r188
-         r190 <- v8.l4=   r198 ← r189
-         r194 <- ret      r190
+         r167 <- ArithK8(Add, r11, -16)
+         r168 <- LoadMem4(r167)
+         r170 <- ArithK8(Add, r168, 1)
+         r172 <- ArithK8(Add, r11, -16)
+         r173 <- StoreMem(r172, r170)
+.B6:    ;;  preds:B5  addr:0x401237; 9 insn 0 phis
+         r200 <- ArithK8(Add, r11, -12)
+         r201 <- LoadMem4(r200)
+         r202 <- Part { src: r183, offset: 0, size: 4 }
+         r203 <- Concat { lo: r201, hi: r202 }
+         r207 <- Ret(r203)
 
 
 T0(): {
@@ -500,38 +535,39 @@ T0(): {
   [pre:RSP + -12] = 0x0 /* 0 */;
   [pre:RSP + -16] = 0x0 /* 0 */;
   goto T5 (
-    r198 = pre:RDI
+    r211 = pre:RDI
   )
   
-  T5(r198): {
-    let r177 = [pre:RSP + -16]:4 - [pre:RSP + -32]:4;
-    if !(EQ(SignOf(r177), OverflowOf(r177))) {
+  T5(r211): {
+    let r183 = r211[4 .. 8];
+    let r189 = [pre:RSP + -16]:4 - [pre:RSP + -32]:4[0 .. 4];
+    if !(EQ(SignOf(r189), OverflowOf(r189))) {
       [pre:RSP + -20] = 0x0 /* 0 */;
       goto T3 (
-        r195 = V8WithL4(r198, [pre:RSP + -32]:4)
+        r208 = r183⧺[pre:RSP + -32]:4
       )
       
-      T3(r195): {
-        let r145 = [pre:RSP + -20]:4 - [pre:RSP + -28]:4;
-        if !(EQ(SignOf(r145), OverflowOf(r145))) {
+      T3(r208): {
+        let r150 = r208[4 .. 8];
+        let r156 = [pre:RSP + -20]:4 - [pre:RSP + -28]:4[0 .. 4];
+        if !(EQ(SignOf(r156), OverflowOf(r156))) {
           TODO /* unsupported: imul eax,[rbp-8] */;
           TODO /* unsupported: cdqe */;
-          let r91 = V8WithL4(r195, [pre:RSP + -20]:4 + [pre:RSP + -28]:4) / Widen1_8(0x2 /* 2 */);
-          let r97 = r91 + [pre:RSP + -40]:8;
-          [pre:RSP + -12] = [pre:RSP + -12]:4 + [r97]:4;
+          let r100 = r150[0 .. 4][0 .. 4][0 .. 4]⧺[pre:RSP + -20]:4[0 .. 4] + [pre:RSP + -28]:4[0 .. 4][0 .. 4] / Widen1_8(0x2 /* 2 */);
+          [pre:RSP + -12] = [pre:RSP + -12]:4 + [r100 + [pre:RSP + -40]:8]:4[0 .. 4];
           [pre:RSP + -20] = [pre:RSP + -20]:4 + 1;
           loop T3 (
-            r195 = V8WithL4(r97, [r97]:4)
+            r208 = r100 + [pre:RSP + -40]:8[4 .. 8]⧺[r100 + [pre:RSP + -40]:8]:4
           )
         
         }
         [pre:RSP + -16] = [pre:RSP + -16]:4 + 1;
         loop T5 (
-          r198 = V8WithL4(r195, [pre:RSP + -28]:4)
+          r211 = r150⧺[pre:RSP + -28]:4
         )
       }
     
     }
-    Ret(V8WithL4(r198, [pre:RSP + -12]:4));
+    Ret(r183[0 .. 4]⧺[pre:RSP + -12]:4);
   }
 }

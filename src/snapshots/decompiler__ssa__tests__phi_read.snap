@@ -4,15 +4,15 @@ expression: prog
 ---
 ssa program  8 instrs
 .B0:    ;;  addr:0xf0; 2 insn 0 phis
-         r0 <- const8   123 (0x7b)
-         r1 <- jmp.if   r0,4
+         r0 <- Const8(123)
+         r1 <- JmpIf { cond: r0, target: 4 }
 .B2:    ;;  preds:B0  addr:0xf2; 1 insn 0 phis
-         r4 <- const1   8 (0x8)
+         r4 <- Const1(8)
 .B1:    ;;  preds:B0  addr:0xf1; 2 insn 0 phis
-         r2 <- const1   4 (0x4)
-         r3 <- jmp      5
+         r2 <- Const1(4)
+         r3 <- Jmp(5)
 .B3:    ;;  preds:B1,B2  addr:0xf3; 2 insn 1 phis
                   ɸ  B1     B2     
            r7     <- r2     r4     
-         r5 <- addk     r7,456 byte
-         r6 <- ret      r5
+         r5 <- ArithK1(Add, r7, 456)
+         r6 <- Ret(r5)
