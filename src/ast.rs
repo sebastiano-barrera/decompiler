@@ -32,10 +32,7 @@ impl<'a> Ast<'a> {
                     // ancestral values are akin to (named) consts
                     | Insn::Ancestral(_) => false,
 
-                    Insn::Phi1
-                    | Insn::Phi2
-                    | Insn::Phi4
-                    | Insn::Phi8 => true,
+                    Insn::Phi{size:_} => true,
 
                     Insn::Call { .. } => true,
                     _ => ssa.readers_count(dest) > 1,
@@ -189,17 +186,22 @@ impl<'a> Ast<'a> {
             Insn::Const2(k) => return write!(pp, "0x{:x} /* {} */", k, k),
             Insn::Const4(k) => return write!(pp, "0x{:x} /* {} */", k, k),
             Insn::Const8(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::L1(_) => "L1".into(),
-            Insn::L2(_) => "L2".into(),
-            Insn::L4(_) => "L4".into(),
             Insn::Get8(_) => "Get8".into(),
             Insn::StructGet8 {
                 struct_value: _,
                 offset,
             } => format!("StructGet8[{offset}]").into(),
-            Insn::V8WithL1(_, _) => "V8WithL1".into(),
-            Insn::V8WithL2(_, _) => "V8WithL2".into(),
-            Insn::V8WithL4(_, _) => "V8WithL4".into(),
+            Insn::Part { src, offset, size } => {
+                self.pp_arg(pp, src)?;
+                write!(pp, "[{} .. {}]", offset, offset + size)?;
+                return Ok(());
+            }
+            Insn::Concat { lo, hi } => {
+                self.pp_arg(pp, hi)?;
+                write!(pp, "⧺")?;
+                self.pp_arg(pp, lo)?;
+                return Ok(());
+            }
             Insn::Widen1_2(_) => "Widen1_2".into(),
             Insn::Widen1_4(_) => "Widen1_4".into(),
             Insn::Widen1_8(_) => "Widen1_8".into(),
@@ -294,7 +296,7 @@ impl<'a> Ast<'a> {
             Insn::Undefined => "Undefined".into(),
             Insn::Ancestral(anc_name) => return write!(pp, "pre:{}", anc_name.name()),
 
-            Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool | Insn::PhiArg(_) => {
+            Insn::Phi { size: _ } | Insn::PhiBool | Insn::PhiArg(_) => {
                 panic!("phi insns should not be reachable here")
             }
             // handled by pp_block

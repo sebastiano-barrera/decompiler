@@ -3,7 +3,7 @@ source: src/tests.rs
 expression: output
 ---
 mil program = 
-program  72 instrs
+program  78 instrs
     0 r12 <- #pre:stack_bottom
     1 r2 <- #pre:CF
     2 r3 <- #pre:PF
@@ -43,99 +43,109 @@ program  72 instrs
    36 r32 <- undef
    37 r33 <- undef
    38 r34 <- undef
-   39 r28 <- const4   1 (0x1)
-   40 r16 <- v8.l4=   r16 ← r28
-   41 r15 <- and      r15,r15  qword
-   42 r6 <- sign     r15
-   43 r5 <- is0      r15
-   44 r30 <- l1       r15
-   45 r3 <- parity   r15
-   46 r2 <- const1   0 (0x0)
-   47 r10 <- const1   0 (0x0)
-   48 r28 <- jmp.if   r5,71
+   39 r35 <- undef
+   40 r36 <- undef
+   41 r37 <- undef
+   42 r38 <- undef
+   43 r28 <- const4   1 (0x1)
+   44 r16 <- part     r16[4..8]
+   45 r16 <- concat   r16⌢r28
+   46 r15 <- and      r15,r15  qword
+   47 r6 <- sign     r15
+   48 r5 <- is0      r15
+   49 r30 <- part     r15[0..1]
+   50 r3 <- parity   r15
+   51 r2 <- const1   0 (0x0)
+   52 r10 <- const1   0 (0x0)
+   53 r28 <- jmp.if   r5,77
 0x2:
-   49 r28 <- l4       r16
-   50 r28 <- addk     r28,1 dword
-   51 r16 <- v8.l4=   r16 ← r28
-   52 r10 <- false
-   53 r2 <- false
-   54 r6 <- sign     r28
-   55 r5 <- is0      r28
-   56 r29 <- l1       r28
-   57 r3 <- parity   r29
+   54 r28 <- part     r16[0..4]
+   55 r28 <- addk     r28,1 dword
+   56 r16 <- part     r16[4..8]
+   57 r16 <- concat   r16⌢r28
+   58 r10 <- false
+   59 r2 <- false
+   60 r6 <- sign     r28
+   61 r5 <- is0      r28
+   62 r29 <- part     r28[0..1]
+   63 r3 <- parity   r29
 0x0:
-   58 r29 <- const8   8 (0x8)
-   59 r29 <- add      r29,r15  qword
-   60 r28 <- loadm8   addr:r29
-   61 r15 <- get      r28
-   62 r15 <- and      r15,r15  qword
-   63 r6 <- sign     r15
-   64 r5 <- is0      r15
-   65 r30 <- l1       r15
-   66 r3 <- parity   r15
-   67 r2 <- const1   0 (0x0)
-   68 r10 <- const1   0 (0x0)
-   69 r28 <- not      r5
-   70 r29 <- jmp.if   r28,49
+   64 r29 <- const8   8 (0x8)
+   65 r29 <- add      r29,r15  qword
+   66 r28 <- loadm8   addr:r29
+   67 r15 <- get      r28
+   68 r15 <- and      r15,r15  qword
+   69 r6 <- sign     r15
+   70 r5 <- is0      r15
+   71 r30 <- part     r15[0..1]
+   72 r3 <- parity   r15
+   73 r2 <- const1   0 (0x0)
+   74 r10 <- const1   0 (0x0)
+   75 r28 <- not      r5
+   76 r29 <- jmp.if   r28,54
 0x1:
-   71 r28 <- ret      r16
+   77 r28 <- ret      r16
 
 
-ssa program  18 instrs
-.B0:    ;;  addr:0x0; 49 insn 0 phis
-  (  2)  r15 <- #pre:RAX
+ssa program  21 instrs
+.B0:    ;;  addr:0x0; 54 insn 0 phis
+         r15 <- #pre:RAX
          r27 <- #pre:arg0
   (  2)  r30 <- sget8    r27,8
-  (  2)  r39 <- const4   1 (0x1)
-  (  3)  r40 <- v8.l4=   r15 ← r39
-         r43 <- is0      r30
-         r48 <- jmp.if   r43,71
-.B1:    ;;  preds:B0,B1  addr:0x2; 22 insn 2 phis
+  (  2)  r43 <- const4   1 (0x1)
+  (  2)  r44 <- part     r15[4..8]
+  (  2)  r45 <- concat   r44⌢r43
+         r48 <- is0      r30
+         r53 <- jmp.if   r48,77
+.B1:    ;;  preds:B0,B1  addr:0x2; 23 insn 2 phis
                   ɸ  B0     B1     
-           r72    <- r30    r60    
-  (  2)    r75    <- r40    r51    
-         r50 <- addk     r75,1 dword
-  (  3)  r51 <- v8.l4=   r75 ← r50
-         r59 <- addk     r72,8 qword
-  (  2)  r60 <- loadm8   addr:r59
-         r64 <- is0      r60
-         r69 <- not      r64
-         r70 <- jmp.if   r69,49
+           r78    <- r30    r66    
+  (  2)    r81    <- r45    r57    
+         r54 <- part     r81[0..4]
+         r55 <- addk     r54,1 dword
+         r56 <- part     r81[4..8]
+  (  2)  r57 <- concat   r56⌢r55
+         r65 <- addk     r78,8 qword
+  (  2)  r66 <- loadm8   addr:r65
+         r70 <- is0      r66
+         r75 <- not      r70
+         r76 <- jmp.if   r75,54
 .B2:    ;;  preds:B0,B1  addr:0x1; 1 insn 1 phis
                   ɸ  B0     B1     
-           r78    <- r40    r51    
-         r71 <- ret      r78
+           r84    <- r45    r57    
+         r77 <- ret      r84
 
 
 T0(): {
   let r30 = StructGet8[8](pre:arg0);
-  let r40 = V8WithL4(pre:RAX, 0x1 /* 1 */);
+  let r44 = pre:RAX[4 .. 8];
+  let r45 = r44⌢0x1 /* 1 */;
   if IsZero(r30) {
     goto T2 (
-      r78 = r40
+      r84 = r45
     )
   
   }
   goto T1 (
-    r72 = r30
-    r75 = r40
+    r78 = r30
+    r81 = r45
   )
   
-  T1(r72, r75): {
-    let r51 = V8WithL4(r75, r75 + 1);
-    if !(IsZero([r72 + 8]:8)) {
+  T1(r78, r81): {
+    let r57 = r81[4 .. 8]⌢r81[0 .. 4] + 1;
+    if !(IsZero([r78 + 8]:8)) {
       goto T1 (
-        r72 = [r72 + 8]:8
-        r75 = r51
+        r78 = [r78 + 8]:8
+        r81 = r57
       )
     
     }
     goto T2 (
-      r78 = r51
+      r84 = r57
     )
   }
   
-  T2(r78): {
-    Ret(r78);
+  T2(r84): {
+    Ret(r84);
   }
 }

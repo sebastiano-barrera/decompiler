@@ -104,7 +104,66 @@ impl Program {
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
-        self.inner.value_type(reg.0)
+        use mil::{Insn, RegType};
+        match self.inner.get(reg.0).unwrap().insn.get() {
+            Insn::True => RegType::Bool,
+            Insn::False => RegType::Bool,
+            Insn::Const1(_) => RegType::Bytes(1),
+            Insn::Const2(_) => RegType::Bytes(2),
+            Insn::Const4(_) => RegType::Bytes(4),
+            Insn::Const8(_) => RegType::Bytes(8),
+            Insn::Part { size, .. } => RegType::Bytes(size),
+            Insn::Get8(_) => RegType::Bytes(8),
+            Insn::Concat { lo, hi } => {
+                let lo_size = self.value_type(lo).bytes_size().unwrap();
+                let hi_size = self.value_type(hi).bytes_size().unwrap();
+                RegType::Bytes(lo_size + hi_size)
+            }
+            Insn::Widen1_2(_) => RegType::Bytes(2),
+            Insn::Widen1_4(_) => RegType::Bytes(4),
+            Insn::Widen1_8(_) => RegType::Bytes(8),
+            Insn::Widen2_4(_) => RegType::Bytes(4),
+            Insn::Widen2_8(_) => RegType::Bytes(8),
+            Insn::Widen4_8(_) => RegType::Bytes(8),
+            Insn::Arith1(_, _, _) => RegType::Bytes(1),
+            Insn::Arith2(_, _, _) => RegType::Bytes(2),
+            Insn::Arith4(_, _, _) => RegType::Bytes(4),
+            Insn::Arith8(_, _, _) => RegType::Bytes(8),
+            Insn::ArithK1(_, _, _) => RegType::Bytes(1),
+            Insn::ArithK2(_, _, _) => RegType::Bytes(2),
+            Insn::ArithK4(_, _, _) => RegType::Bytes(4),
+            Insn::ArithK8(_, _, _) => RegType::Bytes(8),
+            Insn::Cmp(_, _, _) => RegType::Bool,
+            Insn::Bool(_, _, _) => RegType::Bool,
+            Insn::Not(_) => RegType::Bool,
+            // TODO This might have to change based on the use of calling
+            // convention and function type info
+            Insn::Call(_) => RegType::Bytes(8),
+            Insn::CArg(_) => RegType::Effect,
+            Insn::Ret(_) => RegType::Effect,
+            Insn::JmpInd(_) => RegType::Effect,
+            Insn::Jmp(_) => RegType::Effect,
+            Insn::JmpExt(_) => RegType::Effect,
+            Insn::JmpIf { .. } => RegType::Effect,
+            Insn::JmpExtIf { .. } => RegType::Effect,
+            Insn::TODO(_) => RegType::Effect,
+            Insn::LoadMem1(_) => RegType::Bytes(1),
+            Insn::LoadMem2(_) => RegType::Bytes(2),
+            Insn::LoadMem4(_) => RegType::Bytes(4),
+            Insn::LoadMem8(_) => RegType::Bytes(8),
+            Insn::StoreMem(_, _) => RegType::Effect,
+            Insn::OverflowOf(_) => RegType::Effect,
+            Insn::CarryOf(_) => RegType::Effect,
+            Insn::SignOf(_) => RegType::Effect,
+            Insn::IsZero(_) => RegType::Effect,
+            Insn::Parity(_) => RegType::Effect,
+            Insn::Undefined => RegType::Effect,
+            Insn::Phi { size } => RegType::Bytes(size),
+            Insn::PhiBool => RegType::Bool,
+            Insn::PhiArg(_) => RegType::Effect,
+            Insn::Ancestral(anc_name) => self.inner.ancestor_type(anc_name).unwrap(),
+            Insn::StructGet8 { .. } => RegType::Bytes(8),
+        }
     }
 
     pub fn assert_invariants(&self) {
@@ -441,7 +500,10 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 for ndx in block_phis.ndxs.clone() {
                     let item = program.get(ndx).unwrap();
                     match item.insn.get() {
-                        mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
+                        mil::Insn::Phi { size: 1 }
+                        | mil::Insn::Phi { size: 2 }
+                        | mil::Insn::Phi { size: 4 }
+                        | mil::Insn::Phi { size: 8 } => {
                             var_map.set(item.dest.get(), mil::Reg(ndx));
                             item.dest.set(mil::Reg(ndx));
                         }
@@ -508,10 +570,12 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                             // These are not supposed to exist yet!
                             // Only Phi8 is added by place_phi_nodes; the others
                             // are only placed by narrow_phi_nodes
-                            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
+                            mil::Insn::Phi { size: 1 }
+                            | mil::Insn::Phi { size: 2 }
+                            | mil::Insn::Phi { size: 4 } => {
                                 panic!("unexpected narrow phi node at this phase of ssa conversion")
                             }
-                            mil::Insn::Phi8 => continue,
+                            mil::Insn::Phi { size: 8 } => continue,
                             mil::Insn::PhiArg(arg) => {
                                 // NOTE: the substitution of the *successor's* phi node's argument is
                                 // done in the context of *this* node (its predecessor)
@@ -616,7 +680,7 @@ fn place_phi_nodes(
             if *phis_set.get(bid, reg) {
                 // the largest-width Phi opcode is inserted here; will be
                 // narrowed down in a later phase of ssa construction
-                program.push(reg, mil::Insn::Phi8);
+                program.push(reg, mil::Insn::Phi { size: 8 });
                 phi_count += 1;
 
                 for _pred_ndx in 0..pred_count {
@@ -692,9 +756,10 @@ fn narrow_phi_nodes(program: &mut Program) {
         let insn = iv.insn.get();
 
         match insn {
-            mil::Insn::Phi8 => {}
-            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
-                panic!("narrow_phi_nodes: unexpected narrow phi node")
+            mil::Insn::Phi { size } => {
+                if size != 8 {
+                    panic!("narrow_phi_nodes: unexpected narrow phi node")
+                }
             }
             _ => continue,
         }
@@ -714,10 +779,7 @@ fn narrow_phi_nodes(program: &mut Program) {
 
         let repl_insn = match rt0 {
             mil::RegType::Effect => panic!("malformed ssa: phi node can't have Effect inputs"),
-            mil::RegType::Bytes1 => mil::Insn::Phi1,
-            mil::RegType::Bytes2 => mil::Insn::Phi2,
-            mil::RegType::Bytes4 => mil::Insn::Phi4,
-            mil::RegType::Bytes8 => mil::Insn::Phi8,
+            mil::RegType::Bytes(size) => mil::Insn::Phi { size },
             mil::RegType::Bool => mil::Insn::PhiBool,
         };
         iv.insn.set(repl_insn);
@@ -842,11 +904,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
         visited[reg.reg_index() as usize] = true;
         let insn = prog.get(reg).unwrap().insn.get();
         match insn {
-            mil::Insn::Phi1
-            | mil::Insn::Phi2
-            | mil::Insn::Phi4
-            | mil::Insn::Phi8
-            | mil::Insn::PhiBool => {
+            mil::Insn::Phi { size: _ } | mil::Insn::PhiBool => {
                 for input in prog.get_phi_args(reg) {
                     rdr_count.inc(input);
                     if !visited[input.reg_index() as usize] {
