@@ -1,3 +1,4 @@
+use enum_assoc::Assoc;
 /// Machine-Independent Language
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
@@ -63,7 +64,8 @@ impl RegType {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Assoc)]
+#[func(pub fn has_side_effects(&self) -> bool { false })]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
     True,
@@ -120,23 +122,32 @@ pub enum Insn {
     //  r6 <- carg r3
     // destination vreg r3 is for the return value. r4, r5, r6 are entirely
     // fictitious, they don't correspond to any value.
+    #[assoc(has_side_effects = true)]
     Call(Reg),
+    #[assoc(has_side_effects = true)]
     CArg(Reg),
+    #[assoc(has_side_effects = true)]
     Ret(Reg),
     #[allow(dead_code)]
+    #[assoc(has_side_effects = true)]
     JmpInd(Reg),
+    #[assoc(has_side_effects = true)]
     Jmp(Index),
+    #[assoc(has_side_effects = true)]
     JmpIf {
         cond: Reg,
         target: Index,
     },
+    #[assoc(has_side_effects = true)]
     JmpExt(u64),
+    #[assoc(has_side_effects = true)]
     JmpExtIf {
         cond: Reg,
         addr: u64,
     },
 
     #[allow(clippy::upper_case_acronyms)]
+    #[assoc(has_side_effects = true)]
     TODO(&'static str),
 
     LoadMem1(Reg),
@@ -374,63 +385,6 @@ impl Insn {
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
-        }
-    }
-
-    pub fn has_side_effects(&self) -> bool {
-        match self {
-            Insn::False
-            | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
-            | Insn::Part { .. }
-            | Insn::Get(_)
-            | Insn::Concat { .. }
-            | Insn::Widen1_2(_)
-            | Insn::Widen1_4(_)
-            | Insn::Widen1_8(_)
-            | Insn::Widen2_4(_)
-            | Insn::Widen2_8(_)
-            | Insn::Widen4_8(_)
-            | Insn::Arith1(_, _, _)
-            | Insn::Arith2(_, _, _)
-            | Insn::Arith4(_, _, _)
-            | Insn::Arith8(_, _, _)
-            | Insn::ArithK1(_, _, _)
-            | Insn::ArithK2(_, _, _)
-            | Insn::ArithK4(_, _, _)
-            | Insn::ArithK8(_, _, _)
-            | Insn::Cmp(_, _, _)
-            | Insn::Bool(_, _, _)
-            | Insn::Not(_)
-            | Insn::OverflowOf(_)
-            | Insn::CarryOf(_)
-            | Insn::SignOf(_)
-            | Insn::IsZero(_)
-            | Insn::Parity(_)
-            | Insn::Undefined
-            | Insn::LoadMem1(_)
-            | Insn::LoadMem2(_)
-            | Insn::LoadMem4(_)
-            | Insn::LoadMem8(_)
-            | Insn::Ancestral(_)
-            | Insn::Phi { size: _ }
-            | Insn::PhiBool
-            | Insn::PhiArg { .. }
-            | Insn::StructGet8 { .. } => false,
-
-            Insn::Call { .. }
-            | Insn::CArg { .. }
-            | Insn::Ret(_)
-            | Insn::StoreMem(_, _)
-            | Insn::JmpInd(_)
-            | Insn::JmpExt(_)
-            | Insn::Jmp(_)
-            | Insn::JmpExtIf { .. }
-            | Insn::JmpIf { .. }
-            | Insn::TODO(_) => true,
         }
     }
 
