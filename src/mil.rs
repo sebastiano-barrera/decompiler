@@ -1,3 +1,4 @@
+use enum_assoc::Assoc;
 /// Machine-Independent Language
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
@@ -63,7 +64,8 @@ impl RegType {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Assoc)]
+#[func(pub fn has_side_effects(&self) -> bool { false })]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
     True,
@@ -120,23 +122,32 @@ pub enum Insn {
     //  r6 <- carg r3
     // destination vreg r3 is for the return value. r4, r5, r6 are entirely
     // fictitious, they don't correspond to any value.
+    #[assoc(has_side_effects = true)]
     Call(Reg),
+    #[assoc(has_side_effects = true)]
     CArg(Reg),
+    #[assoc(has_side_effects = true)]
     Ret(Reg),
     #[allow(dead_code)]
+    #[assoc(has_side_effects = true)]
     JmpInd(Reg),
+    #[assoc(has_side_effects = true)]
     Jmp(Index),
+    #[assoc(has_side_effects = true)]
     JmpIf {
         cond: Reg,
         target: Index,
     },
+    #[assoc(has_side_effects = true)]
     JmpExt(u64),
+    #[assoc(has_side_effects = true)]
     JmpExtIf {
         cond: Reg,
         addr: u64,
     },
 
     #[allow(clippy::upper_case_acronyms)]
+    #[assoc(has_side_effects = true)]
     TODO(&'static str),
 
     LoadMem1(Reg),
@@ -211,7 +222,7 @@ pub enum ArithOp {
 /// that represents the pre-existing value of a machine register at the time
 /// the function started execution.  Mostly useful to allow the decompilation to
 /// proceed forward even when somehting is out of place.
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct AncestralName(&'static str);
 
 impl AncestralName {
@@ -377,63 +388,6 @@ impl Insn {
         }
     }
 
-    pub fn has_side_effects(&self) -> bool {
-        match self {
-            Insn::False
-            | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
-            | Insn::Part { .. }
-            | Insn::Get(_)
-            | Insn::Concat { .. }
-            | Insn::Widen1_2(_)
-            | Insn::Widen1_4(_)
-            | Insn::Widen1_8(_)
-            | Insn::Widen2_4(_)
-            | Insn::Widen2_8(_)
-            | Insn::Widen4_8(_)
-            | Insn::Arith1(_, _, _)
-            | Insn::Arith2(_, _, _)
-            | Insn::Arith4(_, _, _)
-            | Insn::Arith8(_, _, _)
-            | Insn::ArithK1(_, _, _)
-            | Insn::ArithK2(_, _, _)
-            | Insn::ArithK4(_, _, _)
-            | Insn::ArithK8(_, _, _)
-            | Insn::Cmp(_, _, _)
-            | Insn::Bool(_, _, _)
-            | Insn::Not(_)
-            | Insn::OverflowOf(_)
-            | Insn::CarryOf(_)
-            | Insn::SignOf(_)
-            | Insn::IsZero(_)
-            | Insn::Parity(_)
-            | Insn::Undefined
-            | Insn::LoadMem1(_)
-            | Insn::LoadMem2(_)
-            | Insn::LoadMem4(_)
-            | Insn::LoadMem8(_)
-            | Insn::Ancestral(_)
-            | Insn::Phi { size: _ }
-            | Insn::PhiBool
-            | Insn::PhiArg { .. }
-            | Insn::StructGet8 { .. } => false,
-
-            Insn::Call { .. }
-            | Insn::CArg { .. }
-            | Insn::Ret(_)
-            | Insn::StoreMem(_, _)
-            | Insn::JmpInd(_)
-            | Insn::JmpExt(_)
-            | Insn::Jmp(_)
-            | Insn::JmpExtIf { .. }
-            | Insn::JmpIf { .. }
-            | Insn::TODO(_) => true,
-        }
-    }
-
     #[inline(always)]
     pub fn is_phi(&self) -> bool {
         matches!(
@@ -444,140 +398,6 @@ impl Insn {
                 | Insn::Phi { size: 8 }
                 | Insn::PhiBool
         )
-    }
-}
-
-fn fmt_arith(
-    f: &mut std::fmt::Formatter<'_>,
-    op: ArithOp,
-    sz: u8,
-    a: Reg,
-    b: Reg,
-) -> std::fmt::Result {
-    let op = match op {
-        ArithOp::Add => "add",
-        ArithOp::Sub => "sub",
-        ArithOp::Mul => "mul",
-        ArithOp::Shl => "shl",
-        ArithOp::BitAnd => "and",
-        ArithOp::BitOr => "or",
-        ArithOp::BitXor => "xor",
-    };
-    write!(f, "{:8} {:?},{:?}  {}", op, a, b, size_keyword(sz))
-}
-
-fn fmt_arithk(
-    f: &mut std::fmt::Formatter<'_>,
-    op: ArithOp,
-    sz: u8,
-    a: Reg,
-    k: i64,
-) -> std::fmt::Result {
-    let op = match op {
-        ArithOp::Add => "addk",
-        ArithOp::Sub => "subk",
-        ArithOp::Mul => "mulk",
-        ArithOp::Shl => "shlk",
-        ArithOp::BitAnd => "andk",
-        ArithOp::BitOr => "ork",
-        ArithOp::BitXor => "xork",
-    };
-    write!(f, "{:8} {:?},{:?} {}", op, a, k, size_keyword(sz))
-}
-
-fn size_keyword(sz: u8) -> &'static str {
-    match sz {
-        1 => "byte",
-        2 => "word",
-        4 => "dword",
-        8 => "qword",
-        _ => panic!("invalid size: {sz}"),
-    }
-}
-
-impl std::fmt::Debug for Insn {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Insn::True => write!(f, "true"),
-            Insn::False => write!(f, "false"),
-            Insn::Const1(val) => write!(f, "{:8} {} (0x{:x})", "const1", *val as i64, val),
-            Insn::Const2(val) => write!(f, "{:8} {} (0x{:x})", "const2", *val as i64, val),
-            Insn::Const4(val) => write!(f, "{:8} {} (0x{:x})", "const4", *val as i64, val),
-            Insn::Const8(val) => write!(f, "{:8} {} (0x{:x})", "const8", *val as i64, val),
-            Insn::Part { src, offset, size } => {
-                write!(f, "{:8} {:?}[{}..{}]", "part", src, offset, offset + size)
-            }
-            Insn::Get(x) => write!(f, "{:8} {:?}", "get", x),
-            Insn::Concat { lo, hi } => write!(f, "{:8} {:?}⧺{:?}", "concat", hi, lo),
-            Insn::Widen1_2(x) => write!(f, "{:8} 1->2 {:?}", "widen", *x),
-            Insn::Widen1_4(x) => write!(f, "{:8} 1->4 {:?}", "widen", *x),
-            Insn::Widen1_8(x) => write!(f, "{:8} 1->8 {:?}", "widen", *x),
-            Insn::Widen2_4(x) => write!(f, "{:8} 2->4 {:?}", "widen", *x),
-            Insn::Widen2_8(x) => write!(f, "{:8} 2->8 {:?}", "widen", *x),
-            Insn::Widen4_8(x) => write!(f, "{:8} 4->8 {:?}", "widen", *x),
-
-            Insn::Arith1(op, a, b) => fmt_arith(f, *op, 1, *a, *b),
-            Insn::Arith2(op, a, b) => fmt_arith(f, *op, 2, *a, *b),
-            Insn::Arith4(op, a, b) => fmt_arith(f, *op, 4, *a, *b),
-            Insn::Arith8(op, a, b) => fmt_arith(f, *op, 8, *a, *b),
-            Insn::ArithK1(op, reg, k) => fmt_arithk(f, *op, 1, *reg, *k),
-            Insn::ArithK2(op, reg, k) => fmt_arithk(f, *op, 2, *reg, *k),
-            Insn::ArithK4(op, reg, k) => fmt_arithk(f, *op, 4, *reg, *k),
-            Insn::ArithK8(op, reg, k) => fmt_arithk(f, *op, 8, *reg, *k),
-            Insn::Cmp(op, a, b) => {
-                let op = match op {
-                    CmpOp::EQ => "==",
-                    CmpOp::LT => "<",
-                };
-                write!(f, "{:8} {:?},{:?}", op, a, b)
-            }
-            Insn::Bool(op, a, b) => {
-                let op = match op {
-                    BoolOp::Or => "||",
-                    BoolOp::And => "&&",
-                };
-                write!(f, "{:8} {:?},{:?}", op, a, b)
-            }
-            Insn::Not(x) => write!(f, "{:8} {:?}", "not", x),
-
-            Insn::LoadMem1(addr) => write!(f, "{:8} addr:{:?}", "loadm1", addr),
-            Insn::LoadMem2(addr) => write!(f, "{:8} addr:{:?}", "loadm2", addr),
-            Insn::LoadMem4(addr) => write!(f, "{:8} addr:{:?}", "loadm4", addr),
-            Insn::LoadMem8(addr) => write!(f, "{:8} addr:{:?}", "loadm8", addr),
-
-            Insn::StoreMem(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "store", addr, val),
-            Insn::TODO(msg) => write!(f, "{:8} {}", "TODO", msg),
-
-            Insn::Call(callee) => write!(f, "{:8} {:?}", "call", callee),
-            Insn::CArg(value) => write!(f, "{:8} {:?}", "carg", value),
-            Insn::Ret(x) => write!(f, "{:8} {:?}", "ret", x),
-            Insn::JmpInd(x) => write!(f, "{:8} *{:?}", "jmp", x),
-            Insn::Jmp(x) => write!(f, "{:8} {:?}", "jmp", x),
-            Insn::JmpExt(target) => write!(f, "{:8} 0x{:x} extern", "jmp", target),
-            Insn::JmpExtIf { cond, addr: target } => {
-                write!(f, "{:8} {:?},0x{:x} extern", "jmp.if", cond, target)
-            }
-            Insn::JmpIf { cond, target } => write!(f, "{:8} {:?},{}", "jmp.if", cond, target),
-
-            Insn::OverflowOf(x) => write!(f, "{:8} {:?}", "overflow", x),
-            Insn::CarryOf(x) => write!(f, "{:8} {:?}", "carry", x),
-            Insn::SignOf(x) => write!(f, "{:8} {:?}", "sign", x),
-            Insn::IsZero(x) => write!(f, "{:8} {:?}", "is0", x),
-            Insn::Parity(x) => write!(f, "{:8} {:?}", "parity", x),
-
-            Insn::Undefined => write!(f, "undef"),
-            Insn::Ancestral(anc) => write!(f, "#pre:{}", anc.name()),
-
-            Insn::Phi { size } => write!(f, "phi{size}"),
-            Insn::PhiBool => write!(f, "phibool"),
-            Insn::PhiArg(reg) => {
-                write!(f, "{:8} {:?}", "phiarg", reg)
-            }
-            Insn::StructGet8 {
-                struct_value,
-                offset,
-            } => write!(f, "{:8} {:?},{}", "sget8", *struct_value, offset),
-        }
     }
 }
 
