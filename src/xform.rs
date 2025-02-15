@@ -5,7 +5,7 @@ use crate::{
 
 // TODO Fix the algorithm to work with different instruction output sizes.
 // NOTE Right now folding is done across instructions of different sizes. It's a known limitation.
-pub fn fold_constants(prog: &mut ssa::Program) {
+fn fold_constants(prog: &mut ssa::Program) {
     use mil::{ArithOp, Insn, Reg};
 
     fn widen(prog: &ssa::Program, reg: Reg) -> Insn {
@@ -119,7 +119,7 @@ pub fn fold_constants(prog: &mut ssa::Program) {
     }
 }
 
-pub fn fold_subregs(prog: &mut ssa::Program) {
+fn fold_subregs(prog: &mut ssa::Program) {
     // operators that matter here are:
     // - subrange: src[a..b]
     //      b > a; b <= 8; a, b >= 0
@@ -190,7 +190,7 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
     }
 }
 
-pub fn fold_bitops(prog: &mut ssa::Program) {
+fn fold_bitops(prog: &mut ssa::Program) {
     for bid in prog.cfg().block_ids_rpo() {
         for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
             let repl = match insn_cell.get() {
@@ -217,7 +217,7 @@ pub fn fold_bitops(prog: &mut ssa::Program) {
     }
 }
 
-pub fn simplify_half_null_concat(prog: &mut ssa::Program) {
+fn simplify_half_null_concat(prog: &mut ssa::Program) {
     for iv in prog.insns_unordered() {
         if let Insn::Concat { lo, hi } = iv.insn.get() {
             let is_lo_null = matches!(prog.get(lo).unwrap().insn.get(), Insn::Part { size: 0, .. });
