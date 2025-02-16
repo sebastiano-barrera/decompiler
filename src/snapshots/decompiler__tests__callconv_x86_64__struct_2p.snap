@@ -91,11 +91,11 @@ ssa program  23 instrs
 .B0:    ;;  addr:0x0; 54 insn 0 phis
          r15 <- Ancestral(AncestralName("RAX"))
          r27 <- Ancestral(AncestralName("arg0"))
-         r30 <- StructGet8 { struct_value: r27, offset: 8 }
+  (  2)  r30 <- StructGet8 { struct_value: r27, offset: 8 }
   (  2)  r43 <- Const4(1)
   (  2)  r44 <- Part { src: r15, offset: 4, size: 4 }
   (  2)  r45 <- Concat { lo: r43, hi: r44 }
-  (  2)  r46 <- Get(r30)
+         r46 <- Get(r30)
          r48 <- IsZero(r30)
          r53 <- JmpIf { cond: r48, target: 77 }
 .B1:    ;;  preds:B0,B1  addr:0x2; 23 insn 2 phis
@@ -107,8 +107,8 @@ ssa program  23 instrs
          r56 <- Part { src: r81, offset: 4, size: 4 }
   (  2)  r57 <- Concat { lo: r55, hi: r56 }
          r65 <- ArithK8(Add, r78, 8)
-         r66 <- LoadMem8(r65)
-  (  2)  r68 <- Get(r66)
+  (  2)  r66 <- LoadMem8(r65)
+         r68 <- Get(r66)
          r70 <- IsZero(r66)
          r75 <- Not(r70)
          r76 <- JmpIf { cond: r75, target: 54 }
@@ -119,26 +119,25 @@ ssa program  23 instrs
 
 
 T0(): {
+  let r30 = StructGet8[8](pre:arg0);
   let r44 = pre:RAX[4 .. 8];
   let r45 = r44⧺0x1 /* 1 */;
-  let r46 = StructGet8[8](pre:arg0);
-  if IsZero(r46) {
+  if IsZero(r30) {
     goto T2 (
       r84 = r45
     )
   
   }
   goto T1 (
-    r78 = r46
+    r78 = StructGet8[8](pre:arg0)
     r81 = r45
   )
   
   T1(r78, r81): {
     let r57 = r81[4 .. 8]⧺r81[0 .. 4] + 1;
-    let r68 = [r78 + 8]:8;
-    if !(IsZero(r68)) {
+    if !(IsZero([r78 + 8]:8)) {
       goto T1 (
-        r78 = r68
+        r78 = [r78 + 8]:8
         r81 = r57
       )
     

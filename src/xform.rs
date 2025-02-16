@@ -203,6 +203,21 @@ fn fold_bitops(insn: mil::Insn) -> Insn {
     }
 }
 
+fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    for input in insn.input_regs_iter_mut() {
+        loop {
+            let input_def = prog.get(*input).unwrap().insn.get();
+            if let Insn::Get(arg) = input_def {
+                *input = arg;
+            } else {
+                break;
+            }
+        }
+    }
+
+    insn
+}
+
 fn simplify_half_null_concat(insn: Insn, prog: &ssa::Program) -> Insn {
     if let Insn::Concat { lo, hi } = insn {
         let is_lo_null = matches!(prog.get(lo).unwrap().insn.get(), Insn::Part { size: 0, .. });
@@ -230,12 +245,14 @@ pub fn canonical(prog: &mut ssa::Program) {
     // transform "sees" the effect of *all* transforms when it "looks back" at
     // the instruction's dependencies.
     //
-    // TODO add comment about fold_get
+    // Note that `fold_get` is the first in the chain, so any `Insn::Get`
+    // introduced by earlier transforms is going to be "dereferenced" and will
+    // most likely end up dead and eliminated by the time this function returns.
 
     for bid in prog.cfg().block_ids_rpo() {
         for insn_cell in prog.block_normal_insns(bid).unwrap().insns.iter() {
             let insn = insn_cell.get();
-            // TODO: insert fold_get
+            let insn = fold_get(insn, prog);
             let insn = fold_subregs(insn, prog);
             let insn = fold_bitops(insn);
             let insn = fold_constants(insn, prog);
@@ -251,13 +268,15 @@ pub fn canonical(prog: &mut ssa::Program) {
 
 #[cfg(test)]
 mod tests {
+    use crate::{mil, ssa};
+    use mil::{ArithOp, Insn, Reg};
+
     mod constant_folding {
         use crate::{mil, ssa, xform};
+        use mil::{ArithOp, Insn, Reg};
 
         #[test]
         fn addk() {
-            use mil::{ArithOp, Insn, Reg};
-
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
@@ -291,8 +310,6 @@ mod tests {
 
         #[test]
         fn mulk() {
-            use mil::{ArithOp, Insn, Reg};
-
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
@@ -522,5 +539,35 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn combined_with_fold_get() {
+        // check that a transform "sees through" the Insn::Get introduced by an
+        // earlier transform
+
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            b.push(Reg(1), Insn::Const8(5));
+            b.push(Reg(2), Insn::Const8(44));
+
+            // removed by fold_bitops
+            b.push(Reg(1), Insn::Arith8(ArithOp::BitAnd, Reg(1), Reg(1)));
+            b.push(Reg(2), Insn::Arith8(ArithOp::BitAnd, Reg(2), Reg(2)));
+
+            // removed by fold_constants IF the Insn::Get's added by fold_bitops
+            // is dereferenced
+            b.push(Reg(0), Insn::Arith8(ArithOp::Mul, Reg(1), Reg(2)));
+            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.build()
+        };
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        super::canonical(&mut prog);
+
+        let insns = prog
+            .block_normal_insns(prog.cfg().entry_block_id())
+            .unwrap();
+        assert_eq!(insns.insns.len(), 6);
+        assert_eq!(insns.insns[4].get(), Insn::Const8(5 * 44));
     }
 }
