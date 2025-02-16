@@ -28,6 +28,7 @@ pub struct Program {
     cfg: cfg::Graph,
 
     rdr_count: ReaderCount,
+    equiv: Equiv,
 
     #[cfg(feature = "proto_typing")]
     ptr_regs: HashMap<mil::Reg, Ptr>,
@@ -640,11 +641,14 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         );
     }
 
+    let equiv = Equiv::new(program.len());
+
     let mut ssa = Program {
         inner: program,
         cfg,
         phis,
         rdr_count,
+        equiv,
 
         #[cfg(feature = "proto_typing")]
         ptr_regs: HashMap::new(),
@@ -957,6 +961,33 @@ impl ReaderCount {
         if let Some(elm) = self.0.get_mut(reg.reg_index() as usize) {
             *elm += 1;
         }
+    }
+}
+
+/// Equivalence classes. (Part of a ssa::Program.)
+///
+/// Instructions are grouped into "equivalence classes" ("eclass"): sets where
+/// every member instruction is interchangeable with one another.
+///
+/// Equivalence classes are uniquely identified by a register that is
+/// "CFG-reachable" (part of a block in the program's CFG). The instruction
+/// corresponding to that register is implicitly part of the set. Zero or more
+/// instructions that are NOT CFG-reachable may be added to the equivalence
+/// classes.
+///
+/// # Internals
+///
+/// Equivalence classes are represented as circular linked lists, all embedded
+/// in the same array. The array has one element per valid register in the
+/// parent ssa::Program (therefore, same length), pointing to the next register
+/// in the chain of eclass member.
+#[derive(Clone)]
+pub struct Equiv(Vec<mil::Reg>);
+
+impl Equiv {
+    fn new(len: mil::Index) -> Self {
+        let slots = (0..len).map(mil::Reg).collect();
+        Equiv(slots)
     }
 }
 
