@@ -48,6 +48,10 @@ impl Program {
         &self.cfg
     }
 
+    //
+    // Access
+    //
+
     /// Get the defining instruction for the given register.
     ///
     /// (Note that it's not allowed to fetch instructions by position.)
@@ -169,6 +173,38 @@ impl Program {
             Insn::StructGet8 { .. } => RegType::Bytes(8),
         }
     }
+
+    //
+    // Equivalence classes (eclass)
+    //
+    fn add_equiv(&mut self, reg: mil::Reg, insn: mil::Insn) -> mil::Reg {
+        let len_prev = self.inner.len().try_into().unwrap();
+        let reg_new = mil::Reg(len_prev);
+
+        self.inner.push(reg_new, insn);
+        self.equiv.grow(len_prev + 1);
+        self.equiv.set_equiv(reg, reg_new);
+
+        self.assert_invariants();
+        // TODO check rdr_count
+        reg_new
+    }
+
+    pub fn get_equiv(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
+        use std::iter::{once, repeat_with};
+        let mut cur = reg;
+        once(reg).chain(
+            repeat_with(move || {
+                cur = self.equiv.get_next(cur);
+                cur
+            })
+            .take_while(move |&cur| cur != reg),
+        )
+    }
+
+    //
+    // Validation
+    //
 
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
@@ -1012,16 +1048,29 @@ impl Equiv {
     fn get_next(&self, reg: mil::Reg) -> mil::Reg {
         self.0[reg.0 as usize]
     }
+
+    fn grow(&mut self, new_len: mil::Index) {
+        let new_len = new_len as usize;
+        while self.0.len() < new_len {
+            let len = self.0.len().try_into().unwrap();
+            self.0.push(mil::Reg(len));
+        }
+    }
+
+    fn set_equiv(&mut self, a: mil::Reg, b: mil::Reg) {
+        let next_saved = self.0[a.0 as usize];
+        self.0[a.0 as usize] = b;
+        self.0[b.0 as usize] = next_saved;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::mil;
+    use mil::{ArithOp, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
-        use mil::{ArithOp, Insn, Reg};
-
         let prog = {
             let mut pb = mil::ProgramBuilder::new();
 
@@ -1055,5 +1104,33 @@ mod tests {
         eprintln!("-- ssa:");
         let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
         insta::assert_debug_snapshot!(prog);
+    }
+
+    #[test]
+    fn equiv_basic() {
+        let prog = {
+            let mut pb = mil::ProgramBuilder::new();
+            pb.set_input_addr(0xf1);
+            pb.push(Reg(0), Insn::Const1(4));
+            pb.push(Reg(1), Insn::Const1(8));
+            pb.push(Reg(2), Insn::Arith1(ArithOp::Add, Reg(0), Reg(1)));
+            pb.push(Reg(3), Insn::Ret(Reg(2)));
+            pb.build()
+        };
+        let mut prog = super::mil_to_ssa(super::ConversionParams::new(prog));
+
+        let reg_old = Reg(2);
+        let reg_new1 = prog.add_equiv(reg_old, Insn::ArithK1(ArithOp::Add, Reg(0), 8));
+        let reg_new2 = prog.add_equiv(reg_old, Insn::Const1(12));
+
+        {
+            let equivs: Vec<_> = prog.get_equiv(reg_old).collect();
+            assert_eq!(equivs, &[reg_old, reg_new2, reg_new1]);
+        }
+
+        {
+            let equivs: Vec<_> = prog.get_equiv(reg_new1).collect();
+            assert_eq!(equivs, &[reg_new1, reg_old, reg_new2]);
+        }
     }
 }
