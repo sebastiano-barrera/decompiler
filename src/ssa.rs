@@ -174,6 +174,7 @@ impl Program {
         self.assert_no_circular_refs();
         self.assert_inputs_alive();
         self.assert_phis_separated();
+        self.assert_equiv_valid();
     }
 
     fn assert_phis_separated(&self) {
@@ -232,6 +233,24 @@ impl Program {
 
                 let is_first_def = defined.insert(dest);
                 assert!(is_first_def);
+            }
+        }
+    }
+
+    fn assert_equiv_valid(&self) {
+        let cfg = self.cfg();
+
+        for bid in cfg.block_ids() {
+            for head in self.block_normal_insns(bid).unwrap().dests {
+                let head = head.get();
+                // head is cfg-reachable by construction
+                debug_assert_eq!(cfg.block_of_index(head.0), Some(bid));
+
+                let mut cur = self.equiv.get_next(head);
+                while cur != head {
+                    assert!(cfg.block_of_index(cur.0).is_none());
+                    cur = self.equiv.get_next(cur);
+                }
             }
         }
     }
@@ -979,7 +998,7 @@ impl ReaderCount {
 ///
 /// Equivalence classes are represented as circular linked lists, all embedded
 /// in the same array. The array has one element per valid register in the
-/// parent ssa::Program (therefore, same length), pointing to the next register
+/// parent `ssa::Program` (therefore, same length), pointing to the next register
 /// in the chain of eclass member.
 #[derive(Clone)]
 pub struct Equiv(Vec<mil::Reg>);
@@ -988,6 +1007,10 @@ impl Equiv {
     fn new(len: mil::Index) -> Self {
         let slots = (0..len).map(mil::Reg).collect();
         Equiv(slots)
+    }
+
+    fn get_next(&self, reg: mil::Reg) -> mil::Reg {
+        self.0[reg.0 as usize]
     }
 }
 

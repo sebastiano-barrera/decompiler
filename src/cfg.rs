@@ -144,6 +144,21 @@ impl Graph {
         self.inverse.successors(bid)
     }
 
+    pub fn block_of_index(&self, index: mil::Index) -> Option<BlockID> {
+        self.bounds
+            .iter()
+            .zip(self.bounds.iter().skip(1))
+            .enumerate()
+            .find_map(|(bid, (&start, &end))| {
+                if start <= index && index < end {
+                    let bid = bid.try_into().unwrap();
+                    Some(BlockID(bid))
+                } else {
+                    None
+                }
+            })
+    }
+
     pub fn block_cont(&self, bid: BlockID) -> BlockCont {
         let range = &self.direct.succ_ndxr[bid];
         let successors = &self.direct.succ[range.clone()];
