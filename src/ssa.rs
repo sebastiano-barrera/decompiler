@@ -56,18 +56,6 @@ impl Program {
         // to transition to a more complex structure in the future.
         let iv = self.inner.get(reg.0)?;
         debug_assert_eq!(iv.dest.get(), reg);
-
-        // "Get" instructions are never really needed in SSA.
-        // If we have `y <- Get(x)`, then every usage of y could be replaced
-        // with x. But performing the replacement is relatively costly (linearly
-        // scanning the whole program). So, instead, we only "dereference"
-        // lookups done at the SSA level if they hit a Get, and do another
-        // trick in printing to make it look like the substitution is performed
-        // "textually".
-        if let mil::Insn::Get(x) = iv.insn.get() {
-            return self.get(x);
-        }
-
         Some(iv)
     }
 
@@ -125,7 +113,7 @@ impl Program {
             Insn::Const4(_) => RegType::Bytes(4),
             Insn::Const8(_) => RegType::Bytes(8),
             Insn::Part { size, .. } => RegType::Bytes(size as usize),
-            Insn::Get(_) => panic!("mil::Program::get returned a Get"),
+            Insn::Get(arg) => self.value_type(arg),
             Insn::Concat { lo, hi } => {
                 let lo_size = self.value_type(lo).bytes_size().unwrap();
                 let hi_size = self.value_type(hi).bytes_size().unwrap();

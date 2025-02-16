@@ -99,7 +99,6 @@ mod callconv_x86_64 {
 
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         crate::xform::canonical(&mut prog);
-        ssa::eliminate_dead_code(&mut prog);
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
 

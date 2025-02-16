@@ -5,7 +5,7 @@ use crate::{
 
 // TODO Fix the algorithm to work with different instruction output sizes.
 // NOTE Right now folding is done across instructions of different sizes. It's a known limitation.
-pub fn fold_constants(prog: &mut ssa::Program) {
+fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     use mil::{ArithOp, Insn, Reg};
 
     fn widen(prog: &ssa::Program, reg: Reg) -> Insn {
@@ -60,66 +60,59 @@ pub fn fold_constants(prog: &mut ssa::Program) {
         }
     }
 
-    for bid in prog.cfg().block_ids_rpo() {
-        let insns = prog.block_normal_insns(bid).unwrap();
-        for insn_cell in insns.insns.iter() {
-            let repl_insn = match insn_cell.get() {
-                Insn::Arith1(op, a, b)
-                | Insn::Arith2(op, a, b)
-                | Insn::Arith4(op, a, b)
-                | Insn::Arith8(op, a, b) => {
-                    let wa = widen(prog, a);
-                    let wb = widen(prog, b);
+    match insn {
+        Insn::Arith1(op, a, b)
+        | Insn::Arith2(op, a, b)
+        | Insn::Arith4(op, a, b)
+        | Insn::Arith8(op, a, b) => {
+            let wa = widen(prog, a);
+            let wb = widen(prog, b);
 
-                    match (op, wa, wb) {
-                        (ArithOp::Add, Insn::Const8(0), _) => Insn::Get(b),
-                        (ArithOp::Add, _, Insn::Const8(0)) => Insn::Get(a),
-                        (ArithOp::Mul, Insn::Const8(1), _) => Insn::Get(b),
-                        (ArithOp::Mul, _, Insn::Const8(1)) => Insn::Get(a),
+            match (op, wa, wb) {
+                (ArithOp::Add, Insn::Const8(0), _) => Insn::Get(b),
+                (ArithOp::Add, _, Insn::Const8(0)) => Insn::Get(a),
+                (ArithOp::Mul, Insn::Const8(1), _) => Insn::Get(b),
+                (ArithOp::Mul, _, Insn::Const8(1)) => Insn::Get(a),
 
-                        (op, Insn::Const8(ak), Insn::Const8(bk)) => {
-                            Insn::Const8(eval_const(op, ak, bk))
-                        }
+                (op, Insn::Const8(ak), Insn::Const8(bk)) => Insn::Const8(eval_const(op, ak, bk)),
 
-                        (op_out, Insn::ArithK8(op_in, r, k1), Insn::Const8(k2))
-                        | (op_out, Insn::Const8(k2), Insn::ArithK8(op_in, r, k1)) => {
-                            let Some((op, rk)) = assoc_const(op_out, op_in, k2, k1) else {
-                                continue;
-                            };
-                            Insn::ArithK8(op, r, rk)
-                        }
-
-                        (op, Insn::Const8(ak), _) => Insn::ArithK8(op, b, ak as i64),
-                        (op, _, Insn::Const8(bk)) => Insn::ArithK8(op, a, bk as i64),
-
-                        _ => continue,
+                (op_out, Insn::ArithK8(op_in, r, k1), Insn::Const8(k2))
+                | (op_out, Insn::Const8(k2), Insn::ArithK8(op_in, r, k1)) => {
+                    if let Some((op, rk)) = assoc_const(op_out, op_in, k2, k1) {
+                        Insn::ArithK8(op, r, rk)
+                    } else {
+                        insn
                     }
                 }
 
-                Insn::ArithK1(op, a, bk)
-                | Insn::ArithK2(op, a, bk)
-                | Insn::ArithK4(op, a, bk)
-                | Insn::ArithK8(op, a, bk) => match widen(prog, a) {
-                    Insn::Const8(ak) => Insn::Const8(eval_const(op, ak as i64, bk)),
-                    Insn::ArithK8(op_in, ar, ak) => {
-                        let op_out = op;
-                        let Some((op, rk)) = assoc_const(op_in, op_out, ak as i64, bk) else {
-                            continue;
-                        };
-                        Insn::ArithK8(op, ar, rk)
-                    }
-                    _ => continue,
-                },
+                (op, Insn::Const8(ak), _) => Insn::ArithK8(op, b, ak as i64),
+                (op, _, Insn::Const8(bk)) => Insn::ArithK8(op, a, bk as i64),
 
-                _ => continue,
-            };
-
-            insn_cell.set(repl_insn);
+                _ => insn,
+            }
         }
+
+        Insn::ArithK1(op, a, bk)
+        | Insn::ArithK2(op, a, bk)
+        | Insn::ArithK4(op, a, bk)
+        | Insn::ArithK8(op, a, bk) => match widen(prog, a) {
+            Insn::Const8(ak) => Insn::Const8(eval_const(op, ak as i64, bk)),
+            Insn::ArithK8(op_in, ar, ak) => {
+                let op_out = op;
+                if let Some((op, rk)) = assoc_const(op_in, op_out, ak as i64, bk) {
+                    Insn::ArithK8(op, ar, rk)
+                } else {
+                    insn
+                }
+            }
+            _ => insn,
+        },
+
+        _ => insn,
     }
 }
 
-pub fn fold_subregs(prog: &mut ssa::Program) {
+fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     // operators that matter here are:
     // - subrange: src[a..b]
     //      b > a; b <= 8; a, b >= 0
@@ -130,106 +123,114 @@ pub fn fold_subregs(prog: &mut ssa::Program) {
     // - Part(Concat(...), ...)
     // - Part(Part(...), ...)
 
-    for bid in prog.cfg().block_ids_postorder() {
-        for (_, insn) in prog.block_normal_insns(bid).unwrap().iter() {
-            if let Insn::Part { src, offset, size } = insn.get() {
-                let end = offset + size;
+    let Insn::Part { src, offset, size } = insn else {
+        return insn;
+    };
 
-                let src_sz = prog.value_type(src).bytes_size().unwrap();
-                assert!(end as usize <= src_sz);
+    let end = offset + size;
 
-                let src = prog.get(src).unwrap();
-                match src.insn.get() {
-                    Insn::Part {
-                        src: up_src,
-                        offset: up_offset,
-                        size: up_size,
-                    } => {
-                        let up_end = up_offset + up_size;
+    let src_sz = prog.value_type(src).bytes_size().unwrap();
+    assert!(end as usize <= src_sz);
 
-                        let up_src_sz = prog.value_type(up_src).bytes_size().unwrap();
-                        assert!(up_end as usize <= up_src_sz);
+    let src = prog.get(src).unwrap();
+    match src.insn.get() {
+        Insn::Part {
+            src: up_src,
+            offset: up_offset,
+            size: up_size,
+        } => {
+            let up_end = up_offset + up_size;
+            let up_src_sz = prog.value_type(up_src).bytes_size().unwrap();
+            assert!(up_end as usize <= up_src_sz);
 
-                        insn.set(Insn::Part {
-                            src: up_src,
-                            offset: offset + up_offset,
-                            size,
-                        });
-                    }
-
-                    Insn::Concat { lo, hi } => {
-                        let lo_sz = prog
-                            .value_type(lo)
-                            .bytes_size()
-                            .unwrap()
-                            .try_into()
-                            .expect("size is too large for Concat");
-                        if end <= lo_sz {
-                            // offset..size falls entirely within lo
-                            insn.set(Insn::Part {
-                                src: lo,
-                                offset,
-                                size,
-                            });
-                        } else if offset >= lo_sz {
-                            // offset..size falls entirely within hi
-                            insn.set(Insn::Part {
-                                src: hi,
-                                offset: offset - lo_sz,
-                                size,
-                            });
-                        } else {
-                            // offset..size covers (at least part of) both lo and hi
-                        }
-                    }
-
-                    _ => {}
-                };
+            Insn::Part {
+                src: up_src,
+                offset: offset + up_offset,
+                size,
             }
         }
+
+        Insn::Concat { lo, hi } => {
+            let lo_sz = prog
+                .value_type(lo)
+                .bytes_size()
+                .unwrap()
+                .try_into()
+                .expect("size is too large for Concat");
+
+            if end <= lo_sz {
+                // offset..size falls entirely within lo
+                Insn::Part {
+                    src: lo,
+                    offset,
+                    size,
+                }
+            } else if offset >= lo_sz {
+                // offset..size falls entirely within hi
+                Insn::Part {
+                    src: hi,
+                    offset: offset - lo_sz,
+                    size,
+                }
+            } else {
+                // offset..size covers (at least part of) both lo and hi
+                insn
+            }
+        }
+
+        _ => insn,
     }
 }
 
-pub fn fold_bitops(prog: &mut ssa::Program) {
-    for bid in prog.cfg().block_ids_rpo() {
-        for (_, insn_cell) in prog.block_normal_insns(bid).unwrap().iter() {
-            let repl = match insn_cell.get() {
-                Insn::Arith1(ArithOp::BitXor, a, b) if a == b => Insn::Const1(0),
-                Insn::Arith2(ArithOp::BitXor, a, b) if a == b => Insn::Const2(0),
-                Insn::Arith4(ArithOp::BitXor, a, b) if a == b => Insn::Const4(0),
-                Insn::Arith8(ArithOp::BitXor, a, b) if a == b => Insn::Const8(0),
+fn fold_bitops(insn: mil::Insn) -> Insn {
+    match insn {
+        Insn::Arith1(ArithOp::BitXor, a, b) if a == b => Insn::Const1(0),
+        Insn::Arith2(ArithOp::BitXor, a, b) if a == b => Insn::Const2(0),
+        Insn::Arith4(ArithOp::BitXor, a, b) if a == b => Insn::Const4(0),
+        Insn::Arith8(ArithOp::BitXor, a, b) if a == b => Insn::Const8(0),
 
-                Insn::Arith1(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-                Insn::Arith2(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-                Insn::Arith4(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-                Insn::Arith8(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+        Insn::Arith1(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+        Insn::Arith2(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+        Insn::Arith4(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+        Insn::Arith8(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
 
-                Insn::Arith1(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-                Insn::Arith2(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-                Insn::Arith4(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-                Insn::Arith8(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+        Insn::Arith1(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+        Insn::Arith2(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+        Insn::Arith4(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
+        Insn::Arith8(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
 
-                _ => continue,
-            };
-
-            insn_cell.set(repl);
-        }
+        _ => insn,
     }
 }
 
-pub fn simplify_half_null_concat(prog: &mut ssa::Program) {
-    for iv in prog.insns_unordered() {
-        if let Insn::Concat { lo, hi } = iv.insn.get() {
-            let is_lo_null = matches!(prog.get(lo).unwrap().insn.get(), Insn::Part { size: 0, .. });
-            let is_hi_null = matches!(prog.get(hi).unwrap().insn.get(), Insn::Part { size: 0, .. });
-
-            match (is_lo_null, is_hi_null) {
-                (true, true) => panic!("assertion error"),
-                (false, true) => iv.insn.set(Insn::Get(lo)),
-                (true, false) => iv.insn.set(Insn::Get(hi)),
-                (false, false) => {}
+fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    for input in insn.input_regs_iter_mut() {
+        loop {
+            let input_def = prog.get(*input).unwrap().insn.get();
+            if let Insn::Get(arg) = input_def {
+                *input = arg;
+            } else {
+                break;
             }
         }
+    }
+
+    insn
+}
+
+fn simplify_half_null_concat(insn: Insn, prog: &ssa::Program) -> Insn {
+    if let Insn::Concat { lo, hi } = insn {
+        let is_lo_null = matches!(prog.get(lo).unwrap().insn.get(), Insn::Part { size: 0, .. });
+        let is_hi_null = matches!(prog.get(hi).unwrap().insn.get(), Insn::Part { size: 0, .. });
+
+        match (is_lo_null, is_hi_null) {
+            (true, true) => panic!("assertion error"),
+            (false, true) => Insn::Get(lo),
+            (true, false) => Insn::Get(hi),
+            (false, false) => insn,
+        }
+    } else {
+        insn
     }
 }
 
@@ -237,32 +238,45 @@ pub fn simplify_half_null_concat(prog: &mut ssa::Program) {
 pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
 
-    fold_subregs(prog);
-    #[cfg(debug_assertions)]
-    prog.assert_invariants();
+    // apply transforms in lockstep
+    //
+    // in this setup, we scan the program once; for each instruction, we apply
+    // every transformation (in a fixed order). despite the fixed order, every
+    // transform "sees" the effect of *all* transforms when it "looks back" at
+    // the instruction's dependencies.
+    //
+    // Note that `fold_get` is the first in the chain, so any `Insn::Get`
+    // introduced by earlier transforms is going to be "dereferenced" and will
+    // most likely end up dead and eliminated by the time this function returns.
 
-    fold_bitops(prog);
-    #[cfg(debug_assertions)]
-    prog.assert_invariants();
+    for bid in prog.cfg().block_ids_rpo() {
+        for insn_cell in prog.block_normal_insns(bid).unwrap().insns.iter() {
+            let insn = insn_cell.get();
+            let insn = fold_get(insn, prog);
+            let insn = fold_subregs(insn, prog);
+            let insn = fold_bitops(insn);
+            let insn = fold_constants(insn, prog);
+            let insn = simplify_half_null_concat(insn, prog);
+            insn_cell.set(insn);
+        }
+    }
 
-    fold_constants(prog);
-    #[cfg(debug_assertions)]
     prog.assert_invariants();
 
     ssa::eliminate_dead_code(prog);
-    // last check stays in even in release
-    prog.assert_invariants();
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{mil, ssa};
+    use mil::{ArithOp, Insn, Reg};
+
     mod constant_folding {
         use crate::{mil, ssa, xform};
+        use mil::{ArithOp, Insn, Reg};
 
         #[test]
         fn addk() {
-            use mil::{ArithOp, Insn, Reg};
-
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
@@ -278,7 +292,7 @@ mod tests {
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-            xform::fold_constants(&mut prog);
+            xform::canonical(&mut prog);
 
             assert_eq!(prog.cfg().block_count(), 1);
             let insns = prog
@@ -296,8 +310,6 @@ mod tests {
 
         #[test]
         fn mulk() {
-            use mil::{ArithOp, Insn, Reg};
-
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
@@ -313,7 +325,7 @@ mod tests {
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-            xform::fold_constants(&mut prog);
+            xform::canonical(&mut prog);
 
             let insns = prog
                 .block_normal_insns(prog.cfg().entry_block_id())
@@ -384,7 +396,7 @@ mod tests {
                                 size,
                             });
                             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-                            xform::fold_subregs(&mut prog);
+                            xform::canonical(&mut prog);
 
                             assert_eq!(
                                 prog.get(Reg(3)).unwrap().insn.get(),
@@ -407,7 +419,7 @@ mod tests {
                                 size,
                             });
                             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-                            xform::fold_subregs(&mut prog);
+                            xform::canonical(&mut prog);
 
                             assert_eq!(
                                 prog.get(Reg(3)).unwrap().insn.get(),
@@ -439,7 +451,7 @@ mod tests {
                             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
                             let orig_insn = prog.get(Reg(3)).unwrap().insn.get();
 
-                            xform::fold_subregs(&mut prog);
+                            xform::canonical(&mut prog);
                             assert_eq!(prog.get(Reg(3)).unwrap().insn.get(), orig_insn);
                         }
                     }
@@ -498,7 +510,7 @@ mod tests {
                                     size1,
                                 });
                                 let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-                                xform::fold_subregs(&mut prog);
+                                xform::canonical(&mut prog);
 
                                 let exp_offset = offs0 + offs1;
                                 let exp_size = size1;
@@ -527,5 +539,35 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn combined_with_fold_get() {
+        // check that a transform "sees through" the Insn::Get introduced by an
+        // earlier transform
+
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            b.push(Reg(1), Insn::Const8(5));
+            b.push(Reg(2), Insn::Const8(44));
+
+            // removed by fold_bitops
+            b.push(Reg(1), Insn::Arith8(ArithOp::BitAnd, Reg(1), Reg(1)));
+            b.push(Reg(2), Insn::Arith8(ArithOp::BitAnd, Reg(2), Reg(2)));
+
+            // removed by fold_constants IF the Insn::Get's added by fold_bitops
+            // is dereferenced
+            b.push(Reg(0), Insn::Arith8(ArithOp::Mul, Reg(1), Reg(2)));
+            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.build()
+        };
+        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        super::canonical(&mut prog);
+
+        let insns = prog
+            .block_normal_insns(prog.cfg().entry_block_id())
+            .unwrap();
+        assert_eq!(insns.insns.len(), 6);
+        assert_eq!(insns.insns[4].get(), Insn::Const8(5 * 44));
     }
 }
