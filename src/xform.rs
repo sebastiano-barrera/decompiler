@@ -250,19 +250,24 @@ pub fn canonical(prog: &mut ssa::Program) {
     // most likely end up dead and eliminated by the time this function returns.
 
     for bid in prog.cfg().block_ids_rpo() {
-        for insn_cell in prog.block_normal_insns(bid).unwrap().insns.iter() {
-            let insn = insn_cell.get();
-            let insn = fold_get(insn, prog);
-            let insn = fold_subregs(insn, prog);
-            let insn = fold_bitops(insn);
-            let insn = fold_constants(insn, prog);
-            let insn = simplify_half_null_concat(insn, prog);
-            insn_cell.set(insn);
+        for reg in prog.block_normal_insns(bid).unwrap().dests.iter() {
+            let reg = reg.get();
+
+            for reg in prog.get_equiv(reg) {
+                let insn_cell = prog.get(reg).unwrap().insn;
+
+                let insn = insn_cell.get();
+                let insn = fold_get(insn, prog);
+                let insn = fold_subregs(insn, prog);
+                let insn = fold_bitops(insn);
+                let insn = fold_constants(insn, prog);
+                let insn = simplify_half_null_concat(insn, prog);
+                insn_cell.set(insn);
+            }
         }
     }
 
     prog.assert_invariants();
-
     ssa::eliminate_dead_code(prog);
 }
 
