@@ -271,6 +271,97 @@ pub fn canonical(prog: &mut ssa::Program) {
     ssa::eliminate_dead_code(prog);
 }
 
+/// A pattern to be matched against a subset of an ssa::Program's instructions.
+/// For matching, see `Pattern::match`.
+///
+/// # Representation
+///
+/// The pattern is represented as an array of instructions, according to the
+/// following rules:
+///
+/// - the first element is the pattern's "root"
+///
+/// - every register appearing in any instruction in the array is to be interpreted
+///   as an index into the array, and therefore to another part of the pattern.
+///   (e.g. `Reg(2)` is `self.insns[2]`)
+struct Pattern {
+    items: Vec<InsnPat>,
+}
+#[derive(Debug)]
+enum InsnPat {
+    Exact(mil::Insn),
+    AnyConst,
+}
+/// The result of a successful pattern match.
+///
+/// `map[i]` corresponds to `Reg(i)` from the pattern or, equivalently, the i-th
+/// instruction in the patterns `insns` array.
+struct Match {
+    map: Vec<mil::Reg>,
+}
+
+impl Pattern {
+    pub fn try_match(&self, prog: &ssa::Program, root: mil::Reg) -> Option<Match> {
+        const REG_INVALID: mil::Reg = mil::Reg(mil::Index::MAX);
+
+        fn scrub_regs(mut i: mil::Insn) -> mil::Insn {
+            for input in i.input_regs_iter_mut() {
+                *input = REG_INVALID;
+            }
+            i
+        }
+
+        let mut map = vec![REG_INVALID; self.items.len()];
+        let mut queue = vec![(0, root)];
+
+        println!("---");
+
+        while let Some((pat_ndx, prog_reg)) = queue.pop() {
+            let prog_iv = prog.get(prog_reg).unwrap();
+            let prog_insn = prog_iv.insn.get();
+            let prog_insn_noregs = scrub_regs(prog_insn);
+
+            match &self.items[pat_ndx] {
+                InsnPat::Exact(pat_insn) => {
+                    let pat_insn_noregs = scrub_regs(*pat_insn);
+
+                    if prog_insn_noregs != pat_insn_noregs {
+                        return None;
+                    }
+
+                    map[pat_ndx] = prog_iv.dest.get();
+                    // println!("match pat:r{} prog:{:?}", pat_ndx, map[pat_ndx]);
+
+                    for (prog_input, pat_input) in prog_insn
+                        .input_regs()
+                        .into_iter()
+                        .zip(pat_insn.input_regs().into_iter())
+                    {
+                        let (prog_input, pat_input) = match (prog_input, pat_input) {
+                            (Some(&a), Some(&b)) => (a, b),
+                            (None, None) => continue,
+                            _ => unreachable!(),
+                        };
+
+                        let pat_input_ndx = pat_input.0 as usize;
+                        queue.push((pat_input_ndx, prog_input));
+                    }
+                }
+                InsnPat::AnyConst => {
+                    match prog_insn {
+                        Insn::Const1(_) | Insn::Const2(_) | Insn::Const4(_) | Insn::Const8(_) => {
+                            map[pat_ndx] = prog_iv.dest.get();
+                        }
+                        _ => return None,
+                    };
+                }
+            }
+        }
+
+        Some(Match { map })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{mil, ssa};
@@ -574,5 +665,47 @@ mod tests {
             .unwrap();
         assert_eq!(insns.insns.len(), 6);
         assert_eq!(insns.insns[4].get(), Insn::Const8(5 * 44));
+    }
+
+    #[test]
+    fn pattern_basic() {
+        use super::{InsnPat, Pattern};
+
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            b.push(Reg(0), Insn::Const8(5));
+            b.push(Reg(1), Insn::Const8(44));
+            b.push(Reg(2), Insn::Arith8(ArithOp::BitAnd, Reg(0), Reg(0)));
+            b.push(Reg(3), Insn::Arith8(ArithOp::BitAnd, Reg(1), Reg(1)));
+            b.push(Reg(4), Insn::Arith8(ArithOp::Mul, Reg(0), Reg(1)));
+            b.push(Reg(5), Insn::Ret(Reg(4)));
+            b.build()
+        };
+        let prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+
+        let pat = Pattern {
+            items: vec![
+                InsnPat::Exact(Insn::Arith8(ArithOp::BitAnd, Reg(1), Reg(2))),
+                InsnPat::AnyConst,
+                InsnPat::AnyConst,
+            ],
+        };
+
+        let matches: Vec<_> = (0..(6 as mil::Index))
+            .map(|ndx| pat.try_match(&prog, mil::Reg(ndx)))
+            .collect();
+        assert_eq!(matches.len(), 6);
+        assert!(matches[0].is_none());
+        assert!(matches[1].is_none());
+        assert_eq!(
+            matches[2].as_ref().unwrap().map,
+            &[mil::Reg(2), mil::Reg(0), mil::Reg(0)]
+        );
+        assert_eq!(
+            matches[3].as_ref().unwrap().map,
+            &[mil::Reg(3), mil::Reg(1), mil::Reg(1)]
+        );
+        assert!(matches[4].is_none());
+        assert!(matches[5].is_none());
     }
 }
