@@ -104,7 +104,6 @@ mod callconv_x86_64 {
         println!();
 
         crate::xform::canonical(&mut prog);
-        ssa::eliminate_dead_code(&mut prog);
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
 

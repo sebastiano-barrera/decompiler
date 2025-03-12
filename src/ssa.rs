@@ -125,7 +125,7 @@ impl Program {
             Insn::Const4(_) => RegType::Bytes(4),
             Insn::Const8(_) => RegType::Bytes(8),
             Insn::Part { size, .. } => RegType::Bytes(size as usize),
-            Insn::Get(_) => panic!("mil::Program::get returned a Get"),
+            Insn::Get(arg) => self.value_type(arg),
             Insn::Concat { lo, hi } => {
                 let lo_size = self.value_type(lo).bytes_size().unwrap();
                 let hi_size = self.value_type(hi).bytes_size().unwrap();
@@ -177,7 +177,6 @@ impl Program {
                 .inner
                 .ancestor_type(anc_name)
                 .expect("ancestor has no defined type"),
-            Insn::StructGet8 { .. } => RegType::Bytes(8),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
         }
     }
@@ -387,19 +386,17 @@ impl std::fmt::Debug for Program {
             }
 
             for (dest, mut insn) in insns.iter_copied() {
-                // These are hidden; when other instructions depend on them,
-                // they get skipped (see `ssa::Program::get`)
-                if let mil::Insn::Get(_) = insn {
-                    continue;
-                }
-
                 if self.is_alive(dest) {
-                    // modify insn (our copy) so that the registers
-                    // skip/dereference any Get
+                    // modify insn (our copy) so that the registers skip/dereference any Get
                     for input in insn.input_regs_iter_mut() {
-                        // ssa::Program::get dereferences Get(_), so we can just
-                        // pluck `dest` from its return value
-                        *input = self.get(*input).unwrap().dest.get();
+                        loop {
+                            let input_def = self.get(*input).unwrap().insn.get();
+                            if let mil::Insn::Get(x) = input_def {
+                                *input = x;
+                            } else {
+                                break;
+                            }
+                        }
                     }
 
                     print_rdr_count(f, dest)?;

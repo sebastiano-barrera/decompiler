@@ -187,10 +187,14 @@ impl<'a> Ast<'a> {
             Insn::Const4(k) => return write!(pp, "0x{:x} /* {} */", k, k),
             Insn::Const8(k) => return write!(pp, "0x{:x} /* {} */", k, k),
             Insn::Get(x) => return self.pp_insn(pp, x),
-            Insn::StructGet8 {
-                struct_value: _,
-                offset,
-            } => format!("StructGet8[{offset}]").into(),
+            Insn::StructGetMember {
+                struct_value,
+                name,
+                size: _,
+            } => {
+                self.pp_insn(pp, struct_value)?;
+                return write!(pp, ".{}", name);
+            },
             Insn::Part { src, offset, size } => {
                 self.pp_arg(pp, src)?;
                 write!(pp, "[{} .. {}]", offset, offset + size)?;
@@ -310,16 +314,6 @@ impl<'a> Ast<'a> {
                 write!(pp, "if ")?;
                 self.pp_arg(pp, cond)?;
                 write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
-                return Ok(());
-            }
-
-            Insn::StructGetMember {
-                struct_value,
-                name,
-                size: _,
-            } => {
-                self.pp_arg(pp, struct_value)?;
-                write!(pp, ".\"{}\"", name)?;
                 return Ok(());
             }
         };

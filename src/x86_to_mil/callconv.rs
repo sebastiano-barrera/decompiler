@@ -437,7 +437,6 @@ mod tests {
 
         let prog = bld.build();
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
-        xform::simplify_half_null_concat(&mut prog);
         let snap = format!("params: {:?}\nprogram:\n{:?}", param_types, prog);
         snap
     }
