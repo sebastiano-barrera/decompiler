@@ -181,13 +181,13 @@ struct Phi {
     /// predecessors that the program enters it from at runtime.
     merge_nid: ControlNID,
 
-    /// This nodes assumes value `values[i]` at runtime whenever the
-    /// corresponding Merge control node `Merge { preds }` is entered from
-    /// predecessor `preds[i]`
+    /// Each entry (cnid, dnid) in this vector means that the Phi node latches
+    /// the value from dnid whenever merge_nid is entered from
     ///
-    /// Invariant: all input values are of the same type
+    /// Invariant: all ControlNIDs that appear here also appear in merge_nid's
+    /// `preds`, and vice-versa.
     // TODO more efficient repr (SmallVec?)
-    values: Vec<DataNID>,
+    values: Vec<(ControlNID, DataNID)>,
 }
 
 #[derive(Clone, Debug)]
@@ -260,7 +260,7 @@ impl DataNode {
             DataNode::Ancestral(_) => vec![],
             DataNode::ReturnValueOf(_) => vec![],
             DataNode::LoadedValueOf(_) => vec![],
-            DataNode::Phi(Phi { values, .. }) => values.clone(),
+            DataNode::Phi(Phi { values, .. }) => values.iter().map(|(_, dnid)| *dnid).collect(),
         };
         Inputs(inputs)
     }
@@ -441,17 +441,20 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
     let mut cnid_of_bid = cfg::BlockMap::new_with(&cfg, |_| {
         control_graph.insert(ControlNode::Merge { preds: Vec::new() })
     });
-    for bid in cfg.block_ids() {
-        let block_preds = cfg.block_preds(bid);
-        if cfg.entry_block_id() != bid {
-            assert!(!block_preds.is_empty());
-        }
-        add_predecessors(
-            &mut control_graph,
-            cnid_of_bid[bid],
-            block_preds.iter().map(|&bid| cnid_of_bid[bid]),
-        );
+
+    /// Temporary data structure, which is going to be translated into a Phi
+    /// node when the block it belongs to is processed
+    ///
+    /// Specific to a block.
+    #[derive(Clone)]
+    struct PhiNote {
+        pred: ControlNID,
+        reg: mil::Reg,
+        value: DataNID,
     }
+    // relying on the fact that Vec::new does not actually allocate any memory until the first insertion, so this is cheap
+    let mut phis: cfg::BlockMap<Vec<PhiNote>> = cfg::BlockMap::new(Vec::new(), cfg.block_count());
+
     let mut ends = Vec::new();
 
     for bid in cfg.block_ids_rpo() {
@@ -472,19 +475,24 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         // some MIL instructions 'cut' the control flow with another control node
         let cnid = cnid_of_bid[bid];
 
-        // Add phi nodes as necessary.
-        //
-        // They're all associated to the Merge node we just created
-        for reg in program.regs_iter() {
-            let is_phi_needed = phis_set.get(bid, reg);
-            if *is_phi_needed {
+        // Add phi nodes as necessary in this block
+        {
+            let notes = &mut phis[bid];
+            notes.sort_by_key(|note| note.reg);
+
+            for chunk in notes.chunk_by(|a, b| a.reg == b.reg) {
+                // all PhiNote's in this chunk have the same reg
+                let reg = chunk.first().unwrap().reg;
+
+                let values = chunk
+                    .iter()
+                    .cloned()
+                    .map(|note| (note.pred, note.value))
+                    .collect();
+
                 let dnid = data_graph.insert(DataNode::Phi(Phi {
                     merge_nid: cnid,
-                    values: cfg
-                        .block_preds(bid)
-                        .iter()
-                        .map(|&pred| var_maps.get(pred, reg).expect("unmapped phi input reg"))
-                        .collect(),
+                    values,
                 }));
                 var_maps.set(bid, reg, Some(dnid));
             }
@@ -625,16 +633,20 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                     None
                 }
                 mil::Insn::JmpIf { cond, target } => {
-                    cnid = control_graph.insert(ControlNode::Branch {
+                    let branch_cnid = control_graph.insert(ControlNode::Branch {
                         pred: cnid,
                         cond: dnid_of_reg(cond),
                     });
+
+                    let cons_cnid = control_graph.insert(ControlNode::IfTrue(branch_cnid));
 
                     let target_bid = cfg
                         .block_starting_at(target)
                         .expect("inconsistent mil/cfg: no block at jmpif target");
                     let target_cnid = cnid_of_bid[target_bid];
-                    add_predecessor(&mut control_graph, cnid, target_cnid);
+                    add_predecessor(&mut control_graph, cons_cnid, target_cnid);
+
+                    cnid = control_graph.insert(ControlNode::IfFalse(branch_cnid));
 
                     None
                 }
@@ -697,8 +709,28 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                 let dnid = data_graph.insert(data_node);
                 var_maps.set(bid, dest.get(), Some(dnid));
             }
+        }
 
-            cnid_of_bid[bid] = cnid;
+        // Block finished:
+        // - Save the state of the variable mapping, for successors
+        cnid_of_bid[bid] = cnid;
+
+        // - Update phi notes in successors (will be translated to phi nodes)
+        for &succ in cfg.direct().successors(bid) {
+            add_predecessor(&mut control_graph, cnid, cnid_of_bid[succ]);
+
+            for reg in program.regs_iter() {
+                if *phis_set.get(succ, reg) {
+                    let value = var_maps.get(bid, reg).unwrap();
+                    // a straightforward `push` is fine: each block is guaranteed to be processed just once,
+                    // and each reg/bid combination is guaranteed to end up in the vec at most once.
+                    phis[succ].push(PhiNote {
+                        pred: cnid,
+                        reg,
+                        value,
+                    });
+                }
+            }
         }
     }
 
@@ -707,7 +739,7 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
     });
     let final_phi = data_graph.insert(DataNode::Phi(Phi {
         merge_nid: final_merge,
-        values: ends.into_iter().map(|(_, dnid)| dnid).collect(),
+        values: ends,
     }));
     let end_cnid = control_graph.insert(ControlNode::End {
         pred: final_merge,
@@ -825,24 +857,11 @@ impl<T: Clone> BlockRegMat<T> {
         let var_count = program.reg_count() as usize;
         BlockRegMat(Mat::new(value, graph.block_count() as usize, var_count))
     }
-
-    fn of_block(&self, bid: cfg::BlockID) -> &[T] {
-        self.0.row(bid.as_usize())
-    }
-
     fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
         self.0.item(bid.as_usize(), reg.reg_index() as usize)
     }
-
     fn set(&mut self, bid: cfg::BlockID, reg: mil::Reg, value: T) {
         *self.0.item_mut(bid.as_usize(), reg.reg_index() as usize) = value;
-    }
-
-    fn map<F, U>(&self, f: F) -> BlockRegMat<U>
-    where
-        F: FnMut(&T) -> U,
-    {
-        BlockRegMat(self.0.map(f))
     }
 }
 
@@ -863,17 +882,6 @@ impl<T> Mat<T> {
     }
     fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
         &mut self.items[self.ndx(i, j)]
-    }
-    fn map<F, U>(&self, f: F) -> Mat<U>
-    where
-        F: FnMut(&T) -> U,
-    {
-        let items: Box<[_]> = self.items.iter().map(f).collect();
-        Mat {
-            items,
-            rows: self.rows,
-            cols: self.cols,
-        }
     }
 }
 impl<T: Clone> Mat<T> {

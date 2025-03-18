@@ -32,7 +32,7 @@ pub struct Program {
 ///
 /// The language admits as many registers as a u16 can represent (2**16). They're
 /// abstract, so we don't pay for them!
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Reg(pub u16);
 
 impl Reg {
