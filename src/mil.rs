@@ -39,6 +39,9 @@ impl Reg {
     pub fn reg_index(&self) -> u16 {
         self.0
     }
+    pub fn from_index(index: usize) -> Self {
+        Reg(index.try_into().unwrap())
+    }
 }
 impl std::fmt::Debug for Reg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -465,6 +468,10 @@ impl Program {
     #[inline(always)]
     pub fn reg_count(&self) -> Index {
         self.reg_count
+    }
+
+    pub fn regs_iter(&self) -> impl Iterator<Item = Reg> {
+        (0..self.reg_count()).map(Reg)
     }
 
     #[inline(always)]

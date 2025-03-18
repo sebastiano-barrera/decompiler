@@ -854,7 +854,7 @@ impl<T: Clone> BlockMap<T> {
 
     pub fn new_with<F>(cfg: &Graph, init_item: F) -> Self
     where
-        F: Fn(BlockID) -> T,
+        F: FnMut(BlockID) -> T,
     {
         Self(cfg.block_ids().map(init_item).collect())
     }

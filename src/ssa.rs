@@ -3,7 +3,7 @@ use std::{
     ops::Range,
 };
 
-use slotmap::SlotMap;
+use slotmap::{Key, SlotMap};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -26,11 +26,8 @@ pub struct Program {
 slotmap::new_key_type! { struct ControlNID; }
 slotmap::new_key_type! { struct DataNID; }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum ControlNode {
-    /// Start of the function. The only control node without control dependencies.
-    Start,
-
     /// End of the function.
     End {
         /// Predecessors
@@ -39,6 +36,14 @@ enum ControlNode {
         ret: DataNID,
     },
 
+    /// Control node with zero or more predecessors.
+    ///
+    /// With zero predecessors, it marks the start of the function. (There must be only
+    /// one per function.)
+    ///
+    /// With > 1 predecessors, it represents a control flow merge (join point). Phi nodes
+    /// may then be associated to this as their Merge node, to also merge data flow in
+    /// addition to control.
     Merge {
         // TODO more efficient repr (SmallVec?)
         preds: Vec<ControlNID>,
@@ -71,6 +76,7 @@ enum ControlNode {
     },
 
     Branch {
+        pred: ControlNID,
         cond: DataNID,
     },
     /// The consequent ("if condition true") branch of a Branch node
@@ -93,6 +99,8 @@ enum ControlNode {
         addr: DataNID,
         value: DataNID,
     },
+
+    TODO(&'static str),
 }
 
 /// Size of a value in the IR, expressed in bytes.
@@ -103,7 +111,7 @@ enum ControlNode {
 struct ValueSize(u8);
 
 /// A Phi node.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Phi {
     /// ID to the Merge node which determines this Phi's value, based on the
     /// predecessors that the program enters it from at runtime.
@@ -118,8 +126,9 @@ struct Phi {
     values: Vec<DataNID>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum DataNode {
+    Undefined,
     ConstBool(bool),
     ConstInt {
         size: ValueSize,
@@ -159,6 +168,8 @@ enum DataNode {
     /// The ControlNID must correspond to a ControlNode::Call node
     ReturnValueOf(ControlNID),
 
+    LoadedValueOf(ControlNID),
+
     Phi(Phi),
 }
 
@@ -174,6 +185,8 @@ impl Program {
         // TODO collect & check invariants
         self.assert_inputs_alive();
         self.assert_no_circular_refs();
+        // TODO: only one start node per function (Merge with zero preds)
+        // TODO: data nodes point to the correct controlnode (e.g. phi to merge, returnvalueof to return, etc.)
     }
 
     fn assert_inputs_alive(&self) {
@@ -205,81 +218,16 @@ fn test_assert_no_circular_refs() {
 
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let count: usize = self.live_regs().count();
-        writeln!(f, "ssa program  {} instrs", count)?;
+        writeln!(f, "ssa program")?;
 
-        for bid in self.cfg.block_ids_rpo() {
-            let phis = self.block_phi(bid);
-            let block_addr = {
-                let nor_ndxs = self.cfg.insns_ndx_range(bid);
-                self.inner.get(nor_ndxs.start).unwrap().addr
-            };
-            let insns = self.block_normal_insns(bid).unwrap();
+        writeln!(f, "  {} control nodes", self.control_graph.len())?;
+        for (cnid, cn) in self.control_graph.iter() {
+            writeln!(f, "    c{:?}  {:?}", cnid, cn)?;
+        }
 
-            write!(f, ".B{}:    ;;  ", bid.as_usize())?;
-            let preds = self.cfg.block_preds(bid);
-            if preds.len() > 0 {
-                write!(f, "preds:")?;
-                for (ndx, pred) in preds.iter().enumerate() {
-                    if ndx > 0 {
-                        write!(f, ",")?;
-                    }
-                    write!(f, "B{}", pred.as_number())?;
-                }
-                write!(f, "  ")?;
-            }
-            writeln!(
-                f,
-                "addr:0x{:x}; {} insn {} phis",
-                block_addr,
-                insns.insns.len(),
-                phis.phi_count(),
-            )?;
-
-            let print_rdr_count = |f: &mut std::fmt::Formatter, reg| -> std::fmt::Result {
-                let rdr_count = self.rdr_count.get(reg);
-                if rdr_count > 1 {
-                    write!(f, "  ({:3})  ", rdr_count)?;
-                } else {
-                    write!(f, "         ")?;
-                }
-                Ok(())
-            };
-
-            if phis.phi_count() > 0 {
-                write!(f, "                  ɸ  ")?;
-                for pred in preds {
-                    write!(f, "B{:<5} ", pred.as_number())?;
-                }
-                writeln!(f)?;
-                for phi in phis.phi_regs() {
-                    print_rdr_count(f, phi)?;
-                    write!(f, "  r{:<5} <- ", phi.0)?;
-                    for arg in self.get_phi_args(phi) {
-                        write!(f, "r{:<5} ", arg.0)?;
-                    }
-                    writeln!(f)?;
-                }
-            }
-
-            for (dest, mut insn) in insns.iter_copied() {
-                if self.is_alive(dest) {
-                    // modify insn (our copy) so that the registers skip/dereference any Get
-                    for input in insn.input_regs_iter_mut() {
-                        loop {
-                            let input_def = self.get(*input).unwrap().insn.get();
-                            if let mil::Insn::Get(x) = input_def {
-                                *input = x;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-
-                    print_rdr_count(f, dest)?;
-                    writeln!(f, "{:?} <- {:?}", dest, insn)?;
-                }
-            }
+        writeln!(f, "  {} data nodes", self.data_graph.len())?;
+        for (dnid, dn) in self.data_graph.iter() {
+            writeln!(f, "    d{:?}  {:?}", dnid, dn)?;
         }
 
         Ok(())
@@ -419,43 +367,52 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
     let mut queue = vec![Cmd::Block(cfg.entry_block_id())];
 
     let mut var_maps = BlockRegMat::for_program(program, &cfg, None);
-    let var_count = program.reg_count() as usize;
 
-    let cnid_of_bid: Vec<_> = todo!();
+    let mut cnid_of_bid = cfg::BlockMap::new_with(&cfg, |_| {
+        control_graph.insert(ControlNode::Merge { preds: Vec::new() })
+    });
+    for bid in cfg.block_ids() {
+        add_predecessors(
+            &mut control_graph,
+            cnid_of_bid[bid],
+            cfg.block_preds(bid).iter().map(|&bid| cnid_of_bid[bid]),
+        );
+    }
     let mut ends = Vec::new();
 
     while let Some(Cmd::Block(bid)) = queue.pop() {
-        let mut var_map = if let Some(imm_dom_bid) = cfg.dom_tree().parent_of(bid) {
-            var_maps.of_block(imm_dom_bid).to_vec()
-        } else {
-            vec![None; var_count]
-        };
+        // Map of mil reg -> ssa data node ID
+        //
+        // - starts with the state saved at the end of the immediate dominator, if any;
+        // - updated as we scan the block insn by insn;
+        // - gets reused as the initial mapping by immediately dominated blocks
+        if let Some(imm_dom_bid) = cfg.dom_tree().parent_of(bid) {
+            // copy from imm dom
+            for reg in program.regs_iter() {
+                var_maps.set(bid, reg, *var_maps.get(imm_dom_bid, reg));
+            }
+        }
 
         // each block starts with a control node
-        let preds = cfg.block_preds(bid);
-        let control_node = if preds.is_empty() {
-            ControlNode::Start
-        } else {
-            ControlNode::Merge {
-                preds: preds
-                    .iter()
-                    .map(|pred| cnid_of_bid[pred.as_usize()].unwrap())
-                    .collect(),
-            }
-        };
-        let cnid = control_graph.insert(control_node);
+        //
+        // some MIL instructions 'cut' the control flow with another control node
+        let cnid = cnid_of_bid[bid];
 
-        for (var_ndx, &is_phi_needed) in phis_set.of_block(bid).iter().enumerate() {
-            let reg = mil::Reg(var_ndx.try_into().unwrap());
-            if is_phi_needed {
+        // Add phi nodes as necessary.
+        //
+        // They're all associated to the Merge node we just created
+        for reg in program.regs_iter() {
+            let is_phi_needed = phis_set.get(bid, reg);
+            if *is_phi_needed {
                 let dnid = data_graph.insert(DataNode::Phi(Phi {
                     merge_nid: cnid,
-                    values: preds
+                    values: cfg
+                        .block_preds(bid)
                         .iter()
                         .map(|&pred| var_maps.get(pred, reg).expect("unmapped phi input reg"))
                         .collect(),
                 }));
-                var_map[var_ndx] = Some(dnid);
+                var_maps.set(bid, reg, Some(dnid));
             }
         }
 
@@ -463,40 +420,85 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         let mut cnid = cnid;
         let mut iter = insns.iter().peekable();
         while let Some((dest, insn)) = iter.next() {
-            let dnid_of_reg =
-                |reg: mil::Reg| var_map[reg.reg_index() as usize].expect("unmapped reg");
+            let dnid_of_reg = |reg: mil::Reg| var_maps.get(bid, reg).expect("unmapped reg");
 
             let data_node = match insn.get() {
                 mil::Insn::True => Some(DataNode::ConstBool(true)),
                 mil::Insn::False => Some(DataNode::ConstBool(false)),
-                mil::Insn::Const1(_) => todo!(),
-                mil::Insn::Const2(_) => todo!(),
-                mil::Insn::Const4(_) => todo!(),
-                mil::Insn::Const8(_) => todo!(),
-                mil::Insn::Get(reg) => todo!(),
-                mil::Insn::Part { src, offset, size } => todo!(),
-                mil::Insn::Concat { lo, hi } => todo!(),
-                mil::Insn::Widen1_2(reg) => todo!(),
-                mil::Insn::Widen1_4(reg) => todo!(),
-                mil::Insn::Widen1_8(reg) => todo!(),
-                mil::Insn::Widen2_4(reg) => todo!(),
-                mil::Insn::Widen2_8(reg) => todo!(),
-                mil::Insn::Widen4_8(reg) => todo!(),
-                mil::Insn::Arith1(arith_op, reg, reg1) => todo!(),
-                mil::Insn::Arith2(arith_op, reg, reg1) => todo!(),
-                mil::Insn::Arith4(arith_op, reg, reg1) => todo!(),
-                mil::Insn::Arith8(arith_op, reg, reg1) => todo!(),
-                mil::Insn::ArithK1(arith_op, reg, _) => todo!(),
-                mil::Insn::ArithK2(arith_op, reg, _) => todo!(),
-                mil::Insn::ArithK4(arith_op, reg, _) => todo!(),
-                mil::Insn::ArithK8(arith_op, reg, _) => todo!(),
-                mil::Insn::Cmp(cmp_op, reg, reg1) => todo!(),
-                mil::Insn::Bool(bool_op, reg, reg1) => todo!(),
-                mil::Insn::Not(reg) => todo!(),
+                mil::Insn::Const1(value) => Some(DataNode::ConstInt {
+                    size: ValueSize(1),
+                    value: value as i64,
+                }),
+                mil::Insn::Const2(value) => Some(DataNode::ConstInt {
+                    size: ValueSize(2),
+                    value: value as i64,
+                }),
+                mil::Insn::Const4(value) => Some(DataNode::ConstInt {
+                    size: ValueSize(4),
+                    value: value as i64,
+                }),
+                mil::Insn::Const8(value) => Some(DataNode::ConstInt {
+                    size: ValueSize(8),
+                    value: value as i64,
+                }),
+                mil::Insn::Get(arg) => {
+                    var_maps.set(bid, dest.get(), Some(dnid_of_reg(arg)));
+                    continue;
+                }
+                mil::Insn::Part { src, offset, size } => Some(DataNode::Part {
+                    src: dnid_of_reg(src),
+                    offset,
+                    size,
+                }),
+                mil::Insn::Concat { lo, hi } => Some(DataNode::Concat {
+                    lo: dnid_of_reg(lo),
+                    hi: dnid_of_reg(hi),
+                }),
+                mil::Insn::Widen1_2(arg) => Some(DataNode::Widen {
+                    input: dnid_of_reg(arg),
+                    out_size: ValueSize(2),
+                }),
+                mil::Insn::Widen1_4(arg) => Some(DataNode::Widen {
+                    input: dnid_of_reg(arg),
+                    out_size: ValueSize(4),
+                }),
+                mil::Insn::Widen1_8(arg) => Some(DataNode::Widen {
+                    input: dnid_of_reg(arg),
+                    out_size: ValueSize(8),
+                }),
+                mil::Insn::Widen2_4(arg) => Some(DataNode::Widen {
+                    input: dnid_of_reg(arg),
+                    out_size: ValueSize(4),
+                }),
+                mil::Insn::Widen2_8(arg) => Some(DataNode::Widen {
+                    input: dnid_of_reg(arg),
+                    out_size: ValueSize(8),
+                }),
+                mil::Insn::Widen4_8(arg) => Some(DataNode::Widen {
+                    input: dnid_of_reg(arg),
+                    out_size: ValueSize(8),
+                }),
+                mil::Insn::Arith1(arith_op, a, b)
+                | mil::Insn::Arith2(arith_op, a, b)
+                | mil::Insn::Arith4(arith_op, a, b)
+                | mil::Insn::Arith8(arith_op, a, b) => {
+                    Some(DataNode::Arith(arith_op, dnid_of_reg(a), dnid_of_reg(b)))
+                }
+                mil::Insn::ArithK1(arith_op, reg, k)
+                | mil::Insn::ArithK2(arith_op, reg, k)
+                | mil::Insn::ArithK4(arith_op, reg, k)
+                | mil::Insn::ArithK8(arith_op, reg, k) => {
+                    Some(DataNode::ArithK(arith_op, dnid_of_reg(reg), k))
+                }
+                mil::Insn::Cmp(op, a, b) => Some(DataNode::Cmp(op, dnid_of_reg(a), dnid_of_reg(b))),
+                mil::Insn::Bool(op, a, b) => {
+                    Some(DataNode::Bool(op, dnid_of_reg(a), dnid_of_reg(b)))
+                }
+                mil::Insn::Not(x) => Some(DataNode::Not(dnid_of_reg(x))),
 
                 mil::Insn::Call(callee) => {
                     let mut args = Vec::new();
-                    while let Some((dest, insn)) = iter.peek() {
+                    while let Some((_, insn)) = iter.peek() {
                         if let mil::Insn::CArg(reg) = insn.get() {
                             args.push(dnid_of_reg(reg));
                             iter.next();
@@ -514,7 +516,7 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                     Some(DataNode::ReturnValueOf(cnid))
                 }
                 mil::Insn::CArg(_) => {
-                    panic!("compiler bug or malformed mil: CArg node should be skipped here")
+                    panic!("compiler bug or malformed mil: CArg node should be adjacent to the corresponding call, and processed in the context of the Call insn")
                 }
 
                 mil::Insn::Ret(reg) => {
@@ -534,33 +536,88 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                         .block_starting_at(target)
                         .expect("inconsistent mil/cfg: no block at jmp target");
 
+                    cnid = control_graph.insert(ControlNode::Jump { pred: cnid });
+
+                    let target_cnid = cnid_of_bid[target_bid];
+                    add_predecessor(&mut control_graph, cnid, target_cnid);
+
                     None
                 }
-                mil::Insn::JmpIf { cond, target } => todo!(),
-                mil::Insn::JmpExt(_) => todo!(),
-                mil::Insn::JmpExtIf { cond, addr } => todo!(),
-                mil::Insn::TODO(_) => todo!(),
-                mil::Insn::LoadMem1(reg) => todo!(),
-                mil::Insn::LoadMem2(reg) => todo!(),
-                mil::Insn::LoadMem4(reg) => todo!(),
-                mil::Insn::LoadMem8(reg) => todo!(),
-                mil::Insn::StoreMem(reg, reg1) => todo!(),
-                mil::Insn::OverflowOf(reg) => todo!(),
-                mil::Insn::CarryOf(reg) => todo!(),
-                mil::Insn::SignOf(reg) => todo!(),
-                mil::Insn::IsZero(reg) => todo!(),
-                mil::Insn::Parity(reg) => todo!(),
-                mil::Insn::Undefined => todo!(),
-                mil::Insn::Ancestral(ancestral_name) => todo!(),
-                mil::Insn::Phi => todo!(),
-                mil::Insn::PhiBool => todo!(),
-                mil::Insn::PhiArg(reg) => todo!(),
+                mil::Insn::JmpIf { cond, target } => {
+                    cnid = control_graph.insert(ControlNode::Branch {
+                        pred: cnid,
+                        cond: dnid_of_reg(cond),
+                    });
+
+                    let target_bid = cfg
+                        .block_starting_at(target)
+                        .expect("inconsistent mil/cfg: no block at jmpif target");
+                    let target_cnid = cnid_of_bid[target_bid];
+                    add_predecessor(&mut control_graph, cnid, target_cnid);
+
+                    None
+                }
+                mil::Insn::JmpExt(value) => {
+                    let addr = data_graph.insert(DataNode::ConstInt {
+                        size: ValueSize(8),
+                        value: value as i64,
+                    });
+                    cnid = control_graph.insert(ControlNode::JumpIndirect { pred: cnid, addr });
+                    None
+                }
+                mil::Insn::JmpExtIf { cond, addr } => {
+                    let addr = data_graph.insert(DataNode::ConstInt {
+                        size: ValueSize(8),
+                        value: addr as i64,
+                    });
+                    cnid = control_graph.insert(ControlNode::BranchIndirect {
+                        pred: cnid,
+                        addr,
+                        cond: dnid_of_reg(cond),
+                    });
+                    None
+                }
+                mil::Insn::TODO(descr) => {
+                    cnid = control_graph.insert(ControlNode::TODO(descr));
+                    None
+                }
+                mil::Insn::LoadMem1(reg)
+                | mil::Insn::LoadMem2(reg)
+                | mil::Insn::LoadMem4(reg)
+                | mil::Insn::LoadMem8(reg) => {
+                    cnid = control_graph.insert(ControlNode::Load {
+                        pred: cnid,
+                        addr: dnid_of_reg(reg),
+                    });
+                    Some(DataNode::LoadedValueOf(cnid))
+                }
+                mil::Insn::StoreMem(addr, value) => {
+                    cnid = control_graph.insert(ControlNode::Store {
+                        pred: cnid,
+                        addr: dnid_of_reg(addr),
+                        value: dnid_of_reg(value),
+                    });
+                    None
+                }
+                mil::Insn::OverflowOf(reg) => Some(DataNode::OverflowOf(dnid_of_reg(reg))),
+                mil::Insn::CarryOf(reg) => Some(DataNode::CarryOf(dnid_of_reg(reg))),
+                mil::Insn::SignOf(reg) => Some(DataNode::SignOf(dnid_of_reg(reg))),
+                mil::Insn::IsZero(reg) => Some(DataNode::IsZero(dnid_of_reg(reg))),
+                mil::Insn::Parity(reg) => Some(DataNode::Parity(dnid_of_reg(reg))),
+                mil::Insn::Undefined => Some(DataNode::Undefined),
+                mil::Insn::Ancestral(ancestral_name) => Some(DataNode::Ancestral(ancestral_name)),
+                mil::Insn::Phi | mil::Insn::PhiBool | mil::Insn::PhiArg(_) => {
+                    panic!("phi nodes managed differently in this new impl")
+                }
             };
 
             if let Some(data_node) = data_node {
+                // TODO remove duplicates with a hashmap, save some space
                 let dnid = data_graph.insert(data_node);
-                var_map[dest.get().reg_index() as usize] = Some(dnid);
+                var_maps.set(bid, dest.get(), Some(dnid));
             }
+
+            cnid_of_bid[bid] = cnid;
         }
     }
 
@@ -576,94 +633,46 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         ret: final_phi,
     });
 
-    // establish SSA invariants
-    // the returned Program will no longer change (just some instructions are going to be marked as
-    // "dead" and ignored)
-    for (ndx, insn) in program.iter().enumerate() {
-        let ndx = ndx.try_into().unwrap();
-        assert_eq!(
-            insn.dest.get(),
-            mil::Reg(ndx),
-            "insn unvisited: {:?} <- {:?}",
-            insn.dest,
-            insn.insn
-        );
-    }
-
     let mut ssa = Program {
         control_graph,
         data_graph,
     };
+    ssa.assert_invariants();
     eliminate_dead_code(&mut ssa);
-    narrow_phi_nodes(&mut ssa);
     ssa
 }
 
-#[derive(Clone)]
-struct BlockPhis {}
-
-impl BlockPhis {
-    fn empty() -> BlockPhis {}
+fn add_predecessor(
+    control_graph: &mut SlotMap<ControlNID, ControlNode>,
+    pred_cnid: ControlNID,
+    target_cnid: ControlNID,
+) {
+    add_predecessors(control_graph, target_cnid, std::iter::once(pred_cnid));
 }
 
-/// Add phi nodes to a MIL program, where required.
-///
-/// Some notes:
-///
-/// - This function acts on MIL programs not yet in SSA form. Phi nodes are
-/// added in preparation for an SSA conversion, but no part of the actual
-/// conversion is performed at all.
-///
-/// - The added Phi nodes are all with the largest result width (Phi8). They
-/// must be later swapped for the proper width variants (Phi1, Phi2, Phi4, ...)
-/// by calling `narrow_phi_nodes` on the SSA-converted program.
-fn place_phi_nodes(
-    program: &mil::Program,
-    cfg: &cfg::Graph,
-    dom_tree: &cfg::DomTree,
-) -> cfg::BlockMap<BlockPhis> {
-    let block_count = cfg.block_count();
-
-    if program.len() == 0 {
-        return cfg::BlockMap::new(BlockPhis::empty(), block_count);
+fn add_predecessors(
+    control_graph: &mut SlotMap<ControlNID, ControlNode>,
+    target_cnid: ControlNID,
+    pred_cnids: impl Iterator<Item = ControlNID>,
+) {
+    let target_cn = control_graph.get_mut(target_cnid).unwrap();
+    if let ControlNode::Merge { preds } = target_cn {
+        preds.extend(pred_cnids);
+    } else {
+        // add a new Merge node that joins the target CN and the
+        // current CN; then swap it with the target CN (the IDs
+        // remain valid and the new Merge CN takes place of the
+        // old one)
+        let mut preds: Vec<_> = pred_cnids.collect();
+        let new_cnid = control_graph.insert_with_key(move |new_cnid| {
+            preds.push(new_cnid);
+            ControlNode::Merge { preds }
+        });
+        let [new_cn, target_cn] = control_graph
+            .get_disjoint_mut([new_cnid, target_cnid])
+            .unwrap();
+        std::mem::swap(new_cn, target_cn);
     }
-
-    let phis_set = compute_phis_set(program, cfg, dom_tree);
-    let var_count = phis_set.0.cols.try_into().unwrap();
-    assert_eq!(var_count, program.reg_count());
-
-    // phis_set[B][reg] == true
-    //   <==> Block B has a phi node for register reg
-
-    // Translate `phis_set` in a form such that the phi nodes inputs and outputs
-    // can undergo register renaming during SSA translation later
-    let mut phis = cfg::BlockMap::new(BlockPhis::empty(), block_count);
-
-    for bid in cfg.block_ids() {
-        let pred_count: u16 = cfg.block_preds(bid).len().try_into().unwrap();
-
-        for var_ndx in 0..var_count {
-            let reg = mil::Reg(var_ndx);
-            if *phis_set.get(bid, reg) {
-                program.push(
-                    reg,
-                    Phi {
-                        merge_nid: todo!(),
-                        values: todo!(),
-                    },
-                );
-
-                for _pred_ndx in 0..pred_count {
-                    // implicitly corresponds to _pred_ndx
-                    todo!();
-                }
-            }
-        }
-
-        phis[bid] = phi_info;
-    }
-
-    phis
 }
 
 fn compute_phis_set(
@@ -701,42 +710,6 @@ fn compute_phis_set(
     }
 
     phis_set
-}
-
-fn narrow_phi_nodes(program: &mut Program) {
-    for iv in program.insns_unordered() {
-        let dest = iv.dest.get();
-        let insn = iv.insn.get();
-
-        match insn {
-            mil::Insn::Phi { size } => {
-                if size != 8 {
-                    panic!("narrow_phi_nodes: unexpected narrow phi node")
-                }
-            }
-            _ => continue,
-        }
-
-        let mut args = program.get_phi_args(dest);
-        let arg0 = args.next().unwrap();
-        let rt0 = program.value_type(arg0);
-
-        // check: all args have the same type!
-        for arg in args {
-            assert_eq!(
-                program.value_type(arg),
-                rt0,
-                "malformed ssa: phi node has different type args"
-            );
-        }
-
-        let repl_insn = match rt0 {
-            mil::RegType::Effect => panic!("malformed ssa: phi node can't have Effect inputs"),
-            mil::RegType::Bytes(size) => mil::Insn::Phi { size },
-            mil::RegType::Bool => mil::Insn::PhiBool,
-        };
-        iv.insn.set(repl_insn);
-    }
 }
 
 /// Find the set of "received variables" for each block.
@@ -836,6 +809,9 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     mat
 }
 
+// TODO restore this function
+pub fn eliminate_dead_code(prog: &mut Program) {}
+#[cfg(any())]
 pub fn eliminate_dead_code(prog: &mut Program) {
     if prog.inner.len() == 0 {
         return;
@@ -941,7 +917,7 @@ mod tests {
         eprintln!("{:?}", prog);
 
         eprintln!("-- ssa:");
-        let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
+        let prog = super::mil_to_ssa(&prog);
         insta::assert_debug_snapshot!(prog);
     }
 }

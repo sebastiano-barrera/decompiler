@@ -1,4 +1,3 @@
-mod ast;
 mod cfg;
 #[macro_use]
 mod mil;
@@ -7,6 +6,11 @@ mod ssa;
 mod tests;
 mod ty;
 mod x86_to_mil;
+
+// TODO rebuild and re-enable for SoN repr
+
+#[cfg(any())]
+mod ast;
 
 #[cfg(any())]
 mod xform;

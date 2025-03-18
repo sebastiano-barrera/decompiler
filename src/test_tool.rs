@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use iced_x86::Formatter;
 use thiserror::Error;
 
+#[cfg(any())]
+use crate::ast;
 use crate::{
-    ast,
     pp::{self, PP},
     ssa, ty, x86_to_mil, xform,
 };
@@ -182,9 +183,12 @@ impl<'a> Tester<'a> {
         xform::canonical(&mut prog);
         writeln!(out, "{:?}", prog)?;
 
-        writeln!(out)?;
-        let ast = ast::Ast::new(&prog);
-        ast.pretty_print(out).unwrap();
+        #[cfg(any())]
+        {
+            writeln!(out)?;
+            let ast = ast::Ast::new(&prog);
+            ast.pretty_print(out).unwrap();
+        }
 
         Ok(())
     }
