@@ -238,6 +238,36 @@ enum DataNode {
 }
 
 impl DataNode {
+    fn control_inputs(&self) -> Predecessors {
+        // TODO remove this waste! choose a different data structure
+        let cnids = match self {
+            DataNode::Undefined => vec![],
+            DataNode::ConstBool(_) => vec![],
+            DataNode::ConstInt { .. } => vec![],
+            DataNode::Part { .. } => vec![],
+            DataNode::Concat { .. } => vec![],
+            DataNode::Widen { .. } => vec![],
+            DataNode::Arith(_, _, _) => vec![],
+            DataNode::ArithK(_, _, _) => vec![],
+            DataNode::Cmp(_, _, _) => vec![],
+            DataNode::Bool(_, _, _) => vec![],
+            DataNode::Not(_) => vec![],
+            DataNode::OverflowOf(_) => vec![],
+            DataNode::CarryOf(_) => vec![],
+            DataNode::SignOf(_) => vec![],
+            DataNode::IsZero(_) => vec![],
+            DataNode::Parity(_) => vec![],
+            DataNode::Ancestral(_) => vec![],
+
+            DataNode::ReturnValueOf(cnid)
+            | DataNode::Phi(Phi {
+                merge_nid: cnid, ..
+            })
+            | DataNode::LoadedValueOf(cnid) => vec![*cnid],
+        };
+        Predecessors(cnids)
+    }
+
     fn data_inputs(&self) -> Inputs {
         // TODO remove this waste! choose a different data structure
         let inputs = match self {
@@ -355,6 +385,11 @@ impl Program {
             let gvid = format!("d{}", dnid.data().as_ffi());
             let label = format!("{:?} -- {:?}", dnid, dn);
             writeln!(out, "  {} [label={:?}];", gvid, label)?;
+
+            for dep_cnid in dn.control_inputs() {
+                let pred_gvid = format!("c{}", dep_cnid.data().as_ffi());
+                writeln!(out, "  {} -> {} [color=red];", pred_gvid, gvid,)?;
+            }
 
             for dep_dnid in dn.data_inputs() {
                 let dep_gvid = format!("d{}", dep_dnid.data().as_ffi());
