@@ -114,6 +114,16 @@ impl IntoIterator for Predecessors {
         self.0.into_iter()
     }
 }
+
+pub struct Inputs(Vec<DataNID>);
+impl IntoIterator for Inputs {
+    type Item = DataNID;
+    type IntoIter = <Vec<DataNID> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl ControlNode {
     fn predecessors(&self) -> Predecessors {
         // TODO remove this waste! change data structure
@@ -132,6 +142,28 @@ impl ControlNode {
             ControlNode::TODO(_) => vec![],
         };
         Predecessors(preds)
+    }
+
+    fn data_inputs(&self) -> Inputs {
+        let inputs = match self {
+            ControlNode::End { ret, .. } => vec![*ret],
+            ControlNode::Merge { .. } => vec![],
+            ControlNode::JumpIndirect { addr, .. } => vec![*addr],
+            ControlNode::BranchIndirect { cond, addr, .. } => vec![*cond, *addr],
+            ControlNode::Jump { .. } => vec![],
+            ControlNode::Branch { cond, .. } => vec![*cond],
+            ControlNode::IfTrue(_) => vec![],
+            ControlNode::IfFalse(_) => vec![],
+            ControlNode::Call { callee, args, .. } => {
+                let mut inputs = args.clone();
+                inputs.push(*callee);
+                inputs
+            }
+            ControlNode::Load { addr, .. } => vec![*addr],
+            ControlNode::Store { addr, value, .. } => vec![*addr, *value],
+            ControlNode::TODO(_) => vec![],
+        };
+        Inputs(inputs)
     }
 }
 
@@ -205,18 +237,8 @@ enum DataNode {
     Phi(Phi),
 }
 
-pub struct InputsIter(Vec<DataNID>);
-
-impl IntoIterator for InputsIter {
-    type Item = DataNID;
-    type IntoIter = <Vec<DataNID> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
 impl DataNode {
-    fn data_inputs(&self) -> InputsIter {
+    fn data_inputs(&self) -> Inputs {
         // TODO remove this waste! choose a different data structure
         let inputs = match self {
             DataNode::Undefined => vec![],
@@ -240,7 +262,7 @@ impl DataNode {
             DataNode::LoadedValueOf(_) => vec![],
             DataNode::Phi(Phi { values, .. }) => values.clone(),
         };
-        InputsIter(inputs)
+        Inputs(inputs)
     }
 }
 
@@ -301,38 +323,46 @@ impl std::fmt::Debug for Program {
             writeln!(f, "    {:?}  {:?}", dnid, dn)?;
         }
 
-        self.dump_graphviz();
+        self.dump_graphviz().unwrap();
 
         Ok(())
     }
 }
 impl Program {
-    fn dump_graphviz(&self) {
-        println!("digraph {{");
+    fn dump_graphviz(&self) -> std::io::Result<()> {
+        use std::io::Write;
+
+        let mut out = std::fs::File::create("ssa.dot").unwrap();
+        writeln!(out, "digraph {{")?;
 
         for (cnid, cn) in self.control_graph.iter() {
             let gvid = format!("c{}", cnid.data().as_ffi());
             let label = format!("{:?} -- {:?}", cnid, cn);
-            println!("  {} [label={:?}];", gvid, label);
+            writeln!(out, "  {} [label={:?}];", gvid, label)?;
 
             for pred_cnid in cn.predecessors() {
                 let pred_gvid = format!("c{}", pred_cnid.data().as_ffi());
-                println!("  {} -> {} [color=red];", pred_gvid, gvid,);
+                writeln!(out, "  {} -> {} [color=red];", pred_gvid, gvid,)?;
+            }
+
+            for dep_dnid in cn.data_inputs() {
+                let dep_gvid = format!("d{}", dep_dnid.data().as_ffi());
+                writeln!(out, "  {} -> {} [color=blue];", gvid, dep_gvid)?;
             }
         }
 
         for (dnid, dn) in self.data_graph.iter() {
             let gvid = format!("d{}", dnid.data().as_ffi());
-            let label = format!("{:?}", dn);
-            println!("  {} [label={:?}];", gvid, label);
+            let label = format!("{:?} -- {:?}", dnid, dn);
+            writeln!(out, "  {} [label={:?}];", gvid, label)?;
 
             for dep_dnid in dn.data_inputs() {
                 let dep_gvid = format!("d{}", dep_dnid.data().as_ffi());
-                println!("  {} -> {} [color=blue];", gvid, dep_gvid);
+                writeln!(out, "  {} -> {} [color=blue];", gvid, dep_gvid)?;
             }
         }
 
-        println!("}}");
+        writeln!(out, "}}")
     }
 }
 
@@ -364,63 +394,6 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
 
     rename(entry)
     */
-
-    // TODO rework this with a more efficient data structure
-    struct VarMap {
-        count: mil::Index,
-        stack: Vec<Box<[Option<mil::Reg>]>>,
-    }
-
-    impl VarMap {
-        fn new(count: mil::Index) -> Self {
-            VarMap {
-                count,
-                stack: Vec::new(),
-            }
-        }
-
-        fn push(&mut self) {
-            if self.stack.is_empty() {
-                self.stack
-                    .push(vec![None; self.count.into()].into_boxed_slice());
-            } else {
-                let new_elem = self.stack.last().unwrap().clone();
-                self.stack.push(new_elem);
-            }
-
-            self.check_invariants()
-        }
-
-        fn check_invariants(&self) {
-            for elem in &self.stack {
-                assert_eq!(elem.len(), self.count.into());
-            }
-        }
-
-        fn pop(&mut self) {
-            self.stack.pop();
-            self.check_invariants();
-        }
-
-        fn current(&self) -> &[Option<mil::Reg>] {
-            &self.stack.last().expect("no mappings!")[..]
-        }
-        fn current_mut(&mut self) -> &mut [Option<mil::Reg>] {
-            &mut self.stack.last_mut().expect("no mappings!")[..]
-        }
-        fn get(&self, reg: mil::Reg) -> Option<mil::Reg> {
-            let reg_num = reg.reg_index() as usize;
-            self.current()[reg_num]
-        }
-
-        fn set(&mut self, old: mil::Reg, new: mil::Reg) {
-            let reg_num = old.reg_index() as usize;
-            self.current_mut()[reg_num] = Some(new);
-        }
-    }
-
-    // let var_count = program.reg_count();
-    // let mut var_map = VarMap::new(var_count);
 
     //
     // (+) for register renaming, we can rename dest[i] (assignment target of the i-th instruction)
@@ -463,11 +436,6 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
     let mut control_graph = SlotMap::with_key();
     let mut data_graph = SlotMap::with_key();
 
-    enum Cmd {
-        Block(cfg::BlockID),
-    }
-    let mut queue = vec![Cmd::Block(cfg.entry_block_id())];
-
     let mut var_maps = BlockRegMat::for_program(program, &cfg, None);
 
     let mut cnid_of_bid = cfg::BlockMap::new_with(&cfg, |_| {
@@ -486,7 +454,7 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
     }
     let mut ends = Vec::new();
 
-    while let Some(Cmd::Block(bid)) = queue.pop() {
+    for bid in cfg.block_ids_rpo() {
         // Map of mil reg -> ssa data node ID
         //
         // - starts with the state saved at the end of the immediate dominator, if any;
@@ -869,6 +837,13 @@ impl<T: Clone> BlockRegMat<T> {
     fn set(&mut self, bid: cfg::BlockID, reg: mil::Reg, value: T) {
         *self.0.item_mut(bid.as_usize(), reg.reg_index() as usize) = value;
     }
+
+    fn map<F, U>(&self, f: F) -> BlockRegMat<U>
+    where
+        F: FnMut(&T) -> U,
+    {
+        BlockRegMat(self.0.map(f))
+    }
 }
 
 struct Mat<T> {
@@ -889,8 +864,16 @@ impl<T> Mat<T> {
     fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
         &mut self.items[self.ndx(i, j)]
     }
-    fn row(&self, i: usize) -> &[T] {
-        &self.items[i * self.cols..(i + 1) * self.cols]
+    fn map<F, U>(&self, f: F) -> Mat<U>
+    where
+        F: FnMut(&T) -> U,
+    {
+        let items: Box<[_]> = self.items.iter().map(f).collect();
+        Mat {
+            items,
+            rows: self.rows,
+            cols: self.cols,
+        }
     }
 }
 impl<T: Clone> Mat<T> {
