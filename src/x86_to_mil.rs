@@ -843,6 +843,11 @@ impl<'a> Builder<'a> {
         }
     }
 
+    pub fn read_func_args(&mut self, _arg_types: &[ty::TypeID]) -> Result<()> {
+        Ok(())
+    }
+
+    #[cfg(any())]
     pub fn read_func_args(&mut self, arg_types: &[ty::TypeID]) -> Result<()> {
         use ty::Ty;
 

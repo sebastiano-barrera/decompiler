@@ -174,7 +174,7 @@ impl<'a> Tester<'a> {
 
         writeln!(out)?;
         writeln!(out, "ssa pre-xform:")?;
-        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        let mut prog = ssa::mil_to_ssa(&prog);
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;

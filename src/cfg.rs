@@ -140,6 +140,15 @@ impl Graph {
         (0..self.block_count()).map(|ndx| BlockID(ndx.try_into().unwrap()))
     }
 
+    pub fn block_starting_at(&self, target: mil::Index) -> Option<BlockID> {
+        let (_, starts) = self.bounds.split_last()?;
+        starts
+            .iter()
+            .enumerate()
+            .find(|(_, start_ndx)| **start_ndx == target)
+            .map(|(bid, _)| BlockID(bid.try_into().unwrap()))
+    }
+
     pub fn block_preds(&self, bid: BlockID) -> &[BlockID] {
         self.inverse.successors(bid)
     }

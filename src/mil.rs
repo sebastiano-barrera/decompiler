@@ -65,7 +65,6 @@ impl RegType {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Assoc)]
-#[func(pub fn has_side_effects(&self) -> bool { false })]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
     True,
@@ -86,10 +85,6 @@ pub enum Insn {
         hi: Reg,
     },
 
-    StructGet8 {
-        struct_value: Reg,
-        offset: u8,
-    },
     Widen1_2(Reg),
     Widen1_4(Reg),
     Widen1_8(Reg),
@@ -169,9 +164,7 @@ pub enum Insn {
     ///
     /// Exists purely to give the phi node an index that the rest of the program can refer to (in
     /// SSA).
-    Phi {
-        size: usize,
-    },
+    Phi,
     PhiBool,
 
     // argument to a phi node
@@ -258,7 +251,7 @@ impl Insn {
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi { size: _ }
+            | Insn::Phi
             | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
@@ -297,11 +290,7 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
-            | Insn::StructGet8 {
-                struct_value: reg,
-                offset: _,
-            } => [Some(reg), None],
+            | Insn::PhiArg(reg) => [Some(reg), None],
 
             Insn::Concat { lo: a, hi: b }
             | Insn::Arith1(_, a, b)
@@ -332,7 +321,7 @@ impl Insn {
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi { size: _ }
+            | Insn::Phi
             | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
@@ -371,11 +360,7 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
-            | Insn::StructGet8 {
-                struct_value: reg,
-                offset: _,
-            } => [Some(reg), None],
+            | Insn::PhiArg(reg) => [Some(reg), None],
 
             Insn::Concat { lo: b, hi: a }
             | Insn::Arith1(_, a, b)
@@ -390,14 +375,7 @@ impl Insn {
 
     #[inline(always)]
     pub fn is_phi(&self) -> bool {
-        matches!(
-            self,
-            Insn::Phi { size: 1 }
-                | Insn::Phi { size: 2 }
-                | Insn::Phi { size: 4 }
-                | Insn::Phi { size: 8 }
-                | Insn::PhiBool
-        )
+        matches!(self, Insn::Phi | Insn::PhiBool)
     }
 }
 

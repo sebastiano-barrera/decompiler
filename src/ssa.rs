@@ -3,6 +3,8 @@ use std::{
     ops::Range,
 };
 
+use slotmap::SlotMap;
+
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
 ///
@@ -12,227 +14,174 @@ use std::{
 /// > Rice University, CS Technical Report 06-33870.
 use crate::{cfg, mil};
 
+use mil::{AncestralName, ArithOp, BoolOp, CmpOp};
+
 #[derive(Clone)]
 pub struct Program {
-    // an ssa::Program contains a mil::Program at its core, but never exposes it directly:
-    //
-    // - extra instructions are appended for various uses, although they do not belong
-    //   (directly) to the program sequence (they're only referred-to by other in-sequence
-    //   instruction)
-    //
-    // - registers are numerically equal to the index of the defining instruction.
-    //   mil::Index values are just as good as mil::Reg for identifying both insns and
-    //   values.
-    inner: mil::Program,
-    phis: cfg::BlockMap<PhiInfo>,
-    cfg: cfg::Graph,
-
-    rdr_count: ReaderCount,
-
-    #[cfg(feature = "proto_typing")]
-    ptr_regs: HashMap<mil::Reg, Ptr>,
+    // Sea-of-Nodes representation
+    control_graph: SlotMap<ControlNID, ControlNode>,
+    data_graph: SlotMap<DataNID, DataNode>,
 }
 
-#[cfg(feature = "proto_typing")]
-slotmap::new_key_type! { pub struct TypeID; }
+slotmap::new_key_type! { struct ControlNID; }
+slotmap::new_key_type! { struct DataNID; }
 
-#[cfg(feature = "proto_typing")]
 #[derive(Clone)]
-pub struct Ptr {
-    pub pointee_tyid: TypeID,
+enum ControlNode {
+    /// Start of the function. The only control node without control dependencies.
+    Start,
+
+    /// End of the function.
+    End {
+        /// Predecessors
+        pred: ControlNID,
+        /// Return value
+        ret: DataNID,
+    },
+
+    Merge {
+        // TODO more efficient repr (SmallVec?)
+        preds: Vec<ControlNID>,
+    },
+
+    /// Jump to the address obtained by evaluating the `addr` expression.
+    ///
+    /// The target address is to be considered external to the function
+    /// represented by this graph, as the compiler attempts to translate all jumps
+    /// that "fall into" this function to other node types.
+    JumpIndirect {
+        pred: ControlNID,
+        addr: DataNID,
+    },
+    /// If branch, where the target address is determined by evaluating the `addr` expression.
+    ///
+    /// The target address is to be considered external to the function
+    /// represented by this graph, as the compiler attempts to translate all jumps
+    /// that "fall into" this function to other node types.
+    BranchIndirect {
+        pred: ControlNID,
+        cond: DataNID,
+        addr: DataNID,
+    },
+
+    /// The Jump's destination is encoded in another node (this node shows up as
+    /// the other node's predecessor).
+    Jump {
+        pred: ControlNID,
+    },
+
+    Branch {
+        cond: DataNID,
+    },
+    /// The consequent ("if condition true") branch of a Branch node
+    IfTrue(ControlNID),
+    /// The alternate ("if condition false") branch of a Branch node
+    IfFalse(ControlNID),
+
+    Call {
+        pred: ControlNID,
+        callee: DataNID,
+        args: Vec<DataNID>,
+    },
+
+    Load {
+        pred: ControlNID,
+        addr: DataNID,
+    },
+    Store {
+        pred: ControlNID,
+        addr: DataNID,
+        value: DataNID,
+    },
+}
+
+/// Size of a value in the IR, expressed in bytes.
+///
+/// Typically mirrors the size of an operand's size in the original assembly, so
+/// the maximum is the size of a machine register (for x86_64: 8 bytes).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+struct ValueSize(u8);
+
+/// A Phi node.
+#[derive(Clone)]
+struct Phi {
+    /// ID to the Merge node which determines this Phi's value, based on the
+    /// predecessors that the program enters it from at runtime.
+    merge_nid: ControlNID,
+
+    /// This nodes assumes value `values[i]` at runtime whenever the
+    /// corresponding Merge control node `Merge { preds }` is entered from
+    /// predecessor `preds[i]`
+    ///
+    /// Invariant: all input values are of the same type
+    // TODO more efficient repr (SmallVec?)
+    values: Vec<DataNID>,
+}
+
+#[derive(Clone)]
+enum DataNode {
+    ConstBool(bool),
+    ConstInt {
+        size: ValueSize,
+        value: i64,
+    },
+
+    Part {
+        src: DataNID,
+        offset: u8,
+        size: u8,
+    },
+    Concat {
+        lo: DataNID,
+        hi: DataNID,
+    },
+
+    Widen {
+        input: DataNID,
+        out_size: ValueSize,
+    },
+    Arith(ArithOp, DataNID, DataNID),
+    ArithK(ArithOp, DataNID, i64),
+    Cmp(CmpOp, DataNID, DataNID),
+    Bool(BoolOp, DataNID, DataNID),
+    Not(DataNID),
+
+    OverflowOf(DataNID),
+    CarryOf(DataNID),
+    SignOf(DataNID),
+    IsZero(DataNID),
+    Parity(DataNID),
+
+    Ancestral(AncestralName),
+
+    /// A call's return value.
+    ///
+    /// The ControlNID must correspond to a ControlNode::Call node
+    ReturnValueOf(ControlNID),
+
+    Phi(Phi),
 }
 
 impl Program {
-    pub fn cfg(&self) -> &cfg::Graph {
-        &self.cfg
-    }
-
     /// Get the defining instruction for the given register.
     ///
     /// (Note that it's not allowed to fetch instructions by position.)
     pub fn get(&self, reg: mil::Reg) -> Option<mil::InsnView> {
-        // In SSA, Reg(ndx) happens to be located at index ndx.
-        // But it's a detail we try to hide, as it's likely we're going to have
-        // to transition to a more complex structure in the future.
-        let iv = self.inner.get(reg.0)?;
-        debug_assert_eq!(iv.dest.get(), reg);
-        Some(iv)
-    }
-
-    pub fn reg_count(&self) -> mil::Index {
-        self.inner.len()
-    }
-
-    pub fn readers_count(&self, reg: mil::Reg) -> usize {
-        self.rdr_count.get(reg)
-    }
-
-    pub fn block_phi(&self, bid: cfg::BlockID) -> &PhiInfo {
-        &self.phis[bid]
-    }
-
-    pub fn is_alive(&self, reg: mil::Reg) -> bool {
-        self.rdr_count.get(reg) > 0
-    }
-
-    pub fn live_regs(&self) -> impl '_ + Iterator<Item = mil::Reg> {
-        (0..self.reg_count())
-            .map(|ndx| mil::Reg(ndx))
-            .filter(|reg| self.is_alive(*reg))
-    }
-
-    /// Iterate through the instructions in the program, in no particular order
-    pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView> {
-        self.live_regs().map(|reg| self.get(reg).unwrap())
-    }
-
-    pub fn block_normal_insns(&self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
-        let ndx_range = self.cfg.insns_ndx_range(bid);
-        self.inner.slice(ndx_range)
-    }
-
-    pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        self.inner.get_call_args(reg.0)
-    }
-
-    pub fn get_phi_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        self.inner.get_phi_args(reg.0)
-    }
-
-    pub fn map_phi_args(&self, reg: mil::Reg, f: impl Fn(mil::Reg) -> mil::Reg) {
-        self.inner.map_phi_args(reg.0, f)
-    }
-
-    pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
-        use mil::{Insn, RegType};
-        match self.inner.get(reg.0).unwrap().insn.get() {
-            Insn::True => RegType::Bool,
-            Insn::False => RegType::Bool,
-            Insn::Const1(_) => RegType::Bytes(1),
-            Insn::Const2(_) => RegType::Bytes(2),
-            Insn::Const4(_) => RegType::Bytes(4),
-            Insn::Const8(_) => RegType::Bytes(8),
-            Insn::Part { size, .. } => RegType::Bytes(size as usize),
-            Insn::Get(arg) => self.value_type(arg),
-            Insn::Concat { lo, hi } => {
-                let lo_size = self.value_type(lo).bytes_size().unwrap();
-                let hi_size = self.value_type(hi).bytes_size().unwrap();
-                RegType::Bytes(lo_size + hi_size)
-            }
-            Insn::Widen1_2(_) => RegType::Bytes(2),
-            Insn::Widen1_4(_) => RegType::Bytes(4),
-            Insn::Widen1_8(_) => RegType::Bytes(8),
-            Insn::Widen2_4(_) => RegType::Bytes(4),
-            Insn::Widen2_8(_) => RegType::Bytes(8),
-            Insn::Widen4_8(_) => RegType::Bytes(8),
-            Insn::Arith1(_, _, _) => RegType::Bytes(1),
-            Insn::Arith2(_, _, _) => RegType::Bytes(2),
-            Insn::Arith4(_, _, _) => RegType::Bytes(4),
-            Insn::Arith8(_, _, _) => RegType::Bytes(8),
-            Insn::ArithK1(_, _, _) => RegType::Bytes(1),
-            Insn::ArithK2(_, _, _) => RegType::Bytes(2),
-            Insn::ArithK4(_, _, _) => RegType::Bytes(4),
-            Insn::ArithK8(_, _, _) => RegType::Bytes(8),
-            Insn::Cmp(_, _, _) => RegType::Bool,
-            Insn::Bool(_, _, _) => RegType::Bool,
-            Insn::Not(_) => RegType::Bool,
-            // TODO This might have to change based on the use of calling
-            // convention and function type info
-            Insn::Call(_) => RegType::Bytes(8),
-            Insn::CArg(_) => RegType::Effect,
-            Insn::Ret(_) => RegType::Effect,
-            Insn::JmpInd(_) => RegType::Effect,
-            Insn::Jmp(_) => RegType::Effect,
-            Insn::JmpExt(_) => RegType::Effect,
-            Insn::JmpIf { .. } => RegType::Effect,
-            Insn::JmpExtIf { .. } => RegType::Effect,
-            Insn::TODO(_) => RegType::Effect,
-            Insn::LoadMem1(_) => RegType::Bytes(1),
-            Insn::LoadMem2(_) => RegType::Bytes(2),
-            Insn::LoadMem4(_) => RegType::Bytes(4),
-            Insn::LoadMem8(_) => RegType::Bytes(8),
-            Insn::StoreMem(_, _) => RegType::Effect,
-            Insn::OverflowOf(_) => RegType::Effect,
-            Insn::CarryOf(_) => RegType::Effect,
-            Insn::SignOf(_) => RegType::Effect,
-            Insn::IsZero(_) => RegType::Effect,
-            Insn::Parity(_) => RegType::Effect,
-            Insn::Undefined => RegType::Effect,
-            Insn::Phi { size } => RegType::Bytes(size as usize),
-            Insn::PhiBool => RegType::Bool,
-            Insn::PhiArg(_) => RegType::Effect,
-            Insn::Ancestral(anc_name) => self
-                .inner
-                .ancestor_type(anc_name)
-                .expect("ancestor has no defined type"),
-            Insn::StructGet8 { .. } => RegType::Bytes(8),
-        }
+        todo!()
     }
 
     pub fn assert_invariants(&self) {
-        self.assert_no_circular_refs();
+        // TODO collect & check invariants
         self.assert_inputs_alive();
-        self.assert_phis_separated();
-    }
-
-    fn assert_phis_separated(&self) {
-        for bid in self.cfg.block_ids() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                let insn = self.get(phi_reg).unwrap().insn.get();
-                assert!(insn.is_phi());
-            }
-
-            for (_, insn_cell) in self.block_normal_insns(bid).unwrap().iter() {
-                assert!(!insn_cell.get().is_phi());
-            }
-        }
+        self.assert_no_circular_refs();
     }
 
     fn assert_inputs_alive(&self) {
-        for bid in self.cfg.block_ids_rpo() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                if !self.is_alive(phi_reg) {
-                    continue;
-                }
-
-                for arg in self.get_phi_args(phi_reg) {
-                    assert!(
-                        self.is_alive(arg),
-                        "{phi_reg:?}: phi input not alive: {arg:?}"
-                    );
-                }
-            }
-
-            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
-                if !self.is_alive(dest) {
-                    continue;
-                }
-
-                insn.input_regs_iter().for_each(|reg| {
-                    assert!(self.is_alive(reg), "{dest:?}: input not alive: {reg:?}");
-                });
-            }
-        }
+        // TODO reimplement
     }
 
     fn assert_no_circular_refs(&self) {
-        let mut defined = HashSet::new();
-        for bid in self.cfg.block_ids_rpo() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                // phi arguments are not checked
-                let is_first_def = defined.insert(phi_reg);
-                assert!(is_first_def);
-            }
-
-            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
-                insn.input_regs_iter().for_each(|reg| {
-                    assert!(defined.contains(&reg), "{dest:?}: undefined reg: {reg:?}")
-                });
-
-                let is_first_def = defined.insert(dest);
-                assert!(is_first_def);
-            }
-        }
+        // TODO reimplement
     }
 }
 
@@ -250,68 +199,8 @@ fn test_assert_no_circular_refs() {
         pb.push(Reg(2), Insn::Arith8(ArithOp::Add, Reg(0), Reg(1)));
         pb.build()
     };
-    let prog = mil_to_ssa(ConversionParams::new(prog));
+    let prog = mil_to_ssa(&prog);
     prog.assert_no_circular_refs();
-}
-
-#[cfg(feature = "proto_typing")]
-impl Program {
-    pub fn set_ptr_type(&mut self, reg: mil::Reg, ptr_ty: Ptr) {
-        self.ptr_regs.insert(reg, ptr_ty);
-    }
-
-    pub fn ptr_type(&self, reg: mil::Reg) -> Option<&Ptr> {
-        self.ptr_regs.get(&reg)
-    }
-}
-
-#[derive(Clone)]
-pub struct PhiInfo {
-    ndxs: Range<mil::Index>,
-    // TODO smaller sizes?; these rarely go above, like 4-8
-    phi_count: mil::Index,
-    pred_count: mil::Index,
-}
-
-impl PhiInfo {
-    fn empty() -> Self {
-        PhiInfo {
-            ndxs: 0..0,
-            phi_count: 0,
-            pred_count: 0,
-        }
-    }
-
-    pub fn phi_count(&self) -> mil::Index {
-        self.phi_count
-    }
-
-    pub fn phi_reg(&self, phi_ndx: mil::Index) -> mil::Reg {
-        assert!(phi_ndx < self.phi_count);
-        assert_eq!(
-            self.ndxs.len(),
-            (self.phi_count * (1 + self.pred_count)).into()
-        );
-        let value_ndx = self.ndxs.start + phi_ndx * (1 + self.pred_count);
-        mil::Reg(value_ndx)
-    }
-
-    pub fn phi_regs(&self) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
-        (0..self.phi_count).map(|phi_ndx| self.phi_reg(phi_ndx))
-    }
-
-    pub fn arg<'p>(&self, ssa: &'p Program, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
-        let item = ssa.get(self.arg_ndx(phi_ndx, pred_ndx)).unwrap();
-        match item.insn.get() {
-            mil::Insn::PhiArg(reg) => reg,
-            other => panic!("expected phiarg, got {:?}", other),
-        }
-    }
-
-    fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
-        assert!(pred_ndx < self.pred_count);
-        mil::Reg(self.phi_reg(phi_ndx).0 + 1 + pred_ndx)
-    }
 }
 
 impl std::fmt::Debug for Program {
@@ -397,24 +286,11 @@ impl std::fmt::Debug for Program {
     }
 }
 
-// TODO Remove this. No longer needed in the current design. Already cut down to nothing.
-pub struct ConversionParams {
-    pub program: mil::Program,
-}
-
-impl ConversionParams {
-    pub fn new(program: mil::Program) -> Self {
-        ConversionParams { program }
-    }
-}
-
-pub fn mil_to_ssa(input: ConversionParams) -> Program {
-    let ConversionParams { mut program, .. } = input;
-
+pub fn mil_to_ssa(program: &mil::Program) -> Program {
     let cfg = cfg::analyze_mil(&program);
 
     let dom_tree = cfg.dom_tree();
-    let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
+    let phis_set = compute_phis_set(program, &cfg, dom_tree);
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -493,138 +369,212 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let var_count = program.reg_count();
-    let mut var_map = VarMap::new(var_count);
+    // let var_count = program.reg_count();
+    // let mut var_map = VarMap::new(var_count);
+
+    //
+    // (+) for register renaming, we can rename dest[i] (assignment target of the i-th instruction)
+    //     to Reg(i) (register whose ID is nominally equal to the insn's index)
+    //
+    //      <- each mil insn results in exactly one assignment
+    //              [trick] actually, it results in *at most* one assignment,
+    //              but we can merge the two cases by saying that non-assigning instructions
+    //              result in a "unit/side-effect-only" type, which is what we usually want in
+    //              SSA anyway (we can identify the side-effect-only insn using the "unit" register)
+    //
+    //      <- in SSA, each assignment targets a unique variable (might as well be the insn's index)
+    //
+    // (!) what remains is connecting use->def; then the 'use' input reg can be
+    //   renamed to 'def' as specified above
+    //
+    // (+) scan each basic block; determine the order by scanning the dominators tree in preorder.
+    //     for each basic block, start with the variable mapping at the end of the immediate dominator,
+    //     and update it based on the phi nodes; then for each insn, update it with the insn's assignment;
+    //     transform each insn into a data and/or control node, renaming registers based on the current
+    //     state of the mapping.
+    //
+    //      <- each use->def link can be defined as: the def is the "last visible" NID corresponding
+    //         to the use's mil register ("last" in order of insn execution)
+    //
+    //      <- within a single basic block, each insn "updates" the variables mapping
+    //         based on its assignment (dest[i] mapped to Reg(i))
+    //
+    //      <- at the beginning of each basic block, the mapping is the one that was valid
+    //         at the end of the immediate dominator block, updated based on the block's
+    //         phi nodes.
+    //
+    //         <- this is because only the assignments happened before the end of the imm. dom
+    //            are guaranteed to have happened and to still be valid at the begining of "this"
+    //            block; everything else needs a phi node
+    //
+    //      <- the mapping is Ø at the beginning of the entry basic block
+    //
+
+    let mut control_graph = SlotMap::with_key();
+    let mut data_graph = SlotMap::with_key();
 
     enum Cmd {
-        Finish,
-        Start(cfg::BlockID),
+        Block(cfg::BlockID),
     }
-    let mut queue = vec![Cmd::Finish, Cmd::Start(cfg.entry_block_id())];
+    let mut queue = vec![Cmd::Block(cfg.entry_block_id())];
 
-    while let Some(cmd) = queue.pop() {
-        match cmd {
-            Cmd::Start(bid) => {
-                var_map.push();
+    let mut var_maps = BlockRegMat::for_program(program, &cfg, None);
+    let var_count = program.reg_count() as usize;
 
-                // -- patch current block
+    let cnid_of_bid: Vec<_> = todo!();
+    let mut ends = Vec::new();
 
-                // phi nodes are *used* here for their destination; their arguments are fixed up
-                // while processing the predecessors
-                let block_phis = &phis[bid];
-                for ndx in block_phis.ndxs.clone() {
-                    let item = program.get(ndx).unwrap();
-                    match item.insn.get() {
-                        mil::Insn::Phi { size: 1 }
-                        | mil::Insn::Phi { size: 2 }
-                        | mil::Insn::Phi { size: 4 }
-                        | mil::Insn::Phi { size: 8 } => {
-                            var_map.set(item.dest.get(), mil::Reg(ndx));
-                            item.dest.set(mil::Reg(ndx));
-                        }
-                        mil::Insn::PhiArg { .. } => {}
-                        _ => panic!("non-phi node in block phi ndx range"),
-                    }
-                }
+    while let Some(Cmd::Block(bid)) = queue.pop() {
+        let mut var_map = if let Some(imm_dom_bid) = cfg.dom_tree().parent_of(bid) {
+            var_maps.of_block(imm_dom_bid).to_vec()
+        } else {
+            vec![None; var_count]
+        };
 
-                for insn_ndx in cfg.insns_ndx_range(bid) {
-                    let iv = program.get(insn_ndx).unwrap();
-
-                    // TODO Re-establish this invariant
-                    //  this will only make sense after I add abstract values representing initial
-                    //  conditions to each function... (probably coming from the calling
-                    //  convention)
-                    //
-                    // > if bid == cfg::ENTRY_BID && insn_ndx == 0 {
-                    // >     assert_eq!(inputs, [None, None]);
-                    // > }
-
-                    let mut insn = iv.insn.get();
-                    for reg in insn.input_regs_mut().into_iter().flatten() {
-                        *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
-                    }
-                    iv.insn.set(insn);
-
-                    // in the output SSA, each destination register corrsponds to the instruction's
-                    // index. this way, the numeric value of a register can also be used as
-                    // instruction ID, to locate a register/variable's defining instruction.
-                    let new_dest = mil::Reg(insn_ndx);
-                    let old_name = iv.dest.replace(new_dest);
-                    let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
-                        // exception: for Get(_) instructions, we just reuse the input reg for the
-                        // output
-                        input_reg
-                    } else {
-                        new_dest
-                    };
-
-                    var_map.set(old_name, new_name);
-                }
-                for insn_ndx in cfg.insns_ndx_range(bid) {
-                    let item = program.get(insn_ndx).unwrap();
-                    assert_eq!(item.dest.get(), mil::Reg(insn_ndx));
-                }
-
-                // -- patch successor's phi nodes
-                // The algorithm is the following:
-                // >  for s in block's successors:
-                // >    for p in s's ϕ-nodes:
-                // >      Assuming p is for a variable v, make it read from stack[v].
-                //
-                // ... in order to patch the correct operand in each phi instruction, we have
-                // to use its "predecessor position", i.e. whether the current block is the
-                // successor's 1st, 2nd, 3rd predecessor.
-
-                for (my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
-                    let succ_phis = &mut phis[succ];
-
-                    for phi_ndx in 0..succ_phis.phi_count {
-                        let arg = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
-                        let iv = program.get(arg.0).unwrap();
-                        match iv.insn.get() {
-                            // These are not supposed to exist yet!
-                            // Only Phi8 is added by place_phi_nodes; the others
-                            // are only placed by narrow_phi_nodes
-                            mil::Insn::Phi { size: 1 }
-                            | mil::Insn::Phi { size: 2 }
-                            | mil::Insn::Phi { size: 4 } => {
-                                panic!("unexpected narrow phi node at this phase of ssa conversion")
-                            }
-                            mil::Insn::Phi { size: 8 } => continue,
-                            mil::Insn::PhiArg(arg) => {
-                                // NOTE: the substitution of the *successor's* phi node's argument is
-                                // done in the context of *this* node (its predecessor)
-                                let arg_repl = var_map.get(arg).unwrap_or_else(|| {
-                                    panic!(
-                                        "value {:?} not initialized in pre-ssa (phi {:?}--[{}]-->{:?})",
-                                        arg, bid, my_pred_ndx, succ
-                                    )
-                                });
-                                iv.insn.set(mil::Insn::PhiArg(arg_repl));
-                            }
-                            _ => panic!("non-phi node in block phi ndx range"),
-                        };
-                    }
-                }
-
-                // TODO quadratic, but cfgs are generally pretty small
-                let imm_dominated = dom_tree
-                    .items()
-                    .filter(|(_, parent)| **parent == Some(bid))
-                    .map(|(bid, _)| bid);
-                for child in imm_dominated {
-                    queue.push(Cmd::Finish);
-                    queue.push(Cmd::Start(child));
-                }
+        // each block starts with a control node
+        let preds = cfg.block_preds(bid);
+        let control_node = if preds.is_empty() {
+            ControlNode::Start
+        } else {
+            ControlNode::Merge {
+                preds: preds
+                    .iter()
+                    .map(|pred| cnid_of_bid[pred.as_usize()].unwrap())
+                    .collect(),
             }
+        };
+        let cnid = control_graph.insert(control_node);
 
-            Cmd::Finish => {
-                var_map.pop();
+        for (var_ndx, &is_phi_needed) in phis_set.of_block(bid).iter().enumerate() {
+            let reg = mil::Reg(var_ndx.try_into().unwrap());
+            if is_phi_needed {
+                let dnid = data_graph.insert(DataNode::Phi(Phi {
+                    merge_nid: cnid,
+                    values: preds
+                        .iter()
+                        .map(|&pred| var_maps.get(pred, reg).expect("unmapped phi input reg"))
+                        .collect(),
+                }));
+                var_map[var_ndx] = Some(dnid);
+            }
+        }
+
+        let insns = program.slice(cfg.insns_ndx_range(bid)).expect("broken cfg");
+        let mut cnid = cnid;
+        let mut iter = insns.iter().peekable();
+        while let Some((dest, insn)) = iter.next() {
+            let dnid_of_reg =
+                |reg: mil::Reg| var_map[reg.reg_index() as usize].expect("unmapped reg");
+
+            let data_node = match insn.get() {
+                mil::Insn::True => Some(DataNode::ConstBool(true)),
+                mil::Insn::False => Some(DataNode::ConstBool(false)),
+                mil::Insn::Const1(_) => todo!(),
+                mil::Insn::Const2(_) => todo!(),
+                mil::Insn::Const4(_) => todo!(),
+                mil::Insn::Const8(_) => todo!(),
+                mil::Insn::Get(reg) => todo!(),
+                mil::Insn::Part { src, offset, size } => todo!(),
+                mil::Insn::Concat { lo, hi } => todo!(),
+                mil::Insn::Widen1_2(reg) => todo!(),
+                mil::Insn::Widen1_4(reg) => todo!(),
+                mil::Insn::Widen1_8(reg) => todo!(),
+                mil::Insn::Widen2_4(reg) => todo!(),
+                mil::Insn::Widen2_8(reg) => todo!(),
+                mil::Insn::Widen4_8(reg) => todo!(),
+                mil::Insn::Arith1(arith_op, reg, reg1) => todo!(),
+                mil::Insn::Arith2(arith_op, reg, reg1) => todo!(),
+                mil::Insn::Arith4(arith_op, reg, reg1) => todo!(),
+                mil::Insn::Arith8(arith_op, reg, reg1) => todo!(),
+                mil::Insn::ArithK1(arith_op, reg, _) => todo!(),
+                mil::Insn::ArithK2(arith_op, reg, _) => todo!(),
+                mil::Insn::ArithK4(arith_op, reg, _) => todo!(),
+                mil::Insn::ArithK8(arith_op, reg, _) => todo!(),
+                mil::Insn::Cmp(cmp_op, reg, reg1) => todo!(),
+                mil::Insn::Bool(bool_op, reg, reg1) => todo!(),
+                mil::Insn::Not(reg) => todo!(),
+
+                mil::Insn::Call(callee) => {
+                    let mut args = Vec::new();
+                    while let Some((dest, insn)) = iter.peek() {
+                        if let mil::Insn::CArg(reg) = insn.get() {
+                            args.push(dnid_of_reg(reg));
+                            iter.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    cnid = control_graph.insert(ControlNode::Call {
+                        pred: cnid,
+                        callee: dnid_of_reg(callee),
+                        args,
+                    });
+
+                    Some(DataNode::ReturnValueOf(cnid))
+                }
+                mil::Insn::CArg(_) => {
+                    panic!("compiler bug or malformed mil: CArg node should be skipped here")
+                }
+
+                mil::Insn::Ret(reg) => {
+                    cnid = control_graph.insert(ControlNode::Jump { pred: cnid });
+                    ends.push((cnid, dnid_of_reg(reg)));
+                    None
+                }
+                mil::Insn::JmpInd(reg) => {
+                    cnid = control_graph.insert(ControlNode::JumpIndirect {
+                        pred: cnid,
+                        addr: dnid_of_reg(reg),
+                    });
+                    None
+                }
+                mil::Insn::Jmp(target) => {
+                    let target_bid = cfg
+                        .block_starting_at(target)
+                        .expect("inconsistent mil/cfg: no block at jmp target");
+
+                    None
+                }
+                mil::Insn::JmpIf { cond, target } => todo!(),
+                mil::Insn::JmpExt(_) => todo!(),
+                mil::Insn::JmpExtIf { cond, addr } => todo!(),
+                mil::Insn::TODO(_) => todo!(),
+                mil::Insn::LoadMem1(reg) => todo!(),
+                mil::Insn::LoadMem2(reg) => todo!(),
+                mil::Insn::LoadMem4(reg) => todo!(),
+                mil::Insn::LoadMem8(reg) => todo!(),
+                mil::Insn::StoreMem(reg, reg1) => todo!(),
+                mil::Insn::OverflowOf(reg) => todo!(),
+                mil::Insn::CarryOf(reg) => todo!(),
+                mil::Insn::SignOf(reg) => todo!(),
+                mil::Insn::IsZero(reg) => todo!(),
+                mil::Insn::Parity(reg) => todo!(),
+                mil::Insn::Undefined => todo!(),
+                mil::Insn::Ancestral(ancestral_name) => todo!(),
+                mil::Insn::Phi => todo!(),
+                mil::Insn::PhiBool => todo!(),
+                mil::Insn::PhiArg(reg) => todo!(),
+            };
+
+            if let Some(data_node) = data_node {
+                let dnid = data_graph.insert(data_node);
+                var_map[dest.get().reg_index() as usize] = Some(dnid);
             }
         }
     }
-    let var_count = program.len();
-    let rdr_count = ReaderCount::new(var_count);
+
+    let final_merge = control_graph.insert(ControlNode::Merge {
+        preds: ends.iter().map(|(cnid, _)| *cnid).collect(),
+    });
+    let final_phi = data_graph.insert(DataNode::Phi(Phi {
+        merge_nid: final_merge,
+        values: ends.into_iter().map(|(_, dnid)| dnid).collect(),
+    }));
+    control_graph.insert(ControlNode::End {
+        pred: final_merge,
+        ret: final_phi,
+    });
 
     // establish SSA invariants
     // the returned Program will no longer change (just some instructions are going to be marked as
@@ -641,17 +591,19 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     }
 
     let mut ssa = Program {
-        inner: program,
-        cfg,
-        phis,
-        rdr_count,
-
-        #[cfg(feature = "proto_typing")]
-        ptr_regs: HashMap::new(),
+        control_graph,
+        data_graph,
     };
     eliminate_dead_code(&mut ssa);
     narrow_phi_nodes(&mut ssa);
     ssa
+}
+
+#[derive(Clone)]
+struct BlockPhis {}
+
+impl BlockPhis {
+    fn empty() -> BlockPhis {}
 }
 
 /// Add phi nodes to a MIL program, where required.
@@ -666,59 +618,45 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 /// must be later swapped for the proper width variants (Phi1, Phi2, Phi4, ...)
 /// by calling `narrow_phi_nodes` on the SSA-converted program.
 fn place_phi_nodes(
-    program: &mut mil::Program,
+    program: &mil::Program,
     cfg: &cfg::Graph,
     dom_tree: &cfg::DomTree,
-) -> cfg::BlockMap<PhiInfo> {
+) -> cfg::BlockMap<BlockPhis> {
     let block_count = cfg.block_count();
 
     if program.len() == 0 {
-        return cfg::BlockMap::new(PhiInfo::empty(), block_count);
+        return cfg::BlockMap::new(BlockPhis::empty(), block_count);
     }
 
     let phis_set = compute_phis_set(program, cfg, dom_tree);
     let var_count = phis_set.0.cols.try_into().unwrap();
     assert_eq!(var_count, program.reg_count());
 
-    // translate `phis` into a representation such that inputs can be replaced with specific input
-    // variables assigned in predecessors.
-    // they are appended as Phi/PhiArg nodes to the program
-    let mut phis = cfg::BlockMap::new(PhiInfo::empty(), block_count);
+    // phis_set[B][reg] == true
+    //   <==> Block B has a phi node for register reg
+
+    // Translate `phis_set` in a form such that the phi nodes inputs and outputs
+    // can undergo register renaming during SSA translation later
+    let mut phis = cfg::BlockMap::new(BlockPhis::empty(), block_count);
 
     for bid in cfg.block_ids() {
         let pred_count: u16 = cfg.block_preds(bid).len().try_into().unwrap();
-        let start_ndx = program.len();
-        let mut phi_count = 0;
 
         for var_ndx in 0..var_count {
             let reg = mil::Reg(var_ndx);
             if *phis_set.get(bid, reg) {
-                // the largest-width Phi opcode is inserted here; will be
-                // narrowed down in a later phase of ssa construction
-                program.push(reg, mil::Insn::Phi { size: 8 });
-                phi_count += 1;
+                program.push(
+                    reg,
+                    Phi {
+                        merge_nid: todo!(),
+                        values: todo!(),
+                    },
+                );
 
                 for _pred_ndx in 0..pred_count {
                     // implicitly corresponds to _pred_ndx
-                    program.push(mil::Reg(program.len()), mil::Insn::PhiArg(reg));
+                    todo!();
                 }
-            }
-        }
-
-        let end_ndx = program.len();
-        assert_eq!(end_ndx - start_ndx, phi_count * (1 + pred_count));
-
-        let phi_info = PhiInfo {
-            ndxs: start_ndx..end_ndx,
-            phi_count,
-            pred_count,
-        };
-        for phi_ndx in 0..phi_info.phi_count {
-            for pred_ndx in 0..phi_info.pred_count {
-                // check that it doesn't throw
-                let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
-                let item = program.get(ndx.0).unwrap();
-                assert!(matches!(item.insn.get(), mil::Insn::PhiArg(_)));
             }
         }
 
@@ -729,15 +667,15 @@ fn place_phi_nodes(
 }
 
 fn compute_phis_set(
-    program: &mut mil::Program,
+    program: &mil::Program,
     cfg: &cfg::Graph,
     dom_tree: &cfg::DomTree,
-) -> RegMat<bool> {
+) -> BlockRegMat<bool> {
     // matrix [B * B] where B = #blocks
     // matrix[i, j] = true iff block j is in block i's dominance frontier
     let is_dom_front = compute_dominance_frontier(cfg, dom_tree);
     let block_uses_var = find_received_vars(program, cfg);
-    let mut phis_set = RegMat::for_program(program, cfg, false);
+    let mut phis_set = BlockRegMat::for_program(program, cfg, false);
 
     // the rule is:
     //   if variable v is written in block b,
@@ -806,8 +744,8 @@ fn narrow_phi_nodes(program: &mut Program) {
 /// This is the set of variables which are read before any write in the block.
 /// In other words, for these are the variables, the block observes the values
 /// left there by other blocks.
-fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
-    let mut is_received = RegMat::for_program(prog, graph, false);
+fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> BlockRegMat<bool> {
+    let mut is_received = BlockRegMat::for_program(prog, graph, false);
     for bid in graph.block_ids_postorder() {
         for (dest, insn) in prog
             .slice(graph.insns_ndx_range(bid))
@@ -824,23 +762,24 @@ fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
     is_received
 }
 
-struct RegMat<T>(Mat<T>);
+struct BlockRegMat<T>(Mat<T>);
 
-impl<T: Clone> RegMat<T> {
+impl<T: Clone> BlockRegMat<T> {
     fn for_program(program: &mil::Program, graph: &cfg::Graph, value: T) -> Self {
         let var_count = program.reg_count() as usize;
-        RegMat(Mat::new(value, graph.block_count() as usize, var_count))
+        BlockRegMat(Mat::new(value, graph.block_count() as usize, var_count))
+    }
+
+    fn of_block(&self, bid: cfg::BlockID) -> &[T] {
+        self.0.row(bid.as_usize())
     }
 
     fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
-        self.0
-            .item(bid.as_number() as usize, reg.reg_index() as usize)
+        self.0.item(bid.as_usize(), reg.reg_index() as usize)
     }
 
     fn set(&mut self, bid: cfg::BlockID, reg: mil::Reg, value: T) {
-        *self
-            .0
-            .item_mut(bid.as_number() as usize, reg.reg_index() as usize) = value;
+        *self.0.item_mut(bid.as_usize(), reg.reg_index() as usize) = value;
     }
 }
 
@@ -861,6 +800,9 @@ impl<T> Mat<T> {
     }
     fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
         &mut self.items[self.ndx(i, j)]
+    }
+    fn row(&self, i: usize) -> &[T] {
+        &self.items[i * self.cols..(i + 1) * self.cols]
     }
 }
 impl<T: Clone> Mat<T> {

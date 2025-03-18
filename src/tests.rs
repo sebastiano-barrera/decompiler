@@ -97,7 +97,7 @@ mod callconv_x86_64 {
         writeln!(out, "mil program = ")?;
         writeln!(out, "{:?}", prog)?;
 
-        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        let mut prog = ssa::mil_to_ssa(&prog);
         crate::xform::canonical(&mut prog);
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
