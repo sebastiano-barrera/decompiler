@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
     ops::Range,
 };
@@ -21,10 +22,12 @@ pub struct Program {
     // Sea-of-Nodes representation
     control_graph: SlotMap<ControlNID, ControlNode>,
     data_graph: SlotMap<DataNID, DataNode>,
+    start_cnid: ControlNID,
+    end_cnid: ControlNID,
 }
 
-slotmap::new_key_type! { struct ControlNID; }
-slotmap::new_key_type! { struct DataNID; }
+slotmap::new_key_type! { pub struct ControlNID; }
+slotmap::new_key_type! { pub struct DataNID; }
 
 #[derive(Clone, Debug)]
 enum ControlNode {
@@ -103,6 +106,35 @@ enum ControlNode {
     TODO(&'static str),
 }
 
+pub struct Predecessors(Vec<ControlNID>);
+impl IntoIterator for Predecessors {
+    type Item = ControlNID;
+    type IntoIter = <Vec<ControlNID> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+impl ControlNode {
+    fn predecessors(&self) -> Predecessors {
+        // TODO remove this waste! change data structure
+        let preds = match self {
+            ControlNode::Merge { preds } => preds.clone(),
+            ControlNode::End { pred, .. }
+            | ControlNode::JumpIndirect { pred, .. }
+            | ControlNode::BranchIndirect { pred, .. }
+            | ControlNode::Jump { pred }
+            | ControlNode::Branch { pred, .. }
+            | ControlNode::IfTrue(pred)
+            | ControlNode::IfFalse(pred)
+            | ControlNode::Call { pred, .. }
+            | ControlNode::Load { pred, .. }
+            | ControlNode::Store { pred, .. } => vec![*pred],
+            ControlNode::TODO(_) => vec![],
+        };
+        Predecessors(preds)
+    }
+}
+
 /// Size of a value in the IR, expressed in bytes.
 ///
 /// Typically mirrors the size of an operand's size in the original assembly, so
@@ -173,6 +205,45 @@ enum DataNode {
     Phi(Phi),
 }
 
+pub struct InputsIter(Vec<DataNID>);
+
+impl IntoIterator for InputsIter {
+    type Item = DataNID;
+    type IntoIter = <Vec<DataNID> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl DataNode {
+    fn data_inputs(&self) -> InputsIter {
+        // TODO remove this waste! choose a different data structure
+        let inputs = match self {
+            DataNode::Undefined => vec![],
+            DataNode::ConstBool(_) => vec![],
+            DataNode::ConstInt { .. } => vec![],
+            DataNode::Part { src, .. } => vec![*src],
+            DataNode::Concat { lo, hi } => vec![*lo, *hi],
+            DataNode::Widen { input, .. } => vec![*input],
+            DataNode::Arith(_, a, b) => vec![*a, *b],
+            DataNode::ArithK(_, a, _) => vec![*a],
+            DataNode::Cmp(_, a, b) => vec![*a, *b],
+            DataNode::Bool(_, a, b) => vec![*a, *b],
+            DataNode::Not(x) => vec![*x],
+            DataNode::OverflowOf(x) => vec![*x],
+            DataNode::CarryOf(x) => vec![*x],
+            DataNode::SignOf(x) => vec![*x],
+            DataNode::IsZero(x) => vec![*x],
+            DataNode::Parity(x) => vec![*x],
+            DataNode::Ancestral(_) => vec![],
+            DataNode::ReturnValueOf(_) => vec![],
+            DataNode::LoadedValueOf(_) => vec![],
+            DataNode::Phi(Phi { values, .. }) => values.clone(),
+        };
+        InputsIter(inputs)
+    }
+}
+
 impl Program {
     /// Get the defining instruction for the given register.
     ///
@@ -222,15 +293,46 @@ impl std::fmt::Debug for Program {
 
         writeln!(f, "  {} control nodes", self.control_graph.len())?;
         for (cnid, cn) in self.control_graph.iter() {
-            writeln!(f, "    c{:?}  {:?}", cnid, cn)?;
+            writeln!(f, "    {:?}  {:?}", cnid, cn)?;
         }
 
         writeln!(f, "  {} data nodes", self.data_graph.len())?;
         for (dnid, dn) in self.data_graph.iter() {
-            writeln!(f, "    d{:?}  {:?}", dnid, dn)?;
+            writeln!(f, "    {:?}  {:?}", dnid, dn)?;
         }
 
+        self.dump_graphviz();
+
         Ok(())
+    }
+}
+impl Program {
+    fn dump_graphviz(&self) {
+        println!("digraph {{");
+
+        for (cnid, cn) in self.control_graph.iter() {
+            let gvid = format!("c{}", cnid.data().as_ffi());
+            let label = format!("{:?} -- {:?}", cnid, cn);
+            println!("  {} [label={:?}];", gvid, label);
+
+            for pred_cnid in cn.predecessors() {
+                let pred_gvid = format!("c{}", pred_cnid.data().as_ffi());
+                println!("  {} -> {} [color=red];", pred_gvid, gvid,);
+            }
+        }
+
+        for (dnid, dn) in self.data_graph.iter() {
+            let gvid = format!("d{}", dnid.data().as_ffi());
+            let label = format!("{:?}", dn);
+            println!("  {} [label={:?}];", gvid, label);
+
+            for dep_dnid in dn.data_inputs() {
+                let dep_gvid = format!("d{}", dep_dnid.data().as_ffi());
+                println!("  {} -> {} [color=blue];", gvid, dep_gvid);
+            }
+        }
+
+        println!("}}");
     }
 }
 
@@ -372,10 +474,14 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         control_graph.insert(ControlNode::Merge { preds: Vec::new() })
     });
     for bid in cfg.block_ids() {
+        let block_preds = cfg.block_preds(bid);
+        if cfg.entry_block_id() != bid {
+            assert!(!block_preds.is_empty());
+        }
         add_predecessors(
             &mut control_graph,
             cnid_of_bid[bid],
-            cfg.block_preds(bid).iter().map(|&bid| cnid_of_bid[bid]),
+            block_preds.iter().map(|&bid| cnid_of_bid[bid]),
         );
     }
     let mut ends = Vec::new();
@@ -417,6 +523,13 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         }
 
         let insns = program.slice(cfg.insns_ndx_range(bid)).expect("broken cfg");
+        // The current control node ID.
+        //
+        // Starts with the merge block that *starts* the control block.
+        // As we encounter instructions that are translated with a new control
+        // node, the new control nod ID is set into `cnid`.
+        // At the end, cnid is written to cnid_of_bid to allow successors to link to the
+        // right control block.
         let mut cnid = cnid;
         let mut iter = insns.iter().peekable();
         while let Some((dest, insn)) = iter.next() {
@@ -628,7 +741,7 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         merge_nid: final_merge,
         values: ends.into_iter().map(|(_, dnid)| dnid).collect(),
     }));
-    control_graph.insert(ControlNode::End {
+    let end_cnid = control_graph.insert(ControlNode::End {
         pred: final_merge,
         ret: final_phi,
     });
@@ -636,6 +749,8 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
     let mut ssa = Program {
         control_graph,
         data_graph,
+        start_cnid: cnid_of_bid[cfg.entry_block_id()],
+        end_cnid,
     };
     ssa.assert_invariants();
     eliminate_dead_code(&mut ssa);
