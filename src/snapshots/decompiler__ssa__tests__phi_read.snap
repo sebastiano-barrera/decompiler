@@ -2,17 +2,23 @@
 source: src/ssa.rs
 expression: prog
 ---
-ssa program  8 instrs
-.B0:    ;;  addr:0xf0; 2 insn 0 phis
-         r0 <- Const8(123)
-         r1 <- JmpIf { cond: r0, target: 4 }
-.B2:    ;;  preds:B0  addr:0xf2; 1 insn 0 phis
-         r4 <- Const1(8)
-.B1:    ;;  preds:B0  addr:0xf1; 2 insn 0 phis
-         r2 <- Const1(4)
-         r3 <- Jmp(5)
-.B3:    ;;  preds:B1,B2  addr:0xf3; 2 insn 1 phis
-                  ɸ  B1     B2     
-           r7     <- r2     r4     
-         r5 <- ArithK1(Add, r7, 456)
-         r6 <- Ret(r5)
+ssa program
+  11 control nodes, 6 data nodes
+  ControlNID(1v1) -- Merge { preds: [] }
+    DataNID(1v1) -- ConstInt { size: ValueSize(8), value: 123 }
+  ControlNID(5v1) -- Branch { pred: ControlNID(1v1), cond: DataNID(1v1) }
+  ControlNID(7v1) -- IfFalse(ControlNID(5v1))
+  ControlNID(2v1) -- Merge { preds: [ControlNID(7v1)] }
+  ControlNID(8v1) -- Jump { pred: ControlNID(2v1) }
+  ControlNID(8v1) -- Jump { pred: ControlNID(2v1) }
+  ControlNID(6v1) -- IfTrue(ControlNID(5v1))
+  ControlNID(3v1) -- Merge { preds: [ControlNID(6v1), ControlNID(7v1)] }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(3v1), ControlNID(8v1), ControlNID(8v1)] }
+  ControlNID(9v1) -- Jump { pred: ControlNID(4v1) }
+  ControlNID(10v1) -- Merge { preds: [ControlNID(9v1)] }
+    DataNID(3v1) -- ConstInt { size: ValueSize(1), value: 4 }
+    DataNID(2v1) -- ConstInt { size: ValueSize(1), value: 8 }
+    DataNID(4v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(2v1)), (ControlNID(8v1), DataNID(3v1))] })
+    DataNID(5v1) -- ArithK(Add, DataNID(4v1), 456)
+    DataNID(6v1) -- Phi(Phi { merge_nid: ControlNID(10v1), values: [(ControlNID(9v1), DataNID(5v1))] })
+  ControlNID(11v1) -- End { pred: ControlNID(10v1), ret: DataNID(6v1) }

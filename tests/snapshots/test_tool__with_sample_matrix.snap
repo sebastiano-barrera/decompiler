@@ -289,285 +289,314 @@ program  208 instrs
 
 
 ssa pre-xform:
-ssa program  120 instrs
-.B0:    ;;  addr:0x0; 63 insn 0 phis
-         r10 <- Ancestral(AncestralName("RBP"))
-         r11 <- Ancestral(AncestralName("RSP"))
-  (  2)  r13 <- Ancestral(AncestralName("RDI"))
-  (  2)  r14 <- Ancestral(AncestralName("RSI"))
-  ( 20)  r38 <- ArithK8(Add, r11, -8)
-         r39 <- StoreMem(r38, r10)
-         r48 <- Const8(-32)
-         r49 <- Arith8(Add, r48, r38)
-         r50 <- StoreMem(r49, r13)
-         r51 <- Const8(-24)
-         r52 <- Arith8(Add, r51, r38)
-         r53 <- StoreMem(r52, r14)
-         r54 <- Const4(0)
-         r55 <- Const8(-4)
-         r56 <- Arith8(Add, r55, r38)
-         r57 <- StoreMem(r56, r54)
-         r58 <- Const4(0)
-         r59 <- Const8(-8)
-         r60 <- Arith8(Add, r59, r38)
-         r61 <- StoreMem(r60, r58)
-         r62 <- Jmp(180)
-.B5:    ;;  preds:B0,B4  addr:0x40122f; 19 insn 1 phis
-                  ɸ  B0     B4     
-           r211   <- r13    r151   
-         r180 <- Const8(-24)
-         r181 <- Arith8(Add, r180, r38)
-         r182 <- LoadMem4(r181)
-         r183 <- Part { src: r211, offset: 4, size: 4 }
-  (  3)  r184 <- Concat { lo: r182, hi: r183 }
-         r185 <- Const8(-8)
-         r186 <- Arith8(Add, r185, r38)
-         r187 <- LoadMem4(r186)
-         r188 <- Part { src: r184, offset: 0, size: 4 }
-  (  2)  r189 <- Arith4(Sub, r187, r188)
-         r190 <- OverflowOf(r189)
-         r192 <- SignOf(r189)
-         r196 <- Cmp(EQ, r192, r190)
-         r197 <- Not(r196)
-         r198 <- JmpIf { cond: r197, target: 63 }
-.B1:    ;;  preds:B5  addr:0x4011f6; 5 insn 0 phis
-         r63 <- Const4(0)
-         r64 <- Const8(-12)
-         r65 <- Arith8(Add, r64, r38)
-         r66 <- StoreMem(r65, r63)
-         r67 <- Jmp(147)
-.B3:    ;;  preds:B1,B2  addr:0x401223; 19 insn 1 phis
-                  ɸ  B1     B2     
-           r208   <- r184   r118   
-         r147 <- Const8(-20)
-         r148 <- Arith8(Add, r147, r38)
-         r149 <- LoadMem4(r148)
-         r150 <- Part { src: r208, offset: 4, size: 4 }
-  (  3)  r151 <- Concat { lo: r149, hi: r150 }
-         r152 <- Const8(-12)
-         r153 <- Arith8(Add, r152, r38)
-         r154 <- LoadMem4(r153)
-         r155 <- Part { src: r151, offset: 0, size: 4 }
-  (  2)  r156 <- Arith4(Sub, r154, r155)
-         r157 <- OverflowOf(r156)
-         r159 <- SignOf(r156)
-         r163 <- Cmp(EQ, r159, r157)
-         r164 <- Not(r163)
-         r165 <- JmpIf { cond: r164, target: 68 }
-.B2:    ;;  preds:B3  addr:0x4011ff; 79 insn 0 phis
-         r68 <- Const8(-32)
-         r69 <- Arith8(Add, r68, r38)
-         r70 <- LoadMem8(r69)
-         r72 <- Const8(-20)
-         r73 <- Arith8(Add, r72, r38)
-         r74 <- LoadMem4(r73)
-         r75 <- Part { src: r151, offset: 4, size: 4 }
-  (  2)  r76 <- Concat { lo: r74, hi: r75 }
-         r77 <- TODO("unsupported: imul eax,[rbp-8]")
-         r78 <- Part { src: r76, offset: 0, size: 4 }
-         r79 <- Part { src: r14, offset: 4, size: 4 }
-         r80 <- Concat { lo: r78, hi: r79 }
-         r81 <- Const8(-12)
-         r82 <- Arith8(Add, r81, r38)
-         r83 <- LoadMem4(r82)
-         r84 <- Part { src: r76, offset: 4, size: 4 }
-  (  2)  r85 <- Concat { lo: r83, hi: r84 }
-         r86 <- Part { src: r85, offset: 0, size: 4 }
-         r87 <- Part { src: r80, offset: 0, size: 4 }
-         r88 <- Arith4(Add, r86, r87)
-         r89 <- Part { src: r85, offset: 4, size: 4 }
-         r90 <- Concat { lo: r88, hi: r89 }
-         r97 <- TODO("unsupported: cdqe")
-         r98 <- Const1(2)
-         r99 <- Widen1_8(r98)
-         r100 <- Arith8(Shl, r90, r99)
-  (  2)  r106 <- Arith8(Add, r100, r70)
-         r114 <- Const8(0)
-         r115 <- Arith8(Add, r114, r106)
-         r116 <- LoadMem4(r115)
-         r117 <- Part { src: r106, offset: 4, size: 4 }
-  (  2)  r118 <- Concat { lo: r116, hi: r117 }
-         r119 <- Const8(-4)
-         r120 <- Arith8(Add, r119, r38)
-         r121 <- LoadMem4(r120)
-         r122 <- Part { src: r118, offset: 0, size: 4 }
-         r123 <- Arith4(Add, r121, r122)
-         r124 <- Const8(-4)
-         r125 <- Arith8(Add, r124, r38)
-         r126 <- StoreMem(r125, r123)
-         r133 <- Const8(-12)
-         r134 <- Arith8(Add, r133, r38)
-         r135 <- LoadMem4(r134)
-         r136 <- Const4(1)
-         r137 <- Arith4(Add, r135, r136)
-         r138 <- Const8(-12)
-         r139 <- Arith8(Add, r138, r38)
-         r140 <- StoreMem(r139, r137)
-.B4:    ;;  preds:B3  addr:0x40122b; 14 insn 0 phis
-         r166 <- Const8(-8)
-         r167 <- Arith8(Add, r166, r38)
-         r168 <- LoadMem4(r167)
-         r169 <- Const4(1)
-         r170 <- Arith4(Add, r168, r169)
-         r171 <- Const8(-8)
-         r172 <- Arith8(Add, r171, r38)
-         r173 <- StoreMem(r172, r170)
-.B6:    ;;  preds:B5  addr:0x401237; 9 insn 0 phis
-         r199 <- Const8(-4)
-         r200 <- Arith8(Add, r199, r38)
-         r201 <- LoadMem4(r200)
-         r202 <- Part { src: r184, offset: 4, size: 4 }
-         r203 <- Concat { lo: r201, hi: r202 }
-         r207 <- Ret(r203)
+ssa program
+  44 control nodes, 105 data nodes
+  ControlNID(1v1) -- Merge { preds: [] }
+    DataNID(11v1) -- Ancestral(AncestralName("RBP"))
+    DataNID(12v1) -- Ancestral(AncestralName("RSP"))
+    DataNID(39v1) -- ArithK(Add, DataNID(12v1), -8)
+  ControlNID(8v1) -- Store { pred: ControlNID(1v1), addr: DataNID(39v1), value: DataNID(11v1) }
+    DataNID(14v1) -- Ancestral(AncestralName("RDI"))
+    DataNID(43v1) -- ConstInt { size: ValueSize(8), value: -32 }
+    DataNID(44v1) -- Arith(Add, DataNID(43v1), DataNID(39v1))
+  ControlNID(9v1) -- Store { pred: ControlNID(8v1), addr: DataNID(44v1), value: DataNID(14v1) }
+    DataNID(15v1) -- Ancestral(AncestralName("RSI"))
+    DataNID(45v1) -- ConstInt { size: ValueSize(8), value: -24 }
+    DataNID(46v1) -- Arith(Add, DataNID(45v1), DataNID(39v1))
+  ControlNID(10v1) -- Store { pred: ControlNID(9v1), addr: DataNID(46v1), value: DataNID(15v1) }
+    DataNID(47v1) -- ConstInt { size: ValueSize(4), value: 0 }
+    DataNID(48v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(49v1) -- Arith(Add, DataNID(48v1), DataNID(39v1))
+  ControlNID(11v1) -- Store { pred: ControlNID(10v1), addr: DataNID(49v1), value: DataNID(47v1) }
+    DataNID(50v1) -- ConstInt { size: ValueSize(4), value: 0 }
+    DataNID(51v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(52v1) -- Arith(Add, DataNID(51v1), DataNID(39v1))
+  ControlNID(12v1) -- Store { pred: ControlNID(11v1), addr: DataNID(52v1), value: DataNID(50v1) }
+  ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
+  ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
+  ControlNID(6v1) -- Merge { preds: [ControlNID(13v1), ControlNID(13v1)] }
+    DataNID(54v1) -- ConstInt { size: ValueSize(8), value: -24 }
+    DataNID(55v1) -- Arith(Add, DataNID(54v1), DataNID(39v1))
+  ControlNID(14v1) -- Load { pred: ControlNID(6v1), addr: DataNID(55v1) }
+    DataNID(59v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(60v1) -- Arith(Add, DataNID(59v1), DataNID(39v1))
+  ControlNID(15v1) -- Load { pred: ControlNID(14v1), addr: DataNID(60v1) }
+    DataNID(53v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(13v1), DataNID(14v1))] })
+    DataNID(57v1) -- Part { src: DataNID(53v1), offset: 4, size: 4 }
+    DataNID(56v1) -- LoadedValueOf(ControlNID(14v1))
+    DataNID(58v1) -- Concat { lo: DataNID(56v1), hi: DataNID(57v1) }
+    DataNID(62v1) -- Part { src: DataNID(58v1), offset: 0, size: 4 }
+    DataNID(61v1) -- LoadedValueOf(ControlNID(15v1))
+    DataNID(63v1) -- Arith(Sub, DataNID(61v1), DataNID(62v1))
+    DataNID(64v1) -- OverflowOf(DataNID(63v1))
+    DataNID(66v1) -- SignOf(DataNID(63v1))
+    DataNID(70v1) -- Cmp(EQ, DataNID(66v1), DataNID(64v1))
+    DataNID(71v1) -- Not(DataNID(70v1))
+  ControlNID(16v1) -- Branch { pred: ControlNID(15v1), cond: DataNID(71v1) }
+  ControlNID(39v1) -- IfFalse(ControlNID(16v1))
+  ControlNID(17v1) -- IfTrue(ControlNID(16v1))
+  ControlNID(2v1) -- Merge { preds: [ControlNID(17v1), ControlNID(18v1)] }
+    DataNID(72v1) -- ConstInt { size: ValueSize(4), value: 0 }
+    DataNID(73v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(74v1) -- Arith(Add, DataNID(73v1), DataNID(39v1))
+  ControlNID(19v1) -- Store { pred: ControlNID(2v1), addr: DataNID(74v1), value: DataNID(72v1) }
+  ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
+  ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(20v1), ControlNID(20v1)] }
+    DataNID(76v1) -- ConstInt { size: ValueSize(8), value: -20 }
+    DataNID(77v1) -- Arith(Add, DataNID(76v1), DataNID(39v1))
+  ControlNID(21v1) -- Load { pred: ControlNID(4v1), addr: DataNID(77v1) }
+    DataNID(81v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(82v1) -- Arith(Add, DataNID(81v1), DataNID(39v1))
+  ControlNID(22v1) -- Load { pred: ControlNID(21v1), addr: DataNID(82v1) }
+    DataNID(75v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(20v1), DataNID(58v1))] })
+    DataNID(79v1) -- Part { src: DataNID(75v1), offset: 4, size: 4 }
+    DataNID(78v1) -- LoadedValueOf(ControlNID(21v1))
+    DataNID(80v1) -- Concat { lo: DataNID(78v1), hi: DataNID(79v1) }
+    DataNID(84v1) -- Part { src: DataNID(80v1), offset: 0, size: 4 }
+    DataNID(83v1) -- LoadedValueOf(ControlNID(22v1))
+    DataNID(85v1) -- Arith(Sub, DataNID(83v1), DataNID(84v1))
+    DataNID(86v1) -- OverflowOf(DataNID(85v1))
+    DataNID(88v1) -- SignOf(DataNID(85v1))
+    DataNID(92v1) -- Cmp(EQ, DataNID(88v1), DataNID(86v1))
+    DataNID(93v1) -- Not(DataNID(92v1))
+  ControlNID(23v1) -- Branch { pred: ControlNID(22v1), cond: DataNID(93v1) }
+  ControlNID(36v1) -- IfFalse(ControlNID(23v1))
+  ControlNID(24v1) -- IfTrue(ControlNID(23v1))
+  ControlNID(3v1) -- Merge { preds: [ControlNID(24v1), ControlNID(25v1)] }
+    DataNID(94v1) -- ConstInt { size: ValueSize(8), value: -32 }
+    DataNID(95v1) -- Arith(Add, DataNID(94v1), DataNID(39v1))
+  ControlNID(26v1) -- Load { pred: ControlNID(3v1), addr: DataNID(95v1) }
+    DataNID(97v1) -- ConstInt { size: ValueSize(8), value: -20 }
+    DataNID(98v1) -- Arith(Add, DataNID(97v1), DataNID(39v1))
+  ControlNID(27v1) -- Load { pred: ControlNID(26v1), addr: DataNID(98v1) }
+  ControlNID(28v1) -- TODO { pred: ControlNID(27v1), label: "unsupported: imul eax,[rbp-8]" }
+    DataNID(105v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(106v1) -- Arith(Add, DataNID(105v1), DataNID(39v1))
+  ControlNID(29v1) -- Load { pred: ControlNID(28v1), addr: DataNID(106v1) }
+  ControlNID(30v1) -- TODO { pred: ControlNID(29v1), label: "unsupported: cdqe" }
+    DataNID(96v1) -- LoadedValueOf(ControlNID(26v1))
+    DataNID(121v1) -- ConstInt { size: ValueSize(1), value: 2 }
+    DataNID(122v1) -- Widen { input: DataNID(121v1), out_size: ValueSize(8) }
+    DataNID(100v1) -- Part { src: DataNID(80v1), offset: 4, size: 4 }
+    DataNID(99v1) -- LoadedValueOf(ControlNID(27v1))
+    DataNID(101v1) -- Concat { lo: DataNID(99v1), hi: DataNID(100v1) }
+    DataNID(108v1) -- Part { src: DataNID(101v1), offset: 4, size: 4 }
+    DataNID(107v1) -- LoadedValueOf(ControlNID(29v1))
+    DataNID(109v1) -- Concat { lo: DataNID(107v1), hi: DataNID(108v1) }
+    DataNID(113v1) -- Part { src: DataNID(109v1), offset: 4, size: 4 }
+    DataNID(103v1) -- Part { src: DataNID(15v1), offset: 4, size: 4 }
+    DataNID(102v1) -- Part { src: DataNID(101v1), offset: 0, size: 4 }
+    DataNID(104v1) -- Concat { lo: DataNID(102v1), hi: DataNID(103v1) }
+    DataNID(111v1) -- Part { src: DataNID(104v1), offset: 0, size: 4 }
+    DataNID(110v1) -- Part { src: DataNID(109v1), offset: 0, size: 4 }
+    DataNID(112v1) -- Arith(Add, DataNID(110v1), DataNID(111v1))
+    DataNID(114v1) -- Concat { lo: DataNID(112v1), hi: DataNID(113v1) }
+    DataNID(123v1) -- Arith(Shl, DataNID(114v1), DataNID(122v1))
+    DataNID(128v1) -- Arith(Add, DataNID(123v1), DataNID(96v1))
+    DataNID(135v1) -- ConstInt { size: ValueSize(8), value: 0 }
+    DataNID(136v1) -- Arith(Add, DataNID(135v1), DataNID(128v1))
+  ControlNID(31v1) -- Load { pred: ControlNID(30v1), addr: DataNID(136v1) }
+    DataNID(140v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(141v1) -- Arith(Add, DataNID(140v1), DataNID(39v1))
+  ControlNID(32v1) -- Load { pred: ControlNID(31v1), addr: DataNID(141v1) }
+    DataNID(138v1) -- Part { src: DataNID(128v1), offset: 4, size: 4 }
+    DataNID(137v1) -- LoadedValueOf(ControlNID(31v1))
+    DataNID(139v1) -- Concat { lo: DataNID(137v1), hi: DataNID(138v1) }
+    DataNID(143v1) -- Part { src: DataNID(139v1), offset: 0, size: 4 }
+    DataNID(142v1) -- LoadedValueOf(ControlNID(32v1))
+    DataNID(144v1) -- Arith(Add, DataNID(142v1), DataNID(143v1))
+    DataNID(145v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(146v1) -- Arith(Add, DataNID(145v1), DataNID(39v1))
+  ControlNID(33v1) -- Store { pred: ControlNID(32v1), addr: DataNID(146v1), value: DataNID(144v1) }
+    DataNID(153v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(154v1) -- Arith(Add, DataNID(153v1), DataNID(39v1))
+  ControlNID(34v1) -- Load { pred: ControlNID(33v1), addr: DataNID(154v1) }
+    DataNID(156v1) -- ConstInt { size: ValueSize(4), value: 1 }
+    DataNID(155v1) -- LoadedValueOf(ControlNID(34v1))
+    DataNID(157v1) -- Arith(Add, DataNID(155v1), DataNID(156v1))
+    DataNID(158v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(159v1) -- Arith(Add, DataNID(158v1), DataNID(39v1))
+  ControlNID(35v1) -- Store { pred: ControlNID(34v1), addr: DataNID(159v1), value: DataNID(157v1) }
+  ControlNID(25v1) -- Merge { preds: [ControlNID(35v1), ControlNID(36v1)] }
+  ControlNID(5v1) -- Merge { preds: [ControlNID(25v1)] }
+    DataNID(166v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(167v1) -- Arith(Add, DataNID(166v1), DataNID(39v1))
+  ControlNID(37v1) -- Load { pred: ControlNID(5v1), addr: DataNID(167v1) }
+    DataNID(169v1) -- ConstInt { size: ValueSize(4), value: 1 }
+    DataNID(168v1) -- LoadedValueOf(ControlNID(37v1))
+    DataNID(170v1) -- Arith(Add, DataNID(168v1), DataNID(169v1))
+    DataNID(171v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(172v1) -- Arith(Add, DataNID(171v1), DataNID(39v1))
+  ControlNID(38v1) -- Store { pred: ControlNID(37v1), addr: DataNID(172v1), value: DataNID(170v1) }
+  ControlNID(18v1) -- Merge { preds: [ControlNID(38v1), ControlNID(39v1)] }
+  ControlNID(7v1) -- Merge { preds: [ControlNID(18v1)] }
+    DataNID(179v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(180v1) -- Arith(Add, DataNID(179v1), DataNID(39v1))
+  ControlNID(40v1) -- Load { pred: ControlNID(7v1), addr: DataNID(180v1) }
+    DataNID(39v1) -- ArithK(Add, DataNID(12v1), -8)
+  ControlNID(41v1) -- Load { pred: ControlNID(40v1), addr: DataNID(39v1) }
+  ControlNID(42v1) -- Jump { pred: ControlNID(41v1) }
+  ControlNID(43v1) -- Merge { preds: [ControlNID(42v1)] }
+    DataNID(182v1) -- Part { src: DataNID(58v1), offset: 4, size: 4 }
+    DataNID(181v1) -- LoadedValueOf(ControlNID(40v1))
+    DataNID(183v1) -- Concat { lo: DataNID(181v1), hi: DataNID(182v1) }
+    DataNID(186v1) -- Phi(Phi { merge_nid: ControlNID(43v1), values: [(ControlNID(42v1), DataNID(183v1))] })
+  ControlNID(44v1) -- End { pred: ControlNID(43v1), ret: DataNID(186v1) }
 
 
 ssa post-xform:
-ssa program  94 instrs
-.B0:    ;;  addr:0x0; 63 insn 0 phis
-         r10 <- Ancestral(AncestralName("RBP"))
-  ( 20)  r11 <- Ancestral(AncestralName("RSP"))
-  (  2)  r13 <- Ancestral(AncestralName("RDI"))
-         r14 <- Ancestral(AncestralName("RSI"))
-         r38 <- ArithK8(Add, r11, -8)
-         r39 <- StoreMem(r38, r10)
-         r49 <- ArithK8(Add, r11, -40)
-         r50 <- StoreMem(r49, r13)
-         r52 <- ArithK8(Add, r11, -32)
-         r53 <- StoreMem(r52, r14)
-         r54 <- Const4(0)
-         r56 <- ArithK8(Add, r11, -12)
-         r57 <- StoreMem(r56, r54)
-         r58 <- Const4(0)
-         r60 <- ArithK8(Add, r11, -16)
-         r61 <- StoreMem(r60, r58)
-         r62 <- Jmp(180)
-.B5:    ;;  preds:B0,B4  addr:0x40122f; 19 insn 1 phis
-                  ɸ  B0     B4     
-           r211   <- r13    r151   
-         r181 <- ArithK8(Add, r11, -32)
-  (  2)  r182 <- LoadMem4(r181)
-  (  2)  r183 <- Part { src: r211, offset: 4, size: 4 }
-         r184 <- Concat { lo: r182, hi: r183 }
-         r186 <- ArithK8(Add, r11, -16)
-         r187 <- LoadMem4(r186)
-         r188 <- Part { src: r182, offset: 0, size: 4 }
-  (  2)  r189 <- Arith4(Sub, r187, r188)
-         r190 <- OverflowOf(r189)
-         r192 <- SignOf(r189)
-         r196 <- Cmp(EQ, r192, r190)
-         r197 <- Not(r196)
-         r198 <- JmpIf { cond: r197, target: 63 }
-.B1:    ;;  preds:B5  addr:0x4011f6; 5 insn 0 phis
-         r63 <- Const4(0)
-         r65 <- ArithK8(Add, r11, -20)
-         r66 <- StoreMem(r65, r63)
-         r67 <- Jmp(147)
-.B3:    ;;  preds:B1,B2  addr:0x401223; 19 insn 1 phis
-                  ɸ  B1     B2     
-           r208   <- r184   r118   
-         r148 <- ArithK8(Add, r11, -28)
-  (  2)  r149 <- LoadMem4(r148)
-  (  2)  r150 <- Part { src: r208, offset: 4, size: 4 }
-         r151 <- Concat { lo: r149, hi: r150 }
-         r153 <- ArithK8(Add, r11, -20)
-         r154 <- LoadMem4(r153)
-         r155 <- Part { src: r149, offset: 0, size: 4 }
-  (  2)  r156 <- Arith4(Sub, r154, r155)
-         r157 <- OverflowOf(r156)
-         r159 <- SignOf(r156)
-         r163 <- Cmp(EQ, r159, r157)
-         r164 <- Not(r163)
-         r165 <- JmpIf { cond: r164, target: 68 }
-.B2:    ;;  preds:B3  addr:0x4011ff; 79 insn 0 phis
-         r69 <- ArithK8(Add, r11, -40)
-  (  2)  r70 <- LoadMem8(r69)
-         r73 <- ArithK8(Add, r11, -28)
-         r74 <- LoadMem4(r73)
-         r75 <- Part { src: r150, offset: 0, size: 4 }
-         r77 <- TODO("unsupported: imul eax,[rbp-8]")
-         r78 <- Part { src: r74, offset: 0, size: 4 }
-         r82 <- ArithK8(Add, r11, -20)
-         r83 <- LoadMem4(r82)
-         r84 <- Part { src: r75, offset: 0, size: 4 }
-         r86 <- Part { src: r83, offset: 0, size: 4 }
-         r87 <- Part { src: r78, offset: 0, size: 4 }
-         r88 <- Arith4(Add, r86, r87)
-         r89 <- Part { src: r84, offset: 0, size: 4 }
-         r90 <- Concat { lo: r88, hi: r89 }
-         r97 <- TODO("unsupported: cdqe")
-         r98 <- Const1(2)
-         r99 <- Widen1_8(r98)
-  (  2)  r100 <- Arith8(Shl, r90, r99)
-         r106 <- Arith8(Add, r100, r70)
-         r115 <- Get(r106)
-  (  2)  r116 <- LoadMem4(r115)
-         r117 <- Part { src: r106, offset: 4, size: 4 }
-         r118 <- Concat { lo: r116, hi: r117 }
-         r120 <- ArithK8(Add, r11, -12)
-         r121 <- LoadMem4(r120)
-         r122 <- Part { src: r116, offset: 0, size: 4 }
-         r123 <- Arith4(Add, r121, r122)
-         r125 <- ArithK8(Add, r11, -12)
-         r126 <- StoreMem(r125, r123)
-         r134 <- ArithK8(Add, r11, -20)
-         r135 <- LoadMem4(r134)
-         r137 <- ArithK8(Add, r135, 1)
-         r139 <- ArithK8(Add, r11, -20)
-         r140 <- StoreMem(r139, r137)
-.B4:    ;;  preds:B3  addr:0x40122b; 14 insn 0 phis
-         r167 <- ArithK8(Add, r11, -16)
-         r168 <- LoadMem4(r167)
-         r170 <- ArithK8(Add, r168, 1)
-         r172 <- ArithK8(Add, r11, -16)
-         r173 <- StoreMem(r172, r170)
-.B6:    ;;  preds:B5  addr:0x401237; 9 insn 0 phis
-         r200 <- ArithK8(Add, r11, -12)
-         r201 <- LoadMem4(r200)
-         r202 <- Part { src: r183, offset: 0, size: 4 }
-         r203 <- Concat { lo: r201, hi: r202 }
-         r207 <- Ret(r203)
-
-
-T0(): {
-  [pre:RSP + -8] = pre:RBP;
-  [pre:RSP + -40] = pre:RDI;
-  [pre:RSP + -32] = pre:RSI;
-  [pre:RSP + -12] = 0x0 /* 0 */;
-  [pre:RSP + -16] = 0x0 /* 0 */;
-  goto T5 (
-    r211 = pre:RDI
-  )
-  
-  T5(r211): {
-    let r183 = r211[4 .. 8];
-    let r189 = [pre:RSP + -16]:4 - [pre:RSP + -32]:4[0 .. 4];
-    if !(EQ(SignOf(r189), OverflowOf(r189))) {
-      [pre:RSP + -20] = 0x0 /* 0 */;
-      goto T3 (
-        r208 = r183⧺[pre:RSP + -32]:4
-      )
-      
-      T3(r208): {
-        let r150 = r208[4 .. 8];
-        let r156 = [pre:RSP + -20]:4 - [pre:RSP + -28]:4[0 .. 4];
-        if !(EQ(SignOf(r156), OverflowOf(r156))) {
-          TODO /* unsupported: imul eax,[rbp-8] */;
-          TODO /* unsupported: cdqe */;
-          let r100 = r150[0 .. 4][0 .. 4][0 .. 4]⧺[pre:RSP + -20]:4[0 .. 4] + [pre:RSP + -28]:4[0 .. 4][0 .. 4] / Widen1_8(0x2 /* 2 */);
-          [pre:RSP + -12] = [pre:RSP + -12]:4 + [r100 + [pre:RSP + -40]:8]:4[0 .. 4];
-          [pre:RSP + -20] = [pre:RSP + -20]:4 + 1;
-          loop T3 (
-            r208 = r100 + [pre:RSP + -40]:8[4 .. 8]⧺[r100 + [pre:RSP + -40]:8]:4
-          )
-        
-        }
-        [pre:RSP + -16] = [pre:RSP + -16]:4 + 1;
-        loop T5 (
-          r211 = r150⧺[pre:RSP + -28]:4
-        )
-      }
-    
-    }
-    Ret(r183[0 .. 4]⧺[pre:RSP + -12]:4);
-  }
-}
+ssa program
+  44 control nodes, 105 data nodes
+  ControlNID(1v1) -- Merge { preds: [] }
+    DataNID(11v1) -- Ancestral(AncestralName("RBP"))
+    DataNID(12v1) -- Ancestral(AncestralName("RSP"))
+    DataNID(39v1) -- ArithK(Add, DataNID(12v1), -8)
+  ControlNID(8v1) -- Store { pred: ControlNID(1v1), addr: DataNID(39v1), value: DataNID(11v1) }
+    DataNID(14v1) -- Ancestral(AncestralName("RDI"))
+    DataNID(43v1) -- ConstInt { size: ValueSize(8), value: -32 }
+    DataNID(44v1) -- Arith(Add, DataNID(43v1), DataNID(39v1))
+  ControlNID(9v1) -- Store { pred: ControlNID(8v1), addr: DataNID(44v1), value: DataNID(14v1) }
+    DataNID(15v1) -- Ancestral(AncestralName("RSI"))
+    DataNID(45v1) -- ConstInt { size: ValueSize(8), value: -24 }
+    DataNID(46v1) -- Arith(Add, DataNID(45v1), DataNID(39v1))
+  ControlNID(10v1) -- Store { pred: ControlNID(9v1), addr: DataNID(46v1), value: DataNID(15v1) }
+    DataNID(47v1) -- ConstInt { size: ValueSize(4), value: 0 }
+    DataNID(48v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(49v1) -- Arith(Add, DataNID(48v1), DataNID(39v1))
+  ControlNID(11v1) -- Store { pred: ControlNID(10v1), addr: DataNID(49v1), value: DataNID(47v1) }
+    DataNID(50v1) -- ConstInt { size: ValueSize(4), value: 0 }
+    DataNID(51v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(52v1) -- Arith(Add, DataNID(51v1), DataNID(39v1))
+  ControlNID(12v1) -- Store { pred: ControlNID(11v1), addr: DataNID(52v1), value: DataNID(50v1) }
+  ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
+  ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
+  ControlNID(6v1) -- Merge { preds: [ControlNID(13v1), ControlNID(13v1)] }
+    DataNID(54v1) -- ConstInt { size: ValueSize(8), value: -24 }
+    DataNID(55v1) -- Arith(Add, DataNID(54v1), DataNID(39v1))
+  ControlNID(14v1) -- Load { pred: ControlNID(6v1), addr: DataNID(55v1) }
+    DataNID(59v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(60v1) -- Arith(Add, DataNID(59v1), DataNID(39v1))
+  ControlNID(15v1) -- Load { pred: ControlNID(14v1), addr: DataNID(60v1) }
+    DataNID(53v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(13v1), DataNID(14v1))] })
+    DataNID(57v1) -- Part { src: DataNID(53v1), offset: 4, size: 4 }
+    DataNID(56v1) -- LoadedValueOf(ControlNID(14v1))
+    DataNID(58v1) -- Concat { lo: DataNID(56v1), hi: DataNID(57v1) }
+    DataNID(62v1) -- Part { src: DataNID(58v1), offset: 0, size: 4 }
+    DataNID(61v1) -- LoadedValueOf(ControlNID(15v1))
+    DataNID(63v1) -- Arith(Sub, DataNID(61v1), DataNID(62v1))
+    DataNID(64v1) -- OverflowOf(DataNID(63v1))
+    DataNID(66v1) -- SignOf(DataNID(63v1))
+    DataNID(70v1) -- Cmp(EQ, DataNID(66v1), DataNID(64v1))
+    DataNID(71v1) -- Not(DataNID(70v1))
+  ControlNID(16v1) -- Branch { pred: ControlNID(15v1), cond: DataNID(71v1) }
+  ControlNID(39v1) -- IfFalse(ControlNID(16v1))
+  ControlNID(17v1) -- IfTrue(ControlNID(16v1))
+  ControlNID(2v1) -- Merge { preds: [ControlNID(17v1), ControlNID(18v1)] }
+    DataNID(72v1) -- ConstInt { size: ValueSize(4), value: 0 }
+    DataNID(73v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(74v1) -- Arith(Add, DataNID(73v1), DataNID(39v1))
+  ControlNID(19v1) -- Store { pred: ControlNID(2v1), addr: DataNID(74v1), value: DataNID(72v1) }
+  ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
+  ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(20v1), ControlNID(20v1)] }
+    DataNID(76v1) -- ConstInt { size: ValueSize(8), value: -20 }
+    DataNID(77v1) -- Arith(Add, DataNID(76v1), DataNID(39v1))
+  ControlNID(21v1) -- Load { pred: ControlNID(4v1), addr: DataNID(77v1) }
+    DataNID(81v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(82v1) -- Arith(Add, DataNID(81v1), DataNID(39v1))
+  ControlNID(22v1) -- Load { pred: ControlNID(21v1), addr: DataNID(82v1) }
+    DataNID(75v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(20v1), DataNID(58v1))] })
+    DataNID(79v1) -- Part { src: DataNID(75v1), offset: 4, size: 4 }
+    DataNID(78v1) -- LoadedValueOf(ControlNID(21v1))
+    DataNID(80v1) -- Concat { lo: DataNID(78v1), hi: DataNID(79v1) }
+    DataNID(84v1) -- Part { src: DataNID(80v1), offset: 0, size: 4 }
+    DataNID(83v1) -- LoadedValueOf(ControlNID(22v1))
+    DataNID(85v1) -- Arith(Sub, DataNID(83v1), DataNID(84v1))
+    DataNID(86v1) -- OverflowOf(DataNID(85v1))
+    DataNID(88v1) -- SignOf(DataNID(85v1))
+    DataNID(92v1) -- Cmp(EQ, DataNID(88v1), DataNID(86v1))
+    DataNID(93v1) -- Not(DataNID(92v1))
+  ControlNID(23v1) -- Branch { pred: ControlNID(22v1), cond: DataNID(93v1) }
+  ControlNID(36v1) -- IfFalse(ControlNID(23v1))
+  ControlNID(24v1) -- IfTrue(ControlNID(23v1))
+  ControlNID(3v1) -- Merge { preds: [ControlNID(24v1), ControlNID(25v1)] }
+    DataNID(94v1) -- ConstInt { size: ValueSize(8), value: -32 }
+    DataNID(95v1) -- Arith(Add, DataNID(94v1), DataNID(39v1))
+  ControlNID(26v1) -- Load { pred: ControlNID(3v1), addr: DataNID(95v1) }
+    DataNID(97v1) -- ConstInt { size: ValueSize(8), value: -20 }
+    DataNID(98v1) -- Arith(Add, DataNID(97v1), DataNID(39v1))
+  ControlNID(27v1) -- Load { pred: ControlNID(26v1), addr: DataNID(98v1) }
+  ControlNID(28v1) -- TODO { pred: ControlNID(27v1), label: "unsupported: imul eax,[rbp-8]" }
+    DataNID(105v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(106v1) -- Arith(Add, DataNID(105v1), DataNID(39v1))
+  ControlNID(29v1) -- Load { pred: ControlNID(28v1), addr: DataNID(106v1) }
+  ControlNID(30v1) -- TODO { pred: ControlNID(29v1), label: "unsupported: cdqe" }
+    DataNID(96v1) -- LoadedValueOf(ControlNID(26v1))
+    DataNID(121v1) -- ConstInt { size: ValueSize(1), value: 2 }
+    DataNID(122v1) -- Widen { input: DataNID(121v1), out_size: ValueSize(8) }
+    DataNID(100v1) -- Part { src: DataNID(80v1), offset: 4, size: 4 }
+    DataNID(99v1) -- LoadedValueOf(ControlNID(27v1))
+    DataNID(101v1) -- Concat { lo: DataNID(99v1), hi: DataNID(100v1) }
+    DataNID(108v1) -- Part { src: DataNID(101v1), offset: 4, size: 4 }
+    DataNID(107v1) -- LoadedValueOf(ControlNID(29v1))
+    DataNID(109v1) -- Concat { lo: DataNID(107v1), hi: DataNID(108v1) }
+    DataNID(113v1) -- Part { src: DataNID(109v1), offset: 4, size: 4 }
+    DataNID(103v1) -- Part { src: DataNID(15v1), offset: 4, size: 4 }
+    DataNID(102v1) -- Part { src: DataNID(101v1), offset: 0, size: 4 }
+    DataNID(104v1) -- Concat { lo: DataNID(102v1), hi: DataNID(103v1) }
+    DataNID(111v1) -- Part { src: DataNID(104v1), offset: 0, size: 4 }
+    DataNID(110v1) -- Part { src: DataNID(109v1), offset: 0, size: 4 }
+    DataNID(112v1) -- Arith(Add, DataNID(110v1), DataNID(111v1))
+    DataNID(114v1) -- Concat { lo: DataNID(112v1), hi: DataNID(113v1) }
+    DataNID(123v1) -- Arith(Shl, DataNID(114v1), DataNID(122v1))
+    DataNID(128v1) -- Arith(Add, DataNID(123v1), DataNID(96v1))
+    DataNID(135v1) -- ConstInt { size: ValueSize(8), value: 0 }
+    DataNID(136v1) -- Arith(Add, DataNID(135v1), DataNID(128v1))
+  ControlNID(31v1) -- Load { pred: ControlNID(30v1), addr: DataNID(136v1) }
+    DataNID(140v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(141v1) -- Arith(Add, DataNID(140v1), DataNID(39v1))
+  ControlNID(32v1) -- Load { pred: ControlNID(31v1), addr: DataNID(141v1) }
+    DataNID(138v1) -- Part { src: DataNID(128v1), offset: 4, size: 4 }
+    DataNID(137v1) -- LoadedValueOf(ControlNID(31v1))
+    DataNID(139v1) -- Concat { lo: DataNID(137v1), hi: DataNID(138v1) }
+    DataNID(143v1) -- Part { src: DataNID(139v1), offset: 0, size: 4 }
+    DataNID(142v1) -- LoadedValueOf(ControlNID(32v1))
+    DataNID(144v1) -- Arith(Add, DataNID(142v1), DataNID(143v1))
+    DataNID(145v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(146v1) -- Arith(Add, DataNID(145v1), DataNID(39v1))
+  ControlNID(33v1) -- Store { pred: ControlNID(32v1), addr: DataNID(146v1), value: DataNID(144v1) }
+    DataNID(153v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(154v1) -- Arith(Add, DataNID(153v1), DataNID(39v1))
+  ControlNID(34v1) -- Load { pred: ControlNID(33v1), addr: DataNID(154v1) }
+    DataNID(156v1) -- ConstInt { size: ValueSize(4), value: 1 }
+    DataNID(155v1) -- LoadedValueOf(ControlNID(34v1))
+    DataNID(157v1) -- Arith(Add, DataNID(155v1), DataNID(156v1))
+    DataNID(158v1) -- ConstInt { size: ValueSize(8), value: -12 }
+    DataNID(159v1) -- Arith(Add, DataNID(158v1), DataNID(39v1))
+  ControlNID(35v1) -- Store { pred: ControlNID(34v1), addr: DataNID(159v1), value: DataNID(157v1) }
+  ControlNID(25v1) -- Merge { preds: [ControlNID(35v1), ControlNID(36v1)] }
+  ControlNID(5v1) -- Merge { preds: [ControlNID(25v1)] }
+    DataNID(166v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(167v1) -- Arith(Add, DataNID(166v1), DataNID(39v1))
+  ControlNID(37v1) -- Load { pred: ControlNID(5v1), addr: DataNID(167v1) }
+    DataNID(169v1) -- ConstInt { size: ValueSize(4), value: 1 }
+    DataNID(168v1) -- LoadedValueOf(ControlNID(37v1))
+    DataNID(170v1) -- Arith(Add, DataNID(168v1), DataNID(169v1))
+    DataNID(171v1) -- ConstInt { size: ValueSize(8), value: -8 }
+    DataNID(172v1) -- Arith(Add, DataNID(171v1), DataNID(39v1))
+  ControlNID(38v1) -- Store { pred: ControlNID(37v1), addr: DataNID(172v1), value: DataNID(170v1) }
+  ControlNID(18v1) -- Merge { preds: [ControlNID(38v1), ControlNID(39v1)] }
+  ControlNID(7v1) -- Merge { preds: [ControlNID(18v1)] }
+    DataNID(179v1) -- ConstInt { size: ValueSize(8), value: -4 }
+    DataNID(180v1) -- Arith(Add, DataNID(179v1), DataNID(39v1))
+  ControlNID(40v1) -- Load { pred: ControlNID(7v1), addr: DataNID(180v1) }
+    DataNID(39v1) -- ArithK(Add, DataNID(12v1), -8)
+  ControlNID(41v1) -- Load { pred: ControlNID(40v1), addr: DataNID(39v1) }
+  ControlNID(42v1) -- Jump { pred: ControlNID(41v1) }
+  ControlNID(43v1) -- Merge { preds: [ControlNID(42v1)] }
+    DataNID(182v1) -- Part { src: DataNID(58v1), offset: 4, size: 4 }
+    DataNID(181v1) -- LoadedValueOf(ControlNID(40v1))
+    DataNID(183v1) -- Concat { lo: DataNID(181v1), hi: DataNID(182v1) }
+    DataNID(186v1) -- Phi(Phi { merge_nid: ControlNID(43v1), values: [(ControlNID(42v1), DataNID(183v1))] })
+  ControlNID(44v1) -- End { pred: ControlNID(43v1), ret: DataNID(186v1) }

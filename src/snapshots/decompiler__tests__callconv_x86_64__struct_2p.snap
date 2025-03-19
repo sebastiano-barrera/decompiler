@@ -3,7 +3,7 @@ source: src/tests.rs
 expression: output
 ---
 mil program = 
-program  78 instrs
+program  73 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -31,123 +31,95 @@ program  78 instrs
    24 r25 <- Ancestral(AncestralName("R13"))
    25 r26 <- Ancestral(AncestralName("R14"))
    26 r27 <- Ancestral(AncestralName("R15"))
-   27 r28 <- Ancestral(AncestralName("arg0"))
-   28 r29 <- StructGet8 { struct_value: r28, offset: 0 }
-   29 r14 <- Get(r29)
-   30 r30 <- StructGet8 { struct_value: r28, offset: 8 }
-   31 r15 <- Get(r30)
-   32 r28 <- Undefined
-   33 r29 <- Undefined
-   34 r30 <- Undefined
-   35 r31 <- Undefined
-   36 r32 <- Undefined
-   37 r33 <- Undefined
-   38 r34 <- Undefined
-   39 r35 <- Undefined
-   40 r36 <- Undefined
-   41 r37 <- Undefined
-   42 r38 <- Undefined
-   43 r28 <- Const4(1)
-   44 r16 <- Part { src: r16, offset: 4, size: 4 }
-   45 r16 <- Concat { lo: r28, hi: r16 }
-   46 r15 <- Arith8(BitAnd, r15, r15)
-   47 r6 <- SignOf(r15)
-   48 r5 <- IsZero(r15)
-   49 r30 <- Part { src: r15, offset: 0, size: 1 }
-   50 r3 <- Parity(r15)
-   51 r2 <- Const1(0)
-   52 r10 <- Const1(0)
-   53 r28 <- JmpIf { cond: r5, target: 77 }
+   27 r28 <- Undefined
+   28 r29 <- Undefined
+   29 r30 <- Undefined
+   30 r31 <- Undefined
+   31 r32 <- Undefined
+   32 r33 <- Undefined
+   33 r34 <- Undefined
+   34 r35 <- Undefined
+   35 r36 <- Undefined
+   36 r37 <- Undefined
+   37 r38 <- Undefined
+   38 r28 <- Const4(1)
+   39 r16 <- Part { src: r16, offset: 4, size: 4 }
+   40 r16 <- Concat { lo: r28, hi: r16 }
+   41 r15 <- Arith8(BitAnd, r15, r15)
+   42 r6 <- SignOf(r15)
+   43 r5 <- IsZero(r15)
+   44 r30 <- Part { src: r15, offset: 0, size: 1 }
+   45 r3 <- Parity(r15)
+   46 r2 <- Const1(0)
+   47 r10 <- Const1(0)
+   48 r28 <- JmpIf { cond: r5, target: 72 }
 0x2:
-   54 r28 <- Part { src: r16, offset: 0, size: 4 }
-   55 r28 <- ArithK4(Add, r28, 1)
-   56 r16 <- Part { src: r16, offset: 4, size: 4 }
-   57 r16 <- Concat { lo: r28, hi: r16 }
-   58 r10 <- False
-   59 r2 <- False
-   60 r6 <- SignOf(r28)
-   61 r5 <- IsZero(r28)
-   62 r29 <- Part { src: r28, offset: 0, size: 1 }
-   63 r3 <- Parity(r29)
+   49 r28 <- Part { src: r16, offset: 0, size: 4 }
+   50 r28 <- ArithK4(Add, r28, 1)
+   51 r16 <- Part { src: r16, offset: 4, size: 4 }
+   52 r16 <- Concat { lo: r28, hi: r16 }
+   53 r10 <- False
+   54 r2 <- False
+   55 r6 <- SignOf(r28)
+   56 r5 <- IsZero(r28)
+   57 r29 <- Part { src: r28, offset: 0, size: 1 }
+   58 r3 <- Parity(r29)
 0x0:
-   64 r29 <- Const8(8)
-   65 r29 <- Arith8(Add, r29, r15)
-   66 r28 <- LoadMem8(r29)
-   67 r15 <- Get(r28)
-   68 r15 <- Arith8(BitAnd, r15, r15)
-   69 r6 <- SignOf(r15)
-   70 r5 <- IsZero(r15)
-   71 r30 <- Part { src: r15, offset: 0, size: 1 }
-   72 r3 <- Parity(r15)
-   73 r2 <- Const1(0)
-   74 r10 <- Const1(0)
-   75 r28 <- Not(r5)
-   76 r29 <- JmpIf { cond: r28, target: 54 }
+   59 r29 <- Const8(8)
+   60 r29 <- Arith8(Add, r29, r15)
+   61 r28 <- LoadMem8(r29)
+   62 r15 <- Get(r28)
+   63 r15 <- Arith8(BitAnd, r15, r15)
+   64 r6 <- SignOf(r15)
+   65 r5 <- IsZero(r15)
+   66 r30 <- Part { src: r15, offset: 0, size: 1 }
+   67 r3 <- Parity(r15)
+   68 r2 <- Const1(0)
+   69 r10 <- Const1(0)
+   70 r28 <- Not(r5)
+   71 r29 <- JmpIf { cond: r28, target: 49 }
 0x1:
-   77 r28 <- Ret(r16)
+   72 r28 <- Ret(r16)
 
 
-ssa program  23 instrs
-.B0:    ;;  addr:0x0; 54 insn 0 phis
-         r15 <- Ancestral(AncestralName("RAX"))
-         r27 <- Ancestral(AncestralName("arg0"))
-  (  2)  r30 <- StructGet8 { struct_value: r27, offset: 8 }
-  (  2)  r43 <- Const4(1)
-  (  2)  r44 <- Part { src: r15, offset: 4, size: 4 }
-  (  2)  r45 <- Concat { lo: r43, hi: r44 }
-         r46 <- Get(r30)
-         r48 <- IsZero(r30)
-         r53 <- JmpIf { cond: r48, target: 77 }
-.B1:    ;;  preds:B0,B1  addr:0x2; 23 insn 2 phis
-                  ɸ  B0     B1     
-           r78    <- r46    r68    
-  (  2)    r81    <- r45    r57    
-         r54 <- Part { src: r81, offset: 0, size: 4 }
-         r55 <- ArithK4(Add, r54, 1)
-         r56 <- Part { src: r81, offset: 4, size: 4 }
-  (  2)  r57 <- Concat { lo: r55, hi: r56 }
-         r65 <- ArithK8(Add, r78, 8)
-  (  2)  r66 <- LoadMem8(r65)
-         r68 <- Get(r66)
-         r70 <- IsZero(r66)
-         r75 <- Not(r70)
-         r76 <- JmpIf { cond: r75, target: 54 }
-.B2:    ;;  preds:B0,B1  addr:0x1; 1 insn 1 phis
-                  ɸ  B0     B1     
-           r84    <- r45    r57    
-         r77 <- Ret(r84)
-
-
-T0(): {
-  let r30 = StructGet8[8](pre:arg0);
-  let r44 = pre:RAX[4 .. 8];
-  let r45 = r44⧺0x1 /* 1 */;
-  if IsZero(r30) {
-    goto T2 (
-      r84 = r45
-    )
-  
-  }
-  goto T1 (
-    r78 = StructGet8[8](pre:arg0)
-    r81 = r45
-  )
-  
-  T1(r78, r81): {
-    let r57 = r81[4 .. 8]⧺r81[0 .. 4] + 1;
-    if !(IsZero([r78 + 8]:8)) {
-      goto T1 (
-        r78 = [r78 + 8]:8
-        r81 = r57
-      )
-    
-    }
-    goto T2 (
-      r84 = r57
-    )
-  }
-  
-  T2(r84): {
-    Ret(r84);
-  }
-}
+ssa program
+  14 control nodes, 21 data nodes
+  ControlNID(9v1) -- IfTrue(ControlNID(8v1))
+  ControlNID(1v1) -- Merge { preds: [] }
+    DataNID(15v1) -- Ancestral(AncestralName("RSI"))
+    DataNID(15v1) -- Ancestral(AncestralName("RSI"))
+    DataNID(42v1) -- Arith(BitAnd, DataNID(15v1), DataNID(15v1))
+    DataNID(44v1) -- IsZero(DataNID(42v1))
+  ControlNID(4v1) -- Branch { pred: ControlNID(1v1), cond: DataNID(44v1) }
+  ControlNID(6v1) -- IfFalse(ControlNID(4v1))
+  ControlNID(2v1) -- Merge { preds: [ControlNID(6v1), ControlNID(9v1)] }
+    DataNID(49v1) -- Phi(Phi { merge_nid: ControlNID(2v1), values: [(ControlNID(6v1), DataNID(42v1))] })
+    DataNID(61v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(62v1) -- Arith(Add, DataNID(61v1), DataNID(49v1))
+  ControlNID(7v1) -- Load { pred: ControlNID(2v1), addr: DataNID(62v1) }
+    DataNID(63v1) -- LoadedValueOf(ControlNID(7v1))
+    DataNID(63v1) -- LoadedValueOf(ControlNID(7v1))
+    DataNID(64v1) -- Arith(BitAnd, DataNID(63v1), DataNID(63v1))
+    DataNID(66v1) -- IsZero(DataNID(64v1))
+    DataNID(71v1) -- Not(DataNID(66v1))
+  ControlNID(8v1) -- Branch { pred: ControlNID(7v1), cond: DataNID(71v1) }
+  ControlNID(11v1) -- IfFalse(ControlNID(8v1))
+  ControlNID(10v1) -- Merge { preds: [ControlNID(10v1), ControlNID(11v1)] }
+  ControlNID(6v1) -- IfFalse(ControlNID(4v1))
+  ControlNID(5v1) -- IfTrue(ControlNID(4v1))
+  ControlNID(3v1) -- Merge { preds: [ControlNID(5v1), ControlNID(6v1), ControlNID(10v1)] }
+  ControlNID(12v1) -- Jump { pred: ControlNID(3v1) }
+  ControlNID(13v1) -- Merge { preds: [ControlNID(12v1)] }
+    DataNID(16v1) -- Ancestral(AncestralName("RAX"))
+    DataNID(40v1) -- Part { src: DataNID(16v1), offset: 4, size: 4 }
+    DataNID(39v1) -- ConstInt { size: ValueSize(4), value: 1 }
+    DataNID(41v1) -- Concat { lo: DataNID(39v1), hi: DataNID(40v1) }
+    DataNID(50v1) -- Phi(Phi { merge_nid: ControlNID(2v1), values: [(ControlNID(6v1), DataNID(41v1))] })
+    DataNID(53v1) -- Part { src: DataNID(50v1), offset: 4, size: 4 }
+    DataNID(51v1) -- Part { src: DataNID(50v1), offset: 0, size: 4 }
+    DataNID(52v1) -- ArithK(Add, DataNID(51v1), 1)
+    DataNID(54v1) -- Concat { lo: DataNID(52v1), hi: DataNID(53v1) }
+    DataNID(41v1) -- Concat { lo: DataNID(39v1), hi: DataNID(40v1) }
+    DataNID(72v1) -- Phi(Phi { merge_nid: ControlNID(3v1), values: [(ControlNID(6v1), DataNID(41v1)), (ControlNID(10v1), DataNID(54v1))] })
+    DataNID(73v1) -- Phi(Phi { merge_nid: ControlNID(13v1), values: [(ControlNID(12v1), DataNID(72v1))] })
+  ControlNID(14v1) -- End { pred: ControlNID(13v1), ret: DataNID(73v1) }

@@ -58,712 +58,687 @@ main 0x401090+181 (file 0x1090)
           401143: eb e6                   jmp short 000000000040112Bh
 
 mil program = 
-program  313 instrs
-    0 r12 <- #pre:stack_bottom
-    1 r2 <- #pre:CF
-    2 r3 <- #pre:PF
-    3 r4 <- #pre:AF
-    4 r5 <- #pre:ZF
-    5 r6 <- #pre:SF
-    6 r7 <- #pre:TF
-    7 r8 <- #pre:IF
-    8 r9 <- #pre:DF
-    9 r10 <- #pre:OF
-   10 r11 <- #pre:RBP
-   11 r12 <- #pre:RSP
-   12 r13 <- #pre:RIP
-   13 r14 <- #pre:RDI
-   14 r15 <- #pre:RSI
-   15 r16 <- #pre:RAX
-   16 r17 <- #pre:RBX
-   17 r18 <- #pre:RCX
-   18 r19 <- #pre:RDX
-   19 r20 <- #pre:R8
-   20 r21 <- #pre:R9
-   21 r22 <- #pre:R10
-   22 r23 <- #pre:R11
-   23 r24 <- #pre:R12
-   24 r25 <- #pre:R13
-   25 r26 <- #pre:R14
-   26 r27 <- #pre:R15
-   27 r28 <- undef
-   28 r29 <- undef
-   29 r30 <- undef
-   30 r31 <- undef
-   31 r32 <- undef
-   32 r33 <- undef
-   33 r34 <- undef
+program  329 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Undefined
+   28 r29 <- Undefined
+   29 r30 <- Undefined
+   30 r31 <- Undefined
+   31 r32 <- Undefined
+   32 r33 <- Undefined
+   33 r34 <- Undefined
+   34 r35 <- Undefined
+   35 r36 <- Undefined
+   36 r37 <- Undefined
+   37 r38 <- Undefined
 0x401090:
-   34 r12 <- addk     r12,-8 qword
-   35 r29 <- store    *r12 ← r24
+   38 r12 <- ArithK8(Add, r12, -8)
+   39 r29 <- StoreMem(r12, r24)
 0x401092:
-   36 r28 <- const4   8 (0x8)
-   37 r15 <- v8.l4=   r15 ← r28
+   40 r28 <- Const4(8)
+   41 r15 <- Part { src: r15, offset: 4, size: 4 }
+   42 r15 <- Concat { lo: r28, hi: r15 }
 0x401097:
-   38 r28 <- const4   3 (0x3)
-   39 r14 <- v8.l4=   r14 ← r28
+   43 r28 <- Const4(3)
+   44 r14 <- Part { src: r14, offset: 4, size: 4 }
+   45 r14 <- Concat { lo: r28, hi: r14 }
 0x40109c:
-   40 r12 <- addk     r12,-8 qword
-   41 r29 <- store    *r12 ← r11
+   46 r12 <- ArithK8(Add, r12, -8)
+   47 r29 <- StoreMem(r12, r11)
 0x40109d:
-   42 r12 <- addk     r12,-8 qword
-   43 r29 <- store    *r12 ← r17
+   48 r12 <- ArithK8(Add, r12, -8)
+   49 r29 <- StoreMem(r12, r17)
 0x40109e:
-   44 r29 <- const8   16 (0x10)
-   45 r12 <- sub      r12,r29  qword
-   46 r12 <- get      r12
-   47 r10 <- overflow r12
-   48 r2 <- carry    r12
-   49 r6 <- sign     r12
-   50 r5 <- is0      r12
-   51 r30 <- l1       r12
-   52 r3 <- parity   r30
+   50 r29 <- Const8(16)
+   51 r12 <- Arith8(Sub, r12, r29)
+   52 r12 <- Get(r12)
+   53 r10 <- OverflowOf(r12)
+   54 r2 <- CarryOf(r12)
+   55 r6 <- SignOf(r12)
+   56 r5 <- IsZero(r12)
+   57 r30 <- Part { src: r12, offset: 0, size: 1 }
+   58 r3 <- Parity(r30)
 0x4010a2:
-   53 r19 <- get      r12
+   59 r19 <- Get(r12)
 0x4010a5:
-   54 r28 <- const8   4198512 (0x401070)
-   55 r16 <- call     r28
-   56 r29 <- carg     r14
-   57 r30 <- carg     r15
-   58 r31 <- carg     r19
-   59 r32 <- carg     r18
-   60 r2 <- undef
-   61 r3 <- undef
-   62 r4 <- undef
-   63 r5 <- undef
-   64 r6 <- undef
-   65 r7 <- undef
-   66 r8 <- undef
-   67 r9 <- undef
-   68 r10 <- undef
+   60 r28 <- Const8(4198512)
+   61 r16 <- Call(r28)
+   62 r29 <- CArg(r14)
+   63 r30 <- CArg(r15)
+   64 r31 <- CArg(r19)
+   65 r32 <- CArg(r18)
+   66 r2 <- Undefined
+   67 r3 <- Undefined
+   68 r4 <- Undefined
+   69 r5 <- Undefined
+   70 r6 <- Undefined
+   71 r7 <- Undefined
+   72 r8 <- Undefined
+   73 r9 <- Undefined
+   74 r10 <- Undefined
 0x4010aa:
-   69 r28 <- l4       r16
-   70 r29 <- l4       r16
-   71 r28 <- and      r28,r29  dword
-   72 r6 <- sign     r28
-   73 r5 <- is0      r28
-   74 r30 <- l1       r28
-   75 r3 <- parity   r28
-   76 r2 <- const1   0 (0x0)
-   77 r10 <- const1   0 (0x0)
+   75 r28 <- Part { src: r16, offset: 0, size: 4 }
+   76 r29 <- Part { src: r16, offset: 0, size: 4 }
+   77 r28 <- Arith4(BitAnd, r28, r29)
+   78 r6 <- SignOf(r28)
+   79 r5 <- IsZero(r28)
+   80 r30 <- Part { src: r28, offset: 0, size: 1 }
+   81 r3 <- Parity(r28)
+   82 r2 <- Const1(0)
+   83 r10 <- Const1(0)
 0x4010ac:
-   78 r28 <- not      r5
-   79 r29 <- jmp.if   r28,302
+   84 r28 <- Not(r5)
+   85 r29 <- JmpIf { cond: r28, target: 317 }
 0x4010b2:
-   80 r29 <- const8   0 (0x0)
-   81 r29 <- add      r29,r12  qword
-   82 r28 <- loadm8   addr:r29
-   83 r14 <- get      r28
+   86 r29 <- Const8(0)
+   87 r29 <- Arith8(Add, r29, r12)
+   88 r28 <- LoadMem8(r29)
+   89 r14 <- Get(r28)
 0x4010b6:
-   84 r28 <- const8   8 (0x8)
-   85 r28 <- add      r28,r12  qword
-   86 r21 <- get      r28
+   90 r28 <- Const8(8)
+   91 r28 <- Arith8(Add, r28, r12)
+   92 r21 <- Get(r28)
 0x4010bb:
-   87 r28 <- l4       r20
-   88 r29 <- l4       r20
-   89 r28 <- xor      r28,r29  dword
-   90 r20 <- v8.l4=   r20 ← r28
-   91 r10 <- false
-   92 r2 <- false
-   93 r6 <- sign     r28
-   94 r5 <- is0      r28
-   95 r30 <- l1       r28
-   96 r3 <- parity   r30
+   93 r28 <- Part { src: r20, offset: 0, size: 4 }
+   94 r29 <- Part { src: r20, offset: 0, size: 4 }
+   95 r28 <- Arith4(BitXor, r28, r29)
+   96 r20 <- Part { src: r20, offset: 4, size: 4 }
+   97 r20 <- Concat { lo: r28, hi: r20 }
+   98 r10 <- False
+   99 r2 <- False
+  100 r6 <- SignOf(r28)
+  101 r5 <- IsZero(r28)
+  102 r30 <- Part { src: r28, offset: 0, size: 1 }
+  103 r3 <- Parity(r30)
 0x4010be:
-   97 r24 <- get      r12
+  104 r24 <- Get(r12)
 0x4010c1:
-   98 r28 <- const4   4096 (0x1000)
-   99 r18 <- v8.l4=   r18 ← r28
+  105 r28 <- Const4(4096)
+  106 r18 <- Part { src: r18, offset: 4, size: 4 }
+  107 r18 <- Concat { lo: r28, hi: r18 }
 0x4010c6:
-  100 r28 <- const4   8 (0x8)
-  101 r19 <- v8.l4=   r19 ← r28
+  108 r28 <- Const4(8)
+  109 r19 <- Part { src: r19, offset: 4, size: 4 }
+  110 r19 <- Concat { lo: r28, hi: r19 }
 0x4010cb:
-  102 r28 <- const4   4203184 (0x4022b0)
-  103 r15 <- v8.l4=   r15 ← r28
+  111 r28 <- Const4(4203184)
+  112 r15 <- Part { src: r15, offset: 4, size: 4 }
+  113 r15 <- Concat { lo: r28, hi: r15 }
 0x4010d0:
-  104 r28 <- const8   4198496 (0x401060)
-  105 r16 <- call     r28
-  106 r29 <- carg     r14
-  107 r30 <- carg     r15
-  108 r31 <- carg     r19
-  109 r32 <- carg     r18
-  110 r2 <- undef
-  111 r3 <- undef
-  112 r4 <- undef
-  113 r5 <- undef
-  114 r6 <- undef
-  115 r7 <- undef
-  116 r8 <- undef
-  117 r9 <- undef
-  118 r10 <- undef
+  114 r28 <- Const8(4198496)
+  115 r16 <- Call(r28)
+  116 r29 <- CArg(r14)
+  117 r30 <- CArg(r15)
+  118 r31 <- CArg(r19)
+  119 r32 <- CArg(r18)
+  120 r2 <- Undefined
+  121 r3 <- Undefined
+  122 r4 <- Undefined
+  123 r5 <- Undefined
+  124 r6 <- Undefined
+  125 r7 <- Undefined
+  126 r8 <- Undefined
+  127 r9 <- Undefined
+  128 r10 <- Undefined
 0x4010d5:
-  119 r11 <- get      r16
+  129 r11 <- Get(r16)
 0x4010d8:
-  120 r16 <- and      r16,r16  qword
-  121 r6 <- sign     r16
-  122 r5 <- is0      r16
-  123 r30 <- l1       r16
-  124 r3 <- parity   r16
-  125 r2 <- const1   0 (0x0)
-  126 r10 <- const1   0 (0x0)
+  130 r16 <- Arith8(BitAnd, r16, r16)
+  131 r6 <- SignOf(r16)
+  132 r5 <- IsZero(r16)
+  133 r30 <- Part { src: r16, offset: 0, size: 1 }
+  134 r3 <- Parity(r16)
+  135 r2 <- Const1(0)
+  136 r10 <- Const1(0)
 0x4010db:
-  127 r28 <- jmp.if   r5,284
+  137 r28 <- JmpIf { cond: r5, target: 298 }
 0x4010dd:
-  128 r28 <- l4       r17
-  129 r29 <- l4       r17
-  130 r28 <- xor      r28,r29  dword
-  131 r17 <- v8.l4=   r17 ← r28
-  132 r10 <- false
-  133 r2 <- false
-  134 r6 <- sign     r28
-  135 r5 <- is0      r28
-  136 r30 <- l1       r28
-  137 r3 <- parity   r30
+  138 r28 <- Part { src: r17, offset: 0, size: 4 }
+  139 r29 <- Part { src: r17, offset: 0, size: 4 }
+  140 r28 <- Arith4(BitXor, r28, r29)
+  141 r17 <- Part { src: r17, offset: 4, size: 4 }
+  142 r17 <- Concat { lo: r28, hi: r17 }
+  143 r10 <- False
+  144 r2 <- False
+  145 r6 <- SignOf(r28)
+  146 r5 <- IsZero(r28)
+  147 r30 <- Part { src: r28, offset: 0, size: 1 }
+  148 r3 <- Parity(r30)
 0x4010e0:
-  138 r16 <- get      r17
+  149 r16 <- Get(r17)
 0x4010e3:
-  139 r29 <- const8   8 (0x8)
-  140 r29 <- add      r29,r12  qword
-  141 r28 <- loadm8   addr:r29
-  142 r19 <- get      r28
+  150 r29 <- Const8(8)
+  151 r29 <- Arith8(Add, r29, r12)
+  152 r28 <- LoadMem8(r29)
+  153 r19 <- Get(r28)
 0x4010e8:
-  143 r28 <- const4   4203193 (0x4022b9)
-  144 r14 <- v8.l4=   r14 ← r28
+  154 r28 <- Const4(4203193)
+  155 r14 <- Part { src: r14, offset: 4, size: 4 }
+  156 r14 <- Concat { lo: r28, hi: r14 }
 0x4010ed:
-  145 r29 <- const1   5 (0x5)
-  146 r29 <- widen    1->8 r29
-  147 r16 <- shl      r16,r29  qword
-  148 r16 <- get      r16
-  149 r6 <- sign     r16
-  150 r5 <- is0      r16
-  151 r30 <- l1       r16
-  152 r3 <- parity   r30
+  157 r29 <- Const1(5)
+  158 r29 <- Widen1_8(r29)
+  159 r16 <- Arith8(Shl, r16, r29)
+  160 r16 <- Get(r16)
+  161 r6 <- SignOf(r16)
+  162 r5 <- IsZero(r16)
+  163 r30 <- Part { src: r16, offset: 0, size: 1 }
+  164 r3 <- Parity(r30)
 0x4010f1:
-  153 r16 <- sub      r16,r17  qword
-  154 r16 <- get      r16
-  155 r10 <- overflow r16
-  156 r2 <- carry    r16
-  157 r6 <- sign     r16
-  158 r5 <- is0      r16
-  159 r30 <- l1       r16
-  160 r3 <- parity   r30
+  165 r16 <- Arith8(Sub, r16, r17)
+  166 r16 <- Get(r16)
+  167 r10 <- OverflowOf(r16)
+  168 r2 <- CarryOf(r16)
+  169 r6 <- SignOf(r16)
+  170 r5 <- IsZero(r16)
+  171 r30 <- Part { src: r16, offset: 0, size: 1 }
+  172 r3 <- Parity(r30)
 0x4010f4:
-  161 r29 <- const8   1 (0x1)
-  162 r17 <- add      r17,r29  qword
-  163 r17 <- get      r17
-  164 r10 <- overflow r17
-  165 r2 <- carry    r17
-  166 r6 <- sign     r17
-  167 r5 <- is0      r17
-  168 r30 <- l1       r17
-  169 r3 <- parity   r30
+  173 r29 <- Const8(1)
+  174 r17 <- Arith8(Add, r17, r29)
+  175 r17 <- Get(r17)
+  176 r10 <- OverflowOf(r17)
+  177 r2 <- CarryOf(r17)
+  178 r6 <- SignOf(r17)
+  179 r5 <- IsZero(r17)
+  180 r30 <- Part { src: r17, offset: 0, size: 1 }
+  181 r3 <- Parity(r30)
 0x4010f8:
-  170 r28 <- const8   0 (0x0)
-  171 r28 <- add      r28,r19  qword
-  172 r29 <- mulk     r16,8 qword
-  173 r28 <- add      r28,r29  qword
-  174 r16 <- get      r28
+  182 r28 <- Const8(0)
+  183 r28 <- Arith8(Add, r28, r19)
+  184 r29 <- ArithK8(Mul, r16, 8)
+  185 r28 <- Arith8(Add, r28, r29)
+  186 r16 <- Get(r28)
 0x4010fc:
-  175 r29 <- const8   8 (0x8)
-  176 r29 <- add      r29,r16  qword
-  177 r28 <- loadm8   addr:r29
-  178 r15 <- get      r28
+  187 r29 <- Const8(8)
+  188 r29 <- Arith8(Add, r29, r16)
+  189 r28 <- LoadMem8(r29)
+  190 r15 <- Get(r28)
 0x401100:
-  179 r28 <- const8   74 (0x4a)
-  180 r28 <- add      r28,r16  qword
-  181 r18 <- get      r28
+  191 r28 <- Const8(74)
+  192 r28 <- Arith8(Add, r28, r16)
+  193 r18 <- Get(r28)
 0x401104:
-  182 r28 <- const8   42 (0x2a)
-  183 r28 <- add      r28,r16  qword
-  184 r19 <- get      r28
+  194 r28 <- Const8(42)
+  195 r28 <- Arith8(Add, r28, r16)
+  196 r19 <- Get(r28)
 0x401108:
-  185 r28 <- l4       r16
-  186 r29 <- l4       r16
-  187 r28 <- xor      r28,r29  dword
-  188 r16 <- v8.l4=   r16 ← r28
-  189 r10 <- false
-  190 r2 <- false
-  191 r6 <- sign     r28
-  192 r5 <- is0      r28
-  193 r30 <- l1       r28
-  194 r3 <- parity   r30
+  197 r28 <- Part { src: r16, offset: 0, size: 4 }
+  198 r29 <- Part { src: r16, offset: 0, size: 4 }
+  199 r28 <- Arith4(BitXor, r28, r29)
+  200 r16 <- Part { src: r16, offset: 4, size: 4 }
+  201 r16 <- Concat { lo: r28, hi: r16 }
+  202 r10 <- False
+  203 r2 <- False
+  204 r6 <- SignOf(r28)
+  205 r5 <- IsZero(r28)
+  206 r30 <- Part { src: r28, offset: 0, size: 1 }
+  207 r3 <- Parity(r30)
 0x40110a:
-  195 r28 <- const8   4198480 (0x401050)
-  196 r16 <- call     r28
-  197 r29 <- carg     r14
-  198 r30 <- carg     r15
-  199 r31 <- carg     r19
-  200 r32 <- carg     r18
-  201 r2 <- undef
-  202 r3 <- undef
-  203 r4 <- undef
-  204 r5 <- undef
-  205 r6 <- undef
-  206 r7 <- undef
-  207 r8 <- undef
-  208 r9 <- undef
-  209 r10 <- undef
+  208 r28 <- Const8(4198480)
+  209 r16 <- Call(r28)
+  210 r29 <- CArg(r14)
+  211 r30 <- CArg(r15)
+  212 r31 <- CArg(r19)
+  213 r32 <- CArg(r18)
+  214 r2 <- Undefined
+  215 r3 <- Undefined
+  216 r4 <- Undefined
+  217 r5 <- Undefined
+  218 r6 <- Undefined
+  219 r7 <- Undefined
+  220 r8 <- Undefined
+  221 r9 <- Undefined
+  222 r10 <- Undefined
 0x40110f:
-  210 r11 <- sub      r11,r17  qword
-  211 r10 <- overflow r11
-  212 r2 <- carry    r11
-  213 r6 <- sign     r11
-  214 r5 <- is0      r11
-  215 r30 <- l1       r11
-  216 r3 <- parity   r30
+  223 r11 <- Arith8(Sub, r11, r17)
+  224 r10 <- OverflowOf(r11)
+  225 r2 <- CarryOf(r11)
+  226 r6 <- SignOf(r11)
+  227 r5 <- IsZero(r11)
+  228 r30 <- Part { src: r11, offset: 0, size: 1 }
+  229 r3 <- Parity(r30)
 0x401112:
-  217 r28 <- not      r5
-  218 r29 <- jmp.if   r28,138
+  230 r28 <- Not(r5)
+  231 r29 <- JmpIf { cond: r28, target: 149 }
 0x401114:
-  219 r29 <- const8   8 (0x8)
-  220 r29 <- add      r29,r12  qword
-  221 r28 <- loadm8   addr:r29
-  222 r14 <- get      r28
+  232 r29 <- Const8(8)
+  233 r29 <- Arith8(Add, r29, r12)
+  234 r28 <- LoadMem8(r29)
+  235 r14 <- Get(r28)
 0x401119:
-  223 r15 <- get      r11
+  236 r15 <- Get(r11)
 0x40111c:
-  224 r28 <- const8   4198464 (0x401040)
-  225 r16 <- call     r28
-  226 r29 <- carg     r14
-  227 r30 <- carg     r15
-  228 r31 <- carg     r19
-  229 r32 <- carg     r18
-  230 r2 <- undef
-  231 r3 <- undef
-  232 r4 <- undef
-  233 r5 <- undef
-  234 r6 <- undef
-  235 r7 <- undef
-  236 r8 <- undef
-  237 r9 <- undef
-  238 r10 <- undef
+  237 r28 <- Const8(4198464)
+  238 r16 <- Call(r28)
+  239 r29 <- CArg(r14)
+  240 r30 <- CArg(r15)
+  241 r31 <- CArg(r19)
+  242 r32 <- CArg(r18)
+  243 r2 <- Undefined
+  244 r3 <- Undefined
+  245 r4 <- Undefined
+  246 r5 <- Undefined
+  247 r6 <- Undefined
+  248 r7 <- Undefined
+  249 r8 <- Undefined
+  250 r9 <- Undefined
+  251 r10 <- Undefined
 0x401121:
-  239 r14 <- get      r24
+  252 r14 <- Get(r24)
 0x401124:
-  240 r28 <- const8   4198528 (0x401080)
-  241 r16 <- call     r28
-  242 r29 <- carg     r14
-  243 r30 <- carg     r15
-  244 r31 <- carg     r19
-  245 r32 <- carg     r18
-  246 r2 <- undef
-  247 r3 <- undef
-  248 r4 <- undef
-  249 r5 <- undef
-  250 r6 <- undef
-  251 r7 <- undef
-  252 r8 <- undef
-  253 r9 <- undef
-  254 r10 <- undef
+  253 r28 <- Const8(4198528)
+  254 r16 <- Call(r28)
+  255 r29 <- CArg(r14)
+  256 r30 <- CArg(r15)
+  257 r31 <- CArg(r19)
+  258 r32 <- CArg(r18)
+  259 r2 <- Undefined
+  260 r3 <- Undefined
+  261 r4 <- Undefined
+  262 r5 <- Undefined
+  263 r6 <- Undefined
+  264 r7 <- Undefined
+  265 r8 <- Undefined
+  266 r9 <- Undefined
+  267 r10 <- Undefined
 0x401129:
-  255 r28 <- l4       r16
-  256 r29 <- l4       r16
-  257 r28 <- xor      r28,r29  dword
-  258 r16 <- v8.l4=   r16 ← r28
-  259 r10 <- false
-  260 r2 <- false
-  261 r6 <- sign     r28
-  262 r5 <- is0      r28
-  263 r30 <- l1       r28
-  264 r3 <- parity   r30
+  268 r28 <- Part { src: r16, offset: 0, size: 4 }
+  269 r29 <- Part { src: r16, offset: 0, size: 4 }
+  270 r28 <- Arith4(BitXor, r28, r29)
+  271 r16 <- Part { src: r16, offset: 4, size: 4 }
+  272 r16 <- Concat { lo: r28, hi: r16 }
+  273 r10 <- False
+  274 r2 <- False
+  275 r6 <- SignOf(r28)
+  276 r5 <- IsZero(r28)
+  277 r30 <- Part { src: r28, offset: 0, size: 1 }
+  278 r3 <- Parity(r30)
 0x40112b:
-  265 r29 <- const8   16 (0x10)
-  266 r12 <- add      r12,r29  qword
-  267 r12 <- get      r12
-  268 r10 <- overflow r12
-  269 r2 <- carry    r12
-  270 r6 <- sign     r12
-  271 r5 <- is0      r12
-  272 r30 <- l1       r12
-  273 r3 <- parity   r30
+  279 r29 <- Const8(16)
+  280 r12 <- Arith8(Add, r12, r29)
+  281 r12 <- Get(r12)
+  282 r10 <- OverflowOf(r12)
+  283 r2 <- CarryOf(r12)
+  284 r6 <- SignOf(r12)
+  285 r5 <- IsZero(r12)
+  286 r30 <- Part { src: r12, offset: 0, size: 1 }
+  287 r3 <- Parity(r30)
 0x40112f:
-  274 r28 <- loadm8   addr:r12
-  275 r17 <- get      r28
-  276 r12 <- addk     r12,8 qword
+  288 r28 <- LoadMem8(r12)
+  289 r17 <- Get(r28)
+  290 r12 <- ArithK8(Add, r12, 8)
 0x401130:
-  277 r28 <- loadm8   addr:r12
-  278 r11 <- get      r28
-  279 r12 <- addk     r12,8 qword
+  291 r28 <- LoadMem8(r12)
+  292 r11 <- Get(r28)
+  293 r12 <- ArithK8(Add, r12, 8)
 0x401131:
-  280 r28 <- loadm8   addr:r12
-  281 r24 <- get      r28
-  282 r12 <- addk     r12,8 qword
+  294 r28 <- LoadMem8(r12)
+  295 r24 <- Get(r28)
+  296 r12 <- ArithK8(Add, r12, 8)
 0x401133:
-  283 r28 <- ret      r16
+  297 r28 <- Ret(r16)
 0x401134:
-  284 r28 <- const4   4203208 (0x4022c8)
-  285 r14 <- v8.l4=   r14 ← r28
+  298 r28 <- Const4(4203208)
+  299 r14 <- Part { src: r14, offset: 4, size: 4 }
+  300 r14 <- Concat { lo: r28, hi: r14 }
 0x401139:
-  286 r28 <- const8   4198448 (0x401030)
-  287 r16 <- call     r28
-  288 r29 <- carg     r14
-  289 r30 <- carg     r15
-  290 r31 <- carg     r19
-  291 r32 <- carg     r18
-  292 r2 <- undef
-  293 r3 <- undef
-  294 r4 <- undef
-  295 r5 <- undef
-  296 r6 <- undef
-  297 r7 <- undef
-  298 r8 <- undef
-  299 r9 <- undef
-  300 r10 <- undef
+  301 r28 <- Const8(4198448)
+  302 r16 <- Call(r28)
+  303 r29 <- CArg(r14)
+  304 r30 <- CArg(r15)
+  305 r31 <- CArg(r19)
+  306 r32 <- CArg(r18)
+  307 r2 <- Undefined
+  308 r3 <- Undefined
+  309 r4 <- Undefined
+  310 r5 <- Undefined
+  311 r6 <- Undefined
+  312 r7 <- Undefined
+  313 r8 <- Undefined
+  314 r9 <- Undefined
+  315 r10 <- Undefined
 0x40113e:
-  301 r28 <- jmp      239
+  316 r28 <- Jmp(252)
 0x401140:
-  302 r28 <- l4       r16
-  303 r29 <- const4   -1 (0xffffffff)
-  304 r28 <- or       r28,r29  dword
-  305 r16 <- v8.l4=   r16 ← r28
-  306 r10 <- false
-  307 r2 <- false
-  308 r6 <- sign     r28
-  309 r5 <- is0      r28
-  310 r30 <- l1       r28
-  311 r3 <- parity   r30
+  317 r28 <- Part { src: r16, offset: 0, size: 4 }
+  318 r29 <- Const4(-1)
+  319 r28 <- Arith4(BitOr, r28, r29)
+  320 r16 <- Part { src: r16, offset: 4, size: 4 }
+  321 r16 <- Concat { lo: r28, hi: r16 }
+  322 r10 <- False
+  323 r2 <- False
+  324 r6 <- SignOf(r28)
+  325 r5 <- IsZero(r28)
+  326 r30 <- Part { src: r28, offset: 0, size: 1 }
+  327 r3 <- Parity(r30)
 0x401143:
-  312 r28 <- jmp      265
+  328 r28 <- Jmp(279)
 
 
 ssa pre-xform:
-ssa program  121 instrs
-.B0:    ;;  addr:0x0; 80 insn 0 phis
-         r10 <- #pre:RBP
-         r11 <- #pre:RSP
-         r13 <- #pre:RDI
-         r14 <- #pre:RSI
-  (  4)  r16 <- #pre:RBX
-  (  2)  r17 <- #pre:RCX
-         r23 <- #pre:R12
-  (  2)  r34 <- addk     r11,-8 qword
-         r35 <- store    *r34 ← r23
-         r36 <- const4   8 (0x8)
-  (  2)  r37 <- v8.l4=   r14 ← r36
-         r38 <- const4   3 (0x3)
-         r39 <- v8.l4=   r13 ← r38
-  (  2)  r40 <- addk     r34,-8 qword
-         r41 <- store    *r40 ← r10
-  (  2)  r42 <- addk     r40,-8 qword
-         r43 <- store    *r42 ← r16
-         r44 <- const8   16 (0x10)
-  (  6)  r45 <- sub      r42,r44  qword
-  (  2)  r54 <- const8   4198512 (0x401070)
-  (  3)  r55 <- call     r54
-         r56 <- carg     r39
-         r57 <- carg     r37
-         r58 <- carg     r45
-         r59 <- carg     r17
-         r69 <- l4       r55
-         r70 <- l4       r55
-         r71 <- and      r69,r70  dword
-         r73 <- is0      r71
-         r78 <- not      r73
-         r79 <- jmp.if   r78,302
-.B1:    ;;  preds:B0  addr:0x4010b2; 48 insn 0 phis
-         r80 <- const8   0 (0x0)
-         r81 <- add      r80,r45  qword
-  (  3)  r82 <- loadm8   addr:r81
-         r98 <- const4   4096 (0x1000)
-  (  3)  r99 <- v8.l4=   r17 ← r98
-         r100 <- const4   8 (0x8)
-  (  3)  r101 <- v8.l4=   r45 ← r100
-         r102 <- const4   4203184 (0x4022b0)
-  (  3)  r103 <- v8.l4=   r37 ← r102
-  (  2)  r104 <- const8   4198496 (0x401060)
-  (  4)  r105 <- call     r104
-         r106 <- carg     r82
-         r107 <- carg     r103
-         r108 <- carg     r101
-         r109 <- carg     r99
-         r120 <- and      r105,r105  qword
-         r122 <- is0      r120
-         r127 <- jmp.if   r122,284
-.B7:    ;;  preds:B1  addr:0x401134; 18 insn 0 phis
-         r284 <- const4   4203208 (0x4022c8)
-         r285 <- v8.l4=   r82 ← r284
-         r286 <- const8   4198448 (0x401030)
-         r287 <- call     r286
-         r288 <- carg     r285
-         r289 <- carg     r103
-         r290 <- carg     r101
-         r291 <- carg     r99
-         r301 <- jmp      239
-.B2:    ;;  preds:B1  addr:0x4010dd; 10 insn 0 phis
-         r128 <- l4       r16
-         r129 <- l4       r16
-         r130 <- xor      r128,r129  dword
-         r131 <- v8.l4=   r16 ← r130
-.B3:    ;;  preds:B2,B3  addr:0x4010e0; 81 insn 3 phis
-                  ɸ  B2     B3     
-           r313   <- r105   r210   
-           r316   <- r82    r144   
-  (  3)    r319   <- r131   r162   
-         r139 <- const8   8 (0x8)
-         r140 <- add      r139,r45  qword
-         r141 <- loadm8   addr:r140
-         r143 <- const4   4203193 (0x4022b9)
-  (  2)  r144 <- v8.l4=   r316 ← r143
-         r145 <- const1   5 (0x5)
-         r146 <- widen    1->8 r145
-         r147 <- shl      r319,r146  qword
-         r153 <- sub      r147,r319  qword
-         r161 <- const8   1 (0x1)
-  (  2)  r162 <- add      r319,r161  qword
-         r170 <- const8   0 (0x0)
-         r171 <- add      r170,r141  qword
-         r172 <- mulk     r153,8 qword
-  (  3)  r173 <- add      r171,r172  qword
-         r175 <- const8   8 (0x8)
-         r176 <- add      r175,r173  qword
-         r177 <- loadm8   addr:r176
-         r179 <- const8   74 (0x4a)
-  (  3)  r180 <- add      r179,r173  qword
-         r182 <- const8   42 (0x2a)
-  (  3)  r183 <- add      r182,r173  qword
-         r195 <- const8   4198480 (0x401050)
-         r196 <- call     r195
-         r197 <- carg     r144
-         r198 <- carg     r177
-         r199 <- carg     r183
-         r200 <- carg     r180
-  (  4)  r210 <- sub      r313,r162  qword
-         r214 <- is0      r210
-         r217 <- not      r214
-         r218 <- jmp.if   r217,138
-.B4:    ;;  preds:B3  addr:0x401114; 20 insn 0 phis
-         r219 <- const8   8 (0x8)
-         r220 <- add      r219,r45  qword
-         r221 <- loadm8   addr:r220
-         r224 <- const8   4198464 (0x401040)
-         r225 <- call     r224
-         r226 <- carg     r221
-         r227 <- carg     r210
-         r228 <- carg     r183
-         r229 <- carg     r180
-.B5:    ;;  preds:B4,B7  addr:0x401121; 26 insn 3 phis
-                  ɸ  B4     B7     
-           r322   <- r210   r103   
-           r325   <- r180   r99    
-           r328   <- r183   r101   
-  (  3)  r240 <- const8   4198528 (0x401080)
-  (  4)  r241 <- call     r240
-         r242 <- carg     r45
-         r243 <- carg     r322
-         r244 <- carg     r328
-         r245 <- carg     r325
-         r255 <- l4       r241
-         r256 <- l4       r241
-         r257 <- xor      r255,r256  dword
-         r258 <- v8.l4=   r241 ← r257
-.B6:    ;;  preds:B5  addr:0x40112b; 19 insn 0 phis
-         r283 <- ret      r258
-.B8:    ;;  preds:B0,B6  addr:0x401140; 11 insn 1 phis
-                  ɸ  B0     B6     
-           r331   <- r55    r258   
-         r312 <- jmp      265
+ssa program
+  41 control nodes, 99 data nodes
+  ControlNID(28v1) -- IfTrue(ControlNID(27v1))
+  ControlNID(1v1) -- Merge { preds: [] }
+    DataNID(24v1) -- Ancestral(AncestralName("R12"))
+    DataNID(12v1) -- Ancestral(AncestralName("RSP"))
+    DataNID(39v1) -- ArithK(Add, DataNID(12v1), -8)
+  ControlNID(10v1) -- Store { pred: ControlNID(1v1), addr: DataNID(39v1), value: DataNID(24v1) }
+    DataNID(11v1) -- Ancestral(AncestralName("RBP"))
+    DataNID(46v1) -- ArithK(Add, DataNID(39v1), -8)
+  ControlNID(11v1) -- Store { pred: ControlNID(10v1), addr: DataNID(46v1), value: DataNID(11v1) }
+    DataNID(17v1) -- Ancestral(AncestralName("RBX"))
+    DataNID(47v1) -- ArithK(Add, DataNID(46v1), -8)
+  ControlNID(12v1) -- Store { pred: ControlNID(11v1), addr: DataNID(47v1), value: DataNID(17v1) }
+    DataNID(56v1) -- ConstInt { size: ValueSize(8), value: 4198512 }
+    DataNID(18v1) -- Ancestral(AncestralName("RCX"))
+    DataNID(48v1) -- ConstInt { size: ValueSize(8), value: 16 }
+    DataNID(49v1) -- Arith(Sub, DataNID(47v1), DataNID(48v1))
+    DataNID(15v1) -- Ancestral(AncestralName("RSI"))
+    DataNID(41v1) -- Part { src: DataNID(15v1), offset: 4, size: 4 }
+    DataNID(40v1) -- ConstInt { size: ValueSize(4), value: 8 }
+    DataNID(42v1) -- Concat { lo: DataNID(40v1), hi: DataNID(41v1) }
+    DataNID(14v1) -- Ancestral(AncestralName("RDI"))
+    DataNID(44v1) -- Part { src: DataNID(14v1), offset: 4, size: 4 }
+    DataNID(43v1) -- ConstInt { size: ValueSize(4), value: 3 }
+    DataNID(45v1) -- Concat { lo: DataNID(43v1), hi: DataNID(44v1) }
+  ControlNID(13v1) -- Call { pred: ControlNID(12v1), callee: DataNID(56v1), args: [DataNID(45v1), DataNID(42v1), DataNID(49v1), DataNID(18v1)] }
+    DataNID(57v1) -- ReturnValueOf(ControlNID(13v1))
+    DataNID(68v1) -- Part { src: DataNID(57v1), offset: 0, size: 4 }
+    DataNID(67v1) -- Part { src: DataNID(57v1), offset: 0, size: 4 }
+    DataNID(69v1) -- Arith(BitAnd, DataNID(67v1), DataNID(68v1))
+    DataNID(71v1) -- IsZero(DataNID(69v1))
+    DataNID(76v1) -- Not(DataNID(71v1))
+  ControlNID(14v1) -- Branch { pred: ControlNID(13v1), cond: DataNID(76v1) }
+  ControlNID(16v1) -- IfFalse(ControlNID(14v1))
+  ControlNID(2v1) -- Merge { preds: [ControlNID(16v1)] }
+    DataNID(77v1) -- ConstInt { size: ValueSize(8), value: 0 }
+    DataNID(78v1) -- Arith(Add, DataNID(77v1), DataNID(49v1))
+  ControlNID(17v1) -- Load { pred: ControlNID(2v1), addr: DataNID(78v1) }
+    DataNID(102v1) -- ConstInt { size: ValueSize(8), value: 4198496 }
+    DataNID(94v1) -- Part { src: DataNID(18v1), offset: 4, size: 4 }
+    DataNID(93v1) -- ConstInt { size: ValueSize(4), value: 4096 }
+    DataNID(95v1) -- Concat { lo: DataNID(93v1), hi: DataNID(94v1) }
+    DataNID(97v1) -- Part { src: DataNID(49v1), offset: 4, size: 4 }
+    DataNID(96v1) -- ConstInt { size: ValueSize(4), value: 8 }
+    DataNID(98v1) -- Concat { lo: DataNID(96v1), hi: DataNID(97v1) }
+    DataNID(100v1) -- Part { src: DataNID(42v1), offset: 4, size: 4 }
+    DataNID(99v1) -- ConstInt { size: ValueSize(4), value: 4203184 }
+    DataNID(101v1) -- Concat { lo: DataNID(99v1), hi: DataNID(100v1) }
+    DataNID(79v1) -- LoadedValueOf(ControlNID(17v1))
+  ControlNID(18v1) -- Call { pred: ControlNID(17v1), callee: DataNID(102v1), args: [DataNID(79v1), DataNID(101v1), DataNID(98v1), DataNID(95v1)] }
+    DataNID(103v1) -- ReturnValueOf(ControlNID(18v1))
+    DataNID(103v1) -- ReturnValueOf(ControlNID(18v1))
+    DataNID(113v1) -- Arith(BitAnd, DataNID(103v1), DataNID(103v1))
+    DataNID(115v1) -- IsZero(DataNID(113v1))
+  ControlNID(19v1) -- Branch { pred: ControlNID(18v1), cond: DataNID(115v1) }
+  ControlNID(21v1) -- IfFalse(ControlNID(19v1))
+  ControlNID(3v1) -- Merge { preds: [ControlNID(21v1)] }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(3v1), ControlNID(28v1)] }
+    DataNID(148v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(149v1) -- Arith(Add, DataNID(148v1), DataNID(49v1))
+  ControlNID(24v1) -- Load { pred: ControlNID(4v1), addr: DataNID(149v1) }
+    DataNID(137v1) -- Part { src: DataNID(17v1), offset: 4, size: 4 }
+    DataNID(135v1) -- Part { src: DataNID(17v1), offset: 0, size: 4 }
+    DataNID(134v1) -- Part { src: DataNID(17v1), offset: 0, size: 4 }
+    DataNID(136v1) -- Arith(BitXor, DataNID(134v1), DataNID(135v1))
+    DataNID(138v1) -- Concat { lo: DataNID(136v1), hi: DataNID(137v1) }
+    DataNID(147v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(138v1))] })
+    DataNID(154v1) -- ConstInt { size: ValueSize(1), value: 5 }
+    DataNID(155v1) -- Widen { input: DataNID(154v1), out_size: ValueSize(8) }
+    DataNID(156v1) -- Arith(Shl, DataNID(147v1), DataNID(155v1))
+    DataNID(161v1) -- Arith(Sub, DataNID(156v1), DataNID(147v1))
+    DataNID(178v1) -- ArithK(Mul, DataNID(161v1), 8)
+    DataNID(150v1) -- LoadedValueOf(ControlNID(24v1))
+    DataNID(176v1) -- ConstInt { size: ValueSize(8), value: 0 }
+    DataNID(177v1) -- Arith(Add, DataNID(176v1), DataNID(150v1))
+    DataNID(179v1) -- Arith(Add, DataNID(177v1), DataNID(178v1))
+    DataNID(180v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(181v1) -- Arith(Add, DataNID(180v1), DataNID(179v1))
+  ControlNID(25v1) -- Load { pred: ControlNID(24v1), addr: DataNID(181v1) }
+    DataNID(198v1) -- ConstInt { size: ValueSize(8), value: 4198480 }
+    DataNID(183v1) -- ConstInt { size: ValueSize(8), value: 74 }
+    DataNID(184v1) -- Arith(Add, DataNID(183v1), DataNID(179v1))
+    DataNID(185v1) -- ConstInt { size: ValueSize(8), value: 42 }
+    DataNID(186v1) -- Arith(Add, DataNID(185v1), DataNID(179v1))
+    DataNID(182v1) -- LoadedValueOf(ControlNID(25v1))
+    DataNID(146v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(79v1))] })
+    DataNID(152v1) -- Part { src: DataNID(146v1), offset: 4, size: 4 }
+    DataNID(151v1) -- ConstInt { size: ValueSize(4), value: 4203193 }
+    DataNID(153v1) -- Concat { lo: DataNID(151v1), hi: DataNID(152v1) }
+  ControlNID(26v1) -- Call { pred: ControlNID(25v1), callee: DataNID(198v1), args: [DataNID(153v1), DataNID(182v1), DataNID(186v1), DataNID(184v1)] }
+    DataNID(168v1) -- ConstInt { size: ValueSize(8), value: 1 }
+    DataNID(169v1) -- Arith(Add, DataNID(147v1), DataNID(168v1))
+    DataNID(145v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(103v1))] })
+    DataNID(209v1) -- Arith(Sub, DataNID(145v1), DataNID(169v1))
+    DataNID(213v1) -- IsZero(DataNID(209v1))
+    DataNID(216v1) -- Not(DataNID(213v1))
+  ControlNID(27v1) -- Branch { pred: ControlNID(26v1), cond: DataNID(216v1) }
+  ControlNID(30v1) -- IfFalse(ControlNID(27v1))
+  ControlNID(29v1) -- Merge { preds: [ControlNID(29v1), ControlNID(30v1)] }
+  ControlNID(5v1) -- Merge { preds: [ControlNID(29v1)] }
+    DataNID(217v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(218v1) -- Arith(Add, DataNID(217v1), DataNID(49v1))
+  ControlNID(31v1) -- Load { pred: ControlNID(5v1), addr: DataNID(218v1) }
+    DataNID(220v1) -- ConstInt { size: ValueSize(8), value: 4198464 }
+    DataNID(184v1) -- Arith(Add, DataNID(183v1), DataNID(179v1))
+    DataNID(186v1) -- Arith(Add, DataNID(185v1), DataNID(179v1))
+    DataNID(209v1) -- Arith(Sub, DataNID(145v1), DataNID(169v1))
+    DataNID(219v1) -- LoadedValueOf(ControlNID(31v1))
+  ControlNID(32v1) -- Call { pred: ControlNID(31v1), callee: DataNID(220v1), args: [DataNID(219v1), DataNID(209v1), DataNID(186v1), DataNID(184v1)] }
+  ControlNID(20v1) -- IfTrue(ControlNID(19v1))
+  ControlNID(8v1) -- Merge { preds: [ControlNID(20v1), ControlNID(21v1)] }
+    DataNID(123v1) -- ConstInt { size: ValueSize(8), value: 4198448 }
+    DataNID(121v1) -- Part { src: DataNID(79v1), offset: 4, size: 4 }
+    DataNID(120v1) -- ConstInt { size: ValueSize(4), value: 4203208 }
+    DataNID(122v1) -- Concat { lo: DataNID(120v1), hi: DataNID(121v1) }
+  ControlNID(22v1) -- Call { pred: ControlNID(8v1), callee: DataNID(123v1), args: [DataNID(122v1), DataNID(101v1), DataNID(98v1), DataNID(95v1)] }
+  ControlNID(23v1) -- Jump { pred: ControlNID(22v1) }
+  ControlNID(23v1) -- Jump { pred: ControlNID(22v1) }
+  ControlNID(6v1) -- Merge { preds: [ControlNID(23v1), ControlNID(23v1), ControlNID(32v1)] }
+    DataNID(234v1) -- ConstInt { size: ValueSize(8), value: 4198528 }
+    DataNID(232v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(23v1), DataNID(95v1)), (ControlNID(32v1), DataNID(184v1))] })
+    DataNID(233v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(23v1), DataNID(98v1)), (ControlNID(32v1), DataNID(186v1))] })
+    DataNID(231v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(23v1), DataNID(101v1)), (ControlNID(32v1), DataNID(209v1))] })
+    DataNID(49v1) -- Arith(Sub, DataNID(47v1), DataNID(48v1))
+  ControlNID(33v1) -- Call { pred: ControlNID(6v1), callee: DataNID(234v1), args: [DataNID(49v1), DataNID(231v1), DataNID(233v1), DataNID(232v1)] }
+  ControlNID(7v1) -- Merge { preds: [ControlNID(33v1)] }
+    DataNID(256v1) -- ConstInt { size: ValueSize(8), value: 16 }
+    DataNID(257v1) -- Arith(Add, DataNID(49v1), DataNID(256v1))
+  ControlNID(34v1) -- Load { pred: ControlNID(7v1), addr: DataNID(257v1) }
+    DataNID(265v1) -- ArithK(Add, DataNID(257v1), 8)
+  ControlNID(35v1) -- Load { pred: ControlNID(34v1), addr: DataNID(265v1) }
+    DataNID(267v1) -- ArithK(Add, DataNID(265v1), 8)
+  ControlNID(36v1) -- Load { pred: ControlNID(35v1), addr: DataNID(267v1) }
+  ControlNID(39v1) -- Jump { pred: ControlNID(36v1) }
+  ControlNID(15v1) -- IfTrue(ControlNID(14v1))
+  ControlNID(9v1) -- Merge { preds: [ControlNID(15v1), ControlNID(16v1), ControlNID(37v1)] }
+  ControlNID(38v1) -- Jump { pred: ControlNID(9v1) }
+  ControlNID(37v1) -- Merge { preds: [ControlNID(38v1), ControlNID(39v1)] }
+  ControlNID(40v1) -- Merge { preds: [ControlNID(37v1)] }
+    DataNID(235v1) -- ReturnValueOf(ControlNID(33v1))
+    DataNID(248v1) -- Part { src: DataNID(235v1), offset: 4, size: 4 }
+    DataNID(246v1) -- Part { src: DataNID(235v1), offset: 0, size: 4 }
+    DataNID(245v1) -- Part { src: DataNID(235v1), offset: 0, size: 4 }
+    DataNID(247v1) -- Arith(BitXor, DataNID(245v1), DataNID(246v1))
+    DataNID(249v1) -- Concat { lo: DataNID(247v1), hi: DataNID(248v1) }
+    DataNID(282v1) -- Phi(Phi { merge_nid: ControlNID(40v1), values: [(ControlNID(37v1), DataNID(249v1))] })
+  ControlNID(41v1) -- End { pred: ControlNID(40v1), ret: DataNID(282v1) }
 
 
 ssa post-xform:
-ssa program  102 instrs
-.B0:    ;;  addr:0x0; 80 insn 0 phis
-         r10 <- #pre:RBP
-  (  6)  r11 <- #pre:RSP
-         r13 <- #pre:RDI
-  (  2)  r14 <- #pre:RSI
-  (  2)  r16 <- #pre:RBX
-  (  2)  r17 <- #pre:RCX
-         r23 <- #pre:R12
-         r34 <- addk     r11,-8 qword
-         r35 <- store    *r34 ← r23
-         r36 <- const4   8 (0x8)
-         r37 <- v8.l4=   r14 ← r36
-         r38 <- const4   3 (0x3)
-         r39 <- v8.l4=   r13 ← r38
-         r40 <- addk     r11,-16 qword
-         r41 <- store    *r40 ← r10
-         r42 <- addk     r11,-24 qword
-         r43 <- store    *r42 ← r16
-  (  4)  r45 <- subk     r11,-8 qword
-  (  2)  r54 <- const8   4198512 (0x401070)
-  (  2)  r55 <- call     r54
-         r56 <- carg     r39
-         r57 <- carg     r37
-         r58 <- carg     r45
-         r59 <- carg     r17
-         r73 <- is0      r55
-         r78 <- not      r73
-         r79 <- jmp.if   r78,302
-.B1:    ;;  preds:B0  addr:0x4010b2; 48 insn 0 phis
-  (  3)  r82 <- loadm8   addr:r45
-         r98 <- const4   4096 (0x1000)
-  (  3)  r99 <- v8.l4=   r17 ← r98
-         r100 <- const4   8 (0x8)
-  (  3)  r101 <- v8.l4=   r45 ← r100
-         r102 <- const4   4203184 (0x4022b0)
-  (  3)  r103 <- v8.l4=   r14 ← r102
-  (  2)  r104 <- const8   4198496 (0x401060)
-  (  3)  r105 <- call     r104
-         r106 <- carg     r82
-         r107 <- carg     r103
-         r108 <- carg     r101
-         r109 <- carg     r99
-         r122 <- is0      r105
-         r127 <- jmp.if   r122,284
-.B7:    ;;  preds:B1  addr:0x401134; 18 insn 0 phis
-         r284 <- const4   4203208 (0x4022c8)
-         r285 <- v8.l4=   r82 ← r284
-         r286 <- const8   4198448 (0x401030)
-         r287 <- call     r286
-         r288 <- carg     r285
-         r289 <- carg     r103
-         r290 <- carg     r101
-         r291 <- carg     r99
-         r301 <- jmp      239
-.B2:    ;;  preds:B1  addr:0x4010dd; 10 insn 0 phis
-         r130 <- const4   0 (0x0)
-         r131 <- v8.l4=   r16 ← r130
-.B3:    ;;  preds:B2,B3  addr:0x4010e0; 81 insn 3 phis
-                  ɸ  B2     B3     
-           r313   <- r105   r210   
-           r316   <- r82    r144   
-  (  3)    r319   <- r131   r162   
-         r140 <- subk     r11,16 qword
-         r141 <- loadm8   addr:r140
-         r143 <- const4   4203193 (0x4022b9)
-  (  2)  r144 <- v8.l4=   r316 ← r143
-         r145 <- const1   5 (0x5)
-         r146 <- widen    1->8 r145
-         r147 <- shl      r319,r146  qword
-         r153 <- sub      r147,r319  qword
-  (  2)  r162 <- addk     r319,1 qword
-         r172 <- mulk     r153,8 qword
-  (  3)  r173 <- add      r141,r172  qword
-         r176 <- addk     r173,8 qword
-         r177 <- loadm8   addr:r176
-  (  3)  r180 <- addk     r173,74 qword
-  (  3)  r183 <- addk     r173,42 qword
-         r195 <- const8   4198480 (0x401050)
-         r196 <- call     r195
-         r197 <- carg     r144
-         r198 <- carg     r177
-         r199 <- carg     r183
-         r200 <- carg     r180
-  (  4)  r210 <- sub      r313,r162  qword
-         r214 <- is0      r210
-         r217 <- not      r214
-         r218 <- jmp.if   r217,138
-.B4:    ;;  preds:B3  addr:0x401114; 20 insn 0 phis
-         r220 <- subk     r11,16 qword
-         r221 <- loadm8   addr:r220
-         r224 <- const8   4198464 (0x401040)
-         r225 <- call     r224
-         r226 <- carg     r221
-         r227 <- carg     r210
-         r228 <- carg     r183
-         r229 <- carg     r180
-.B5:    ;;  preds:B4,B7  addr:0x401121; 26 insn 3 phis
-                  ɸ  B4     B7     
-           r322   <- r210   r103   
-           r325   <- r180   r99    
-           r328   <- r183   r101   
-  (  2)  r240 <- const8   4198528 (0x401080)
-  (  2)  r241 <- call     r240
-         r242 <- carg     r45
-         r243 <- carg     r322
-         r244 <- carg     r328
-         r245 <- carg     r325
-         r257 <- const4   0 (0x0)
-         r258 <- v8.l4=   r241 ← r257
-.B6:    ;;  preds:B5  addr:0x40112b; 19 insn 0 phis
-         r283 <- ret      r258
-.B8:    ;;  preds:B0,B6  addr:0x401140; 11 insn 1 phis
-                  ɸ  B0     B6     
-           r331   <- r55    r258   
-         r312 <- jmp      265
-
-
-T0(): {
-  [pre:RSP + -8] = pre:R12;
-  [pre:RSP + -16] = pre:RBP;
-  [pre:RSP + -24] = pre:RBX;
-  let r45 = pre:RSP - -8;
-  let r55 = 0x401070 /* 4198512 */(V8WithL4(pre:RDI, 0x3 /* 3 */),
-                                   V8WithL4(pre:RSI, 0x8 /* 8 */),
-                                   r45,
-                                   pre:RCX);
-  if !(IsZero(r55)) {
-    goto T8 (
-      r331 = r55
-    )
-  
-  }
-  let r99 = V8WithL4(pre:RCX, 0x1000 /* 4096 */);
-  let r101 = V8WithL4(r45, 0x8 /* 8 */);
-  let r103 = V8WithL4(pre:RSI, 0x4022b0 /* 4203184 */);
-  let r105 = 0x401060 /* 4198496 */([r45]:8,
-                                    r103,
-                                    r101,
-                                    r99);
-  if IsZero(r105) {
-    let r287 = 0x401030 /* 4198448 */(V8WithL4([r45]:8, 0x4022c8 /* 4203208 */),
-                                      r103,
-                                      r101,
-                                      r99);
-    goto T5 (
-      r322 = r103
-      r325 = r99
-      r328 = r101
-    )
-  
-  }
-  goto T3 (
-    r313 = r105
-    r316 = [r45]:8
-    r319 = V8WithL4(pre:RBX, 0x0 /* 0 */)
-  )
-  
-  T3(r313, r316, r319): {
-    let r144 = V8WithL4(r316, 0x4022b9 /* 4203193 */);
-    let r162 = r319 + 1;
-    let r173 = [pre:RSP - 16]:8 + r319 / Widen1_8(0x5 /* 5 */) - r319 * 8;
-    let r180 = r173 + 74;
-    let r183 = r173 + 42;
-    let r196 = 0x401050 /* 4198480 */(r144,
-                                      [r173 + 8]:8,
-                                      r183,
-                                      r180);
-    let r210 = r313 - r162;
-    if !(IsZero(r210)) {
-      goto T3 (
-        r313 = r210
-        r316 = r144
-        r319 = r162
-      )
-    
-    }
-    let r225 = 0x401040 /* 4198464 */([pre:RSP - 16]:8,
-                                      r210,
-                                      r183,
-                                      r180);
-    goto T5 (
-      r322 = r210
-      r325 = r180
-      r328 = r183
-    )
-  }
-  
-  T5(r322, r325, r328): {
-    let r241 = 0x401080 /* 4198528 */(r45,
-                                      r322,
-                                      r328,
-                                      r325);
-    Ret(V8WithL4(r241, 0x0 /* 0 */));
-    goto T8 (
-      r331 = V8WithL4(r241, 0x0 /* 0 */)
-    )
-  }
-  
-  T8(r331): {
-    }
-}
+ssa program
+  41 control nodes, 99 data nodes
+  ControlNID(28v1) -- IfTrue(ControlNID(27v1))
+  ControlNID(1v1) -- Merge { preds: [] }
+    DataNID(24v1) -- Ancestral(AncestralName("R12"))
+    DataNID(12v1) -- Ancestral(AncestralName("RSP"))
+    DataNID(39v1) -- ArithK(Add, DataNID(12v1), -8)
+  ControlNID(10v1) -- Store { pred: ControlNID(1v1), addr: DataNID(39v1), value: DataNID(24v1) }
+    DataNID(11v1) -- Ancestral(AncestralName("RBP"))
+    DataNID(46v1) -- ArithK(Add, DataNID(39v1), -8)
+  ControlNID(11v1) -- Store { pred: ControlNID(10v1), addr: DataNID(46v1), value: DataNID(11v1) }
+    DataNID(17v1) -- Ancestral(AncestralName("RBX"))
+    DataNID(47v1) -- ArithK(Add, DataNID(46v1), -8)
+  ControlNID(12v1) -- Store { pred: ControlNID(11v1), addr: DataNID(47v1), value: DataNID(17v1) }
+    DataNID(56v1) -- ConstInt { size: ValueSize(8), value: 4198512 }
+    DataNID(18v1) -- Ancestral(AncestralName("RCX"))
+    DataNID(48v1) -- ConstInt { size: ValueSize(8), value: 16 }
+    DataNID(49v1) -- Arith(Sub, DataNID(47v1), DataNID(48v1))
+    DataNID(15v1) -- Ancestral(AncestralName("RSI"))
+    DataNID(41v1) -- Part { src: DataNID(15v1), offset: 4, size: 4 }
+    DataNID(40v1) -- ConstInt { size: ValueSize(4), value: 8 }
+    DataNID(42v1) -- Concat { lo: DataNID(40v1), hi: DataNID(41v1) }
+    DataNID(14v1) -- Ancestral(AncestralName("RDI"))
+    DataNID(44v1) -- Part { src: DataNID(14v1), offset: 4, size: 4 }
+    DataNID(43v1) -- ConstInt { size: ValueSize(4), value: 3 }
+    DataNID(45v1) -- Concat { lo: DataNID(43v1), hi: DataNID(44v1) }
+  ControlNID(13v1) -- Call { pred: ControlNID(12v1), callee: DataNID(56v1), args: [DataNID(45v1), DataNID(42v1), DataNID(49v1), DataNID(18v1)] }
+    DataNID(57v1) -- ReturnValueOf(ControlNID(13v1))
+    DataNID(68v1) -- Part { src: DataNID(57v1), offset: 0, size: 4 }
+    DataNID(67v1) -- Part { src: DataNID(57v1), offset: 0, size: 4 }
+    DataNID(69v1) -- Arith(BitAnd, DataNID(67v1), DataNID(68v1))
+    DataNID(71v1) -- IsZero(DataNID(69v1))
+    DataNID(76v1) -- Not(DataNID(71v1))
+  ControlNID(14v1) -- Branch { pred: ControlNID(13v1), cond: DataNID(76v1) }
+  ControlNID(16v1) -- IfFalse(ControlNID(14v1))
+  ControlNID(2v1) -- Merge { preds: [ControlNID(16v1)] }
+    DataNID(77v1) -- ConstInt { size: ValueSize(8), value: 0 }
+    DataNID(78v1) -- Arith(Add, DataNID(77v1), DataNID(49v1))
+  ControlNID(17v1) -- Load { pred: ControlNID(2v1), addr: DataNID(78v1) }
+    DataNID(102v1) -- ConstInt { size: ValueSize(8), value: 4198496 }
+    DataNID(94v1) -- Part { src: DataNID(18v1), offset: 4, size: 4 }
+    DataNID(93v1) -- ConstInt { size: ValueSize(4), value: 4096 }
+    DataNID(95v1) -- Concat { lo: DataNID(93v1), hi: DataNID(94v1) }
+    DataNID(97v1) -- Part { src: DataNID(49v1), offset: 4, size: 4 }
+    DataNID(96v1) -- ConstInt { size: ValueSize(4), value: 8 }
+    DataNID(98v1) -- Concat { lo: DataNID(96v1), hi: DataNID(97v1) }
+    DataNID(100v1) -- Part { src: DataNID(42v1), offset: 4, size: 4 }
+    DataNID(99v1) -- ConstInt { size: ValueSize(4), value: 4203184 }
+    DataNID(101v1) -- Concat { lo: DataNID(99v1), hi: DataNID(100v1) }
+    DataNID(79v1) -- LoadedValueOf(ControlNID(17v1))
+  ControlNID(18v1) -- Call { pred: ControlNID(17v1), callee: DataNID(102v1), args: [DataNID(79v1), DataNID(101v1), DataNID(98v1), DataNID(95v1)] }
+    DataNID(103v1) -- ReturnValueOf(ControlNID(18v1))
+    DataNID(103v1) -- ReturnValueOf(ControlNID(18v1))
+    DataNID(113v1) -- Arith(BitAnd, DataNID(103v1), DataNID(103v1))
+    DataNID(115v1) -- IsZero(DataNID(113v1))
+  ControlNID(19v1) -- Branch { pred: ControlNID(18v1), cond: DataNID(115v1) }
+  ControlNID(21v1) -- IfFalse(ControlNID(19v1))
+  ControlNID(3v1) -- Merge { preds: [ControlNID(21v1)] }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(3v1), ControlNID(28v1)] }
+    DataNID(148v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(149v1) -- Arith(Add, DataNID(148v1), DataNID(49v1))
+  ControlNID(24v1) -- Load { pred: ControlNID(4v1), addr: DataNID(149v1) }
+    DataNID(137v1) -- Part { src: DataNID(17v1), offset: 4, size: 4 }
+    DataNID(135v1) -- Part { src: DataNID(17v1), offset: 0, size: 4 }
+    DataNID(134v1) -- Part { src: DataNID(17v1), offset: 0, size: 4 }
+    DataNID(136v1) -- Arith(BitXor, DataNID(134v1), DataNID(135v1))
+    DataNID(138v1) -- Concat { lo: DataNID(136v1), hi: DataNID(137v1) }
+    DataNID(147v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(138v1))] })
+    DataNID(154v1) -- ConstInt { size: ValueSize(1), value: 5 }
+    DataNID(155v1) -- Widen { input: DataNID(154v1), out_size: ValueSize(8) }
+    DataNID(156v1) -- Arith(Shl, DataNID(147v1), DataNID(155v1))
+    DataNID(161v1) -- Arith(Sub, DataNID(156v1), DataNID(147v1))
+    DataNID(178v1) -- ArithK(Mul, DataNID(161v1), 8)
+    DataNID(150v1) -- LoadedValueOf(ControlNID(24v1))
+    DataNID(176v1) -- ConstInt { size: ValueSize(8), value: 0 }
+    DataNID(177v1) -- Arith(Add, DataNID(176v1), DataNID(150v1))
+    DataNID(179v1) -- Arith(Add, DataNID(177v1), DataNID(178v1))
+    DataNID(180v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(181v1) -- Arith(Add, DataNID(180v1), DataNID(179v1))
+  ControlNID(25v1) -- Load { pred: ControlNID(24v1), addr: DataNID(181v1) }
+    DataNID(198v1) -- ConstInt { size: ValueSize(8), value: 4198480 }
+    DataNID(183v1) -- ConstInt { size: ValueSize(8), value: 74 }
+    DataNID(184v1) -- Arith(Add, DataNID(183v1), DataNID(179v1))
+    DataNID(185v1) -- ConstInt { size: ValueSize(8), value: 42 }
+    DataNID(186v1) -- Arith(Add, DataNID(185v1), DataNID(179v1))
+    DataNID(182v1) -- LoadedValueOf(ControlNID(25v1))
+    DataNID(146v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(79v1))] })
+    DataNID(152v1) -- Part { src: DataNID(146v1), offset: 4, size: 4 }
+    DataNID(151v1) -- ConstInt { size: ValueSize(4), value: 4203193 }
+    DataNID(153v1) -- Concat { lo: DataNID(151v1), hi: DataNID(152v1) }
+  ControlNID(26v1) -- Call { pred: ControlNID(25v1), callee: DataNID(198v1), args: [DataNID(153v1), DataNID(182v1), DataNID(186v1), DataNID(184v1)] }
+    DataNID(168v1) -- ConstInt { size: ValueSize(8), value: 1 }
+    DataNID(169v1) -- Arith(Add, DataNID(147v1), DataNID(168v1))
+    DataNID(145v1) -- Phi(Phi { merge_nid: ControlNID(4v1), values: [(ControlNID(3v1), DataNID(103v1))] })
+    DataNID(209v1) -- Arith(Sub, DataNID(145v1), DataNID(169v1))
+    DataNID(213v1) -- IsZero(DataNID(209v1))
+    DataNID(216v1) -- Not(DataNID(213v1))
+  ControlNID(27v1) -- Branch { pred: ControlNID(26v1), cond: DataNID(216v1) }
+  ControlNID(30v1) -- IfFalse(ControlNID(27v1))
+  ControlNID(29v1) -- Merge { preds: [ControlNID(29v1), ControlNID(30v1)] }
+  ControlNID(5v1) -- Merge { preds: [ControlNID(29v1)] }
+    DataNID(217v1) -- ConstInt { size: ValueSize(8), value: 8 }
+    DataNID(218v1) -- Arith(Add, DataNID(217v1), DataNID(49v1))
+  ControlNID(31v1) -- Load { pred: ControlNID(5v1), addr: DataNID(218v1) }
+    DataNID(220v1) -- ConstInt { size: ValueSize(8), value: 4198464 }
+    DataNID(184v1) -- Arith(Add, DataNID(183v1), DataNID(179v1))
+    DataNID(186v1) -- Arith(Add, DataNID(185v1), DataNID(179v1))
+    DataNID(209v1) -- Arith(Sub, DataNID(145v1), DataNID(169v1))
+    DataNID(219v1) -- LoadedValueOf(ControlNID(31v1))
+  ControlNID(32v1) -- Call { pred: ControlNID(31v1), callee: DataNID(220v1), args: [DataNID(219v1), DataNID(209v1), DataNID(186v1), DataNID(184v1)] }
+  ControlNID(20v1) -- IfTrue(ControlNID(19v1))
+  ControlNID(8v1) -- Merge { preds: [ControlNID(20v1), ControlNID(21v1)] }
+    DataNID(123v1) -- ConstInt { size: ValueSize(8), value: 4198448 }
+    DataNID(121v1) -- Part { src: DataNID(79v1), offset: 4, size: 4 }
+    DataNID(120v1) -- ConstInt { size: ValueSize(4), value: 4203208 }
+    DataNID(122v1) -- Concat { lo: DataNID(120v1), hi: DataNID(121v1) }
+  ControlNID(22v1) -- Call { pred: ControlNID(8v1), callee: DataNID(123v1), args: [DataNID(122v1), DataNID(101v1), DataNID(98v1), DataNID(95v1)] }
+  ControlNID(23v1) -- Jump { pred: ControlNID(22v1) }
+  ControlNID(23v1) -- Jump { pred: ControlNID(22v1) }
+  ControlNID(6v1) -- Merge { preds: [ControlNID(23v1), ControlNID(23v1), ControlNID(32v1)] }
+    DataNID(234v1) -- ConstInt { size: ValueSize(8), value: 4198528 }
+    DataNID(232v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(23v1), DataNID(95v1)), (ControlNID(32v1), DataNID(184v1))] })
+    DataNID(233v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(23v1), DataNID(98v1)), (ControlNID(32v1), DataNID(186v1))] })
+    DataNID(231v1) -- Phi(Phi { merge_nid: ControlNID(6v1), values: [(ControlNID(23v1), DataNID(101v1)), (ControlNID(32v1), DataNID(209v1))] })
+    DataNID(49v1) -- Arith(Sub, DataNID(47v1), DataNID(48v1))
+  ControlNID(33v1) -- Call { pred: ControlNID(6v1), callee: DataNID(234v1), args: [DataNID(49v1), DataNID(231v1), DataNID(233v1), DataNID(232v1)] }
+  ControlNID(7v1) -- Merge { preds: [ControlNID(33v1)] }
+    DataNID(256v1) -- ConstInt { size: ValueSize(8), value: 16 }
+    DataNID(257v1) -- Arith(Add, DataNID(49v1), DataNID(256v1))
+  ControlNID(34v1) -- Load { pred: ControlNID(7v1), addr: DataNID(257v1) }
+    DataNID(265v1) -- ArithK(Add, DataNID(257v1), 8)
+  ControlNID(35v1) -- Load { pred: ControlNID(34v1), addr: DataNID(265v1) }
+    DataNID(267v1) -- ArithK(Add, DataNID(265v1), 8)
+  ControlNID(36v1) -- Load { pred: ControlNID(35v1), addr: DataNID(267v1) }
+  ControlNID(39v1) -- Jump { pred: ControlNID(36v1) }
+  ControlNID(15v1) -- IfTrue(ControlNID(14v1))
+  ControlNID(9v1) -- Merge { preds: [ControlNID(15v1), ControlNID(16v1), ControlNID(37v1)] }
+  ControlNID(38v1) -- Jump { pred: ControlNID(9v1) }
+  ControlNID(37v1) -- Merge { preds: [ControlNID(38v1), ControlNID(39v1)] }
+  ControlNID(40v1) -- Merge { preds: [ControlNID(37v1)] }
+    DataNID(235v1) -- ReturnValueOf(ControlNID(33v1))
+    DataNID(248v1) -- Part { src: DataNID(235v1), offset: 4, size: 4 }
+    DataNID(246v1) -- Part { src: DataNID(235v1), offset: 0, size: 4 }
+    DataNID(245v1) -- Part { src: DataNID(235v1), offset: 0, size: 4 }
+    DataNID(247v1) -- Arith(BitXor, DataNID(245v1), DataNID(246v1))
+    DataNID(249v1) -- Concat { lo: DataNID(247v1), hi: DataNID(248v1) }
+    DataNID(282v1) -- Phi(Phi { merge_nid: ControlNID(40v1), values: [(ControlNID(37v1), DataNID(249v1))] })
+  ControlNID(41v1) -- End { pred: ControlNID(40v1), ret: DataNID(282v1) }
