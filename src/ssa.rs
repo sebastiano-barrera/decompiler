@@ -469,6 +469,8 @@ impl Program {
         let mut out = std::fs::File::create("ssa.dot").unwrap();
         writeln!(out, "digraph {{")?;
 
+        writeln!(out, "subgraph cluster_control {{")?;
+
         for (cnid, cn) in self.control_graph.iter() {
             let gvid = format!("c{}", cnid.data().as_ffi());
             let label = cn.implicit_repr();
@@ -484,7 +486,9 @@ impl Program {
                 writeln!(out, "  {} -> {} [color=blue];", gvid, dep_gvid)?;
             }
         }
+        writeln!(out, "}}")?;
 
+        writeln!(out, "subgraph cluster_data {{")?;
         for (dnid, dn) in self.data_graph.iter() {
             let gvid = format!("d{}", dnid.data().as_ffi());
             let label = dn.implicit_repr();
@@ -500,6 +504,7 @@ impl Program {
                 writeln!(out, "  {} -> {} [color=blue];", gvid, dep_gvid)?;
             }
         }
+        writeln!(out, "}}")?;
 
         writeln!(out, "}}")
     }
