@@ -103,7 +103,10 @@ enum ControlNode {
         value: DataNID,
     },
 
-    TODO(&'static str),
+    TODO {
+        pred: ControlNID,
+        label: &'static str,
+    },
 }
 
 pub struct Predecessors(Vec<ControlNID>);
@@ -138,8 +141,8 @@ impl ControlNode {
             | ControlNode::IfFalse(pred)
             | ControlNode::Call { pred, .. }
             | ControlNode::Load { pred, .. }
-            | ControlNode::Store { pred, .. } => vec![*pred],
-            ControlNode::TODO(_) => vec![],
+            | ControlNode::Store { pred, .. }
+            | ControlNode::TODO { pred, .. } => vec![*pred],
         };
         Predecessors(preds)
     }
@@ -161,9 +164,27 @@ impl ControlNode {
             }
             ControlNode::Load { addr, .. } => vec![*addr],
             ControlNode::Store { addr, value, .. } => vec![*addr, *value],
-            ControlNode::TODO(_) => vec![],
+            ControlNode::TODO { .. } => vec![],
         };
         Inputs(inputs)
+    }
+
+    /// Return a representation of the node that doesn't include data/control dependencies.
+    fn implicit_repr(&self) -> String {
+        match self {
+            ControlNode::End { .. } => format!("End"),
+            ControlNode::Merge { .. } => format!("Merge"),
+            ControlNode::JumpIndirect { .. } => format!("JumpIndirect"),
+            ControlNode::BranchIndirect { .. } => format!("BranchIndirect"),
+            ControlNode::Jump { .. } => format!("Jump"),
+            ControlNode::Branch { .. } => format!("Branch"),
+            ControlNode::IfTrue(_) => format!("IfTrue"),
+            ControlNode::IfFalse(_ontrol_nid) => format!("IfFalse"),
+            ControlNode::Call { .. } => format!("Call"),
+            ControlNode::Load { .. } => format!("Load"),
+            ControlNode::Store { .. } => format!("Store"),
+            ControlNode::TODO { label, .. } => format!("TODO({:?})", label),
+        }
     }
 }
 
@@ -294,6 +315,36 @@ impl DataNode {
         };
         Inputs(inputs)
     }
+
+    /// Return a representation of the node that doesn't include data/control dependencies.
+    fn implicit_repr(&self) -> String {
+        match self {
+            DataNode::Undefined => format!("Undefined"),
+            DataNode::ConstBool(value) => format!("{:?}", value),
+            DataNode::ConstInt { size: _, value } => format!("{:?}", value),
+            DataNode::Part {
+                src: _,
+                offset,
+                size,
+            } => format!("[{}:{}]", offset, size),
+            DataNode::Concat { .. } => format!("Concat"),
+            DataNode::Widen { input: _, out_size } => format!("Widen({})", out_size.0),
+            DataNode::Arith(arith_op, _, _) => format!("{:?}", arith_op),
+            DataNode::ArithK(arith_op, _, _) => format!("{:?}", arith_op),
+            DataNode::Cmp(cmp_op, _, _) => format!("{:?}", cmp_op),
+            DataNode::Bool(bool_op, _, _) => format!("{:?}", bool_op),
+            DataNode::Not(_) => format!("not"),
+            DataNode::OverflowOf(_) => format!("OverflowOf"),
+            DataNode::CarryOf(_) => format!("CarryOf"),
+            DataNode::SignOf(_) => format!("SignOf"),
+            DataNode::IsZero(_) => format!("IsZero"),
+            DataNode::Parity(_) => format!("Parity"),
+            DataNode::Ancestral(ancestral_name) => format!("{:?}", ancestral_name),
+            DataNode::ReturnValueOf(_) => format!("ReturnValue"),
+            DataNode::LoadedValueOf(_) => format!("LoadedValue"),
+            DataNode::Phi(phi) => format!("Phi"),
+        }
+    }
 }
 
 impl Program {
@@ -420,7 +471,7 @@ impl Program {
 
         for (cnid, cn) in self.control_graph.iter() {
             let gvid = format!("c{}", cnid.data().as_ffi());
-            let label = format!("{:?} -- {:?}", cnid, cn);
+            let label = cn.implicit_repr();
             writeln!(out, "  {} [label={:?}];", gvid, label)?;
 
             for pred_cnid in cn.predecessors() {
@@ -436,7 +487,7 @@ impl Program {
 
         for (dnid, dn) in self.data_graph.iter() {
             let gvid = format!("d{}", dnid.data().as_ffi());
-            let label = format!("{:?} -- {:?}", dnid, dn);
+            let label = dn.implicit_repr();
             writeln!(out, "  {} [label={:?}];", gvid, label)?;
 
             for dep_cnid in dn.control_inputs() {
@@ -759,7 +810,10 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                     None
                 }
                 mil::Insn::TODO(descr) => {
-                    cnid = control_graph.insert(ControlNode::TODO(descr));
+                    cnid = control_graph.insert(ControlNode::TODO {
+                        pred: cnid,
+                        label: descr,
+                    });
                     None
                 }
                 mil::Insn::LoadMem1(reg)
