@@ -342,15 +342,68 @@ fn test_assert_no_circular_refs() {
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "ssa program")?;
+        writeln!(
+            f,
+            "  {} control nodes, {} data nodes",
+            self.control_graph.len(),
+            self.data_graph.len()
+        )?;
 
-        writeln!(f, "  {} control nodes", self.control_graph.len())?;
-        for (cnid, cn) in self.control_graph.iter() {
-            writeln!(f, "    {:?}  {:?}", cnid, cn)?;
+        enum Cmd {
+            StartC(ControlNID),
+            EndC(ControlNID),
+            StartD(DataNID),
+            EndD(DataNID),
         }
 
-        writeln!(f, "  {} data nodes", self.data_graph.len())?;
-        for (dnid, dn) in self.data_graph.iter() {
-            writeln!(f, "    {:?}  {:?}", dnid, dn)?;
+        let mut visited_data = HashSet::new();
+        let mut visited_control = HashSet::new();
+
+        let mut queue = vec![Cmd::StartC(self.end_cnid)];
+        while let Some(cmd) = queue.pop() {
+            match cmd {
+                Cmd::StartC(cnid) => {
+                    visited_control.insert(cnid);
+                    queue.push(Cmd::EndC(cnid));
+
+                    let cn = self.control_graph.get(cnid).unwrap();
+                    for dnid in cn.data_inputs() {
+                        if !visited_data.contains(&dnid) {
+                            queue.push(Cmd::StartD(dnid));
+                        }
+                    }
+                    for cnid in cn.predecessors() {
+                        if !visited_control.contains(&cnid) {
+                            queue.push(Cmd::StartC(cnid));
+                        }
+                    }
+                }
+                Cmd::StartD(dnid) => {
+                    visited_data.insert(dnid);
+                    queue.push(Cmd::EndD(dnid));
+
+                    let dn = self.data_graph.get(dnid).unwrap();
+                    for dnid in dn.data_inputs() {
+                        if !visited_data.contains(&dnid) {
+                            queue.push(Cmd::StartD(dnid));
+                        }
+                    }
+                    for cnid in dn.control_inputs() {
+                        if !visited_control.contains(&cnid) {
+                            queue.push(Cmd::StartC(cnid));
+                        }
+                    }
+                }
+
+                Cmd::EndC(cnid) => {
+                    let cn = self.control_graph.get(cnid).unwrap();
+                    writeln!(f, "  {:?} -- {:?}", cnid, cn)?;
+                }
+                Cmd::EndD(dnid) => {
+                    let dn = self.data_graph.get(dnid).unwrap();
+                    writeln!(f, "    {:?} -- {:?}", dnid, dn)?;
+                }
+            }
         }
 
         self.dump_graphviz().unwrap();
