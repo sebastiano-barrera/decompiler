@@ -1058,53 +1058,50 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
 }
 
 // TODO restore this function
-pub fn eliminate_dead_code(prog: &mut Program) {}
-#[cfg(any())]
 pub fn eliminate_dead_code(prog: &mut Program) {
-    if prog.inner.len() == 0 {
-        return;
+    enum NID {
+        C(ControlNID),
+        D(DataNID),
     }
 
-    let count = prog.reg_count();
-    let mut rdr_count = ReaderCount::new(count);
-    let mut visited = vec![false; count as usize];
+    let mut used_control = slotmap::SecondaryMap::with_capacity(prog.control_graph.len());
+    let mut used_data = slotmap::SecondaryMap::with_capacity(prog.data_graph.len());
 
-    let mut queue: Vec<_> = prog
-        .inner
-        .iter()
-        .filter(|iv| iv.insn.get().has_side_effects())
-        .map(|iv| iv.dest.get())
-        .collect();
+    let mut queue = vec![NID::C(prog.end_cnid)];
 
-    for &side_fx_reg in &queue {
-        rdr_count.inc(side_fx_reg);
-    }
-
-    while let Some(reg) = queue.pop() {
-        // we can assume no circular references
-        visited[reg.reg_index() as usize] = true;
-        let insn = prog.get(reg).unwrap().insn.get();
-        match insn {
-            mil::Insn::Phi { size: _ } | mil::Insn::PhiBool => {
-                for input in prog.get_phi_args(reg) {
-                    rdr_count.inc(input);
-                    if !visited[input.reg_index() as usize] {
-                        queue.push(input);
-                    }
+    while let Some(nid) = queue.pop() {
+        match nid {
+            NID::C(cnid) => {
+                if used_control.insert(cnid, ()).is_some() {
+                    continue;
+                }
+                let cn = prog.control_graph.get(cnid).unwrap();
+                for dnid in cn.data_inputs() {
+                    queue.push(NID::D(dnid));
+                }
+                for cnid in cn.predecessors() {
+                    queue.push(NID::C(cnid));
                 }
             }
-            _ => {
-                for input in insn.input_regs_iter() {
-                    rdr_count.inc(input);
-                    if !visited[input.reg_index() as usize] {
-                        queue.push(input);
-                    }
+            NID::D(dnid) => {
+                if used_data.insert(dnid, ()).is_some() {
+                    continue;
+                }
+                let dn = prog.data_graph.get(dnid).unwrap();
+                for dnid in dn.data_inputs() {
+                    queue.push(NID::D(dnid));
+                }
+                for cnid in dn.control_inputs() {
+                    queue.push(NID::C(cnid));
                 }
             }
         }
     }
 
-    prog.rdr_count = rdr_count;
+    prog.control_graph
+        .retain(|cnid, _| used_control.contains_key(cnid));
+    prog.data_graph
+        .retain(|dnid, _| used_data.contains_key(dnid));
 }
 
 #[derive(Debug, Clone)]
