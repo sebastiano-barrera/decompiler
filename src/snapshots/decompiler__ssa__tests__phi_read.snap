@@ -10,10 +10,9 @@ ssa program
   ControlNID(7v1) -- IfFalse(ControlNID(5v1))
   ControlNID(2v1) -- Merge { preds: [ControlNID(7v1)] }
   ControlNID(8v1) -- Jump { pred: ControlNID(2v1) }
-  ControlNID(8v1) -- Jump { pred: ControlNID(2v1) }
   ControlNID(6v1) -- IfTrue(ControlNID(5v1))
   ControlNID(3v1) -- Merge { preds: [ControlNID(6v1), ControlNID(7v1)] }
-  ControlNID(4v1) -- Merge { preds: [ControlNID(3v1), ControlNID(8v1), ControlNID(8v1)] }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(3v1), ControlNID(8v1)] }
   ControlNID(9v1) -- Jump { pred: ControlNID(4v1) }
   ControlNID(10v1) -- Merge { preds: [ControlNID(9v1)] }
     DataNID(3v1) -- ConstInt { size: ValueSize(1), value: 4 }

@@ -313,8 +313,7 @@ ssa program
     DataNID(52v1) -- Arith(Add, DataNID(51v1), DataNID(39v1))
   ControlNID(12v1) -- Store { pred: ControlNID(11v1), addr: DataNID(52v1), value: DataNID(50v1) }
   ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
-  ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
-  ControlNID(6v1) -- Merge { preds: [ControlNID(13v1), ControlNID(13v1)] }
+  ControlNID(6v1) -- Merge { preds: [ControlNID(13v1)] }
     DataNID(54v1) -- ConstInt { size: ValueSize(8), value: -24 }
     DataNID(55v1) -- Arith(Add, DataNID(54v1), DataNID(39v1))
   ControlNID(14v1) -- Load { pred: ControlNID(6v1), addr: DataNID(55v1) }
@@ -341,8 +340,7 @@ ssa program
     DataNID(74v1) -- Arith(Add, DataNID(73v1), DataNID(39v1))
   ControlNID(19v1) -- Store { pred: ControlNID(2v1), addr: DataNID(74v1), value: DataNID(72v1) }
   ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
-  ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
-  ControlNID(4v1) -- Merge { preds: [ControlNID(20v1), ControlNID(20v1)] }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(20v1)] }
     DataNID(76v1) -- ConstInt { size: ValueSize(8), value: -20 }
     DataNID(77v1) -- Arith(Add, DataNID(76v1), DataNID(39v1))
   ControlNID(21v1) -- Load { pred: ControlNID(4v1), addr: DataNID(77v1) }
@@ -470,8 +468,7 @@ ssa program
     DataNID(52v1) -- Arith(Add, DataNID(51v1), DataNID(39v1))
   ControlNID(12v1) -- Store { pred: ControlNID(11v1), addr: DataNID(52v1), value: DataNID(50v1) }
   ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
-  ControlNID(13v1) -- Jump { pred: ControlNID(12v1) }
-  ControlNID(6v1) -- Merge { preds: [ControlNID(13v1), ControlNID(13v1)] }
+  ControlNID(6v1) -- Merge { preds: [ControlNID(13v1)] }
     DataNID(54v1) -- ConstInt { size: ValueSize(8), value: -24 }
     DataNID(55v1) -- Arith(Add, DataNID(54v1), DataNID(39v1))
   ControlNID(14v1) -- Load { pred: ControlNID(6v1), addr: DataNID(55v1) }
@@ -498,8 +495,7 @@ ssa program
     DataNID(74v1) -- Arith(Add, DataNID(73v1), DataNID(39v1))
   ControlNID(19v1) -- Store { pred: ControlNID(2v1), addr: DataNID(74v1), value: DataNID(72v1) }
   ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
-  ControlNID(20v1) -- Jump { pred: ControlNID(19v1) }
-  ControlNID(4v1) -- Merge { preds: [ControlNID(20v1), ControlNID(20v1)] }
+  ControlNID(4v1) -- Merge { preds: [ControlNID(20v1)] }
     DataNID(76v1) -- ConstInt { size: ValueSize(8), value: -20 }
     DataNID(77v1) -- Arith(Add, DataNID(76v1), DataNID(39v1))
   ControlNID(21v1) -- Load { pred: ControlNID(4v1), addr: DataNID(77v1) }

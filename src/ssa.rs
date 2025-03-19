@@ -406,7 +406,8 @@ impl std::fmt::Debug for Program {
         let mut visited_data = HashSet::new();
         let mut visited_control = HashSet::new();
 
-        let mut queue = vec![Cmd::StartC(self.end_cnid)];
+        let mut queue = Vec::with_capacity(2 * (self.control_graph.len() + self.data_graph.len()));
+        queue.push(Cmd::StartC(self.end_cnid));
         while let Some(cmd) = queue.pop() {
             match cmd {
                 Cmd::StartC(cnid) => {
@@ -765,11 +766,12 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                         .block_starting_at(target)
                         .expect("inconsistent mil/cfg: no block at jmp target");
 
+                    // make sure that the target is already correctly registered
+                    // in the cfg; we're going to add the edge in the SoN anyway
+                    // later
+                    assert!(cfg.direct().successors(bid).contains(&target_bid));
+
                     cnid = control_graph.insert(ControlNode::Jump { pred: cnid });
-
-                    let target_cnid = cnid_of_bid[target_bid];
-                    add_predecessor(&mut control_graph, cnid, target_cnid);
-
                     None
                 }
                 mil::Insn::JmpIf { cond, target } => {
