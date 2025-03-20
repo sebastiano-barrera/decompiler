@@ -18,8 +18,19 @@ pub struct Program {
     // Sea-of-Nodes representation
     control_graph: SlotMap<ControlNID, ControlNode>,
     data_graph: SlotMap<DataNID, DataNode>,
+
+    // TODO Replace these (and Uses) with a better data structure
+    control_uses: slotmap::SecondaryMap<ControlNID, Uses>,
+    data_uses: slotmap::SecondaryMap<DataNID, Uses>,
+
     start_cnid: ControlNID,
     end_cnid: ControlNID,
+}
+
+#[derive(Clone)]
+struct Uses {
+    control: Vec<ControlNID>,
+    data: Vec<DataNID>,
 }
 
 slotmap::new_key_type! { pub struct ControlNID; }
@@ -891,9 +902,36 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         ret: final_phi,
     });
 
+    let control_uses = control_graph
+        .iter()
+        .map(|(cnid, cn)| {
+            (
+                cnid,
+                Uses {
+                    data: cn.data_inputs().into_iter().collect(),
+                    control: cn.predecessors().into_iter().collect(),
+                },
+            )
+        })
+        .collect();
+    let data_uses = data_graph
+        .iter()
+        .map(|(dnid, dn)| {
+            (
+                dnid,
+                Uses {
+                    data: dn.data_inputs().into_iter().collect(),
+                    control: dn.control_inputs().into_iter().collect(),
+                },
+            )
+        })
+        .collect();
+
     let mut ssa = Program {
         control_graph,
         data_graph,
+        control_uses,
+        data_uses,
         start_cnid: cnid_of_bid[cfg.entry_block_id()],
         end_cnid,
     };
