@@ -19,18 +19,8 @@ pub struct Program {
     control_graph: SlotMap<ControlNID, ControlNode>,
     data_graph: SlotMap<DataNID, DataNode>,
 
-    // TODO Replace these (and Uses) with a better data structure
-    control_uses: slotmap::SecondaryMap<ControlNID, Uses>,
-    data_uses: slotmap::SecondaryMap<DataNID, Uses>,
-
     start_cnid: ControlNID,
     end_cnid: ControlNID,
-}
-
-#[derive(Clone)]
-struct Uses {
-    control: Vec<ControlNID>,
-    data: Vec<DataNID>,
 }
 
 slotmap::new_key_type! { pub struct ControlNID; }
@@ -902,7 +892,19 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
         ret: final_phi,
     });
 
-    let control_uses = control_graph
+    let mut ssa = Program {
+        control_graph,
+        data_graph,
+        start_cnid: cnid_of_bid[cfg.entry_block_id()],
+        end_cnid,
+    };
+    ssa.assert_invariants();
+    eliminate_dead_code(&mut ssa);
+    ssa
+}
+
+pub fn find_uses_of_control(prog: &Program) -> slotmap::SecondaryMap<ControlNID, Uses> {
+    prog.control_graph
         .iter()
         .map(|(cnid, cn)| {
             (
@@ -913,8 +915,11 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                 },
             )
         })
-        .collect();
-    let data_uses = data_graph
+        .collect()
+}
+
+pub fn find_uses_of_data(prog: &Program) -> slotmap::SecondaryMap<DataNID, Uses> {
+    prog.data_graph
         .iter()
         .map(|(dnid, dn)| {
             (
@@ -925,19 +930,14 @@ pub fn mil_to_ssa(program: &mil::Program) -> Program {
                 },
             )
         })
-        .collect();
+        .collect()
+}
 
-    let mut ssa = Program {
-        control_graph,
-        data_graph,
-        control_uses,
-        data_uses,
-        start_cnid: cnid_of_bid[cfg.entry_block_id()],
-        end_cnid,
-    };
-    ssa.assert_invariants();
-    eliminate_dead_code(&mut ssa);
-    ssa
+// TODO Replace this with a better data structure
+#[derive(Clone)]
+struct Uses {
+    control: Vec<ControlNID>,
+    data: Vec<DataNID>,
 }
 
 fn add_predecessor(
