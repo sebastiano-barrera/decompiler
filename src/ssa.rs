@@ -343,12 +343,39 @@ impl DataNode {
     }
 }
 
+#[derive(Default)]
+pub struct Uses {
+    pub control: Vec<ControlNID>,
+    pub data: Vec<DataNID>,
+}
+
+pub type InverseGraph<NID> = slotmap::SecondaryMap<NID, Uses>;
+pub type InverseDataGraph = InverseGraph<DataNID>;
+pub type InverseControlGraph = InverseGraph<ControlNID>;
+
 impl Program {
-    /// Get the defining instruction for the given register.
-    ///
-    /// (Note that it's not allowed to fetch instructions by position.)
-    pub fn get(&self, reg: mil::Reg) -> Option<mil::InsnView> {
-        todo!()
+    // TODO inefficient data structures!
+    pub fn find_uses_data(&self) -> InverseDataGraph {
+        let mut uses_data: slotmap::SecondaryMap<DataNID, Uses> = self
+            .data_graph
+            .keys()
+            .map(|dnid| (dnid, Uses::default()))
+            .collect();
+
+        for (dnid, dn) in self.data_graph.iter() {
+            for input_dnid in dn.data_inputs() {
+                uses_data[input_dnid].data.push(dnid);
+            }
+        }
+
+        for (cnid, cn) in self.control_graph.iter() {
+            for input_dnid in cn.data_inputs() {
+                uses_data[input_dnid].control.push(cnid);
+            }
+        }
+
+        uses_data
+
     }
 
     pub fn assert_invariants(&self) {
