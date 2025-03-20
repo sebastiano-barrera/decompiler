@@ -9,7 +9,6 @@ mod x86_to_mil;
 
 // TODO rebuild and re-enable for SoN repr
 
-#[cfg(any())]
 mod ast;
 
 #[cfg(any())]

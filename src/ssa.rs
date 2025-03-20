@@ -22,11 +22,13 @@ pub struct Program {
     end_cnid: ControlNID,
 }
 
-slotmap::new_key_type! { pub struct ControlNID; }
+slotmap::new_key_type! {
+    pub struct ControlNID;
+}
 slotmap::new_key_type! { pub struct DataNID; }
 
 #[derive(Clone, Debug)]
-enum ControlNode {
+pub enum ControlNode {
     /// End of the function.
     End {
         /// Predecessors
@@ -106,25 +108,30 @@ enum ControlNode {
 }
 
 pub struct Predecessors(Vec<ControlNID>);
-impl IntoIterator for Predecessors {
-    type Item = ControlNID;
-    type IntoIter = <Vec<ControlNID> as IntoIterator>::IntoIter;
+impl Predecessors {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+impl<'a> IntoIterator for &'a Predecessors {
+    type Item = &'a ControlNID;
+    type IntoIter = <&'a [ControlNID] as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0.as_slice().into_iter()
     }
 }
 
 pub struct Inputs(Vec<DataNID>);
-impl IntoIterator for Inputs {
-    type Item = DataNID;
-    type IntoIter = <Vec<DataNID> as IntoIterator>::IntoIter;
+impl<'a> IntoIterator for &'a Inputs {
+    type Item = &'a DataNID;
+    type IntoIter = <&'a [DataNID] as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0.as_slice().into_iter()
     }
 }
 
 impl ControlNode {
-    fn predecessors(&self) -> Predecessors {
+    pub fn predecessors(&self) -> Predecessors {
         // TODO remove this waste! change data structure
         let preds = match self {
             ControlNode::Merge { preds } => preds.clone(),
@@ -143,7 +150,7 @@ impl ControlNode {
         Predecessors(preds)
     }
 
-    fn data_inputs(&self) -> Inputs {
+    pub fn data_inputs(&self) -> Inputs {
         let inputs = match self {
             ControlNode::End { ret, .. } => vec![*ret],
             ControlNode::Merge { .. } => vec![],
@@ -166,7 +173,8 @@ impl ControlNode {
     }
 
     /// Return a representation of the node that doesn't include data/control dependencies.
-    fn implicit_repr(&self) -> String {
+    // TODO avoid the String allocation?
+    pub(crate) fn implicit_repr(&self) -> String {
         match self {
             ControlNode::End { .. } => format!("End"),
             ControlNode::Merge { .. } => format!("Merge"),
@@ -181,6 +189,16 @@ impl ControlNode {
             ControlNode::Store { .. } => format!("Store"),
             ControlNode::TODO { label, .. } => format!("TODO({:?})", label),
         }
+    }
+
+    pub(crate) fn is_branch(&self) -> bool {
+        matches!(self, ControlNode::Branch { .. })
+    }
+    pub(crate) fn is_branch_cons_of(&self, pred: ControlNID) -> bool {
+        matches!(self, ControlNode::IfTrue(p) if *p == pred)
+    }
+    pub(crate) fn is_branch_alt_of(&self, pred: ControlNID) -> bool {
+        matches!(self, ControlNode::IfFalse(p) if *p == pred)
     }
 }
 
@@ -208,7 +226,7 @@ struct Phi {
 }
 
 #[derive(Clone, Debug)]
-enum DataNode {
+pub enum DataNode {
     Undefined,
     ConstBool(bool),
     ConstInt {
@@ -255,7 +273,7 @@ enum DataNode {
 }
 
 impl DataNode {
-    fn control_inputs(&self) -> Predecessors {
+    fn predecessors(&self) -> Predecessors {
         // TODO remove this waste! choose a different data structure
         let cnids = match self {
             DataNode::Undefined => vec![],
@@ -285,7 +303,7 @@ impl DataNode {
         Predecessors(cnids)
     }
 
-    fn data_inputs(&self) -> Inputs {
+    pub(crate) fn data_inputs(&self) -> Inputs {
         // TODO remove this waste! choose a different data structure
         let inputs = match self {
             DataNode::Undefined => vec![],
@@ -313,7 +331,7 @@ impl DataNode {
     }
 
     /// Return a representation of the node that doesn't include data/control dependencies.
-    fn implicit_repr(&self) -> String {
+    pub fn implicit_repr(&self) -> String {
         match self {
             DataNode::Undefined => format!("Undefined"),
             DataNode::ConstBool(value) => format!("{:?}", value),
@@ -343,39 +361,79 @@ impl DataNode {
     }
 }
 
+// TODO inefficient data structures!
+
 #[derive(Default)]
 pub struct Uses {
     pub control: Vec<ControlNID>,
     pub data: Vec<DataNID>,
 }
 
-pub type InverseGraph<NID> = slotmap::SecondaryMap<NID, Uses>;
-pub type InverseDataGraph = InverseGraph<DataNID>;
-pub type InverseControlGraph = InverseGraph<ControlNID>;
+impl Uses {
+    pub fn total(&self) -> usize {
+        self.control.len() + self.data.len()
+    }
+}
+
+pub type DefUseGraph<NID> = slotmap::SecondaryMap<NID, Uses>;
+pub type DataUseGraph = DefUseGraph<DataNID>;
+pub type ControlUseGraph = DefUseGraph<ControlNID>;
 
 impl Program {
-    // TODO inefficient data structures!
-    pub fn find_uses_data(&self) -> InverseDataGraph {
-        let mut uses_data: slotmap::SecondaryMap<DataNID, Uses> = self
+    pub fn get_control(&self, cnid: ControlNID) -> Option<&ControlNode> {
+        self.control_graph.get(cnid)
+    }
+
+    pub fn get_data(&self, cnid: DataNID) -> Option<&DataNode> {
+        self.data_graph.get(cnid)
+    }
+
+    pub fn compute_data_use_graph(&self) -> DataUseGraph {
+        let mut uses: slotmap::SecondaryMap<DataNID, Uses> = self
             .data_graph
             .keys()
             .map(|dnid| (dnid, Uses::default()))
             .collect();
 
         for (dnid, dn) in self.data_graph.iter() {
-            for input_dnid in dn.data_inputs() {
-                uses_data[input_dnid].data.push(dnid);
+            for input_dnid in &dn.data_inputs() {
+                uses[*input_dnid].data.push(dnid);
             }
         }
 
         for (cnid, cn) in self.control_graph.iter() {
-            for input_dnid in cn.data_inputs() {
-                uses_data[input_dnid].control.push(cnid);
+            for input_dnid in &cn.data_inputs() {
+                uses[*input_dnid].control.push(cnid);
             }
         }
 
-        uses_data
+        uses
+    }
 
+    pub fn compute_control_use_graph(&self) -> ControlUseGraph {
+        let mut uses: slotmap::SecondaryMap<ControlNID, Uses> = self
+            .control_graph
+            .keys()
+            .map(|cnid| (cnid, Uses::default()))
+            .collect();
+
+        for (dnid, dn) in self.data_graph.iter() {
+            for pred_cnid in &dn.predecessors() {
+                uses[*pred_cnid].data.push(dnid);
+            }
+        }
+
+        for (cnid, cn) in self.control_graph.iter() {
+            for pred_cnid in &cn.predecessors() {
+                uses[*pred_cnid].control.push(cnid);
+            }
+        }
+
+        uses
+    }
+
+    pub fn start_cnid(&self) -> ControlNID {
+        self.start_cnid
     }
 
     pub fn assert_invariants(&self) {
@@ -442,14 +500,14 @@ impl std::fmt::Debug for Program {
                     queue.push(Cmd::EndC(cnid));
 
                     let cn = self.control_graph.get(cnid).unwrap();
-                    for dnid in cn.data_inputs() {
-                        if !visited_data.contains(&dnid) {
-                            queue.push(Cmd::StartD(dnid));
+                    for dnid in &cn.data_inputs() {
+                        if !visited_data.contains(dnid) {
+                            queue.push(Cmd::StartD(*dnid));
                         }
                     }
-                    for cnid in cn.predecessors() {
-                        if !visited_control.contains(&cnid) {
-                            queue.push(Cmd::StartC(cnid));
+                    for cnid in &cn.predecessors() {
+                        if !visited_control.contains(cnid) {
+                            queue.push(Cmd::StartC(*cnid));
                         }
                     }
                 }
@@ -458,14 +516,14 @@ impl std::fmt::Debug for Program {
                     queue.push(Cmd::EndD(dnid));
 
                     let dn = self.data_graph.get(dnid).unwrap();
-                    for dnid in dn.data_inputs() {
-                        if !visited_data.contains(&dnid) {
-                            queue.push(Cmd::StartD(dnid));
+                    for dnid in &dn.data_inputs() {
+                        if !visited_data.contains(dnid) {
+                            queue.push(Cmd::StartD(*dnid));
                         }
                     }
-                    for cnid in dn.control_inputs() {
-                        if !visited_control.contains(&cnid) {
-                            queue.push(Cmd::StartC(cnid));
+                    for cnid in &dn.predecessors() {
+                        if !visited_control.contains(cnid) {
+                            queue.push(Cmd::StartC(*cnid));
                         }
                     }
                 }
@@ -500,12 +558,12 @@ impl Program {
             let label = cn.implicit_repr();
             writeln!(out, "  {} [label={:?}];", gvid, label)?;
 
-            for pred_cnid in cn.predecessors() {
+            for pred_cnid in &cn.predecessors() {
                 let pred_gvid = format!("c{}", pred_cnid.data().as_ffi());
                 writeln!(out, "  {} -> {} [color=red];", pred_gvid, gvid,)?;
             }
 
-            for dep_dnid in cn.data_inputs() {
+            for dep_dnid in &cn.data_inputs() {
                 let dep_gvid = format!("d{}", dep_dnid.data().as_ffi());
                 writeln!(out, "  {} -> {} [color=blue];", gvid, dep_gvid)?;
             }
@@ -518,12 +576,12 @@ impl Program {
             let label = dn.implicit_repr();
             writeln!(out, "  {} [label={:?}];", gvid, label)?;
 
-            for dep_cnid in dn.control_inputs() {
+            for dep_cnid in &dn.predecessors() {
                 let pred_gvid = format!("c{}", dep_cnid.data().as_ffi());
                 writeln!(out, "  {} -> {} [color=red];", pred_gvid, gvid,)?;
             }
 
-            for dep_dnid in dn.data_inputs() {
+            for dep_dnid in &dn.data_inputs() {
                 let dep_gvid = format!("d{}", dep_dnid.data().as_ffi());
                 writeln!(out, "  {} -> {} [color=blue];", gvid, dep_gvid)?;
             }
@@ -1106,11 +1164,11 @@ pub fn eliminate_dead_code(prog: &mut Program) {
                     continue;
                 }
                 let cn = prog.control_graph.get(cnid).unwrap();
-                for dnid in cn.data_inputs() {
-                    queue.push(NID::D(dnid));
+                for dnid in &cn.data_inputs() {
+                    queue.push(NID::D(*dnid));
                 }
-                for cnid in cn.predecessors() {
-                    queue.push(NID::C(cnid));
+                for cnid in &cn.predecessors() {
+                    queue.push(NID::C(*cnid));
                 }
             }
             NID::D(dnid) => {
@@ -1118,11 +1176,11 @@ pub fn eliminate_dead_code(prog: &mut Program) {
                     continue;
                 }
                 let dn = prog.data_graph.get(dnid).unwrap();
-                for dnid in dn.data_inputs() {
-                    queue.push(NID::D(dnid));
+                for dnid in &dn.data_inputs() {
+                    queue.push(NID::D(*dnid));
                 }
-                for cnid in dn.control_inputs() {
-                    queue.push(NID::C(cnid));
+                for cnid in &dn.predecessors() {
+                    queue.push(NID::C(*cnid));
                 }
             }
         }

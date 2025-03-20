@@ -1,7 +1,6 @@
 #![cfg(test)]
 
 mod callconv_x86_64 {
-    #[cfg(any())]
     use crate::ast;
     use crate::pp::PrettyPrinter;
     use crate::{mil, ssa, ty, x86_to_mil};
@@ -104,13 +103,9 @@ mod callconv_x86_64 {
         writeln!(out)?;
         writeln!(out, "{:?}", prog)?;
 
-        #[cfg(any())]
-        {
-            let ast = ast::Ast::new(&prog);
-            writeln!(out)?;
-            let mut pp = PrettyPrinter::start(&mut out);
-            ast.pretty_print(&mut pp).unwrap();
-        }
+        writeln!(out)?;
+        let mut pp = PrettyPrinter::start(&mut out);
+        ast::pretty_print(&mut pp, &prog).unwrap();
 
         Ok(String::from_utf8(out).unwrap())
     }
