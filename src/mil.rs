@@ -174,22 +174,12 @@ pub enum Insn {
     },
     PhiBool,
 
-    // argument to a phi node
-    //
-    //   - args to the same phi node are all adjacent, forming a 'group'
-    //      - always the same number as there are predecessors.
-    //      - their order matches the order of the block's predecessors in the CFG.
-    //   - all the groups in the same block are also adjacent
-    // e.g.  3 phis on a block with 2 predecessors: B5, B7
-    //   B3:
-    //     PhiArg r2   ;; --+-- phi0 <- B5:r2  B7:r8
-    //     PhiArg r8   ;; --'
-    //     PhiArg r11  ;; --+-- phi1 <- B5:r11 B7:r29
-    //     PhiArg r29  ;; --'
-    //     PhiArg r93  ;; --+-- phi2 <- B5:r93 B7:r332
-    //     PhiArg r332 ;; --'
-    //     ... ;; normal insns
-    PhiArg(Reg),
+    // must be marked with has_side_effects = true, in order to be associated to specific basic blocks
+    #[assoc(has_side_effects = true)]
+    Upsilon {
+        value: Reg,
+        phi_ref: Reg,
+    },
 }
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
@@ -297,10 +287,13 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
             | Insn::StructGet8 {
                 struct_value: reg,
                 offset: _,
+            }
+            | Insn::Upsilon {
+                value: reg,
+                phi_ref: _,
             } => [Some(reg), None],
 
             Insn::Concat { lo: a, hi: b }
@@ -371,10 +364,13 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
             | Insn::StructGet8 {
                 struct_value: reg,
                 offset: _,
+            }
+            | Insn::Upsilon {
+                value: reg,
+                phi_ref: _,
             } => [Some(reg), None],
 
             Insn::Concat { lo: b, hi: a }
@@ -460,30 +456,6 @@ impl Program {
             })
     }
 
-    pub fn get_phi_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
-        let ndx = ndx as usize;
-        let phi_insn = self.insns[ndx].get();
-        assert!(phi_insn.is_phi());
-        self.insns
-            .iter()
-            .skip(ndx + 1)
-            .map_while(|i| match i.get() {
-                Insn::PhiArg(arg) => Some(arg),
-                _ => None,
-            })
-    }
-
-    pub fn map_phi_args(&self, ndx: Index, f: impl Fn(Reg) -> Reg) {
-        let ndx = ndx as usize;
-        let phi_insn = self.insns[ndx].get();
-        assert!(phi_insn.is_phi());
-        self.insns.iter().skip(ndx + 1).for_each(|i| {
-            if let Insn::PhiArg(arg) = i.get() {
-                i.set(Insn::PhiArg(f(arg)))
-            }
-        })
-    }
-
     #[inline(always)]
     pub fn reg_count(&self) -> Index {
         self.reg_count
@@ -505,6 +477,13 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.addrs.push(u64::MAX);
         index
+    }
+
+    pub fn push_new(&mut self, insn: Insn) -> Index {
+        let dest = Reg(self.len());
+        let ndx = self.push(dest, insn);
+        assert_eq!(Reg(ndx), dest);
+        ndx
     }
 
     pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {

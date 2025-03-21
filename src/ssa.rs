@@ -24,13 +24,18 @@ pub struct Program {
     //   mil::Index values are just as good as mil::Reg for identifying both insns and
     //   values.
     inner: mil::Program,
-    phis: cfg::BlockMap<PhiInfo>,
     cfg: cfg::Graph,
+    bbs: cfg::BlockMap<BasicBlock>,
 
     rdr_count: ReaderCount,
 }
 
 slotmap::new_key_type! { pub struct TypeID; }
+
+#[derive(Clone, Default)]
+pub struct BasicBlock {
+    effects: Vec<mil::Reg>,
+}
 
 impl Program {
     pub fn cfg(&self) -> &cfg::Graph {
@@ -57,10 +62,6 @@ impl Program {
         self.rdr_count.get(reg)
     }
 
-    pub fn block_phi(&self, bid: cfg::BlockID) -> &PhiInfo {
-        &self.phis[bid]
-    }
-
     pub fn is_alive(&self, reg: mil::Reg) -> bool {
         self.rdr_count.get(reg) > 0
     }
@@ -76,21 +77,12 @@ impl Program {
         self.live_regs().map(|reg| self.get(reg).unwrap())
     }
 
-    pub fn block_normal_insns(&self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
-        let ndx_range = self.cfg.insns_ndx_range(bid);
-        self.inner.slice(ndx_range)
-    }
-
     pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
         self.inner.get_call_args(reg.0)
     }
 
     pub fn get_phi_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
         self.inner.get_phi_args(reg.0)
-    }
-
-    pub fn map_phi_args(&self, reg: mil::Reg, f: impl Fn(mil::Reg) -> mil::Reg) {
-        self.inner.map_phi_args(reg.0, f)
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
@@ -150,12 +142,12 @@ impl Program {
             Insn::Undefined => RegType::Effect,
             Insn::Phi { size } => RegType::Bytes(size as usize),
             Insn::PhiBool => RegType::Bool,
-            Insn::PhiArg(_) => RegType::Effect,
             Insn::Ancestral(anc_name) => self
                 .inner
                 .ancestor_type(anc_name)
                 .expect("ancestor has no defined type"),
             Insn::StructGet8 { .. } => RegType::Bytes(8),
+            Insn::Upsilon { .. } => RegType::Effect,
         }
     }
 
@@ -244,66 +236,12 @@ fn test_assert_no_circular_refs() {
     prog.assert_no_circular_refs();
 }
 
-#[derive(Clone)]
-pub struct PhiInfo {
-    ndxs: Range<mil::Index>,
-    // TODO smaller sizes?; these rarely go above, like 4-8
-    phi_count: mil::Index,
-    pred_count: mil::Index,
-}
-
-impl PhiInfo {
-    fn empty() -> Self {
-        PhiInfo {
-            ndxs: 0..0,
-            phi_count: 0,
-            pred_count: 0,
-        }
-    }
-
-    pub fn phi_count(&self) -> mil::Index {
-        self.phi_count
-    }
-
-    pub fn phi_reg(&self, phi_ndx: mil::Index) -> mil::Reg {
-        assert!(phi_ndx < self.phi_count);
-        assert_eq!(
-            self.ndxs.len(),
-            (self.phi_count * (1 + self.pred_count)).into()
-        );
-        let value_ndx = self.ndxs.start + phi_ndx * (1 + self.pred_count);
-        mil::Reg(value_ndx)
-    }
-
-    pub fn phi_regs(&self) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
-        (0..self.phi_count).map(|phi_ndx| self.phi_reg(phi_ndx))
-    }
-
-    pub fn arg<'p>(&self, ssa: &'p Program, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
-        let item = ssa.get(self.arg_ndx(phi_ndx, pred_ndx)).unwrap();
-        match item.insn.get() {
-            mil::Insn::PhiArg(reg) => reg,
-            other => panic!("expected phiarg, got {:?}", other),
-        }
-    }
-
-    fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
-        assert!(pred_ndx < self.pred_count);
-        mil::Reg(self.phi_reg(phi_ndx).0 + 1 + pred_ndx)
-    }
-}
-
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let count: usize = self.live_regs().count();
         writeln!(f, "ssa program  {} instrs", count)?;
 
         for bid in self.cfg.block_ids_rpo() {
-            let phis = self.block_phi(bid);
-            let block_addr = {
-                let nor_ndxs = self.cfg.insns_ndx_range(bid);
-                self.inner.get(nor_ndxs.start).unwrap().addr
-            };
             let insns = self.block_normal_insns(bid).unwrap();
 
             write!(f, ".B{}:    ;;  ", bid.as_usize())?;
@@ -318,13 +256,7 @@ impl std::fmt::Debug for Program {
                 }
                 write!(f, "  ")?;
             }
-            writeln!(
-                f,
-                "addr:0x{:x}; {} insn {} phis",
-                block_addr,
-                insns.insns.len(),
-                phis.phi_count(),
-            )?;
+            writeln!(f, "addr:0x{:x}; {} insn", block_addr, insns.insns.len(),)?;
 
             let print_rdr_count = |f: &mut std::fmt::Formatter, reg| -> std::fmt::Result {
                 let rdr_count = self.rdr_count.get(reg);
@@ -390,10 +322,30 @@ impl ConversionParams {
 pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let ConversionParams { mut program, .. } = input;
 
-    let cfg = cfg::analyze_mil(&program);
+    let var_count = program.reg_count();
+    let vars = move || (0..var_count).map(mil::Reg);
 
+    let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
-    let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
+    let is_phi_needed = compute_phis_set(&program, &cfg, dom_tree);
+
+    // create all required phi nodes, and link them to basic blocks and
+    // variables, to be "wired" later to the data flow graph
+    let phis = {
+        let mut phis = RegMat::for_program(&program, &cfg, None);
+        for bid in cfg.block_ids() {
+            for var in vars() {
+                if *is_phi_needed.get(bid, var) {
+                    // size is initialized to 0 temporarily; it will be patched
+                    // to the correct size by `set_phis_size`
+                    let ndx = program.push_new(mil::Insn::Phi { size: 0 });
+                    let phi = mil::Reg(ndx);
+                    phis.set(bid, var, Some(phi));
+                }
+            }
+        }
+        phis
+    };
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -472,7 +424,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let var_count = program.reg_count();
     let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
@@ -481,28 +432,29 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     }
     let mut queue = vec![Cmd::Finish, Cmd::Start(cfg.entry_block_id())];
 
+    let mut bbs = cfg::BlockMap::new(BasicBlock::default(), cfg.block_count());
+
     while let Some(cmd) = queue.pop() {
         match cmd {
             Cmd::Start(bid) => {
                 var_map.push();
 
+                let bb = &mut bbs[bid];
+
                 // -- patch current block
 
-                // phi nodes are *used* here for their destination; their arguments are fixed up
-                // while processing the predecessors
-                let block_phis = &phis[bid];
-                for ndx in block_phis.ndxs.clone() {
-                    let item = program.get(ndx).unwrap();
-                    match item.insn.get() {
-                        mil::Insn::Phi { size: 1 }
-                        | mil::Insn::Phi { size: 2 }
-                        | mil::Insn::Phi { size: 4 }
-                        | mil::Insn::Phi { size: 8 } => {
-                            var_map.set(item.dest.get(), mil::Reg(ndx));
-                            item.dest.set(mil::Reg(ndx));
-                        }
-                        mil::Insn::PhiArg { .. } => {}
-                        _ => panic!("non-phi node in block phi ndx range"),
+                // phi nodes have already been added; we only "take in" the ones
+                // belonging to this block (associate them to the mil variable
+                // they represent)
+                //
+                // we're doing the "pizlo special" [^1], so arguments are going
+                // to be "set" via Upsilon instructions
+                //
+                // [^1] https://gist.github.com/pizlonator/cf1e72b8600b1437dda8153ea3fdb963
+                for var in vars() {
+                    // var is still pre-SSA/renaming
+                    if let Some(phi_reg) = phis.get(bid, var) {
+                        var_map.set(var, *phi_reg);
                     }
                 }
 
@@ -524,7 +476,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     }
                     iv.insn.set(insn);
 
-                    // in the output SSA, each destination register corrsponds to the instruction's
+                    // in the output SSA, each destination register corresponds to the instruction's
                     // index. this way, the numeric value of a register can also be used as
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
@@ -554,35 +506,18 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // to use its "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for (my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
-                    let succ_phis = &mut phis[succ];
-
-                    for phi_ndx in 0..succ_phis.phi_count {
-                        let arg = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
-                        let iv = program.get(arg.0).unwrap();
-                        match iv.insn.get() {
-                            // These are not supposed to exist yet!
-                            // Only Phi8 is added by place_phi_nodes; the others
-                            // are only placed by narrow_phi_nodes
-                            mil::Insn::Phi { size: 1 }
-                            | mil::Insn::Phi { size: 2 }
-                            | mil::Insn::Phi { size: 4 } => {
-                                panic!("unexpected narrow phi node at this phase of ssa conversion")
-                            }
-                            mil::Insn::Phi { size: 8 } => continue,
-                            mil::Insn::PhiArg(arg) => {
-                                // NOTE: the substitution of the *successor's* phi node's argument is
-                                // done in the context of *this* node (its predecessor)
-                                let arg_repl = var_map.get(arg).unwrap_or_else(|| {
-                                    panic!(
-                                        "value {:?} not initialized in pre-ssa (phi {:?}--[{}]-->{:?})",
-                                        arg, bid, my_pred_ndx, succ
-                                    )
-                                });
-                                iv.insn.set(mil::Insn::PhiArg(arg_repl));
-                            }
-                            _ => panic!("non-phi node in block phi ndx range"),
-                        };
+                for (_my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
+                    for var in vars() {
+                        if let Some(phi_reg) = phis.get(succ, var) {
+                            let value = var_map
+                                .get(var)
+                                .expect("value not initialized in pre-ssa (phi)");
+                            let ups = program.push_new(mil::Insn::Upsilon {
+                                value,
+                                phi_ref: *phi_reg,
+                            });
+                            bb.effects.push(mil::Reg(ups));
+                        }
                     }
                 }
 
@@ -602,7 +537,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
             }
         }
     }
-    let var_count = program.len();
+
     let rdr_count = ReaderCount::new(var_count);
 
     // establish SSA invariants
@@ -622,90 +557,16 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let mut ssa = Program {
         inner: program,
         cfg,
-        phis,
+        bbs,
         rdr_count,
     };
     eliminate_dead_code(&mut ssa);
-    narrow_phi_nodes(&mut ssa);
+    set_phis_size(&mut ssa);
     ssa
 }
 
-/// Add phi nodes to a MIL program, where required.
-///
-/// Some notes:
-///
-/// - This function acts on MIL programs not yet in SSA form. Phi nodes are
-/// added in preparation for an SSA conversion, but no part of the actual
-/// conversion is performed at all.
-///
-/// - The added Phi nodes are all with the largest result width (Phi8). They
-/// must be later swapped for the proper width variants (Phi1, Phi2, Phi4, ...)
-/// by calling `narrow_phi_nodes` on the SSA-converted program.
-fn place_phi_nodes(
-    program: &mut mil::Program,
-    cfg: &cfg::Graph,
-    dom_tree: &cfg::DomTree,
-) -> cfg::BlockMap<PhiInfo> {
-    let block_count = cfg.block_count();
-
-    if program.len() == 0 {
-        return cfg::BlockMap::new(PhiInfo::empty(), block_count);
-    }
-
-    let phis_set = compute_phis_set(program, cfg, dom_tree);
-    let var_count = phis_set.0.cols.try_into().unwrap();
-    assert_eq!(var_count, program.reg_count());
-
-    // translate `phis` into a representation such that inputs can be replaced with specific input
-    // variables assigned in predecessors.
-    // they are appended as Phi/PhiArg nodes to the program
-    let mut phis = cfg::BlockMap::new(PhiInfo::empty(), block_count);
-
-    for bid in cfg.block_ids() {
-        let pred_count: u16 = cfg.block_preds(bid).len().try_into().unwrap();
-        let start_ndx = program.len();
-        let mut phi_count = 0;
-
-        for var_ndx in 0..var_count {
-            let reg = mil::Reg(var_ndx);
-            if *phis_set.get(bid, reg) {
-                // the largest-width Phi opcode is inserted here; will be
-                // narrowed down in a later phase of ssa construction
-                program.push(reg, mil::Insn::Phi { size: 8 });
-                phi_count += 1;
-
-                for _pred_ndx in 0..pred_count {
-                    // implicitly corresponds to _pred_ndx
-                    program.push(mil::Reg(program.len()), mil::Insn::PhiArg(reg));
-                }
-            }
-        }
-
-        let end_ndx = program.len();
-        assert_eq!(end_ndx - start_ndx, phi_count * (1 + pred_count));
-
-        let phi_info = PhiInfo {
-            ndxs: start_ndx..end_ndx,
-            phi_count,
-            pred_count,
-        };
-        for phi_ndx in 0..phi_info.phi_count {
-            for pred_ndx in 0..phi_info.pred_count {
-                // check that it doesn't throw
-                let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
-                let item = program.get(ndx.0).unwrap();
-                assert!(matches!(item.insn.get(), mil::Insn::PhiArg(_)));
-            }
-        }
-
-        phis[bid] = phi_info;
-    }
-
-    phis
-}
-
 fn compute_phis_set(
-    program: &mut mil::Program,
+    program: &mil::Program,
     cfg: &cfg::Graph,
     dom_tree: &cfg::DomTree,
 ) -> RegMat<bool> {
@@ -741,39 +602,47 @@ fn compute_phis_set(
     phis_set
 }
 
-fn narrow_phi_nodes(program: &mut Program) {
+fn set_phis_size(program: &mut Program) {
+    // phis with size = 0 are to be fixed;
+    // once fixed, we want to check them
+
     for iv in program.insns_unordered() {
         let dest = iv.dest.get();
         let insn = iv.insn.get();
 
-        match insn {
-            mil::Insn::Phi { size } => {
-                if size != 8 {
-                    panic!("narrow_phi_nodes: unexpected narrow phi node")
+        let mil::Insn::Upsilon { value, phi_ref } = insn else {
+            continue;
+        };
+        let phi_cell = program.get(phi_ref).unwrap().insn;
+        match program.value_type(value) {
+            mil::RegType::Effect => panic!("malformed ssa: upsilon value can't be Effect"),
+            mil::RegType::Bytes(ups_size) => {
+                let phi_size = match phi_cell.get() {
+                    mil::Insn::Phi { size } => size,
+                    insn => panic!(
+                        "bug: {:?}: Upsilon phi_ref is {:?}, but it's not Phi: {:?}",
+                        dest, phi_ref, insn,
+                    ),
+                };
+
+                if phi_size == 0 {
+                    phi_cell.set(mil::Insn::Phi { size: ups_size });
+                } else {
+                    panic!(
+                        "malformed ssa: phi {:?} has upsilons with different sizes ({}, {:?} {})",
+                        phi_ref, phi_size, dest, ups_size
+                    );
                 }
             }
-            _ => continue,
-        }
-
-        let mut args = program.get_phi_args(dest);
-        let arg0 = args.next().unwrap();
-        let rt0 = program.value_type(arg0);
-
-        // check: all args have the same type!
-        for arg in args {
-            assert_eq!(
-                program.value_type(arg),
-                rt0,
-                "malformed ssa: phi node has different type args"
-            );
-        }
-
-        let repl_insn = match rt0 {
-            mil::RegType::Effect => panic!("malformed ssa: phi node can't have Effect inputs"),
-            mil::RegType::Bytes(size) => mil::Insn::Phi { size },
-            mil::RegType::Bool => mil::Insn::PhiBool,
+            mil::RegType::Bool => {
+                if !matches!(phi_cell.get(), mil::Insn::PhiBool) {
+                    panic!(
+                        "bug: {:?}: Upsilon's phi should be PhiBool, not {:?}",
+                        dest, insn,
+                    );
+                }
+            }
         };
-        iv.insn.set(repl_insn);
     }
 }
 

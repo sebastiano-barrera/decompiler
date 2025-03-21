@@ -160,6 +160,15 @@ impl Graph {
         }
     }
 
+    /// Get the range of instructions covered by this basic block.
+    ///
+    /// The range for any given basic block is guaranteed not to intersect with
+    /// the range of any other basic block.
+    ///
+    /// NOTE: the returned indices ONLY make sense in the context of the MIL
+    /// program that this CFG was originally built on. It has NO meaning in any
+    /// other program and most importantly on SSA, where instructions are wired
+    /// in a graph and not collected in compact sequences.
     pub fn insns_ndx_range(&self, bid: BlockID) -> Range<mil::Index> {
         let ndx = bid.as_usize();
         let start = self.bounds[ndx];
