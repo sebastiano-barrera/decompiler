@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashSet};
 
 use crate::{
     cfg,
@@ -10,55 +10,28 @@ use crate::{
 #[derive(Debug)]
 pub struct Ast<'a> {
     ssa: &'a ssa::Program,
-    is_named: Vec<bool>,
+    let_printed: HashSet<Reg>,
+    rdr_count: ssa::RegMap<usize>,
 }
 
 impl<'a> Ast<'a> {
     pub fn new(ssa: &'a ssa::Program) -> Self {
-        let mut is_named = vec![false; ssa.reg_count() as usize];
-        for iv in ssa.insns_unordered() {
-            let dest = iv.dest.get();
-            let insn = iv.insn.get();
-
-            is_named[dest.reg_index() as usize] = match insn {
-                    Insn::Const1(_)
-                    | Insn::Const2(_)
-                    | Insn::Const4(_)
-                    | Insn::Const8(_)
-                    | Insn::LoadMem1(_)
-                    | Insn::LoadMem2(_)
-                    | Insn::LoadMem4(_)
-                    | Insn::LoadMem8(_)
-                    // ancestral values are akin to (named) consts
-                    | Insn::Ancestral(_) => false,
-
-                    Insn::Phi{size:_} => true,
-
-                    Insn::Call { .. } => true,
-                    _ => ssa.readers_count(dest) > 1,
-                };
+        let rdr_count = ssa::count_readers(&ssa);
+        Ast {
+            ssa,
+            let_printed: HashSet::new(),
+            rdr_count,
         }
-
-        Ast { ssa, is_named }
     }
 
-    pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::io::Result<()> {
+    pub fn pretty_print<W: PP + ?Sized>(&mut self, pp: &mut W) -> std::io::Result<()> {
         let cfg = self.ssa.cfg();
         let entry_bid = cfg.entry_block_id();
         self.pp_block(pp, entry_bid)
     }
 
-    fn pp_block<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
-        let phis = self.ssa.block_phi(bid);
-
-        write!(pp, "T{}(", bid.as_number())?;
-        for (ndx, phi_reg) in phis.phi_regs().enumerate() {
-            if ndx > 0 {
-                write!(pp, ", ")?;
-            }
-            write!(pp, "{:?}", phi_reg)?;
-        }
-        write!(pp, "): {{\n  ")?;
+    fn pp_block<W: PP + ?Sized>(&mut self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
+        write!(pp, "T{}: {{\n  ", bid.as_number())?;
         pp.open_box();
 
         self.pp_block_inner(pp, bid)?;
@@ -67,22 +40,15 @@ impl<'a> Ast<'a> {
         writeln!(pp, "}}")
     }
 
-    fn pp_block_inner<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
-        let insn_slice = self.ssa.block_normal_insns(bid).unwrap();
-        for (dest, insn) in insn_slice.iter_copied() {
-            let is_named = self.is_named(dest);
-            if is_named
-                || (insn.has_side_effects()
-                    && !matches!(insn, Insn::CArg(_) | Insn::Jmp(_) | Insn::JmpIf { .. }))
-            {
-                if is_named {
-                    write!(pp, "let r{} = ", dest.reg_index())?;
-                }
-                pp.open_box();
-                self.pp_insn(pp, dest)?;
-                writeln!(pp, ";")?;
-                pp.close_box();
-            }
+    fn pp_block_inner<W: PP + ?Sized>(
+        &mut self,
+        pp: &mut W,
+        bid: cfg::BlockID,
+    ) -> std::io::Result<()> {
+        let block_effects = self.ssa.block_effects(bid);
+        for reg in block_effects {
+            self.pp_value(pp, reg)?;
+            writeln!(pp)?;
         }
 
         let cfg = self.ssa.cfg();
@@ -98,7 +64,8 @@ impl<'a> Ast<'a> {
                 straight: (neg_pred_ndx, neg_bid),
                 side: (pos_pred_ndx, pos_bid),
             } => {
-                let last_insn = insn_slice.insns.last().unwrap().get();
+                let last_insn_reg = self.ssa.block_effects(bid).last().unwrap();
+                let last_insn = self.ssa.get(last_insn_reg).unwrap().insn.get();
                 let cond = match last_insn {
                     Insn::JmpIf { cond, target: _ } => cond,
                     _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
@@ -129,14 +96,12 @@ impl<'a> Ast<'a> {
     }
 
     fn pp_continuation<W: PP + ?Sized>(
-        &self,
+        &mut self,
         pp: &mut W,
         src_bid: cfg::BlockID,
         tgt_bid: cfg::BlockID,
-        pred_ndx: u16,
+        _pred_ndx: u16,
     ) -> std::io::Result<()> {
-        let phi = self.ssa.block_phi(tgt_bid);
-
         let cfg = self.ssa.cfg();
         let looping_back = cfg
             .dom_tree()
@@ -147,32 +112,37 @@ impl<'a> Ast<'a> {
 
         let pred_count = cfg.block_preds(tgt_bid).len();
         if pred_count == 1 {
-            assert_eq!(phi.phi_count(), 0);
-            return self.pp_block_inner(pp, tgt_bid);
-        }
-
-        if phi.phi_count() == 0 {
-            write!(pp, "{keyword} T{}", tgt_bid.as_number())?;
+            self.pp_block_inner(pp, tgt_bid)
         } else {
-            write!(pp, "{keyword} T{} (", tgt_bid.as_number())?;
-            for phi_ndx in 0..phi.phi_count() {
-                let phi_reg = phi.phi_reg(phi_ndx);
-                write!(pp, "\n  r{} = ", phi_reg.0)?;
-
-                let arg = phi.arg(&(&self).ssa, phi_ndx, pred_ndx);
-                pp.open_box();
-                self.pp_arg(pp, arg)?;
-                pp.close_box();
-            }
-
-            write!(pp, "\n)")?;
+            writeln!(pp, "{keyword} T{}", tgt_bid.as_number())
         }
-
-        writeln!(pp)
     }
 
     fn is_named(&self, reg: Reg) -> bool {
-        self.is_named[reg.reg_index() as usize]
+        self.rdr_count[reg] > 1
+    }
+
+    fn pp_value<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
+        if self.let_printed.contains(&reg) {
+            return Ok(());
+        }
+
+        for input in self.ssa.get(reg).unwrap().insn.get().input_regs_iter() {
+            if self.is_named(input) {
+                self.pp_value(pp, input)?;
+            }
+        }
+
+        write!(pp, "\n")?;
+        if self.is_named(reg) {
+            write!(pp, "let r{} = ", reg.reg_index())?;
+        }
+        pp.open_box();
+        self.pp_insn(pp, reg)?;
+        pp.close_box();
+
+        self.let_printed.insert(reg);
+        Ok(())
     }
 
     fn pp_insn<W: PP + ?Sized>(&self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
@@ -296,12 +266,12 @@ impl<'a> Ast<'a> {
             Insn::Undefined => "Undefined".into(),
             Insn::Ancestral(anc_name) => return write!(pp, "pre:{}", anc_name.name()),
 
-            Insn::Phi { size: _ } | Insn::PhiBool | Insn::PhiArg(_) => {
-                panic!("phi insns should not be reachable here")
+            Insn::Phi { size: _ } | Insn::PhiBool => {
+                return write!(pp, "r{}", iv.dest.get().reg_index())
             }
-            // handled by pp_block
             Insn::Jmp(_) | Insn::JmpIf { .. } => {
-                panic!("jump insns should not be reachable here")
+                // hidden, handled by pp_block
+                return Ok(());
             }
 
             Insn::JmpInd(_) => "JmpInd".into(),
@@ -310,6 +280,13 @@ impl<'a> Ast<'a> {
                 write!(pp, "if ")?;
                 self.pp_arg(pp, cond)?;
                 write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
+                return Ok(());
+            }
+            Insn::Upsilon { value, phi_ref } => {
+                write!(pp, "r{} := ", phi_ref.reg_index())?;
+                pp.open_box();
+                self.pp_insn(pp, value)?;
+                pp.close_box();
                 return Ok(());
             }
         };

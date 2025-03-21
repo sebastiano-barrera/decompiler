@@ -26,8 +26,6 @@ pub struct Program {
     inner: mil::Program,
     cfg: cfg::Graph,
     bbs: cfg::BlockMap<BasicBlock>,
-
-    rdr_count: ReaderCount,
 }
 
 slotmap::new_key_type! { pub struct TypeID; }
@@ -58,31 +56,27 @@ impl Program {
         self.inner.len()
     }
 
-    pub fn readers_count(&self, reg: mil::Reg) -> usize {
-        self.rdr_count.get(reg)
-    }
-
-    pub fn is_alive(&self, reg: mil::Reg) -> bool {
-        self.rdr_count.get(reg) > 0
-    }
-
+    // TODO: this can yield dead instruction in some situations
     pub fn live_regs(&self) -> impl '_ + Iterator<Item = mil::Reg> {
-        (0..self.reg_count())
-            .map(|ndx| mil::Reg(ndx))
-            .filter(|reg| self.is_alive(*reg))
+        (0..self.reg_count()).map(mil::Reg)
     }
 
     /// Iterate through the instructions in the program, in no particular order
+    // TODO: this can yield dead instruction in some situations
     pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView> {
-        self.live_regs().map(|reg| self.get(reg).unwrap())
+        self.inner.iter()
     }
 
     pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
         self.inner.get_call_args(reg.0)
     }
 
-    pub fn get_phi_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        self.inner.get_phi_args(reg.0)
+    pub fn insns_rpo(&self) -> InsnRPOIter {
+        InsnRPOIter::new(self)
+    }
+
+    pub fn block_effects(&self, bid: cfg::BlockID) -> impl '_ + Iterator<Item = mil::Reg> {
+        self.bbs[bid].effects.iter().copied()
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
@@ -153,66 +147,107 @@ impl Program {
 
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
-        self.assert_inputs_alive();
-        self.assert_phis_separated();
+        self.assert_no_empty_blocks();
     }
 
-    fn assert_phis_separated(&self) {
-        for bid in self.cfg.block_ids() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                let insn = self.get(phi_reg).unwrap().insn.get();
-                assert!(insn.is_phi());
-            }
-
-            for (_, insn_cell) in self.block_normal_insns(bid).unwrap().iter() {
-                assert!(!insn_cell.get().is_phi());
+    fn assert_no_empty_blocks(&self) {
+        let mut any_empty = false;
+        for (bid, bb) in self.bbs.items() {
+            if bb.effects.is_empty() {
+                eprintln!("block {:?} is empty", bid);
+                any_empty = true;
             }
         }
-    }
-
-    fn assert_inputs_alive(&self) {
-        for bid in self.cfg.block_ids_rpo() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                if !self.is_alive(phi_reg) {
-                    continue;
-                }
-
-                for arg in self.get_phi_args(phi_reg) {
-                    assert!(
-                        self.is_alive(arg),
-                        "{phi_reg:?}: phi input not alive: {arg:?}"
-                    );
-                }
-            }
-
-            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
-                if !self.is_alive(dest) {
-                    continue;
-                }
-
-                insn.input_regs_iter().for_each(|reg| {
-                    assert!(self.is_alive(reg), "{dest:?}: input not alive: {reg:?}");
-                });
-            }
+        if any_empty {
+            panic!("some blocks are empty (see stderr)")
         }
     }
-
     fn assert_no_circular_refs(&self) {
         let mut defined = HashSet::new();
-        for bid in self.cfg.block_ids_rpo() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                // phi arguments are not checked
-                let is_first_def = defined.insert(phi_reg);
-                assert!(is_first_def);
-            }
+        for (_, reg) in self.insns_rpo() {
+            let iv = self.get(reg).unwrap();
+            let insn = iv.insn.get();
+            let dest = iv.dest.get();
+            insn.input_regs_iter().for_each(|reg| {
+                assert!(
+                    defined.contains(&reg),
+                    "{:?}: undefined reg: {:?}",
+                    dest,
+                    reg
+                )
+            });
 
-            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
-                insn.input_regs_iter().for_each(|reg| {
-                    assert!(defined.contains(&reg), "{dest:?}: undefined reg: {reg:?}")
-                });
+            let is_first_def = defined.insert(dest);
+            assert!(is_first_def);
+        }
+    }
+}
 
-                let is_first_def = defined.insert(dest);
-                assert!(is_first_def);
+/// An iterator that walks through the instructions of a whole program in
+/// reverse post order.
+///
+/// Reverse postorder means that an instruction is always returned after all of
+/// its dependencies (both control and data).
+///
+/// The item is (BlockID, mil::Reg), so the block ID is explicitly given.
+pub struct InsnRPOIter<'a> {
+    queue: Vec<IterCmd>,
+    prog: &'a Program,
+    was_yielded: Vec<bool>,
+}
+enum IterCmd {
+    Block(cfg::BlockID),
+    StartInsn((cfg::BlockID, mil::Reg)),
+    EndInsn((cfg::BlockID, mil::Reg)),
+}
+impl<'a> InsnRPOIter<'a> {
+    fn new(prog: &'a Program) -> Self {
+        let queue = prog.cfg.block_ids_rpo().map(IterCmd::Block).collect();
+        InsnRPOIter {
+            queue,
+            prog,
+            was_yielded: vec![false; prog.reg_count() as usize],
+        }
+    }
+}
+impl<'a> Iterator for InsnRPOIter<'a> {
+    type Item = (cfg::BlockID, mil::Reg);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let Some(cmd) = self.queue.pop() else {
+                return None;
+            };
+
+            match cmd {
+                IterCmd::Block(bid) => {
+                    self.queue.extend(
+                        self.prog.bbs[bid]
+                            .effects
+                            .iter()
+                            .copied()
+                            .map(|reg| IterCmd::StartInsn((bid, reg))),
+                    );
+                }
+                IterCmd::StartInsn((bid, reg)) => {
+                    self.queue.push(IterCmd::EndInsn((bid, reg)));
+                    self.queue.extend(
+                        self.prog
+                            .get(reg)
+                            .unwrap()
+                            .insn
+                            .get()
+                            .input_regs_iter()
+                            .map(|input| IterCmd::StartInsn((bid, input))),
+                    );
+                }
+                IterCmd::EndInsn((bid, reg)) => {
+                    let was_yielded =
+                        std::mem::replace(&mut self.was_yielded[reg.reg_index() as usize], true);
+                    if !was_yielded {
+                        return Some((bid, reg));
+                    }
+                }
             }
         }
     }
@@ -238,70 +273,40 @@ fn test_assert_no_circular_refs() {
 
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let count: usize = self.live_regs().count();
-        writeln!(f, "ssa program  {} instrs", count)?;
+        let rdr_count = count_readers(self);
 
-        for bid in self.cfg.block_ids_rpo() {
-            let insns = self.block_normal_insns(bid).unwrap();
+        writeln!(f, "ssa program  {} instrs", self.reg_count())?;
+        writeln!(f, ".B0:")?;
 
-            write!(f, ".B{}:    ;;  ", bid.as_usize())?;
-            let preds = self.cfg.block_preds(bid);
-            if preds.len() > 0 {
-                write!(f, "preds:")?;
-                for (ndx, pred) in preds.iter().enumerate() {
-                    if ndx > 0 {
-                        write!(f, ",")?;
-                    }
-                    write!(f, "B{}", pred.as_number())?;
-                }
-                write!(f, "  ")?;
-            }
-            writeln!(f, "addr:0x{:x}; {} insn", block_addr, insns.insns.len(),)?;
+        let mut cur_bid = self.cfg().entry_block_id();
 
-            let print_rdr_count = |f: &mut std::fmt::Formatter, reg| -> std::fmt::Result {
-                let rdr_count = self.rdr_count.get(reg);
-                if rdr_count > 1 {
-                    write!(f, "  ({:3})  ", rdr_count)?;
-                } else {
-                    write!(f, "         ")?;
-                }
-                Ok(())
-            };
-
-            if phis.phi_count() > 0 {
-                write!(f, "                  ɸ  ")?;
-                for pred in preds {
-                    write!(f, "B{:<5} ", pred.as_number())?;
-                }
-                writeln!(f)?;
-                for phi in phis.phi_regs() {
-                    print_rdr_count(f, phi)?;
-                    write!(f, "  r{:<5} <- ", phi.0)?;
-                    for arg in self.get_phi_args(phi) {
-                        write!(f, "r{:<5} ", arg.0)?;
-                    }
-                    writeln!(f)?;
-                }
-            }
-
-            for (dest, mut insn) in insns.iter_copied() {
-                if self.is_alive(dest) {
-                    // modify insn (our copy) so that the registers skip/dereference any Get
-                    for input in insn.input_regs_iter_mut() {
-                        loop {
-                            let input_def = self.get(*input).unwrap().insn.get();
-                            if let mil::Insn::Get(x) = input_def {
-                                *input = x;
-                            } else {
-                                break;
-                            }
+        for (bid, reg) in self.insns_rpo() {
+            if cur_bid != bid {
+                write!(f, ".B{}:    ;; ", cur_bid.as_usize())?;
+                let preds = self.cfg.block_preds(bid);
+                if preds.len() > 0 {
+                    write!(f, "preds:")?;
+                    for (ndx, pred) in preds.iter().enumerate() {
+                        if ndx > 0 {
+                            write!(f, ",")?;
                         }
+                        write!(f, "B{}", pred.as_number())?;
                     }
-
-                    print_rdr_count(f, dest)?;
-                    writeln!(f, "{:?} <- {:?}", dest, insn)?;
                 }
+                writeln!(f, ".")?;
+
+                cur_bid = bid;
             }
+
+            let rdr_count = rdr_count[reg];
+            if rdr_count > 1 {
+                write!(f, "  ({:3})  ", rdr_count)?;
+            } else {
+                write!(f, "         ")?;
+            }
+
+            let iv = self.get(reg).unwrap();
+            writeln!(f, "{:?} <- {:?}", reg, iv.insn.get())?;
         }
 
         Ok(())
@@ -481,6 +486,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
                     let old_name = iv.dest.replace(new_dest);
+
                     let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
@@ -488,12 +494,11 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     } else {
                         new_dest
                     };
-
                     var_map.set(old_name, new_name);
-                }
-                for insn_ndx in cfg.insns_ndx_range(bid) {
-                    let item = program.get(insn_ndx).unwrap();
-                    assert_eq!(item.dest.get(), mil::Reg(insn_ndx));
+
+                    if insn.has_side_effects() {
+                        bb.effects.push(new_name);
+                    }
                 }
 
                 // -- patch successor's phi nodes
@@ -538,8 +543,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let rdr_count = ReaderCount::new(var_count);
-
     // establish SSA invariants
     // the returned Program will no longer change (just some instructions are going to be marked as
     // "dead" and ignored)
@@ -558,10 +561,10 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         inner: program,
         cfg,
         bbs,
-        rdr_count,
     };
     eliminate_dead_code(&mut ssa);
     set_phis_size(&mut ssa);
+    ssa.assert_invariants();
     ssa
 }
 
@@ -627,7 +630,7 @@ fn set_phis_size(program: &mut Program) {
 
                 if phi_size == 0 {
                     phi_cell.set(mil::Insn::Phi { size: ups_size });
-                } else {
+                } else if phi_size != ups_size {
                     panic!(
                         "malformed ssa: phi {:?} has upsilons with different sizes ({}, {:?} {})",
                         phi_ref, phi_size, dest, ups_size
@@ -740,69 +743,36 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
 }
 
 pub fn eliminate_dead_code(prog: &mut Program) {
-    if prog.inner.len() == 0 {
-        return;
-    }
-
-    let count = prog.reg_count();
-    let mut rdr_count = ReaderCount::new(count);
-    let mut visited = vec![false; count as usize];
-
-    let mut queue: Vec<_> = prog
-        .inner
-        .iter()
-        .filter(|iv| iv.insn.get().has_side_effects())
-        .map(|iv| iv.dest.get())
-        .collect();
-
-    for &side_fx_reg in &queue {
-        rdr_count.inc(side_fx_reg);
-    }
-
-    while let Some(reg) = queue.pop() {
-        // we can assume no circular references
-        visited[reg.reg_index() as usize] = true;
-        let insn = prog.get(reg).unwrap().insn.get();
-        match insn {
-            mil::Insn::Phi { size: _ } | mil::Insn::PhiBool => {
-                for input in prog.get_phi_args(reg) {
-                    rdr_count.inc(input);
-                    if !visited[input.reg_index() as usize] {
-                        queue.push(input);
-                    }
-                }
-            }
-            _ => {
-                for input in insn.input_regs_iter() {
-                    rdr_count.inc(input);
-                    if !visited[input.reg_index() as usize] {
-                        queue.push(input);
-                    }
-                }
-            }
-        }
-    }
-
-    prog.rdr_count = rdr_count;
+    // TODO just delete this function
 }
 
-#[derive(Debug, Clone)]
-struct ReaderCount(Vec<usize>);
-impl ReaderCount {
-    fn new(var_count: mil::Index) -> Self {
-        ReaderCount(vec![0; var_count as usize])
+#[derive(Clone, Debug)]
+pub struct RegMap<T>(Vec<T>);
+
+impl<T> std::ops::Index<mil::Reg> for RegMap<T> {
+    type Output = T;
+
+    fn index(&self, index: mil::Reg) -> &Self::Output {
+        &self.0[index.0 as usize]
     }
-    fn reset(&mut self) {
-        self.0.fill(0);
+}
+
+impl<T> std::ops::IndexMut<mil::Reg> for RegMap<T> {
+    fn index_mut(&mut self, index: mil::Reg) -> &mut Self::Output {
+        &mut self.0[index.0 as usize]
     }
-    fn get(&self, reg: mil::Reg) -> usize {
-        self.0[reg.0 as usize]
-    }
-    fn inc(&mut self, reg: mil::Reg) {
-        if let Some(elm) = self.0.get_mut(reg.reg_index() as usize) {
-            *elm += 1;
+}
+
+pub fn count_readers(prog: &Program) -> RegMap<usize> {
+    let mut count = vec![0; prog.reg_count() as usize];
+
+    for (_, reg) in prog.insns_rpo() {
+        for reg in prog.get(reg).unwrap().insn.get().input_regs_iter() {
+            count[reg.0 as usize] += 1;
         }
     }
+
+    RegMap(count)
 }
 
 #[cfg(test)]
