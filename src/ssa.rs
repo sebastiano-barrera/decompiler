@@ -28,19 +28,9 @@ pub struct Program {
     cfg: cfg::Graph,
 
     rdr_count: ReaderCount,
-
-    #[cfg(feature = "proto_typing")]
-    ptr_regs: HashMap<mil::Reg, Ptr>,
 }
 
-#[cfg(feature = "proto_typing")]
 slotmap::new_key_type! { pub struct TypeID; }
-
-#[cfg(feature = "proto_typing")]
-#[derive(Clone)]
-pub struct Ptr {
-    pub pointee_tyid: TypeID,
-}
 
 impl Program {
     pub fn cfg(&self) -> &cfg::Graph {
@@ -252,17 +242,6 @@ fn test_assert_no_circular_refs() {
     };
     let prog = mil_to_ssa(ConversionParams::new(prog));
     prog.assert_no_circular_refs();
-}
-
-#[cfg(feature = "proto_typing")]
-impl Program {
-    pub fn set_ptr_type(&mut self, reg: mil::Reg, ptr_ty: Ptr) {
-        self.ptr_regs.insert(reg, ptr_ty);
-    }
-
-    pub fn ptr_type(&self, reg: mil::Reg) -> Option<&Ptr> {
-        self.ptr_regs.get(&reg)
-    }
 }
 
 #[derive(Clone)]
@@ -645,9 +624,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         cfg,
         phis,
         rdr_count,
-
-        #[cfg(feature = "proto_typing")]
-        ptr_regs: HashMap::new(),
     };
     eliminate_dead_code(&mut ssa);
     narrow_phi_nodes(&mut ssa);
