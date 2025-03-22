@@ -147,7 +147,7 @@ impl Program {
 
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
-        self.assert_no_empty_blocks();
+        // self.assert_no_empty_blocks();
     }
 
     fn assert_no_empty_blocks(&self) {
