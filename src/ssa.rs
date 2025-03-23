@@ -202,7 +202,7 @@ enum IterCmd {
 }
 impl<'a> InsnRPOIter<'a> {
     fn new(prog: &'a Program) -> Self {
-        let queue = prog.cfg.block_ids_rpo().map(IterCmd::Block).collect();
+        let queue = prog.cfg.block_ids_rpo().rev().map(IterCmd::Block).collect();
         InsnRPOIter {
             queue,
             prog,
@@ -225,6 +225,7 @@ impl<'a> Iterator for InsnRPOIter<'a> {
                         self.prog.bbs[bid]
                             .effects
                             .iter()
+                            .rev()
                             .copied()
                             .map(|reg| IterCmd::StartInsn((bid, reg))),
                     );
@@ -276,13 +277,12 @@ impl std::fmt::Debug for Program {
         let rdr_count = count_readers(self);
 
         writeln!(f, "ssa program  {} instrs", self.reg_count())?;
-        writeln!(f, ".B0:")?;
 
-        let mut cur_bid = self.cfg().entry_block_id();
+        let mut cur_bid = None;
 
         for (bid, reg) in self.insns_rpo() {
-            if cur_bid != bid {
-                write!(f, ".B{}:    ;; ", cur_bid.as_usize())?;
+            if cur_bid != Some(bid) {
+                write!(f, ".B{}:    ;; ", bid.as_usize())?;
                 let preds = self.cfg.block_preds(bid);
                 if preds.len() > 0 {
                     write!(f, "preds:")?;
@@ -295,7 +295,7 @@ impl std::fmt::Debug for Program {
                 }
                 writeln!(f, ".")?;
 
-                cur_bid = bid;
+                cur_bid = Some(bid);
             }
 
             let rdr_count = rdr_count[reg];
