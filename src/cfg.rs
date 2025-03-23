@@ -572,6 +572,32 @@ impl DomTree {
     pub fn parent_of(&self, bid: BlockID) -> Option<BlockID> {
         self[bid]
     }
+
+    pub fn dump<W: std::io::Write + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
+        for (bid, parent) in self.parent.items() {
+            if parent.is_none() {
+                self.dump_subtree(out, bid, 0)?
+            }
+        }
+        Ok(())
+    }
+    fn dump_subtree<W: std::io::Write + ?Sized>(
+        &self,
+        out: &mut W,
+        bid: BlockID,
+        depth: usize,
+    ) -> std::io::Result<()> {
+        for _ in 0..depth {
+            write!(out, "|  ")?;
+        }
+        writeln!(out, "{:?}", bid)?;
+
+        for &child_bid in self.children_of(bid) {
+            self.dump_subtree(out, child_bid, depth + 1)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Index<BlockID> for DomTree {

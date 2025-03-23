@@ -183,6 +183,10 @@ impl<'a> Tester<'a> {
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;
+        writeln!(out, "cfg dom tree:")?;
+        prog.cfg().dom_tree().dump(out)?;
+
+        writeln!(out)?;
         let mut ast = ast::Ast::new(&prog);
         ast.pretty_print(out).unwrap();
 
