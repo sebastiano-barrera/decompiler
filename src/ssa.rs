@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Range,
-};
+use std::collections::HashSet;
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -84,10 +81,7 @@ impl Program {
         match self.inner.get(reg.0).unwrap().insn.get() {
             Insn::True => RegType::Bool,
             Insn::False => RegType::Bool,
-            Insn::Const1(_) => RegType::Bytes(1),
-            Insn::Const2(_) => RegType::Bytes(2),
-            Insn::Const4(_) => RegType::Bytes(4),
-            Insn::Const8(_) => RegType::Bytes(8),
+            Insn::Const { size, .. } => RegType::Bytes(size as usize),
             Insn::Part { size, .. } => RegType::Bytes(size as usize),
             Insn::Get(arg) => self.value_type(arg),
             Insn::Concat { lo, hi } => {
@@ -95,20 +89,17 @@ impl Program {
                 let hi_size = self.value_type(hi).bytes_size().unwrap();
                 RegType::Bytes(lo_size + hi_size)
             }
-            Insn::Widen1_2(_) => RegType::Bytes(2),
-            Insn::Widen1_4(_) => RegType::Bytes(4),
-            Insn::Widen1_8(_) => RegType::Bytes(8),
-            Insn::Widen2_4(_) => RegType::Bytes(4),
-            Insn::Widen2_8(_) => RegType::Bytes(8),
-            Insn::Widen4_8(_) => RegType::Bytes(8),
-            Insn::Arith1(_, _, _) => RegType::Bytes(1),
-            Insn::Arith2(_, _, _) => RegType::Bytes(2),
-            Insn::Arith4(_, _, _) => RegType::Bytes(4),
-            Insn::Arith8(_, _, _) => RegType::Bytes(8),
-            Insn::ArithK1(_, _, _) => RegType::Bytes(1),
-            Insn::ArithK2(_, _, _) => RegType::Bytes(2),
-            Insn::ArithK4(_, _, _) => RegType::Bytes(4),
-            Insn::ArithK8(_, _, _) => RegType::Bytes(8),
+            Insn::Widen {
+                reg: _,
+                target_size,
+            } => RegType::Bytes(target_size as usize),
+            Insn::Arith(_, a, b) => {
+                let at = self.value_type(a);
+                let bt = self.value_type(b);
+                assert_eq!(at, bt); // TODO check this some better way
+                at
+            }
+            Insn::ArithK(_, a, _) => self.value_type(a),
             Insn::Cmp(_, _, _) => RegType::Bool,
             Insn::Bool(_, _, _) => RegType::Bool,
             Insn::Not(_) => RegType::Bool,
@@ -123,10 +114,7 @@ impl Program {
             Insn::JmpIf { .. } => RegType::Effect,
             Insn::JmpExtIf { .. } => RegType::Effect,
             Insn::TODO(_) => RegType::Effect,
-            Insn::LoadMem1(_) => RegType::Bytes(1),
-            Insn::LoadMem2(_) => RegType::Bytes(2),
-            Insn::LoadMem4(_) => RegType::Bytes(4),
-            Insn::LoadMem8(_) => RegType::Bytes(8),
+            Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
             Insn::StoreMem(_, _) => RegType::Effect,
             Insn::OverflowOf(_) => RegType::Effect,
             Insn::CarryOf(_) => RegType::Effect,
@@ -134,7 +122,11 @@ impl Program {
             Insn::IsZero(_) => RegType::Effect,
             Insn::Parity(_) => RegType::Effect,
             Insn::Undefined => RegType::Effect,
-            Insn::Phi { size } => RegType::Bytes(size as usize),
+            Insn::Phi => {
+                // TODO find all corresponding Upsilons, check that their size
+                // all match, then return the size
+                todo!("size of phi")
+            }
             Insn::PhiBool => RegType::Bool,
             Insn::Ancestral(anc_name) => self
                 .inner
@@ -150,18 +142,6 @@ impl Program {
         // self.assert_no_empty_blocks();
     }
 
-    fn assert_no_empty_blocks(&self) {
-        let mut any_empty = false;
-        for (bid, bb) in self.bbs.items() {
-            if bb.effects.is_empty() {
-                eprintln!("block {:?} is empty", bid);
-                any_empty = true;
-            }
-        }
-        if any_empty {
-            panic!("some blocks are empty (see stderr)")
-        }
-    }
     fn assert_no_circular_refs(&self) {
         let mut defined = HashSet::new();
         for (_, reg) in self.insns_rpo() {
@@ -263,9 +243,15 @@ fn test_assert_no_circular_refs() {
     let prog = {
         let mut pb = mil::ProgramBuilder::new();
         pb.set_input_addr(0xf0);
-        pb.push(Reg(0), Insn::Const8(123));
-        pb.push(Reg(1), Insn::Arith8(ArithOp::Add, Reg(0), Reg(2)));
-        pb.push(Reg(2), Insn::Arith8(ArithOp::Add, Reg(0), Reg(1)));
+        pb.push(
+            Reg(0),
+            Insn::Const {
+                value: 123,
+                size: 8,
+            },
+        );
+        pb.push(Reg(1), Insn::Arith(ArithOp::Add, Reg(0), Reg(2)));
+        pb.push(Reg(2), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
         pb.build()
     };
     let prog = mil_to_ssa(ConversionParams::new(prog));
@@ -341,9 +327,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         for bid in cfg.block_ids() {
             for var in vars() {
                 if *is_phi_needed.get(bid, var) {
-                    // size is initialized to 0 temporarily; it will be patched
-                    // to the correct size by `set_phis_size`
-                    let ndx = program.push_new(mil::Insn::Phi { size: 0 });
+                    let ndx = program.push_new(mil::Insn::Phi);
                     let phi = mil::Reg(ndx);
                     phis.set(bid, var, Some(phi));
                 }
@@ -563,7 +547,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         bbs,
     };
     eliminate_dead_code(&mut ssa);
-    set_phis_size(&mut ssa);
     ssa.assert_invariants();
     ssa
 }
@@ -603,50 +586,6 @@ fn compute_phis_set(
     }
 
     phis_set
-}
-
-fn set_phis_size(program: &mut Program) {
-    // phis with size = 0 are to be fixed;
-    // once fixed, we want to check them
-
-    for iv in program.insns_unordered() {
-        let dest = iv.dest.get();
-        let insn = iv.insn.get();
-
-        let mil::Insn::Upsilon { value, phi_ref } = insn else {
-            continue;
-        };
-        let phi_cell = program.get(phi_ref).unwrap().insn;
-        match program.value_type(value) {
-            mil::RegType::Effect => panic!("malformed ssa: upsilon value can't be Effect"),
-            mil::RegType::Bytes(ups_size) => {
-                let phi_size = match phi_cell.get() {
-                    mil::Insn::Phi { size } => size,
-                    insn => panic!(
-                        "bug: {:?}: Upsilon phi_ref is {:?}, but it's not Phi: {:?}",
-                        dest, phi_ref, insn,
-                    ),
-                };
-
-                if phi_size == 0 {
-                    phi_cell.set(mil::Insn::Phi { size: ups_size });
-                } else if phi_size != ups_size {
-                    panic!(
-                        "malformed ssa: phi {:?} has upsilons with different sizes ({}, {:?} {})",
-                        phi_ref, phi_size, dest, ups_size
-                    );
-                }
-            }
-            mil::RegType::Bool => {
-                if !matches!(phi_cell.get(), mil::Insn::PhiBool) {
-                    panic!(
-                        "bug: {:?}: Upsilon's phi should be PhiBool, not {:?}",
-                        dest, insn,
-                    );
-                }
-            }
-        };
-    }
 }
 
 /// Find the set of "received variables" for each block.
@@ -787,7 +726,13 @@ mod tests {
             let mut pb = mil::ProgramBuilder::new();
 
             pb.set_input_addr(0xf0);
-            pb.push(Reg(0), Insn::Const8(123));
+            pb.push(
+                Reg(0),
+                Insn::Const {
+                    value: 123,
+                    size: 8,
+                },
+            );
             pb.push(
                 Reg(1),
                 Insn::JmpExtIf {
@@ -797,14 +742,14 @@ mod tests {
             );
 
             pb.set_input_addr(0xf1);
-            pb.push(Reg(2), Insn::Const1(4));
+            pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
             pb.push(Reg(3), Insn::JmpExt(0xf3));
 
             pb.set_input_addr(0xf2);
-            pb.push(Reg(2), Insn::Const1(8));
+            pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
 
             pb.set_input_addr(0xf3);
-            pb.push(Reg(4), Insn::ArithK1(ArithOp::Add, Reg(2), 456));
+            pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
             pb.push(Reg(5), Insn::Ret(Reg(4)));
 
             pb.build()

@@ -165,10 +165,9 @@ impl<'a> Ast<'a> {
         let op_s: Cow<str> = match insn {
             Insn::True => "True".into(),
             Insn::False => "False".into(),
-            Insn::Const1(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Const2(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Const4(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Const8(k) => return write!(pp, "0x{:x} /* {} */", k, k),
+            Insn::Const { value, size } => {
+                return write!(pp, "{}i{} /* 0x{:x} */", value, size * 8, value)
+            }
             Insn::Get(x) => return self.pp_def(pp, x),
             Insn::StructGet8 {
                 struct_value: _,
@@ -185,47 +184,19 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, lo)?;
                 return Ok(());
             }
-            Insn::Widen1_2(_) => "Widen1_2".into(),
-            Insn::Widen1_4(_) => "Widen1_4".into(),
-            Insn::Widen1_8(_) => "Widen1_8".into(),
-            Insn::Widen2_4(_) => "Widen2_4".into(),
-            Insn::Widen2_8(_) => "Widen2_8".into(),
-            Insn::Widen4_8(_) => "Widen4_8".into(),
-            Insn::Arith1(arith_op, a, b)
-            | Insn::Arith2(arith_op, a, b)
-            | Insn::Arith4(arith_op, a, b)
-            | Insn::Arith8(arith_op, a, b) => {
+            Insn::Widen {
+                reg: _,
+                target_size,
+            } => format!("WidenTo{}", target_size).into(),
+            Insn::Arith(arith_op, a, b) => {
                 self.pp_ref(pp, a)?;
-
-                let op_s = match arith_op {
-                    ArithOp::Add => " + ",
-                    ArithOp::Sub => " - ",
-                    ArithOp::Mul => " * ",
-                    ArithOp::Shl => " / ",
-                    ArithOp::BitXor => " ^ ",
-                    ArithOp::BitAnd => " & ",
-                    ArithOp::BitOr => " | ",
-                };
-                write!(pp, "{}", op_s)?;
-
+                write!(pp, " {} ", arith_op_str(arith_op))?;
                 self.pp_ref(pp, b)?;
                 return Ok(());
             }
-            Insn::ArithK1(arith_op, reg, k)
-            | Insn::ArithK2(arith_op, reg, k)
-            | Insn::ArithK4(arith_op, reg, k)
-            | Insn::ArithK8(arith_op, reg, k) => {
-                self.pp_ref(pp, reg)?;
-                let op_s = match arith_op {
-                    ArithOp::Add => " + ",
-                    ArithOp::Sub => " - ",
-                    ArithOp::Mul => " * ",
-                    ArithOp::Shl => " / ",
-                    ArithOp::BitXor => " ^ ",
-                    ArithOp::BitAnd => " & ",
-                    ArithOp::BitOr => " | ",
-                };
-                write!(pp, "{}{}", op_s, k)?;
+            Insn::ArithK(arith_op, a, k) => {
+                self.pp_ref(pp, a)?;
+                write!(pp, " {} {}", arith_op_str(arith_op), k)?;
                 return Ok(());
             }
             Insn::Cmp(cmp_op, _, _) => match cmp_op {
@@ -256,10 +227,7 @@ impl<'a> Ast<'a> {
             Insn::CArg(_) => panic!("CArg not handled via this path!"),
             Insn::Ret(_) => "Ret".into(),
             Insn::TODO(msg) => return write!(pp, "TODO /* {} */", msg),
-            Insn::LoadMem1(addr) => return self.pp_load_mem(pp, addr, 1),
-            Insn::LoadMem2(addr) => return self.pp_load_mem(pp, addr, 2),
-            Insn::LoadMem4(addr) => return self.pp_load_mem(pp, addr, 4),
-            Insn::LoadMem8(addr) => return self.pp_load_mem(pp, addr, 8),
+            Insn::LoadMem { reg, size } => return self.pp_load_mem(pp, reg, size),
             Insn::StoreMem(addr, value) => {
                 write!(pp, "[")?;
                 pp.open_box();
@@ -279,9 +247,7 @@ impl<'a> Ast<'a> {
             Insn::Undefined => "Undefined".into(),
             Insn::Ancestral(anc_name) => return write!(pp, "pre:{}", anc_name.name()),
 
-            Insn::Phi { size: _ } | Insn::PhiBool => {
-                return write!(pp, "r{}", iv.dest.get().reg_index())
-            }
+            Insn::Phi | Insn::PhiBool => return write!(pp, "r{}", iv.dest.get().reg_index()),
             Insn::Jmp(_) => {
                 // hidden, handled by pp_block
                 return Ok(());
@@ -344,5 +310,17 @@ impl<'a> Ast<'a> {
         } else {
             self.pp_def(pp, arg)
         }
+    }
+}
+
+fn arith_op_str(arith_op: ArithOp) -> &'static str {
+    match arith_op {
+        ArithOp::Add => "+",
+        ArithOp::Sub => "-",
+        ArithOp::Mul => "*",
+        ArithOp::Shl => "/",
+        ArithOp::BitXor => "^",
+        ArithOp::BitAnd => "&",
+        ArithOp::BitOr => "|",
     }
 }
