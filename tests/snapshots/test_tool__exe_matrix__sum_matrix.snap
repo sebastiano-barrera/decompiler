@@ -379,6 +379,23 @@ ssa program  214 instrs
          r207 <- Ret(r203)
 
 
+cfg:
+  BlockID(0) -> Jmp((0, BlockID(5)))
+  BlockID(1) -> Jmp((0, BlockID(3)))
+  BlockID(2) -> Jmp((1, BlockID(3)))
+  BlockID(3) -> Alt { straight: (0, BlockID(4)), side: (0, BlockID(2)) }
+  BlockID(4) -> Jmp((1, BlockID(5)))
+  BlockID(5) -> Alt { straight: (0, BlockID(6)), side: (0, BlockID(1)) }
+  BlockID(6) -> End
+  domtree:
+BlockID(0)
+|  BlockID(5)
+|  |  BlockID(1)
+|  |  |  BlockID(3)
+|  |  |  |  BlockID(2)
+|  |  |  |  BlockID(4)
+|  |  BlockID(6)
+
 ssa post-xform:
 ssa program  214 instrs
 .B0:    ;; .
@@ -470,18 +487,9 @@ ssa program  214 instrs
          r207 <- Ret(r203)
 
 
-cfg dom tree:
-BlockID(0)
-|  BlockID(5)
-|  |  BlockID(1)
-|  |  |  BlockID(3)
-|  |  |  |  BlockID(2)
-|  |  |  |  BlockID(4)
-|  |  BlockID(6)
-
 T0: {
   
-  r209 := pre:RDI
+  r209 := pre:RDI;
   goto T5
   T5: {
     let r38 = pre:RSP + -8;
@@ -489,7 +497,7 @@ T0: {
     let r189 = [0xfffffffffffffff8 /* -8 */ + r38]:4 - r184[0 .. 4];
     if(!(EQ(SignOf(r189), OverflowOf(r189)))) {
       
-      r208 := r209[4 .. 8]⧺[0xffffffffffffffe8 /* -24 */ + r38]:4
+      r208 := r209[4 .. 8]⧺[0xffffffffffffffe8 /* -24 */ + r38]:4;
       goto T3
       T3: {
         let r151 = r208[4 .. 8]⧺[0xffffffffffffffec /* -20 */ + r38]:4;
@@ -500,10 +508,10 @@ T0: {
           let r76 = r151[4 .. 8]⧺[0xffffffffffffffec /* -20 */ + r38]:4;
           let r85 = r76[4 .. 8]⧺[0xfffffffffffffff4 /* -12 */ + r38]:4;
           let r106 = r85[4 .. 8]⧺r85[0 .. 4] + pre:RSI[4 .. 8]⧺r76[0 .. 4][0 .. 4] / Widen1_8(0x2 /* 2 */) + [0xffffffffffffffe0 /* -32 */ + r38]:8;
-          r208 := r106[4 .. 8]⧺[0x0 /* 0 */ + r106]:4
+          r208 := r106[4 .. 8]⧺[0x0 /* 0 */ + r106]:4;
           loop T3
         }
-        r209 := r208[4 .. 8]⧺[0xffffffffffffffec /* -20 */ + r38]:4
+        r209 := r208[4 .. 8]⧺[0xffffffffffffffec /* -20 */ + r38]:4;
         loop T5
       }
     

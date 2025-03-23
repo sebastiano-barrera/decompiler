@@ -144,6 +144,19 @@ ssa program  82 instrs
          r81 <- Ret(r42)
 
 
+cfg:
+  BlockID(0) -> Alt { straight: (0, BlockID(1)), side: (0, BlockID(4)) }
+  BlockID(1) -> Alt { straight: (0, BlockID(2)), side: (0, BlockID(3)) }
+  BlockID(2) -> Jmp((1, BlockID(4)))
+  BlockID(3) -> Jmp((2, BlockID(4)))
+  BlockID(4) -> End
+  domtree:
+BlockID(0)
+|  BlockID(1)
+|  |  BlockID(2)
+|  |  BlockID(3)
+|  BlockID(4)
+
 ssa post-xform:
 ssa program  82 instrs
 .B0:    ;; .
@@ -173,27 +186,22 @@ ssa program  82 instrs
          r81 <- Ret(r42)
 
 
-cfg dom tree:
-BlockID(0)
-|  BlockID(1)
-|  |  BlockID(2)
-|  |  BlockID(3)
-|  BlockID(4)
-
 T0: {
   let r13 = pre:RDI;
   let r40 = [0x0 /* 0 */ + r13]:8;
   let r42 = r40 & r40;
-  if (IsZero (r42)) {
+  if(IsZero(r42)) {
     goto T4
   }
   let r54 = pre:RDX[4 .. 8]⧺[0x8 /* 8 */ + r13]:4;
-  if (! (IsZero (r54[0 .. 4] & r54[0 .. 4]))) {
+  if(!(IsZero(r54[0 .. 4] & r54[0 .. 4]))) {
+    
     goto T4
   }
-  Ret (r42)goto T4
+  Ret(r42)
+  goto T4
   T4: {
-    Ret (r42)
+    Ret(r42)
   }
 
 }

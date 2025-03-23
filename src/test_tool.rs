@@ -178,13 +178,18 @@ impl<'a> Tester<'a> {
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;
+        writeln!(out, "cfg:")?;
+        let cfg = prog.cfg();
+        for bid in cfg.block_ids() {
+            writeln!(out, "  {:?} -> {:?}", bid, cfg.block_cont(bid))?;
+        }
+        writeln!(out, "  domtree:")?;
+        cfg.dom_tree().dump(out)?;
+
+        writeln!(out)?;
         writeln!(out, "ssa post-xform:")?;
         xform::canonical(&mut prog);
         writeln!(out, "{:?}", prog)?;
-
-        writeln!(out)?;
-        writeln!(out, "cfg dom tree:")?;
-        prog.cfg().dom_tree().dump(out)?;
 
         writeln!(out)?;
         let mut ast = ast::Ast::new(&prog);
