@@ -1,0 +1,202 @@
+---
+source: tests/test_tool.rs
+assertion_line: 48
+expression: out
+---
+listNext 0x4110b0+39 (file 0x110b0)
+          4110b0: 48 8b 07                mov rax,[rdi]
+          4110b3: 48 85 c0                test rax,rax
+          4110b6: 74 1e                   je short 00000000004110D6h
+          4110b8: 8b 57 08                mov edx,[rdi+8]
+          4110bb: 85 d2                   test edx,edx
+          4110bd: 75 11                   jne short 00000000004110D0h
+          4110bf: 48 8b 50 08             mov rdx,[rax+8]
+          4110c3: 48 89 17                mov [rdi],rdx
+          4110c6: c3                      ret
+          4110c7: 66 0f 1f 84 00 00 00 00 nop [rax+rax]
+          4110d0: 48 8b 10                mov rdx,[rax]
+          4110d3: 48 89 17                mov [rdi],rdx
+          4110d6: c3                      ret
+
+mil program = 
+program  82 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Undefined
+   28 r29 <- Undefined
+   29 r30 <- Undefined
+   30 r31 <- Undefined
+   31 r32 <- Undefined
+   32 r33 <- Undefined
+   33 r34 <- Undefined
+   34 r35 <- Undefined
+   35 r36 <- Undefined
+   36 r37 <- Undefined
+   37 r38 <- Undefined
+0x4110b0:
+   38 r29 <- Const8(0)
+   39 r29 <- Arith8(Add, r29, r14)
+   40 r28 <- LoadMem8(r29)
+   41 r16 <- Get(r28)
+0x4110b3:
+   42 r16 <- Arith8(BitAnd, r16, r16)
+   43 r6 <- SignOf(r16)
+   44 r5 <- IsZero(r16)
+   45 r30 <- Part { src: r16, offset: 0, size: 1 }
+   46 r3 <- Parity(r16)
+   47 r2 <- Const1(0)
+   48 r10 <- Const1(0)
+0x4110b6:
+   49 r28 <- JmpIf { cond: r5, target: 81 }
+0x4110b8:
+   50 r29 <- Const8(8)
+   51 r29 <- Arith8(Add, r29, r14)
+   52 r28 <- LoadMem4(r29)
+   53 r19 <- Part { src: r19, offset: 4, size: 4 }
+   54 r19 <- Concat { lo: r28, hi: r19 }
+0x4110bb:
+   55 r28 <- Part { src: r19, offset: 0, size: 4 }
+   56 r29 <- Part { src: r19, offset: 0, size: 4 }
+   57 r28 <- Arith4(BitAnd, r28, r29)
+   58 r6 <- SignOf(r28)
+   59 r5 <- IsZero(r28)
+   60 r30 <- Part { src: r28, offset: 0, size: 1 }
+   61 r3 <- Parity(r28)
+   62 r2 <- Const1(0)
+   63 r10 <- Const1(0)
+0x4110bd:
+   64 r28 <- Not(r5)
+   65 r29 <- JmpIf { cond: r28, target: 74 }
+0x4110bf:
+   66 r29 <- Const8(8)
+   67 r29 <- Arith8(Add, r29, r16)
+   68 r28 <- LoadMem8(r29)
+   69 r19 <- Get(r28)
+0x4110c3:
+   70 r29 <- Const8(0)
+   71 r29 <- Arith8(Add, r29, r14)
+   72 r30 <- StoreMem(r29, r19)
+0x4110c6:
+   73 r28 <- Ret(r16)
+0x4110d0:
+   74 r29 <- Const8(0)
+   75 r29 <- Arith8(Add, r29, r16)
+   76 r28 <- LoadMem8(r29)
+   77 r19 <- Get(r28)
+0x4110d3:
+   78 r29 <- Const8(0)
+   79 r29 <- Arith8(Add, r29, r14)
+   80 r30 <- StoreMem(r29, r19)
+0x4110d6:
+   81 r28 <- Ret(r16)
+
+
+ssa pre-xform:
+ssa program  82 instrs
+.B0:    ;; .
+  (  2)  r13 <- Ancestral(AncestralName("RDI"))
+         r38 <- Const8(0)
+         r39 <- Arith8(Add, r38, r13)
+  (  2)  r40 <- LoadMem8(r39)
+  (  3)  r42 <- Arith8(BitAnd, r40, r40)
+         r44 <- IsZero(r42)
+         r49 <- JmpIf { cond: r44, target: 81 }
+.B1:    ;; preds:B0.
+         r50 <- Const8(8)
+         r51 <- Arith8(Add, r50, r13)
+         r52 <- LoadMem4(r51)
+         r18 <- Ancestral(AncestralName("RDX"))
+         r53 <- Part { src: r18, offset: 4, size: 4 }
+  (  2)  r54 <- Concat { lo: r52, hi: r53 }
+         r56 <- Part { src: r54, offset: 0, size: 4 }
+         r55 <- Part { src: r54, offset: 0, size: 4 }
+         r57 <- Arith4(BitAnd, r55, r56)
+         r59 <- IsZero(r57)
+         r64 <- Not(r59)
+         r65 <- JmpIf { cond: r64, target: 74 }
+.B2:    ;; preds:B1.
+         r73 <- Ret(r42)
+.B4:    ;; preds:B0,B2,B3.
+         r81 <- Ret(r42)
+
+
+ssa post-xform:
+ssa program  82 instrs
+.B0:    ;; .
+  (  2)  r13 <- Ancestral(AncestralName("RDI"))
+         r38 <- Const8(0)
+         r39 <- Arith8(Add, r38, r13)
+  (  2)  r40 <- LoadMem8(r39)
+  (  3)  r42 <- Arith8(BitAnd, r40, r40)
+         r44 <- IsZero(r42)
+         r49 <- JmpIf { cond: r44, target: 81 }
+.B1:    ;; preds:B0.
+         r50 <- Const8(8)
+         r51 <- Arith8(Add, r50, r13)
+         r52 <- LoadMem4(r51)
+         r18 <- Ancestral(AncestralName("RDX"))
+         r53 <- Part { src: r18, offset: 4, size: 4 }
+  (  2)  r54 <- Concat { lo: r52, hi: r53 }
+         r56 <- Part { src: r54, offset: 0, size: 4 }
+         r55 <- Part { src: r54, offset: 0, size: 4 }
+         r57 <- Arith4(BitAnd, r55, r56)
+         r59 <- IsZero(r57)
+         r64 <- Not(r59)
+         r65 <- JmpIf { cond: r64, target: 74 }
+.B2:    ;; preds:B1.
+         r73 <- Ret(r42)
+.B4:    ;; preds:B0,B2,B3.
+         r81 <- Ret(r42)
+
+
+cfg dom tree:
+BlockID(0)
+|  BlockID(1)
+|  |  BlockID(2)
+|  |  BlockID(3)
+|  BlockID(4)
+
+T0: {
+  let r13 = pre:RDI;
+  let r40 = [0x0 /* 0 */ + r13]:8;
+  let r42 = r40 & r40;
+  if(IsZero(r42)) {
+    goto T4
+  }
+  let r54 = pre:RDX[4 .. 8]⧺[0x8 /* 8 */ + r13]:4;
+  if(!(IsZero(r54[0 .. 4] & r54[0 .. 4]))) {
+    
+    goto T4
+  }
+  Ret(r42)
+  goto T4
+  T4: {
+    Ret(r42)
+  }
+
+}

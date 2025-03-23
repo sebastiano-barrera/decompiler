@@ -128,7 +128,6 @@ pub enum Insn {
     CArg(Reg),
     #[assoc(has_side_effects = true)]
     Ret(Reg),
-    #[allow(dead_code)]
     #[assoc(has_side_effects = true)]
     JmpInd(Reg),
     #[assoc(has_side_effects = true)]
