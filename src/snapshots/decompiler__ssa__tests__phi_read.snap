@@ -4,16 +4,16 @@ expression: prog
 ---
 ssa program  10 instrs
 .B0:    ;; .
-         r0 <- Const8(123)
+         r0 <- Const { value: 123, size: 8 }
          r1 <- JmpIf { cond: r0, target: 4 }
 .B2:    ;; preds:B0.
-         r4 <- Const1(8)
+         r4 <- Const { value: 8, size: 1 }
          r8 <- Upsilon { value: r4, phi_ref: r7 }
 .B1:    ;; preds:B0.
          r3 <- Jmp(5)
-         r2 <- Const1(4)
+         r2 <- Const { value: 4, size: 1 }
          r9 <- Upsilon { value: r2, phi_ref: r7 }
 .B3:    ;; preds:B1,B2.
-         r7 <- Phi { size: 1 }
-         r5 <- ArithK1(Add, r7, 456)
+         r7 <- Phi
+         r5 <- ArithK(Add, r7, 456)
          r6 <- Ret(r5)
