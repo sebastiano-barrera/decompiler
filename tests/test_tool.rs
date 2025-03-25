@@ -17,26 +17,36 @@ fn test_with_sample(rel_path: &Path, function_name: &str) -> test_tool::Result<S
     Ok(strbuf)
 }
 
-#[test]
-fn test_with_sample_composite_type_list_len() {
-    let out = test_with_sample(Path::new("ty/test_composite_type.so"), "list_len").unwrap();
-    assert_snapshot!(out);
+macro_rules! case {
+    ($case:ident, $exe_path:expr, $func_name:ident) => {
+        #[test]
+        #[allow(non_snake_case)]
+        fn $case() {
+            let out =
+                $crate::test_with_sample(std::path::Path::new($exe_path), stringify!($func_name))
+                    .unwrap();
+            $crate::assert_snapshot!(out);
+        }
+    };
 }
 
-#[test]
-fn test_with_sample_capstone() {
-    let out = test_with_sample(Path::new("integration/sample_capstone"), "main").unwrap();
-    assert_snapshot!(out);
+macro_rules! tests_in_binary {
+    ($group:ident, $exe_path:expr; $($funcs:ident),*) => {
+        mod $group {
+            $(case!($funcs, $exe_path, $funcs);)*
+        }
+    };
 }
 
-#[test]
-fn test_with_sample_matrix() {
-    let out = test_with_sample(Path::new("integration/sample_matrix"), "sum_matrix").unwrap();
-    assert_snapshot!(out);
-}
+tests_in_binary!(
+    exe_composite_type, "ty/test_composite_type.so";
+    list_len
+);
+tests_in_binary!(exe_capstone, "integration/sample_capstone"; main);
+tests_in_binary!(exe_matrix, "integration/sample_matrix"; sum_matrix);
 
-#[test]
-fn test_with_redis_server_ctl_lookup() {
-    let out = test_with_sample(Path::new("integration/redis-server"), "ctl_lookup").unwrap();
-    assert_snapshot!(out);
-}
+tests_in_binary!(redis_server, "integration/redis-server";
+    ctl_lookup,
+    listNext,
+    listTypePush
+);

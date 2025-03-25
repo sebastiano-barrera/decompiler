@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashSet};
 
 use crate::{
     cfg,
@@ -10,102 +10,75 @@ use crate::{
 #[derive(Debug)]
 pub struct Ast<'a> {
     ssa: &'a ssa::Program,
-    is_named: Vec<bool>,
+    let_printed: HashSet<Reg>,
+    rdr_count: ssa::RegMap<usize>,
 }
 
 impl<'a> Ast<'a> {
     pub fn new(ssa: &'a ssa::Program) -> Self {
-        let mut is_named = vec![false; ssa.reg_count() as usize];
-        for iv in ssa.insns_unordered() {
-            let dest = iv.dest.get();
-            let insn = iv.insn.get();
-
-            is_named[dest.reg_index() as usize] = match insn {
-                    Insn::Const1(_)
-                    | Insn::Const2(_)
-                    | Insn::Const4(_)
-                    | Insn::Const8(_)
-                    | Insn::LoadMem1(_)
-                    | Insn::LoadMem2(_)
-                    | Insn::LoadMem4(_)
-                    | Insn::LoadMem8(_)
-                    // ancestral values are akin to (named) consts
-                    | Insn::Ancestral(_) => false,
-
-                    Insn::Phi{size:_} => true,
-
-                    Insn::Call { .. } => true,
-                    _ => ssa.readers_count(dest) > 1,
-                };
+        let rdr_count = ssa::count_readers(&ssa);
+        Ast {
+            ssa,
+            let_printed: HashSet::new(),
+            rdr_count,
         }
-
-        Ast { ssa, is_named }
     }
 
-    pub fn pretty_print<W: PP + ?Sized>(&self, pp: &mut W) -> std::io::Result<()> {
+    pub fn pretty_print<W: PP + ?Sized>(&mut self, pp: &mut W) -> std::io::Result<()> {
         let cfg = self.ssa.cfg();
         let entry_bid = cfg.entry_block_id();
-        self.pp_block(pp, entry_bid)
+        self.pp_block_labeled(pp, entry_bid)
     }
 
-    fn pp_block<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
-        let phis = self.ssa.block_phi(bid);
-
-        write!(pp, "T{}(", bid.as_number())?;
-        for (ndx, phi_reg) in phis.phi_regs().enumerate() {
-            if ndx > 0 {
-                write!(pp, ", ")?;
-            }
-            write!(pp, "{:?}", phi_reg)?;
-        }
-        write!(pp, "): {{\n  ")?;
+    fn pp_block_labeled<W: PP + ?Sized>(
+        &mut self,
+        pp: &mut W,
+        bid: cfg::BlockID,
+    ) -> std::io::Result<()> {
+        write!(pp, "T{}: {{\n  ", bid.as_number())?;
         pp.open_box();
 
         self.pp_block_inner(pp, bid)?;
 
         pp.close_box();
-        writeln!(pp, "}}")
+        writeln!(pp, "\n}}")
     }
 
-    fn pp_block_inner<W: PP + ?Sized>(&self, pp: &mut W, bid: cfg::BlockID) -> std::io::Result<()> {
-        let insn_slice = self.ssa.block_normal_insns(bid).unwrap();
-        for (dest, insn) in insn_slice.iter_copied() {
-            let is_named = self.is_named(dest);
-            if is_named
-                || (insn.has_side_effects()
-                    && !matches!(insn, Insn::CArg(_) | Insn::Jmp(_) | Insn::JmpIf { .. }))
-            {
-                if is_named {
-                    write!(pp, "let r{} = ", dest.reg_index())?;
-                }
-                pp.open_box();
-                self.pp_insn(pp, dest)?;
-                writeln!(pp, ";")?;
-                pp.close_box();
+    fn pp_block_inner<W: PP + ?Sized>(
+        &mut self,
+        pp: &mut W,
+        bid: cfg::BlockID,
+    ) -> std::io::Result<()> {
+        let cfg = self.ssa.cfg();
+        let block_cont = cfg.block_cont(bid);
+
+        let block_effects = self.ssa.block_effects(bid);
+        for (ndx, reg) in block_effects.into_iter().enumerate() {
+            if ndx > 0 {
+                writeln!(pp)?;
             }
+            self.pp_labeled_inputs(pp, reg)?;
+            self.pp_def(pp, reg)?;
         }
 
-        let cfg = self.ssa.cfg();
-
-        match cfg.block_cont(bid) {
+        match block_cont {
             cfg::BlockCont::End => {
                 // all done!
             }
             cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
+                writeln!(pp)?;
                 self.pp_continuation(pp, bid, tgt, pred_ndx as u16)?;
             }
             cfg::BlockCont::Alt {
                 straight: (neg_pred_ndx, neg_bid),
                 side: (pos_pred_ndx, pos_bid),
             } => {
-                let last_insn = insn_slice.insns.last().unwrap().get();
-                let cond = match last_insn {
-                    Insn::JmpIf { cond, target: _ } => cond,
-                    _ => panic!("block with BlockCont::Alt continuation must end with a JmpIf"),
-                };
+                let last_insn_reg = self.ssa.block_effects(bid).last().unwrap();
+                let last_insn = self.ssa.get(last_insn_reg).unwrap().insn.get();
+                if !matches!(last_insn, Insn::JmpIf { .. }) {
+                    panic!("block with BlockCont::Alt continuation must end with a JmpIf");
+                }
 
-                write!(pp, "if ")?;
-                self.pp_arg(pp, cond)?;
                 write!(pp, " {{\n  ")?;
 
                 pp.open_box();
@@ -121,7 +94,7 @@ impl<'a> Ast<'a> {
         for &child in cfg.dom_tree().children_of(bid) {
             if cfg.block_preds(child).len() > 1 {
                 writeln!(pp)?;
-                self.pp_block(pp, child)?;
+                self.pp_block_labeled(pp, child)?;
             }
         }
 
@@ -129,14 +102,12 @@ impl<'a> Ast<'a> {
     }
 
     fn pp_continuation<W: PP + ?Sized>(
-        &self,
+        &mut self,
         pp: &mut W,
         src_bid: cfg::BlockID,
         tgt_bid: cfg::BlockID,
-        pred_ndx: u16,
+        _pred_ndx: u16,
     ) -> std::io::Result<()> {
-        let phi = self.ssa.block_phi(tgt_bid);
-
         let cfg = self.ssa.cfg();
         let looping_back = cfg
             .dom_tree()
@@ -147,106 +118,89 @@ impl<'a> Ast<'a> {
 
         let pred_count = cfg.block_preds(tgt_bid).len();
         if pred_count == 1 {
-            assert_eq!(phi.phi_count(), 0);
-            return self.pp_block_inner(pp, tgt_bid);
-        }
-
-        if phi.phi_count() == 0 {
-            write!(pp, "{keyword} T{}", tgt_bid.as_number())?;
+            self.pp_block_inner(pp, tgt_bid)
         } else {
-            write!(pp, "{keyword} T{} (", tgt_bid.as_number())?;
-            for phi_ndx in 0..phi.phi_count() {
-                let phi_reg = phi.phi_reg(phi_ndx);
-                write!(pp, "\n  r{} = ", phi_reg.0)?;
-
-                let arg = phi.arg(&(&self).ssa, phi_ndx, pred_ndx);
-                pp.open_box();
-                self.pp_arg(pp, arg)?;
-                pp.close_box();
-            }
-
-            write!(pp, "\n)")?;
+            write!(pp, "{keyword} T{}", tgt_bid.as_number())
         }
-
-        writeln!(pp)
     }
 
     fn is_named(&self, reg: Reg) -> bool {
-        self.is_named[reg.reg_index() as usize]
+        self.rdr_count[reg] > 1
     }
 
-    fn pp_insn<W: PP + ?Sized>(&self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
+    /// Results in a series of `let x = ...` expressions being printed.
+    ///
+    /// This function ensures that all named inputs to the given instruction
+    /// have been printed exactly once. Values that require `let` expressions
+    /// that were already printed in the past are not printed again.
+    ///
+    /// This function does NOT print reg or the instruction defining reg.
+    fn pp_labeled_inputs<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
+        let insn = self.ssa.get(reg).unwrap().insn.get();
+        for input in insn.input_regs_iter() {
+            self.pp_labeled_inputs(pp, input)?;
+            if self.is_named(input) && !self.let_printed.contains(&input) {
+                self.let_printed.insert(input);
+                write!(pp, "let r{} = ", input.reg_index())?;
+                self.pp_def(pp, input)?;
+                writeln!(pp, ";")?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Prints the instruction defining the given register.
+    ///
+    /// Inline (unnamed) inputs to the instruction will be printed inline. For
+    /// named inputs, register references (`r##`) will be used (the function
+    /// panics if the corresponding `let` has not been printed yet).
+    fn pp_def<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
+        // NOTE this function is called in both cases:
+        //  - printing the "toplevel" definition of a named or effectful instruction;
+        //  - printing an instruction definition inline as part of the 1 dependent instruction
+        // (For this reason, we can't pp_labeled_inputs here)
         let iv = self.ssa.get(reg).unwrap();
         let insn = iv.insn.get();
 
         let op_s: Cow<str> = match insn {
             Insn::True => "True".into(),
             Insn::False => "False".into(),
-            Insn::Const1(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Const2(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Const4(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Const8(k) => return write!(pp, "0x{:x} /* {} */", k, k),
-            Insn::Get(x) => return self.pp_insn(pp, x),
+            Insn::Const { value, size } => {
+                return write!(pp, "{}i{} /* 0x{:x} */", value, size * 8, value)
+            }
+            Insn::Get(x) => return self.pp_def(pp, x),
             Insn::StructGetMember {
                 struct_value,
                 name,
                 size: _,
             } => {
-                self.pp_insn(pp, struct_value)?;
+                self.pp_ref(pp, struct_value)?;
                 return write!(pp, ".{}", name);
-            },
+            }
             Insn::Part { src, offset, size } => {
-                self.pp_arg(pp, src)?;
+                self.pp_ref(pp, src)?;
                 write!(pp, "[{} .. {}]", offset, offset + size)?;
                 return Ok(());
             }
             Insn::Concat { lo, hi } => {
-                self.pp_arg(pp, hi)?;
+                self.pp_ref(pp, hi)?;
                 write!(pp, "⧺")?;
-                self.pp_arg(pp, lo)?;
+                self.pp_ref(pp, lo)?;
                 return Ok(());
             }
-            Insn::Widen1_2(_) => "Widen1_2".into(),
-            Insn::Widen1_4(_) => "Widen1_4".into(),
-            Insn::Widen1_8(_) => "Widen1_8".into(),
-            Insn::Widen2_4(_) => "Widen2_4".into(),
-            Insn::Widen2_8(_) => "Widen2_8".into(),
-            Insn::Widen4_8(_) => "Widen4_8".into(),
-            Insn::Arith1(arith_op, a, b)
-            | Insn::Arith2(arith_op, a, b)
-            | Insn::Arith4(arith_op, a, b)
-            | Insn::Arith8(arith_op, a, b) => {
-                self.pp_arg(pp, a)?;
-
-                let op_s = match arith_op {
-                    ArithOp::Add => " + ",
-                    ArithOp::Sub => " - ",
-                    ArithOp::Mul => " * ",
-                    ArithOp::Shl => " / ",
-                    ArithOp::BitXor => " ^ ",
-                    ArithOp::BitAnd => " & ",
-                    ArithOp::BitOr => " | ",
-                };
-                write!(pp, "{}", op_s)?;
-
-                self.pp_arg(pp, b)?;
+            Insn::Widen {
+                reg: _,
+                target_size,
+            } => format!("WidenTo{}", target_size).into(),
+            Insn::Arith(arith_op, a, b) => {
+                self.pp_ref(pp, a)?;
+                write!(pp, " {} ", arith_op_str(arith_op))?;
+                self.pp_ref(pp, b)?;
                 return Ok(());
             }
-            Insn::ArithK1(arith_op, reg, k)
-            | Insn::ArithK2(arith_op, reg, k)
-            | Insn::ArithK4(arith_op, reg, k)
-            | Insn::ArithK8(arith_op, reg, k) => {
-                self.pp_arg(pp, reg)?;
-                let op_s = match arith_op {
-                    ArithOp::Add => " + ",
-                    ArithOp::Sub => " - ",
-                    ArithOp::Mul => " * ",
-                    ArithOp::Shl => " / ",
-                    ArithOp::BitXor => " ^ ",
-                    ArithOp::BitAnd => " & ",
-                    ArithOp::BitOr => " | ",
-                };
-                write!(pp, "{}{}", op_s, k)?;
+            Insn::ArithK(arith_op, a, k) => {
+                self.pp_ref(pp, a)?;
+                write!(pp, " {} {}", arith_op_str(arith_op), k)?;
                 return Ok(());
             }
             Insn::Cmp(cmp_op, _, _) => match cmp_op {
@@ -261,14 +215,14 @@ impl<'a> Ast<'a> {
             .into(),
             Insn::Not(_) => "!".into(),
             Insn::Call(callee) => {
-                self.pp_arg(pp, callee)?;
+                self.pp_ref(pp, callee)?;
                 write!(pp, "(")?;
                 pp.open_box();
                 for (ndx, arg) in self.ssa.get_call_args(reg).enumerate() {
                     if ndx > 0 {
                         writeln!(pp, ",")?;
                     }
-                    self.pp_arg(pp, arg)?;
+                    self.pp_ref(pp, arg)?;
                 }
                 pp.close_box();
                 write!(pp, ")")?;
@@ -277,17 +231,14 @@ impl<'a> Ast<'a> {
             Insn::CArg(_) => panic!("CArg not handled via this path!"),
             Insn::Ret(_) => "Ret".into(),
             Insn::TODO(msg) => return write!(pp, "TODO /* {} */", msg),
-            Insn::LoadMem1(addr) => return self.pp_load_mem(pp, addr, 1),
-            Insn::LoadMem2(addr) => return self.pp_load_mem(pp, addr, 2),
-            Insn::LoadMem4(addr) => return self.pp_load_mem(pp, addr, 4),
-            Insn::LoadMem8(addr) => return self.pp_load_mem(pp, addr, 8),
+            Insn::LoadMem { reg, size } => return self.pp_load_mem(pp, reg, size),
             Insn::StoreMem(addr, value) => {
                 write!(pp, "[")?;
                 pp.open_box();
-                self.pp_arg(pp, addr)?;
+                self.pp_ref(pp, addr)?;
                 write!(pp, "] = ")?;
                 pp.open_box();
-                self.pp_arg(pp, value)?;
+                self.pp_ref(pp, value)?;
                 pp.close_box();
                 pp.close_box();
                 return Ok(());
@@ -300,20 +251,27 @@ impl<'a> Ast<'a> {
             Insn::Undefined => "Undefined".into(),
             Insn::Ancestral(anc_name) => return write!(pp, "pre:{}", anc_name.name()),
 
-            Insn::Phi { size: _ } | Insn::PhiBool | Insn::PhiArg(_) => {
-                panic!("phi insns should not be reachable here")
+            Insn::Phi => return write!(pp, "phi"),
+            Insn::Jmp(_) => {
+                // hidden, handled by pp_block
+                return Ok(());
             }
-            // handled by pp_block
-            Insn::Jmp(_) | Insn::JmpIf { .. } => {
-                panic!("jump insns should not be reachable here")
-            }
+            Insn::JmpIf { .. } => "if".into(),
 
             Insn::JmpInd(_) => "JmpInd".into(),
             Insn::JmpExt(addr) => return write!(pp, "JmpExt(0x{:x})", addr),
             Insn::JmpExtIf { cond, addr } => {
                 write!(pp, "if ")?;
-                self.pp_arg(pp, cond)?;
+                self.pp_ref(pp, cond)?;
                 write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
+                return Ok(());
+            }
+            Insn::Upsilon { value, phi_ref } => {
+                write!(pp, "r{} := ", phi_ref.reg_index())?;
+                pp.open_box();
+                self.pp_def(pp, value)?;
+                pp.close_box();
+                write!(pp, ";")?;
                 return Ok(());
             }
         };
@@ -325,26 +283,48 @@ impl<'a> Ast<'a> {
                 write!(pp, ", ")?;
             }
 
-            self.pp_arg(pp, arg)?;
+            self.pp_ref(pp, arg)?;
         }
 
         write!(pp, ")")?;
         Ok(())
     }
 
-    fn pp_load_mem<W: PP + ?Sized>(&self, pp: &mut W, addr: Reg, sz: i32) -> std::io::Result<()> {
+    fn pp_load_mem<W: PP + ?Sized>(
+        &mut self,
+        pp: &mut W,
+        addr: Reg,
+        sz: i32,
+    ) -> std::io::Result<()> {
         write!(pp, "[")?;
         pp.open_box();
-        self.pp_arg(pp, addr)?;
+        self.pp_ref(pp, addr)?;
         pp.close_box();
         write!(pp, "]:{}", sz)
     }
 
-    fn pp_arg<W: PP + ?Sized>(&self, pp: &mut W, arg: Reg) -> std::io::Result<()> {
-        Ok(if self.is_named(arg) {
-            write!(pp, "r{}", arg.reg_index())?;
+    fn pp_ref<W: PP + ?Sized>(&mut self, pp: &mut W, arg: Reg) -> std::io::Result<()> {
+        if self.is_named(arg) {
+            assert!(
+                self.let_printed.contains(&arg),
+                "arg needs let but not yet printed: {:?}",
+                arg
+            );
+            write!(pp, "r{}", arg.reg_index())
         } else {
-            self.pp_insn(pp, arg)?;
-        })
+            self.pp_def(pp, arg)
+        }
+    }
+}
+
+fn arith_op_str(arith_op: ArithOp) -> &'static str {
+    match arith_op {
+        ArithOp::Add => "+",
+        ArithOp::Sub => "-",
+        ArithOp::Mul => "*",
+        ArithOp::Shl => "/",
+        ArithOp::BitXor => "^",
+        ArithOp::BitAnd => "&",
+        ArithOp::BitOr => "|",
     }
 }

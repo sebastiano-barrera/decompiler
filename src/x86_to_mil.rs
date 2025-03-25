@@ -113,7 +113,7 @@ impl<'a> Builder<'a> {
 
                     self.emit(
                         Self::RSP,
-                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
+                        mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
                     );
                     self.emit(v0, mil::Insn::StoreMem(Self::RSP, value));
                 }
@@ -123,24 +123,35 @@ impl<'a> Builder<'a> {
                     let v0 = self.reg_gen.next();
 
                     let sz = Self::op_size(&insn, 0);
-                    match sz {
-                        8 => self.emit(v0, mil::Insn::LoadMem8(Self::RSP)),
-                        2 => self.emit(v0, mil::Insn::LoadMem2(Self::RSP)),
-                        _ => panic!("assertion failed: pop dest size must be either 8 or 2 bytes"),
-                    };
+                    if sz != 8 && sz != 2 {
+                        panic!("assertion failed: pop dest size must be either 8 or 2 bytes");
+                    }
+                    self.emit(
+                        v0,
+                        mil::Insn::LoadMem {
+                            reg: Self::RSP,
+                            size: sz as i32,
+                        },
+                    );
 
                     self.emit_write(&insn, 0, v0, sz);
                     self.emit(
                         Self::RSP,
-                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, sz as i64),
+                        mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, sz as i64),
                     );
                 }
                 M::Leave => {
                     self.emit(Self::RSP, mil::Insn::Get(Self::RBP));
-                    self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
+                    self.emit(
+                        Self::RBP,
+                        mil::Insn::LoadMem {
+                            reg: Self::RSP,
+                            size: 8,
+                        },
+                    );
                     self.emit(
                         Self::RSP,
-                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, 8),
+                        mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, 8),
                     );
                 }
                 M::Ret => {
@@ -186,13 +197,7 @@ impl<'a> Builder<'a> {
 
                 M::Inc => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
-                    match a_sz {
-                        1 => self.emit(a, mil::Insn::ArithK1(mil::ArithOp::Add, a, 1)),
-                        2 => self.emit(a, mil::Insn::ArithK2(mil::ArithOp::Add, a, 1)),
-                        4 => self.emit(a, mil::Insn::ArithK4(mil::ArithOp::Add, a, 1)),
-                        8 => self.emit(a, mil::Insn::ArithK8(mil::ArithOp::Add, a, 1)),
-                        _ => panic!("invalid size: {}", a_sz),
-                    };
+                    self.emit(a, mil::Insn::ArithK(mil::ArithOp::Add, a, 1));
                     self.emit_write(&insn, 0, a, a_sz);
 
                     self.emit(Self::OF, mil::Insn::False);
@@ -228,8 +233,8 @@ impl<'a> Builder<'a> {
                         },
                     );
                     self.emit(Self::PF, mil::Insn::Parity(a));
-                    self.emit(Self::CF, mil::Insn::Const1(0));
-                    self.emit(Self::OF, mil::Insn::Const1(0));
+                    self.emit(Self::CF, mil::Insn::False);
+                    self.emit(Self::OF, mil::Insn::False);
                 }
 
                 M::Cmp => {
@@ -498,31 +503,19 @@ impl<'a> Builder<'a> {
         assert!([1, 2, 4, 8].contains(&a_sz));
         assert!([1, 2, 4, 8].contains(&b_sz));
         let sz = a_sz.max(b_sz);
-        self.widen(a, a_sz, sz);
-        self.widen(b, b_sz, sz);
-
-        let mil_insn = match sz {
-            1 => mil::Insn::Arith1(op, a, b),
-            2 => mil::Insn::Arith2(op, a, b),
-            4 => mil::Insn::Arith4(op, a, b),
-            8 => mil::Insn::Arith8(op, a, b),
-            _ => panic!("emit_arith: invalid operand size: {sz}"),
-        };
-        self.emit(a, mil_insn);
+        self.widen(a, sz);
+        self.widen(b, sz);
+        self.emit(a, mil::Insn::Arith(op, a, b));
     }
 
-    fn widen(&mut self, src: mil::Reg, src_sz: u8, tgt_sz: u8) {
-        let insn = match (src_sz, tgt_sz) {
-            (1, 2) => mil::Insn::Widen1_2(src),
-            (1, 4) => mil::Insn::Widen1_4(src),
-            (1, 8) => mil::Insn::Widen1_8(src),
-            (2, 4) => mil::Insn::Widen2_4(src),
-            (2, 8) => mil::Insn::Widen2_8(src),
-            (4, 8) => mil::Insn::Widen4_8(src),
-            (src_sz, tgt_sz) if src_sz == tgt_sz => return,
-            _ => panic!("invalid (src,tgt) sizes for widen: ({},{})", src_sz, tgt_sz),
-        };
-        self.emit(src, insn);
+    fn widen(&mut self, src: mil::Reg, tgt_sz: u8) {
+        self.emit(
+            src,
+            mil::Insn::Widen {
+                reg: src,
+                target_size: tgt_sz,
+            },
+        );
     }
 
     fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {
@@ -637,22 +630,80 @@ impl<'a> Builder<'a> {
                     other => panic!("invalid register size: {other}"),
                 }
             }
-            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                self.emit(v0, mil::Insn::Const8(insn.near_branch_target() as i64))
-            }
+            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.near_branch_target() as i64,
+                    size: 8,
+                },
+            ),
             OpKind::FarBranch16 | OpKind::FarBranch32 => {
                 todo!("not supported: far branch operands")
             }
 
-            OpKind::Immediate8 => self.emit(v0, mil::Insn::Const1(insn.immediate8() as i8)),
-            OpKind::Immediate8_2nd => self.emit(v0, mil::Insn::Const1(insn.immediate8_2nd() as i8)),
-            OpKind::Immediate16 => self.emit(v0, mil::Insn::Const2(insn.immediate16() as i16)),
-            OpKind::Immediate32 => self.emit(v0, mil::Insn::Const4(insn.immediate32() as i32)),
-            OpKind::Immediate64 => self.emit(v0, mil::Insn::Const8(insn.immediate64() as i64)),
-            OpKind::Immediate8to16 => self.emit(v0, mil::Insn::Const2(insn.immediate8to16())),
-            OpKind::Immediate8to32 => self.emit(v0, mil::Insn::Const4(insn.immediate8to32())),
-            OpKind::Immediate8to64 => self.emit(v0, mil::Insn::Const8(insn.immediate8to64())),
-            OpKind::Immediate32to64 => self.emit(v0, mil::Insn::Const8(insn.immediate32to64())),
+            OpKind::Immediate8 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8() as _,
+                    size: 1,
+                },
+            ),
+            OpKind::Immediate8_2nd => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8_2nd() as _,
+                    size: 1,
+                },
+            ),
+            OpKind::Immediate16 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate16() as _,
+                    size: 2,
+                },
+            ),
+            OpKind::Immediate32 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate32() as _,
+                    size: 4,
+                },
+            ),
+            OpKind::Immediate64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate64() as _,
+                    size: 8,
+                },
+            ),
+            OpKind::Immediate8to16 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8to16() as _,
+                    size: 2,
+                },
+            ),
+            OpKind::Immediate8to32 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8to32() as _,
+                    size: 4,
+                },
+            ),
+            OpKind::Immediate8to64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8to64() as _,
+                    size: 8,
+                },
+            ),
+            OpKind::Immediate32to64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate32to64() as _,
+                    size: 8,
+                },
+            ),
 
             OpKind::MemorySegSI
             | OpKind::MemorySegESI
@@ -680,20 +731,20 @@ impl<'a> Builder<'a> {
                 use iced_x86::MemorySize;
                 match insn.memory_size() {
                     MemorySize::UInt8 | MemorySize::Int8 => {
-                        self.emit(v0, mil::Insn::LoadMem1(addr))
+                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 1 })
                     }
                     MemorySize::UInt16 | MemorySize::Int16 => {
-                        self.emit(v0, mil::Insn::LoadMem2(addr))
+                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 2 })
                     }
                     MemorySize::UInt32 | MemorySize::Int32 => {
-                        self.emit(v0, mil::Insn::LoadMem4(addr))
+                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 4 })
                     }
                     MemorySize::UInt64 | MemorySize::Int64 => {
-                        self.emit(v0, mil::Insn::LoadMem8(addr))
+                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 8 })
                     }
                     MemorySize::QwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem8(addr));
-                        self.emit(v0, mil::Insn::LoadMem8(v0))
+                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 8 });
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 8 })
                     }
                     other => todo!("unsupported size for memory operand: {:?}", other),
                 }
@@ -810,8 +861,13 @@ impl<'a> Builder<'a> {
             "emit_compute_address_into: segment-relative memory address operands are not supported",
         );
 
-        self.pb
-            .push(dest, mil::Insn::Const8(insn.memory_displacement64() as i64));
+        self.pb.push(
+            dest,
+            mil::Insn::Const {
+                value: insn.memory_displacement64() as i64,
+                size: 8,
+            },
+        );
 
         match insn.memory_base() {
             Register::None => {}
@@ -820,7 +876,7 @@ impl<'a> Builder<'a> {
                 // addresses are 64-bit, so we use 8 bytes instructions
                 self.pb.push(
                     dest,
-                    mil::Insn::Arith8(mil::ArithOp::Add, dest, Self::xlat_reg(base)),
+                    mil::Insn::Arith(mil::ArithOp::Add, dest, Self::xlat_reg(base)),
                 );
             }
         }
@@ -832,10 +888,10 @@ impl<'a> Builder<'a> {
                 let scale = insn.memory_index_scale() as i64;
                 let reg = Self::xlat_reg(index_reg);
                 // addresses are 64-bit in this architecture, so instructions are all with 8 bytes results
-                let scaled = mil::Insn::ArithK8(mil::ArithOp::Mul, reg, scale);
+                let scaled = mil::Insn::ArithK(mil::ArithOp::Mul, reg, scale);
                 self.pb.push(v1, scaled);
                 self.pb
-                    .push(dest, mil::Insn::Arith8(mil::ArithOp::Add, dest, v1));
+                    .push(dest, mil::Insn::Arith(mil::ArithOp::Add, dest, v1));
             }
         }
     }

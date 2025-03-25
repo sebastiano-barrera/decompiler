@@ -38,7 +38,7 @@ pub fn read_func_params<'a>(
 
                     let slot_ofs = state.pull_stack_slot() as i64;
                     let addr = bld.reg_gen.next();
-                    bld.emit(addr, Insn::ArithK8(ArithOp::Add, Builder::RSP, slot_ofs));
+                    bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, slot_ofs));
                     bld.emit(addr, Insn::StoreMem(addr, src_value));
                 }
             }
@@ -54,7 +54,7 @@ pub fn read_func_params<'a>(
 
                     let slot_ofs = state.pull_stack_slot() as i64;
                     let addr = bld.reg_gen.next();
-                    bld.emit(addr, Insn::ArithK8(ArithOp::Add, Builder::RSP, slot_ofs));
+                    bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, slot_ofs));
                     bld.emit(addr, Insn::StoreMem(addr, src_value));
                 }
             }
@@ -200,7 +200,7 @@ fn read_struct_from_memory<'a>(
         );
         bld.emit(
             addr,
-            Insn::ArithK8(ArithOp::Add, Builder::RSP, stack_base + memb.offset as i64),
+            Insn::ArithK(ArithOp::Add, Builder::RSP, stack_base + memb.offset as i64),
         );
         bld.emit(addr, Insn::StoreMem(addr, memb_value));
     }
@@ -413,7 +413,7 @@ mod tests {
     use insta::assert_snapshot;
     use ty::TypeID;
 
-    use crate::{ssa, xform};
+    use crate::ssa;
 
     use super::*;
     use std::sync::Arc;
@@ -436,7 +436,7 @@ mod tests {
         bld.emit(v0, Insn::Ret(Builder::RDI));
 
         let prog = bld.build();
-        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
+        let prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
         let snap = format!("params: {:?}\nprogram:\n{:?}", param_types, prog);
         snap
     }

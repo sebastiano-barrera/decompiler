@@ -160,6 +160,15 @@ impl Graph {
         }
     }
 
+    /// Get the range of instructions covered by this basic block.
+    ///
+    /// The range for any given basic block is guaranteed not to intersect with
+    /// the range of any other basic block.
+    ///
+    /// NOTE: the returned indices ONLY make sense in the context of the MIL
+    /// program that this CFG was originally built on. It has NO meaning in any
+    /// other program and most importantly on SSA, where instructions are wired
+    /// in a graph and not collected in compact sequences.
     pub fn insns_ndx_range(&self, bid: BlockID) -> Range<mil::Index> {
         let ndx = bid.as_usize();
         let start = self.bounds[ndx];
@@ -562,6 +571,32 @@ impl DomTree {
 
     pub fn parent_of(&self, bid: BlockID) -> Option<BlockID> {
         self[bid]
+    }
+
+    pub fn dump<W: std::io::Write + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
+        for (bid, parent) in self.parent.items() {
+            if parent.is_none() {
+                self.dump_subtree(out, bid, 0)?
+            }
+        }
+        Ok(())
+    }
+    fn dump_subtree<W: std::io::Write + ?Sized>(
+        &self,
+        out: &mut W,
+        bid: BlockID,
+        depth: usize,
+    ) -> std::io::Result<()> {
+        for _ in 0..depth {
+            write!(out, "|  ")?;
+        }
+        writeln!(out, "{:?}", bid)?;
+
+        for &child_bid in self.children_of(bid) {
+            self.dump_subtree(out, child_bid, depth + 1)?;
+        }
+
+        Ok(())
     }
 }
 

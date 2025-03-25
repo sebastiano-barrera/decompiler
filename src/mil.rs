@@ -70,10 +70,10 @@ impl RegType {
 pub enum Insn {
     True,
     False,
-    Const1(i8),
-    Const2(i16),
-    Const4(i32),
-    Const8(i64),
+    Const {
+        value: i64,
+        size: u8,
+    },
     Get(Reg),
 
     Part {
@@ -92,23 +92,13 @@ pub enum Insn {
         // larger size are definitely possible
         size: u32,
     },
-    Widen1_2(Reg),
-    Widen1_4(Reg),
-    Widen1_8(Reg),
-    Widen2_4(Reg),
-    Widen2_8(Reg),
-    Widen4_8(Reg),
+    Widen {
+        reg: Reg,
+        target_size: u8,
+    },
 
-    Arith1(ArithOp, Reg, Reg),
-    Arith2(ArithOp, Reg, Reg),
-    Arith4(ArithOp, Reg, Reg),
-    Arith8(ArithOp, Reg, Reg),
-
-    ArithK1(ArithOp, Reg, i64),
-    ArithK2(ArithOp, Reg, i64),
-    ArithK4(ArithOp, Reg, i64),
-    ArithK8(ArithOp, Reg, i64),
-
+    Arith(ArithOp, Reg, Reg),
+    ArithK(ArithOp, Reg, i64),
     Cmp(CmpOp, Reg, Reg),
     Bool(BoolOp, Reg, Reg),
     Not(Reg),
@@ -130,7 +120,6 @@ pub enum Insn {
     CArg(Reg),
     #[assoc(has_side_effects = true)]
     Ret(Reg),
-    #[allow(dead_code)]
     #[assoc(has_side_effects = true)]
     JmpInd(Reg),
     #[assoc(has_side_effects = true)]
@@ -152,10 +141,10 @@ pub enum Insn {
     #[assoc(has_side_effects = true)]
     TODO(&'static str),
 
-    LoadMem1(Reg),
-    LoadMem2(Reg),
-    LoadMem4(Reg),
-    LoadMem8(Reg),
+    LoadMem {
+        reg: Reg,
+        size: i32,
+    },
     StoreMem(Reg, Reg),
 
     OverflowOf(Reg),
@@ -171,27 +160,14 @@ pub enum Insn {
     ///
     /// Exists purely to give the phi node an index that the rest of the program can refer to (in
     /// SSA).
-    Phi {
-        size: usize,
-    },
-    PhiBool,
+    Phi,
 
-    // argument to a phi node
-    //
-    //   - args to the same phi node are all adjacent, forming a 'group'
-    //      - always the same number as there are predecessors.
-    //      - their order matches the order of the block's predecessors in the CFG.
-    //   - all the groups in the same block are also adjacent
-    // e.g.  3 phis on a block with 2 predecessors: B5, B7
-    //   B3:
-    //     PhiArg r2   ;; --+-- phi0 <- B5:r2  B7:r8
-    //     PhiArg r8   ;; --'
-    //     PhiArg r11  ;; --+-- phi1 <- B5:r11 B7:r29
-    //     PhiArg r29  ;; --'
-    //     PhiArg r93  ;; --+-- phi2 <- B5:r93 B7:r332
-    //     PhiArg r332 ;; --'
-    //     ... ;; normal insns
-    PhiArg(Reg),
+    // must be marked with has_side_effects = true, in order to be associated to specific basic blocks
+    #[assoc(has_side_effects = true)]
+    Upsilon {
+        value: Reg,
+        phi_ref: Reg,
+    },
 }
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
@@ -252,16 +228,12 @@ impl Insn {
         match self {
             Insn::False
             | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
+            | Insn::Const { .. }
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi { size: _ }
-            | Insn::PhiBool
+            | Insn::Phi
             | Insn::Ancestral(_) => [None, None],
 
             Insn::Part {
@@ -270,16 +242,11 @@ impl Insn {
                 size: _,
             }
             | Insn::Get(reg)
-            | Insn::ArithK1(_, reg, _)
-            | Insn::ArithK2(_, reg, _)
-            | Insn::ArithK4(_, reg, _)
-            | Insn::ArithK8(_, reg, _)
-            | Insn::Widen1_2(reg)
-            | Insn::Widen1_4(reg)
-            | Insn::Widen1_8(reg)
-            | Insn::Widen2_4(reg)
-            | Insn::Widen2_8(reg)
-            | Insn::Widen4_8(reg)
+            | Insn::ArithK(_, reg, _)
+            | Insn::Widen {
+                reg,
+                target_size: _,
+            }
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpInd(reg)
@@ -288,10 +255,7 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem1(reg)
-            | Insn::LoadMem2(reg)
-            | Insn::LoadMem4(reg)
-            | Insn::LoadMem8(reg)
+            | Insn::LoadMem { reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -299,18 +263,18 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
             | Insn::StructGetMember {
                 struct_value: reg,
                 name: _,
                 size: _,
+            }
+            | Insn::Upsilon {
+                value: reg,
+                phi_ref: _,
             } => [Some(reg), None],
 
             Insn::Concat { lo: a, hi: b }
-            | Insn::Arith1(_, a, b)
-            | Insn::Arith2(_, a, b)
-            | Insn::Arith4(_, a, b)
-            | Insn::Arith8(_, a, b)
+            | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
@@ -327,16 +291,12 @@ impl Insn {
         match self {
             Insn::False
             | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
+            | Insn::Const { .. }
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi { size: _ }
-            | Insn::PhiBool
+            | Insn::Phi
             | Insn::Ancestral(_) => [None, None],
 
             Insn::Part {
@@ -345,16 +305,11 @@ impl Insn {
                 size: _,
             }
             | Insn::Get(reg)
-            | Insn::ArithK1(_, reg, _)
-            | Insn::ArithK2(_, reg, _)
-            | Insn::ArithK4(_, reg, _)
-            | Insn::ArithK8(_, reg, _)
-            | Insn::Widen1_2(reg)
-            | Insn::Widen1_4(reg)
-            | Insn::Widen1_8(reg)
-            | Insn::Widen2_4(reg)
-            | Insn::Widen2_8(reg)
-            | Insn::Widen4_8(reg)
+            | Insn::ArithK(_, reg, _)
+            | Insn::Widen {
+                reg,
+                target_size: _,
+            }
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpInd(reg)
@@ -363,10 +318,7 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem1(reg)
-            | Insn::LoadMem2(reg)
-            | Insn::LoadMem4(reg)
-            | Insn::LoadMem8(reg)
+            | Insn::LoadMem { reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -374,34 +326,28 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
             | Insn::StructGetMember {
                 struct_value: reg,
                 name: _,
                 size: _,
+            }
+            | Insn::Upsilon {
+                value: reg,
+                phi_ref: _,
             } => [Some(reg), None],
 
-            Insn::Concat { lo: b, hi: a }
-            | Insn::Arith1(_, a, b)
-            | Insn::Arith2(_, a, b)
-            | Insn::Arith4(_, a, b)
-            | Insn::Arith8(_, a, b)
+            Insn::Concat { lo: a, hi: b }
+            | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
         }
     }
 
+    // TODO replace this with more general predicates for "allowed for mil" and "allowed for ssa"
     #[inline(always)]
     pub fn is_phi(&self) -> bool {
-        matches!(
-            self,
-            Insn::Phi { size: 1 }
-                | Insn::Phi { size: 2 }
-                | Insn::Phi { size: 4 }
-                | Insn::Phi { size: 8 }
-                | Insn::PhiBool
-        )
+        matches!(self, Insn::Phi)
     }
 }
 
@@ -464,30 +410,6 @@ impl Program {
             })
     }
 
-    pub fn get_phi_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
-        let ndx = ndx as usize;
-        let phi_insn = self.insns[ndx].get();
-        assert!(phi_insn.is_phi());
-        self.insns
-            .iter()
-            .skip(ndx + 1)
-            .map_while(|i| match i.get() {
-                Insn::PhiArg(arg) => Some(arg),
-                _ => None,
-            })
-    }
-
-    pub fn map_phi_args(&self, ndx: Index, f: impl Fn(Reg) -> Reg) {
-        let ndx = ndx as usize;
-        let phi_insn = self.insns[ndx].get();
-        assert!(phi_insn.is_phi());
-        self.insns.iter().skip(ndx + 1).for_each(|i| {
-            if let Insn::PhiArg(arg) = i.get() {
-                i.set(Insn::PhiArg(f(arg)))
-            }
-        })
-    }
-
     #[inline(always)]
     pub fn reg_count(&self) -> Index {
         self.reg_count
@@ -509,6 +431,13 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.addrs.push(u64::MAX);
         index
+    }
+
+    pub fn push_new(&mut self, insn: Insn) -> Index {
+        let dest = Reg(self.len());
+        let ndx = self.push(dest, insn);
+        assert_eq!(Reg(ndx), dest);
+        ndx
     }
 
     pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
