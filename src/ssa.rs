@@ -127,7 +127,6 @@ impl Program {
                 // all match, then return the size
                 todo!("size of phi")
             }
-            Insn::PhiBool => RegType::Bool,
             Insn::Ancestral(anc_name) => self
                 .inner
                 .ancestor_type(anc_name)

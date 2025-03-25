@@ -247,7 +247,7 @@ impl<'a> Ast<'a> {
             Insn::Undefined => "Undefined".into(),
             Insn::Ancestral(anc_name) => return write!(pp, "pre:{}", anc_name.name()),
 
-            Insn::Phi | Insn::PhiBool => return write!(pp, "r{}", iv.dest.get().reg_index()),
+            Insn::Phi => return write!(pp, "phi"),
             Insn::Jmp(_) => {
                 // hidden, handled by pp_block
                 return Ok(());

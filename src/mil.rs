@@ -159,7 +159,6 @@ pub enum Insn {
     /// Exists purely to give the phi node an index that the rest of the program can refer to (in
     /// SSA).
     Phi,
-    PhiBool,
 
     // must be marked with has_side_effects = true, in order to be associated to specific basic blocks
     #[assoc(has_side_effects = true)]
@@ -233,7 +232,6 @@ impl Insn {
             | Insn::TODO(_)
             | Insn::Undefined
             | Insn::Phi
-            | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
             Insn::Part {
@@ -296,7 +294,6 @@ impl Insn {
             | Insn::TODO(_)
             | Insn::Undefined
             | Insn::Phi
-            | Insn::PhiBool
             | Insn::Ancestral(_) => [None, None],
 
             Insn::Part {
@@ -343,9 +340,10 @@ impl Insn {
         }
     }
 
+    // TODO replace this with more general predicates for "allowed for mil" and "allowed for ssa"
     #[inline(always)]
     pub fn is_phi(&self) -> bool {
-        matches!(self, Insn::Phi | Insn::PhiBool)
+        matches!(self, Insn::Phi)
     }
 }
 
