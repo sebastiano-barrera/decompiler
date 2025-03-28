@@ -5,17 +5,27 @@
 
 from dataclasses import dataclass
 from typing import List
+from tempfile import NamedTemporaryFile
+from pprint import pprint
+import subprocess
 import random
 import itertools
+import sys
 
 
 class Type:
-    pass
+    @property
+    def decl(self):
+        return ''
 
 
 @dataclass
 class Scalar(Type):
     c_repr: str
+
+    def decorate_var(self, name):
+        return f'{self.c_repr} {name}'
+        
 
 
 @dataclass
@@ -27,9 +37,27 @@ class Struct(Type):
     def c_repr(self):
         lines = [ "struct {} {{".format(self.name) ]
         for i, typ in enumerate(self.members):
-            lines.append('  {:15} memb{};'.format(typ.c_repr, i))
+            name = f'memb{i}'
+            decl = typ.decorate_var(name)
+            lines.append(f'  {decl};')
         lines.append("};")
         return "\n".join(lines)
+
+    @property
+    def decl(self):
+        return self.c_repr
+
+    def decorate_var(self, var_name):
+        return f'struct {self.name} {var_name}'
+
+@dataclass
+class Array(Type):
+    element_type: Type
+    count: int
+
+    def decorate_var(self, var_name):
+        sub = self.element_type.decorate_var(var_name)
+        return f'{sub}[{self.count}]'
 
 
 scalar_types = [
@@ -37,43 +65,76 @@ scalar_types = [
     Scalar('short int'),
     Scalar('int'),
     Scalar('long long int'),
-    Scalar('char*'),
+    Scalar('void*'),
     Scalar('float'),
     Scalar('double'),
 ]
 
 
-def gen_type():
-    yield from scalar_types
+def gen_pre_targets():
+    yield Scalar('long long int')
+    yield Scalar('void*')
+    yield Scalar('double')
+
+
+def gen_targets():
+    yield Scalar('char')
+    yield Scalar('short int')
+    yield Scalar('int')
+    yield Scalar('long long int')
+    yield Scalar('void*')
+    yield Scalar('float')
+    yield Scalar('double')
+    yield from gen_structs()
+
+
+def gen_seq(seq_len):
+    for seq_pre in itertools.combinations_with_replacement(gen_pre_targets(), seq_len - 1):
+        for target in gen_targets():
+            yield list(seq_pre) + [target]
 
 
 def gen():
-    return itertools.permutations(gen_type())
+    for seq_len in range(1, 10):
+        for seq in gen_seq(seq_len):
+            yield seq
 
 
-def test_c_code(arg_types):
+def gen_struct_member():
+    yield Scalar('int')
+    yield Scalar('long long int')
+    yield Scalar('float')
+    yield Scalar('double')
+    yield Scalar('void*')
+    yield Array(Scalar('short'), 3)
+    yield Array(Scalar('void*'), 5)
+
+def gen_structs():
+    for memb_count in range(5):
+        for memb_types in itertools.combinations(gen_struct_member(), memb_count):
+            yield Struct(name='s', members=memb_types)
+                
+     
+def test_c_code(name, arg_types):
     args_s = ', '.join([
-        '{} arg{}'.format(t.c_repr, i)
+        t.decorate_var('arg') if i == (len(arg_types) - 1) else ''
         for i, t in enumerate(arg_types)
     ])
 
-    return '\n'.join([
-        'int func({}) {{'.format(args_s),
-        '  asm(',
-        '    ";; target = %0"',
-        '    : /* outputs */',
-        '    : "X" (arg2) /* inputs */',
-        '    : /* clobbers */',
-        '  );',
-        '',
-        '  return 123;',
-        '}',
-    ])
+    return '\n'.join(
+        [ t.decl for t in arg_types ] + [
+            'int {}({}) {{'.format(name, args_s),
+            '  asm(',
+            '    ";; target = %0"',
+            '    : /* outputs */',
+            '    : "X" (arg) /* inputs */',
+            '    : /* clobbers */',
+            '  );',
+            '',
+            '  return 123;',
+            '}',
+        ])
 
-
-from tempfile import NamedTemporaryFile
-from pprint import pprint
-import subprocess
 
 def compile(source):
     import shlex
@@ -84,7 +145,7 @@ def compile(source):
             srcf.close()
         
             cmd = ['cc', '-march=native', '-O3', '-S', srcf.name, '-o', asmf.name]
-            subprocess.call(cmd)
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
             asmf.seek(0)
             asm = asmf.read()
@@ -96,21 +157,28 @@ def main():
     from collections import defaultdict
 
     for arg_types in gen():
-        src = test_c_code(arg_types)
+        src = test_c_code(name='func', arg_types=arg_types)
+
         # print('--- src')
         # print(src)
         # print('--- compile')
-        asm = compile(src)
+        try:
+            asm = compile(src)
+        except subprocess.CalledProcessError as err:
+            print('failed to compile the following program:')
+            for line in src.splitlines():
+                print('>', line)
+            print(err)
+            print(err.output.decode('utf8'))
+            sys.exit(1)
 
         key_line = next(line for line in asm.splitlines() if ';; target = ' in line)
-        t = (arg_types[0].c_repr, arg_types[1].c_repr, arg_types[2].c_repr, key_line)
-        counter[t] += 1
-        print('{:20}, {:20}, {:20} {}'.format(
-            arg_types[0].c_repr,
-            arg_types[1].c_repr,
-            arg_types[2].c_repr,
+        t = tuple(arg_types + [key_line])
+        print('{} -> {}'.format(
+            ', '.join(t.c_repr for t in arg_types),
             key_line,
         ))
+
 
         
 if __name__ == "__main__":
