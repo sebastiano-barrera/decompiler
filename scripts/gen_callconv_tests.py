@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 
-
-# import click
-
 from dataclasses import dataclass
-from typing import List
+from typing import Tuple
 from tempfile import NamedTemporaryFile
 from pprint import pprint
 import subprocess
@@ -13,31 +10,36 @@ import itertools
 import sys
 
 
+@dataclass(frozen=True)
 class Type:
     @property
     def decl(self):
         return ''
 
+    def iter_targets(self, self_name):
+        raise NotYetImplemented()
 
-@dataclass
+
+@dataclass(frozen=True)
 class Scalar(Type):
     c_repr: str
 
     def decorate_var(self, name):
         return f'{self.c_repr} {name}'
-        
+
+    def iter_targets(self, self_name):
+        yield self_name, self
 
 
-@dataclass
+@dataclass(frozen=True)
 class Struct(Type):
     name: str
-    members: List[Type]
+    member_types: Tuple[Type]
 
     @property
     def c_repr(self):
         lines = [ "struct {} {{".format(self.name) ]
-        for i, typ in enumerate(self.members):
-            name = f'memb{i}'
+        for i, (name, typ) in enumerate(self.members):
             decl = typ.decorate_var(name)
             lines.append(f'  {decl};')
         lines.append("};")
@@ -50,7 +52,21 @@ class Struct(Type):
     def decorate_var(self, var_name):
         return f'struct {self.name} {var_name}'
 
-@dataclass
+    @property
+    def member_names(self):
+        for i in range(len(self.member_types)):
+            yield f'member{i}'
+    
+    @property
+    def members(self):
+        return list(zip(self.member_names, self.member_types))
+
+    def iter_targets(self, self_name):
+        for name, ty in self.members:
+            yield from ty.iter_targets(f'{self_name}.{name}')
+    
+
+@dataclass(frozen=True)
 class Array(Type):
     element_type: Type
     count: int
@@ -59,6 +75,10 @@ class Array(Type):
         sub = self.element_type.decorate_var(var_name)
         return f'{sub}[{self.count}]'
 
+    def iter_targets(self, self_name):
+        for i in range(self.count):
+            yield f'{self_name}[{i}]', self.element_type
+    
 
 scalar_types = [
     Scalar('char'),
@@ -72,68 +92,100 @@ scalar_types = [
 
 
 def gen_pre_targets():
-    yield Scalar('long long int')
     yield Scalar('void*')
     yield Scalar('double')
+    # just one big struct, just to put something in memory
+    yield next(gen_structs_with(memb_count=5))
 
 
-def gen_targets():
-    yield Scalar('char')
-    yield Scalar('short int')
-    yield Scalar('int')
-    yield Scalar('long long int')
-    yield Scalar('void*')
-    yield Scalar('float')
-    yield Scalar('double')
-    yield from gen_structs()
+def gen_target_types():
+    return [
+        Scalar('char'),
+        Scalar('short int'),
+        Scalar('int'),
+        Scalar('long long int'),
+        Scalar('void*'),
+        Scalar('float'),
+        Scalar('double'),
+        small_struct,
+        small_struct_floats,
+        big_struct,
+    ]
 
+small_struct = Struct(
+    name='small',
+    member_types=tuple([
+        Scalar('void*'),
+        Scalar('float'),
+        Scalar('uint8_t'),
+    ])
+)
 
-def gen_seq(seq_len):
-    for seq_pre in itertools.combinations_with_replacement(gen_pre_targets(), seq_len - 1):
-        for target in gen_targets():
-            yield list(seq_pre) + [target]
+small_struct_floats = Struct(
+    name='small_xmms',
+    member_types=tuple([
+        Scalar('float'),
+        Scalar('double'),
+    ])
+)
 
+big_struct = Struct(
+    name='big',
+    member_types=tuple([
+        Scalar('float'),
+        Scalar('double'),
+        Scalar('void*'),
+        Scalar('uint8_t'),        
+        Array(
+            count=3,
+            element_type=Scalar('uint8_t'),
+        ),
+    ])
+)
+
+def gen_seqs_with_len(seq_len):
+    seq = [Scalar('void*') for _ in range(seq_len)]
+
+    if seq_len >= 2:
+        seq[seq_len - 2] = small_struct
+
+    for target_type in gen_target_types():
+        seq[-1] = target_type
+        yield seq
+
+def gen_seqs():
+    # for seq_len 1..=6 we expect mostly passing via registers;
+    # going up to 8 ensure some usage of the stack even for integers
+    for seq_len in range(1, 8):
+        yield from gen_seqs_with_len(seq_len)
+
+def attach_names(seq):
+    return [
+        (f"arg{i}", ty)
+        for i, ty in enumerate(seq)
+    ]
 
 def gen():
-    for seq_len in range(1, 10):
-        for seq in gen_seq(seq_len):
-            yield seq
+    for seq in gen_seqs():
+        named = attach_names(seq)
+        target_name, target_ty = named[-1]
+        for tgt_name, tgt_ty in target_ty.iter_targets(target_name):
+            yield (tgt_name, tgt_ty, named)
 
 
-def gen_struct_member():
-    yield Scalar('int')
-    yield Scalar('long long int')
-    yield Scalar('float')
-    yield Scalar('double')
-    yield Scalar('void*')
-    yield Array(Scalar('short'), 3)
-    yield Array(Scalar('void*'), 5)
-
-def gen_structs():
-    for memb_count in range(5):
-        for memb_types in itertools.combinations(gen_struct_member(), memb_count):
-            yield Struct(name='s', members=memb_types)
-                
-     
-def test_c_code(name, arg_types):
+def func_code(func_name, target_name, target_ty, named_args):
     args_s = ', '.join([
-        t.decorate_var('arg') if i == (len(arg_types) - 1) else ''
-        for i, t in enumerate(arg_types)
+        arg_ty.decorate_var(arg_name)
+        for arg_name, arg_ty in named_args
     ])
+    func_declarator = f'{func_name}({args_s})'
+    decl = target_ty.decorate_var(func_declarator)
 
-    return '\n'.join(
-        [ t.decl for t in arg_types ] + [
-            'int {}({}) {{'.format(name, args_s),
-            '  asm(',
-            '    ";; target = %0"',
-            '    : /* outputs */',
-            '    : "X" (arg) /* inputs */',
-            '    : /* clobbers */',
-            '  );',
-            '',
-            '  return 123;',
-            '}',
-        ])
+    return '\n'.join([
+        f'{decl} {{',
+        f'  return {target_name};',
+        '}',
+    ])
 
 
 def compile(source):
@@ -143,7 +195,7 @@ def compile(source):
         with NamedTemporaryFile(mode='r+', suffix='.S') as asmf:
             srcf.write(source)
             srcf.close()
-        
+
             cmd = ['cc', '-march=native', '-O3', '-S', srcf.name, '-o', asmf.name]
             subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
@@ -151,36 +203,29 @@ def compile(source):
             asm = asmf.read()
             return asm
 
-   
+
 def main():
-    from pprint import pprint
-    from collections import defaultdict
+    types_declared = set()
 
-    for arg_types in gen():
-        src = test_c_code(name='func', arg_types=arg_types)
+    print('#include <stdint.h>')
 
-        # print('--- src')
-        # print(src)
-        # print('--- compile')
-        try:
-            asm = compile(src)
-        except subprocess.CalledProcessError as err:
-            print('failed to compile the following program:')
-            for line in src.splitlines():
-                print('>', line)
-            print(err)
-            print(err.output.decode('utf8'))
-            sys.exit(1)
-
-        key_line = next(line for line in asm.splitlines() if ';; target = ' in line)
-        t = tuple(arg_types + [key_line])
-        print('{} -> {}'.format(
-            ', '.join(t.c_repr for t in arg_types),
-            key_line,
-        ))
-
-
+    for i, (target_name, target_ty, named_args) in enumerate(gen()):
+        func_name = f'func{i}'
+    
+        for _, ty in named_args:
+            if ty in types_declared:
+                continue
+            print(ty.decl)
+            types_declared.add(ty)
         
+        src = func_code(
+            func_name=func_name,
+            target_name=target_name,
+            target_ty=target_ty,
+            named_args=named_args,
+        )
+        print(src)
+
+
 if __name__ == "__main__":
     main()
-
