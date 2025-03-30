@@ -1,31 +1,26 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
-from typing import Tuple
-from tempfile import NamedTemporaryFile
-from pprint import pprint
-import subprocess
-import random
-import itertools
-import sys
+from typing import Sequence
 
 
 @dataclass(frozen=True)
 class Type:
     @property
     def decl(self):
-        return ''
-
+        raise NotImplementedError()
     def iter_targets(self, self_name):
-        raise NotYetImplemented()
+        raise NotImplementedError()
+    def decorate_var(self, decl):
+        raise NotImplementedError()
 
 
 @dataclass(frozen=True)
 class Scalar(Type):
     c_repr: str
 
-    def decorate_var(self, name):
-        return f'{self.c_repr} {name}'
+    def decorate_var(self, decl):
+        return f'{self.c_repr} {decl}'
 
     def iter_targets(self, self_name):
         yield self_name, self
@@ -34,7 +29,7 @@ class Scalar(Type):
 @dataclass(frozen=True)
 class Struct(Type):
     name: str
-    member_types: Tuple[Type]
+    member_types: Sequence[Type]
 
     @property
     def c_repr(self):
@@ -49,14 +44,14 @@ class Struct(Type):
     def decl(self):
         return self.c_repr
 
-    def decorate_var(self, var_name):
-        return f'struct {self.name} {var_name}'
+    def decorate_var(self, decl):
+        return f'struct {self.name} {decl}'
 
     @property
     def member_names(self):
         for i in range(len(self.member_types)):
             yield f'member{i}'
-    
+
     @property
     def members(self):
         return list(zip(self.member_names, self.member_types))
@@ -64,21 +59,21 @@ class Struct(Type):
     def iter_targets(self, self_name):
         for name, ty in self.members:
             yield from ty.iter_targets(f'{self_name}.{name}')
-    
+
 
 @dataclass(frozen=True)
 class Array(Type):
     element_type: Type
     count: int
 
-    def decorate_var(self, var_name):
-        sub = self.element_type.decorate_var(var_name)
+    def decorate_var(self, decl):
+        sub = self.element_type.decorate_var(decl)
         return f'{sub}[{self.count}]'
 
     def iter_targets(self, self_name):
         for i in range(self.count):
             yield f'{self_name}[{i}]', self.element_type
-    
+
 
 scalar_types = [
     Scalar('char'),
@@ -95,7 +90,7 @@ def gen_pre_targets():
     yield Scalar('void*')
     yield Scalar('double')
     # just one big struct, just to put something in memory
-    yield next(gen_structs_with(memb_count=5))
+    yield big_struct
 
 
 def gen_target_types():
@@ -135,7 +130,7 @@ big_struct = Struct(
         Scalar('float'),
         Scalar('double'),
         Scalar('void*'),
-        Scalar('uint8_t'),        
+        Scalar('uint8_t'),
         Array(
             count=3,
             element_type=Scalar('uint8_t'),
@@ -188,22 +183,6 @@ def func_code(func_name, target_name, target_ty, named_args):
     ])
 
 
-def compile(source):
-    import shlex
-
-    with NamedTemporaryFile(mode='w', suffix='.c', delete_on_close=False) as srcf:
-        with NamedTemporaryFile(mode='r+', suffix='.S') as asmf:
-            srcf.write(source)
-            srcf.close()
-
-            cmd = ['cc', '-march=native', '-O3', '-S', srcf.name, '-o', asmf.name]
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-
-            asmf.seek(0)
-            asm = asmf.read()
-            return asm
-
-
 def main():
     types_declared = set()
 
@@ -211,13 +190,13 @@ def main():
 
     for i, (target_name, target_ty, named_args) in enumerate(gen()):
         func_name = f'func{i}'
-    
+
         for _, ty in named_args:
             if ty in types_declared:
                 continue
             print(ty.decl)
             types_declared.add(ty)
-        
+
         src = func_code(
             func_name=func_name,
             target_name=target_name,
