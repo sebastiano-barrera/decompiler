@@ -1,30 +1,30 @@
 #include <stdint.h>
 
-char func0(char arg0) {
+char func000(char arg0) {
   return arg0;
 }
 
-short int func1(short int arg0) {
+short int func001(short int arg0) {
   return arg0;
 }
 
-int func2(int arg0) {
+int func002(int arg0) {
   return arg0;
 }
 
-long long int func3(long long int arg0) {
+long long int func003(long long int arg0) {
   return arg0;
 }
 
-void* func4(void* arg0) {
+void* func004(void* arg0) {
   return arg0;
 }
 
-float func5(float arg0) {
+float func005(float arg0) {
   return arg0;
 }
 
-double func6(double arg0) {
+double func006(double arg0) {
   return arg0;
 }
 struct small {
@@ -32,23 +32,23 @@ struct small {
   float member1;
   uint8_t member2;
 };
-void* func7(struct small arg0) {
+void* func007(struct small arg0) {
   return arg0.member0;
 }
-float func8(struct small arg0) {
+float func008(struct small arg0) {
   return arg0.member1;
 }
-uint8_t func9(struct small arg0) {
+uint8_t func009(struct small arg0) {
   return arg0.member2;
 }
 struct small_xmms {
   float member0;
   double member1;
 };
-float func10(struct small_xmms arg0) {
+float func010(struct small_xmms arg0) {
   return arg0.member0;
 }
-double func11(struct small_xmms arg0) {
+double func011(struct small_xmms arg0) {
   return arg0.member1;
 }
 struct big {
@@ -58,268 +58,268 @@ struct big {
   uint8_t member3;
   uint8_t member4[3];
 };
-float func12(struct big arg0) {
+float func012(struct big arg0) {
   return arg0.member0;
 }
-double func13(struct big arg0) {
+double func013(struct big arg0) {
   return arg0.member1;
 }
-void* func14(struct big arg0) {
+void* func014(struct big arg0) {
   return arg0.member2;
 }
-uint8_t func15(struct big arg0) {
+uint8_t func015(struct big arg0) {
   return arg0.member3;
 }
-uint8_t func16(struct big arg0) {
+uint8_t func016(struct big arg0) {
   return arg0.member4[0];
 }
-uint8_t func17(struct big arg0) {
+uint8_t func017(struct big arg0) {
   return arg0.member4[1];
 }
-uint8_t func18(struct big arg0) {
+uint8_t func018(struct big arg0) {
   return arg0.member4[2];
 }
-char func19(struct small arg0, char arg1) {
+char func019(struct small arg0, char arg1) {
   return arg1;
 }
-short int func20(struct small arg0, short int arg1) {
+short int func020(struct small arg0, short int arg1) {
   return arg1;
 }
-int func21(struct small arg0, int arg1) {
+int func021(struct small arg0, int arg1) {
   return arg1;
 }
-long long int func22(struct small arg0, long long int arg1) {
+long long int func022(struct small arg0, long long int arg1) {
   return arg1;
 }
-void* func23(struct small arg0, void* arg1) {
+void* func023(struct small arg0, void* arg1) {
   return arg1;
 }
-float func24(struct small arg0, float arg1) {
+float func024(struct small arg0, float arg1) {
   return arg1;
 }
-double func25(struct small arg0, double arg1) {
+double func025(struct small arg0, double arg1) {
   return arg1;
 }
-void* func26(struct small arg0, struct small arg1) {
+void* func026(struct small arg0, struct small arg1) {
   return arg1.member0;
 }
-float func27(struct small arg0, struct small arg1) {
+float func027(struct small arg0, struct small arg1) {
   return arg1.member1;
 }
-uint8_t func28(struct small arg0, struct small arg1) {
+uint8_t func028(struct small arg0, struct small arg1) {
   return arg1.member2;
 }
-float func29(struct small arg0, struct small_xmms arg1) {
+float func029(struct small arg0, struct small_xmms arg1) {
   return arg1.member0;
 }
-double func30(struct small arg0, struct small_xmms arg1) {
+double func030(struct small arg0, struct small_xmms arg1) {
   return arg1.member1;
 }
-float func31(struct small arg0, struct big arg1) {
+float func031(struct small arg0, struct big arg1) {
   return arg1.member0;
 }
-double func32(struct small arg0, struct big arg1) {
+double func032(struct small arg0, struct big arg1) {
   return arg1.member1;
 }
-void* func33(struct small arg0, struct big arg1) {
+void* func033(struct small arg0, struct big arg1) {
   return arg1.member2;
 }
-uint8_t func34(struct small arg0, struct big arg1) {
+uint8_t func034(struct small arg0, struct big arg1) {
   return arg1.member3;
 }
-uint8_t func35(struct small arg0, struct big arg1) {
+uint8_t func035(struct small arg0, struct big arg1) {
   return arg1.member4[0];
 }
-uint8_t func36(struct small arg0, struct big arg1) {
+uint8_t func036(struct small arg0, struct big arg1) {
   return arg1.member4[1];
 }
-uint8_t func37(struct small arg0, struct big arg1) {
+uint8_t func037(struct small arg0, struct big arg1) {
   return arg1.member4[2];
 }
-char func38(void* arg0, struct small arg1, char arg2) {
+char func038(void* arg0, struct small arg1, char arg2) {
   return arg2;
 }
-short int func39(void* arg0, struct small arg1, short int arg2) {
+short int func039(void* arg0, struct small arg1, short int arg2) {
   return arg2;
 }
-int func40(void* arg0, struct small arg1, int arg2) {
+int func040(void* arg0, struct small arg1, int arg2) {
   return arg2;
 }
-long long int func41(void* arg0, struct small arg1, long long int arg2) {
+long long int func041(void* arg0, struct small arg1, long long int arg2) {
   return arg2;
 }
-void* func42(void* arg0, struct small arg1, void* arg2) {
+void* func042(void* arg0, struct small arg1, void* arg2) {
   return arg2;
 }
-float func43(void* arg0, struct small arg1, float arg2) {
+float func043(void* arg0, struct small arg1, float arg2) {
   return arg2;
 }
-double func44(void* arg0, struct small arg1, double arg2) {
+double func044(void* arg0, struct small arg1, double arg2) {
   return arg2;
 }
-void* func45(void* arg0, struct small arg1, struct small arg2) {
+void* func045(void* arg0, struct small arg1, struct small arg2) {
   return arg2.member0;
 }
-float func46(void* arg0, struct small arg1, struct small arg2) {
+float func046(void* arg0, struct small arg1, struct small arg2) {
   return arg2.member1;
 }
-uint8_t func47(void* arg0, struct small arg1, struct small arg2) {
+uint8_t func047(void* arg0, struct small arg1, struct small arg2) {
   return arg2.member2;
 }
-float func48(void* arg0, struct small arg1, struct small_xmms arg2) {
+float func048(void* arg0, struct small arg1, struct small_xmms arg2) {
   return arg2.member0;
 }
-double func49(void* arg0, struct small arg1, struct small_xmms arg2) {
+double func049(void* arg0, struct small arg1, struct small_xmms arg2) {
   return arg2.member1;
 }
-float func50(void* arg0, struct small arg1, struct big arg2) {
+float func050(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member0;
 }
-double func51(void* arg0, struct small arg1, struct big arg2) {
+double func051(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member1;
 }
-void* func52(void* arg0, struct small arg1, struct big arg2) {
+void* func052(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member2;
 }
-uint8_t func53(void* arg0, struct small arg1, struct big arg2) {
+uint8_t func053(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member3;
 }
-uint8_t func54(void* arg0, struct small arg1, struct big arg2) {
+uint8_t func054(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member4[0];
 }
-uint8_t func55(void* arg0, struct small arg1, struct big arg2) {
+uint8_t func055(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member4[1];
 }
-uint8_t func56(void* arg0, struct small arg1, struct big arg2) {
+uint8_t func056(void* arg0, struct small arg1, struct big arg2) {
   return arg2.member4[2];
 }
-char func57(void* arg0, void* arg1, struct small arg2, char arg3) {
+char func057(void* arg0, void* arg1, struct small arg2, char arg3) {
   return arg3;
 }
-short int func58(void* arg0, void* arg1, struct small arg2, short int arg3) {
+short int func058(void* arg0, void* arg1, struct small arg2, short int arg3) {
   return arg3;
 }
-int func59(void* arg0, void* arg1, struct small arg2, int arg3) {
+int func059(void* arg0, void* arg1, struct small arg2, int arg3) {
   return arg3;
 }
-long long int func60(void* arg0, void* arg1, struct small arg2, long long int arg3) {
+long long int func060(void* arg0, void* arg1, struct small arg2, long long int arg3) {
   return arg3;
 }
-void* func61(void* arg0, void* arg1, struct small arg2, void* arg3) {
+void* func061(void* arg0, void* arg1, struct small arg2, void* arg3) {
   return arg3;
 }
-float func62(void* arg0, void* arg1, struct small arg2, float arg3) {
+float func062(void* arg0, void* arg1, struct small arg2, float arg3) {
   return arg3;
 }
-double func63(void* arg0, void* arg1, struct small arg2, double arg3) {
+double func063(void* arg0, void* arg1, struct small arg2, double arg3) {
   return arg3;
 }
-void* func64(void* arg0, void* arg1, struct small arg2, struct small arg3) {
+void* func064(void* arg0, void* arg1, struct small arg2, struct small arg3) {
   return arg3.member0;
 }
-float func65(void* arg0, void* arg1, struct small arg2, struct small arg3) {
+float func065(void* arg0, void* arg1, struct small arg2, struct small arg3) {
   return arg3.member1;
 }
-uint8_t func66(void* arg0, void* arg1, struct small arg2, struct small arg3) {
+uint8_t func066(void* arg0, void* arg1, struct small arg2, struct small arg3) {
   return arg3.member2;
 }
-float func67(void* arg0, void* arg1, struct small arg2, struct small_xmms arg3) {
+float func067(void* arg0, void* arg1, struct small arg2, struct small_xmms arg3) {
   return arg3.member0;
 }
-double func68(void* arg0, void* arg1, struct small arg2, struct small_xmms arg3) {
+double func068(void* arg0, void* arg1, struct small arg2, struct small_xmms arg3) {
   return arg3.member1;
 }
-float func69(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+float func069(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member0;
 }
-double func70(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+double func070(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member1;
 }
-void* func71(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+void* func071(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member2;
 }
-uint8_t func72(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+uint8_t func072(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member3;
 }
-uint8_t func73(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+uint8_t func073(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member4[0];
 }
-uint8_t func74(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+uint8_t func074(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member4[1];
 }
-uint8_t func75(void* arg0, void* arg1, struct small arg2, struct big arg3) {
+uint8_t func075(void* arg0, void* arg1, struct small arg2, struct big arg3) {
   return arg3.member4[2];
 }
-char func76(void* arg0, void* arg1, void* arg2, struct small arg3, char arg4) {
+char func076(void* arg0, void* arg1, void* arg2, struct small arg3, char arg4) {
   return arg4;
 }
-short int func77(void* arg0, void* arg1, void* arg2, struct small arg3, short int arg4) {
+short int func077(void* arg0, void* arg1, void* arg2, struct small arg3, short int arg4) {
   return arg4;
 }
-int func78(void* arg0, void* arg1, void* arg2, struct small arg3, int arg4) {
+int func078(void* arg0, void* arg1, void* arg2, struct small arg3, int arg4) {
   return arg4;
 }
-long long int func79(void* arg0, void* arg1, void* arg2, struct small arg3, long long int arg4) {
+long long int func079(void* arg0, void* arg1, void* arg2, struct small arg3, long long int arg4) {
   return arg4;
 }
-void* func80(void* arg0, void* arg1, void* arg2, struct small arg3, void* arg4) {
+void* func080(void* arg0, void* arg1, void* arg2, struct small arg3, void* arg4) {
   return arg4;
 }
-float func81(void* arg0, void* arg1, void* arg2, struct small arg3, float arg4) {
+float func081(void* arg0, void* arg1, void* arg2, struct small arg3, float arg4) {
   return arg4;
 }
-double func82(void* arg0, void* arg1, void* arg2, struct small arg3, double arg4) {
+double func082(void* arg0, void* arg1, void* arg2, struct small arg3, double arg4) {
   return arg4;
 }
-void* func83(void* arg0, void* arg1, void* arg2, struct small arg3, struct small arg4) {
+void* func083(void* arg0, void* arg1, void* arg2, struct small arg3, struct small arg4) {
   return arg4.member0;
 }
-float func84(void* arg0, void* arg1, void* arg2, struct small arg3, struct small arg4) {
+float func084(void* arg0, void* arg1, void* arg2, struct small arg3, struct small arg4) {
   return arg4.member1;
 }
-uint8_t func85(void* arg0, void* arg1, void* arg2, struct small arg3, struct small arg4) {
+uint8_t func085(void* arg0, void* arg1, void* arg2, struct small arg3, struct small arg4) {
   return arg4.member2;
 }
-float func86(void* arg0, void* arg1, void* arg2, struct small arg3, struct small_xmms arg4) {
+float func086(void* arg0, void* arg1, void* arg2, struct small arg3, struct small_xmms arg4) {
   return arg4.member0;
 }
-double func87(void* arg0, void* arg1, void* arg2, struct small arg3, struct small_xmms arg4) {
+double func087(void* arg0, void* arg1, void* arg2, struct small arg3, struct small_xmms arg4) {
   return arg4.member1;
 }
-float func88(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+float func088(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member0;
 }
-double func89(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+double func089(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member1;
 }
-void* func90(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+void* func090(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member2;
 }
-uint8_t func91(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+uint8_t func091(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member3;
 }
-uint8_t func92(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+uint8_t func092(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member4[0];
 }
-uint8_t func93(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+uint8_t func093(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member4[1];
 }
-uint8_t func94(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
+uint8_t func094(void* arg0, void* arg1, void* arg2, struct small arg3, struct big arg4) {
   return arg4.member4[2];
 }
-char func95(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, char arg5) {
+char func095(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, char arg5) {
   return arg5;
 }
-short int func96(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, short int arg5) {
+short int func096(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, short int arg5) {
   return arg5;
 }
-int func97(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, int arg5) {
+int func097(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, int arg5) {
   return arg5;
 }
-long long int func98(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, long long int arg5) {
+long long int func098(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, long long int arg5) {
   return arg5;
 }
-void* func99(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, void* arg5) {
+void* func099(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, void* arg5) {
   return arg5;
 }
 float func100(void* arg0, void* arg1, void* arg2, void* arg3, struct small arg4, float arg5) {

@@ -7,8 +7,8 @@ from typing import Sequence
 @dataclass(frozen=True)
 class Type:
     @property
-    def decl(self):
-        raise NotImplementedError()
+    def decl(self) -> str:
+        return ''
     def iter_targets(self, self_name):
         raise NotImplementedError()
     def decorate_var(self, decl):
@@ -189,7 +189,7 @@ def main():
     print('#include <stdint.h>')
 
     for i, (target_name, target_ty, named_args) in enumerate(gen()):
-        func_name = f'func{i}'
+        func_name = 'func{:03}'.format(i)
 
         for _, ty in named_args:
             if ty in types_declared:
