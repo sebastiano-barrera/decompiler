@@ -184,9 +184,9 @@ impl<'a> Ast<'a> {
             }
             Insn::Concat { lo, hi } => {
                 self.pp_ref(pp, hi)?;
+                write!(pp, "⧺")?;
                 self.pp_ref(pp, lo)?;
                 return Ok(());
-                write!(pp, " ++ ")?;
             }
             Insn::Widen {
                 reg: _,
