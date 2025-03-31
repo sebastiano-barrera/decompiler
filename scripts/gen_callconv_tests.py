@@ -57,6 +57,7 @@ class Struct(Type):
         return list(zip(self.member_names, self.member_types))
 
     def iter_targets(self, self_name):
+        yield self_name, self
         for name, ty in self.members:
             yield from ty.iter_targets(f'{self_name}.{name}')
 
