@@ -3,7 +3,7 @@ use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 
 pub mod callconv;
 
@@ -11,6 +11,7 @@ pub struct Builder<'a> {
     pb: mil::ProgramBuilder,
     reg_gen: RegGen,
     types: Option<&'a ty::TypeSet>,
+    func_ty: Option<ty::Subroutine>,
 }
 
 impl<'a> Builder<'a> {
@@ -19,6 +20,7 @@ impl<'a> Builder<'a> {
             pb: mil::ProgramBuilder::new(),
             reg_gen: Self::reset_reg_gen(),
             types: None,
+            func_ty: None,
         };
 
         bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes(8));
@@ -63,8 +65,14 @@ impl<'a> Builder<'a> {
         self.pb.build()
     }
 
-    pub fn use_types(&mut self, types: &'a ty::TypeSet) {
+    pub fn use_types(
+        &mut self,
+        types: &'a ty::TypeSet,
+        func_ty: ty::Subroutine,
+    ) -> anyhow::Result<()> {
         self.types = Some(types);
+        self.func_ty = Some(func_ty);
+        Ok(())
     }
 
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
@@ -88,6 +96,12 @@ impl<'a> Builder<'a> {
         for reg_ndx in Self::R_TMP_FIRST.0..=Self::R_TMP_LAST.0 {
             let reg = mil::Reg(reg_ndx);
             self.emit(reg, mil::Insn::Undefined);
+        }
+
+        if let Some(func_ty) = self.func_ty.take() {
+            let res = callconv::read_func_params(&mut self, &func_ty.param_tyids);
+            self.func_ty = Some(func_ty);
+            res.context("while applying the calling convention for parameters")?;
         }
 
         for insn in insns {
@@ -471,8 +485,8 @@ impl<'a> Builder<'a> {
 
     fn emit_bit_op(
         &mut self,
-        a_sz: u8,
-        b_sz: u8,
+        a_sz: u16,
+        b_sz: u16,
         a: mil::Reg,
         b: mil::Reg,
         arith_op: mil::ArithOp,
@@ -499,7 +513,7 @@ impl<'a> Builder<'a> {
         self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
-    fn emit_arith(&mut self, a: mil::Reg, a_sz: u8, b: mil::Reg, b_sz: u8, op: mil::ArithOp) {
+    fn emit_arith(&mut self, a: mil::Reg, a_sz: u16, b: mil::Reg, b_sz: u16, op: mil::ArithOp) {
         assert!([1, 2, 4, 8].contains(&a_sz));
         assert!([1, 2, 4, 8].contains(&b_sz));
         let sz = a_sz.max(b_sz);
@@ -508,7 +522,7 @@ impl<'a> Builder<'a> {
         self.emit(a, mil::Insn::Arith(op, a, b));
     }
 
-    fn widen(&mut self, src: mil::Reg, tgt_sz: u8) {
+    fn widen(&mut self, src: mil::Reg, tgt_sz: u16) {
         self.emit(
             src,
             mil::Insn::Widen {
@@ -554,7 +568,7 @@ impl<'a> Builder<'a> {
         self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
-    fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u8 {
+    fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u16 {
         match insn.op_kind(op_ndx) {
             OpKind::Register => insn.op_register(op_ndx).size().try_into().unwrap(),
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => 8,
@@ -752,7 +766,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u8) {
+    fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u16) {
         let value = self.emit_read_value(insn, op_ndx);
         let sz = Self::op_size(insn, op_ndx);
         (value, sz)
@@ -763,7 +777,7 @@ impl<'a> Builder<'a> {
         insn: &iced_x86::Instruction,
         dest_op_ndx: u32,
         value: mil::Reg,
-        value_size: u8,
+        value_size: u16,
     ) {
         match insn.op_kind(dest_op_ndx) {
             OpKind::Register => {
@@ -823,7 +837,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn emit_write_machine_reg(&mut self, dest: Register, value_size: u8, value: mil::Reg) {
+    fn emit_write_machine_reg(&mut self, dest: Register, value_size: u16, value: mil::Reg) {
         let full_dest = Builder::xlat_reg(dest.full_register());
 
         if value_size == 8 {
@@ -926,6 +940,23 @@ impl<'a> Builder<'a> {
     const R14: mil::Reg = mil::Reg(26);
     const R15: mil::Reg = mil::Reg(27);
 
+    const ZMM0: mil::Reg = mil::Reg(28);
+    const ZMM1: mil::Reg = mil::Reg(29);
+    const ZMM2: mil::Reg = mil::Reg(30);
+    const ZMM3: mil::Reg = mil::Reg(31);
+    const ZMM4: mil::Reg = mil::Reg(32);
+    const ZMM5: mil::Reg = mil::Reg(33);
+    const ZMM6: mil::Reg = mil::Reg(34);
+    const ZMM7: mil::Reg = mil::Reg(35);
+    const ZMM8: mil::Reg = mil::Reg(36);
+    const ZMM9: mil::Reg = mil::Reg(37);
+    const ZMM10: mil::Reg = mil::Reg(38);
+    const ZMM11: mil::Reg = mil::Reg(39);
+    const ZMM12: mil::Reg = mil::Reg(40);
+    const ZMM13: mil::Reg = mil::Reg(41);
+    const ZMM14: mil::Reg = mil::Reg(42);
+    const ZMM15: mil::Reg = mil::Reg(43);
+
     const R_TMP_FIRST: mil::Reg = mil::Reg(28);
     const R_TMP_LAST: mil::Reg = mil::Reg(38);
 
@@ -954,6 +985,22 @@ impl<'a> Builder<'a> {
             Register::R13 => Self::R13,
             Register::R14 => Self::R14,
             Register::R15 => Self::R15,
+            Register::ZMM0 => Self::ZMM0,
+            Register::ZMM1 => Self::ZMM1,
+            Register::ZMM2 => Self::ZMM2,
+            Register::ZMM3 => Self::ZMM3,
+            Register::ZMM4 => Self::ZMM4,
+            Register::ZMM5 => Self::ZMM5,
+            Register::ZMM6 => Self::ZMM6,
+            Register::ZMM7 => Self::ZMM7,
+            Register::ZMM8 => Self::ZMM8,
+            Register::ZMM9 => Self::ZMM9,
+            Register::ZMM10 => Self::ZMM10,
+            Register::ZMM11 => Self::ZMM11,
+            Register::ZMM12 => Self::ZMM12,
+            Register::ZMM13 => Self::ZMM13,
+            Register::ZMM14 => Self::ZMM14,
+            Register::ZMM15 => Self::ZMM15,
             _ => panic!(
                 "unsupported register: {:?} (full: {:?})",
                 reg,

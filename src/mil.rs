@@ -78,8 +78,8 @@ pub enum Insn {
 
     Part {
         src: Reg,
-        offset: u8,
-        size: u8,
+        offset: u16,
+        size: u16,
     },
     Concat {
         lo: Reg,
@@ -94,7 +94,7 @@ pub enum Insn {
     },
     Widen {
         reg: Reg,
-        target_size: u8,
+        target_size: u16,
     },
 
     Arith(ArithOp, Reg, Reg),

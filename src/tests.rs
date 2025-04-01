@@ -1,6 +1,8 @@
 #![cfg(test)]
 
 mod callconv_x86_64 {
+    use std::sync::Arc;
+
     use crate::pp::PrettyPrinter;
     use crate::{ast, mil, ssa, ty, x86_to_mil};
 
@@ -35,6 +37,13 @@ mod callconv_x86_64 {
             name: "char".to_owned().into(),
             ty: ty::Ty::Int(ty::Int {
                 size: 1,
+                signed: ty::Signedness::Signed,
+            }),
+        });
+        let tyid_i32 = types.add(ty::Type {
+            name: "int".to_owned().into(),
+            ty: ty::Ty::Int(ty::Int {
+                size: 4,
                 signed: ty::Signedness::Signed,
             }),
         });
@@ -81,16 +90,20 @@ mod callconv_x86_64 {
         println!();
         let prog = {
             let mut b = x86_to_mil::Builder::new();
-            b.use_types(&types);
-            x86_to_mil::callconv::read_func_params(&mut b, &[tyid_name_item]).unwrap();
+            let func_ty = ty::Subroutine {
+                return_tyid: tyid_i32,
+                param_names: vec![Some(Arc::new("name_item".to_string()))],
+                param_tyids: vec![tyid_name_item],
+            };
+            b.use_types(&types, func_ty).unwrap();
             b.translate(input.iter().copied())
         }
         .unwrap();
-        let output = finish_prog(prog, &types).unwrap();
+        let output = finish_prog(prog).unwrap();
         insta::assert_snapshot!(output);
     }
 
-    fn finish_prog(prog: mil::Program, types: &ty::TypeSet) -> std::io::Result<String> {
+    fn finish_prog(prog: mil::Program) -> std::io::Result<String> {
         use std::io::Write;
 
         let mut out = Vec::new();
