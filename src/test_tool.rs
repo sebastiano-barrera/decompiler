@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("unsupported executable format: {0}")]
-    UnsupportedExecFormat(&'static str),
+    ExecIo(#[from] crate::elf::Error),
 
     #[error("I/O: {0}")]
     Io(#[from] std::io::Error),
@@ -27,17 +27,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
     Tester::start(raw_binary)?.process_function(function_name, out)
-}
-
-fn obj_format_name(object: &goblin::Object) -> &'static str {
-    match object {
-        goblin::Object::Elf(_) => "Elf",
-        goblin::Object::PE(_) => "PE",
-        goblin::Object::COFF(_) => "COFF",
-        goblin::Object::Mach(_) => "Mach",
-        goblin::Object::Archive(_) => "Archive",
-        _ => "Unknown",
-    }
 }
 
 pub struct Tester<'a> {
@@ -55,7 +44,7 @@ struct AddrRange {
 
 impl<'a> Tester<'a> {
     pub fn start(raw_binary: &'a [u8]) -> Result<Self> {
-        let elf = parse_elf(raw_binary)?;
+        let elf = crate::elf::parse_elf(raw_binary)?;
         let func_syms = elf
             .syms
             .iter()
@@ -207,13 +196,4 @@ impl<'a> Tester<'a> {
 
         Ok(())
     }
-}
-
-fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
-    let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
-    let elf = match object {
-        goblin::Object::Elf(elf) => elf,
-        _ => return Err(Error::UnsupportedExecFormat(obj_format_name(&object))),
-    };
-    Ok(elf)
 }
