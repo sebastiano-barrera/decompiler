@@ -150,6 +150,7 @@ pub enum Insn {
         reg: Reg,
         size: i32,
     },
+    #[assoc(has_side_effects = true)]
     StoreMem(Reg, Reg),
 
     OverflowOf(Reg),

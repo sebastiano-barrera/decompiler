@@ -119,27 +119,21 @@ fn pass_param<'a>(
         PassMode::Memory => {
             let sz = types.bytes_size(tyid).unwrap();
             let eb_count = sz.div_ceil(8);
-            bld.emit(
-                Builder::RSP,
-                Insn::ArithK(ArithOp::Sub, Builder::RSP, eb_count as i64 * 8),
-            );
 
             let addr = bld.reg_gen.next();
             let eb = bld.reg_gen.next();
             for eb_ndx in 0..eb_count {
-                let eb_offset = (8 * eb_ndx).try_into().unwrap();
+                // relies on RSP never being assigned by any instruction emitted in this module
+                let eb_offset = state.pull_stack_eightbyte() as i64;
                 bld.emit(
                     eb,
                     Insn::Part {
                         src: arg_value,
-                        offset: eb_offset,
+                        offset: (eb_ndx * 8).try_into().unwrap(),
                         size: 8,
                     },
                 );
-                bld.emit(
-                    addr,
-                    Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset as i64),
-                );
+                bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
                 bld.emit(addr, Insn::StoreMem(addr, eb));
             }
         }
@@ -460,6 +454,7 @@ struct ParamPassing {
     int_regs: std::slice::Iter<'static, Reg>,
     sse_regs: std::slice::Iter<'static, Reg>,
     args: std::slice::Iter<'static, AncestralName>,
+    stack_eb_ndx: usize,
 }
 impl ParamPassing {
     fn pull_integer_reg(&mut self) -> Option<Reg> {
@@ -473,6 +468,19 @@ impl ParamPassing {
     fn pull_arg(&mut self) -> Option<AncestralName> {
         self.args.next().copied()
     }
+
+    /// Get the "current" offset into the stack, and advance it of one eightbyte.
+    ///
+    /// The first value returned is 8, as `dword ptr [rsp]` is the return
+    /// address (and no parameter is stored there).
+    ///
+    /// Returns: the stack offset, expressed in byte offest from the value
+    /// of RSP at the beginning of the function. Always aligned to 8.
+    fn pull_stack_eightbyte(&mut self) -> usize {
+        let ofs = self.stack_eb_ndx * 8;
+        self.stack_eb_ndx += 1;
+        ofs
+    }
 }
 
 impl Default for ParamPassing {
@@ -481,6 +489,7 @@ impl Default for ParamPassing {
             int_regs: INTEGER_REGS.as_slice().into_iter(),
             sse_regs: SSE_REGS.as_slice().into_iter(),
             args: super::ANC_ARGS.as_slice().into_iter(),
+            stack_eb_ndx: 1,
         }
     }
 }
