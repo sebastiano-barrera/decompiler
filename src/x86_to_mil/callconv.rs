@@ -305,7 +305,15 @@ fn classify_eightbytes(
 ) -> anyhow::Result<()> {
     let ty = &types.get(tyid).unwrap().ty;
 
-    let sz: u32 = ty.bytes_size().try_into().unwrap();
+    if let ty::Ty::Alias(ref_tyid) = ty {
+        return classify_eightbytes(eb_set, types, *ref_tyid, offset);
+    }
+
+    let sz: u32 = types
+        .bytes_size(tyid)
+        .ok_or_else(|| anyhow!("type has no size?"))?
+        .try_into()
+        .unwrap();
     let alignment: u32 = types
         .alignment(tyid)
         .ok_or_else(|| anyhow!("type has no alignment?"))?
@@ -345,6 +353,7 @@ fn classify_eightbytes(
         ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
             panic!("invalid type for a function param: {:?}", ty)
         }
+        ty::Ty::Alias(_) => unreachable!(),
     }
     Ok(())
 }

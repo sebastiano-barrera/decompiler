@@ -104,7 +104,10 @@ impl<'a> Builder<'a> {
             self.func_ty = Some(func_ty);
             let report = res.context("while applying the calling convention for parameters")?;
             if report.ok_count < param_count {
-                eprintln!("WARNING: only {} out of {} parameters could be mapped to registers and stack slots", report.ok_count, param_count);
+                eprintln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
+                for (ndx, err) in report.errors.into_iter().enumerate() {
+                    eprintln!("  #{}: {}", ndx, err);
+                }
             }
         }
 

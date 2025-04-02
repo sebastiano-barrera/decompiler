@@ -49,7 +49,22 @@ impl TypeSet {
     }
 
     pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
-        self.get(tyid).map(|t| t.ty.bytes_size())
+        let ty = &self.get(tyid)?.ty;
+        let sz = match ty {
+            Ty::Int(int_ty) => int_ty.size as u32,
+            Ty::Bool(Bool { size }) => *size as u32,
+            Ty::Float(Float { size }) => *size as u32,
+            Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
+            Ty::Struct(struct_ty) => struct_ty.size,
+            Ty::Unknown(unk_ty) => unk_ty.size,
+            // TODO architecture dependent!
+            Ty::Ptr(_) => 8,
+            // TODO does this even make sense?
+            Ty::Subroutine(_) => 8,
+            Ty::Void => 0,
+            Ty::Alias(ref_tyid) => return self.bytes_size(*ref_tyid),
+        };
+        Some(sz)
     }
 
     pub fn assert_invariants(&self) {
@@ -62,7 +77,8 @@ impl TypeSet {
                 | Ty::Ptr(_)
                 | Ty::Unknown(_)
                 | Ty::Bool(_)
-                | Ty::Float(_) => {}
+                | Ty::Float(_)
+                | Ty::Alias(_) => {}
                 Ty::Struct(struct_ty) => {
                     assert!(struct_ty.members.iter().all(|m| {
                         let size = self.bytes_size(m.tyid).unwrap();
@@ -99,7 +115,7 @@ impl TypeSet {
         assert!(!byte_range.is_empty());
         let ty = &self.get(tyid).unwrap().ty;
 
-        let size = ty.bytes_size() as i64;
+        let size = self.bytes_size(tyid).unwrap_or(0) as i64;
 
         if byte_range.end > size {
             return Err(SelectError::InvalidRange);
@@ -121,10 +137,11 @@ impl TypeSet {
             | Ty::Subroutine(_)
             | Ty::Float(_)
             | Ty::Bool(_) => Err(SelectError::InvalidRange),
+            Ty::Alias(ref_tyid) => self.select(*ref_tyid, byte_range),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     // TODO avoid the hashmap lookup?
-                    let memb_size = self.get(m.tyid).unwrap().ty.bytes_size() as i64;
+                    let memb_size = self.bytes_size(m.tyid).unwrap() as i64;
                     let ofs = m.offset as i64;
                     (ofs..ofs + memb_size) == byte_range
                 });
@@ -157,6 +174,7 @@ impl TypeSet {
             Ty::Enum(enum_ty) => Some(enum_ty.base_type.alignment()),
             Ty::Ptr(_) => Some(8),
             Ty::Float(float_ty) => Some(float_ty.alignment()),
+            Ty::Alias(ref_tyid) => self.alignment(*ref_tyid),
 
             Ty::Void | Ty::Bool(_) | Ty::Subroutine(_) | Ty::Unknown(_) => None,
 
@@ -219,6 +237,7 @@ impl TypeSet {
             Ty::Bool(Bool { size }) => write!(out, "bool{}", *size * 8)?,
             Ty::Float(Float { size }) => write!(out, "float{}", *size * 8)?,
             Ty::Enum(_) => write!(out, "enum")?,
+            Ty::Alias(ref_tyid) => self.dump_type_ref(out, *ref_tyid)?,
             Ty::Struct(struct_ty) => {
                 write!(out, "struct {{\n    ")?;
                 out.open_box();
@@ -292,23 +311,7 @@ pub enum Ty {
     Subroutine(Subroutine),
     Unknown(Unknown),
     Void,
-}
-impl Ty {
-    pub fn bytes_size(&self) -> u32 {
-        match self {
-            Ty::Int(int_ty) => int_ty.size as u32,
-            Ty::Bool(Bool { size }) => *size as u32,
-            Ty::Float(Float { size }) => *size as u32,
-            Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
-            Ty::Struct(struct_ty) => struct_ty.size,
-            Ty::Unknown(unk_ty) => unk_ty.size,
-            // TODO architecture dependent!
-            Ty::Ptr(_) => 8,
-            // TODO does this even make sense?
-            Ty::Subroutine(_) => 8,
-            Ty::Void => 0,
-        }
-    }
+    Alias(TypeID),
 }
 
 #[derive(Debug, Clone)]

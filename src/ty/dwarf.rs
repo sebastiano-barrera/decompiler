@@ -182,6 +182,7 @@ impl<'a> TypeParser<'a> {
             // - [x] DW_TAG_structure_type
             // - [x] DW_TAG_pointer_type
             // - [x] DW_TAG_base_type
+            // - [x] DW_TAG_typedef
             gimli::constants::DW_TAG_structure_type => self.parse_struct_type(node, types),
             gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, types),
             // subprograms (functions, in C) are considered as subroutine types
@@ -190,6 +191,7 @@ impl<'a> TypeParser<'a> {
                 self.parse_subroutine_type(node, types)
             }
             gimli::constants::DW_TAG_base_type => self.parse_base_type(node, types),
+            gimli::constants::DW_TAG_typedef => self.parse_alias(node, types),
 
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
@@ -404,6 +406,16 @@ impl<'a> TypeParser<'a> {
         Ok(ty::Type {
             name: Arc::new(name),
             ty,
+        })
+    }
+
+    fn parse_alias(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+        let entry = node.entry();
+        let ref_tyid = self.try_parse_type_of(entry, types)?;
+        let name = self.get_name(entry)?;
+        Ok(ty::Type {
+            name: Arc::new(name.unwrap_or("").to_owned()),
+            ty: ty::Ty::Alias(ref_tyid),
         })
     }
 
