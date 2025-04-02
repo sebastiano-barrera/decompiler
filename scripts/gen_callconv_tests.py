@@ -187,7 +187,13 @@ def func_code(func_name, target_name, target_ty, named_args):
 def main():
     types_declared = set()
 
-    print('#include <stdint.h>')
+    print('''#include <stdint.h>
+
+// [limitation--no-relocatable] due to a known limitation, we can't process
+// relocatable executables (we can't run relocations at all).
+// adding main() allows us to compile this to a 'full' executable rather than a .o
+int main() {}
+''')
 
     for i, (target_name, target_ty, named_args) in enumerate(gen()):
         func_name = 'func{:03}'.format(i)

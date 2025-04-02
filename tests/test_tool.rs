@@ -52,7 +52,7 @@ tests_in_binary!(redis_server, "integration/redis-server";
 );
 
 tests_in_binary!(
-    x86_64_callconv, "x86_64_callconv.o";
+    x86_64_callconv, "x86_64_callconv";
     func000,
     func001,
     func002,

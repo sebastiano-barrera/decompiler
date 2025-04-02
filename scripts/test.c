@@ -1,5 +1,11 @@
 #include <stdint.h>
 
+// [limitation--no-relocatable] due to a known limitation, we can't process
+// relocatable executables (we can't run relocations at all).
+// adding main() allows us to compile this to a 'full' executable rather than a .o
+int main() {}
+
+
 char func000(char arg0) {
   return arg0;
 }

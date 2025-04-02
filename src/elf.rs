@@ -8,7 +8,7 @@ use thiserror::Error;
 /// **WARNING**: (Known issue.) The ELF is "simply" parsed without changing the
 /// original payload. This implies that _relocations are not applied_, which in
 /// turn causes many sections (including symbol names in DWARF debug info) to
-/// be non-functional.
+/// be non-functional. (ref: `limitation--no-relocatable`)
 pub fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
     let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
     let elf = match object {
