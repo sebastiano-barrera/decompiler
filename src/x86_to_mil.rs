@@ -187,7 +187,7 @@ impl<'a> Builder<'a> {
                     self.emit(v0, mil::Insn::Ret(ret_val));
                 }
 
-                M::Mov => {
+                M::Mov | M::Movsd => {
                     let (value, sz) = self.emit_read(&insn, 1);
                     self.emit_write(&insn, 0, value, sz);
                 }
@@ -531,19 +531,9 @@ impl<'a> Builder<'a> {
         assert!([1, 2, 4, 8].contains(&a_sz));
         assert!([1, 2, 4, 8].contains(&b_sz));
         let sz = a_sz.max(b_sz);
-        self.widen(a, sz);
-        self.widen(b, sz);
+        self.widen(a, a_sz, sz);
+        self.widen(b, b_sz, sz);
         self.emit(a, mil::Insn::Arith(op, a, b));
-    }
-
-    fn widen(&mut self, src: mil::Reg, tgt_sz: u16) {
-        self.emit(
-            src,
-            mil::Insn::Widen {
-                reg: src,
-                target_size: tgt_sz,
-            },
-        );
     }
 
     fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {
@@ -764,10 +754,10 @@ impl<'a> Builder<'a> {
                     MemorySize::UInt16 | MemorySize::Int16 => {
                         self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 2 })
                     }
-                    MemorySize::UInt32 | MemorySize::Int32 => {
+                    MemorySize::UInt32 | MemorySize::Int32 | MemorySize::Float32 => {
                         self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 4 })
                     }
-                    MemorySize::UInt64 | MemorySize::Int64 => {
+                    MemorySize::UInt64 | MemorySize::Int64 | MemorySize::Float64 => {
                         self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 8 })
                     }
                     MemorySize::QwordOffset => {
@@ -796,12 +786,8 @@ impl<'a> Builder<'a> {
         match insn.op_kind(dest_op_ndx) {
             OpKind::Register => {
                 let dest = insn.op_register(dest_op_ndx);
-                assert_eq!(
-                    dest.size(),
-                    value_size as usize,
-                    "mov: src and dest must have same size"
-                );
-
+                let dest_size: u16 = dest.size().try_into().unwrap();
+                self.widen(value, value_size, dest_size);
                 self.emit_write_machine_reg(dest, value_size, value);
             }
 
@@ -848,6 +834,22 @@ impl<'a> Builder<'a> {
                 let v0 = self.reg_gen.next();
                 self.emit(v0, mil::Insn::StoreMem(addr, value));
             }
+        }
+    }
+
+    fn widen(&mut self, value: mil::Reg, value_size: u16, dest_size: u16) {
+        assert!(
+            dest_size >= value_size,
+            "dest ({dest_size} bytes) can't fit source ({value_size} bytes)"
+        );
+        if dest_size > value_size {
+            self.emit(
+                value,
+                mil::Insn::Widen {
+                    reg: value,
+                    target_size: dest_size,
+                },
+            );
         }
     }
 
