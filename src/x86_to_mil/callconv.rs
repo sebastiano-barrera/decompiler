@@ -14,16 +14,19 @@ enum PassMode {
     Memory,
 }
 
-#[derive(Clone, Copy)]
 pub struct Report {
     pub ok_count: usize,
+    pub errors: Vec<anyhow::Error>,
 }
 
 pub fn read_func_params<'a>(
     bld: &mut Builder<'a>,
     param_types: &[ty::TypeID],
 ) -> anyhow::Result<Report> {
-    let mut report = Report { ok_count: 0 };
+    let mut report = Report {
+        ok_count: 0,
+        errors: Vec::new(),
+    };
 
     let types = bld
         .types
@@ -37,15 +40,16 @@ pub fn read_func_params<'a>(
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
         }
-        if let ty::Ty::Unknown(_) = param_ty {
+
+        let mut eb_set = EightbytesSet::new_regs();
+        let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
+        if let Err(err) = res {
+            report.errors.push(err);
             // because each argument uses a variable number of integer regs, ssa
             // regs, and stack slots, we can't be sure of how to map ANY of the
             // remaining parameters
             break;
         }
-
-        let mut eb_set = EightbytesSet::new_regs();
-        classify_eightbytes(&mut eb_set, types, param_tyid, 0);
 
         let pass_mode = eightbytes_to_pass_mode(eb_set);
         let sz = types.bytes_size(param_tyid).unwrap();
@@ -163,7 +167,7 @@ pub fn read_return_value<'a>(
     }
 
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, types, ret_tyid, 0);
+    classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
 
     let sz = types.bytes_size(ret_tyid).unwrap();
 
@@ -298,19 +302,19 @@ fn classify_eightbytes(
     types: &ty::TypeSet,
     tyid: ty::TypeID,
     offset: u32,
-) {
+) -> anyhow::Result<()> {
     let ty = &types.get(tyid).unwrap().ty;
 
     let sz: u32 = ty.bytes_size().try_into().unwrap();
     let alignment: u32 = types
         .alignment(tyid)
-        .expect("type has no alignment?")
+        .ok_or_else(|| anyhow!("type has no alignment?"))?
         .into();
     if (offset % alignment) != 0 {
         // unaligned member of a struct
         // (things that aren't struct members have offset == 0)
         *eb_set = EightbytesSet::Memory;
-        return;
+        return Ok(());
     }
 
     match ty {
@@ -331,9 +335,9 @@ fn classify_eightbytes(
 
         ty::Ty::Struct(struct_ty) => {
             for memb in struct_ty.members.iter() {
-                classify_eightbytes(eb_set, types, memb.tyid, memb.offset);
+                classify_eightbytes(eb_set, types, memb.tyid, memb.offset)?;
                 if eb_set == &EightbytesSet::Memory {
-                    return;
+                    return Ok(());
                 }
             }
         }
@@ -342,6 +346,7 @@ fn classify_eightbytes(
             panic!("invalid type for a function param: {:?}", ty)
         }
     }
+    Ok(())
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -585,7 +590,7 @@ mod tests {
             let struct_tyid = make_sample_struct(&mut scas.types, &[(0, sca_tyid)]);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0);
+            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -633,7 +638,7 @@ mod tests {
             let struct_tyid = make_sample_struct(&mut scas.types, members);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0);
+            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -657,7 +662,7 @@ mod tests {
             let struct_tyid = make_sample_struct(&mut scas.types, &[(0, sca_tyid)]);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0);
+            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 &buf,
@@ -695,7 +700,7 @@ mod tests {
             let struct_tyid = make_sample_struct(&mut scas.types, members);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0);
+            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -730,7 +735,7 @@ mod tests {
             println!("{:?}", members);
             let struct_tyid = make_sample_struct(&mut scas.types, members);
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0);
+            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
             assert_eq!(buf, EightbytesSet::Memory);
         }
     }

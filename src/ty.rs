@@ -162,14 +162,14 @@ impl TypeSet {
 
             Ty::Struct(struct_ty) => {
                 // TODO any further check necessary?
-                Some(
-                    struct_ty
-                        .members
-                        .iter()
-                        .map(|memb| self.alignment(memb.tyid).unwrap())
-                        .max()
-                        .unwrap_or(1),
-                )
+                let mut align = 1;
+                for memb in &struct_ty.members {
+                    let Some(memb_align) = self.alignment(memb.tyid) else {
+                        return None;
+                    };
+                    align = align.max(memb_align);
+                }
+                Some(align)
             }
         }
     }
