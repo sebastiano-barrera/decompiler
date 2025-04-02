@@ -182,6 +182,7 @@ impl<'a> Ast<'a> {
         }
 
         match insn {
+            Insn::Void => write!(pp, "void")?,
             Insn::True => self.pp_def_default(pp, "True".into(), insn.input_regs(), self_prec)?,
             Insn::False => self.pp_def_default(pp, "False".into(), insn.input_regs(), self_prec)?,
             Insn::Const { value, size } => {
@@ -399,7 +400,8 @@ fn precedence(insn: &Insn) -> u8 {
     match insn {
         Insn::Get(_) => panic!("Get must be resolved prior to calling precedence"),
 
-        Insn::True
+        Insn::Void
+        | Insn::True
         | Insn::False
         | Insn::Const { .. }
         | Insn::Undefined

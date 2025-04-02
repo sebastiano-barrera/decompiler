@@ -68,6 +68,7 @@ impl RegType {
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
+    Void,
     True,
     False,
     Const {
@@ -81,6 +82,10 @@ pub enum Insn {
         offset: u16,
         size: u16,
     },
+    // TODO Clarify:
+    //   do lo/hi refer to significance (LSB/MSB side of a machine word) or
+    //   address (low/high part of a struct)?
+    //   they happen to be the same in x86_64 due to it being low-endian, but...
     Concat {
         lo: Reg,
         hi: Reg,
@@ -226,7 +231,8 @@ impl Insn {
     // TODO There must be some macro magic to generate these two functions
     pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
         match self {
-            Insn::False
+            Insn::Void
+            | Insn::False
             | Insn::True
             | Insn::Const { .. }
             | Insn::JmpExt(_)
@@ -289,7 +295,8 @@ impl Insn {
     }
     pub fn input_regs(&self) -> [Option<&Reg>; 2] {
         match self {
-            Insn::False
+            Insn::Void
+            | Insn::False
             | Insn::True
             | Insn::Const { .. }
             | Insn::JmpExt(_)

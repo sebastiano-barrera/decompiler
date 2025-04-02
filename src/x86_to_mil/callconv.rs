@@ -142,6 +142,108 @@ fn pass_param<'a>(
     }
 }
 
+pub fn read_return_value<'a>(
+    bld: &mut Builder<'a>,
+    ret_tyid: ty::TypeID,
+) -> anyhow::Result<mil::Reg> {
+    let types = bld
+        .types
+        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
+
+    let ret_ty = &types.get(ret_tyid).unwrap().ty;
+
+    if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = ret_ty {
+        panic!("invalid type for a function return value: {:?}", ret_ty);
+    }
+    if let ty::Ty::Unknown(_) = ret_ty {
+        // nothing better to do in this case...
+        let ret_val = bld.reg_gen.next();
+        bld.emit(ret_val, Insn::Undefined);
+        return Ok(ret_val);
+    }
+
+    let mut eb_set = EightbytesSet::new_regs();
+    classify_eightbytes(&mut eb_set, types, ret_tyid, 0);
+
+    let sz = types.bytes_size(ret_tyid).unwrap();
+
+    let mut int_regs = INTEGER_REGS.as_slice().into_iter();
+    let mut sse_regs = SSE_REGS.as_slice().into_iter();
+    let mut cur_sse = None;
+
+    let mut parts = Vec::with_capacity(4);
+
+    match eb_set {
+        EightbytesSet::Regs { clss } => {
+            // TODO assert that the type is 1-16 bytes long, based on clss
+            for (ndx, cls) in clss.iter().enumerate() {
+                let reg = match *cls {
+                    RegClass::Integer => *int_regs.next().expect("bug: not enough int regs!"),
+                    RegClass::Sse => {
+                        let reg = *sse_regs.next().expect("bug: not enough sse regs!");
+                        cur_sse = Some(reg);
+                        reg
+                    }
+                    RegClass::SseUp => cur_sse
+                        .clone()
+                        .expect("bug: SseUp does not come after Sse!"),
+                    RegClass::Unused => {
+                        if ndx == 0 {
+                            panic!("invalid RegClass at this stage!")
+                        } else {
+                            assert!(clss[ndx..].iter().all(|cls| *cls == RegClass::Unused));
+                            break;
+                        }
+                    }
+                };
+                parts.push(reg);
+            }
+        }
+        EightbytesSet::Memory => {
+            // From the spec: AMD64 ABI Draft 0.99.6 – July 2, 2012 - page 22
+            //
+            // > If the type has class MEMORY, then the caller provides space
+            // > for the return value and passes the address of this storage
+            // > in %rdi as if it were the first argument to the function. In
+            // > effect, this address becomes a “hidden” first argument. This
+            // > storage must not overlap any data visible to the callee through
+            // > other names than this argument.
+            // >
+            // > On return %rax will contain the address that has been passed in
+            // > by the caller in %rdi.
+
+            let eb_count = sz.div_ceil(8);
+
+            let addr = bld.reg_gen.next();
+            for eb_ndx in 0..eb_count {
+                let eb_offset = (8 * eb_ndx).try_into().unwrap();
+                bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
+                let eb = bld.reg_gen.next();
+                bld.emit(eb, Insn::LoadMem { reg: addr, size: 8 });
+                parts.push(eb);
+            }
+        }
+    };
+
+    let ret_val = match parts.len() {
+        0 => {
+            let reg = bld.reg_gen.next();
+            bld.emit(reg, Insn::Void);
+            reg
+        }
+        1 => parts[0],
+        _ => {
+            let reg = parts[0];
+            for part in parts.drain(1..) {
+                bld.emit(reg, Insn::Concat { lo: reg, hi: part });
+            }
+            reg
+        }
+    };
+
+    Ok(ret_val)
+}
+
 fn eightbytes_to_pass_mode(eb_set: EightbytesSet) -> PassMode {
     // as per spec: AMD64 ABI Draft 0.99.6 – July 2, 2012 - page 19
     // > If the size of the aggregate exceeds two eightbytes and the first

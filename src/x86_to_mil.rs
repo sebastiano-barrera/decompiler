@@ -173,8 +173,15 @@ impl<'a> Builder<'a> {
                     );
                 }
                 M::Ret => {
+                    let ret_val = if let Some(func_ty) = self.func_ty.take() {
+                        let res = callconv::read_return_value(&mut self, func_ty.return_tyid);
+                        self.func_ty = Some(func_ty);
+                        res.context("decoding return value")?
+                    } else {
+                        Self::RAX
+                    };
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Ret(Self::RAX));
+                    self.emit(v0, mil::Insn::Ret(ret_val));
                 }
 
                 M::Mov => {

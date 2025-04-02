@@ -91,6 +91,7 @@ impl Program {
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
         use mil::{Insn, RegType};
         match self.inner.get(reg.0).unwrap().insn.get() {
+            Insn::Void => RegType::Bytes(0), // TODO better choice here?
             Insn::True => RegType::Bool,
             Insn::False => RegType::Bool,
             Insn::Const { size, .. } => RegType::Bytes(size as usize),
