@@ -273,7 +273,14 @@ impl<'a> TypeParser<'a> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::DW_TAG_pointer_type);
 
-        let pointee_tyid = self.try_parse_type_of(entry, types)?;
+        let res = self.try_parse_type_of(entry, types);
+
+        // special case: C's `void*` is represented as a DW_TAG_pointer_type without DW_AT_type
+        let pointee_tyid = match res {
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => types.tyid_void(),
+            _ => res?,
+        };
+
         Ok(ty::Type {
             // TODO make name optional
             name: Arc::new(String::new()),

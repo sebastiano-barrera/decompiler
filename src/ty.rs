@@ -24,16 +24,29 @@ pub use crate::ssa::TypeID;
 pub struct TypeSet {
     types: SlotMap<TypeID, Type>,
     known_objects: HashMap<Addr, TypeID>,
+
+    tyid_void: TypeID,
 }
 
 pub type Addr = u64;
 
 impl TypeSet {
     pub fn new() -> Self {
+        let mut types = SlotMap::with_key();
+        let tyid_void = types.insert(Type {
+            name: Arc::new("void".to_string()),
+            ty: Ty::Void,
+        });
+
         TypeSet {
-            types: SlotMap::with_key(),
+            types,
             known_objects: HashMap::new(),
+            tyid_void,
         }
+    }
+
+    pub fn tyid_void(&self) -> TypeID {
+        self.tyid_void
     }
 
     pub fn add(&mut self, typ: Type) -> TypeID {
