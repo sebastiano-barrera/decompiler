@@ -99,9 +99,13 @@ impl<'a> Builder<'a> {
         }
 
         if let Some(func_ty) = self.func_ty.take() {
+            let param_count = func_ty.param_tyids.len();
             let res = callconv::read_func_params(&mut self, &func_ty.param_tyids);
             self.func_ty = Some(func_ty);
-            res.context("while applying the calling convention for parameters")?;
+            let report = res.context("while applying the calling convention for parameters")?;
+            if report.ok_count < param_count {
+                eprintln!("WARNING: only {} out of {} parameters could be mapped to registers and stack slots", report.ok_count, param_count);
+            }
         }
 
         for insn in insns {

@@ -14,10 +14,17 @@ enum PassMode {
     Memory,
 }
 
+#[derive(Clone, Copy)]
+pub struct Report {
+    pub ok_count: usize,
+}
+
 pub fn read_func_params<'a>(
     bld: &mut Builder<'a>,
     param_types: &[ty::TypeID],
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Report> {
+    let mut report = Report { ok_count: 0 };
+
     let types = bld
         .types
         .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
@@ -25,6 +32,18 @@ pub fn read_func_params<'a>(
     let mut state = ParamPassing::default();
 
     for &param_tyid in param_types.iter() {
+        let param_ty = &types.get(param_tyid).unwrap().ty;
+
+        if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
+            panic!("invalid type for a function parameter: {:?}", param_ty);
+        }
+        if let ty::Ty::Unknown(_) = param_ty {
+            // because each argument uses a variable number of integer regs, ssa
+            // regs, and stack slots, we can't be sure of how to map ANY of the
+            // remaining parameters
+            break;
+        }
+
         let mut eb_set = EightbytesSet::new_regs();
         classify_eightbytes(&mut eb_set, types, param_tyid, 0);
 
@@ -38,9 +57,11 @@ pub fn read_func_params<'a>(
         bld.init_ancestral(param_src, param_anc, mil::RegType::Bytes(sz as usize));
 
         pass_param(bld, &mut state, types, param_tyid, param_src, pass_mode);
+
+        report.ok_count += 1;
     }
 
-    Ok(())
+    Ok(report)
 }
 
 fn pass_param<'a>(
