@@ -88,6 +88,16 @@ impl Program {
         self.bbs[bid].effects.iter().copied()
     }
 
+    pub fn push_pure(&mut self, insn: mil::Insn) -> mil::Reg {
+        // side-effecting instructions need to be added to a specific position
+        // in the basic block.
+        // pure instructions, instead, aren't really attached to anywhere in
+        // particular.
+        assert!(!insn.has_side_effects());
+        let index = self.inner.push_new(insn);
+        mil::Reg(index)
+    }
+
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
         use mil::{Insn, RegType};
         match self.inner.get(reg.0).unwrap().insn.get() {

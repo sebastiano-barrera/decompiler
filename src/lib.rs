@@ -1,20 +1,13 @@
 mod ast;
 mod cfg;
+mod elf;
 #[macro_use]
 mod mil;
-mod elf;
 pub mod pp;
 mod ssa;
+pub mod test_tool;
 mod tests;
 mod ty;
 mod x86_to_mil;
-#[cfg(any())]
+
 mod xform;
-
-mod xform {
-    pub fn canonical(_: &mut super::ssa::Program) {
-        //
-    }
-}
-
-pub mod test_tool;

@@ -3,31 +3,8 @@ use crate::{
     ssa,
 };
 
-// TODO Fix the algorithm to work with different instruction output sizes.
-// NOTE Right now folding is done across instructions of different sizes. It's a known limitation.
 fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
-    use mil::{ArithOp, Insn, Reg};
-
-    fn widen(prog: &ssa::Program, reg: Reg) -> Insn {
-        match prog.get(reg).unwrap().insn.get() {
-            Insn::Const1(k) => Insn::Const8(k as i64),
-            Insn::Const2(k) => Insn::Const8(k as i64),
-            Insn::Const4(k) => Insn::Const8(k as i64),
-            Insn::Const8(k) => Insn::Const8(k as i64),
-
-            Insn::Arith1(op, a, b) => Insn::Arith8(op, a, b),
-            Insn::Arith2(op, a, b) => Insn::Arith8(op, a, b),
-            Insn::Arith4(op, a, b) => Insn::Arith8(op, a, b),
-            Insn::Arith8(op, a, b) => Insn::Arith8(op, a, b),
-
-            Insn::ArithK1(op, r, k) => Insn::ArithK8(op, r, k as i64),
-            Insn::ArithK2(op, r, k) => Insn::ArithK8(op, r, k as i64),
-            Insn::ArithK4(op, r, k) => Insn::ArithK8(op, r, k as i64),
-            Insn::ArithK8(op, r, k) => Insn::ArithK8(op, r, k),
-
-            insn => insn,
-        }
-    }
+    use mil::{ArithOp, Insn};
 
     /// Evaluate expression (ak (op) bk)
     fn eval_const(op: ArithOp, ak: i64, bk: i64) -> i64 {
@@ -42,73 +19,104 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         }
     }
 
-    /// Compute rk such that, for all x:
-    ///   (x <op_in> ak) <op_out> bk <===> x <op_res> rk
+    /// Compute (op_res, rk) such that, for all x:
+    ///   (x <op> ak) <op> bk <===> x <op> rk
+    /// or, equivalently:
+    ///   (x <op> ak) <op> (y <op> bk)<===> (x <op> y) <op> rk
     ///
-    /// Not all operators are supported. For the unsupported ones, None is returned.
-    fn assoc_const(op_in: ArithOp, op_out: ArithOp, ak: i64, bk: i64) -> Option<(ArithOp, i64)> {
-        match (op_in, op_out) {
-            (ArithOp::Add, ArithOp::Add) => Some((ArithOp::Add, (ak + bk))),
-            (ArithOp::Sub, ArithOp::Sub) => Some((ArithOp::Sub, (ak + bk))),
-
-            (ArithOp::Sub, ArithOp::Add) => Some((ArithOp::Sub, (ak + bk))),
-            (ArithOp::Add, ArithOp::Sub) => Some((ArithOp::Sub, (ak - bk))),
-
-            (ArithOp::Mul, ArithOp::Mul) => Some((ArithOp::Mul, (ak * bk))),
-            (ArithOp::Shl, ArithOp::Shl) => Some((ArithOp::Shl, (ak + bk))),
+    /// Returns None for non-associative operators.
+    fn assoc_const(op_in: ArithOp, ak: i64, bk: i64) -> Option<i64> {
+        match op_in {
+            ArithOp::Add => Some(ak + bk),
+            ArithOp::Mul => Some(ak * bk),
+            ArithOp::Shl => Some(ak + bk),
             _ => None,
         }
     }
 
-    match insn {
-        Insn::Arith1(op, a, b)
-        | Insn::Arith2(op, a, b)
-        | Insn::Arith4(op, a, b)
-        | Insn::Arith8(op, a, b) => {
-            let wa = widen(prog, a);
-            let wb = widen(prog, b);
+    /*
+        \math-container{\frac{a𝛽,𝛽a|a\index{𝛽}}
 
-            match (op, wa, wb) {
-                (ArithOp::Add, Insn::Const8(0), _) => Insn::Get(b),
-                (ArithOp::Add, _, Insn::Const8(0)) => Insn::Get(a),
-                (ArithOp::Mul, Insn::Const8(1), _) => Insn::Get(b),
-                (ArithOp::Mul, _, Insn::Const8(1)) => Insn::Get(a),
+        \text{Convert sub to add, to get more associative nodes:}
+        \frac{a\power-index{𝛽|-}|a\power-index{+|-𝛽}},\frac{a-b\power-index{+|𝛾}|a+b\power-index{+|-𝛾}}
 
-                (op, Insn::Const8(ak), Insn::Const8(bk)) => Insn::Const8(eval_const(op, ak, bk)),
+        \text{if op is associative: }\frac{a\index{𝛽}b\index{𝛾}|(ab)\index{\underline{𝛽𝛾}}},\frac{(a\index{𝛽})\index{𝛾}|a\index{\underline{𝛽𝛾}}}
 
-                (op_out, Insn::ArithK8(op_in, r, k1), Insn::Const8(k2))
-                | (op_out, Insn::Const8(k2), Insn::ArithK8(op_in, r, k1)) => {
-                    if let Some((op, rk)) = assoc_const(op_out, op_in, k2, k1) {
-                        Insn::ArithK8(op, r, rk)
-                    } else {
-                        insn
-                    }
-                }
+        \fracslashed{𝛽\index{𝛾}|\underline{𝛽𝛾}}
 
-                (op, Insn::Const8(ak), _) => Insn::ArithK8(op, b, ak as i64),
-                (op, _, Insn::Const8(bk)) => Insn::ArithK8(op, a, bk as i64),
+        [⋅=+]⟹\frac{a\index{0}|a}
+        [⋅=×]⟹\frac{a\index{1}|a}}
+    */
 
-                _ => insn,
+    let (mut op, mut lr, mut li, mut ri) = match insn {
+        Insn::Arith(op, a, b) => {
+            let li = prog.get(a).unwrap().insn.get();
+            let ri = prog.get(b).unwrap().insn.get();
+
+            // ensure the const is on the right
+            if let Insn::Const { .. } = li {
+                (op, b, ri, li)
+            } else {
+                (op, a, li, ri)
             }
         }
+        Insn::ArithK(op, a, bk) => (
+            op,
+            a,
+            prog.get(a).unwrap().insn.get(),
+            Insn::Const { value: bk, size: 8 },
+        ),
+        _ => return insn,
+    };
 
-        Insn::ArithK1(op, a, bk)
-        | Insn::ArithK2(op, a, bk)
-        | Insn::ArithK4(op, a, bk)
-        | Insn::ArithK8(op, a, bk) => match widen(prog, a) {
-            Insn::Const8(ak) => Insn::Const8(eval_const(op, ak as i64, bk)),
-            Insn::ArithK8(op_in, ar, ak) => {
-                let op_out = op;
-                if let Some((op, rk)) = assoc_const(op_in, op_out, ak as i64, bk) {
-                    Insn::ArithK8(op, ar, rk)
-                } else {
-                    insn
-                }
+    assert!(!matches!(li, Insn::Const { .. }));
+
+    // convert sub to add to increase the probability of applying the following rules
+    if op == ArithOp::Sub {
+        if let Insn::Const { value, .. } = &mut ri {
+            op = ArithOp::Add;
+            *value = -*value;
+        } else if let Insn::ArithK(ArithOp::Add, _, r_k) = &mut ri {
+            op = ArithOp::Add;
+            *r_k = -*r_k;
+        }
+    }
+
+    match (li, ri) {
+        // (a op ka) op (b op kb) === (a op b) op (ka op kb)  (if op is associative)
+        (Insn::ArithK(l_op, llr, lk), Insn::ArithK(r_op, rlr, rk))
+            if l_op == r_op && l_op == op =>
+        {
+            if let Some(k) = assoc_const(op, lk, rk) {
+                li = fold_constants(Insn::Arith(op, llr, rlr), prog);
+                lr = prog.push_pure(li);
+                ri = Insn::Const { value: k, size: 8 };
             }
-            _ => insn,
-        },
+        }
+        // (a op ka) op kb === a op (ka op kb)  (if op is associative)
+        (Insn::ArithK(l_op, llr, lk), Insn::Const { value: rk, .. }) if l_op == op => {
+            if let Some(k) = assoc_const(op, lk, rk) {
+                li = prog.get(llr).unwrap().insn.get();
+                lr = llr;
+                ri = Insn::Const { value: k, size: 8 };
+            }
+        }
+        _ => {}
+    }
 
-        _ => insn,
+    match (op, li, ri) {
+        (op, Insn::Const { value: ka, .. }, Insn::Const { value: kb, .. }) => Insn::Const {
+            value: eval_const(op, ka, kb),
+            size: 8,
+        },
+        (ArithOp::Add, li, Insn::Const { value: 0, .. }) => li,
+        (ArithOp::Mul, li, Insn::Const { value: 1, .. }) => li,
+
+        (op, li, Insn::Const { value: kr, .. }) => Insn::ArithK(op, lr, kr),
+        (op, li, ri) => {
+            let rr = prog.push_pure(ri);
+            Insn::Arith(op, lr, rr)
+        }
     }
 }
 
@@ -184,21 +192,10 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 
 fn fold_bitops(insn: mil::Insn) -> Insn {
     match insn {
-        Insn::Arith1(ArithOp::BitXor, a, b) if a == b => Insn::Const1(0),
-        Insn::Arith2(ArithOp::BitXor, a, b) if a == b => Insn::Const2(0),
-        Insn::Arith4(ArithOp::BitXor, a, b) if a == b => Insn::Const4(0),
-        Insn::Arith8(ArithOp::BitXor, a, b) if a == b => Insn::Const8(0),
-
-        Insn::Arith1(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-        Insn::Arith2(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-        Insn::Arith4(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-        Insn::Arith8(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
-
-        Insn::Arith1(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-        Insn::Arith2(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-        Insn::Arith4(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-        Insn::Arith8(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
-
+        // TODO put the appropriate size
+        Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Const { value: 0, size: 8 },
+        Insn::Arith(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
+        Insn::Arith(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
         _ => insn,
     }
 }
