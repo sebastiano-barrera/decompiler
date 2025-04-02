@@ -58,7 +58,14 @@ impl<'a> Tester<'a> {
             .collect();
 
         let mut types = ty::TypeSet::new();
-        ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+        let dwarf_report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+        println!(
+            "dwarf types parsed with {} errors",
+            dwarf_report.errors.len()
+        );
+        for (ndx, (addr, err)) in dwarf_report.errors.into_iter().enumerate() {
+            println!(" #{}: 0x{:08x}: {}", ndx, addr, err);
+        }
 
         Ok(Tester {
             raw_binary,
