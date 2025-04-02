@@ -12,10 +12,6 @@ pub struct Ast<'a> {
     ssa: &'a ssa::Program,
     let_printed: HashSet<Reg>,
     rdr_count: ssa::RegMap<usize>,
-    // stack. prec[i] is the precedence of an instruction that is being printed
-    // inline as part of another instruction, whose precedence is prec[i-1]
-    // prec[0] is always an effectful instruction, not printed as part of another.
-    prec_stack: Vec<u8>,
 }
 
 impl<'a> Ast<'a> {
@@ -25,7 +21,6 @@ impl<'a> Ast<'a> {
             ssa,
             let_printed: HashSet::new(),
             rdr_count,
-            prec_stack: Vec::new(),
         }
     }
 
@@ -63,7 +58,6 @@ impl<'a> Ast<'a> {
                 writeln!(pp)?;
             }
             self.pp_labeled_inputs(pp, reg)?;
-            assert!(self.prec_stack.is_empty());
             self.pp_def(pp, reg, 0)?;
         }
 
@@ -148,7 +142,6 @@ impl<'a> Ast<'a> {
             if self.is_named(input) && !self.let_printed.contains(&input) {
                 self.let_printed.insert(input);
                 write!(pp, "let r{} = ", input.reg_index())?;
-                assert!(self.prec_stack.is_empty());
                 self.pp_def(pp, input, 0)?;
                 writeln!(pp, ";")?;
             }

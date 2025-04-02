@@ -344,21 +344,8 @@ struct ParamPassing {
     int_regs: std::slice::Iter<'static, Reg>,
     sse_regs: std::slice::Iter<'static, Reg>,
     args: std::slice::Iter<'static, AncestralName>,
-    stack_offset: usize,
 }
 impl ParamPassing {
-    fn try_<F, R>(&mut self, action: F) -> Option<R>
-    where
-        F: FnOnce(&mut Self) -> Option<R>,
-    {
-        let self_bak = self.clone();
-        let ret = action(self);
-        if ret.is_none() {
-            *self = self_bak;
-        }
-        ret
-    }
-
     fn pull_integer_reg(&mut self) -> Option<Reg> {
         self.int_regs.next().copied()
     }
@@ -370,21 +357,6 @@ impl ParamPassing {
     fn pull_arg(&mut self) -> Option<AncestralName> {
         self.args.next().copied()
     }
-
-    #[inline(always)]
-    fn assert_stack_qword_aligned(&self) {
-        assert_eq!(self.stack_offset % 8, 0);
-    }
-
-    fn pull_stack_slot(&mut self) -> usize {
-        self.pull_stack_slots(1)
-    }
-    fn pull_stack_slots(&mut self, count: usize) -> usize {
-        self.assert_stack_qword_aligned();
-        let ofs = self.stack_offset;
-        self.stack_offset += 8 * count;
-        ofs
-    }
 }
 
 impl Default for ParamPassing {
@@ -393,16 +365,8 @@ impl Default for ParamPassing {
             int_regs: INTEGER_REGS.as_slice().into_iter(),
             sse_regs: SSE_REGS.as_slice().into_iter(),
             args: super::ANC_ARGS.as_slice().into_iter(),
-            // we start at 8, because the first eightbyte in the stack is for the return address
-            stack_offset: 8,
         }
     }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum StructPassMode {
-    Reg,
-    Memory,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -463,7 +427,6 @@ mod tests {
         tyid_i8: ty::TypeID,
         tyid_f32: ty::TypeID,
         tyid_f64: ty::TypeID,
-        tyid_f256: ty::TypeID,
     }
 
     // TOOD share the result (e.g. as a OnceCell)
@@ -499,10 +462,6 @@ mod tests {
             name: Arc::new("float64".to_owned()),
             ty: Ty::Float(ty::Float { size: 8 }),
         });
-        let tyid_f256 = types.add(Type {
-            name: Arc::new("float256".to_owned()),
-            ty: Ty::Float(ty::Float { size: 32 }),
-        });
 
         Types {
             types,
@@ -513,7 +472,6 @@ mod tests {
             tyid_i8,
             tyid_f32,
             tyid_f64,
-            tyid_f256,
         }
     }
 
