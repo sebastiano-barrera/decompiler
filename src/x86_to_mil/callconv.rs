@@ -76,6 +76,8 @@ fn pass_param<'a>(
     arg_value: mil::Reg,
     mode: PassMode,
 ) {
+    let sz = types.bytes_size(tyid).unwrap();
+
     match mode {
         PassMode::Regs(clss) => {
             assert_ne!(clss[0], RegClass::Unused);
@@ -95,15 +97,28 @@ fn pass_param<'a>(
                 }
                 .expect("no available regs!");
                 let offset = (8 * ndx).try_into().unwrap();
-                // write the eightbyte from the source value (opaque) to the destination reg
-                bld.emit(
-                    reg,
-                    mil::Insn::Part {
-                        src: arg_value,
-                        offset,
-                        size: 8,
-                    },
-                );
+                // write the eightbyte from the source value (opaque) to the
+                // destination reg, rounded up to 8 bytes
+                if sz < 8 {
+                    bld.emit(
+                        reg,
+                        mil::Insn::Widen {
+                            reg: arg_value,
+                            target_size: 8,
+                        },
+                    );
+                } else if sz > 8 {
+                    bld.emit(
+                        reg,
+                        mil::Insn::Part {
+                            src: arg_value,
+                            offset,
+                            size: 8,
+                        },
+                    );
+                } else {
+                    bld.emit(reg, Insn::Get(arg_value));
+                }
             }
         }
         PassMode::OneBigSse { eb_count } => {
@@ -117,7 +132,6 @@ fn pass_param<'a>(
             emit_partial_write(bld, arg_value, reg, 0, size);
         }
         PassMode::Memory => {
-            let sz = types.bytes_size(tyid).unwrap();
             let eb_count = sz.div_ceil(8);
 
             let addr = bld.reg_gen.next();
@@ -165,36 +179,53 @@ pub fn read_return_value<'a>(
 
     let sz = types.bytes_size(ret_tyid).unwrap();
 
-    let mut int_regs = INTEGER_REGS.as_slice().into_iter();
-    let mut sse_regs = SSE_REGS.as_slice().into_iter();
-    let mut cur_sse = None;
+    // different than those for parameter passing
+    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
+    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
 
-    let mut parts = Vec::with_capacity(4);
+    let ret_val = bld.reg_gen.next();
+    bld.emit(ret_val, Insn::Void);
+    let tmp = bld.reg_gen.next();
 
     match eb_set {
         EightbytesSet::Regs { clss } => {
             // TODO assert that the type is 1-16 bytes long, based on clss
-            for (ndx, cls) in clss.iter().enumerate() {
-                let reg = match *cls {
+            let mut clss = clss.iter().peekable();
+            while let Some(cls) = clss.next() {
+                let part = match *cls {
                     RegClass::Integer => *int_regs.next().expect("bug: not enough int regs!"),
                     RegClass::Sse => {
-                        let reg = *sse_regs.next().expect("bug: not enough sse regs!");
-                        cur_sse = Some(reg);
-                        reg
-                    }
-                    RegClass::SseUp => cur_sse
-                        .clone()
-                        .expect("bug: SseUp does not come after Sse!"),
-                    RegClass::Unused => {
-                        if ndx == 0 {
-                            panic!("invalid RegClass at this stage!")
-                        } else {
-                            assert!(clss[ndx..].iter().all(|cls| *cls == RegClass::Unused));
-                            break;
+                        let sse_reg = *sse_regs.next().expect("bug: not enough sse regs!");
+                        let mut eb_count = 1;
+                        while let Some(RegClass::SseUp) = clss.peek() {
+                            eb_count += 1;
                         }
+
+                        bld.emit(
+                            tmp,
+                            Insn::Part {
+                                src: sse_reg,
+                                offset: 0,
+                                size: 8 * eb_count,
+                            },
+                        );
+                        tmp
+                    }
+                    RegClass::SseUp => unreachable!(),
+                    RegClass::Unused => {
+                        while let Some(cls) = clss.next() {
+                            assert_eq!(*cls, RegClass::Unused);
+                        }
+                        break;
                     }
                 };
-                parts.push(reg);
+                bld.emit(
+                    ret_val,
+                    Insn::Concat {
+                        lo: ret_val,
+                        hi: part,
+                    },
+                );
             }
         }
         EightbytesSet::Memory => {
@@ -218,27 +249,28 @@ pub fn read_return_value<'a>(
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
                 let eb = bld.reg_gen.next();
                 bld.emit(eb, Insn::LoadMem { reg: addr, size: 8 });
-                parts.push(eb);
+                bld.emit(
+                    ret_val,
+                    Insn::Concat {
+                        lo: ret_val,
+                        hi: eb,
+                    },
+                );
             }
         }
     };
 
-    let ret_val = match parts.len() {
-        0 => {
-            let reg = bld.reg_gen.next();
-            bld.emit(reg, Insn::Void);
-            reg
-        }
-        1 => parts[0],
-        _ => {
-            let reg = parts[0];
-            for part in parts.drain(1..) {
-                bld.emit(reg, Insn::Concat { lo: reg, hi: part });
-            }
-            reg
-        }
-    };
-
+    // arguments are rounded up to multiples of 8 bytes, and assembly code out
+    // there tends to work on 8 bytes registers; but it's useful to show the
+    // 'small integer' version of the value
+    bld.emit(
+        ret_val,
+        Insn::Part {
+            src: ret_val,
+            offset: 0,
+            size: sz.try_into().unwrap(),
+        },
+    );
     Ok(ret_val)
 }
 

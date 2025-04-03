@@ -1,5 +1,5 @@
 use crate::{
-    mil::{self, ArithOp, Insn},
+    mil::{self, ArithOp, Insn, RegType},
     ssa,
 };
 
@@ -193,6 +193,19 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     }
 }
 
+fn fold_concat_void(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    let Insn::Concat { lo, hi } = insn else {
+        return insn;
+    };
+
+    match (prog.value_type(lo), prog.value_type(hi)) {
+        (RegType::Bytes(0), RegType::Bytes(0)) => Insn::Void,
+        (RegType::Bytes(0), _) => Insn::Get(hi),
+        (_, RegType::Bytes(0)) => Insn::Get(lo),
+        (_, _) => insn,
+    }
+}
+
 fn fold_bitops(insn: mil::Insn) -> Insn {
     match insn {
         // TODO put the appropriate size
@@ -262,6 +275,7 @@ pub fn canonical(prog: &mut ssa::Program) {
         let insn = insn_cell.get();
         let insn = fold_get(insn, prog);
         let insn = fold_subregs(insn, prog);
+        let insn = fold_concat_void(insn, prog);
         let insn = fold_bitops(insn);
         let insn = fold_constants(insn, prog, &mut addl_slots);
         let insn = simplify_half_null_concat(insn, prog);
