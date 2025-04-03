@@ -161,26 +161,47 @@ impl Program {
 
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
+        self.assert_effectful_partitioned();
         // self.assert_no_empty_blocks();
     }
 
     fn assert_no_circular_refs(&self) {
-        let mut defined = HashSet::new();
-        for (_, reg) in self.insns_rpo() {
-            let iv = self.get(reg).unwrap();
-            let insn = iv.insn.get();
-            let dest = iv.dest.get();
-            insn.input_regs_iter().for_each(|reg| {
-                assert!(
-                    defined.contains(&reg),
-                    "{:?}: undefined reg: {:?}",
-                    dest,
-                    reg
-                )
-            });
+        // kahn's algorithm for topological sorting, but we don't actually store the topological order
 
-            let is_first_def = defined.insert(dest);
-            assert!(is_first_def);
+        let mut rdr_count = count_readers_with_dead(self);
+        let mut queue: Vec<_> = rdr_count
+            .items()
+            .filter(|(_, count)| **count == 0)
+            .map(|(reg, _)| reg)
+            .collect();
+
+        while let Some(reg) = queue.pop() {
+            assert_eq!(rdr_count[reg], 0);
+
+            for input in self.get(reg).unwrap().insn.get().input_regs_iter() {
+                rdr_count[input] -= 1;
+                if rdr_count[input] == 0 {
+                    queue.push(input);
+                }
+            }
+        }
+
+        assert!(rdr_count.items().all(|(_, count)| *count == 0));
+    }
+
+    fn assert_effectful_partitioned(&self) {
+        // effectful insns are all in blocks; pure instructions are all outside of blocks
+        let mut in_block = RegMap::for_program(self, false);
+        for (_, bb) in self.bbs.items() {
+            for reg in &bb.effects {
+                in_block[*reg] = true;
+            }
+        }
+
+        for reg in 0..self.reg_count() {
+            let reg = mil::Reg(reg);
+            let insn = self.get(reg).unwrap().insn.get();
+            assert_eq!(in_block[reg], insn.has_side_effects());
         }
     }
 }
@@ -710,6 +731,20 @@ pub fn eliminate_dead_code(_prog: &mut Program) {
 #[derive(Clone, Debug)]
 pub struct RegMap<T>(Vec<T>);
 
+impl<T: Clone> RegMap<T> {
+    fn for_program(prog: &Program, init: T) -> Self {
+        let inner = vec![init; prog.reg_count() as usize];
+        RegMap(inner)
+    }
+
+    fn items<'s>(&'s self) -> impl 's + ExactSizeIterator<Item = (mil::Reg, &'s T)> {
+        self.0
+            .iter()
+            .enumerate()
+            .map(|(ndx, item)| (mil::Reg(ndx.try_into().unwrap()), item))
+    }
+}
+
 impl<T> std::ops::Index<mil::Reg> for RegMap<T> {
     type Output = T;
 
@@ -724,6 +759,36 @@ impl<T> std::ops::IndexMut<mil::Reg> for RegMap<T> {
     }
 }
 
+/// Count the number of "readers" (dependent) instructions for each instruction
+/// in the Program, with no regard for whether these readers are dead or alive.
+///
+/// This function always returns.
+pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
+    let mut count = RegMap::for_program(prog, 0);
+
+    // This function must not use Program::insns_rpo, as this is used to check
+    // for circular graphs, and circular graphs make insns_rpo hang in an
+    // infinite loop
+
+    for reg in 0..prog.reg_count() {
+        let reg = mil::Reg(reg);
+        for input in prog.get(reg).unwrap().insn.get().input_regs_iter() {
+            count[input] += 1;
+        }
+    }
+
+    count
+}
+
+/// Count the number of live "readers" (dependent) instructions for each
+/// instruction in the Program.
+///
+/// Dead instructions have no direct or indirect live dependent, and are
+/// therefore counted as 0.
+///
+/// **Note:** If `prog` has circular dependencies, this function hangs forever.
+/// This situation is invalid and universally considered as a bug. It should be
+/// ruled out by calling [Program::assert_invariants].
 pub fn count_readers(prog: &Program) -> RegMap<usize> {
     let mut count = vec![0; prog.reg_count() as usize];
 
@@ -739,11 +804,10 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
 #[cfg(test)]
 mod tests {
     use crate::mil;
+    use mil::{ArithOp, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
-        use mil::{ArithOp, Insn, Reg};
-
         let prog = {
             let mut pb = mil::ProgramBuilder::new();
 
@@ -783,5 +847,37 @@ mod tests {
         eprintln!("-- ssa:");
         let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
         insta::assert_debug_snapshot!(prog);
+    }
+
+    #[test]
+    fn circular_graph_detected_neg() {
+        let prog = make_prog_no_cycles();
+        prog.assert_no_circular_refs();
+    }
+
+    #[test]
+    #[should_panic]
+    fn circular_graph_detected_pos() {
+        let prog = make_prog_no_cycles();
+        // introduce cycle:
+        prog.get(Reg(0))
+            .unwrap()
+            .insn
+            .set(Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(2)));
+        prog.assert_no_circular_refs();
+    }
+
+    fn make_prog_no_cycles() -> super::Program {
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            b.push(Reg(0), Insn::Const { value: 5, size: 8 });
+            b.push(Reg(1), Insn::Const { value: 5, size: 8 });
+            b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
+            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.build()
+        };
+        let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
+        // cycle absent here: SSA conversion would have failed by now
+        prog
     }
 }
