@@ -50,19 +50,12 @@ impl Program {
         Some(iv)
     }
 
+    /// Total number of registers/instructions stored in this Program.
+    ///
+    /// This may well include dead values. Use [`insns_rpo`] to iterate through
+    /// the program only "through dependency edges" and only get live registers.
     pub fn reg_count(&self) -> mil::Index {
         self.inner.len()
-    }
-
-    // TODO: this can yield dead instruction in some situations
-    pub fn live_regs(&self) -> impl '_ + Iterator<Item = mil::Reg> {
-        (0..self.reg_count()).map(mil::Reg)
-    }
-
-    /// Iterate through the instructions in the program, in no particular order
-    // TODO: this can yield dead instruction in some situations
-    pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView> {
-        self.inner.iter()
     }
 
     pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
