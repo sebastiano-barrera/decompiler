@@ -125,18 +125,21 @@ fn pass_param<'a>(
         }
         PassMode::Memory => {
             let eb_count = sz.div_ceil(8);
+            let sz: u16 = sz.try_into().unwrap();
 
             let addr = bld.reg_gen.next();
             let eb = bld.reg_gen.next();
+
             for eb_ndx in 0..eb_count {
                 // relies on RSP never being assigned by any instruction emitted in this module
                 let eb_offset = state.pull_stack_eightbyte() as i64;
+                let offset = (eb_ndx * 8).try_into().unwrap();
                 bld.emit(
                     eb,
                     Insn::Part {
                         src: arg_value,
-                        offset: (eb_ndx * 8).try_into().unwrap(),
-                        size: 8,
+                        offset,
+                        size: (sz - offset).min(8),
                     },
                 );
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
