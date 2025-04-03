@@ -47,17 +47,6 @@ impl Program {
         let iv = self.inner.get(reg.0)?;
         debug_assert_eq!(iv.dest.get(), reg);
 
-        // "Get" instructions are never really needed in SSA.
-        // If we have `y <- Get(x)`, then every usage of y could be replaced
-        // with x. But performing the replacement is relatively costly (linearly
-        // scanning the whole program). So, instead, we only "dereference"
-        // lookups done at the SSA level if they hit a Get, and do another
-        // trick in printing to make it look like the substitution is performed
-        // "textually".
-        if let mil::Insn::Get(x) = iv.insn.get() {
-            return self.get(x);
-        }
-
         Some(iv)
     }
 
