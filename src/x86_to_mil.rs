@@ -141,6 +141,17 @@ impl<'a> Builder<'a> {
 
             use iced_x86::Mnemonic as M;
             match insn.mnemonic() {
+                /*
+                    To be implemented:
+                    * cdqe
+                    * imul   Rint, Mem
+                    * movaps Rxmm, Mem
+                    * movaps Rxmm, Rxmm
+                    * movd   Rxmm, Rint
+                    * movss  Rxmm, Mem
+                    * movups Mem, Rxmm
+                    * movzx  Rint, Mem
+                */
                 M::Nop => {}
 
                 M::Push => {
