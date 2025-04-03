@@ -216,6 +216,48 @@ fn fold_bitops(insn: mil::Insn) -> Insn {
     }
 }
 
+fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    // the pattern is
+    //  r0 <- (any, of size s0)
+    //  r1 <- Widen r0 to size s1,  s1 > s0
+    //  r2 <- Part of r1, 0..plen
+    //
+    // if s1 > s0 && plen < s1
+    //
+    //  r0 <- (any, of size s0)
+    //  r2 <- Widen r0 to size plen
+    // (skip the r1 Widen, and transform Part to a shorter Widen)
+
+    if let Insn::Part {
+        src: part_src,
+        offset: 0,
+        size: part_size,
+    } = insn
+    {
+        if let Insn::Widen { reg, target_size } = prog.get(part_src).unwrap().insn.get() {
+            if part_size < target_size {
+                return Insn::Widen {
+                    reg,
+                    target_size: part_size,
+                };
+            }
+        }
+    }
+
+    insn
+}
+
+fn fold_widen_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    if let Insn::Widen { reg, target_size } = insn {
+        if let RegType::Bytes(sz) = prog.value_type(reg) {
+            if target_size as usize == sz {
+                return Insn::Get(reg);
+            }
+        }
+    }
+
+    insn
+}
 fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
     for input in insn.input_regs_iter_mut() {
         loop {
@@ -276,6 +318,8 @@ pub fn canonical(prog: &mut ssa::Program) {
         let insn = fold_get(insn, prog);
         let insn = fold_subregs(insn, prog);
         let insn = fold_concat_void(insn, prog);
+        let insn = fold_part_widen(insn, prog);
+        let insn = fold_widen_null(insn, prog);
         let insn = fold_bitops(insn);
         let insn = fold_constants(insn, prog, &mut addl_slots);
         let insn = simplify_half_null_concat(insn, prog);

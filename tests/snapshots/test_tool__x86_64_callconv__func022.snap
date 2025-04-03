@@ -86,12 +86,9 @@ ssa post-xform:
 ssa program  60 instrs
 .B0:    ;; .
          r41 <- Ancestral(AncestralName("arg1"))
-         r42 <- Widen { reg: r41, target_size: 8 }
-         r43 <- Part { src: r42, offset: 0, size: 4 }
-         r48 <- Part { src: r43, offset: 0, size: 1 }
-         r49 <- Ret(r48)
+         r49 <- Ret(r41)
 
 
 T0: {
-  Ret ((WidenTo8 (pre:arg1))[4 .. 0][1 .. 0])
+  Ret (pre:arg1)
 }
