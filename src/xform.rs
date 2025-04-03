@@ -580,8 +580,9 @@ mod tests {
         };
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         super::canonical(&mut prog);
+        eprintln!("ssa post-xform:\n{prog:?}");
 
-        assert_eq!(prog.reg_count(), 6);
+        assert_eq!(prog.insns_rpo().count(), 2);
         assert_eq!(
             prog.get(Reg(4)).unwrap().insn.get(),
             Insn::Const {
