@@ -328,33 +328,25 @@ mod tests {
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
                 b.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(0)));
                 b.push(Reg(3), Insn::Arith(ArithOp::Mul, Reg(0), Reg(1)));
-                b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(2), Reg(1)));
+                b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(2), Reg(3)));
                 b.push(Reg(3), Insn::Const { value: 1, size: 8 });
+                b.push(Reg(0), Insn::StoreMem(Reg(3), Reg(4)));
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(3), Reg(4)));
                 b.push(Reg(0), Insn::Ret(Reg(4)));
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+            eprintln!("ssa pre-xform:\n{prog:?}");
             xform::canonical(&mut prog);
+            eprintln!("ssa post-xform:\n{prog:?}");
 
-            assert_eq!(prog.reg_count(), 10);
-            assert_eq!(
-                prog.get(Reg(3)).unwrap().insn.get(),
-                Insn::ArithK(ArithOp::Mul, Reg(0), 5)
-            );
-            assert_eq!(
-                prog.get(Reg(4)).unwrap().insn.get(),
-                Insn::ArithK(ArithOp::Mul, Reg(0), 25)
-            );
+            assert_eq!(prog.insns_rpo().count(), 6);
             assert_eq!(
                 prog.get(Reg(5)).unwrap().insn.get(),
-                Insn::Const {
-                    value: 5 * 44,
-                    size: 8
-                }
+                Insn::ArithK(ArithOp::Mul, Reg(0), 1100)
             );
-            assert_eq!(prog.get(Reg(8)).unwrap().insn.get(), Insn::Get(Reg(7)));
+            assert_eq!(prog.get(Reg(10)).unwrap().insn.get(), Insn::Ret(Reg(8)));
         }
     }
 
