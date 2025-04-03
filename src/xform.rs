@@ -388,6 +388,7 @@ mod tests {
                         size: vp.size,
                     },
                 );
+                b.push(Reg(0), Insn::Ret(Reg(3)));
                 b.build()
             }
 
@@ -501,6 +502,7 @@ mod tests {
                         size: vp.size1,
                     },
                 );
+                b.push(Reg(0), Insn::Ret(Reg(2)));
                 b.build()
             }
 
