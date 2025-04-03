@@ -19,7 +19,7 @@ listNext 0x4110b0+39 (file 0x110b0)
 
 function type: 0x4110b0: no type info
 mil program = 
-program  86 instrs
+program  82 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -64,93 +64,98 @@ program  86 instrs
    40 r28 <- LoadMem { reg: r29, size: 8 }
    41 r16 <- Get(r28)
 0x4110b3:
-   42 r16 <- Widen { reg: r16, target_size: 8 }
-   43 r16 <- Widen { reg: r16, target_size: 8 }
-   44 r16 <- Arith(BitAnd, r16, r16)
-   45 r6 <- SignOf(r16)
-   46 r5 <- IsZero(r16)
-   47 r30 <- Part { src: r16, offset: 0, size: 1 }
-   48 r3 <- Parity(r16)
-   49 r2 <- False
-   50 r10 <- False
+   42 r16 <- Arith(BitAnd, r16, r16)
+   43 r6 <- SignOf(r16)
+   44 r5 <- IsZero(r16)
+   45 r30 <- Part { src: r16, offset: 0, size: 1 }
+   46 r3 <- Parity(r16)
+   47 r2 <- False
+   48 r10 <- False
 0x4110b6:
-   51 r28 <- JmpIf { cond: r5, target: 85 }
+   49 r28 <- JmpIf { cond: r5, target: 81 }
 0x4110b8:
-   52 r29 <- Const { value: 8, size: 8 }
-   53 r29 <- Arith(Add, r29, r14)
-   54 r28 <- LoadMem { reg: r29, size: 4 }
-   55 r19 <- Part { src: r19, offset: 4, size: 4 }
-   56 r19 <- Concat { lo: r28, hi: r19 }
+   50 r29 <- Const { value: 8, size: 8 }
+   51 r29 <- Arith(Add, r29, r14)
+   52 r28 <- LoadMem { reg: r29, size: 4 }
+   53 r19 <- Part { src: r19, offset: 4, size: 4 }
+   54 r19 <- Concat { lo: r28, hi: r19 }
 0x4110bb:
-   57 r28 <- Part { src: r19, offset: 0, size: 4 }
-   58 r29 <- Part { src: r19, offset: 0, size: 4 }
-   59 r28 <- Widen { reg: r28, target_size: 4 }
-   60 r29 <- Widen { reg: r29, target_size: 4 }
-   61 r28 <- Arith(BitAnd, r28, r29)
-   62 r6 <- SignOf(r28)
-   63 r5 <- IsZero(r28)
-   64 r30 <- Part { src: r28, offset: 0, size: 1 }
-   65 r3 <- Parity(r28)
-   66 r2 <- False
-   67 r10 <- False
+   55 r28 <- Part { src: r19, offset: 0, size: 4 }
+   56 r29 <- Part { src: r19, offset: 0, size: 4 }
+   57 r28 <- Arith(BitAnd, r28, r29)
+   58 r6 <- SignOf(r28)
+   59 r5 <- IsZero(r28)
+   60 r30 <- Part { src: r28, offset: 0, size: 1 }
+   61 r3 <- Parity(r28)
+   62 r2 <- False
+   63 r10 <- False
 0x4110bd:
-   68 r28 <- Not(r5)
-   69 r29 <- JmpIf { cond: r28, target: 78 }
+   64 r28 <- Not(r5)
+   65 r29 <- JmpIf { cond: r28, target: 74 }
 0x4110bf:
-   70 r29 <- Const { value: 8, size: 8 }
-   71 r29 <- Arith(Add, r29, r16)
-   72 r28 <- LoadMem { reg: r29, size: 8 }
-   73 r19 <- Get(r28)
+   66 r29 <- Const { value: 8, size: 8 }
+   67 r29 <- Arith(Add, r29, r16)
+   68 r28 <- LoadMem { reg: r29, size: 8 }
+   69 r19 <- Get(r28)
 0x4110c3:
-   74 r29 <- Const { value: 0, size: 8 }
-   75 r29 <- Arith(Add, r29, r14)
-   76 r30 <- StoreMem(r29, r19)
+   70 r29 <- Const { value: 0, size: 8 }
+   71 r29 <- Arith(Add, r29, r14)
+   72 r30 <- StoreMem(r29, r19)
 0x4110c6:
-   77 r28 <- Ret(r16)
+   73 r28 <- Ret(r16)
 0x4110d0:
-   78 r29 <- Const { value: 0, size: 8 }
-   79 r29 <- Arith(Add, r29, r16)
-   80 r28 <- LoadMem { reg: r29, size: 8 }
-   81 r19 <- Get(r28)
+   74 r29 <- Const { value: 0, size: 8 }
+   75 r29 <- Arith(Add, r29, r16)
+   76 r28 <- LoadMem { reg: r29, size: 8 }
+   77 r19 <- Get(r28)
 0x4110d3:
-   82 r29 <- Const { value: 0, size: 8 }
-   83 r29 <- Arith(Add, r29, r14)
-   84 r30 <- StoreMem(r29, r19)
+   78 r29 <- Const { value: 0, size: 8 }
+   79 r29 <- Arith(Add, r29, r14)
+   80 r30 <- StoreMem(r29, r19)
 0x4110d6:
-   85 r28 <- Ret(r16)
+   81 r28 <- Ret(r16)
 
 
 ssa pre-xform:
-ssa program  86 instrs
+ssa program  82 instrs
 .B0:    ;; .
-  (  2)  r13 <- Ancestral(AncestralName("RDI"))
+  (  4)  r13 <- Ancestral(AncestralName("RDI"))
          r38 <- Const { value: 0, size: 8 }
          r39 <- Arith(Add, r38, r13)
-         r40 <- LoadMem { reg: r39, size: 8 }
-         r42 <- Widen { reg: r40, target_size: 8 }
-  (  2)  r43 <- Widen { reg: r42, target_size: 8 }
-  (  3)  r44 <- Arith(BitAnd, r43, r43)
-         r46 <- IsZero(r44)
-         r51 <- JmpIf { cond: r46, target: 85 }
+  (  2)  r40 <- LoadMem { reg: r39, size: 8 }
+  (  5)  r42 <- Arith(BitAnd, r40, r40)
+         r44 <- IsZero(r42)
+         r49 <- JmpIf { cond: r44, target: 81 }
 .B1:    ;; preds:B0.
          r18 <- Ancestral(AncestralName("RDX"))
-         r55 <- Part { src: r18, offset: 4, size: 4 }
-         r52 <- Const { value: 8, size: 8 }
-         r53 <- Arith(Add, r52, r13)
-         r54 <- LoadMem { reg: r53, size: 4 }
-  (  2)  r56 <- Concat { lo: r54, hi: r55 }
-         r58 <- Part { src: r56, offset: 0, size: 4 }
-         r60 <- Widen { reg: r58, target_size: 4 }
-         r57 <- Part { src: r56, offset: 0, size: 4 }
-         r59 <- Widen { reg: r57, target_size: 4 }
-         r61 <- Arith(BitAnd, r59, r60)
-         r63 <- IsZero(r61)
-         r68 <- Not(r63)
-         r69 <- JmpIf { cond: r68, target: 78 }
+         r53 <- Part { src: r18, offset: 4, size: 4 }
+         r50 <- Const { value: 8, size: 8 }
+         r51 <- Arith(Add, r50, r13)
+         r52 <- LoadMem { reg: r51, size: 4 }
+  (  2)  r54 <- Concat { lo: r52, hi: r53 }
+         r56 <- Part { src: r54, offset: 0, size: 4 }
+         r55 <- Part { src: r54, offset: 0, size: 4 }
+         r57 <- Arith(BitAnd, r55, r56)
+         r59 <- IsZero(r57)
+         r64 <- Not(r59)
+         r65 <- JmpIf { cond: r64, target: 74 }
+.B3:    ;; preds:B1.
+         r74 <- Const { value: 0, size: 8 }
+         r75 <- Arith(Add, r74, r42)
+         r76 <- LoadMem { reg: r75, size: 8 }
+         r78 <- Const { value: 0, size: 8 }
+         r79 <- Arith(Add, r78, r13)
+         r80 <- StoreMem(r79, r76)
 .B2:    ;; preds:B1.
-         r77 <- Ret(r44)
+         r66 <- Const { value: 8, size: 8 }
+         r67 <- Arith(Add, r66, r42)
+         r68 <- LoadMem { reg: r67, size: 8 }
+         r70 <- Const { value: 0, size: 8 }
+         r71 <- Arith(Add, r70, r13)
+         r72 <- StoreMem(r71, r68)
+         r73 <- Ret(r42)
 .B4:    ;; preds:B0,B2,B3.
-         r85 <- Ret(r44)
+         r81 <- Ret(r42)
 
 
 cfg:
@@ -167,54 +172,49 @@ BlockID(0)
 |  BlockID(4)
 
 ssa post-xform:
-ssa program  86 instrs
+ssa program  92 instrs
 .B0:    ;; .
-  (  2)  r13 <- Ancestral(AncestralName("RDI"))
-         r38 <- Const { value: 0, size: 8 }
-         r39 <- Arith(Add, r38, r13)
-         r40 <- LoadMem { reg: r39, size: 8 }
-         r42 <- Widen { reg: r40, target_size: 8 }
-  (  2)  r43 <- Widen { reg: r42, target_size: 8 }
-  (  3)  r44 <- Arith(BitAnd, r43, r43)
-         r46 <- IsZero(r44)
-         r51 <- JmpIf { cond: r46, target: 85 }
+  (  4)  r13 <- Ancestral(AncestralName("RDI"))
+  (  5)  r40 <- LoadMem { reg: r13, size: 8 }
+         r44 <- IsZero(r40)
+         r49 <- JmpIf { cond: r44, target: 81 }
 .B1:    ;; preds:B0.
-         r18 <- Ancestral(AncestralName("RDX"))
-         r55 <- Part { src: r18, offset: 4, size: 4 }
-         r52 <- Const { value: 8, size: 8 }
-         r53 <- Arith(Add, r52, r13)
-         r54 <- LoadMem { reg: r53, size: 4 }
-  (  2)  r56 <- Concat { lo: r54, hi: r55 }
-         r58 <- Part { src: r56, offset: 0, size: 4 }
-         r60 <- Widen { reg: r58, target_size: 4 }
-         r57 <- Part { src: r56, offset: 0, size: 4 }
-         r59 <- Widen { reg: r57, target_size: 4 }
-         r61 <- Arith(BitAnd, r59, r60)
-         r63 <- IsZero(r61)
-         r68 <- Not(r63)
-         r69 <- JmpIf { cond: r68, target: 78 }
+         r51 <- ArithK(Add, r13, 8)
+  (  2)  r52 <- LoadMem { reg: r51, size: 4 }
+         r91 <- Part { src: r52, offset: 0, size: 4 }
+         r55 <- Part { src: r52, offset: 0, size: 4 }
+         r57 <- Arith(BitAnd, r55, r91)
+         r59 <- IsZero(r57)
+         r64 <- Not(r59)
+         r65 <- JmpIf { cond: r64, target: 74 }
+.B3:    ;; preds:B1.
+         r76 <- LoadMem { reg: r40, size: 8 }
+         r80 <- StoreMem(r13, r76)
 .B2:    ;; preds:B1.
-         r77 <- Ret(r44)
+         r67 <- ArithK(Add, r40, 8)
+         r68 <- LoadMem { reg: r67, size: 8 }
+         r72 <- StoreMem(r13, r68)
+         r73 <- Ret(r40)
 .B4:    ;; preds:B0,B2,B3.
-         r85 <- Ret(r44)
+         r81 <- Ret(r40)
 
 
 T0: {
   let r13 = pre:RDI;
-  let r43 = WidenTo8(WidenTo8([0i64 /* 0x0 */ + r13]:8));
-  let r44 = r43 & r43;
-  if(IsZero(r44)) {
+  let r40 = [r13]:8;
+  if (IsZero (r40)) {
     goto T4
   }
-  let r56 = pre:RDX[4 .. 8]⧺[8i64 /* 0x8 */ + r13]:4;
-  if(!(IsZero(WidenTo4(r56[0 .. 4]) & WidenTo4(r56[0 .. 4])))) {
-    
+  let r52 = [(r13 + 8)]:4;
+  if (! ((IsZero (r52[4 .. 0] & r52[4 .. 0])))) {
+    [r13] = [r40]:8
     goto T4
   }
-  Ret(r44)
+  [r13] = [(r40 + 8)]:8
+  Ret (r40)
   goto T4
   T4: {
-    Ret(r44)
+    Ret (r40)
   }
 
 }

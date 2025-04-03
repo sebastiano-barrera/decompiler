@@ -57,6 +57,22 @@ impl<'a> Builder<'a> {
         bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes(8));
         bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes(8));
         bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, RegType::Bytes(8));
 
         bld
     }
@@ -102,6 +118,7 @@ impl<'a> Builder<'a> {
             let param_count = func_ty.param_tyids.len();
             let res = callconv::read_func_params(&mut self, &func_ty.param_tyids);
             self.func_ty = Some(func_ty);
+
             let report = res.context("while applying the calling convention for parameters")?;
             if report.ok_count < param_count {
                 eprintln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
@@ -973,8 +990,8 @@ impl<'a> Builder<'a> {
     const ZMM14: mil::Reg = mil::Reg(42);
     const ZMM15: mil::Reg = mil::Reg(43);
 
-    const R_TMP_FIRST: mil::Reg = mil::Reg(28);
-    const R_TMP_LAST: mil::Reg = mil::Reg(38);
+    const R_TMP_FIRST: mil::Reg = mil::Reg(43);
+    const R_TMP_LAST: mil::Reg = mil::Reg(53);
 
     fn reset_reg_gen() -> RegGen {
         RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)
@@ -1075,6 +1092,22 @@ define_ancestral_name!(ANC_R12, "R12");
 define_ancestral_name!(ANC_R13, "R13");
 define_ancestral_name!(ANC_R14, "R14");
 define_ancestral_name!(ANC_R15, "R15");
+define_ancestral_name!(ANC_ZMM0, "ZMM0");
+define_ancestral_name!(ANC_ZMM1, "ZMM1");
+define_ancestral_name!(ANC_ZMM2, "ZMM2");
+define_ancestral_name!(ANC_ZMM3, "ZMM3");
+define_ancestral_name!(ANC_ZMM4, "ZMM4");
+define_ancestral_name!(ANC_ZMM5, "ZMM5");
+define_ancestral_name!(ANC_ZMM6, "ZMM6");
+define_ancestral_name!(ANC_ZMM7, "ZMM7");
+define_ancestral_name!(ANC_ZMM8, "ZMM8");
+define_ancestral_name!(ANC_ZMM9, "ZMM9");
+define_ancestral_name!(ANC_ZMM10, "ZMM10");
+define_ancestral_name!(ANC_ZMM11, "ZMM11");
+define_ancestral_name!(ANC_ZMM12, "ZMM12");
+define_ancestral_name!(ANC_ZMM13, "ZMM13");
+define_ancestral_name!(ANC_ZMM14, "ZMM14");
+define_ancestral_name!(ANC_ZMM15, "ZMM15");
 
 define_ancestral_name!(ANC_ARG0, "arg0");
 define_ancestral_name!(ANC_ARG1, "arg1");

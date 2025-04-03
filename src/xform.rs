@@ -258,6 +258,24 @@ fn fold_widen_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 
     insn
 }
+
+fn fold_part_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    if let Insn::Part {
+        src,
+        offset: 0,
+        size,
+    } = insn
+    {
+        if let RegType::Bytes(src_size) = prog.value_type(src) {
+            if src_size == size as usize {
+                return Insn::Get(src);
+            }
+        }
+    }
+
+    insn
+}
+
 fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
     for input in insn.input_regs_iter_mut() {
         loop {
@@ -320,6 +338,7 @@ pub fn canonical(prog: &mut ssa::Program) {
         let insn = fold_concat_void(insn, prog);
         let insn = fold_part_widen(insn, prog);
         let insn = fold_widen_null(insn, prog);
+        let insn = fold_part_null(insn, prog);
         let insn = fold_bitops(insn);
         let insn = fold_constants(insn, prog, &mut addl_slots);
         let insn = simplify_half_null_concat(insn, prog);
@@ -468,10 +487,14 @@ mod tests {
 
                             assert_eq!(
                                 prog.get(Reg(3)).unwrap().insn.get(),
-                                Insn::Part {
-                                    src: Reg(0),
-                                    offset,
-                                    size
+                                if offset == 0 && size == anc_a_sz {
+                                    Insn::Get(Reg(0))
+                                } else {
+                                    Insn::Part {
+                                        src: Reg(0),
+                                        offset,
+                                        size,
+                                    }
                                 }
                             );
                         }
@@ -491,10 +514,14 @@ mod tests {
 
                             assert_eq!(
                                 prog.get(Reg(3)).unwrap().insn.get(),
-                                Insn::Part {
-                                    src: Reg(1),
-                                    offset: offset - anc_a_sz,
-                                    size,
+                                if offset == anc_a_sz && size == anc_b_sz {
+                                    Insn::Get(Reg(1))
+                                } else {
+                                    Insn::Part {
+                                        src: Reg(1),
+                                        offset: offset - anc_a_sz,
+                                        size,
+                                    }
                                 }
                             );
                         }
@@ -585,10 +612,14 @@ mod tests {
                                 let exp_size = size1;
                                 assert_eq!(
                                     prog.get(Reg(2)).unwrap().insn.get(),
-                                    Insn::Part {
-                                        src: Reg(0),
-                                        offset: exp_offset,
-                                        size: exp_size,
+                                    if offs1 == 0 && size1 == src_sz {
+                                        Insn::Get(Reg(0))
+                                    } else {
+                                        Insn::Part {
+                                            src: Reg(0),
+                                            offset: exp_offset,
+                                            size: exp_size,
+                                        }
                                     }
                                 );
 
