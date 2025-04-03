@@ -2,15 +2,10 @@
 source: src/x86_to_mil/callconv.rs
 expression: snap
 ---
-params: [TypeID(3v1)]
+params: [TypeID(5v1)]
 program:
-ssa program  34 instrs
+ssa program  30 instrs
 .B0:    ;; .
-  (  2)  r13 <- Ancestral(AncestralName("RDI"))
-         r31 <- Part { src: r13, offset: 4, size: 4 }
          r27 <- Ancestral(AncestralName("arg0"))
-         r29 <- Part { src: r27, offset: 0, size: 4 }
-         r28 <- Part { src: r13, offset: 0, size: 0 }
-         r30 <- Concat { lo: r28, hi: r29 }
-         r32 <- Concat { lo: r30, hi: r31 }
-         r33 <- Ret(r32)
+         r28 <- Part { src: r27, offset: 0, size: 8 }
+         r29 <- Ret(r28)

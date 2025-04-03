@@ -1,0 +1,132 @@
+---
+source: tests/test_tool.rs
+expression: out
+---
+func016 0x401158+7 (file 0x1158)
+          401158: f2 0f 10 44 24 10       movsd xmm0,[rsp+10h]
+          40115e: c3                      ret
+
+mil program = 
+program  57 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Undefined
+   28 r29 <- Undefined
+   29 r30 <- Undefined
+   30 r31 <- Undefined
+   31 r32 <- Undefined
+   32 r33 <- Undefined
+   33 r34 <- Undefined
+   34 r35 <- Undefined
+   35 r36 <- Undefined
+   36 r37 <- Undefined
+   37 r38 <- Undefined
+   38 r28 <- Ancestral(AncestralName("arg0"))
+   39 r30 <- Part { src: r28, offset: 0, size: 8 }
+   40 r29 <- ArithK(Add, r12, 8)
+   41 r29 <- StoreMem(r29, r30)
+   42 r30 <- Part { src: r28, offset: 8, size: 8 }
+   43 r29 <- ArithK(Add, r12, 16)
+   44 r29 <- StoreMem(r29, r30)
+   45 r30 <- Part { src: r28, offset: 16, size: 8 }
+   46 r29 <- ArithK(Add, r12, 24)
+   47 r29 <- StoreMem(r29, r30)
+   48 r30 <- Part { src: r28, offset: 24, size: 8 }
+   49 r29 <- ArithK(Add, r12, 32)
+   50 r29 <- StoreMem(r29, r30)
+0x401158:
+   51 r29 <- Const { value: 16, size: 8 }
+   52 r29 <- Arith(Add, r29, r12)
+   53 r28 <- LoadMem { reg: r29, size: 8 }
+   54 r28 <- Widen { reg: r28, target_size: 16 }
+   55 r28 <- Get(r28)
+0x40115e:
+   56 r28 <- Ret(r28)
+
+
+ssa pre-xform:
+ssa program  57 instrs
+.B0:    ;; .
+  (  4)  r38 <- Ancestral(AncestralName("arg0"))
+         r39 <- Part { src: r38, offset: 0, size: 8 }
+  (  5)  r11 <- Ancestral(AncestralName("RSP"))
+         r40 <- ArithK(Add, r11, 8)
+         r41 <- StoreMem(r40, r39)
+         r42 <- Part { src: r38, offset: 8, size: 8 }
+         r43 <- ArithK(Add, r11, 16)
+         r44 <- StoreMem(r43, r42)
+         r45 <- Part { src: r38, offset: 16, size: 8 }
+         r46 <- ArithK(Add, r11, 24)
+         r47 <- StoreMem(r46, r45)
+         r48 <- Part { src: r38, offset: 24, size: 8 }
+         r49 <- ArithK(Add, r11, 32)
+         r50 <- StoreMem(r49, r48)
+         r51 <- Const { value: 16, size: 8 }
+         r52 <- Arith(Add, r51, r11)
+         r53 <- LoadMem { reg: r52, size: 8 }
+         r54 <- Widen { reg: r53, target_size: 16 }
+         r56 <- Ret(r54)
+
+
+cfg:
+  BlockID(0) -> End
+  domtree:
+BlockID(0)
+
+ssa post-xform:
+ssa program  67 instrs
+.B0:    ;; .
+  (  4)  r38 <- Ancestral(AncestralName("arg0"))
+         r39 <- Part { src: r38, offset: 0, size: 8 }
+  (  5)  r11 <- Ancestral(AncestralName("RSP"))
+         r40 <- ArithK(Add, r11, 8)
+         r41 <- StoreMem(r40, r39)
+         r42 <- Part { src: r38, offset: 8, size: 8 }
+         r43 <- ArithK(Add, r11, 16)
+         r44 <- StoreMem(r43, r42)
+         r45 <- Part { src: r38, offset: 16, size: 8 }
+         r46 <- ArithK(Add, r11, 24)
+         r47 <- StoreMem(r46, r45)
+         r48 <- Part { src: r38, offset: 24, size: 8 }
+         r49 <- ArithK(Add, r11, 32)
+         r50 <- StoreMem(r49, r48)
+         r52 <- ArithK(Add, r11, 16)
+         r53 <- LoadMem { reg: r52, size: 8 }
+         r54 <- Widen { reg: r53, target_size: 16 }
+         r56 <- Ret(r54)
+
+
+T0: {
+  let r11 = pre:RSP;
+  let r38 = pre:arg0;
+  [r11 + 8] = r38[8 .. 0]
+  [r11 + 16] = r38[16 .. 8]
+  [r11 + 24] = r38[24 .. 16]
+  [r11 + 32] = r38[32 .. 24]
+  Ret (WidenTo16 ([(r11 + 16)]:8))
+}
