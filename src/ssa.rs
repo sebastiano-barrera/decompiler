@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
 ///

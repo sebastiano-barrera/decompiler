@@ -1030,22 +1030,6 @@ impl<'a> Builder<'a> {
     }
 }
 
-trait DivCeil {
-    fn div_ceil(size: Self, quot: Self) -> Self;
-}
-macro_rules! impl_div_ceil {
-    ($ty:ty) => {
-        impl DivCeil for $ty {
-            #[inline(always)]
-            fn div_ceil(size: Self, quot: Self) -> Self {
-                (size + quot - 1) / quot
-            }
-        }
-    };
-}
-impl_div_ceil!(u32);
-impl_div_ceil!(usize);
-
 struct RegGen {
     next: mil::Reg,
     last: mil::Reg,
