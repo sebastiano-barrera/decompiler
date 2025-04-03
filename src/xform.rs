@@ -3,7 +3,7 @@ use crate::{
     ssa,
 };
 
-fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>) -> Insn {
     use mil::{ArithOp, Insn};
 
     /// Evaluate expression (ak (op) bk)
@@ -69,7 +69,8 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         _ => return insn,
     };
 
-    assert!(!matches!(li, Insn::Const { .. }));
+    // if there is a Const, it's on the right (or they are both Const)
+    assert!(matches!(ri, Insn::Const { .. }) || !matches!(li, Insn::Const { .. }));
 
     // convert sub to add to increase the probability of applying the following rules
     if op == ArithOp::Sub {
@@ -88,8 +89,9 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
             if l_op == r_op && l_op == op =>
         {
             if let Some(k) = assoc_const(op, lk, rk) {
-                li = fold_constants(Insn::Arith(op, llr, rlr), prog);
-                lr = prog.push_pure(li);
+                lr = addl.pop().expect("insufficient addl slots");
+                li = fold_constants(Insn::Arith(op, llr, rlr), prog, addl);
+                prog.get(lr).unwrap().insn.set(li);
                 ri = Insn::Const { value: k, size: 8 };
             }
         }
@@ -109,12 +111,13 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program) -> Insn {
             value: eval_const(op, ka, kb),
             size: 8,
         },
-        (ArithOp::Add, li, Insn::Const { value: 0, .. }) => li,
-        (ArithOp::Mul, li, Insn::Const { value: 1, .. }) => li,
+        (ArithOp::Add, _, Insn::Const { value: 0, .. }) => Insn::Get(lr),
+        (ArithOp::Mul, _, Insn::Const { value: 1, .. }) => Insn::Get(lr),
 
-        (op, li, Insn::Const { value: kr, .. }) => Insn::ArithK(op, lr, kr),
-        (op, li, ri) => {
-            let rr = prog.push_pure(ri);
+        (op, _, Insn::Const { value: kr, .. }) => Insn::ArithK(op, lr, kr),
+        (op, _, ri) => {
+            let rr = addl.pop().expect("insufficient addl slots");
+            prog.get(rr).unwrap().insn.set(ri);
             Insn::Arith(op, lr, rr)
         }
     }
@@ -235,6 +238,14 @@ fn simplify_half_null_concat(insn: Insn, prog: &ssa::Program) -> Insn {
 pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
 
+    // "additional slots": extra dummy nodes, initialized to a "nop",  used by
+    // some xforms as 'free space' to write new instructions without requiring a
+    // `&mut Program`.
+    //
+    // only pure insns can be written into add'l slots without breaking
+    // invariants; assert_invariants will check this later
+    let mut addl_slots: Vec<_> = (0..10).map(|_| prog.push_pure(Insn::Void)).collect();
+
     // apply transforms in lockstep
     //
     // in this setup, we scan the program once; for each instruction, we apply
@@ -246,16 +257,15 @@ pub fn canonical(prog: &mut ssa::Program) {
     // introduced by earlier transforms is going to be "dereferenced" and will
     // most likely end up dead and eliminated by the time this function returns.
 
-    for bid in prog.cfg().block_ids_rpo() {
-        for insn_cell in prog.block_normal_insns(bid).unwrap().insns.iter() {
-            let insn = insn_cell.get();
-            let insn = fold_get(insn, prog);
-            let insn = fold_subregs(insn, prog);
-            let insn = fold_bitops(insn);
-            let insn = fold_constants(insn, prog);
-            let insn = simplify_half_null_concat(insn, prog);
-            insn_cell.set(insn);
-        }
+    for (_, reg) in prog.insns_rpo() {
+        let insn_cell = &prog.get(reg).unwrap().insn;
+        let insn = insn_cell.get();
+        let insn = fold_get(insn, prog);
+        let insn = fold_subregs(insn, prog);
+        let insn = fold_bitops(insn);
+        let insn = fold_constants(insn, prog, &mut addl_slots);
+        let insn = simplify_half_null_concat(insn, prog);
+        insn_cell.set(insn);
     }
 
     prog.assert_invariants();
@@ -277,32 +287,36 @@ mod tests {
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(1), Insn::Const8(5));
-                b.push(Reg(2), Insn::Const8(44));
-                b.push(Reg(0), Insn::Arith8(ArithOp::Add, Reg(1), Reg(0)));
-                b.push(Reg(3), Insn::Arith8(ArithOp::Add, Reg(0), Reg(1)));
-                b.push(Reg(4), Insn::Arith8(ArithOp::Add, Reg(2), Reg(1)));
-                b.push(Reg(3), Insn::Const8(0));
+                b.push(Reg(1), Insn::Const { value: 5, size: 8 });
+                b.push(Reg(2), Insn::Const { value: 44, size: 8 });
+                b.push(Reg(0), Insn::Arith(ArithOp::Add, Reg(1), Reg(0)));
+                b.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
+                b.push(Reg(4), Insn::Arith(ArithOp::Add, Reg(2), Reg(1)));
+                b.push(Reg(0), Insn::StoreMem(Reg(4), Reg(3)));
+                b.push(Reg(3), Insn::Const { value: 0, size: 8 });
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(3), Insn::Arith8(ArithOp::Add, Reg(3), Reg(4)));
-                b.push(Reg(0), Insn::Ret(Reg(4)));
+                b.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(3), Reg(4)));
+                b.push(Reg(0), Insn::Ret(Reg(3)));
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             xform::canonical(&mut prog);
+            eprintln!("ssa post xform:\n\n{:?}", prog);
 
             assert_eq!(prog.cfg().block_count(), 1);
-            let insns = prog
-                .block_normal_insns(prog.cfg().entry_block_id())
-                .unwrap();
-            assert_eq!(insns.insns.len(), 10);
-            assert_eq!(insns.insns[3].get(), Insn::ArithK8(ArithOp::Add, Reg(0), 5));
             assert_eq!(
-                insns.insns[4].get(),
-                Insn::ArithK8(ArithOp::Add, Reg(0), 10)
+                prog.get(Reg(3)).unwrap().insn.get(),
+                Insn::ArithK(ArithOp::Add, Reg(0), 5)
             );
-            assert_eq!(insns.insns[5].get(), Insn::Const8(49));
-            assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
+            assert_eq!(
+                prog.get(Reg(4)).unwrap().insn.get(),
+                Insn::ArithK(ArithOp::Add, Reg(0), 10)
+            );
+            assert_eq!(
+                prog.get(Reg(5)).unwrap().insn.get(),
+                Insn::Const { value: 49, size: 8 }
+            );
+            assert_eq!(prog.get(Reg(9)).unwrap().insn.get(), Insn::Get(Reg(8)));
         }
 
         #[test]
@@ -310,31 +324,37 @@ mod tests {
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(1), Insn::Const8(5));
-                b.push(Reg(2), Insn::Const8(44));
-                b.push(Reg(0), Insn::Arith8(ArithOp::Mul, Reg(1), Reg(0)));
-                b.push(Reg(3), Insn::Arith8(ArithOp::Mul, Reg(0), Reg(1)));
-                b.push(Reg(4), Insn::Arith8(ArithOp::Mul, Reg(2), Reg(1)));
-                b.push(Reg(3), Insn::Const8(1));
+                b.push(Reg(1), Insn::Const { value: 5, size: 8 });
+                b.push(Reg(2), Insn::Const { value: 44, size: 8 });
+                b.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(0)));
+                b.push(Reg(3), Insn::Arith(ArithOp::Mul, Reg(0), Reg(1)));
+                b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(2), Reg(1)));
+                b.push(Reg(3), Insn::Const { value: 1, size: 8 });
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(4), Insn::Arith8(ArithOp::Mul, Reg(3), Reg(4)));
+                b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(3), Reg(4)));
                 b.push(Reg(0), Insn::Ret(Reg(4)));
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             xform::canonical(&mut prog);
 
-            let insns = prog
-                .block_normal_insns(prog.cfg().entry_block_id())
-                .unwrap();
-            assert_eq!(insns.insns.len(), 10);
-            assert_eq!(insns.insns[3].get(), Insn::ArithK8(ArithOp::Mul, Reg(0), 5));
+            assert_eq!(prog.reg_count(), 10);
             assert_eq!(
-                insns.insns[4].get(),
-                Insn::ArithK8(ArithOp::Mul, Reg(0), 25)
+                prog.get(Reg(3)).unwrap().insn.get(),
+                Insn::ArithK(ArithOp::Mul, Reg(0), 5)
             );
-            assert_eq!(insns.insns[5].get(), Insn::Const8(5 * 44));
-            assert_eq!(insns.insns[8].get(), Insn::Get(Reg(7)));
+            assert_eq!(
+                prog.get(Reg(4)).unwrap().insn.get(),
+                Insn::ArithK(ArithOp::Mul, Reg(0), 25)
+            );
+            assert_eq!(
+                prog.get(Reg(5)).unwrap().insn.get(),
+                Insn::Const {
+                    value: 5 * 44,
+                    size: 8
+                }
+            );
+            assert_eq!(prog.get(Reg(8)).unwrap().insn.get(), Insn::Get(Reg(7)));
         }
     }
 
@@ -350,10 +370,10 @@ mod tests {
 
             #[derive(Clone, Copy)]
             struct VariantParams {
-                anc_a_sz: u8,
-                anc_b_sz: u8,
-                offset: u8,
-                size: u8,
+                anc_a_sz: u16,
+                anc_b_sz: u16,
+                offset: u16,
+                size: u16,
             }
             fn gen_prog(vp: VariantParams) -> mil::Program {
                 let mut b = mil::ProgramBuilder::new();
@@ -462,11 +482,11 @@ mod tests {
 
             #[derive(Clone, Copy)]
             struct VariantParams {
-                src_sz: u8,
-                offs0: u8,
-                size0: u8,
-                offs1: u8,
-                size1: u8,
+                src_sz: u16,
+                offs0: u16,
+                size0: u16,
+                offs1: u16,
+                size1: u16,
             }
 
             fn gen_prog(vp: VariantParams) -> mil::Program {
@@ -545,26 +565,29 @@ mod tests {
 
         let prog = {
             let mut b = mil::ProgramBuilder::new();
-            b.push(Reg(1), Insn::Const8(5));
-            b.push(Reg(2), Insn::Const8(44));
+            b.push(Reg(1), Insn::Const { value: 5, size: 8 });
+            b.push(Reg(2), Insn::Const { value: 44, size: 8 });
 
             // removed by fold_bitops
-            b.push(Reg(1), Insn::Arith8(ArithOp::BitAnd, Reg(1), Reg(1)));
-            b.push(Reg(2), Insn::Arith8(ArithOp::BitAnd, Reg(2), Reg(2)));
+            b.push(Reg(1), Insn::Arith(ArithOp::BitAnd, Reg(1), Reg(1)));
+            b.push(Reg(2), Insn::Arith(ArithOp::BitAnd, Reg(2), Reg(2)));
 
             // removed by fold_constants IF the Insn::Get's added by fold_bitops
             // is dereferenced
-            b.push(Reg(0), Insn::Arith8(ArithOp::Mul, Reg(1), Reg(2)));
+            b.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(2)));
             b.push(Reg(0), Insn::Ret(Reg(0)));
             b.build()
         };
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         super::canonical(&mut prog);
 
-        let insns = prog
-            .block_normal_insns(prog.cfg().entry_block_id())
-            .unwrap();
-        assert_eq!(insns.insns.len(), 6);
-        assert_eq!(insns.insns[4].get(), Insn::Const8(5 * 44));
+        assert_eq!(prog.reg_count(), 6);
+        assert_eq!(
+            prog.get(Reg(4)).unwrap().insn.get(),
+            Insn::Const {
+                value: 5 * 44,
+                size: 8
+            }
+        );
     }
 }
