@@ -123,13 +123,14 @@ fn pass_param<'a>(
         }
         PassMode::OneBigSse { eb_count } => {
             let reg = state.pull_sse_reg().expect("no available regs!");
-            let size = match eb_count {
-                1 => 8,
-                2 => 16,
-                4 => 32,
-                _ => panic!("invalid size for \"one big SSA\" pass mode: {}", eb_count),
-            };
-            emit_partial_write(bld, arg_value, reg, 0, size);
+            assert_eq!(sz.div_ceil(8), eb_count as u32);
+            bld.emit(
+                reg,
+                mil::Insn::Widen {
+                    reg: arg_value,
+                    target_size: 32,
+                },
+            );
         }
         PassMode::Memory => {
             let eb_count = sz.div_ceil(8);
@@ -302,7 +303,7 @@ fn eightbytes_to_pass_mode(eb_set: EightbytesSet) -> PassMode {
                     .all(|&cls| cls == RegClass::SseUp)
             {
                 PassMode::OneBigSse {
-                    eb_count: clss.len().try_into().unwrap(),
+                    eb_count: used_count.try_into().unwrap(),
                 }
             } else if used_count <= 2 {
                 PassMode::Regs([clss[0], clss[1]])
@@ -431,40 +432,6 @@ impl EightbytesSet {
             }
         };
     }
-}
-
-fn emit_partial_write(bld: &mut Builder, src: mil::Reg, dest: mil::Reg, offset: u16, size: u16) {
-    // dest[offset+size:8] ++ src[0:size] ++ dest[0:offset]
-
-    let t0 = bld.reg_gen.next();
-    let t1 = bld.reg_gen.next();
-
-    bld.emit(
-        t0,
-        mil::Insn::Part {
-            src: dest,
-            offset: 0,
-            size: offset,
-        },
-    );
-    bld.emit(
-        t1,
-        mil::Insn::Part {
-            src,
-            offset: 0,
-            size,
-        },
-    );
-    bld.emit(t1, mil::Insn::Concat { lo: t0, hi: t1 });
-    bld.emit(
-        t0,
-        mil::Insn::Part {
-            src: dest,
-            offset: offset + size,
-            size: 8 - offset - size,
-        },
-    );
-    bld.emit(dest, mil::Insn::Concat { lo: t1, hi: t0 });
 }
 
 static INTEGER_REGS: [Reg; 6] = [
