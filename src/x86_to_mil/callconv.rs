@@ -9,8 +9,8 @@ use anyhow::anyhow;
 
 #[derive(Clone, Copy)]
 enum PassMode {
-    Regs([RegClass; 2]),
-    OneBigSse { eb_count: u8 },
+    Regs([Option<Reg>; 2]),
+    OneBigSse { reg: Reg, eb_count: u8 },
     Memory,
 }
 
@@ -51,7 +51,7 @@ pub fn read_func_params<'a>(
             break;
         }
 
-        let pass_mode = eightbytes_to_pass_mode(eb_set);
+        let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state);
         let sz = types.bytes_size(param_tyid).unwrap();
 
         let param_anc = state
@@ -79,23 +79,15 @@ fn pass_param<'a>(
     let sz = types.bytes_size(tyid).unwrap();
 
     match mode {
-        PassMode::Regs(clss) => {
-            assert_ne!(clss[0], RegClass::Unused);
+        PassMode::Regs(regs) => {
+            assert!(regs[0].is_some());
+
             // TODO assert that the type is 1-16 bytes long, based on clss
-            for (ndx, cls) in clss.into_iter().enumerate() {
-                let reg = match cls {
-                    RegClass::Integer => state.pull_integer_reg(),
-                    RegClass::Sse => state.pull_sse_reg(),
-                    RegClass::SseUp => panic!("SseUp is an invalid RegClass at this stage!"),
-                    RegClass::Unused => {
-                        if ndx == 0 {
-                            panic!("invalid RegClass at this stage!")
-                        } else {
-                            continue;
-                        }
-                    }
-                }
-                .expect("no available regs!");
+            for (ndx, reg) in regs.into_iter().enumerate() {
+                let Some(reg) = reg else {
+                    continue;
+                };
+
                 let offset = (8 * ndx).try_into().unwrap();
                 // write the eightbyte from the source value (opaque) to the
                 // destination reg, rounded up to 8 bytes
@@ -121,8 +113,7 @@ fn pass_param<'a>(
                 }
             }
         }
-        PassMode::OneBigSse { eb_count } => {
-            let reg = state.pull_sse_reg().expect("no available regs!");
+        PassMode::OneBigSse { reg, eb_count } => {
             assert_eq!(sz.div_ceil(8), eb_count as u32);
             bld.emit(
                 reg,
@@ -275,44 +266,67 @@ pub fn read_return_value<'a>(
     Ok(ret_val)
 }
 
-fn eightbytes_to_pass_mode(eb_set: EightbytesSet) -> PassMode {
+fn eightbytes_to_pass_mode(eb_set: EightbytesSet, state_saved: &mut ParamPassing) -> PassMode {
+    // we manipulate state and try to get enough registers as needed. if we
+    // can't we ought to use PassMode::Memory. we save the resulting state back
+    // to state_saved only if we manage to allocate all registers
+    let mut state = state_saved.clone();
+
     // as per spec: AMD64 ABI Draft 0.99.6 – July 2, 2012 - page 19
     // > If the size of the aggregate exceeds two eightbytes and the first
     // > eightbyte isn’t SSE or any other eightbyte isn’t SSEUP, the whole
     // > argument is passed in memory.
-    match eb_set {
+    let pass_mode = match eb_set {
         EightbytesSet::Regs { clss } => {
-            // make sure Unused are all at the end of the slice
-            // TODO replace with newtype?
-            let unused_count = clss
-                .iter()
-                .rev()
-                .take_while(|&&cls| cls == RegClass::Unused)
-                .count();
-            let used_count = clss.len() - unused_count;
-            assert!(clss[..used_count]
-                .iter()
-                .all(|cls| *cls != RegClass::Unused));
-            assert!(used_count >= 1);
+            let clss = {
+                // make sure Unused are all at the end of the slice
+                // TODO replace with newtype?
+                let unused_count = clss
+                    .iter()
+                    .rev()
+                    .take_while(|&&cls| cls == RegClass::Unused)
+                    .count();
+                let used_count = clss.len() - unused_count;
+                &clss[0..used_count]
+            };
+            assert!(clss.iter().all(|cls| *cls != RegClass::Unused));
+            assert!(clss.len() >= 1);
 
             // [Sse, SseUp...]
-            if used_count >= 1
-                && clss[0] == RegClass::Sse
-                && clss[1..used_count]
-                    .iter()
-                    .all(|&cls| cls == RegClass::SseUp)
-            {
+            if clss[0] == RegClass::Sse && clss[1..].iter().all(|&cls| cls == RegClass::SseUp) {
+                let Some(reg) = state.pull_sse_reg() else {
+                    return PassMode::Memory;
+                };
                 PassMode::OneBigSse {
-                    eb_count: used_count.try_into().unwrap(),
+                    reg,
+                    eb_count: clss.len().try_into().unwrap(),
                 }
-            } else if used_count <= 2 {
-                PassMode::Regs([clss[0], clss[1]])
+            } else if clss.len() <= 2 {
+                let mut regs = [None; 2];
+
+                for (slot, cls) in regs.iter_mut().zip(clss) {
+                    let reg = match cls {
+                        RegClass::Integer => state.pull_integer_reg(),
+                        RegClass::Sse => state.pull_sse_reg(),
+                        RegClass::SseUp => panic!("SseUp invalid in this position"),
+                        RegClass::Unused => unreachable!(),
+                    };
+                    let Some(reg) = reg else {
+                        return PassMode::Memory;
+                    };
+                    *slot = Some(reg);
+                }
+
+                PassMode::Regs(regs)
             } else {
                 PassMode::Memory
             }
         }
         EightbytesSet::Memory => PassMode::Memory,
-    }
+    };
+
+    *state_saved = state;
+    pass_mode
 }
 
 fn eightbytes_range(offset: u32, size: u32) -> (u8, u8) {
