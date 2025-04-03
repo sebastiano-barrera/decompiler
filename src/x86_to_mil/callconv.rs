@@ -365,6 +365,20 @@ impl EightbytesSet {
     }
 
     fn merge(&mut self, ndx: u8, other: RegClass) {
+        // we can't quite be sure from the beginning of how many eightbytes
+        // are going to be used for a struct, because we could have up to
+        // 4 eightbytes in "one big ssa reg" (Sse, SseUp, ...), or only up to 2
+        // for an Integer/Sse mix.
+        //
+        // but, if we learn that a type requires more than 4 eightbytes, there
+        // is no more ambiguity, and no need to track anything. we'd do this
+        // separately in the conversion to PassMode, but this simplifies a few
+        // things
+        if ndx >= 4 {
+            *self = EightbytesSet::Memory;
+            return;
+        }
+
         match self {
             EightbytesSet::Memory => {}
             EightbytesSet::Regs { clss } => {
