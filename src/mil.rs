@@ -73,7 +73,7 @@ pub enum Insn {
     False,
     Const {
         value: i64,
-        size: u8,
+        size: u16,
     },
     Get(Reg),
 
@@ -197,6 +197,7 @@ pub enum ArithOp {
     #[allow(dead_code)]
     Mul,
     Shl,
+    Shr,
     BitXor,
     BitAnd,
     BitOr,

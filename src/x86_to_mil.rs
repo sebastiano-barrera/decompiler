@@ -317,27 +317,10 @@ impl<'a> Builder<'a> {
                 },
 
                 M::Shl => {
-                    let (value, sz) = self.emit_read(&insn, 0);
-                    let (bits_count, bits_count_size) = self.emit_read(&insn, 1);
-                    self.emit_arith(value, sz, bits_count, bits_count_size, mil::ArithOp::Shl);
-                    self.emit_write(&insn, 0, value, sz);
-
-                    // TODO implement flag cahnges: CF, OF
-                    // (these are more complex than others, as they depend on the exact value
-                    // of the bit count)
-                    self.emit(Self::SF, mil::Insn::SignOf(value));
-                    self.emit(Self::ZF, mil::Insn::IsZero(value));
-                    let v0 = self.reg_gen.next();
-                    self.emit(
-                        v0,
-                        mil::Insn::Part {
-                            src: value,
-                            offset: 0,
-                            size: 1,
-                        },
-                    );
-                    self.emit(Self::PF, mil::Insn::Parity(v0));
-                    // ignored: AF
+                    self.emit_shift(insn, mil::ArithOp::Shl);
+                }
+                M::Shr => {
+                    self.emit_shift(insn, mil::ArithOp::Shr);
                 }
 
                 M::Call => {
@@ -551,6 +534,30 @@ impl<'a> Builder<'a> {
         self.widen(a, a_sz, sz);
         self.widen(b, b_sz, sz);
         self.emit(a, mil::Insn::Arith(op, a, b));
+    }
+
+    fn emit_shift(&mut self, insn: iced_x86::Instruction, arith_op: mil::ArithOp) {
+        let (value, sz) = self.emit_read(&insn, 0);
+        let (bits_count, bits_count_size) = self.emit_read(&insn, 1);
+        self.emit_arith(value, sz, bits_count, bits_count_size, arith_op);
+        self.emit_write(&insn, 0, value, sz);
+
+        // TODO implement flag cahnges: CF, OF
+        // (these are more complex than others, as they depend on the exact value
+        // of the bit count)
+        self.emit(Self::SF, mil::Insn::SignOf(value));
+        self.emit(Self::ZF, mil::Insn::IsZero(value));
+        let v0 = self.reg_gen.next();
+        self.emit(
+            v0,
+            mil::Insn::Part {
+                src: value,
+                offset: 0,
+                size: 1,
+            },
+        );
+        self.emit(Self::PF, mil::Insn::Parity(v0));
+        // ignored: AF
     }
 
     fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {

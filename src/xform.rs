@@ -13,6 +13,7 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>
             ArithOp::Sub => ak - bk,
             ArithOp::Mul => ak * bk,
             ArithOp::Shl => ak << bk,
+            ArithOp::Shr => ak >> bk,
             ArithOp::BitXor => ak ^ bk,
             ArithOp::BitAnd => ak & bk,
             ArithOp::BitOr => ak | bk,
@@ -247,6 +248,19 @@ fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     insn
 }
 
+fn fold_widen_const(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    if let Insn::Widen { reg, target_size } = insn {
+        if let Insn::Const { value, size } = prog.get(reg).unwrap().insn.get() {
+            assert!(target_size > size);
+            return Insn::Const {
+                value,
+                size: target_size,
+            };
+        }
+    }
+    insn
+}
+
 fn fold_widen_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     if let Insn::Widen { reg, target_size } = insn {
         if let RegType::Bytes(sz) = prog.value_type(reg) {
@@ -317,7 +331,7 @@ pub fn canonical(prog: &mut ssa::Program) {
     //
     // only pure insns can be written into add'l slots without breaking
     // invariants; assert_invariants will check this later
-    let mut addl_slots: Vec<_> = (0..10).map(|_| prog.push_pure(Insn::Void)).collect();
+    let mut addl_slots: Vec<_> = (0..20).map(|_| prog.push_pure(Insn::Void)).collect();
 
     // apply transforms in lockstep
     //
@@ -338,6 +352,7 @@ pub fn canonical(prog: &mut ssa::Program) {
         let insn = fold_concat_void(insn, prog);
         let insn = fold_part_widen(insn, prog);
         let insn = fold_widen_null(insn, prog);
+        let insn = fold_widen_const(insn, prog);
         let insn = fold_part_null(insn, prog);
         let insn = fold_bitops(insn);
         let insn = fold_constants(insn, prog, &mut addl_slots);

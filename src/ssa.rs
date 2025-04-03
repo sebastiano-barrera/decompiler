@@ -78,6 +78,18 @@ impl Program {
         mil::Reg(index)
     }
 
+    pub fn upsilons_of_phi<'s>(&'s self, phi_reg: mil::Reg) -> impl 's + Iterator<Item = mil::Reg> {
+        assert!(matches!(
+            self.get(phi_reg).unwrap().insn.get(),
+            mil::Insn::Phi
+        ));
+
+        self.inner.iter().filter_map(move |iv| match iv.insn.get() {
+            mil::Insn::Upsilon { value, phi_ref } if phi_ref == phi_reg => Some(value),
+            _ => None,
+        })
+    }
+
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
         use mil::{Insn, RegType};
         match self.inner.get(reg.0).unwrap().insn.get() {
@@ -126,9 +138,12 @@ impl Program {
             Insn::Parity(_) => RegType::Effect,
             Insn::Undefined => RegType::Effect,
             Insn::Phi => {
-                // TODO find all corresponding Upsilons, check that their size
-                // all match, then return the size
-                todo!("size of phi")
+                let mut ys = self.upsilons_of_phi(reg);
+                let Some(y) = ys.next() else {
+                    panic!("no upsilons for this phi? {:?}", reg)
+                };
+                // assuming that all types are the same, as per assert_phis_consistent
+                self.value_type(y)
             }
             Insn::Ancestral(anc_name) => self
                 .inner
@@ -142,7 +157,29 @@ impl Program {
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
         self.assert_effectful_partitioned();
-        // self.assert_no_empty_blocks();
+        self.assert_consistent_phis();
+    }
+
+    fn assert_consistent_phis(&self) {
+        let mut phi_type = RegMap::for_program(self, None);
+        let rdr_count = count_readers(self);
+
+        for iv in self.inner.iter() {
+            if rdr_count[iv.dest.get()] == 0 {
+                continue;
+            }
+            if let mil::Insn::Upsilon { value, phi_ref } = iv.insn.get() {
+                let value_type = self.value_type(value);
+                match &mut phi_type[phi_ref] {
+                    slot @ None => {
+                        *slot = Some(value_type);
+                    }
+                    Some(prev) => {
+                        assert_eq!(*prev, value_type);
+                    }
+                }
+            }
+        }
     }
 
     fn assert_no_circular_refs(&self) {
