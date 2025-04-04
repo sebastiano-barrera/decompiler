@@ -892,38 +892,37 @@ impl<'a> Builder<'a> {
             | OpKind::MemoryESRDI => todo!("not supported: segment-relative memory operands"),
 
             OpKind::Memory => {
-                // Instruction::memory_size()
-                //
-                // Instruction::memory_displacement64()
-                // Instruction::memory_base()
-                // Instruction::memory_index()
-                // Instruction::memory_index_scale()
-                //
-                // Instruction::memory_segment()
-                // Instruction::segment_prefix()
+                use iced_x86::MemorySize;
 
                 let addr = self.emit_compute_address(insn);
 
-                use iced_x86::MemorySize;
-                match insn.memory_size() {
-                    MemorySize::UInt8 | MemorySize::Int8 => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 1 })
+                // we're ignoring what's in the memory structure (for non-Offset
+                // size types). assuming that the rest of the assembly handles
+                // it correctly, we should be able to recover the correct
+                // information later anyway.
+                let memory_size = insn.memory_size();
+                self.emit(
+                    v0,
+                    mil::Insn::LoadMem {
+                        reg: addr,
+                        size: memory_size.size().try_into().unwrap(),
+                    },
+                );
+
+                match memory_size {
+                    MemorySize::WordOffset => {
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 2 });
                     }
-                    MemorySize::UInt16 | MemorySize::Int16 => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 2 })
-                    }
-                    MemorySize::UInt32 | MemorySize::Int32 | MemorySize::Float32 => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 4 })
-                    }
-                    MemorySize::UInt64 | MemorySize::Int64 | MemorySize::Float64 => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 8 })
+                    MemorySize::DwordOffset => {
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 4 });
                     }
                     MemorySize::QwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: addr, size: 8 });
-                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 8 })
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 8 });
                     }
-                    other => todo!("unsupported size for memory operand: {:?}", other),
+                    _ => {}
                 }
+
+                v0
             }
         }
     }
