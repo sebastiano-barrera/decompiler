@@ -25,6 +25,7 @@ pub struct Report {
 pub fn read_func_params<'a>(
     bld: &mut Builder<'a>,
     param_types: &[ty::TypeID],
+    ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
     let mut report = Report {
         ok_count: 0,
@@ -36,6 +37,36 @@ pub fn read_func_params<'a>(
         .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
 
     let mut state = ParamPassing::default();
+
+    // We need to check whether the return type is allocated to memory or to a
+    // register. In case it's memory (stack space, typically), the address is
+    // going to be passed in as RDI, so we have to skip *that* for parameters.
+    {
+        let ret_ty = &types.get(ret_tyid).unwrap().ty;
+        if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = ret_ty {
+            panic!("invalid type for a function return value: {:?}", ret_ty);
+        }
+        if let ty::Ty::Unknown(_) = ret_ty {
+            // nothing better to do in this case...
+            report.errors.push(anyhow!(
+            "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
+        ));
+            return Ok(report);
+        }
+
+        let mut eb_set = EightbytesSet::new_regs();
+        classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+        // pass a copy of state: we just want to predict the outcome of
+        // read_return_value, we don't want to actually pull regs yet
+        let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
+        match pass_mode {
+            PassMode::Regs(_) => {}
+            // one-big-sse is the same as memory
+            PassMode::OneBigSse { .. } | PassMode::Memory => {
+                let _ = state.pull_integer_reg().unwrap();
+            }
+        }
+    }
 
     for &param_tyid in param_types.iter() {
         let param_ty = &types.get(param_tyid).unwrap().ty;
@@ -183,12 +214,11 @@ pub fn read_return_value<'a>(
 
     let mut eb_set = EightbytesSet::new_regs();
     classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+    // for return values, no more than 2 registers should be used; if the type
+    // is larger than that, it goes to memory
+    let eb_set = eb_set.limit_regs(2);
 
     let sz = types.bytes_size(ret_tyid).unwrap();
-
-    // different than those for parameter passing
-    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
-    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
 
     let ret_val = bld.reg_gen.next();
     bld.emit(ret_val, Insn::Void);
@@ -196,8 +226,12 @@ pub fn read_return_value<'a>(
 
     match eb_set {
         EightbytesSet::Regs { clss } => {
+            // different than those for parameter passing
+            let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
+            let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
+
             // TODO assert that the type is 1-16 bytes long, based on clss
-            let mut clss = clss.iter().peekable();
+            let mut clss = clss.used().iter().peekable();
             while let Some(cls) = clss.next() {
                 let part = match *cls {
                     RegClass::Integer => *int_regs.next().expect("bug: not enough int regs!"),
@@ -293,17 +327,7 @@ fn eightbytes_to_pass_mode(eb_set: EightbytesSet, state_saved: &mut ParamPassing
     // > argument is passed in memory.
     let pass_mode = match eb_set {
         EightbytesSet::Regs { clss } => {
-            let clss = {
-                // make sure Unused are all at the end of the slice
-                // TODO replace with newtype?
-                let unused_count = clss
-                    .iter()
-                    .rev()
-                    .take_while(|&&cls| cls == RegClass::Unused)
-                    .count();
-                let used_count = clss.len() - unused_count;
-                &clss[0..used_count]
-            };
+            let clss = clss.used();
             assert!(clss.iter().all(|cls| *cls != RegClass::Unused));
             assert!(clss.len() >= 1);
 
@@ -417,12 +441,31 @@ fn classify_eightbytes(
 #[derive(PartialEq, Eq, Debug)]
 enum EightbytesSet {
     Memory,
-    Regs { clss: [RegClass; 4] },
+    Regs { clss: Classes },
 }
+#[derive(PartialEq, Eq, Debug)]
+struct Classes([RegClass; 4]);
+
 impl EightbytesSet {
     fn new_regs() -> EightbytesSet {
         EightbytesSet::Regs {
-            clss: [RegClass::Unused; 4],
+            clss: Classes([RegClass::Unused; 4]),
+        }
+    }
+
+    fn limit_regs(self, count: usize) -> Self {
+        match self {
+            EightbytesSet::Memory => EightbytesSet::Memory,
+            EightbytesSet::Regs {
+                clss: Classes(clss),
+            } => {
+                for slot in &clss[count..] {
+                    if *slot != RegClass::Unused {
+                        return EightbytesSet::Memory;
+                    }
+                }
+                return self;
+            }
         }
     }
 
@@ -443,7 +486,9 @@ impl EightbytesSet {
 
         match self {
             EightbytesSet::Memory => {}
-            EightbytesSet::Regs { clss } => {
+            EightbytesSet::Regs {
+                clss: Classes(clss),
+            } => {
                 let cls = &mut clss[ndx as usize];
                 *cls = match (*cls, other) {
                     (_, RegClass::Unused) => panic!("invalid merged ScalarClass: Unused"),
@@ -460,6 +505,21 @@ impl EightbytesSet {
                 };
             }
         };
+    }
+}
+
+impl Classes {
+    fn used(&self) -> &[RegClass] {
+        // make sure Unused are all at the end of the slice
+        // TODO replace with newtype?
+        let Classes(clss) = self;
+        let unused_count = clss
+            .iter()
+            .rev()
+            .take_while(|&&cls| cls == RegClass::Unused)
+            .count();
+        let used_count = clss.len() - unused_count;
+        &clss[0..used_count]
     }
 }
 
@@ -574,7 +634,7 @@ mod tests {
         )
         .unwrap();
 
-        read_func_params(&mut bld, param_types).unwrap();
+        read_func_params(&mut bld, param_types, types.tyid_void).unwrap();
 
         let v0 = bld.reg_gen.next();
         bld.emit(v0, Insn::Ret(Builder::RDI));
@@ -655,12 +715,12 @@ mod tests {
             assert_eq!(
                 buf,
                 EightbytesSet::Regs {
-                    clss: [
+                    clss: Classes([
                         RegClass::Integer,
                         RegClass::Unused,
                         RegClass::Unused,
                         RegClass::Unused,
-                    ]
+                    ])
                 }
             );
         }
@@ -703,12 +763,12 @@ mod tests {
             assert_eq!(
                 buf,
                 EightbytesSet::Regs {
-                    clss: [
+                    clss: Classes([
                         RegClass::Integer,
                         RegClass::Unused,
                         RegClass::Unused,
                         RegClass::Unused,
-                    ]
+                    ])
                 }
             );
         }
@@ -727,12 +787,12 @@ mod tests {
             assert_eq!(
                 &buf,
                 &EightbytesSet::Regs {
-                    clss: [
+                    clss: Classes([
                         RegClass::Sse,
                         RegClass::Unused,
                         RegClass::Unused,
                         RegClass::Unused,
-                    ]
+                    ])
                 }
             );
         }
@@ -765,12 +825,12 @@ mod tests {
             assert_eq!(
                 buf,
                 EightbytesSet::Regs {
-                    clss: [
+                    clss: Classes([
                         RegClass::Integer,
                         RegClass::Integer,
                         RegClass::Unused,
                         RegClass::Unused,
-                    ]
+                    ])
                 }
             );
         }

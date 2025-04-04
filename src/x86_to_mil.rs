@@ -116,7 +116,8 @@ impl<'a> Builder<'a> {
 
         if let Some(func_ty) = self.func_ty.take() {
             let param_count = func_ty.param_tyids.len();
-            let res = callconv::read_func_params(&mut self, &func_ty.param_tyids);
+            let res =
+                callconv::read_func_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid);
             self.func_ty = Some(func_ty);
 
             let report = res.context("while applying the calling convention for parameters")?;
