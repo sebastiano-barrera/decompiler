@@ -217,6 +217,87 @@ fn fold_bitops(insn: mil::Insn) -> Insn {
     }
 }
 
+fn fold_part_part(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    // the pattern is
+    //  r0 <- (any, of size s0)
+    //  r1 <- Widen r0 to size s1,  s1 > s0
+    //  r2 <- Part of r1, 0..plen
+    //
+    // if s1 > s0 && plen < s1
+    //
+    //  r0 <- (any, of size s0)
+    //  r2 <- Widen r0 to size plen
+    // (skip the r1 Widen, and transform Part to a shorter Widen)
+
+    if let Insn::Part {
+        src: out_src,
+        offset: out_offset,
+        size: out_size,
+    } = insn
+    {
+        if let Insn::Part {
+            src: in_src,
+            offset: in_offset,
+            size: in_size,
+        } = prog.get(out_src).unwrap().insn.get()
+        {
+            assert!(out_size <= in_size);
+            return Insn::Part {
+                src: in_src,
+                offset: out_offset + in_offset,
+                size: out_size,
+            };
+        }
+    }
+
+    insn
+}
+
+fn fold_part_concat(insn: mil::Insn, prog: &ssa::Program) -> Insn {
+    // the pattern is
+    //  r0 <- (any, of size s0)
+    //  r1 <- Widen r0 to size s1,  s1 > s0
+    //  r2 <- Part of r1, 0..plen
+    //
+    // if s1 > s0 && plen < s1
+    //
+    //  r0 <- (any, of size s0)
+    //  r2 <- Widen r0 to size plen
+    // (skip the r1 Widen, and transform Part to a shorter Widen)
+
+    if let Insn::Part {
+        src: p_src,
+        offset: p_offset,
+        size: p_size,
+    } = insn
+    {
+        if let Insn::Concat { lo, hi } = prog.get(p_src).unwrap().insn.get() {
+            let lo_size = prog
+                .value_type(lo)
+                .bytes_size()
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+            if p_offset + p_size <= lo_size {
+                return Insn::Part {
+                    src: lo,
+                    offset: p_offset,
+                    size: p_size,
+                };
+            } else if p_offset >= lo_size {
+                return Insn::Part {
+                    src: hi,
+                    offset: p_offset - lo_size,
+                    size: p_size,
+                };
+            }
+        }
+    }
+
+    insn
+}
+
 fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     // the pattern is
     //  r0 <- (any, of size s0)
@@ -235,7 +316,12 @@ fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         size: part_size,
     } = insn
     {
-        if let Insn::Widen { reg, target_size, sign } = prog.get(part_src).unwrap().insn.get() {
+        if let Insn::Widen {
+            reg,
+            target_size,
+            sign,
+        } = prog.get(part_src).unwrap().insn.get()
+        {
             if part_size < target_size {
                 return Insn::Widen {
                     reg,
@@ -251,7 +337,12 @@ fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 
 fn fold_widen_const(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     // TODO add signedness to Const as well? then we could check if they match
-    if let Insn::Widen { reg, target_size, sign: true } = insn {
+    if let Insn::Widen {
+        reg,
+        target_size,
+        sign: true,
+    } = insn
+    {
         if let Insn::Const { value, size } = prog.get(reg).unwrap().insn.get() {
             assert!(target_size > size);
             return Insn::Const {
@@ -264,7 +355,12 @@ fn fold_widen_const(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 }
 
 fn fold_widen_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
-    if let Insn::Widen { reg, target_size, sign: _ } = insn {
+    if let Insn::Widen {
+        reg,
+        target_size,
+        sign: _,
+    } = insn
+    {
         if let RegType::Bytes(sz) = prog.value_type(reg) {
             if target_size as usize == sz {
                 return Insn::Get(reg);
@@ -307,20 +403,11 @@ fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
     insn
 }
 
-fn simplify_half_null_concat(insn: Insn, prog: &ssa::Program) -> Insn {
-    if let Insn::Concat { lo, hi } = insn {
-        let is_lo_null = matches!(prog.get(lo).unwrap().insn.get(), Insn::Part { size: 0, .. });
-        let is_hi_null = matches!(prog.get(hi).unwrap().insn.get(), Insn::Part { size: 0, .. });
-
-        match (is_lo_null, is_hi_null) {
-            (true, true) => panic!("assertion error"),
-            (false, true) => Insn::Get(lo),
-            (true, false) => Insn::Get(hi),
-            (false, false) => insn,
-        }
-    } else {
-        insn
+fn fold_part_void(insn: Insn) -> Insn {
+    if let Insn::Part { size: 0, .. } = insn {
+        return Insn::Void;
     }
+    insn
 }
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
@@ -352,13 +439,15 @@ pub fn canonical(prog: &mut ssa::Program) {
         let insn = fold_get(insn, prog);
         let insn = fold_subregs(insn, prog);
         let insn = fold_concat_void(insn, prog);
+        let insn = fold_part_part(insn, prog);
         let insn = fold_part_widen(insn, prog);
+        let insn = fold_part_concat(insn, prog);
+        let insn = fold_part_null(insn, prog);
+        let insn = fold_part_void(insn);
         let insn = fold_widen_null(insn, prog);
         let insn = fold_widen_const(insn, prog);
-        let insn = fold_part_null(insn, prog);
         let insn = fold_bitops(insn);
         let insn = fold_constants(insn, prog, &mut addl_slots);
-        let insn = simplify_half_null_concat(insn, prog);
         insn_cell.set(insn);
     }
 
