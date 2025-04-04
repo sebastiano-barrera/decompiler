@@ -186,7 +186,7 @@ impl<'a> Ast<'a> {
             Insn::True => self.pp_def_default(pp, "True".into(), insn.input_regs(), self_prec)?,
             Insn::False => self.pp_def_default(pp, "False".into(), insn.input_regs(), self_prec)?,
             Insn::Const { value, size } => {
-                write!(pp, "{}_i{} /* 0x{:x} */", value, size * 8, value)?;
+                write!(pp, "{}_i{}", value, size * 8)?;
             }
             Insn::Get(_) | Insn::Jmp(_) => unreachable!(),
 
@@ -224,8 +224,17 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, b, self_prec)?;
             }
             Insn::ArithK(arith_op, a, k) => {
+                // trick: it's convenient to prefer ArithOp::Add to ArithOp::Sub
+                // in SSA, even with a negative constant (because + is
+                // associative, which makes constant folding easier), but it's
+                // unsightly to see a bunch of `[r11 + -42]:8` in AST. so we
+                // make a replacement just here, just for this purpose.
                 self.pp_ref(pp, a, self_prec)?;
-                write!(pp, " {} {}", arith_op_str(arith_op), k)?;
+                if arith_op == ArithOp::Add && k < 0 {
+                    write!(pp, " - {}", -k)?;
+                } else {
+                    write!(pp, " {} {}", arith_op_str(arith_op), k)?;
+                }
             }
             Insn::Cmp(cmp_op, _, _) => {
                 let op_s = match cmp_op {
@@ -357,11 +366,12 @@ impl<'a> Ast<'a> {
     ) -> std::io::Result<()> {
         write!(pp, "[")?;
         pp.open_box();
-        let parent_prec = precedence(&Insn::LoadMem {
-            reg: addr,
-            size: sz,
-        });
+
+        // we're writing parens in this function, so no need to print more
+        // parens
+        let parent_prec = 0;
         self.pp_ref(pp, addr, parent_prec)?;
+
         pp.close_box();
         write!(pp, "]:{}", sz)
     }
@@ -418,8 +428,8 @@ fn precedence(insn: &Insn) -> u8 {
 
         Insn::Call(_) => 251,
         Insn::Not(_) => 250,
+        Insn::Widen { .. } => 249,
 
-        Insn::Widen { .. } => 200,
         Insn::Arith(_, _, _) => 200,
         Insn::ArithK(_, _, _) => 200,
         Insn::OverflowOf(_) => 200,
