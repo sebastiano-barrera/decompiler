@@ -143,7 +143,6 @@ impl<'a> Builder<'a> {
             match insn.mnemonic() {
                 /*
                     To be implemented:
-                    * imul   Rint, Mem
                     * movaps Rxmm, Mem
                     * movaps Rxmm, Rxmm
                     * movd   Rxmm, Rint
@@ -333,6 +332,99 @@ impl<'a> Builder<'a> {
                     self.emit_shift(insn, mil::ArithOp::Shr);
                 }
 
+                M::Imul => {
+                    match insn.op_count() {
+                        1 => {
+                            let src_b = self.emit_read_value(&insn, 0);
+                            let a_size = match insn.op0_kind() {
+                                OpKind::Register => insn.op0_register().size(),
+                                OpKind::Memory => insn.memory_size().size(),
+                                kind => panic!("imul: invalid operand: {:?}", kind),
+                            };
+                            let (dest_hi, dest_lo) = match a_size {
+                                1 => (Register::AH, Register::AL),
+                                2 => (Register::DX, Register::AX),
+                                4 => (Register::EDX, Register::EAX),
+                                8 => (Register::RDX, Register::RAX),
+                                _ => panic!("imul: invalid operand size: {}", a_size),
+                            };
+
+                            let v0 = self.reg_gen.next();
+                            self.emit_read_reg(v0, dest_lo);
+                            self.emit(v0, mil::Insn::Arith(mil::ArithOp::Mul, v0, src_b));
+                            self.emit(Self::OF, mil::Insn::OverflowOf(v0));
+                            self.emit(Self::CF, mil::Insn::Get(Self::OF));
+                            self.emit(Self::SF, mil::Insn::Undefined);
+                            self.emit(Self::ZF, mil::Insn::Undefined);
+                            self.emit(Self::AF, mil::Insn::Undefined);
+                            self.emit(Self::PF, mil::Insn::Undefined);
+
+                            let a_size = a_size.try_into().unwrap();
+                            let result_hi = self.reg_gen.next();
+                            self.emit(
+                                result_hi,
+                                mil::Insn::Part {
+                                    src: v0,
+                                    offset: a_size,
+                                    size: a_size,
+                                },
+                            );
+                            self.emit_write_machine_reg(dest_hi, a_size, result_hi);
+                            self.emit(
+                                v0,
+                                mil::Insn::Part {
+                                    src: v0,
+                                    offset: 0,
+                                    size: a_size,
+                                },
+                            );
+                            self.emit_write_machine_reg(dest_lo, a_size, v0);
+                        }
+
+                        op_count @ (2 | 3) => {
+                            let a = self.emit_read_value(&insn, 0);
+                            let result_size = insn
+                                .try_op_register(0)
+                                .expect("imul: register as first operand")
+                                .size()
+                                .try_into()
+                                .unwrap();
+                            let b = self.emit_read_value(&insn, 1);
+                            let result = self.reg_gen.next();
+                            self.emit(result, mil::Insn::Arith(mil::ArithOp::Mul, a, b));
+
+                            if op_count == 3 {
+                                let imm64 = match insn.op_kind(2) {
+                                    OpKind::Immediate8 => insn.immediate8() as i8 as i64,
+                                    OpKind::Immediate16 => insn.immediate16() as i16 as i64,
+                                    OpKind::Immediate32 => insn.immediate32() as i32 as i64,
+                                    OpKind::Immediate64 => insn.immediate64() as i64,
+                                    other => panic!("imul: invalid 3rd operand: {other:?}"),
+                                };
+                                let k = self.reg_gen.next();
+                                self.emit(
+                                    k,
+                                    mil::Insn::Const {
+                                        value: imm64,
+                                        size: 8,
+                                    },
+                                );
+                                self.emit(result, mil::Insn::Arith(mil::ArithOp::Mul, result, k));
+                            }
+
+                            self.emit_write(&insn, 0, result, result_size);
+                            self.emit(Self::OF, mil::Insn::OverflowOf(result));
+                            self.emit(Self::CF, mil::Insn::Get(Self::OF));
+                            self.emit(Self::SF, mil::Insn::Undefined);
+                            self.emit(Self::ZF, mil::Insn::Undefined);
+                            self.emit(Self::AF, mil::Insn::Undefined);
+                            self.emit(Self::PF, mil::Insn::Undefined);
+                        }
+
+                        other => panic!("imul: invalid operands count: {}", other),
+                    };
+                }
+
                 M::Call => {
                     if insn.op0_kind() == OpKind::NearBranch64 {
                         let target = insn.near_branch_target();
@@ -495,20 +587,62 @@ impl<'a> Builder<'a> {
                 }
 
                 M::Cbw => {
-                    let al  = self.reg_gen.next();
-                    self.emit(al, mil::Insn::Part { src: Self::RAX, offset: 0, size: 1 });
-                    self.emit(Self::RAX, mil::Insn::Widen { reg: al, target_size: 2, sign: true });
-                },
+                    let al = self.reg_gen.next();
+                    self.emit(
+                        al,
+                        mil::Insn::Part {
+                            src: Self::RAX,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
+                    self.emit(
+                        Self::RAX,
+                        mil::Insn::Widen {
+                            reg: al,
+                            target_size: 2,
+                            sign: true,
+                        },
+                    );
+                }
                 M::Cwde => {
-                    let ax  = self.reg_gen.next();
-                    self.emit(ax, mil::Insn::Part { src: Self::RAX, offset: 0, size: 2 });
-                    self.emit(Self::RAX, mil::Insn::Widen { reg: ax, target_size: 4, sign: true });
-                },
+                    let ax = self.reg_gen.next();
+                    self.emit(
+                        ax,
+                        mil::Insn::Part {
+                            src: Self::RAX,
+                            offset: 0,
+                            size: 2,
+                        },
+                    );
+                    self.emit(
+                        Self::RAX,
+                        mil::Insn::Widen {
+                            reg: ax,
+                            target_size: 4,
+                            sign: true,
+                        },
+                    );
+                }
                 M::Cdqe => {
                     let eax = self.reg_gen.next();
-                    self.emit(eax, mil::Insn::Part { src: Self::RAX, offset: 0, size: 4 });
-                    self.emit(Self::RAX, mil::Insn::Widen { reg: eax, target_size: 8, sign: true });
-                },
+                    self.emit(
+                        eax,
+                        mil::Insn::Part {
+                            src: Self::RAX,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    self.emit(
+                        Self::RAX,
+                        mil::Insn::Widen {
+                            reg: eax,
+                            target_size: 8,
+                            sign: true,
+                        },
+                    );
+                }
 
                 _ => {
                     let mut output = String::new();
@@ -668,35 +802,7 @@ impl<'a> Builder<'a> {
         match insn.op_kind(op_ndx) {
             OpKind::Register => {
                 let reg = insn.op_register(op_ndx);
-                let full_reg = Builder::xlat_reg(reg.full_register());
-                match reg.size() {
-                    1 => self.emit(
-                        v0,
-                        mil::Insn::Part {
-                            src: full_reg,
-                            offset: 0,
-                            size: 1,
-                        },
-                    ),
-                    2 => self.emit(
-                        v0,
-                        mil::Insn::Part {
-                            src: full_reg,
-                            offset: 0,
-                            size: 2,
-                        },
-                    ),
-                    4 => self.emit(
-                        v0,
-                        mil::Insn::Part {
-                            src: full_reg,
-                            offset: 0,
-                            size: 4,
-                        },
-                    ),
-                    8 => full_reg,
-                    other => panic!("invalid register size: {other}"),
-                }
+                self.emit_read_reg(v0, reg)
             }
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => self.emit(
                 v0,
@@ -817,6 +923,39 @@ impl<'a> Builder<'a> {
                     other => todo!("unsupported size for memory operand: {:?}", other),
                 }
             }
+        }
+    }
+
+    /// Read a register of any size, emitting mil::Insn::Part as necessary
+    fn emit_read_reg(&mut self, dest: mil::Reg, reg: Register) -> mil::Reg {
+        let full_reg = Builder::xlat_reg(reg.full_register());
+        match reg.size() {
+            1 => self.emit(
+                dest,
+                mil::Insn::Part {
+                    src: full_reg,
+                    offset: 0,
+                    size: 1,
+                },
+            ),
+            2 => self.emit(
+                dest,
+                mil::Insn::Part {
+                    src: full_reg,
+                    offset: 0,
+                    size: 2,
+                },
+            ),
+            4 => self.emit(
+                dest,
+                mil::Insn::Part {
+                    src: full_reg,
+                    offset: 0,
+                    size: 4,
+                },
+            ),
+            8 => full_reg,
+            other => panic!("invalid register size: {other}"),
         }
     }
 
@@ -1068,11 +1207,13 @@ impl<'a> Builder<'a> {
             Register::ZMM13 => Self::ZMM13,
             Register::ZMM14 => Self::ZMM14,
             Register::ZMM15 => Self::ZMM15,
-            _ => panic!(
-                "unsupported register: {:?} (full: {:?})",
-                reg,
-                reg.full_register()
-            ),
+            _ => {
+                panic!(
+                    "unsupported register: {:?} (full: {:?})",
+                    reg,
+                    reg.full_register()
+                )
+            }
         }
     }
 
