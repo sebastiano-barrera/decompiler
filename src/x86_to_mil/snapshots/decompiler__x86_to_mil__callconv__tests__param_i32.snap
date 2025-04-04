@@ -4,8 +4,8 @@ expression: snap
 ---
 params: [TypeID(5v1)]
 program:
-ssa program  46 instrs
+ssa program  47 instrs
 .B0:    ;; .
          r43 <- Ancestral(AncestralName("arg0"))
          r44 <- Widen { reg: r43, target_size: 8, sign: false }
-         r45 <- Ret(r44)
+         r46 <- Ret(r44)

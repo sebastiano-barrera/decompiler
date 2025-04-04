@@ -41,29 +41,31 @@ pub fn read_func_params<'a>(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    {
-        let ret_ty = &types.get(ret_tyid).unwrap().ty;
-        if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = ret_ty {
+    match &types.get(ret_tyid).unwrap().ty {
+        // we're fine, just let's go
+        ty::Ty::Void => {}
+        ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);
         }
-        if let ty::Ty::Unknown(_) = ret_ty {
+        ty::Ty::Unknown(_) => {
             // nothing better to do in this case...
             report.errors.push(anyhow!(
-            "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
-        ));
+                    "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
+                ));
             return Ok(report);
         }
-
-        let mut eb_set = EightbytesSet::new_regs();
-        classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
-        // pass a copy of state: we just want to predict the outcome of
-        // read_return_value, we don't want to actually pull regs yet
-        let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
-        match pass_mode {
-            PassMode::Regs(_) => {}
-            // one-big-sse is the same as memory
-            PassMode::OneBigSse { .. } | PassMode::Memory => {
-                let _ = state.pull_integer_reg().unwrap();
+        _ => {
+            let mut eb_set = EightbytesSet::new_regs();
+            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            // pass a copy of state: we just want to predict the outcome of
+            // read_return_value, we don't want to actually pull regs yet
+            let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
+            match pass_mode {
+                PassMode::Regs(_) => {}
+                // one-big-sse is the same as memory
+                PassMode::OneBigSse { .. } | PassMode::Memory => {
+                    let _ = state.pull_integer_reg().unwrap();
+                }
             }
         }
     }
