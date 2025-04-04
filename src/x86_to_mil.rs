@@ -216,7 +216,7 @@ impl<'a> Builder<'a> {
                 // assuming that the instruction is correct and correctly
                 // decoded by iced_x86, the same code should serve all these
                 // variants of mov
-                M::Mov | M::Movsd | M::Movaps => {
+                M::Mov | M::Movsd | M::Movaps | M::Movups => {
                     let (value, sz) = self.emit_read(&insn, 1);
                     self.emit_write(&insn, 0, value, sz);
                 }
