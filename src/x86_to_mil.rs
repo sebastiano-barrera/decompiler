@@ -3,17 +3,15 @@ use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
-use anyhow::{anyhow, Result};
-use smallvec::SmallVec;
+use anyhow::{Context as _, Result};
 
-pub fn translate(insns: impl Iterator<Item = iced_x86::Instruction>) -> Result<mil::Program> {
-    Builder::new().translate(insns)
-}
+pub mod callconv;
 
 pub struct Builder<'a> {
     pb: mil::ProgramBuilder,
     reg_gen: RegGen,
     types: Option<&'a ty::TypeSet>,
+    func_ty: Option<ty::Subroutine>,
 }
 
 impl<'a> Builder<'a> {
@@ -22,9 +20,10 @@ impl<'a> Builder<'a> {
             pb: mil::ProgramBuilder::new(),
             reg_gen: Self::reset_reg_gen(),
             types: None,
+            func_ty: None,
         };
 
-        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes8);
+        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes(8));
 
         // ensure all registers are initialized at least once. most of these
         // instructions (if all goes well, all of them) get "deleted" (masked)
@@ -41,23 +40,39 @@ impl<'a> Builder<'a> {
         bld.init_ancestral(Self::IF, ANC_IF, RegType::Bool);
         bld.init_ancestral(Self::DF, ANC_DF, RegType::Bool);
         bld.init_ancestral(Self::OF, ANC_OF, RegType::Bool);
-        bld.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes8);
-        bld.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes8);
-        bld.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes8);
-        bld.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes8);
-        bld.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes8);
-        bld.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes8);
-        bld.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes8);
-        bld.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes8);
-        bld.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes8);
-        bld.init_ancestral(Self::R8, ANC_R8, RegType::Bytes8);
-        bld.init_ancestral(Self::R9, ANC_R9, RegType::Bytes8);
-        bld.init_ancestral(Self::R10, ANC_R10, RegType::Bytes8);
-        bld.init_ancestral(Self::R11, ANC_R11, RegType::Bytes8);
-        bld.init_ancestral(Self::R12, ANC_R12, RegType::Bytes8);
-        bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes8);
-        bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes8);
-        bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes8);
+        bld.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes(8));
+        bld.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes(8));
+        bld.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes(8));
+        bld.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes(8));
+        bld.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes(8));
+        bld.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes(8));
+        bld.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes(8));
+        bld.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes(8));
+        bld.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes(8));
+        bld.init_ancestral(Self::R8, ANC_R8, RegType::Bytes(8));
+        bld.init_ancestral(Self::R9, ANC_R9, RegType::Bytes(8));
+        bld.init_ancestral(Self::R10, ANC_R10, RegType::Bytes(8));
+        bld.init_ancestral(Self::R11, ANC_R11, RegType::Bytes(8));
+        bld.init_ancestral(Self::R12, ANC_R12, RegType::Bytes(8));
+        bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes(8));
+        bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes(8));
+        bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, RegType::Bytes(64));
 
         bld
     }
@@ -66,8 +81,14 @@ impl<'a> Builder<'a> {
         self.pb.build()
     }
 
-    pub fn use_types(&mut self, types: &'a ty::TypeSet) {
+    pub fn use_types(
+        &mut self,
+        types: &'a ty::TypeSet,
+        func_ty: ty::Subroutine,
+    ) -> anyhow::Result<()> {
         self.types = Some(types);
+        self.func_ty = Some(func_ty);
+        Ok(())
     }
 
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
@@ -93,6 +114,21 @@ impl<'a> Builder<'a> {
             self.emit(reg, mil::Insn::Undefined);
         }
 
+        if let Some(func_ty) = self.func_ty.take() {
+            let param_count = func_ty.param_tyids.len();
+            let res =
+                callconv::read_func_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid);
+            self.func_ty = Some(func_ty);
+
+            let report = res.context("while applying the calling convention for parameters")?;
+            if report.ok_count < param_count {
+                eprintln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
+                for (ndx, err) in report.errors.into_iter().enumerate() {
+                    eprintln!("  #{}: {}", ndx, err);
+                }
+            }
+        }
+
         for insn in insns {
             // Temporary abstract registers
             //    These are used in the mil program to compute 'small stuff' (memory
@@ -106,6 +142,15 @@ impl<'a> Builder<'a> {
 
             use iced_x86::Mnemonic as M;
             match insn.mnemonic() {
+                /*
+                    To be implemented:
+                    * movaps Rxmm, Mem
+                    * movaps Rxmm, Rxmm
+                    * movups Mem, Rxmm
+                    * movd   Rxmm, Rint
+                    * movss  Rxmm, Mem
+                    * movzx  Rint, Mem
+                */
                 M::Nop => {}
 
                 M::Push => {
@@ -116,7 +161,7 @@ impl<'a> Builder<'a> {
 
                     self.emit(
                         Self::RSP,
-                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
+                        mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
                     );
                     self.emit(v0, mil::Insn::StoreMem(Self::RSP, value));
                 }
@@ -126,32 +171,53 @@ impl<'a> Builder<'a> {
                     let v0 = self.reg_gen.next();
 
                     let sz = Self::op_size(&insn, 0);
-                    match sz {
-                        8 => self.emit(v0, mil::Insn::LoadMem8(Self::RSP)),
-                        2 => self.emit(v0, mil::Insn::LoadMem2(Self::RSP)),
-                        _ => panic!("assertion failed: pop dest size must be either 8 or 2 bytes"),
-                    };
+                    if sz != 8 && sz != 2 {
+                        panic!("assertion failed: pop dest size must be either 8 or 2 bytes");
+                    }
+                    self.emit(
+                        v0,
+                        mil::Insn::LoadMem {
+                            reg: Self::RSP,
+                            size: sz as i32,
+                        },
+                    );
 
                     self.emit_write(&insn, 0, v0, sz);
                     self.emit(
                         Self::RSP,
-                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, sz as i64),
+                        mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, sz as i64),
                     );
                 }
                 M::Leave => {
-                    self.emit(Self::RSP, mil::Insn::Get8(Self::RBP));
-                    self.emit(Self::RBP, mil::Insn::LoadMem8(Self::RSP));
+                    self.emit(Self::RSP, mil::Insn::Get(Self::RBP));
+                    self.emit(
+                        Self::RBP,
+                        mil::Insn::LoadMem {
+                            reg: Self::RSP,
+                            size: 8,
+                        },
+                    );
                     self.emit(
                         Self::RSP,
-                        mil::Insn::ArithK8(mil::ArithOp::Add, Self::RSP, 8),
+                        mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, 8),
                     );
                 }
                 M::Ret => {
+                    let ret_val = if let Some(func_ty) = self.func_ty.take() {
+                        let res = callconv::read_return_value(&mut self, func_ty.return_tyid);
+                        self.func_ty = Some(func_ty);
+                        res.context("decoding return value")?
+                    } else {
+                        Self::RAX
+                    };
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Ret(Self::RAX));
+                    self.emit(v0, mil::Insn::Ret(ret_val));
                 }
 
-                M::Mov => {
+                // assuming that the instruction is correct and correctly
+                // decoded by iced_x86, the same code should serve all these
+                // variants of mov
+                M::Mov | M::Movsd | M::Movaps | M::Movups => {
                     let (value, sz) = self.emit_read(&insn, 1);
                     self.emit_write(&insn, 0, value, sz);
                 }
@@ -189,13 +255,7 @@ impl<'a> Builder<'a> {
 
                 M::Inc => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
-                    match a_sz {
-                        1 => self.emit(a, mil::Insn::ArithK1(mil::ArithOp::Add, a, 1)),
-                        2 => self.emit(a, mil::Insn::ArithK2(mil::ArithOp::Add, a, 1)),
-                        4 => self.emit(a, mil::Insn::ArithK4(mil::ArithOp::Add, a, 1)),
-                        8 => self.emit(a, mil::Insn::ArithK8(mil::ArithOp::Add, a, 1)),
-                        _ => panic!("invalid size: {}", a_sz),
-                    };
+                    self.emit(a, mil::Insn::ArithK(mil::ArithOp::Add, a, 1));
                     self.emit_write(&insn, 0, a, a_sz);
 
                     self.emit(Self::OF, mil::Insn::False);
@@ -204,7 +264,14 @@ impl<'a> Builder<'a> {
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
                     self.emit(Self::PF, mil::Insn::Parity(v0));
                 }
 
@@ -215,10 +282,17 @@ impl<'a> Builder<'a> {
                     self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::BitAnd);
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
-                    self.emit(v0, mil::Insn::L1(a));
+                    self.emit(
+                        v0,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
                     self.emit(Self::PF, mil::Insn::Parity(a));
-                    self.emit(Self::CF, mil::Insn::Const1(0));
-                    self.emit(Self::OF, mil::Insn::Const1(0));
+                    self.emit(Self::CF, mil::Insn::False);
+                    self.emit(Self::OF, mil::Insn::False);
                 }
 
                 M::Cmp => {
@@ -256,20 +330,102 @@ impl<'a> Builder<'a> {
                 },
 
                 M::Shl => {
-                    let (value, sz) = self.emit_read(&insn, 0);
-                    let (bits_count, bits_count_size) = self.emit_read(&insn, 1);
-                    self.emit_arith(value, sz, bits_count, bits_count_size, mil::ArithOp::Shl);
-                    self.emit_write(&insn, 0, value, sz);
+                    self.emit_shift(insn, mil::ArithOp::Shl);
+                }
+                M::Shr => {
+                    self.emit_shift(insn, mil::ArithOp::Shr);
+                }
 
-                    // TODO implement flag cahnges: CF, OF
-                    // (these are more complex than others, as they depend on the exact value
-                    // of the bit count)
-                    self.emit(Self::SF, mil::Insn::SignOf(value));
-                    self.emit(Self::ZF, mil::Insn::IsZero(value));
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::L1(value));
-                    self.emit(Self::PF, mil::Insn::Parity(v0));
-                    // ignored: AF
+                M::Imul => {
+                    match insn.op_count() {
+                        1 => {
+                            let src_b = self.emit_read_value(&insn, 0);
+                            let a_size = match insn.op0_kind() {
+                                OpKind::Register => insn.op0_register().size(),
+                                OpKind::Memory => insn.memory_size().size(),
+                                kind => panic!("imul: invalid operand: {:?}", kind),
+                            };
+                            let (dest_hi, dest_lo) = match a_size {
+                                1 => (Register::AH, Register::AL),
+                                2 => (Register::DX, Register::AX),
+                                4 => (Register::EDX, Register::EAX),
+                                8 => (Register::RDX, Register::RAX),
+                                _ => panic!("imul: invalid operand size: {}", a_size),
+                            };
+
+                            let v0 = self.emit_read_reg(dest_lo);
+                            self.emit(v0, mil::Insn::Arith(mil::ArithOp::Mul, v0, src_b));
+                            self.emit(Self::OF, mil::Insn::OverflowOf(v0));
+                            self.emit(Self::CF, mil::Insn::Get(Self::OF));
+                            self.emit(Self::SF, mil::Insn::Undefined);
+                            self.emit(Self::ZF, mil::Insn::Undefined);
+                            self.emit(Self::AF, mil::Insn::Undefined);
+                            self.emit(Self::PF, mil::Insn::Undefined);
+
+                            let a_size = a_size.try_into().unwrap();
+                            let result_hi = self.reg_gen.next();
+                            self.emit(
+                                result_hi,
+                                mil::Insn::Part {
+                                    src: v0,
+                                    offset: a_size,
+                                    size: a_size,
+                                },
+                            );
+                            self.emit_write_machine_reg(dest_hi, a_size, result_hi);
+                            self.emit(
+                                v0,
+                                mil::Insn::Part {
+                                    src: v0,
+                                    offset: 0,
+                                    size: a_size,
+                                },
+                            );
+                            self.emit_write_machine_reg(dest_lo, a_size, v0);
+                        }
+
+                        op_count @ (2 | 3) => {
+                            let a = self.emit_read_value(&insn, 0);
+                            let result_size = insn
+                                .try_op_register(0)
+                                .expect("imul: register as first operand")
+                                .size()
+                                .try_into()
+                                .unwrap();
+                            let b = self.emit_read_value(&insn, 1);
+                            let result = self.reg_gen.next();
+                            self.emit(result, mil::Insn::Arith(mil::ArithOp::Mul, a, b));
+
+                            if op_count == 3 {
+                                let imm64 = match insn.op_kind(2) {
+                                    OpKind::Immediate8 => insn.immediate8() as i8 as i64,
+                                    OpKind::Immediate16 => insn.immediate16() as i16 as i64,
+                                    OpKind::Immediate32 => insn.immediate32() as i32 as i64,
+                                    OpKind::Immediate64 => insn.immediate64() as i64,
+                                    other => panic!("imul: invalid 3rd operand: {other:?}"),
+                                };
+                                let k = self.reg_gen.next();
+                                self.emit(
+                                    k,
+                                    mil::Insn::Const {
+                                        value: imm64,
+                                        size: 8,
+                                    },
+                                );
+                                self.emit(result, mil::Insn::Arith(mil::ArithOp::Mul, result, k));
+                            }
+
+                            self.emit_write(&insn, 0, result, result_size);
+                            self.emit(Self::OF, mil::Insn::OverflowOf(result));
+                            self.emit(Self::CF, mil::Insn::Get(Self::OF));
+                            self.emit(Self::SF, mil::Insn::Undefined);
+                            self.emit(Self::ZF, mil::Insn::Undefined);
+                            self.emit(Self::AF, mil::Insn::Undefined);
+                            self.emit(Self::PF, mil::Insn::Undefined);
+                        }
+
+                        other => panic!("imul: invalid operands count: {}", other),
+                    };
                 }
 
                 M::Call => {
@@ -433,6 +589,64 @@ impl<'a> Builder<'a> {
                     self.emit_jmpif(insn, 0, Self::SF);
                 }
 
+                M::Cbw => {
+                    let al = self.reg_gen.next();
+                    self.emit(
+                        al,
+                        mil::Insn::Part {
+                            src: Self::RAX,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
+                    self.emit(
+                        Self::RAX,
+                        mil::Insn::Widen {
+                            reg: al,
+                            target_size: 2,
+                            sign: true,
+                        },
+                    );
+                }
+                M::Cwde => {
+                    let ax = self.reg_gen.next();
+                    self.emit(
+                        ax,
+                        mil::Insn::Part {
+                            src: Self::RAX,
+                            offset: 0,
+                            size: 2,
+                        },
+                    );
+                    self.emit(
+                        Self::RAX,
+                        mil::Insn::Widen {
+                            reg: ax,
+                            target_size: 4,
+                            sign: true,
+                        },
+                    );
+                }
+                M::Cdqe => {
+                    let eax = self.reg_gen.next();
+                    self.emit(
+                        eax,
+                        mil::Insn::Part {
+                            src: Self::RAX,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    self.emit(
+                        Self::RAX,
+                        mil::Insn::Widen {
+                            reg: eax,
+                            target_size: 8,
+                            sign: true,
+                        },
+                    );
+                }
+
                 _ => {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
@@ -448,8 +662,8 @@ impl<'a> Builder<'a> {
 
     fn emit_bit_op(
         &mut self,
-        a_sz: u8,
-        b_sz: u8,
+        a_sz: u16,
+        b_sz: u16,
         a: mil::Reg,
         b: mil::Reg,
         arith_op: mil::ArithOp,
@@ -465,39 +679,48 @@ impl<'a> Builder<'a> {
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
         let v0 = self.reg_gen.next();
-        self.emit(v0, mil::Insn::L1(a));
+        self.emit(
+            v0,
+            mil::Insn::Part {
+                src: a,
+                offset: 0,
+                size: 1,
+            },
+        );
         self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
-    fn emit_arith(&mut self, a: mil::Reg, a_sz: u8, b: mil::Reg, b_sz: u8, op: mil::ArithOp) {
+    fn emit_arith(&mut self, a: mil::Reg, a_sz: u16, b: mil::Reg, b_sz: u16, op: mil::ArithOp) {
         assert!([1, 2, 4, 8].contains(&a_sz));
         assert!([1, 2, 4, 8].contains(&b_sz));
         let sz = a_sz.max(b_sz);
-        self.widen(a, a_sz, sz);
-        self.widen(b, b_sz, sz);
-
-        let mil_insn = match sz {
-            1 => mil::Insn::Arith1(op, a, b),
-            2 => mil::Insn::Arith2(op, a, b),
-            4 => mil::Insn::Arith4(op, a, b),
-            8 => mil::Insn::Arith8(op, a, b),
-            _ => panic!("emit_arith: invalid operand size: {sz}"),
-        };
-        self.emit(a, mil_insn);
+        self.extend_zero(a, a_sz, sz);
+        self.extend_zero(b, b_sz, sz);
+        self.emit(a, mil::Insn::Arith(op, a, b));
     }
 
-    fn widen(&mut self, src: mil::Reg, src_sz: u8, tgt_sz: u8) {
-        let insn = match (src_sz, tgt_sz) {
-            (1, 2) => mil::Insn::Widen1_2(src),
-            (1, 4) => mil::Insn::Widen1_4(src),
-            (1, 8) => mil::Insn::Widen1_8(src),
-            (2, 4) => mil::Insn::Widen2_4(src),
-            (2, 8) => mil::Insn::Widen2_8(src),
-            (4, 8) => mil::Insn::Widen4_8(src),
-            (src_sz, tgt_sz) if src_sz == tgt_sz => return,
-            _ => panic!("invalid (src,tgt) sizes for widen: ({},{})", src_sz, tgt_sz),
-        };
-        self.emit(src, insn);
+    fn emit_shift(&mut self, insn: iced_x86::Instruction, arith_op: mil::ArithOp) {
+        let (value, sz) = self.emit_read(&insn, 0);
+        let (bits_count, bits_count_size) = self.emit_read(&insn, 1);
+        self.emit_arith(value, sz, bits_count, bits_count_size, arith_op);
+        self.emit_write(&insn, 0, value, sz);
+
+        // TODO implement flag cahnges: CF, OF
+        // (these are more complex than others, as they depend on the exact value
+        // of the bit count)
+        self.emit(Self::SF, mil::Insn::SignOf(value));
+        self.emit(Self::ZF, mil::Insn::IsZero(value));
+        let v0 = self.reg_gen.next();
+        self.emit(
+            v0,
+            mil::Insn::Part {
+                src: value,
+                offset: 0,
+                size: 1,
+            },
+        );
+        self.emit(Self::PF, mil::Insn::Parity(v0));
+        // ignored: AF
     }
 
     fn emit_jmpif(&mut self, insn: iced_x86::Instruction, op_ndx: u32, cond: mil::Reg) {
@@ -525,11 +748,18 @@ impl<'a> Builder<'a> {
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
         let v0 = self.reg_gen.next();
-        self.emit(v0, mil::Insn::L1(a));
+        self.emit(
+            v0,
+            mil::Insn::Part {
+                src: a,
+                offset: 0,
+                size: 1,
+            },
+        );
         self.emit(Self::PF, mil::Insn::Parity(v0));
     }
 
-    fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u8 {
+    fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u16 {
         match insn.op_kind(op_ndx) {
             OpKind::Register => insn.op_register(op_ndx).size().try_into().unwrap(),
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => 8,
@@ -575,31 +805,82 @@ impl<'a> Builder<'a> {
         match insn.op_kind(op_ndx) {
             OpKind::Register => {
                 let reg = insn.op_register(op_ndx);
-                let full_reg = Builder::xlat_reg(reg.full_register());
-                match reg.size() {
-                    1 => self.emit(v0, mil::Insn::L1(full_reg)),
-                    2 => self.emit(v0, mil::Insn::L2(full_reg)),
-                    4 => self.emit(v0, mil::Insn::L4(full_reg)),
-                    8 => full_reg,
-                    other => panic!("invalid register size: {other}"),
-                }
+                self.emit_read_reg(reg)
             }
-            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                self.emit(v0, mil::Insn::Const8(insn.near_branch_target() as i64))
-            }
+            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.near_branch_target() as i64,
+                    size: 8,
+                },
+            ),
             OpKind::FarBranch16 | OpKind::FarBranch32 => {
                 todo!("not supported: far branch operands")
             }
 
-            OpKind::Immediate8 => self.emit(v0, mil::Insn::Const1(insn.immediate8() as i8)),
-            OpKind::Immediate8_2nd => self.emit(v0, mil::Insn::Const1(insn.immediate8_2nd() as i8)),
-            OpKind::Immediate16 => self.emit(v0, mil::Insn::Const2(insn.immediate16() as i16)),
-            OpKind::Immediate32 => self.emit(v0, mil::Insn::Const4(insn.immediate32() as i32)),
-            OpKind::Immediate64 => self.emit(v0, mil::Insn::Const8(insn.immediate64() as i64)),
-            OpKind::Immediate8to16 => self.emit(v0, mil::Insn::Const2(insn.immediate8to16())),
-            OpKind::Immediate8to32 => self.emit(v0, mil::Insn::Const4(insn.immediate8to32())),
-            OpKind::Immediate8to64 => self.emit(v0, mil::Insn::Const8(insn.immediate8to64())),
-            OpKind::Immediate32to64 => self.emit(v0, mil::Insn::Const8(insn.immediate32to64())),
+            OpKind::Immediate8 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8() as _,
+                    size: 1,
+                },
+            ),
+            OpKind::Immediate8_2nd => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8_2nd() as _,
+                    size: 1,
+                },
+            ),
+            OpKind::Immediate16 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate16() as _,
+                    size: 2,
+                },
+            ),
+            OpKind::Immediate32 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate32() as _,
+                    size: 4,
+                },
+            ),
+            OpKind::Immediate64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate64() as _,
+                    size: 8,
+                },
+            ),
+            OpKind::Immediate8to16 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8to16() as _,
+                    size: 2,
+                },
+            ),
+            OpKind::Immediate8to32 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8to32() as _,
+                    size: 4,
+                },
+            ),
+            OpKind::Immediate8to64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate8to64() as _,
+                    size: 8,
+                },
+            ),
+            OpKind::Immediate32to64 => self.emit(
+                v0,
+                mil::Insn::Const {
+                    value: insn.immediate32to64() as _,
+                    size: 8,
+                },
+            ),
 
             OpKind::MemorySegSI
             | OpKind::MemorySegESI
@@ -612,43 +893,61 @@ impl<'a> Builder<'a> {
             | OpKind::MemoryESRDI => todo!("not supported: segment-relative memory operands"),
 
             OpKind::Memory => {
-                // Instruction::memory_size()
-                //
-                // Instruction::memory_displacement64()
-                // Instruction::memory_base()
-                // Instruction::memory_index()
-                // Instruction::memory_index_scale()
-                //
-                // Instruction::memory_segment()
-                // Instruction::segment_prefix()
+                use iced_x86::MemorySize;
 
                 let addr = self.emit_compute_address(insn);
 
-                use iced_x86::MemorySize;
-                match insn.memory_size() {
-                    MemorySize::UInt8 | MemorySize::Int8 => {
-                        self.emit(v0, mil::Insn::LoadMem1(addr))
+                // we're ignoring what's in the memory structure (for non-Offset
+                // size types). assuming that the rest of the assembly handles
+                // it correctly, we should be able to recover the correct
+                // information later anyway.
+                let memory_size = insn.memory_size();
+                self.emit(
+                    v0,
+                    mil::Insn::LoadMem {
+                        reg: addr,
+                        size: memory_size.size().try_into().unwrap(),
+                    },
+                );
+
+                match memory_size {
+                    MemorySize::WordOffset => {
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 2 });
                     }
-                    MemorySize::UInt16 | MemorySize::Int16 => {
-                        self.emit(v0, mil::Insn::LoadMem2(addr))
-                    }
-                    MemorySize::UInt32 | MemorySize::Int32 => {
-                        self.emit(v0, mil::Insn::LoadMem4(addr))
-                    }
-                    MemorySize::UInt64 | MemorySize::Int64 => {
-                        self.emit(v0, mil::Insn::LoadMem8(addr))
+                    MemorySize::DwordOffset => {
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 4 });
                     }
                     MemorySize::QwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem8(addr));
-                        self.emit(v0, mil::Insn::LoadMem8(v0))
+                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 8 });
                     }
-                    other => todo!("unsupported size for memory operand: {:?}", other),
+                    _ => {}
                 }
+
+                v0
             }
         }
     }
 
-    fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u8) {
+    /// Read a register of any size, emitting mil::Insn::Part as necessary
+    fn emit_read_reg(&mut self, reg: Register) -> mil::Reg {
+        let full_reg = reg.full_register();
+        let value = Builder::xlat_reg(full_reg);
+        if reg == full_reg {
+            value
+        } else {
+            let dest = self.reg_gen.next();
+            self.emit(
+                dest,
+                mil::Insn::Part {
+                    src: value,
+                    offset: 0,
+                    size: reg.size().try_into().unwrap(),
+                },
+            )
+        }
+    }
+
+    fn emit_read(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> (mil::Reg, u16) {
         let value = self.emit_read_value(insn, op_ndx);
         let sz = Self::op_size(insn, op_ndx);
         (value, sz)
@@ -659,17 +958,13 @@ impl<'a> Builder<'a> {
         insn: &iced_x86::Instruction,
         dest_op_ndx: u32,
         value: mil::Reg,
-        value_size: u8,
+        value_size: u16,
     ) {
         match insn.op_kind(dest_op_ndx) {
             OpKind::Register => {
                 let dest = insn.op_register(dest_op_ndx);
-                assert_eq!(
-                    dest.size(),
-                    value_size as usize,
-                    "mov: src and dest must have same size"
-                );
-
+                let dest_size: u16 = dest.size().try_into().unwrap();
+                self.extend_zero(value, value_size, dest_size);
                 self.emit_write_machine_reg(dest, value_size, value);
             }
 
@@ -719,16 +1014,50 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn emit_write_machine_reg(&mut self, dest: Register, value_size: u8, value: mil::Reg) {
-        let full_dest = Builder::xlat_reg(dest.full_register());
-        let modifier = match value_size {
-            1 => mil::Insn::V8WithL1(full_dest, value),
-            2 => mil::Insn::V8WithL2(full_dest, value),
-            4 => mil::Insn::V8WithL4(full_dest, value),
-            8 => mil::Insn::Get8(value),
-            _ => panic!("invalid dest size"),
-        };
-        self.emit(full_dest, modifier);
+    fn extend_zero(&mut self, value: mil::Reg, value_size: u16, dest_size: u16) {
+        assert!(
+            dest_size >= value_size,
+            "dest ({dest_size} bytes) can't fit source ({value_size} bytes)"
+        );
+        if dest_size > value_size {
+            self.emit(
+                value,
+                mil::Insn::Widen {
+                    reg: value,
+                    target_size: dest_size,
+                    sign: false,
+                },
+            );
+        }
+    }
+
+    fn emit_write_machine_reg(&mut self, dest_reg: Register, value_size: u16, value: mil::Reg) {
+        let full_dest_reg = dest_reg.full_register();
+        let full_size = full_dest_reg.size().try_into().unwrap();
+        let full_dest = Builder::xlat_reg(full_dest_reg);
+
+        if value_size == full_size {
+            self.emit(full_dest, mil::Insn::Get(value));
+            return;
+        }
+
+        assert!(value_size < full_size);
+        let unchanged_part = self.reg_gen.next();
+        self.emit(
+            unchanged_part,
+            mil::Insn::Part {
+                src: full_dest,
+                offset: value_size,
+                size: full_size - value_size,
+            },
+        );
+        self.emit(
+            full_dest,
+            mil::Insn::Concat {
+                hi: unchanged_part,
+                lo: value,
+            },
+        );
     }
 
     fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
@@ -743,8 +1072,13 @@ impl<'a> Builder<'a> {
             "emit_compute_address_into: segment-relative memory address operands are not supported",
         );
 
-        self.pb
-            .push(dest, mil::Insn::Const8(insn.memory_displacement64() as i64));
+        self.pb.push(
+            dest,
+            mil::Insn::Const {
+                value: insn.memory_displacement64() as i64,
+                size: 8,
+            },
+        );
 
         match insn.memory_base() {
             Register::None => {}
@@ -753,7 +1087,7 @@ impl<'a> Builder<'a> {
                 // addresses are 64-bit, so we use 8 bytes instructions
                 self.pb.push(
                     dest,
-                    mil::Insn::Arith8(mil::ArithOp::Add, dest, Self::xlat_reg(base)),
+                    mil::Insn::Arith(mil::ArithOp::Add, dest, Self::xlat_reg(base)),
                 );
             }
         }
@@ -765,139 +1099,12 @@ impl<'a> Builder<'a> {
                 let scale = insn.memory_index_scale() as i64;
                 let reg = Self::xlat_reg(index_reg);
                 // addresses are 64-bit in this architecture, so instructions are all with 8 bytes results
-                let scaled = mil::Insn::ArithK8(mil::ArithOp::Mul, reg, scale);
+                let scaled = mil::Insn::ArithK(mil::ArithOp::Mul, reg, scale);
                 self.pb.push(v1, scaled);
                 self.pb
-                    .push(dest, mil::Insn::Arith8(mil::ArithOp::Add, dest, v1));
+                    .push(dest, mil::Insn::Arith(mil::ArithOp::Add, dest, v1));
             }
         }
-    }
-
-    pub fn read_func_args(&mut self, arg_types: &[ty::TypeID]) -> Result<()> {
-        use ty::Ty;
-
-        if arg_types.len() > ANC_ARGS.len() {
-            eprintln!(
-                "warning: only {} arguments will be handled ({} were described)",
-                ANC_ARGS.len(),
-                arg_types.len()
-            );
-        }
-
-        let mut stack_pos = 0;
-        let rsp = Builder::xlat_reg(Register::RSP);
-        let mut read_to_stack = move |b: &mut Builder, src| {
-            let addr = b.reg_gen.next();
-            b.emit(
-                addr,
-                mil::Insn::ArithK8(mil::ArithOp::Sub, rsp, 8 * stack_pos),
-            );
-            b.emit(addr, mil::Insn::StoreMem(addr, src));
-            stack_pos += 1;
-        };
-
-        let mut integer_regs = [
-            Register::RDI,
-            Register::RSI,
-            Register::RDX,
-            Register::RCX,
-            Register::R8,
-            Register::R9,
-        ]
-        .into_iter();
-        let mut read_to_integer = move |b: &mut Builder, src, sz| match integer_regs.next() {
-            Some(reg) => {
-                b.emit_write_machine_reg(reg, sz, src);
-            }
-            None => read_to_stack(b, src),
-        };
-
-        let types = self.types.ok_or(anyhow!("TypeSet not provided"))?;
-
-        for (&arg_tyid, arg_anc) in arg_types.iter().zip(&ANC_ARGS) {
-            let arg_ty = &types
-                .get(arg_tyid)
-                .ok_or(anyhow!("undefined type: {arg_tyid:?}"))?
-                .ty;
-            assert_ne!(arg_ty.bytes_size(), 0);
-
-            let arg = self.reg_gen.next();
-            self.emit(arg, mil::Insn::Ancestral(*arg_anc));
-
-            match arg_ty {
-                Ty::Enum(ty::Enum {
-                    base_type: int_ty, ..
-                })
-                | Ty::Int(int_ty) => {
-                    if int_ty.size < 8 {
-                        read_to_integer(self, arg, int_ty.size);
-                    } else {
-                        assert_eq!(int_ty.size % 8, 0);
-                        let eightb_count = int_ty.size / 8;
-                        for eightb_ndx in 0..eightb_count {
-                            let eightb = self.reg_gen.next();
-                            self.emit(
-                                eightb,
-                                mil::Insn::StructGet8 {
-                                    struct_value: arg,
-                                    offset: 8 * eightb_ndx,
-                                },
-                            );
-                            read_to_integer(self, eightb, 8);
-                        }
-                    }
-                }
-                Ty::Ptr(_) => {
-                    read_to_integer(self, arg, 8);
-                }
-                Ty::Float(_) => todo!("SSE registers and float function parameters"),
-                Ty::Struct(struct_ty) => {
-                    let arg_struct_cls = classify_struct(struct_ty, types)?;
-                    match arg_struct_cls {
-                        ArgStructClass::Memory { eightb_count } => {
-                            for eightb_ndx in 0..eightb_count {
-                                let eightb = self.reg_gen.next();
-                                self.emit(
-                                    eightb,
-                                    mil::Insn::StructGet8 {
-                                        struct_value: arg,
-                                        offset: (8 * eightb_ndx).try_into().unwrap(),
-                                    },
-                                );
-                                read_to_stack(self, eightb);
-                            }
-                        }
-                        ArgStructClass::Registers(classes) => {
-                            for (ndx, cls) in classes.iter().enumerate() {
-                                match cls {
-                                    ArgClass::None => {}
-                                    ArgClass::Integer => {
-                                        let eightb = self.reg_gen.next();
-                                        self.emit(
-                                            eightb,
-                                            mil::Insn::StructGet8 {
-                                                struct_value: arg,
-                                                offset: (8 * ndx).try_into().unwrap(),
-                                            },
-                                        );
-                                        read_to_integer(self, eightb, 8);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Ty::Unknown(_) => {
-                    return Err(anyhow!("Function argument's type can't be `Unknown`"))
-                }
-                Ty::Subroutine(_) | Ty::Bool(_) | Ty::Void => {
-                    panic!("invalid type for a function argument: {arg_ty:?}")
-                }
-            }
-        }
-
-        Ok(())
     }
 
     // flags
@@ -930,8 +1137,25 @@ impl<'a> Builder<'a> {
     const R14: mil::Reg = mil::Reg(26);
     const R15: mil::Reg = mil::Reg(27);
 
-    const R_TMP_FIRST: mil::Reg = mil::Reg(28);
-    const R_TMP_LAST: mil::Reg = mil::Reg(34);
+    const ZMM0: mil::Reg = mil::Reg(28);
+    const ZMM1: mil::Reg = mil::Reg(29);
+    const ZMM2: mil::Reg = mil::Reg(30);
+    const ZMM3: mil::Reg = mil::Reg(31);
+    const ZMM4: mil::Reg = mil::Reg(32);
+    const ZMM5: mil::Reg = mil::Reg(33);
+    const ZMM6: mil::Reg = mil::Reg(34);
+    const ZMM7: mil::Reg = mil::Reg(35);
+    const ZMM8: mil::Reg = mil::Reg(36);
+    const ZMM9: mil::Reg = mil::Reg(37);
+    const ZMM10: mil::Reg = mil::Reg(38);
+    const ZMM11: mil::Reg = mil::Reg(39);
+    const ZMM12: mil::Reg = mil::Reg(40);
+    const ZMM13: mil::Reg = mil::Reg(41);
+    const ZMM14: mil::Reg = mil::Reg(42);
+    const ZMM15: mil::Reg = mil::Reg(43);
+
+    const R_TMP_FIRST: mil::Reg = mil::Reg(43);
+    const R_TMP_LAST: mil::Reg = mil::Reg(63);
 
     fn reset_reg_gen() -> RegGen {
         RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)
@@ -958,83 +1182,35 @@ impl<'a> Builder<'a> {
             Register::R13 => Self::R13,
             Register::R14 => Self::R14,
             Register::R15 => Self::R15,
-            _ => panic!(
-                "unsupported register: {:?} (full: {:?})",
-                reg,
-                reg.full_register()
-            ),
+            Register::ZMM0 => Self::ZMM0,
+            Register::ZMM1 => Self::ZMM1,
+            Register::ZMM2 => Self::ZMM2,
+            Register::ZMM3 => Self::ZMM3,
+            Register::ZMM4 => Self::ZMM4,
+            Register::ZMM5 => Self::ZMM5,
+            Register::ZMM6 => Self::ZMM6,
+            Register::ZMM7 => Self::ZMM7,
+            Register::ZMM8 => Self::ZMM8,
+            Register::ZMM9 => Self::ZMM9,
+            Register::ZMM10 => Self::ZMM10,
+            Register::ZMM11 => Self::ZMM11,
+            Register::ZMM12 => Self::ZMM12,
+            Register::ZMM13 => Self::ZMM13,
+            Register::ZMM14 => Self::ZMM14,
+            Register::ZMM15 => Self::ZMM15,
+            _ => {
+                panic!(
+                    "unsupported register: {:?} (full: {:?})",
+                    reg,
+                    reg.full_register()
+                )
+            }
         }
     }
 
     fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
         self.pb.push(dest, insn)
     }
-}
-
-#[inline(always)]
-fn div_ceil(size: usize, quot: usize) -> usize {
-    (size + quot - 1) / quot
-}
-
-#[derive(Clone, Copy)]
-enum ArgClass {
-    None,
-    Integer,
-}
-enum ArgStructClass {
-    Memory { eightb_count: usize },
-    Registers(SmallVec<[ArgClass; 8]>),
-}
-fn classify_struct(struct_ty: &ty::Struct, types: &ty::TypeSet) -> Result<ArgStructClass> {
-    // TODO Remove heap alloc
-    let eightb_count = div_ceil(struct_ty.size as usize, 8);
-    if eightb_count > 8 {
-        return Ok(ArgStructClass::Memory { eightb_count });
-    }
-
-    let mut buf = [ArgClass::None; 8];
-    let classes = &mut buf[..eightb_count];
-
-    let mut queue: SmallVec<[_; 8]> = smallvec::smallvec![(0, struct_ty)];
-    while let Some((struct_ofs, struct_ty)) = queue.pop() {
-        for memb in &struct_ty.members {
-            let typ = types.get(memb.tyid).unwrap();
-            let sz = typ.ty.bytes_size() as usize;
-            let memb_ofs = struct_ofs + memb.offset as usize;
-
-            if memb_ofs % sz != 0 {
-                // unaligned struct member
-                return Ok(ArgStructClass::Memory { eightb_count });
-            }
-
-            match &typ.ty {
-                ty::Ty::Int(_) | ty::Ty::Enum(_) | ty::Ty::Ptr(_) => {
-                    let memb_eightb_1 = memb_ofs / 8;
-                    let memb_eightb_n = (memb_ofs + sz) / 8;
-                    for i in memb_eightb_1..=memb_eightb_n {
-                        classes[i] = ArgClass::Integer;
-                    }
-                }
-                ty::Ty::Struct(substruct_ty) => {
-                    queue.push((memb_ofs, substruct_ty));
-                    continue;
-                }
-                ty::Ty::Float(_) => {
-                    return Err(anyhow!("not yet implemented: float struct members"))
-                }
-                ty::Ty::Unknown(_) => {
-                    return Err(anyhow!(
-                        "struct is partially known; can't determine parameter passing"
-                    ))
-                }
-                ty @ (ty::Ty::Subroutine(_) | ty::Ty::Bool(_) | ty::Ty::Void) => {
-                    panic!("invalid type for struct member: {ty:?}")
-                }
-            };
-        }
-    }
-
-    Ok(ArgStructClass::Registers(SmallVec::from_slice(classes)))
 }
 
 struct RegGen {
@@ -1051,7 +1227,7 @@ impl RegGen {
         let ret = self.next;
         self.next.0 += 1;
 
-        assert!(ret.0 <= self.last.0);
+        assert!(ret.0 <= self.last.0, "not enough tmp regs");
         ret
     }
 }
@@ -1082,6 +1258,22 @@ define_ancestral_name!(ANC_R12, "R12");
 define_ancestral_name!(ANC_R13, "R13");
 define_ancestral_name!(ANC_R14, "R14");
 define_ancestral_name!(ANC_R15, "R15");
+define_ancestral_name!(ANC_ZMM0, "ZMM0");
+define_ancestral_name!(ANC_ZMM1, "ZMM1");
+define_ancestral_name!(ANC_ZMM2, "ZMM2");
+define_ancestral_name!(ANC_ZMM3, "ZMM3");
+define_ancestral_name!(ANC_ZMM4, "ZMM4");
+define_ancestral_name!(ANC_ZMM5, "ZMM5");
+define_ancestral_name!(ANC_ZMM6, "ZMM6");
+define_ancestral_name!(ANC_ZMM7, "ZMM7");
+define_ancestral_name!(ANC_ZMM8, "ZMM8");
+define_ancestral_name!(ANC_ZMM9, "ZMM9");
+define_ancestral_name!(ANC_ZMM10, "ZMM10");
+define_ancestral_name!(ANC_ZMM11, "ZMM11");
+define_ancestral_name!(ANC_ZMM12, "ZMM12");
+define_ancestral_name!(ANC_ZMM13, "ZMM13");
+define_ancestral_name!(ANC_ZMM14, "ZMM14");
+define_ancestral_name!(ANC_ZMM15, "ZMM15");
 
 define_ancestral_name!(ANC_ARG0, "arg0");
 define_ancestral_name!(ANC_ARG1, "arg1");

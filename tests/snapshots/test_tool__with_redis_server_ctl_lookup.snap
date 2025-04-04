@@ -310,6 +310,7 @@ ctl_lookup 0x5ddf40+1255 (file 0x1ddf40)
           5de41f: 4d 89 f5                mov r13,r14
           5de422: e9 4b ff ff ff          jmp 00000000005DE372h
 
+function type: 0x5ddf40: no type info
 mil program = 
 program  1334 instrs
     0 r12 <- #pre:stack_bottom

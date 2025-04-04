@@ -1,8 +1,3 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Range,
-};
-
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
 ///
@@ -24,22 +19,15 @@ pub struct Program {
     //   mil::Index values are just as good as mil::Reg for identifying both insns and
     //   values.
     inner: mil::Program,
-    phis: cfg::BlockMap<PhiInfo>,
     cfg: cfg::Graph,
-
-    rdr_count: ReaderCount,
-
-    #[cfg(feature = "proto_typing")]
-    ptr_regs: HashMap<mil::Reg, Ptr>,
+    bbs: cfg::BlockMap<BasicBlock>,
 }
 
-#[cfg(feature = "proto_typing")]
 slotmap::new_key_type! { pub struct TypeID; }
 
-#[cfg(feature = "proto_typing")]
-#[derive(Clone)]
-pub struct Ptr {
-    pub pointee_tyid: TypeID,
+#[derive(Clone, Default)]
+pub struct BasicBlock {
+    effects: Vec<mil::Reg>,
 }
 
 impl Program {
@@ -56,119 +44,252 @@ impl Program {
         // to transition to a more complex structure in the future.
         let iv = self.inner.get(reg.0)?;
         debug_assert_eq!(iv.dest.get(), reg);
+
         Some(iv)
     }
 
+    /// Total number of registers/instructions stored in this Program.
+    ///
+    /// This may well include dead values. Use [`insns_rpo`] to iterate through
+    /// the program only "through dependency edges" and only get live registers.
     pub fn reg_count(&self) -> mil::Index {
         self.inner.len()
-    }
-
-    pub fn readers_count(&self, reg: mil::Reg) -> usize {
-        self.rdr_count.get(reg)
-    }
-
-    pub fn block_phi(&self, bid: cfg::BlockID) -> &PhiInfo {
-        &self.phis[bid]
-    }
-
-    pub fn is_alive(&self, reg: mil::Reg) -> bool {
-        self.rdr_count.get(reg) > 0
-    }
-
-    pub fn live_regs(&self) -> impl '_ + Iterator<Item = mil::Reg> {
-        (0..self.reg_count())
-            .map(|ndx| mil::Reg(ndx))
-            .filter(|reg| self.is_alive(*reg))
-    }
-
-    /// Iterate through the instructions in the program, in no particular order
-    pub fn insns_unordered(&self) -> impl Iterator<Item = mil::InsnView> {
-        self.live_regs().map(|reg| self.get(reg).unwrap())
-    }
-
-    pub fn block_normal_insns(&self, bid: cfg::BlockID) -> Option<mil::InsnSlice> {
-        let ndx_range = self.cfg.insns_ndx_range(bid);
-        self.inner.slice(ndx_range)
     }
 
     pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
         self.inner.get_call_args(reg.0)
     }
 
-    pub fn get_phi_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        self.inner.get_phi_args(reg.0)
+    pub fn insns_rpo(&self) -> InsnRPOIter {
+        InsnRPOIter::new(self)
     }
 
-    pub fn map_phi_args(&self, reg: mil::Reg, f: impl Fn(mil::Reg) -> mil::Reg) {
-        self.inner.map_phi_args(reg.0, f)
+    pub fn block_effects(&self, bid: cfg::BlockID) -> impl '_ + Iterator<Item = mil::Reg> {
+        self.bbs[bid].effects.iter().copied()
+    }
+
+    pub fn push_pure(&mut self, insn: mil::Insn) -> mil::Reg {
+        // side-effecting instructions need to be added to a specific position
+        // in the basic block.
+        // pure instructions, instead, aren't really attached to anywhere in
+        // particular.
+        assert!(!insn.has_side_effects());
+        let index = self.inner.push_new(insn);
+        mil::Reg(index)
+    }
+
+    pub fn upsilons_of_phi<'s>(&'s self, phi_reg: mil::Reg) -> impl 's + Iterator<Item = mil::Reg> {
+        assert!(matches!(
+            self.get(phi_reg).unwrap().insn.get(),
+            mil::Insn::Phi
+        ));
+
+        self.inner.iter().filter_map(move |iv| match iv.insn.get() {
+            mil::Insn::Upsilon { value, phi_ref } if phi_ref == phi_reg => Some(value),
+            _ => None,
+        })
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
-        self.inner.value_type(reg.0)
+        use mil::{Insn, RegType};
+        match self.inner.get(reg.0).unwrap().insn.get() {
+            Insn::Void => RegType::Bytes(0), // TODO better choice here?
+            Insn::True => RegType::Bool,
+            Insn::False => RegType::Bool,
+            Insn::Const { size, .. } => RegType::Bytes(size as usize),
+            Insn::Part { size, .. } => RegType::Bytes(size as usize),
+            Insn::Get(arg) => self.value_type(arg),
+            Insn::Concat { lo, hi } => {
+                let lo_size = self.value_type(lo).bytes_size().unwrap();
+                let hi_size = self.value_type(hi).bytes_size().unwrap();
+                RegType::Bytes(lo_size + hi_size)
+            }
+            Insn::Widen {
+                reg: _,
+                target_size,
+                sign: _,
+            } => RegType::Bytes(target_size as usize),
+            Insn::Arith(_, a, b) => {
+                let at = self.value_type(a);
+                let bt = self.value_type(b);
+                assert_eq!(at, bt); // TODO check this some better way
+                at
+            }
+            Insn::ArithK(_, a, _) => self.value_type(a),
+            Insn::Cmp(_, _, _) => RegType::Bool,
+            Insn::Bool(_, _, _) => RegType::Bool,
+            Insn::Not(_) => RegType::Bool,
+            // TODO This might have to change based on the use of calling
+            // convention and function type info
+            Insn::Call(_) => RegType::Bytes(8),
+            Insn::CArg(_) => RegType::Effect,
+            Insn::Ret(_) => RegType::Effect,
+            Insn::JmpInd(_) => RegType::Effect,
+            Insn::Jmp(_) => RegType::Effect,
+            Insn::JmpExt(_) => RegType::Effect,
+            Insn::JmpIf { .. } => RegType::Effect,
+            Insn::JmpExtIf { .. } => RegType::Effect,
+            Insn::TODO(_) => RegType::Effect,
+            Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
+            Insn::StoreMem(_, _) => RegType::Effect,
+            Insn::OverflowOf(_) => RegType::Effect,
+            Insn::CarryOf(_) => RegType::Effect,
+            Insn::SignOf(_) => RegType::Effect,
+            Insn::IsZero(_) => RegType::Effect,
+            Insn::Parity(_) => RegType::Effect,
+            Insn::Undefined => RegType::Effect,
+            Insn::Phi => {
+                let mut ys = self.upsilons_of_phi(reg);
+                let Some(y) = ys.next() else {
+                    panic!("no upsilons for this phi? {:?}", reg)
+                };
+                // assuming that all types are the same, as per assert_phis_consistent
+                self.value_type(y)
+            }
+            Insn::Ancestral(anc_name) => self
+                .inner
+                .ancestor_type(anc_name)
+                .expect("ancestor has no defined type"),
+            Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
+            Insn::Upsilon { .. } => RegType::Effect,
+        }
     }
 
     pub fn assert_invariants(&self) {
         self.assert_no_circular_refs();
-        self.assert_inputs_alive();
-        self.assert_phis_separated();
+        self.assert_effectful_partitioned();
+        self.assert_consistent_phis();
     }
 
-    fn assert_phis_separated(&self) {
-        for bid in self.cfg.block_ids() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                let insn = self.get(phi_reg).unwrap().insn.get();
-                assert!(insn.is_phi());
+    fn assert_consistent_phis(&self) {
+        let mut phi_type = RegMap::for_program(self, None);
+        let rdr_count = count_readers(self);
+
+        for iv in self.inner.iter() {
+            if rdr_count[iv.dest.get()] == 0 {
+                continue;
             }
-
-            for (_, insn_cell) in self.block_normal_insns(bid).unwrap().iter() {
-                assert!(!insn_cell.get().is_phi());
-            }
-        }
-    }
-
-    fn assert_inputs_alive(&self) {
-        for bid in self.cfg.block_ids_rpo() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                if !self.is_alive(phi_reg) {
-                    continue;
+            if let mil::Insn::Upsilon { value, phi_ref } = iv.insn.get() {
+                let value_type = self.value_type(value);
+                match &mut phi_type[phi_ref] {
+                    slot @ None => {
+                        *slot = Some(value_type);
+                    }
+                    Some(prev) => {
+                        assert_eq!(*prev, value_type);
+                    }
                 }
-
-                for arg in self.get_phi_args(phi_reg) {
-                    assert!(
-                        self.is_alive(arg),
-                        "{phi_reg:?}: phi input not alive: {arg:?}"
-                    );
-                }
-            }
-
-            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
-                if !self.is_alive(dest) {
-                    continue;
-                }
-
-                insn.input_regs_iter().for_each(|reg| {
-                    assert!(self.is_alive(reg), "{dest:?}: input not alive: {reg:?}");
-                });
             }
         }
     }
 
     fn assert_no_circular_refs(&self) {
-        let mut defined = HashSet::new();
-        for bid in self.cfg.block_ids_rpo() {
-            for phi_reg in self.block_phi(bid).phi_regs() {
-                // phi arguments are not checked
-                let is_first_def = defined.insert(phi_reg);
-                assert!(is_first_def);
+        // kahn's algorithm for topological sorting, but we don't actually store the topological order
+
+        let mut rdr_count = count_readers_with_dead(self);
+        let mut queue: Vec<_> = rdr_count
+            .items()
+            .filter(|(_, count)| **count == 0)
+            .map(|(reg, _)| reg)
+            .collect();
+
+        while let Some(reg) = queue.pop() {
+            assert_eq!(rdr_count[reg], 0);
+
+            for input in self.get(reg).unwrap().insn.get().input_regs_iter() {
+                rdr_count[input] -= 1;
+                if rdr_count[input] == 0 {
+                    queue.push(input);
+                }
             }
+        }
 
-            for (dest, insn) in self.block_normal_insns(bid).unwrap().iter_copied() {
-                insn.input_regs_iter().for_each(|reg| {
-                    assert!(defined.contains(&reg), "{dest:?}: undefined reg: {reg:?}")
-                });
+        assert!(rdr_count.items().all(|(_, count)| *count == 0));
+    }
 
-                let is_first_def = defined.insert(dest);
-                assert!(is_first_def);
+    fn assert_effectful_partitioned(&self) {
+        // effectful insns are all in blocks; pure instructions are all outside of blocks
+        let mut in_block = RegMap::for_program(self, false);
+        for (_, bb) in self.bbs.items() {
+            for reg in &bb.effects {
+                in_block[*reg] = true;
+            }
+        }
+
+        for reg in 0..self.reg_count() {
+            let reg = mil::Reg(reg);
+            let insn = self.get(reg).unwrap().insn.get();
+            assert_eq!(in_block[reg], insn.has_side_effects());
+        }
+    }
+}
+
+/// An iterator that walks through the instructions of a whole program in
+/// reverse post order.
+///
+/// Reverse postorder means that an instruction is always returned after all of
+/// its dependencies (both control and data).
+///
+/// The item is (BlockID, mil::Reg), so the block ID is explicitly given.
+pub struct InsnRPOIter<'a> {
+    queue: Vec<IterCmd>,
+    prog: &'a Program,
+    was_yielded: Vec<bool>,
+}
+enum IterCmd {
+    Block(cfg::BlockID),
+    StartInsn((cfg::BlockID, mil::Reg)),
+    EndInsn((cfg::BlockID, mil::Reg)),
+}
+impl<'a> InsnRPOIter<'a> {
+    fn new(prog: &'a Program) -> Self {
+        let queue = prog.cfg.block_ids_rpo().rev().map(IterCmd::Block).collect();
+        InsnRPOIter {
+            queue,
+            prog,
+            was_yielded: vec![false; prog.reg_count() as usize],
+        }
+    }
+}
+impl<'a> Iterator for InsnRPOIter<'a> {
+    type Item = (cfg::BlockID, mil::Reg);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let Some(cmd) = self.queue.pop() else {
+                return None;
+            };
+
+            match cmd {
+                IterCmd::Block(bid) => {
+                    self.queue.extend(
+                        self.prog.bbs[bid]
+                            .effects
+                            .iter()
+                            .rev()
+                            .copied()
+                            .map(|reg| IterCmd::StartInsn((bid, reg))),
+                    );
+                }
+                IterCmd::StartInsn((bid, reg)) => {
+                    self.queue.push(IterCmd::EndInsn((bid, reg)));
+                    self.queue.extend(
+                        self.prog
+                            .get(reg)
+                            .unwrap()
+                            .insn
+                            .get()
+                            .input_regs_iter()
+                            .map(|input| IterCmd::StartInsn((bid, input))),
+                    );
+                }
+                IterCmd::EndInsn((bid, reg)) => {
+                    let was_yielded =
+                        std::mem::replace(&mut self.was_yielded[reg.reg_index() as usize], true);
+                    if !was_yielded {
+                        return Some((bid, reg));
+                    }
+                }
             }
         }
     }
@@ -183,140 +304,56 @@ fn test_assert_no_circular_refs() {
     let prog = {
         let mut pb = mil::ProgramBuilder::new();
         pb.set_input_addr(0xf0);
-        pb.push(Reg(0), Insn::Const8(123));
-        pb.push(Reg(1), Insn::Arith8(ArithOp::Add, Reg(0), Reg(2)));
-        pb.push(Reg(2), Insn::Arith8(ArithOp::Add, Reg(0), Reg(1)));
+        pb.push(
+            Reg(0),
+            Insn::Const {
+                value: 123,
+                size: 8,
+            },
+        );
+        pb.push(Reg(1), Insn::Arith(ArithOp::Add, Reg(0), Reg(2)));
+        pb.push(Reg(2), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
         pb.build()
     };
     let prog = mil_to_ssa(ConversionParams::new(prog));
     prog.assert_no_circular_refs();
 }
 
-#[cfg(feature = "proto_typing")]
-impl Program {
-    pub fn set_ptr_type(&mut self, reg: mil::Reg, ptr_ty: Ptr) {
-        self.ptr_regs.insert(reg, ptr_ty);
-    }
-
-    pub fn ptr_type(&self, reg: mil::Reg) -> Option<&Ptr> {
-        self.ptr_regs.get(&reg)
-    }
-}
-
-#[derive(Clone)]
-pub struct PhiInfo {
-    ndxs: Range<mil::Index>,
-    // TODO smaller sizes?; these rarely go above, like 4-8
-    phi_count: mil::Index,
-    pred_count: mil::Index,
-}
-
-impl PhiInfo {
-    fn empty() -> Self {
-        PhiInfo {
-            ndxs: 0..0,
-            phi_count: 0,
-            pred_count: 0,
-        }
-    }
-
-    pub fn phi_count(&self) -> mil::Index {
-        self.phi_count
-    }
-
-    pub fn phi_reg(&self, phi_ndx: mil::Index) -> mil::Reg {
-        assert!(phi_ndx < self.phi_count);
-        assert_eq!(
-            self.ndxs.len(),
-            (self.phi_count * (1 + self.pred_count)).into()
-        );
-        let value_ndx = self.ndxs.start + phi_ndx * (1 + self.pred_count);
-        mil::Reg(value_ndx)
-    }
-
-    pub fn phi_regs(&self) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
-        (0..self.phi_count).map(|phi_ndx| self.phi_reg(phi_ndx))
-    }
-
-    pub fn arg<'p>(&self, ssa: &'p Program, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
-        let item = ssa.get(self.arg_ndx(phi_ndx, pred_ndx)).unwrap();
-        match item.insn.get() {
-            mil::Insn::PhiArg(reg) => reg,
-            other => panic!("expected phiarg, got {:?}", other),
-        }
-    }
-
-    fn arg_ndx(&self, phi_ndx: mil::Index, pred_ndx: mil::Index) -> mil::Reg {
-        assert!(pred_ndx < self.pred_count);
-        mil::Reg(self.phi_reg(phi_ndx).0 + 1 + pred_ndx)
-    }
-}
-
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let count: usize = self.live_regs().count();
-        writeln!(f, "ssa program  {} instrs", count)?;
+        let rdr_count = count_readers(self);
 
-        for bid in self.cfg.block_ids_rpo() {
-            let phis = self.block_phi(bid);
-            let block_addr = {
-                let nor_ndxs = self.cfg.insns_ndx_range(bid);
-                self.inner.get(nor_ndxs.start).unwrap().addr
-            };
-            let insns = self.block_normal_insns(bid).unwrap();
+        writeln!(f, "ssa program  {} instrs", self.reg_count())?;
 
-            write!(f, ".B{}:    ;;  ", bid.as_usize())?;
-            let preds = self.cfg.block_preds(bid);
-            if preds.len() > 0 {
-                write!(f, "preds:")?;
-                for (ndx, pred) in preds.iter().enumerate() {
-                    if ndx > 0 {
-                        write!(f, ",")?;
+        let mut cur_bid = None;
+
+        for (bid, reg) in self.insns_rpo() {
+            if cur_bid != Some(bid) {
+                write!(f, ".B{}:    ;; ", bid.as_usize())?;
+                let preds = self.cfg.block_preds(bid);
+                if preds.len() > 0 {
+                    write!(f, "preds:")?;
+                    for (ndx, pred) in preds.iter().enumerate() {
+                        if ndx > 0 {
+                            write!(f, ",")?;
+                        }
+                        write!(f, "B{}", pred.as_number())?;
                     }
-                    write!(f, "B{}", pred.as_number())?;
                 }
-                write!(f, "  ")?;
-            }
-            writeln!(
-                f,
-                "addr:0x{:x}; {} insn {} phis",
-                block_addr,
-                insns.insns.len(),
-                phis.phi_count(),
-            )?;
+                writeln!(f, ".")?;
 
-            let print_rdr_count = |f: &mut std::fmt::Formatter, reg| -> std::fmt::Result {
-                let rdr_count = self.rdr_count.get(reg);
-                if rdr_count > 1 {
-                    write!(f, "  ({:3})  ", rdr_count)?;
-                } else {
-                    write!(f, "         ")?;
-                }
-                Ok(())
-            };
-
-            if phis.phi_count() > 0 {
-                write!(f, "                  ɸ  ")?;
-                for pred in preds {
-                    write!(f, "B{:<5} ", pred.as_number())?;
-                }
-                writeln!(f)?;
-                for phi in phis.phi_regs() {
-                    print_rdr_count(f, phi)?;
-                    write!(f, "  r{:<5} <- ", phi.0)?;
-                    for arg in self.get_phi_args(phi) {
-                        write!(f, "r{:<5} ", arg.0)?;
-                    }
-                    writeln!(f)?;
-                }
+                cur_bid = Some(bid);
             }
 
-            for (dest, insn) in insns.iter_copied() {
-                if self.is_alive(dest) {
-                    print_rdr_count(f, dest)?;
-                    writeln!(f, "{:?} <- {:?}", dest, insn)?;
-                }
+            let rdr_count = rdr_count[reg];
+            if rdr_count > 1 {
+                write!(f, "  ({:3})  ", rdr_count)?;
+            } else {
+                write!(f, "         ")?;
             }
+
+            let iv = self.get(reg).unwrap();
+            writeln!(f, "{:?} <- {:?}", reg, iv.insn.get())?;
         }
 
         Ok(())
@@ -337,10 +374,28 @@ impl ConversionParams {
 pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let ConversionParams { mut program, .. } = input;
 
-    let cfg = cfg::analyze_mil(&program);
+    let var_count = program.reg_count();
+    let vars = move || (0..var_count).map(mil::Reg);
 
+    let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
-    let mut phis = place_phi_nodes(&mut program, &cfg, dom_tree);
+    let is_phi_needed = compute_phis_set(&program, &cfg, dom_tree);
+
+    // create all required phi nodes, and link them to basic blocks and
+    // variables, to be "wired" later to the data flow graph
+    let phis = {
+        let mut phis = RegMat::for_program(&program, &cfg, None);
+        for bid in cfg.block_ids() {
+            for var in vars() {
+                if *is_phi_needed.get(bid, var) {
+                    let ndx = program.push_new(mil::Insn::Phi);
+                    let phi = mil::Reg(ndx);
+                    phis.set(bid, var, Some(phi));
+                }
+            }
+        }
+        phis
+    };
 
     /*
     stack[v] is a stack of variable names (for every variable v)
@@ -419,7 +474,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let var_count = program.reg_count();
     let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
@@ -428,25 +482,29 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     }
     let mut queue = vec![Cmd::Finish, Cmd::Start(cfg.entry_block_id())];
 
+    let mut bbs = cfg::BlockMap::new(BasicBlock::default(), cfg.block_count());
+
     while let Some(cmd) = queue.pop() {
         match cmd {
             Cmd::Start(bid) => {
                 var_map.push();
 
+                let bb = &mut bbs[bid];
+
                 // -- patch current block
 
-                // phi nodes are *used* here for their destination; their arguments are fixed up
-                // while processing the predecessors
-                let block_phis = &phis[bid];
-                for ndx in block_phis.ndxs.clone() {
-                    let item = program.get(ndx).unwrap();
-                    match item.insn.get() {
-                        mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 | mil::Insn::Phi8 => {
-                            var_map.set(item.dest.get(), mil::Reg(ndx));
-                            item.dest.set(mil::Reg(ndx));
-                        }
-                        mil::Insn::PhiArg { .. } => {}
-                        _ => panic!("non-phi node in block phi ndx range"),
+                // phi nodes have already been added; we only "take in" the ones
+                // belonging to this block (associate them to the mil variable
+                // they represent)
+                //
+                // we're doing the "pizlo special" [^1], so arguments are going
+                // to be "set" via Upsilon instructions
+                //
+                // [^1] https://gist.github.com/pizlonator/cf1e72b8600b1437dda8153ea3fdb963
+                for var in vars() {
+                    // var is still pre-SSA/renaming
+                    if let Some(phi_reg) = phis.get(bid, var) {
+                        var_map.set(var, *phi_reg);
                     }
                 }
 
@@ -468,24 +526,24 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     }
                     iv.insn.set(insn);
 
-                    // in the output SSA, each destination register corrsponds to the instruction's
+                    // in the output SSA, each destination register corresponds to the instruction's
                     // index. this way, the numeric value of a register can also be used as
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
                     let old_name = iv.dest.replace(new_dest);
-                    let new_name = if let mil::Insn::Get8(input_reg) = iv.insn.get() {
+
+                    let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
                         input_reg
                     } else {
                         new_dest
                     };
-
                     var_map.set(old_name, new_name);
-                }
-                for insn_ndx in cfg.insns_ndx_range(bid) {
-                    let item = program.get(insn_ndx).unwrap();
-                    assert_eq!(item.dest.get(), mil::Reg(insn_ndx));
+
+                    if insn.has_side_effects() {
+                        bb.effects.push(new_name);
+                    }
                 }
 
                 // -- patch successor's phi nodes
@@ -498,33 +556,18 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // to use its "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for (my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
-                    let succ_phis = &mut phis[succ];
-
-                    for phi_ndx in 0..succ_phis.phi_count {
-                        let arg = succ_phis.arg_ndx(phi_ndx, my_pred_ndx.into());
-                        let iv = program.get(arg.0).unwrap();
-                        match iv.insn.get() {
-                            // These are not supposed to exist yet!
-                            // Only Phi8 is added by place_phi_nodes; the others
-                            // are only placed by narrow_phi_nodes
-                            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
-                                panic!("unexpected narrow phi node at this phase of ssa conversion")
-                            }
-                            mil::Insn::Phi8 => continue,
-                            mil::Insn::PhiArg(arg) => {
-                                // NOTE: the substitution of the *successor's* phi node's argument is
-                                // done in the context of *this* node (its predecessor)
-                                let arg_repl = var_map.get(arg).unwrap_or_else(|| {
-                                    panic!(
-                                        "value {:?} not initialized in pre-ssa (phi {:?}--[{}]-->{:?})",
-                                        arg, bid, my_pred_ndx, succ
-                                    )
-                                });
-                                iv.insn.set(mil::Insn::PhiArg(arg_repl));
-                            }
-                            _ => panic!("non-phi node in block phi ndx range"),
-                        };
+                for (_my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
+                    for var in vars() {
+                        if let Some(phi_reg) = phis.get(succ, var) {
+                            let value = var_map
+                                .get(var)
+                                .expect("value not initialized in pre-ssa (phi)");
+                            let ups = program.push_new(mil::Insn::Upsilon {
+                                value,
+                                phi_ref: *phi_reg,
+                            });
+                            bb.effects.push(mil::Reg(ups));
+                        }
                     }
                 }
 
@@ -544,8 +587,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
             }
         }
     }
-    let var_count = program.len();
-    let rdr_count = ReaderCount::new(var_count);
 
     // establish SSA invariants
     // the returned Program will no longer change (just some instructions are going to be marked as
@@ -564,93 +605,15 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let mut ssa = Program {
         inner: program,
         cfg,
-        phis,
-        rdr_count,
-
-        #[cfg(feature = "proto_typing")]
-        ptr_regs: HashMap::new(),
+        bbs,
     };
     eliminate_dead_code(&mut ssa);
-    narrow_phi_nodes(&mut ssa);
+    ssa.assert_invariants();
     ssa
 }
 
-/// Add phi nodes to a MIL program, where required.
-///
-/// Some notes:
-///
-/// - This function acts on MIL programs not yet in SSA form. Phi nodes are
-/// added in preparation for an SSA conversion, but no part of the actual
-/// conversion is performed at all.
-///
-/// - The added Phi nodes are all with the largest result width (Phi8). They
-/// must be later swapped for the proper width variants (Phi1, Phi2, Phi4, ...)
-/// by calling `narrow_phi_nodes` on the SSA-converted program.
-fn place_phi_nodes(
-    program: &mut mil::Program,
-    cfg: &cfg::Graph,
-    dom_tree: &cfg::DomTree,
-) -> cfg::BlockMap<PhiInfo> {
-    let block_count = cfg.block_count();
-
-    if program.len() == 0 {
-        return cfg::BlockMap::new(PhiInfo::empty(), block_count);
-    }
-
-    let phis_set = compute_phis_set(program, cfg, dom_tree);
-    let var_count = phis_set.0.cols.try_into().unwrap();
-    assert_eq!(var_count, program.reg_count());
-
-    // translate `phis` into a representation such that inputs can be replaced with specific input
-    // variables assigned in predecessors.
-    // they are appended as Phi/PhiArg nodes to the program
-    let mut phis = cfg::BlockMap::new(PhiInfo::empty(), block_count);
-
-    for bid in cfg.block_ids() {
-        let pred_count: u16 = cfg.block_preds(bid).len().try_into().unwrap();
-        let start_ndx = program.len();
-        let mut phi_count = 0;
-
-        for var_ndx in 0..var_count {
-            let reg = mil::Reg(var_ndx);
-            if *phis_set.get(bid, reg) {
-                // the largest-width Phi opcode is inserted here; will be
-                // narrowed down in a later phase of ssa construction
-                program.push(reg, mil::Insn::Phi8);
-                phi_count += 1;
-
-                for _pred_ndx in 0..pred_count {
-                    // implicitly corresponds to _pred_ndx
-                    program.push(mil::Reg(program.len()), mil::Insn::PhiArg(reg));
-                }
-            }
-        }
-
-        let end_ndx = program.len();
-        assert_eq!(end_ndx - start_ndx, phi_count * (1 + pred_count));
-
-        let phi_info = PhiInfo {
-            ndxs: start_ndx..end_ndx,
-            phi_count,
-            pred_count,
-        };
-        for phi_ndx in 0..phi_info.phi_count {
-            for pred_ndx in 0..phi_info.pred_count {
-                // check that it doesn't throw
-                let ndx = phi_info.arg_ndx(phi_ndx, pred_ndx);
-                let item = program.get(ndx.0).unwrap();
-                assert!(matches!(item.insn.get(), mil::Insn::PhiArg(_)));
-            }
-        }
-
-        phis[bid] = phi_info;
-    }
-
-    phis
-}
-
 fn compute_phis_set(
-    program: &mut mil::Program,
+    program: &mil::Program,
     cfg: &cfg::Graph,
     dom_tree: &cfg::DomTree,
 ) -> RegMat<bool> {
@@ -684,44 +647,6 @@ fn compute_phis_set(
     }
 
     phis_set
-}
-
-fn narrow_phi_nodes(program: &mut Program) {
-    for iv in program.insns_unordered() {
-        let dest = iv.dest.get();
-        let insn = iv.insn.get();
-
-        match insn {
-            mil::Insn::Phi8 => {}
-            mil::Insn::Phi1 | mil::Insn::Phi2 | mil::Insn::Phi4 => {
-                panic!("narrow_phi_nodes: unexpected narrow phi node")
-            }
-            _ => continue,
-        }
-
-        let mut args = program.get_phi_args(dest);
-        let arg0 = args.next().unwrap();
-        let rt0 = program.value_type(arg0);
-
-        // check: all args have the same type!
-        for arg in args {
-            assert_eq!(
-                program.value_type(arg),
-                rt0,
-                "malformed ssa: phi node has different type args"
-            );
-        }
-
-        let repl_insn = match rt0 {
-            mil::RegType::Effect => panic!("malformed ssa: phi node can't have Effect inputs"),
-            mil::RegType::Bytes1 => mil::Insn::Phi1,
-            mil::RegType::Bytes2 => mil::Insn::Phi2,
-            mil::RegType::Bytes4 => mil::Insn::Phi4,
-            mil::RegType::Bytes8 => mil::Insn::Phi8,
-            mil::RegType::Bool => mil::Insn::PhiBool,
-        };
-        iv.insn.set(repl_insn);
-    }
 }
 
 /// Find the set of "received variables" for each block.
@@ -817,89 +742,111 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     mat
 }
 
-pub fn eliminate_dead_code(prog: &mut Program) {
-    if prog.inner.len() == 0 {
-        return;
-    }
-
-    let count = prog.reg_count();
-    let mut rdr_count = ReaderCount::new(count);
-    let mut visited = vec![false; count as usize];
-
-    let mut queue: Vec<_> = prog
-        .inner
-        .iter()
-        .filter(|iv| iv.insn.get().has_side_effects())
-        .map(|iv| iv.dest.get())
-        .collect();
-
-    for &side_fx_reg in &queue {
-        rdr_count.inc(side_fx_reg);
-    }
-
-    while let Some(reg) = queue.pop() {
-        // we can assume no circular references
-        visited[reg.reg_index() as usize] = true;
-        let insn = prog.get(reg).unwrap().insn.get();
-        match insn {
-            mil::Insn::Phi1
-            | mil::Insn::Phi2
-            | mil::Insn::Phi4
-            | mil::Insn::Phi8
-            | mil::Insn::PhiBool => {
-                for input in prog.get_phi_args(reg) {
-                    rdr_count.inc(input);
-                    if !visited[input.reg_index() as usize] {
-                        queue.push(input);
-                    }
-                }
-            }
-            _ => {
-                for input in insn.input_regs_iter() {
-                    rdr_count.inc(input);
-                    if !visited[input.reg_index() as usize] {
-                        queue.push(input);
-                    }
-                }
-            }
-        }
-    }
-
-    prog.rdr_count = rdr_count;
+pub fn eliminate_dead_code(_prog: &mut Program) {
+    // TODO just delete this function
 }
 
-#[derive(Debug, Clone)]
-struct ReaderCount(Vec<usize>);
-impl ReaderCount {
-    fn new(var_count: mil::Index) -> Self {
-        ReaderCount(vec![0; var_count as usize])
+#[derive(Clone, Debug)]
+pub struct RegMap<T>(Vec<T>);
+
+impl<T: Clone> RegMap<T> {
+    fn for_program(prog: &Program, init: T) -> Self {
+        let inner = vec![init; prog.reg_count() as usize];
+        RegMap(inner)
     }
-    fn reset(&mut self) {
-        self.0.fill(0);
+
+    fn items<'s>(&'s self) -> impl 's + ExactSizeIterator<Item = (mil::Reg, &'s T)> {
+        self.0
+            .iter()
+            .enumerate()
+            .map(|(ndx, item)| (mil::Reg(ndx.try_into().unwrap()), item))
     }
-    fn get(&self, reg: mil::Reg) -> usize {
-        self.0[reg.0 as usize]
+
+    pub fn map<F, R>(&self, mut f: F) -> RegMap<R>
+    where
+        F: FnMut(mil::Reg, &T) -> R,
+        R: Clone,
+    {
+        let elements: Vec<_> = self.items().map(|(reg, value)| f(reg, value)).collect();
+        assert_eq!(elements.len(), self.0.len());
+        RegMap(elements)
     }
-    fn inc(&mut self, reg: mil::Reg) {
-        if let Some(elm) = self.0.get_mut(reg.reg_index() as usize) {
-            *elm += 1;
+}
+
+impl<T> std::ops::Index<mil::Reg> for RegMap<T> {
+    type Output = T;
+
+    fn index(&self, index: mil::Reg) -> &Self::Output {
+        &self.0[index.0 as usize]
+    }
+}
+
+impl<T> std::ops::IndexMut<mil::Reg> for RegMap<T> {
+    fn index_mut(&mut self, index: mil::Reg) -> &mut Self::Output {
+        &mut self.0[index.0 as usize]
+    }
+}
+
+/// Count the number of "readers" (dependent) instructions for each instruction
+/// in the Program, with no regard for whether these readers are dead or alive.
+///
+/// This function always returns.
+pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
+    let mut count = RegMap::for_program(prog, 0);
+
+    // This function must not use Program::insns_rpo, as this is used to check
+    // for circular graphs, and circular graphs make insns_rpo hang in an
+    // infinite loop
+
+    for reg in 0..prog.reg_count() {
+        let reg = mil::Reg(reg);
+        for input in prog.get(reg).unwrap().insn.get().input_regs_iter() {
+            count[input] += 1;
         }
     }
+
+    count
+}
+
+/// Count the number of live "readers" (dependent) instructions for each
+/// instruction in the Program.
+///
+/// Dead instructions have no direct or indirect live dependent, and are
+/// therefore counted as 0.
+///
+/// **Note:** If `prog` has circular dependencies, this function hangs forever.
+/// This situation is invalid and universally considered as a bug. It should be
+/// ruled out by calling [Program::assert_invariants].
+pub fn count_readers(prog: &Program) -> RegMap<usize> {
+    let mut count = vec![0; prog.reg_count() as usize];
+
+    for (_, reg) in prog.insns_rpo() {
+        for reg in prog.get(reg).unwrap().insn.get().input_regs_iter() {
+            count[reg.0 as usize] += 1;
+        }
+    }
+
+    RegMap(count)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::mil;
+    use mil::{ArithOp, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
-        use mil::{ArithOp, Insn, Reg};
-
         let prog = {
             let mut pb = mil::ProgramBuilder::new();
 
             pb.set_input_addr(0xf0);
-            pb.push(Reg(0), Insn::Const8(123));
+            pb.push(
+                Reg(0),
+                Insn::Const {
+                    value: 123,
+                    size: 8,
+                },
+            );
             pb.push(
                 Reg(1),
                 Insn::JmpExtIf {
@@ -909,14 +856,14 @@ mod tests {
             );
 
             pb.set_input_addr(0xf1);
-            pb.push(Reg(2), Insn::Const1(4));
+            pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
             pb.push(Reg(3), Insn::JmpExt(0xf3));
 
             pb.set_input_addr(0xf2);
-            pb.push(Reg(2), Insn::Const1(8));
+            pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
 
             pb.set_input_addr(0xf3);
-            pb.push(Reg(4), Insn::ArithK1(ArithOp::Add, Reg(2), 456));
+            pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
             pb.push(Reg(5), Insn::Ret(Reg(4)));
 
             pb.build()
@@ -928,5 +875,37 @@ mod tests {
         eprintln!("-- ssa:");
         let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
         insta::assert_debug_snapshot!(prog);
+    }
+
+    #[test]
+    fn circular_graph_detected_neg() {
+        let prog = make_prog_no_cycles();
+        prog.assert_no_circular_refs();
+    }
+
+    #[test]
+    #[should_panic]
+    fn circular_graph_detected_pos() {
+        let prog = make_prog_no_cycles();
+        // introduce cycle:
+        prog.get(Reg(0))
+            .unwrap()
+            .insn
+            .set(Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(2)));
+        prog.assert_no_circular_refs();
+    }
+
+    fn make_prog_no_cycles() -> super::Program {
+        let prog = {
+            let mut b = mil::ProgramBuilder::new();
+            b.push(Reg(0), Insn::Const { value: 5, size: 8 });
+            b.push(Reg(1), Insn::Const { value: 5, size: 8 });
+            b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
+            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.build()
+        };
+        let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
+        // cycle absent here: SSA conversion would have failed by now
+        prog
     }
 }

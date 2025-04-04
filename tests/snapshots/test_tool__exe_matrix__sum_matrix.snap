@@ -1,0 +1,630 @@
+---
+source: tests/test_tool.rs
+expression: out
+---
+sum_matrix 0x4011c9+115 (file 0x11c9)
+          4011c9: 55                      push rbp
+          4011ca: 48 89 e5                mov rbp,rsp
+          4011cd: 48 89 f8                mov rax,rdi
+          4011d0: 48 89 f1                mov rcx,rsi
+          4011d3: 48 89 c0                mov rax,rax
+          4011d6: ba 00 00 00 00          mov edx,0
+          4011db: 48 89 ca                mov rdx,rcx
+          4011de: 48 89 45 e0             mov [rbp-20h],rax
+          4011e2: 48 89 55 e8             mov [rbp-18h],rdx
+          4011e6: c7 45 fc 00 00 00 00    mov dword ptr [rbp-4],0
+          4011ed: c7 45 f8 00 00 00 00    mov dword ptr [rbp-8],0
+          4011f4: eb 39                   jmp short 000000000040122Fh
+          4011f6: c7 45 f4 00 00 00 00    mov dword ptr [rbp-0Ch],0
+          4011fd: eb 24                   jmp short 0000000000401223h
+          4011ff: 48 8b 55 e0             mov rdx,[rbp-20h]
+          401203: 8b 45 ec                mov eax,[rbp-14h]
+          401206: 0f af 45 f8             imul eax,[rbp-8]
+          40120a: 89 c1                   mov ecx,eax
+          40120c: 8b 45 f4                mov eax,[rbp-0Ch]
+          40120f: 01 c8                   add eax,ecx
+          401211: 48 98                   cdqe
+          401213: 48 c1 e0 02             shl rax,2
+          401217: 48 01 d0                add rax,rdx
+          40121a: 8b 00                   mov eax,[rax]
+          40121c: 01 45 fc                add [rbp-4],eax
+          40121f: 83 45 f4 01             add dword ptr [rbp-0Ch],1
+          401223: 8b 45 ec                mov eax,[rbp-14h]
+          401226: 39 45 f4                cmp [rbp-0Ch],eax
+          401229: 7c d4                   jl short 00000000004011FFh
+          40122b: 83 45 f8 01             add dword ptr [rbp-8],1
+          40122f: 8b 45 e8                mov eax,[rbp-18h]
+          401232: 39 45 f8                cmp [rbp-8],eax
+          401235: 7c bf                   jl short 00000000004011F6h
+          401237: 8b 45 fc                mov eax,[rbp-4]
+          40123a: 5d                      pop rbp
+          40123b: c3                      ret
+
+mil program = 
+program  243 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Ancestral(AncestralName("ZMM0"))
+   28 r29 <- Ancestral(AncestralName("ZMM1"))
+   29 r30 <- Ancestral(AncestralName("ZMM2"))
+   30 r31 <- Ancestral(AncestralName("ZMM3"))
+   31 r32 <- Ancestral(AncestralName("ZMM4"))
+   32 r33 <- Ancestral(AncestralName("ZMM5"))
+   33 r34 <- Ancestral(AncestralName("ZMM6"))
+   34 r35 <- Ancestral(AncestralName("ZMM7"))
+   35 r36 <- Ancestral(AncestralName("ZMM8"))
+   36 r37 <- Ancestral(AncestralName("ZMM9"))
+   37 r38 <- Ancestral(AncestralName("ZMM10"))
+   38 r39 <- Ancestral(AncestralName("ZMM11"))
+   39 r40 <- Ancestral(AncestralName("ZMM12"))
+   40 r41 <- Ancestral(AncestralName("ZMM13"))
+   41 r42 <- Ancestral(AncestralName("ZMM14"))
+   42 r43 <- Ancestral(AncestralName("ZMM15"))
+   43 r43 <- Undefined
+   44 r44 <- Undefined
+   45 r45 <- Undefined
+   46 r46 <- Undefined
+   47 r47 <- Undefined
+   48 r48 <- Undefined
+   49 r49 <- Undefined
+   50 r50 <- Undefined
+   51 r51 <- Undefined
+   52 r52 <- Undefined
+   53 r53 <- Undefined
+   54 r43 <- Ancestral(AncestralName("arg0"))
+   55 r14 <- Part { src: r43, offset: 0, size: 8 }
+   56 r15 <- Part { src: r43, offset: 8, size: 8 }
+0x4011c9:
+   57 r12 <- ArithK(Add, r12, -8)
+   58 r44 <- StoreMem(r12, r11)
+0x4011ca:
+   59 r11 <- Get(r12)
+0x4011cd:
+   60 r16 <- Get(r14)
+0x4011d0:
+   61 r18 <- Get(r15)
+0x4011d3:
+   62 r16 <- Get(r16)
+0x4011d6:
+   63 r43 <- Const { value: 0, size: 4 }
+   64 r19 <- Part { src: r19, offset: 4, size: 4 }
+   65 r19 <- Concat { lo: r43, hi: r19 }
+0x4011db:
+   66 r19 <- Get(r18)
+0x4011de:
+   67 r44 <- Const { value: -32, size: 8 }
+   68 r44 <- Arith(Add, r44, r11)
+   69 r45 <- StoreMem(r44, r16)
+0x4011e2:
+   70 r44 <- Const { value: -24, size: 8 }
+   71 r44 <- Arith(Add, r44, r11)
+   72 r45 <- StoreMem(r44, r19)
+0x4011e6:
+   73 r43 <- Const { value: 0, size: 4 }
+   74 r44 <- Const { value: -4, size: 8 }
+   75 r44 <- Arith(Add, r44, r11)
+   76 r45 <- StoreMem(r44, r43)
+0x4011ed:
+   77 r43 <- Const { value: 0, size: 4 }
+   78 r44 <- Const { value: -8, size: 8 }
+   79 r44 <- Arith(Add, r44, r11)
+   80 r45 <- StoreMem(r44, r43)
+0x4011f4:
+   81 r43 <- Jmp(212)
+0x4011f6:
+   82 r43 <- Const { value: 0, size: 4 }
+   83 r44 <- Const { value: -12, size: 8 }
+   84 r44 <- Arith(Add, r44, r11)
+   85 r45 <- StoreMem(r44, r43)
+0x4011fd:
+   86 r43 <- Jmp(179)
+0x4011ff:
+   87 r44 <- Const { value: -32, size: 8 }
+   88 r44 <- Arith(Add, r44, r11)
+   89 r43 <- LoadMem { reg: r44, size: 8 }
+   90 r19 <- Get(r43)
+0x401203:
+   91 r44 <- Const { value: -20, size: 8 }
+   92 r44 <- Arith(Add, r44, r11)
+   93 r43 <- LoadMem { reg: r44, size: 4 }
+   94 r16 <- Part { src: r16, offset: 4, size: 4 }
+   95 r16 <- Concat { lo: r43, hi: r16 }
+0x401206:
+   96 r43 <- Part { src: r16, offset: 0, size: 4 }
+   97 r45 <- Const { value: -8, size: 8 }
+   98 r45 <- Arith(Add, r45, r11)
+   99 r44 <- LoadMem { reg: r45, size: 4 }
+  100 r46 <- Arith(Mul, r43, r44)
+  101 r16 <- Part { src: r16, offset: 4, size: 4 }
+  102 r16 <- Concat { lo: r46, hi: r16 }
+  103 r10 <- OverflowOf(r46)
+  104 r2 <- Get(r10)
+  105 r6 <- Undefined
+  106 r5 <- Undefined
+  107 r4 <- Undefined
+  108 r3 <- Undefined
+0x40120a:
+  109 r43 <- Part { src: r16, offset: 0, size: 4 }
+  110 r18 <- Part { src: r18, offset: 4, size: 4 }
+  111 r18 <- Concat { lo: r43, hi: r18 }
+0x40120c:
+  112 r44 <- Const { value: -12, size: 8 }
+  113 r44 <- Arith(Add, r44, r11)
+  114 r43 <- LoadMem { reg: r44, size: 4 }
+  115 r16 <- Part { src: r16, offset: 4, size: 4 }
+  116 r16 <- Concat { lo: r43, hi: r16 }
+0x40120f:
+  117 r43 <- Part { src: r16, offset: 0, size: 4 }
+  118 r44 <- Part { src: r18, offset: 0, size: 4 }
+  119 r43 <- Arith(Add, r43, r44)
+  120 r16 <- Part { src: r16, offset: 4, size: 4 }
+  121 r16 <- Concat { lo: r43, hi: r16 }
+  122 r10 <- OverflowOf(r43)
+  123 r2 <- CarryOf(r43)
+  124 r6 <- SignOf(r43)
+  125 r5 <- IsZero(r43)
+  126 r45 <- Part { src: r43, offset: 0, size: 1 }
+  127 r3 <- Parity(r45)
+0x401211:
+  128 r43 <- Part { src: r16, offset: 0, size: 4 }
+  129 r16 <- Widen { reg: r43, target_size: 8, sign: true }
+0x401213:
+  130 r44 <- Const { value: 2, size: 1 }
+  131 r44 <- Widen { reg: r44, target_size: 8, sign: false }
+  132 r16 <- Arith(Shl, r16, r44)
+  133 r16 <- Get(r16)
+  134 r6 <- SignOf(r16)
+  135 r5 <- IsZero(r16)
+  136 r45 <- Part { src: r16, offset: 0, size: 1 }
+  137 r3 <- Parity(r45)
+0x401217:
+  138 r16 <- Arith(Add, r16, r19)
+  139 r16 <- Get(r16)
+  140 r10 <- OverflowOf(r16)
+  141 r2 <- CarryOf(r16)
+  142 r6 <- SignOf(r16)
+  143 r5 <- IsZero(r16)
+  144 r45 <- Part { src: r16, offset: 0, size: 1 }
+  145 r3 <- Parity(r45)
+0x40121a:
+  146 r44 <- Const { value: 0, size: 8 }
+  147 r44 <- Arith(Add, r44, r16)
+  148 r43 <- LoadMem { reg: r44, size: 4 }
+  149 r16 <- Part { src: r16, offset: 4, size: 4 }
+  150 r16 <- Concat { lo: r43, hi: r16 }
+0x40121c:
+  151 r44 <- Const { value: -4, size: 8 }
+  152 r44 <- Arith(Add, r44, r11)
+  153 r43 <- LoadMem { reg: r44, size: 4 }
+  154 r45 <- Part { src: r16, offset: 0, size: 4 }
+  155 r43 <- Arith(Add, r43, r45)
+  156 r46 <- Const { value: -4, size: 8 }
+  157 r46 <- Arith(Add, r46, r11)
+  158 r47 <- StoreMem(r46, r43)
+  159 r10 <- OverflowOf(r43)
+  160 r2 <- CarryOf(r43)
+  161 r6 <- SignOf(r43)
+  162 r5 <- IsZero(r43)
+  163 r48 <- Part { src: r43, offset: 0, size: 1 }
+  164 r3 <- Parity(r48)
+0x40121f:
+  165 r44 <- Const { value: -12, size: 8 }
+  166 r44 <- Arith(Add, r44, r11)
+  167 r43 <- LoadMem { reg: r44, size: 4 }
+  168 r45 <- Const { value: 1, size: 4 }
+  169 r43 <- Arith(Add, r43, r45)
+  170 r46 <- Const { value: -12, size: 8 }
+  171 r46 <- Arith(Add, r46, r11)
+  172 r47 <- StoreMem(r46, r43)
+  173 r10 <- OverflowOf(r43)
+  174 r2 <- CarryOf(r43)
+  175 r6 <- SignOf(r43)
+  176 r5 <- IsZero(r43)
+  177 r48 <- Part { src: r43, offset: 0, size: 1 }
+  178 r3 <- Parity(r48)
+0x401223:
+  179 r44 <- Const { value: -20, size: 8 }
+  180 r44 <- Arith(Add, r44, r11)
+  181 r43 <- LoadMem { reg: r44, size: 4 }
+  182 r16 <- Part { src: r16, offset: 4, size: 4 }
+  183 r16 <- Concat { lo: r43, hi: r16 }
+0x401226:
+  184 r44 <- Const { value: -12, size: 8 }
+  185 r44 <- Arith(Add, r44, r11)
+  186 r43 <- LoadMem { reg: r44, size: 4 }
+  187 r45 <- Part { src: r16, offset: 0, size: 4 }
+  188 r43 <- Arith(Sub, r43, r45)
+  189 r10 <- OverflowOf(r43)
+  190 r2 <- CarryOf(r43)
+  191 r6 <- SignOf(r43)
+  192 r5 <- IsZero(r43)
+  193 r46 <- Part { src: r43, offset: 0, size: 1 }
+  194 r3 <- Parity(r46)
+0x401229:
+  195 r43 <- Cmp(EQ, r6, r10)
+  196 r43 <- Not(r43)
+  197 r44 <- JmpIf { cond: r43, target: 87 }
+0x40122b:
+  198 r44 <- Const { value: -8, size: 8 }
+  199 r44 <- Arith(Add, r44, r11)
+  200 r43 <- LoadMem { reg: r44, size: 4 }
+  201 r45 <- Const { value: 1, size: 4 }
+  202 r43 <- Arith(Add, r43, r45)
+  203 r46 <- Const { value: -8, size: 8 }
+  204 r46 <- Arith(Add, r46, r11)
+  205 r47 <- StoreMem(r46, r43)
+  206 r10 <- OverflowOf(r43)
+  207 r2 <- CarryOf(r43)
+  208 r6 <- SignOf(r43)
+  209 r5 <- IsZero(r43)
+  210 r48 <- Part { src: r43, offset: 0, size: 1 }
+  211 r3 <- Parity(r48)
+0x40122f:
+  212 r44 <- Const { value: -24, size: 8 }
+  213 r44 <- Arith(Add, r44, r11)
+  214 r43 <- LoadMem { reg: r44, size: 4 }
+  215 r16 <- Part { src: r16, offset: 4, size: 4 }
+  216 r16 <- Concat { lo: r43, hi: r16 }
+0x401232:
+  217 r44 <- Const { value: -8, size: 8 }
+  218 r44 <- Arith(Add, r44, r11)
+  219 r43 <- LoadMem { reg: r44, size: 4 }
+  220 r45 <- Part { src: r16, offset: 0, size: 4 }
+  221 r43 <- Arith(Sub, r43, r45)
+  222 r10 <- OverflowOf(r43)
+  223 r2 <- CarryOf(r43)
+  224 r6 <- SignOf(r43)
+  225 r5 <- IsZero(r43)
+  226 r46 <- Part { src: r43, offset: 0, size: 1 }
+  227 r3 <- Parity(r46)
+0x401235:
+  228 r43 <- Cmp(EQ, r6, r10)
+  229 r43 <- Not(r43)
+  230 r44 <- JmpIf { cond: r43, target: 82 }
+0x401237:
+  231 r44 <- Const { value: -4, size: 8 }
+  232 r44 <- Arith(Add, r44, r11)
+  233 r43 <- LoadMem { reg: r44, size: 4 }
+  234 r16 <- Part { src: r16, offset: 4, size: 4 }
+  235 r16 <- Concat { lo: r43, hi: r16 }
+0x40123a:
+  236 r43 <- LoadMem { reg: r12, size: 8 }
+  237 r11 <- Get(r43)
+  238 r12 <- ArithK(Add, r12, 8)
+0x40123b:
+  239 r43 <- Void
+  240 r43 <- Concat { lo: r43, hi: r16 }
+  241 r43 <- Part { src: r43, offset: 0, size: 4 }
+  242 r45 <- Ret(r43)
+
+
+ssa pre-xform:
+ssa program  249 instrs
+.B0:    ;; .
+         r10 <- Ancestral(AncestralName("RBP"))
+         r11 <- Ancestral(AncestralName("RSP"))
+  ( 21)  r57 <- ArithK(Add, r11, -8)
+         r58 <- StoreMem(r57, r10)
+  (  2)  r54 <- Ancestral(AncestralName("arg0"))
+  (  2)  r55 <- Part { src: r54, offset: 0, size: 8 }
+         r67 <- Const { value: -32, size: 8 }
+         r68 <- Arith(Add, r67, r57)
+         r69 <- StoreMem(r68, r55)
+  (  2)  r56 <- Part { src: r54, offset: 8, size: 8 }
+         r70 <- Const { value: -24, size: 8 }
+         r71 <- Arith(Add, r70, r57)
+         r72 <- StoreMem(r71, r56)
+         r73 <- Const { value: 0, size: 4 }
+         r74 <- Const { value: -4, size: 8 }
+         r75 <- Arith(Add, r74, r57)
+         r76 <- StoreMem(r75, r73)
+         r77 <- Const { value: 0, size: 4 }
+         r78 <- Const { value: -8, size: 8 }
+         r79 <- Arith(Add, r78, r57)
+         r80 <- StoreMem(r79, r77)
+         r81 <- Jmp(212)
+         r245 <- Upsilon { value: r55, phi_ref: r244 }
+.B5:    ;; preds:B0,B4.
+         r244 <- Phi
+         r215 <- Part { src: r244, offset: 4, size: 4 }
+         r212 <- Const { value: -24, size: 8 }
+         r213 <- Arith(Add, r212, r57)
+         r214 <- LoadMem { reg: r213, size: 4 }
+  (  3)  r216 <- Concat { lo: r214, hi: r215 }
+         r220 <- Part { src: r216, offset: 0, size: 4 }
+         r217 <- Const { value: -8, size: 8 }
+         r218 <- Arith(Add, r217, r57)
+         r219 <- LoadMem { reg: r218, size: 4 }
+  (  2)  r221 <- Arith(Sub, r219, r220)
+         r222 <- OverflowOf(r221)
+         r224 <- SignOf(r221)
+         r228 <- Cmp(EQ, r224, r222)
+         r229 <- Not(r228)
+         r230 <- JmpIf { cond: r229, target: 82 }
+.B1:    ;; preds:B5.
+         r82 <- Const { value: 0, size: 4 }
+         r83 <- Const { value: -12, size: 8 }
+         r84 <- Arith(Add, r83, r57)
+         r85 <- StoreMem(r84, r82)
+         r86 <- Jmp(179)
+         r246 <- Upsilon { value: r216, phi_ref: r243 }
+.B3:    ;; preds:B1,B2.
+         r243 <- Phi
+         r182 <- Part { src: r243, offset: 4, size: 4 }
+         r179 <- Const { value: -20, size: 8 }
+         r180 <- Arith(Add, r179, r57)
+         r181 <- LoadMem { reg: r180, size: 4 }
+  (  3)  r183 <- Concat { lo: r181, hi: r182 }
+         r187 <- Part { src: r183, offset: 0, size: 4 }
+         r184 <- Const { value: -12, size: 8 }
+         r185 <- Arith(Add, r184, r57)
+         r186 <- LoadMem { reg: r185, size: 4 }
+  (  2)  r188 <- Arith(Sub, r186, r187)
+         r189 <- OverflowOf(r188)
+         r191 <- SignOf(r188)
+         r195 <- Cmp(EQ, r191, r189)
+         r196 <- Not(r195)
+         r197 <- JmpIf { cond: r196, target: 87 }
+.B2:    ;; preds:B3.
+         r87 <- Const { value: -32, size: 8 }
+         r88 <- Arith(Add, r87, r57)
+         r89 <- LoadMem { reg: r88, size: 8 }
+         r130 <- Const { value: 2, size: 1 }
+         r131 <- Widen { reg: r130, target_size: 8, sign: false }
+         r94 <- Part { src: r183, offset: 4, size: 4 }
+         r91 <- Const { value: -20, size: 8 }
+         r92 <- Arith(Add, r91, r57)
+         r93 <- LoadMem { reg: r92, size: 4 }
+  (  2)  r95 <- Concat { lo: r93, hi: r94 }
+         r101 <- Part { src: r95, offset: 4, size: 4 }
+         r97 <- Const { value: -8, size: 8 }
+         r98 <- Arith(Add, r97, r57)
+         r99 <- LoadMem { reg: r98, size: 4 }
+         r96 <- Part { src: r95, offset: 0, size: 4 }
+         r100 <- Arith(Mul, r96, r99)
+  (  2)  r102 <- Concat { lo: r100, hi: r101 }
+         r115 <- Part { src: r102, offset: 4, size: 4 }
+         r112 <- Const { value: -12, size: 8 }
+         r113 <- Arith(Add, r112, r57)
+         r114 <- LoadMem { reg: r113, size: 4 }
+  (  2)  r116 <- Concat { lo: r114, hi: r115 }
+         r120 <- Part { src: r116, offset: 4, size: 4 }
+         r110 <- Part { src: r56, offset: 4, size: 4 }
+         r109 <- Part { src: r102, offset: 0, size: 4 }
+         r111 <- Concat { lo: r109, hi: r110 }
+         r118 <- Part { src: r111, offset: 0, size: 4 }
+         r117 <- Part { src: r116, offset: 0, size: 4 }
+         r119 <- Arith(Add, r117, r118)
+         r121 <- Concat { lo: r119, hi: r120 }
+         r128 <- Part { src: r121, offset: 0, size: 4 }
+         r129 <- Widen { reg: r128, target_size: 8, sign: true }
+         r132 <- Arith(Shl, r129, r131)
+  (  2)  r138 <- Arith(Add, r132, r89)
+         r149 <- Part { src: r138, offset: 4, size: 4 }
+         r146 <- Const { value: 0, size: 8 }
+         r147 <- Arith(Add, r146, r138)
+         r148 <- LoadMem { reg: r147, size: 4 }
+  (  2)  r150 <- Concat { lo: r148, hi: r149 }
+         r154 <- Part { src: r150, offset: 0, size: 4 }
+         r151 <- Const { value: -4, size: 8 }
+         r152 <- Arith(Add, r151, r57)
+         r153 <- LoadMem { reg: r152, size: 4 }
+         r155 <- Arith(Add, r153, r154)
+         r156 <- Const { value: -4, size: 8 }
+         r157 <- Arith(Add, r156, r57)
+         r158 <- StoreMem(r157, r155)
+         r168 <- Const { value: 1, size: 4 }
+         r165 <- Const { value: -12, size: 8 }
+         r166 <- Arith(Add, r165, r57)
+         r167 <- LoadMem { reg: r166, size: 4 }
+         r169 <- Arith(Add, r167, r168)
+         r170 <- Const { value: -12, size: 8 }
+         r171 <- Arith(Add, r170, r57)
+         r172 <- StoreMem(r171, r169)
+         r248 <- Upsilon { value: r150, phi_ref: r243 }
+.B4:    ;; preds:B3.
+         r201 <- Const { value: 1, size: 4 }
+         r198 <- Const { value: -8, size: 8 }
+         r199 <- Arith(Add, r198, r57)
+         r200 <- LoadMem { reg: r199, size: 4 }
+         r202 <- Arith(Add, r200, r201)
+         r203 <- Const { value: -8, size: 8 }
+         r204 <- Arith(Add, r203, r57)
+         r205 <- StoreMem(r204, r202)
+         r247 <- Upsilon { value: r183, phi_ref: r244 }
+.B6:    ;; preds:B5.
+         r234 <- Part { src: r216, offset: 4, size: 4 }
+         r231 <- Const { value: -4, size: 8 }
+         r232 <- Arith(Add, r231, r57)
+         r233 <- LoadMem { reg: r232, size: 4 }
+         r235 <- Concat { lo: r233, hi: r234 }
+         r239 <- Void
+         r240 <- Concat { lo: r239, hi: r235 }
+         r241 <- Part { src: r240, offset: 0, size: 4 }
+         r242 <- Ret(r241)
+
+
+cfg:
+  BlockID(0) -> Jmp((0, BlockID(5)))
+  BlockID(1) -> Jmp((0, BlockID(3)))
+  BlockID(2) -> Jmp((1, BlockID(3)))
+  BlockID(3) -> Alt { straight: (0, BlockID(4)), side: (0, BlockID(2)) }
+  BlockID(4) -> Jmp((1, BlockID(5)))
+  BlockID(5) -> Alt { straight: (0, BlockID(6)), side: (0, BlockID(1)) }
+  BlockID(6) -> End
+  domtree:
+BlockID(0)
+|  BlockID(5)
+|  |  BlockID(1)
+|  |  |  BlockID(3)
+|  |  |  |  BlockID(2)
+|  |  |  |  BlockID(4)
+|  |  BlockID(6)
+
+ssa post-xform:
+ssa program  269 instrs
+.B0:    ;; .
+         r10 <- Ancestral(AncestralName("RBP"))
+  ( 21)  r11 <- Ancestral(AncestralName("RSP"))
+         r57 <- ArithK(Add, r11, -8)
+         r58 <- StoreMem(r57, r10)
+  (  2)  r54 <- Ancestral(AncestralName("arg0"))
+  (  2)  r55 <- Part { src: r54, offset: 0, size: 8 }
+         r68 <- ArithK(Add, r11, -40)
+         r69 <- StoreMem(r68, r55)
+         r56 <- Part { src: r54, offset: 8, size: 8 }
+         r71 <- ArithK(Add, r11, -32)
+         r72 <- StoreMem(r71, r56)
+         r73 <- Const { value: 0, size: 4 }
+         r75 <- ArithK(Add, r11, -12)
+         r76 <- StoreMem(r75, r73)
+         r77 <- Const { value: 0, size: 4 }
+         r79 <- ArithK(Add, r11, -16)
+         r80 <- StoreMem(r79, r77)
+         r81 <- Jmp(212)
+         r245 <- Upsilon { value: r55, phi_ref: r244 }
+.B5:    ;; preds:B0,B4.
+  (  2)  r213 <- ArithK(Add, r11, -32)
+         r268 <- LoadMem { reg: r213, size: 4 }
+         r218 <- ArithK(Add, r11, -16)
+         r219 <- LoadMem { reg: r218, size: 4 }
+  (  2)  r221 <- Arith(Sub, r219, r268)
+         r222 <- OverflowOf(r221)
+         r224 <- SignOf(r221)
+         r228 <- Cmp(EQ, r224, r222)
+         r229 <- Not(r228)
+         r230 <- JmpIf { cond: r229, target: 82 }
+.B1:    ;; preds:B5.
+         r82 <- Const { value: 0, size: 4 }
+         r84 <- ArithK(Add, r11, -20)
+         r85 <- StoreMem(r84, r82)
+         r86 <- Jmp(179)
+         r244 <- Phi
+         r215 <- Part { src: r244, offset: 4, size: 4 }
+         r214 <- LoadMem { reg: r213, size: 4 }
+         r216 <- Concat { lo: r214, hi: r215 }
+         r246 <- Upsilon { value: r216, phi_ref: r243 }
+.B3:    ;; preds:B1,B2.
+  (  2)  r180 <- ArithK(Add, r11, -28)
+         r267 <- LoadMem { reg: r180, size: 4 }
+         r185 <- ArithK(Add, r11, -20)
+         r186 <- LoadMem { reg: r185, size: 4 }
+  (  2)  r188 <- Arith(Sub, r186, r267)
+         r189 <- OverflowOf(r188)
+         r191 <- SignOf(r188)
+         r195 <- Cmp(EQ, r191, r189)
+         r196 <- Not(r195)
+         r197 <- JmpIf { cond: r196, target: 87 }
+.B2:    ;; preds:B3.
+         r88 <- ArithK(Add, r11, -40)
+         r263 <- LoadMem { reg: r88, size: 8 }
+         r130 <- Const { value: 2, size: 1 }
+         r264 <- Widen { reg: r130, target_size: 8, sign: false }
+         r98 <- ArithK(Add, r11, -16)
+         r262 <- LoadMem { reg: r98, size: 4 }
+         r92 <- ArithK(Add, r11, -28)
+         r93 <- LoadMem { reg: r92, size: 4 }
+         r265 <- Arith(Mul, r93, r262)
+         r113 <- ArithK(Add, r11, -20)
+         r114 <- LoadMem { reg: r113, size: 4 }
+         r119 <- Arith(Add, r114, r265)
+         r129 <- Widen { reg: r119, target_size: 8, sign: true }
+         r132 <- Arith(Shl, r129, r264)
+  (  3)  r138 <- Arith(Add, r132, r263)
+         r261 <- LoadMem { reg: r138, size: 4 }
+         r152 <- ArithK(Add, r11, -12)
+         r153 <- LoadMem { reg: r152, size: 4 }
+         r155 <- Arith(Add, r153, r261)
+         r157 <- ArithK(Add, r11, -12)
+         r158 <- StoreMem(r157, r155)
+         r166 <- ArithK(Add, r11, -20)
+         r167 <- LoadMem { reg: r166, size: 4 }
+         r169 <- ArithK(Add, r167, 1)
+         r171 <- ArithK(Add, r11, -20)
+         r172 <- StoreMem(r171, r169)
+         r149 <- Part { src: r138, offset: 4, size: 4 }
+         r148 <- LoadMem { reg: r138, size: 4 }
+         r150 <- Concat { lo: r148, hi: r149 }
+         r248 <- Upsilon { value: r150, phi_ref: r243 }
+.B4:    ;; preds:B3.
+         r199 <- ArithK(Add, r11, -16)
+         r200 <- LoadMem { reg: r199, size: 4 }
+         r202 <- ArithK(Add, r200, 1)
+         r204 <- ArithK(Add, r11, -16)
+         r205 <- StoreMem(r204, r202)
+         r243 <- Phi
+         r182 <- Part { src: r243, offset: 4, size: 4 }
+         r181 <- LoadMem { reg: r180, size: 4 }
+         r183 <- Concat { lo: r181, hi: r182 }
+         r247 <- Upsilon { value: r183, phi_ref: r244 }
+.B6:    ;; preds:B5.
+         r232 <- ArithK(Add, r11, -12)
+         r233 <- LoadMem { reg: r232, size: 4 }
+         r242 <- Ret(r233)
+
+
+T0: {
+  let r11 = pre:RSP;
+  [r11 + -8] = pre:RBP
+  let r54 = pre:arg0;
+  let r55 = r54[8 .. 0];
+  [r11 + -40] = r55
+  [r11 + -32] = r54[16 .. 8]
+  [r11 + -12] = 0_i32
+  [r11 + -16] = 0_i32
+  
+  r244 := r54[8 .. 0];
+  goto T5
+  T5: {
+    let r213 = r11 + -32;
+    let r221 = [r11 + -16]:4 - [r213]:4;
+    if (! ((EQ (SignOf (r221), OverflowOf (r221))))) {
+      [r11 + -20] = 0_i32
+      
+      r243 := phi ()[8 .. 4] ++ [r213]:4;
+      goto T3
+      T3: {
+        let r180 = r11 + -28;
+        let r188 = [r11 + -20]:4 - [r180]:4;
+        if (! ((EQ (SignOf (r188), OverflowOf (r188))))) {
+          let r138 = ([r11 + -20]:4 + [r11 + -28]:4 * [r11 + -16]:4)_i64 << 2_i8_u64 + [r11 + -40]:8;
+          [r11 + -12] = [r11 + -12]:4 + [r138]:4
+          [r11 + -20] = [r11 + -20]:4 + 1
+          r243 := r138[8 .. 4] ++ [r138]:4;
+          loop T3
+        }
+        [r11 + -16] = [r11 + -16]:4 + 1
+        r244 := phi ()[8 .. 4] ++ [r180]:4;
+        loop T5
+      }
+    
+    }
+    Ret ([r11 + -12]:4)
+  }
+
+}

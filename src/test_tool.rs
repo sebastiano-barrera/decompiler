@@ -12,10 +12,10 @@ use crate::{
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("unsupported executable format: {0}")]
-    UnsupportedExecFormat(&'static str),
+    ExecIo(#[from] crate::elf::Error),
 
-    #[error("fmt: {0}")]
-    Fmt(#[from] std::fmt::Error),
+    #[error("I/O: {0}")]
+    Io(#[from] std::io::Error),
 
     #[error("symbol `{0}` is not a function")]
     NotAFunction(String),
@@ -27,17 +27,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
     Tester::start(raw_binary)?.process_function(function_name, out)
-}
-
-fn obj_format_name(object: &goblin::Object) -> &'static str {
-    match object {
-        goblin::Object::Elf(_) => "Elf",
-        goblin::Object::PE(_) => "PE",
-        goblin::Object::COFF(_) => "COFF",
-        goblin::Object::Mach(_) => "Mach",
-        goblin::Object::Archive(_) => "Archive",
-        _ => "Unknown",
-    }
 }
 
 pub struct Tester<'a> {
@@ -55,7 +44,7 @@ struct AddrRange {
 
 impl<'a> Tester<'a> {
     pub fn start(raw_binary: &'a [u8]) -> Result<Self> {
-        let elf = parse_elf(raw_binary)?;
+        let elf = crate::elf::parse_elf(raw_binary)?;
         let func_syms = elf
             .syms
             .iter()
@@ -68,11 +57,15 @@ impl<'a> Tester<'a> {
             })
             .collect();
 
-        let types = {
-            let mut types = ty::TypeSet::new();
-            ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
-            types
-        };
+        let mut types = ty::TypeSet::new();
+        let dwarf_report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+        println!(
+            "dwarf types parsed with {} errors",
+            dwarf_report.errors.len()
+        );
+        for (ndx, (addr, err)) in dwarf_report.errors.into_iter().enumerate() {
+            println!(" #{}: 0x{:08x}: {}", ndx, addr, err);
+        }
 
         Ok(Tester {
             raw_binary,
@@ -165,10 +158,23 @@ impl<'a> Tester<'a> {
         let prog = {
             let insns = decoder.iter();
             let mut b = x86_to_mil::Builder::new();
-            b.use_types(&self.types);
-            b.translate(insns)
-        }
-        .unwrap();
+
+            let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
+            if let Some(func_tyid) = func_tyid_opt {
+                let func_ty = match &self.types.get(func_tyid).unwrap().ty {
+                    ty::Ty::Subroutine(subr_ty) => subr_ty.clone(),
+                    other => panic!(
+                        "can't use type ID {:?} type is not a subroutine: {:?}",
+                        func_tyid, other
+                    ),
+                };
+                b.use_types(&self.types, func_ty).unwrap();
+            } else {
+                writeln!(out, "function type: 0x{func_addr:x}: no type info")?;
+            }
+
+            b.translate(insns).unwrap()
+        };
         writeln!(out, "mil program = ")?;
         writeln!(out, "{:?}", prog)?;
 
@@ -178,23 +184,23 @@ impl<'a> Tester<'a> {
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;
+        writeln!(out, "cfg:")?;
+        let cfg = prog.cfg();
+        for bid in cfg.block_ids() {
+            writeln!(out, "  {:?} -> {:?}", bid, cfg.block_cont(bid))?;
+        }
+        writeln!(out, "  domtree:")?;
+        cfg.dom_tree().dump(out)?;
+
+        writeln!(out)?;
         writeln!(out, "ssa post-xform:")?;
         xform::canonical(&mut prog);
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;
-        let ast = ast::Ast::new(&prog);
+        let mut ast = ast::Ast::new(&prog);
         ast.pretty_print(out).unwrap();
 
         Ok(())
     }
-}
-
-fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
-    let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
-    let elf = match object {
-        goblin::Object::Elf(elf) => elf,
-        _ => return Err(Error::UnsupportedExecFormat(obj_format_name(&object))),
-    };
-    Ok(elf)
 }

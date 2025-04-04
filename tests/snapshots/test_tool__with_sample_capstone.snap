@@ -57,6 +57,7 @@ main 0x401090+181 (file 0x1090)
           401140: 83 c8 ff                or eax,0FFFFFFFFh
           401143: eb e6                   jmp short 000000000040112Bh
 
+function type: 0x401090: []
 mil program = 
 program  313 instrs
     0 r12 <- #pre:stack_bottom

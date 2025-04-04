@@ -1,3 +1,4 @@
+use enum_assoc::Assoc;
 /// Machine-Independent Language
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
@@ -50,63 +51,60 @@ pub type Index = u16;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum RegType {
     Effect,
-    Bytes1,
-    Bytes2,
-    Bytes4,
-    Bytes8,
+    Bytes(usize),
     Bool,
 }
 impl RegType {
-    pub(crate) fn bytes_size(&self) -> Option<u8> {
+    pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
             RegType::Effect => None,
             RegType::Bool => None,
-            RegType::Bytes1 => Some(1),
-            RegType::Bytes2 => Some(2),
-            RegType::Bytes4 => Some(4),
-            RegType::Bytes8 => Some(8),
+            RegType::Bytes(sz) => Some(*sz),
         }
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Assoc)]
+#[func(pub fn has_side_effects(&self) -> bool { false })]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
+    Void,
     True,
     False,
-    Const1(i8),
-    Const2(i16),
-    Const4(i32),
-    Const8(i64),
-
-    L1(Reg),
-    L2(Reg),
-    L4(Reg),
-    Get8(Reg),
-    StructGet8 {
-        struct_value: Reg,
-        offset: u8,
+    Const {
+        value: i64,
+        size: u16,
     },
-    V8WithL1(Reg, Reg),
-    V8WithL2(Reg, Reg),
-    V8WithL4(Reg, Reg),
-    Widen1_2(Reg),
-    Widen1_4(Reg),
-    Widen1_8(Reg),
-    Widen2_4(Reg),
-    Widen2_8(Reg),
-    Widen4_8(Reg),
+    Get(Reg),
 
-    Arith1(ArithOp, Reg, Reg),
-    Arith2(ArithOp, Reg, Reg),
-    Arith4(ArithOp, Reg, Reg),
-    Arith8(ArithOp, Reg, Reg),
+    Part {
+        src: Reg,
+        offset: u16,
+        size: u16,
+    },
+    // TODO Clarify:
+    //   do lo/hi refer to significance (LSB/MSB side of a machine word) or
+    //   address (low/high part of a struct)?
+    //   they happen to be the same in x86_64 due to it being low-endian, but...
+    Concat {
+        lo: Reg,
+        hi: Reg,
+    },
 
-    ArithK1(ArithOp, Reg, i64),
-    ArithK2(ArithOp, Reg, i64),
-    ArithK4(ArithOp, Reg, i64),
-    ArithK8(ArithOp, Reg, i64),
+    StructGetMember {
+        struct_value: Reg,
+        name: &'static str,
+        // larger size are definitely possible
+        size: u32,
+    },
+    Widen {
+        reg: Reg,
+        target_size: u16,
+        sign: bool,
+    },
 
+    Arith(ArithOp, Reg, Reg),
+    ArithK(ArithOp, Reg, i64),
     Cmp(CmpOp, Reg, Reg),
     Bool(BoolOp, Reg, Reg),
     Not(Reg),
@@ -122,29 +120,38 @@ pub enum Insn {
     //  r6 <- carg r3
     // destination vreg r3 is for the return value. r4, r5, r6 are entirely
     // fictitious, they don't correspond to any value.
+    #[assoc(has_side_effects = true)]
     Call(Reg),
+    #[assoc(has_side_effects = true)]
     CArg(Reg),
+    #[assoc(has_side_effects = true)]
     Ret(Reg),
-    #[allow(dead_code)]
+    #[assoc(has_side_effects = true)]
     JmpInd(Reg),
+    #[assoc(has_side_effects = true)]
     Jmp(Index),
+    #[assoc(has_side_effects = true)]
     JmpIf {
         cond: Reg,
         target: Index,
     },
+    #[assoc(has_side_effects = true)]
     JmpExt(u64),
+    #[assoc(has_side_effects = true)]
     JmpExtIf {
         cond: Reg,
         addr: u64,
     },
 
     #[allow(clippy::upper_case_acronyms)]
+    #[assoc(has_side_effects = true)]
     TODO(&'static str),
 
-    LoadMem1(Reg),
-    LoadMem2(Reg),
-    LoadMem4(Reg),
-    LoadMem8(Reg),
+    LoadMem {
+        reg: Reg,
+        size: i32,
+    },
+    #[assoc(has_side_effects = true)]
     StoreMem(Reg, Reg),
 
     OverflowOf(Reg),
@@ -160,28 +167,14 @@ pub enum Insn {
     ///
     /// Exists purely to give the phi node an index that the rest of the program can refer to (in
     /// SSA).
-    Phi1,
-    Phi2,
-    Phi4,
-    Phi8,
-    PhiBool,
+    Phi,
 
-    // argument to a phi node
-    //
-    //   - args to the same phi node are all adjacent, forming a 'group'
-    //      - always the same number as there are predecessors.
-    //      - their order matches the order of the block's predecessors in the CFG.
-    //   - all the groups in the same block are also adjacent
-    // e.g.  3 phis on a block with 2 predecessors: B5, B7
-    //   B3:
-    //     PhiArg r2   ;; --+-- phi0 <- B5:r2  B7:r8
-    //     PhiArg r8   ;; --'
-    //     PhiArg r11  ;; --+-- phi1 <- B5:r11 B7:r29
-    //     PhiArg r29  ;; --'
-    //     PhiArg r93  ;; --+-- phi2 <- B5:r93 B7:r332
-    //     PhiArg r332 ;; --'
-    //     ... ;; normal insns
-    PhiArg(Reg),
+    // must be marked with has_side_effects = true, in order to be associated to specific basic blocks
+    #[assoc(has_side_effects = true)]
+    Upsilon {
+        value: Reg,
+        phi_ref: Reg,
+    },
 }
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
@@ -205,6 +198,7 @@ pub enum ArithOp {
     #[allow(dead_code)]
     Mul,
     Shl,
+    Shr,
     BitXor,
     BitAnd,
     BitOr,
@@ -214,7 +208,7 @@ pub enum ArithOp {
 /// that represents the pre-existing value of a machine register at the time
 /// the function started execution.  Mostly useful to allow the decompilation to
 /// proceed forward even when somehting is out of place.
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct AncestralName(&'static str);
 
 impl AncestralName {
@@ -240,37 +234,29 @@ impl Insn {
     // TODO There must be some macro magic to generate these two functions
     pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
         match self {
-            Insn::False
+            Insn::Void
+            | Insn::False
             | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
+            | Insn::Const { .. }
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi1
-            | Insn::Phi2
-            | Insn::Phi4
-            | Insn::Phi8
-            | Insn::PhiBool
+            | Insn::Phi
             | Insn::Ancestral(_) => [None, None],
 
-            Insn::L1(reg)
-            | Insn::L2(reg)
-            | Insn::L4(reg)
-            | Insn::Get8(reg)
-            | Insn::ArithK1(_, reg, _)
-            | Insn::ArithK2(_, reg, _)
-            | Insn::ArithK4(_, reg, _)
-            | Insn::ArithK8(_, reg, _)
-            | Insn::Widen1_2(reg)
-            | Insn::Widen1_4(reg)
-            | Insn::Widen1_8(reg)
-            | Insn::Widen2_4(reg)
-            | Insn::Widen2_8(reg)
-            | Insn::Widen4_8(reg)
+            Insn::Part {
+                src: reg,
+                offset: _,
+                size: _,
+            }
+            | Insn::Get(reg)
+            | Insn::ArithK(_, reg, _)
+            | Insn::Widen {
+                reg,
+                target_size: _,
+                sign: _
+            }
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpInd(reg)
@@ -279,10 +265,7 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem1(reg)
-            | Insn::LoadMem2(reg)
-            | Insn::LoadMem4(reg)
-            | Insn::LoadMem8(reg)
+            | Insn::LoadMem { reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -290,19 +273,18 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
-            | Insn::StructGet8 {
+            | Insn::StructGetMember {
                 struct_value: reg,
-                offset: _,
+                name: _,
+                size: _,
+            }
+            | Insn::Upsilon {
+                value: reg,
+                phi_ref: _,
             } => [Some(reg), None],
 
-            Insn::V8WithL1(a, b)
-            | Insn::V8WithL2(a, b)
-            | Insn::V8WithL4(a, b)
-            | Insn::Arith1(_, a, b)
-            | Insn::Arith2(_, a, b)
-            | Insn::Arith4(_, a, b)
-            | Insn::Arith8(_, a, b)
+            Insn::Concat { lo: a, hi: b }
+            | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
@@ -312,39 +294,34 @@ impl Insn {
     pub fn input_regs_iter<'s>(&'s self) -> impl 's + Iterator<Item = Reg> {
         self.input_regs().into_iter().flatten().copied()
     }
+    pub fn input_regs_iter_mut<'s>(&'s mut self) -> impl 's + Iterator<Item = &'s mut Reg> {
+        self.input_regs_mut().into_iter().flatten()
+    }
     pub fn input_regs(&self) -> [Option<&Reg>; 2] {
         match self {
-            Insn::False
+            Insn::Void
+            | Insn::False
             | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
+            | Insn::Const { .. }
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
             | Insn::TODO(_)
             | Insn::Undefined
-            | Insn::Phi1
-            | Insn::Phi2
-            | Insn::Phi4
-            | Insn::Phi8
-            | Insn::PhiBool
+            | Insn::Phi
             | Insn::Ancestral(_) => [None, None],
 
-            Insn::L1(reg)
-            | Insn::L2(reg)
-            | Insn::L4(reg)
-            | Insn::Get8(reg)
-            | Insn::ArithK1(_, reg, _)
-            | Insn::ArithK2(_, reg, _)
-            | Insn::ArithK4(_, reg, _)
-            | Insn::ArithK8(_, reg, _)
-            | Insn::Widen1_2(reg)
-            | Insn::Widen1_4(reg)
-            | Insn::Widen1_8(reg)
-            | Insn::Widen2_4(reg)
-            | Insn::Widen2_8(reg)
-            | Insn::Widen4_8(reg)
+            Insn::Part {
+                src: reg,
+                offset: _,
+                size: _,
+            }
+            | Insn::Get(reg)
+            | Insn::ArithK(_, reg, _)
+            | Insn::Widen {
+                reg,
+                target_size: _,
+                sign: _,
+            }
             | Insn::Not(reg)
             | Insn::Ret(reg)
             | Insn::JmpInd(reg)
@@ -353,10 +330,7 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem1(reg)
-            | Insn::LoadMem2(reg)
-            | Insn::LoadMem4(reg)
-            | Insn::LoadMem8(reg)
+            | Insn::LoadMem { reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -364,234 +338,28 @@ impl Insn {
             | Insn::Parity(reg)
             | Insn::Call(reg)
             | Insn::CArg(reg)
-            | Insn::PhiArg(reg)
-            | Insn::StructGet8 {
+            | Insn::StructGetMember {
                 struct_value: reg,
-                offset: _,
+                name: _,
+                size: _,
+            }
+            | Insn::Upsilon {
+                value: reg,
+                phi_ref: _,
             } => [Some(reg), None],
 
-            Insn::V8WithL1(a, b)
-            | Insn::V8WithL2(a, b)
-            | Insn::V8WithL4(a, b)
-            | Insn::Arith1(_, a, b)
-            | Insn::Arith2(_, a, b)
-            | Insn::Arith4(_, a, b)
-            | Insn::Arith8(_, a, b)
+            Insn::Concat { lo: a, hi: b }
+            | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
             | Insn::StoreMem(a, b) => [Some(a), Some(b)],
         }
     }
 
-    pub fn has_side_effects(&self) -> bool {
-        match self {
-            Insn::False
-            | Insn::True
-            | Insn::Const1(_)
-            | Insn::Const2(_)
-            | Insn::Const4(_)
-            | Insn::Const8(_)
-            | Insn::L1(_)
-            | Insn::L2(_)
-            | Insn::L4(_)
-            | Insn::Get8(_)
-            | Insn::V8WithL1(_, _)
-            | Insn::V8WithL2(_, _)
-            | Insn::V8WithL4(_, _)
-            | Insn::Widen1_2(_)
-            | Insn::Widen1_4(_)
-            | Insn::Widen1_8(_)
-            | Insn::Widen2_4(_)
-            | Insn::Widen2_8(_)
-            | Insn::Widen4_8(_)
-            | Insn::Arith1(_, _, _)
-            | Insn::Arith2(_, _, _)
-            | Insn::Arith4(_, _, _)
-            | Insn::Arith8(_, _, _)
-            | Insn::ArithK1(_, _, _)
-            | Insn::ArithK2(_, _, _)
-            | Insn::ArithK4(_, _, _)
-            | Insn::ArithK8(_, _, _)
-            | Insn::Cmp(_, _, _)
-            | Insn::Bool(_, _, _)
-            | Insn::Not(_)
-            | Insn::OverflowOf(_)
-            | Insn::CarryOf(_)
-            | Insn::SignOf(_)
-            | Insn::IsZero(_)
-            | Insn::Parity(_)
-            | Insn::Undefined
-            | Insn::LoadMem1(_)
-            | Insn::LoadMem2(_)
-            | Insn::LoadMem4(_)
-            | Insn::LoadMem8(_)
-            | Insn::Ancestral(_)
-            | Insn::Phi1
-            | Insn::Phi2
-            | Insn::Phi4
-            | Insn::Phi8
-            | Insn::PhiBool
-            | Insn::PhiArg { .. }
-            | Insn::StructGet8 { .. } => false,
-
-            Insn::Call { .. }
-            | Insn::CArg { .. }
-            | Insn::Ret(_)
-            | Insn::StoreMem(_, _)
-            | Insn::JmpInd(_)
-            | Insn::JmpExt(_)
-            | Insn::Jmp(_)
-            | Insn::JmpExtIf { .. }
-            | Insn::JmpIf { .. }
-            | Insn::TODO(_) => true,
-        }
-    }
-
+    // TODO replace this with more general predicates for "allowed for mil" and "allowed for ssa"
     #[inline(always)]
     pub fn is_phi(&self) -> bool {
-        matches!(
-            self,
-            Insn::Phi1 | Insn::Phi2 | Insn::Phi4 | Insn::Phi8 | Insn::PhiBool
-        )
-    }
-}
-
-fn fmt_arith(
-    f: &mut std::fmt::Formatter<'_>,
-    op: ArithOp,
-    sz: u8,
-    a: Reg,
-    b: Reg,
-) -> std::fmt::Result {
-    let op = match op {
-        ArithOp::Add => "add",
-        ArithOp::Sub => "sub",
-        ArithOp::Mul => "mul",
-        ArithOp::Shl => "shl",
-        ArithOp::BitAnd => "and",
-        ArithOp::BitOr => "or",
-        ArithOp::BitXor => "xor",
-    };
-    write!(f, "{:8} {:?},{:?}  {}", op, a, b, size_keyword(sz))
-}
-
-fn fmt_arithk(
-    f: &mut std::fmt::Formatter<'_>,
-    op: ArithOp,
-    sz: u8,
-    a: Reg,
-    k: i64,
-) -> std::fmt::Result {
-    let op = match op {
-        ArithOp::Add => "addk",
-        ArithOp::Sub => "subk",
-        ArithOp::Mul => "mulk",
-        ArithOp::Shl => "shlk",
-        ArithOp::BitAnd => "andk",
-        ArithOp::BitOr => "ork",
-        ArithOp::BitXor => "xork",
-    };
-    write!(f, "{:8} {:?},{:?} {}", op, a, k, size_keyword(sz))
-}
-
-fn size_keyword(sz: u8) -> &'static str {
-    match sz {
-        1 => "byte",
-        2 => "word",
-        4 => "dword",
-        8 => "qword",
-        _ => panic!("invalid size: {sz}"),
-    }
-}
-
-impl std::fmt::Debug for Insn {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Insn::True => write!(f, "true"),
-            Insn::False => write!(f, "false"),
-            Insn::Const1(val) => write!(f, "{:8} {} (0x{:x})", "const1", *val as i64, val),
-            Insn::Const2(val) => write!(f, "{:8} {} (0x{:x})", "const2", *val as i64, val),
-            Insn::Const4(val) => write!(f, "{:8} {} (0x{:x})", "const4", *val as i64, val),
-            Insn::Const8(val) => write!(f, "{:8} {} (0x{:x})", "const8", *val as i64, val),
-            Insn::L1(x) => write!(f, "{:8} {:?}", "l1", x),
-            Insn::L2(x) => write!(f, "{:8} {:?}", "l2", x),
-            Insn::L4(x) => write!(f, "{:8} {:?}", "l4", x),
-            Insn::Get8(x) => write!(f, "{:8} {:?}", "get", x),
-            Insn::V8WithL1(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l1=", full, part),
-            Insn::V8WithL2(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l2=", full, part),
-            Insn::V8WithL4(full, part) => write!(f, "{:8} {:?} ← {:?}", "v8.l4=", full, part),
-            Insn::Widen1_2(x) => write!(f, "{:8} 1->2 {:?}", "widen", *x),
-            Insn::Widen1_4(x) => write!(f, "{:8} 1->4 {:?}", "widen", *x),
-            Insn::Widen1_8(x) => write!(f, "{:8} 1->8 {:?}", "widen", *x),
-            Insn::Widen2_4(x) => write!(f, "{:8} 2->4 {:?}", "widen", *x),
-            Insn::Widen2_8(x) => write!(f, "{:8} 2->8 {:?}", "widen", *x),
-            Insn::Widen4_8(x) => write!(f, "{:8} 4->8 {:?}", "widen", *x),
-
-            Insn::Arith1(op, a, b) => fmt_arith(f, *op, 1, *a, *b),
-            Insn::Arith2(op, a, b) => fmt_arith(f, *op, 2, *a, *b),
-            Insn::Arith4(op, a, b) => fmt_arith(f, *op, 4, *a, *b),
-            Insn::Arith8(op, a, b) => fmt_arith(f, *op, 8, *a, *b),
-            Insn::ArithK1(op, reg, k) => fmt_arithk(f, *op, 1, *reg, *k),
-            Insn::ArithK2(op, reg, k) => fmt_arithk(f, *op, 2, *reg, *k),
-            Insn::ArithK4(op, reg, k) => fmt_arithk(f, *op, 4, *reg, *k),
-            Insn::ArithK8(op, reg, k) => fmt_arithk(f, *op, 8, *reg, *k),
-            Insn::Cmp(op, a, b) => {
-                let op = match op {
-                    CmpOp::EQ => "==",
-                    CmpOp::LT => "<",
-                };
-                write!(f, "{:8} {:?},{:?}", op, a, b)
-            }
-            Insn::Bool(op, a, b) => {
-                let op = match op {
-                    BoolOp::Or => "||",
-                    BoolOp::And => "&&",
-                };
-                write!(f, "{:8} {:?},{:?}", op, a, b)
-            }
-            Insn::Not(x) => write!(f, "{:8} {:?}", "not", x),
-
-            Insn::LoadMem1(addr) => write!(f, "{:8} addr:{:?}", "loadm1", addr),
-            Insn::LoadMem2(addr) => write!(f, "{:8} addr:{:?}", "loadm2", addr),
-            Insn::LoadMem4(addr) => write!(f, "{:8} addr:{:?}", "loadm4", addr),
-            Insn::LoadMem8(addr) => write!(f, "{:8} addr:{:?}", "loadm8", addr),
-
-            Insn::StoreMem(addr, val) => write!(f, "{:8} *{:?} ← {:?}", "store", addr, val),
-            Insn::TODO(msg) => write!(f, "{:8} {}", "TODO", msg),
-
-            Insn::Call(callee) => write!(f, "{:8} {:?}", "call", callee),
-            Insn::CArg(value) => write!(f, "{:8} {:?}", "carg", value),
-            Insn::Ret(x) => write!(f, "{:8} {:?}", "ret", x),
-            Insn::JmpInd(x) => write!(f, "{:8} *{:?}", "jmp", x),
-            Insn::Jmp(x) => write!(f, "{:8} {:?}", "jmp", x),
-            Insn::JmpExt(target) => write!(f, "{:8} 0x{:x} extern", "jmp", target),
-            Insn::JmpExtIf { cond, addr: target } => {
-                write!(f, "{:8} {:?},0x{:x} extern", "jmp.if", cond, target)
-            }
-            Insn::JmpIf { cond, target } => write!(f, "{:8} {:?},{}", "jmp.if", cond, target),
-
-            Insn::OverflowOf(x) => write!(f, "{:8} {:?}", "overflow", x),
-            Insn::CarryOf(x) => write!(f, "{:8} {:?}", "carry", x),
-            Insn::SignOf(x) => write!(f, "{:8} {:?}", "sign", x),
-            Insn::IsZero(x) => write!(f, "{:8} {:?}", "is0", x),
-            Insn::Parity(x) => write!(f, "{:8} {:?}", "parity", x),
-
-            Insn::Undefined => write!(f, "undef"),
-            Insn::Ancestral(anc) => write!(f, "#pre:{}", anc.name()),
-
-            Insn::Phi1 => write!(f, "phi1"),
-            Insn::Phi2 => write!(f, "phi2"),
-            Insn::Phi4 => write!(f, "phi4"),
-            Insn::Phi8 => write!(f, "phi8"),
-            Insn::PhiBool => write!(f, "phibool"),
-            Insn::PhiArg(reg) => {
-                write!(f, "{:8} {:?}", "phiarg", reg)
-            }
-            Insn::StructGet8 {
-                struct_value,
-                offset,
-            } => write!(f, "{:8} {:?},{}", "sget8", *struct_value, offset),
-        }
+        matches!(self, Insn::Phi)
     }
 }
 
@@ -654,30 +422,6 @@ impl Program {
             })
     }
 
-    pub fn get_phi_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
-        let ndx = ndx as usize;
-        let phi_insn = self.insns[ndx].get();
-        assert!(phi_insn.is_phi());
-        self.insns
-            .iter()
-            .skip(ndx + 1)
-            .map_while(|i| match i.get() {
-                Insn::PhiArg(arg) => Some(arg),
-                _ => None,
-            })
-    }
-
-    pub fn map_phi_args(&self, ndx: Index, f: impl Fn(Reg) -> Reg) {
-        let ndx = ndx as usize;
-        let phi_insn = self.insns[ndx].get();
-        assert!(phi_insn.is_phi());
-        self.insns.iter().skip(ndx + 1).for_each(|i| {
-            if let Insn::PhiArg(arg) = i.get() {
-                i.set(Insn::PhiArg(f(arg)))
-            }
-        })
-    }
-
     #[inline(always)]
     pub fn reg_count(&self) -> Index {
         self.reg_count
@@ -701,69 +445,15 @@ impl Program {
         index
     }
 
-    pub fn value_type(&self, index: Index) -> RegType {
-        match self.insns[index as usize].get() {
-            Insn::True => RegType::Bool,
-            Insn::False => RegType::Bool,
-            Insn::Const1(_) => RegType::Bytes1,
-            Insn::Const2(_) => RegType::Bytes2,
-            Insn::Const4(_) => RegType::Bytes4,
-            Insn::Const8(_) => RegType::Bytes8,
-            Insn::L1(_) => RegType::Bytes1,
-            Insn::L2(_) => RegType::Bytes2,
-            Insn::L4(_) => RegType::Bytes4,
-            Insn::Get8(_) => RegType::Bytes8,
-            Insn::V8WithL1(_, _) => RegType::Bytes8,
-            Insn::V8WithL2(_, _) => RegType::Bytes8,
-            Insn::V8WithL4(_, _) => RegType::Bytes8,
-            Insn::Widen1_2(_) => RegType::Bytes2,
-            Insn::Widen1_4(_) => RegType::Bytes4,
-            Insn::Widen1_8(_) => RegType::Bytes8,
-            Insn::Widen2_4(_) => RegType::Bytes4,
-            Insn::Widen2_8(_) => RegType::Bytes8,
-            Insn::Widen4_8(_) => RegType::Bytes8,
-            Insn::Arith1(_, _, _) => RegType::Bytes1,
-            Insn::Arith2(_, _, _) => RegType::Bytes2,
-            Insn::Arith4(_, _, _) => RegType::Bytes4,
-            Insn::Arith8(_, _, _) => RegType::Bytes8,
-            Insn::ArithK1(_, _, _) => RegType::Bytes1,
-            Insn::ArithK2(_, _, _) => RegType::Bytes2,
-            Insn::ArithK4(_, _, _) => RegType::Bytes4,
-            Insn::ArithK8(_, _, _) => RegType::Bytes8,
-            Insn::Cmp(_, _, _) => RegType::Bool,
-            Insn::Bool(_, _, _) => RegType::Bool,
-            Insn::Not(_) => RegType::Bool,
-            // TODO This might have to change based on the use of calling
-            // convention and function type info
-            Insn::Call(_) => RegType::Bytes8,
-            Insn::CArg(_) => RegType::Effect,
-            Insn::Ret(_) => RegType::Effect,
-            Insn::JmpInd(_) => RegType::Effect,
-            Insn::Jmp(_) => RegType::Effect,
-            Insn::JmpExt(_) => RegType::Effect,
-            Insn::JmpIf { .. } => RegType::Effect,
-            Insn::JmpExtIf { .. } => RegType::Effect,
-            Insn::TODO(_) => RegType::Effect,
-            Insn::LoadMem1(_) => RegType::Bytes1,
-            Insn::LoadMem2(_) => RegType::Bytes2,
-            Insn::LoadMem4(_) => RegType::Bytes4,
-            Insn::LoadMem8(_) => RegType::Bytes8,
-            Insn::StoreMem(_, _) => RegType::Effect,
-            Insn::OverflowOf(_) => RegType::Effect,
-            Insn::CarryOf(_) => RegType::Effect,
-            Insn::SignOf(_) => RegType::Effect,
-            Insn::IsZero(_) => RegType::Effect,
-            Insn::Parity(_) => RegType::Effect,
-            Insn::Undefined => RegType::Effect,
-            Insn::Phi1 => RegType::Bytes1,
-            Insn::Phi2 => RegType::Bytes2,
-            Insn::Phi4 => RegType::Bytes4,
-            Insn::Phi8 => RegType::Bytes8,
-            Insn::PhiBool => RegType::Bool,
-            Insn::PhiArg(_) => RegType::Effect,
-            Insn::Ancestral(anc_name) => self.anc_types.get(&anc_name).copied().unwrap(),
-            Insn::StructGet8 { .. } => RegType::Bytes8,
-        }
+    pub fn push_new(&mut self, insn: Insn) -> Index {
+        let dest = Reg(self.len());
+        let ndx = self.push(dest, insn);
+        assert_eq!(Reg(ndx), dest);
+        ndx
+    }
+
+    pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
+        self.anc_types.get(&anc_name).copied()
     }
 }
 

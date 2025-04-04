@@ -3,139 +3,157 @@ source: src/tests.rs
 expression: output
 ---
 mil program = 
-program  72 instrs
-    0 r12 <- #pre:stack_bottom
-    1 r2 <- #pre:CF
-    2 r3 <- #pre:PF
-    3 r4 <- #pre:AF
-    4 r5 <- #pre:ZF
-    5 r6 <- #pre:SF
-    6 r7 <- #pre:TF
-    7 r8 <- #pre:IF
-    8 r9 <- #pre:DF
-    9 r10 <- #pre:OF
-   10 r11 <- #pre:RBP
-   11 r12 <- #pre:RSP
-   12 r13 <- #pre:RIP
-   13 r14 <- #pre:RDI
-   14 r15 <- #pre:RSI
-   15 r16 <- #pre:RAX
-   16 r17 <- #pre:RBX
-   17 r18 <- #pre:RCX
-   18 r19 <- #pre:RDX
-   19 r20 <- #pre:R8
-   20 r21 <- #pre:R9
-   21 r22 <- #pre:R10
-   22 r23 <- #pre:R11
-   23 r24 <- #pre:R12
-   24 r25 <- #pre:R13
-   25 r26 <- #pre:R14
-   26 r27 <- #pre:R15
-   27 r28 <- #pre:arg0
-   28 r29 <- sget8    r28,0
-   29 r14 <- get      r29
-   30 r30 <- sget8    r28,8
-   31 r15 <- get      r30
-   32 r28 <- undef
-   33 r29 <- undef
-   34 r30 <- undef
-   35 r31 <- undef
-   36 r32 <- undef
-   37 r33 <- undef
-   38 r34 <- undef
-   39 r28 <- const4   1 (0x1)
-   40 r16 <- v8.l4=   r16 ← r28
-   41 r15 <- and      r15,r15  qword
-   42 r6 <- sign     r15
-   43 r5 <- is0      r15
-   44 r30 <- l1       r15
-   45 r3 <- parity   r15
-   46 r2 <- const1   0 (0x0)
-   47 r10 <- const1   0 (0x0)
-   48 r28 <- jmp.if   r5,71
+program  86 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Ancestral(AncestralName("arg0"))
+   28 r29 <- StructGetMember { struct_value: r28, name: "name", size: 8 }
+   29 r29 <- StructGetMember { struct_value: r28, name: "next", size: 8 }
+   30 r30 <- Part { src: r15, offset: 0, size: 0 }
+   31 r31 <- Part { src: r29, offset: 0, size: 8 }
+   32 r31 <- Concat { lo: r30, hi: r31 }
+   33 r30 <- Part { src: r15, offset: 8, size: 0 }
+   34 r15 <- Concat { lo: r31, hi: r30 }
+   35 r32 <- Part { src: r14, offset: 0, size: 0 }
+   36 r33 <- Part { src: r29, offset: 0, size: 8 }
+   37 r33 <- Concat { lo: r32, hi: r33 }
+   38 r32 <- Part { src: r14, offset: 8, size: 0 }
+   39 r14 <- Concat { lo: r33, hi: r32 }
+   40 r28 <- Undefined
+   41 r29 <- Undefined
+   42 r30 <- Undefined
+   43 r31 <- Undefined
+   44 r32 <- Undefined
+   45 r33 <- Undefined
+   46 r34 <- Undefined
+   47 r35 <- Undefined
+   48 r36 <- Undefined
+   49 r37 <- Undefined
+   50 r38 <- Undefined
+   51 r28 <- Const4(1)
+   52 r16 <- Part { src: r16, offset: 4, size: 4 }
+   53 r16 <- Concat { lo: r28, hi: r16 }
+   54 r15 <- Arith8(BitAnd, r15, r15)
+   55 r6 <- SignOf(r15)
+   56 r5 <- IsZero(r15)
+   57 r30 <- Part { src: r15, offset: 0, size: 1 }
+   58 r3 <- Parity(r15)
+   59 r2 <- Const1(0)
+   60 r10 <- Const1(0)
+   61 r28 <- JmpIf { cond: r5, target: 85 }
 0x2:
-   49 r28 <- l4       r16
-   50 r28 <- addk     r28,1 dword
-   51 r16 <- v8.l4=   r16 ← r28
-   52 r10 <- false
-   53 r2 <- false
-   54 r6 <- sign     r28
-   55 r5 <- is0      r28
-   56 r29 <- l1       r28
-   57 r3 <- parity   r29
+   62 r28 <- Part { src: r16, offset: 0, size: 4 }
+   63 r28 <- ArithK4(Add, r28, 1)
+   64 r16 <- Part { src: r16, offset: 4, size: 4 }
+   65 r16 <- Concat { lo: r28, hi: r16 }
+   66 r10 <- False
+   67 r2 <- False
+   68 r6 <- SignOf(r28)
+   69 r5 <- IsZero(r28)
+   70 r29 <- Part { src: r28, offset: 0, size: 1 }
+   71 r3 <- Parity(r29)
 0x0:
-   58 r29 <- const8   8 (0x8)
-   59 r29 <- add      r29,r15  qword
-   60 r28 <- loadm8   addr:r29
-   61 r15 <- get      r28
-   62 r15 <- and      r15,r15  qword
-   63 r6 <- sign     r15
-   64 r5 <- is0      r15
-   65 r30 <- l1       r15
-   66 r3 <- parity   r15
-   67 r2 <- const1   0 (0x0)
-   68 r10 <- const1   0 (0x0)
-   69 r28 <- not      r5
-   70 r29 <- jmp.if   r28,49
+   72 r29 <- Const8(8)
+   73 r29 <- Arith8(Add, r29, r15)
+   74 r28 <- LoadMem8(r29)
+   75 r15 <- Get(r28)
+   76 r15 <- Arith8(BitAnd, r15, r15)
+   77 r6 <- SignOf(r15)
+   78 r5 <- IsZero(r15)
+   79 r30 <- Part { src: r15, offset: 0, size: 1 }
+   80 r3 <- Parity(r15)
+   81 r2 <- Const1(0)
+   82 r10 <- Const1(0)
+   83 r28 <- Not(r5)
+   84 r29 <- JmpIf { cond: r28, target: 62 }
 0x1:
-   71 r28 <- ret      r16
+   85 r28 <- Ret(r16)
 
 
-ssa program  18 instrs
-.B0:    ;;  addr:0x0; 49 insn 0 phis
-  (  2)  r15 <- #pre:RAX
-         r27 <- #pre:arg0
-  (  2)  r30 <- sget8    r27,8
-  (  2)  r39 <- const4   1 (0x1)
-  (  3)  r40 <- v8.l4=   r15 ← r39
-         r43 <- is0      r30
-         r48 <- jmp.if   r43,71
-.B1:    ;;  preds:B0,B1  addr:0x2; 22 insn 2 phis
+ssa program  22 instrs
+.B0:    ;;  addr:0x0; 62 insn 0 phis
+         r15 <- Ancestral(AncestralName("RAX"))
+         r27 <- Ancestral(AncestralName("arg0"))
+         r29 <- StructGetMember { struct_value: r27, name: "next", size: 8 }
+  (  2)  r51 <- Const4(1)
+  (  2)  r52 <- Part { src: r15, offset: 4, size: 4 }
+  (  2)  r53 <- Concat { lo: r51, hi: r52 }
+  (  2)  r54 <- Get(r34)
+         r56 <- IsZero(r54)
+         r61 <- JmpIf { cond: r56, target: 85 }
+.B1:    ;;  preds:B0,B1  addr:0x2; 23 insn 2 phis
                   ɸ  B0     B1     
-           r72    <- r30    r60    
-  (  2)    r75    <- r40    r51    
-         r50 <- addk     r75,1 dword
-  (  3)  r51 <- v8.l4=   r75 ← r50
-         r59 <- addk     r72,8 qword
-  (  2)  r60 <- loadm8   addr:r59
-         r64 <- is0      r60
-         r69 <- not      r64
-         r70 <- jmp.if   r69,49
+           r86    <- r54    r76    
+  (  2)    r89    <- r53    r65    
+         r62 <- Part { src: r89, offset: 0, size: 4 }
+         r63 <- ArithK4(Add, r62, 1)
+         r64 <- Part { src: r89, offset: 4, size: 4 }
+  (  2)  r65 <- Concat { lo: r63, hi: r64 }
+         r73 <- ArithK8(Add, r86, 8)
+  (  2)  r76 <- Get(r74)
+         r78 <- IsZero(r76)
+         r83 <- Not(r78)
+         r84 <- JmpIf { cond: r83, target: 62 }
 .B2:    ;;  preds:B0,B1  addr:0x1; 1 insn 1 phis
                   ɸ  B0     B1     
-           r78    <- r40    r51    
-         r71 <- ret      r78
+           r92    <- r53    r65    
+         r85 <- Ret(r92)
 
 
 T0(): {
-  let r30 = StructGet8[8](pre:arg0);
-  let r40 = V8WithL4(pre:RAX, 0x1 /* 1 */);
-  if IsZero(r30) {
+  let r52 = pre:RAX[4 .. 8];
+  let r53 = r52⧺0x1 /* 1 */;
+  if IsZero(pre:arg0.next[0 .. 8]) {
     goto T2 (
-      r78 = r40
+      r92 = r53
     )
   
   }
   goto T1 (
-    r72 = r30
-    r75 = r40
+    r86 = pre:arg0.next[0 .. 8]
+    r89 = r53
   )
   
-  T1(r72, r75): {
-    let r51 = V8WithL4(r75, r75 + 1);
-    if !(IsZero([r72 + 8]:8)) {
+  T1(r86, r89): {
+    let r65 = r89[4 .. 8]⧺r89[0 .. 4] + 1;
+    if !(IsZero([r86 + 8]:8)) {
       goto T1 (
-        r72 = [r72 + 8]:8
-        r75 = r51
+        r86 = [r86 + 8]:8
+        r89 = r65
       )
     
     }
     goto T2 (
-      r78 = r51
+      r92 = r65
     )
   }
   
-  T2(r78): {
-    Ret(r78);
+  T2(r92): {
+    Ret(r92);
   }
 }

@@ -165,12 +165,8 @@ impl<'a> TypeParser<'a> {
         };
 
         let entry = node.entry();
-
-        if let Some(gimli::AttributeValue::Addr(addr)) =
-            entry.attr_value(gimli::constants::DW_AT_low_pc)?
-        {
-            types.set_known_object(addr, tyid);
-        }
+        let offset = entry.offset().0;
+        let addr_av = entry.attr_value(gimli::constants::DW_AT_low_pc)?;
 
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
@@ -186,6 +182,7 @@ impl<'a> TypeParser<'a> {
             // - [x] DW_TAG_structure_type
             // - [x] DW_TAG_pointer_type
             // - [x] DW_TAG_base_type
+            // - [x] DW_TAG_typedef
             gimli::constants::DW_TAG_structure_type => self.parse_struct_type(node, types),
             gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, types),
             // subprograms (functions, in C) are considered as subroutine types
@@ -194,12 +191,23 @@ impl<'a> TypeParser<'a> {
                 self.parse_subroutine_type(node, types)
             }
             gimli::constants::DW_TAG_base_type => self.parse_base_type(node, types),
+            gimli::constants::DW_TAG_typedef => self.parse_alias(node, types),
 
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
 
         // otherwise, leave tyid assigned to a clone of default_type
         let typ = res?;
+
+        if !matches!(&typ.ty, ty::Ty::Unknown(_)) {
+            if let Some(addr_attrvalue) = addr_av {
+                let addr = self.dwarf.attr_address(&self.unit, addr_attrvalue)?.ok_or(
+                    Error::InvalidValueType(offset, gimli::constants::DW_AT_low_pc),
+                )?;
+                types.set_known_object(addr, tyid);
+            }
+        }
+
         types.set(tyid, typ);
         Ok(tyid)
     }
@@ -233,7 +241,8 @@ impl<'a> TypeParser<'a> {
             res => res,
         }?;
 
-        let mut params = Vec::new();
+        let mut param_names = Vec::new();
+        let mut param_tyids = Vec::new();
         let mut children = node.children();
         while let Some(child_node) = children.next()? {
             let child_entry = child_node.entry();
@@ -241,18 +250,21 @@ impl<'a> TypeParser<'a> {
                 gimli::DW_TAG_formal_parameter => {
                     let name = self.get_name(child_entry)?.map(|s| Arc::new(s.to_owned()));
                     let tyid = self.try_parse_type_of(&child_entry, types)?;
-                    params.push(ty::SubroutineParam { name, tyid });
+                    param_names.push(name);
+                    param_tyids.push(tyid);
                 }
                 // not supported yet => ignored
                 _ => {}
             }
         }
 
+        assert_eq!(param_names.len(), param_tyids.len());
         Ok(ty::Type {
             name: Arc::new(name),
             ty: ty::Ty::Subroutine(ty::Subroutine {
                 return_tyid,
-                params,
+                param_names,
+                param_tyids,
             }),
         })
     }
@@ -261,7 +273,14 @@ impl<'a> TypeParser<'a> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::DW_TAG_pointer_type);
 
-        let pointee_tyid = self.try_parse_type_of(entry, types)?;
+        let res = self.try_parse_type_of(entry, types);
+
+        // special case: C's `void*` is represented as a DW_TAG_pointer_type without DW_AT_type
+        let pointee_tyid = match res {
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => types.tyid_void(),
+            _ => res?,
+        };
+
         Ok(ty::Type {
             // TODO make name optional
             name: Arc::new(String::new()),
@@ -397,6 +416,16 @@ impl<'a> TypeParser<'a> {
         })
     }
 
+    fn parse_alias(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+        let entry = node.entry();
+        let ref_tyid = self.try_parse_type_of(entry, types)?;
+        let name = self.get_name(entry)?;
+        Ok(ty::Type {
+            name: Arc::new(name.unwrap_or("").to_owned()),
+            ty: ty::Ty::Alias(ref_tyid),
+        })
+    }
+
     fn try_parse_type_of(
         &self,
         entry_with_type: &DIE<'_, '_, '_>,
@@ -461,16 +490,17 @@ mod tests {
         let mut types = ty::TypeSet::new();
         let report = load_dwarf_types(&elf, raw, &mut types).unwrap();
 
-        let mut buf = String::new();
+        let mut buf = Vec::new();
         let mut pp = crate::pp::PrettyPrinter::start(&mut buf);
         types.dump(&mut pp).unwrap();
 
-        use std::fmt::Write;
+        use std::io::Write;
         writeln!(buf, "{} non-fatal errors:", report.errors.len()).unwrap();
         for (ofs, err) in &report.errors {
             writeln!(buf, "offset 0x{:8x}: {}", ofs, err).unwrap();
         }
 
+        let buf = String::from_utf8(buf).unwrap();
         assert_snapshot!(buf);
     }
 }

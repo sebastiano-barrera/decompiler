@@ -24,16 +24,29 @@ pub use crate::ssa::TypeID;
 pub struct TypeSet {
     types: SlotMap<TypeID, Type>,
     known_objects: HashMap<Addr, TypeID>,
+
+    tyid_void: TypeID,
 }
 
 pub type Addr = u64;
 
 impl TypeSet {
     pub fn new() -> Self {
+        let mut types = SlotMap::with_key();
+        let tyid_void = types.insert(Type {
+            name: Arc::new("void".to_string()),
+            ty: Ty::Void,
+        });
+
         TypeSet {
-            types: SlotMap::with_key(),
+            types,
             known_objects: HashMap::new(),
+            tyid_void,
         }
+    }
+
+    pub fn tyid_void(&self) -> TypeID {
+        self.tyid_void
     }
 
     pub fn add(&mut self, typ: Type) -> TypeID {
@@ -49,7 +62,22 @@ impl TypeSet {
     }
 
     pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
-        self.get(tyid).map(|t| t.ty.bytes_size())
+        let ty = &self.get(tyid)?.ty;
+        let sz = match ty {
+            Ty::Int(int_ty) => int_ty.size as u32,
+            Ty::Bool(Bool { size }) => *size as u32,
+            Ty::Float(Float { size }) => *size as u32,
+            Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
+            Ty::Struct(struct_ty) => struct_ty.size,
+            Ty::Unknown(unk_ty) => unk_ty.size,
+            // TODO architecture dependent!
+            Ty::Ptr(_) => 8,
+            // TODO does this even make sense?
+            Ty::Subroutine(_) => 8,
+            Ty::Void => 0,
+            Ty::Alias(ref_tyid) => return self.bytes_size(*ref_tyid),
+        };
+        Some(sz)
     }
 
     pub fn assert_invariants(&self) {
@@ -62,7 +90,8 @@ impl TypeSet {
                 | Ty::Ptr(_)
                 | Ty::Unknown(_)
                 | Ty::Bool(_)
-                | Ty::Float(_) => {}
+                | Ty::Float(_)
+                | Ty::Alias(_) => {}
                 Ty::Struct(struct_ty) => {
                     assert!(struct_ty.members.iter().all(|m| {
                         let size = self.bytes_size(m.tyid).unwrap();
@@ -99,7 +128,7 @@ impl TypeSet {
         assert!(!byte_range.is_empty());
         let ty = &self.get(tyid).unwrap().ty;
 
-        let size = ty.bytes_size() as i64;
+        let size = self.bytes_size(tyid).unwrap_or(0) as i64;
 
         if byte_range.end > size {
             return Err(SelectError::InvalidRange);
@@ -121,10 +150,11 @@ impl TypeSet {
             | Ty::Subroutine(_)
             | Ty::Float(_)
             | Ty::Bool(_) => Err(SelectError::InvalidRange),
+            Ty::Alias(ref_tyid) => self.select(*ref_tyid, byte_range),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     // TODO avoid the hashmap lookup?
-                    let memb_size = self.get(m.tyid).unwrap().ty.bytes_size() as i64;
+                    let memb_size = self.bytes_size(m.tyid).unwrap() as i64;
                     let ofs = m.offset as i64;
                     (ofs..ofs + memb_size) == byte_range
                 });
@@ -150,7 +180,32 @@ impl TypeSet {
         self.known_objects.get(&addr).copied()
     }
 
-    pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::fmt::Result {
+    pub fn alignment(&self, tyid: TypeID) -> Option<u8> {
+        let typ = self.get(tyid)?;
+        match &typ.ty {
+            Ty::Int(int_ty) => Some(int_ty.alignment()),
+            Ty::Enum(enum_ty) => Some(enum_ty.base_type.alignment()),
+            Ty::Ptr(_) => Some(8),
+            Ty::Float(float_ty) => Some(float_ty.alignment()),
+            Ty::Alias(ref_tyid) => self.alignment(*ref_tyid),
+
+            Ty::Void | Ty::Bool(_) | Ty::Subroutine(_) | Ty::Unknown(_) => None,
+
+            Ty::Struct(struct_ty) => {
+                // TODO any further check necessary?
+                let mut align = 1;
+                for memb in &struct_ty.members {
+                    let Some(memb_align) = self.alignment(memb.tyid) else {
+                        return None;
+                    };
+                    align = align.max(memb_align);
+                }
+                Some(align)
+            }
+        }
+    }
+
+    pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
         writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
 
         // ensure that the iteration always happens in the same order
@@ -171,7 +226,7 @@ impl TypeSet {
         writeln!(out, "}}")
     }
 
-    pub fn dump_type_ref<W: PP + ?Sized>(&self, out: &mut W, tyid: TypeID) -> std::fmt::Result {
+    pub fn dump_type_ref<W: PP + ?Sized>(&self, out: &mut W, tyid: TypeID) -> std::io::Result<()> {
         let typ = self.get(tyid).unwrap();
         if typ.name.is_empty() {
             self.dump_type(out, typ)
@@ -180,7 +235,7 @@ impl TypeSet {
         }
     }
 
-    pub fn dump_type<W: PP + ?Sized>(&self, out: &mut W, typ: &Type) -> std::fmt::Result {
+    pub fn dump_type<W: PP + ?Sized>(&self, out: &mut W, typ: &Type) -> std::io::Result<()> {
         if !typ.name.is_empty() {
             write!(out, "\"{}\" ", typ.name)?;
         }
@@ -195,6 +250,7 @@ impl TypeSet {
             Ty::Bool(Bool { size }) => write!(out, "bool{}", *size * 8)?,
             Ty::Float(Float { size }) => write!(out, "float{}", *size * 8)?,
             Ty::Enum(_) => write!(out, "enum")?,
+            Ty::Alias(ref_tyid) => self.dump_type_ref(out, *ref_tyid)?,
             Ty::Struct(struct_ty) => {
                 write!(out, "struct {{\n    ")?;
                 out.open_box();
@@ -216,7 +272,12 @@ impl TypeSet {
                 write!(out, "func (")?;
                 out.open_box();
 
-                for (ndx, SubroutineParam { name, tyid }) in subr_ty.params.iter().enumerate() {
+                for (ndx, (name, tyid)) in subr_ty
+                    .param_names
+                    .iter()
+                    .zip(subr_ty.param_tyids.iter())
+                    .enumerate()
+                {
                     if ndx > 0 {
                         write!(out, ",\n")?;
                     }
@@ -263,29 +324,18 @@ pub enum Ty {
     Subroutine(Subroutine),
     Unknown(Unknown),
     Void,
-}
-impl Ty {
-    pub fn bytes_size(&self) -> u32 {
-        match self {
-            Ty::Int(int_ty) => int_ty.size as u32,
-            Ty::Bool(Bool { size }) => *size as u32,
-            Ty::Float(Float { size }) => *size as u32,
-            Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
-            Ty::Struct(struct_ty) => struct_ty.size,
-            Ty::Unknown(unk_ty) => unk_ty.size,
-            // TODO architecture dependent!
-            Ty::Ptr(_) => 8,
-            // TODO does this even make sense?
-            Ty::Subroutine(_) => 8,
-            Ty::Void => 0,
-        }
-    }
+    Alias(TypeID),
 }
 
 #[derive(Debug, Clone)]
 pub struct Int {
     pub size: u8,
     pub signed: Signedness,
+}
+impl Int {
+    fn alignment(&self) -> u8 {
+        self.size
+    }
 }
 #[derive(Debug, Clone)]
 pub enum Signedness {
@@ -301,6 +351,11 @@ pub struct Bool {
 #[derive(Debug, Clone)]
 pub struct Float {
     pub size: u8,
+}
+impl Float {
+    fn alignment(&self) -> u8 {
+        self.size
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -340,12 +395,8 @@ pub struct Unknown {
 #[derive(Debug, Clone)]
 pub struct Subroutine {
     pub return_tyid: TypeID,
-    pub params: Vec<SubroutineParam>,
-}
-#[derive(Debug, Clone)]
-pub struct SubroutineParam {
-    pub name: Option<Arc<String>>,
-    pub tyid: TypeID,
+    pub param_names: Vec<Option<Arc<String>>>,
+    pub param_tyids: Vec<TypeID>,
 }
 
 //
@@ -380,7 +431,11 @@ pub enum SelectError {
     InvalidRange,
 }
 
-fn dump_types<W: pp::PP>(out: &mut W, report: &dwarf::Report, types: &TypeSet) -> std::fmt::Result {
+fn dump_types<W: pp::PP>(
+    out: &mut W,
+    report: &dwarf::Report,
+    types: &TypeSet,
+) -> std::io::Result<()> {
     writeln!(out, "dwarf types --[[")?;
     types.dump(out).unwrap();
 
