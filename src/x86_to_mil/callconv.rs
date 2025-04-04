@@ -1,5 +1,5 @@
 use crate::{
-    mil::{self, AncestralName, ArithOp, Insn, Reg},
+    mil::{self, AncestralName, ArithOp, Insn},
     ty,
 };
 
@@ -9,8 +9,11 @@ use anyhow::anyhow;
 
 #[derive(Clone, Copy)]
 enum PassMode {
-    Regs([Option<Reg>; 2]),
-    OneBigSse { reg: Reg, eb_count: u8 },
+    Regs([Option<iced_x86::Register>; 2]),
+    OneBigSse {
+        reg: iced_x86::Register,
+        eb_count: u8,
+    },
     Memory,
 }
 
@@ -91,39 +94,46 @@ fn pass_param<'a>(
                 let offset = (8 * ndx).try_into().unwrap();
                 // write the eightbyte from the source value (opaque) to the
                 // destination reg, rounded up to 8 bytes
-                if sz < 8 {
+                let arg_value = if sz < 8 {
+                    let v0 = bld.reg_gen.next();
                     bld.emit(
-                        reg,
+                        v0,
                         mil::Insn::Widen {
                             reg: arg_value,
                             target_size: 8,
                             sign: false,
                         },
                     );
+                    v0
                 } else if sz > 8 {
+                    let v0 = bld.reg_gen.next();
                     bld.emit(
-                        reg,
+                        v0,
                         mil::Insn::Part {
                             src: arg_value,
                             offset,
                             size: 8,
                         },
                     );
+                    v0
                 } else {
-                    bld.emit(reg, Insn::Get(arg_value));
-                }
+                    arg_value
+                };
+
+                bld.emit_write_machine_reg(reg, 8, arg_value);
             }
         }
         PassMode::OneBigSse { reg, eb_count } => {
             assert_eq!(sz.div_ceil(8), eb_count as u32);
             bld.emit(
-                reg,
+                arg_value,
                 mil::Insn::Widen {
                     reg: arg_value,
-                    target_size: 32,
+                    target_size: 32, // 4 eightbytes, which is the largest
                     sign: false,
                 },
             );
+            bld.emit_write_machine_reg(reg, 32, arg_value);
         }
         PassMode::Memory => {
             let eb_count = sz.div_ceil(8);
@@ -453,47 +463,47 @@ impl EightbytesSet {
     }
 }
 
-static INTEGER_REGS: [Reg; 6] = [
-    Builder::RDI,
-    Builder::RSI,
-    Builder::RDX,
-    Builder::RCX,
-    Builder::R8,
-    Builder::R9,
+static INTEGER_REGS: [iced_x86::Register; 6] = [
+    iced_x86::Register::RDI,
+    iced_x86::Register::RSI,
+    iced_x86::Register::RDX,
+    iced_x86::Register::RCX,
+    iced_x86::Register::R8,
+    iced_x86::Register::R9,
 ];
 
-static SSE_REGS: [Reg; 16] = [
-    Builder::ZMM0,
-    Builder::ZMM1,
-    Builder::ZMM2,
-    Builder::ZMM3,
-    Builder::ZMM4,
-    Builder::ZMM5,
-    Builder::ZMM6,
-    Builder::ZMM7,
-    Builder::ZMM8,
-    Builder::ZMM9,
-    Builder::ZMM10,
-    Builder::ZMM11,
-    Builder::ZMM12,
-    Builder::ZMM13,
-    Builder::ZMM14,
-    Builder::ZMM15,
+static SSE_REGS: [iced_x86::Register; 16] = [
+    iced_x86::Register::ZMM0,
+    iced_x86::Register::ZMM1,
+    iced_x86::Register::ZMM2,
+    iced_x86::Register::ZMM3,
+    iced_x86::Register::ZMM4,
+    iced_x86::Register::ZMM5,
+    iced_x86::Register::ZMM6,
+    iced_x86::Register::ZMM7,
+    iced_x86::Register::ZMM8,
+    iced_x86::Register::ZMM9,
+    iced_x86::Register::ZMM10,
+    iced_x86::Register::ZMM11,
+    iced_x86::Register::ZMM12,
+    iced_x86::Register::ZMM13,
+    iced_x86::Register::ZMM14,
+    iced_x86::Register::ZMM15,
 ];
 
 #[derive(Clone)]
 struct ParamPassing {
-    int_regs: std::slice::Iter<'static, Reg>,
-    sse_regs: std::slice::Iter<'static, Reg>,
+    int_regs: std::slice::Iter<'static, iced_x86::Register>,
+    sse_regs: std::slice::Iter<'static, iced_x86::Register>,
     args: std::slice::Iter<'static, AncestralName>,
     stack_eb_ndx: usize,
 }
 impl ParamPassing {
-    fn pull_integer_reg(&mut self) -> Option<Reg> {
+    fn pull_integer_reg(&mut self) -> Option<iced_x86::Register> {
         self.int_regs.next().copied()
     }
 
-    fn pull_sse_reg(&mut self) -> Option<Reg> {
+    fn pull_sse_reg(&mut self) -> Option<iced_x86::Register> {
         self.sse_regs.next().copied()
     }
 

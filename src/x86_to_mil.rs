@@ -57,22 +57,22 @@ impl<'a> Builder<'a> {
         bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes(8));
         bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes(8));
         bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, RegType::Bytes(8));
+        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, RegType::Bytes(64));
+        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, RegType::Bytes(64));
 
         bld
     }
@@ -145,9 +145,9 @@ impl<'a> Builder<'a> {
                     To be implemented:
                     * movaps Rxmm, Mem
                     * movaps Rxmm, Rxmm
+                    * movups Mem, Rxmm
                     * movd   Rxmm, Rint
                     * movss  Rxmm, Mem
-                    * movups Mem, Rxmm
                     * movzx  Rint, Mem
                 */
                 M::Nop => {}
@@ -213,7 +213,10 @@ impl<'a> Builder<'a> {
                     self.emit(v0, mil::Insn::Ret(ret_val));
                 }
 
-                M::Mov | M::Movsd => {
+                // assuming that the instruction is correct and correctly
+                // decoded by iced_x86, the same code should serve all these
+                // variants of mov
+                M::Mov | M::Movsd | M::Movaps => {
                     let (value, sz) = self.emit_read(&insn, 1);
                     self.emit_write(&insn, 0, value, sz);
                 }
@@ -349,8 +352,7 @@ impl<'a> Builder<'a> {
                                 _ => panic!("imul: invalid operand size: {}", a_size),
                             };
 
-                            let v0 = self.reg_gen.next();
-                            self.emit_read_reg(v0, dest_lo);
+                            let v0 = self.emit_read_reg(dest_lo);
                             self.emit(v0, mil::Insn::Arith(mil::ArithOp::Mul, v0, src_b));
                             self.emit(Self::OF, mil::Insn::OverflowOf(v0));
                             self.emit(Self::CF, mil::Insn::Get(Self::OF));
@@ -802,7 +804,7 @@ impl<'a> Builder<'a> {
         match insn.op_kind(op_ndx) {
             OpKind::Register => {
                 let reg = insn.op_register(op_ndx);
-                self.emit_read_reg(v0, reg)
+                self.emit_read_reg(reg)
             }
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => self.emit(
                 v0,
@@ -927,35 +929,21 @@ impl<'a> Builder<'a> {
     }
 
     /// Read a register of any size, emitting mil::Insn::Part as necessary
-    fn emit_read_reg(&mut self, dest: mil::Reg, reg: Register) -> mil::Reg {
-        let full_reg = Builder::xlat_reg(reg.full_register());
-        match reg.size() {
-            1 => self.emit(
+    fn emit_read_reg(&mut self, reg: Register) -> mil::Reg {
+        let full_reg = reg.full_register();
+        let value = Builder::xlat_reg(full_reg);
+        if reg == full_reg {
+            value
+        } else {
+            let dest = self.reg_gen.next();
+            self.emit(
                 dest,
                 mil::Insn::Part {
-                    src: full_reg,
+                    src: value,
                     offset: 0,
-                    size: 1,
+                    size: reg.size().try_into().unwrap(),
                 },
-            ),
-            2 => self.emit(
-                dest,
-                mil::Insn::Part {
-                    src: full_reg,
-                    offset: 0,
-                    size: 2,
-                },
-            ),
-            4 => self.emit(
-                dest,
-                mil::Insn::Part {
-                    src: full_reg,
-                    offset: 0,
-                    size: 4,
-                },
-            ),
-            8 => full_reg,
-            other => panic!("invalid register size: {other}"),
+            )
         }
     }
 
@@ -1043,27 +1031,30 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn emit_write_machine_reg(&mut self, dest: Register, value_size: u16, value: mil::Reg) {
-        let full_dest = Builder::xlat_reg(dest.full_register());
+    fn emit_write_machine_reg(&mut self, dest_reg: Register, value_size: u16, value: mil::Reg) {
+        let full_dest_reg = dest_reg.full_register();
+        let full_size = full_dest_reg.size().try_into().unwrap();
+        let full_dest = Builder::xlat_reg(full_dest_reg);
 
-        if value_size == 8 {
+        if value_size == full_size {
             self.emit(full_dest, mil::Insn::Get(value));
             return;
         }
 
-        assert!(value_size < 8);
+        assert!(value_size < full_size);
+        let unchanged_part = self.reg_gen.next();
         self.emit(
-            full_dest,
+            unchanged_part,
             mil::Insn::Part {
                 src: full_dest,
                 offset: value_size,
-                size: 8 - value_size,
+                size: full_size - value_size,
             },
         );
         self.emit(
             full_dest,
             mil::Insn::Concat {
-                hi: full_dest,
+                hi: unchanged_part,
                 lo: value,
             },
         );
@@ -1164,7 +1155,7 @@ impl<'a> Builder<'a> {
     const ZMM15: mil::Reg = mil::Reg(43);
 
     const R_TMP_FIRST: mil::Reg = mil::Reg(43);
-    const R_TMP_LAST: mil::Reg = mil::Reg(53);
+    const R_TMP_LAST: mil::Reg = mil::Reg(63);
 
     fn reset_reg_gen() -> RegGen {
         RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)
@@ -1236,7 +1227,7 @@ impl RegGen {
         let ret = self.next;
         self.next.0 += 1;
 
-        assert!(ret.0 <= self.last.0);
+        assert!(ret.0 <= self.last.0, "not enough tmp regs");
         ret
     }
 }
