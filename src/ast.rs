@@ -11,17 +11,27 @@ use crate::{
 pub struct Ast<'a> {
     ssa: &'a ssa::Program,
     let_printed: HashSet<Reg>,
-    rdr_count: ssa::RegMap<usize>,
+    is_named: ssa::RegMap<bool>,
 }
 
 impl<'a> Ast<'a> {
     pub fn new(ssa: &'a ssa::Program) -> Self {
         let rdr_count = ssa::count_readers(&ssa);
+
+        let is_named = rdr_count.map(|reg, count| {
+            // ancestral are as good as r# refs, so never 'name' them / always print inline
+            *count > 1 && !matches!(ssa.get(reg).unwrap().insn.get(), Insn::Ancestral(_))
+        });
+
         Ast {
             ssa,
             let_printed: HashSet::new(),
-            rdr_count,
+            is_named,
         }
+    }
+
+    fn is_named(&self, reg: Reg) -> bool {
+        self.is_named[reg]
     }
 
     pub fn pretty_print<W: PP + ?Sized>(&mut self, pp: &mut W) -> std::io::Result<()> {
@@ -122,10 +132,6 @@ impl<'a> Ast<'a> {
         } else {
             write!(pp, "{keyword} T{}", tgt_bid.as_number())
         }
-    }
-
-    fn is_named(&self, reg: Reg) -> bool {
-        self.rdr_count[reg] > 1
     }
 
     /// Results in a series of `let x = ...` expressions being printed.

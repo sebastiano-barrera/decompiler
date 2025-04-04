@@ -761,6 +761,16 @@ impl<T: Clone> RegMap<T> {
             .enumerate()
             .map(|(ndx, item)| (mil::Reg(ndx.try_into().unwrap()), item))
     }
+
+    pub fn map<F, R>(&self, mut f: F) -> RegMap<R>
+    where
+        F: FnMut(mil::Reg, &T) -> R,
+        R: Clone,
+    {
+        let elements: Vec<_> = self.items().map(|(reg, value)| f(reg, value)).collect();
+        assert_eq!(elements.len(), self.0.len());
+        RegMap(elements)
+    }
 }
 
 impl<T> std::ops::Index<mil::Reg> for RegMap<T> {
