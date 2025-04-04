@@ -100,6 +100,7 @@ pub enum Insn {
     Widen {
         reg: Reg,
         target_size: u16,
+        sign: bool,
     },
 
     Arith(ArithOp, Reg, Reg),
@@ -254,6 +255,7 @@ impl Insn {
             | Insn::Widen {
                 reg,
                 target_size: _,
+                sign: _
             }
             | Insn::Not(reg)
             | Insn::Ret(reg)
@@ -318,6 +320,7 @@ impl Insn {
             | Insn::Widen {
                 reg,
                 target_size: _,
+                sign: _,
             }
             | Insn::Not(reg)
             | Insn::Ret(reg)

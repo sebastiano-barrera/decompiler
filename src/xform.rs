@@ -235,11 +235,12 @@ fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         size: part_size,
     } = insn
     {
-        if let Insn::Widen { reg, target_size } = prog.get(part_src).unwrap().insn.get() {
+        if let Insn::Widen { reg, target_size, sign } = prog.get(part_src).unwrap().insn.get() {
             if part_size < target_size {
                 return Insn::Widen {
                     reg,
                     target_size: part_size,
+                    sign,
                 };
             }
         }
@@ -249,7 +250,8 @@ fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 }
 
 fn fold_widen_const(insn: mil::Insn, prog: &ssa::Program) -> Insn {
-    if let Insn::Widen { reg, target_size } = insn {
+    // TODO add signedness to Const as well? then we could check if they match
+    if let Insn::Widen { reg, target_size, sign: true } = insn {
         if let Insn::Const { value, size } = prog.get(reg).unwrap().insn.get() {
             assert!(target_size > size);
             return Insn::Const {
@@ -262,7 +264,7 @@ fn fold_widen_const(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 }
 
 fn fold_widen_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
-    if let Insn::Widen { reg, target_size } = insn {
+    if let Insn::Widen { reg, target_size, sign: _ } = insn {
         if let RegType::Bytes(sz) = prog.value_type(reg) {
             if target_size as usize == sz {
                 return Insn::Get(reg);

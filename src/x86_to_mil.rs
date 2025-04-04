@@ -143,7 +143,6 @@ impl<'a> Builder<'a> {
             match insn.mnemonic() {
                 /*
                     To be implemented:
-                    * cdqe
                     * imul   Rint, Mem
                     * movaps Rxmm, Mem
                     * movaps Rxmm, Rxmm
@@ -495,6 +494,22 @@ impl<'a> Builder<'a> {
                     self.emit_jmpif(insn, 0, Self::SF);
                 }
 
+                M::Cbw => {
+                    let al  = self.reg_gen.next();
+                    self.emit(al, mil::Insn::Part { src: Self::RAX, offset: 0, size: 1 });
+                    self.emit(Self::RAX, mil::Insn::Widen { reg: al, target_size: 2, sign: true });
+                },
+                M::Cwde => {
+                    let ax  = self.reg_gen.next();
+                    self.emit(ax, mil::Insn::Part { src: Self::RAX, offset: 0, size: 2 });
+                    self.emit(Self::RAX, mil::Insn::Widen { reg: ax, target_size: 4, sign: true });
+                },
+                M::Cdqe => {
+                    let eax = self.reg_gen.next();
+                    self.emit(eax, mil::Insn::Part { src: Self::RAX, offset: 0, size: 4 });
+                    self.emit(Self::RAX, mil::Insn::Widen { reg: eax, target_size: 8, sign: true });
+                },
+
                 _ => {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
@@ -542,8 +557,8 @@ impl<'a> Builder<'a> {
         assert!([1, 2, 4, 8].contains(&a_sz));
         assert!([1, 2, 4, 8].contains(&b_sz));
         let sz = a_sz.max(b_sz);
-        self.widen(a, a_sz, sz);
-        self.widen(b, b_sz, sz);
+        self.extend_zero(a, a_sz, sz);
+        self.extend_zero(b, b_sz, sz);
         self.emit(a, mil::Insn::Arith(op, a, b));
     }
 
@@ -822,7 +837,7 @@ impl<'a> Builder<'a> {
             OpKind::Register => {
                 let dest = insn.op_register(dest_op_ndx);
                 let dest_size: u16 = dest.size().try_into().unwrap();
-                self.widen(value, value_size, dest_size);
+                self.extend_zero(value, value_size, dest_size);
                 self.emit_write_machine_reg(dest, value_size, value);
             }
 
@@ -872,7 +887,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn widen(&mut self, value: mil::Reg, value_size: u16, dest_size: u16) {
+    fn extend_zero(&mut self, value: mil::Reg, value_size: u16, dest_size: u16) {
         assert!(
             dest_size >= value_size,
             "dest ({dest_size} bytes) can't fit source ({value_size} bytes)"
@@ -883,6 +898,7 @@ impl<'a> Builder<'a> {
                 mil::Insn::Widen {
                     reg: value,
                     target_size: dest_size,
+                    sign: false,
                 },
             );
         }

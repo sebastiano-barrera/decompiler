@@ -97,6 +97,7 @@ fn pass_param<'a>(
                         mil::Insn::Widen {
                             reg: arg_value,
                             target_size: 8,
+                            sign: false,
                         },
                     );
                 } else if sz > 8 {
@@ -120,6 +121,7 @@ fn pass_param<'a>(
                 mil::Insn::Widen {
                     reg: arg_value,
                     target_size: 32,
+                    sign: false,
                 },
             );
         }

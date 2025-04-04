@@ -210,11 +210,13 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, lo, self_prec)?;
             }
             Insn::Widen {
-                reg: _,
+                reg: arg,
                 target_size,
+                sign,
             } => {
-                let op_s = format!("WidenTo{}", target_size);
-                self.pp_def_default(pp, op_s.into(), insn.input_regs(), self_prec)?;
+                self.pp_ref(pp, arg, self_prec)?;
+                let ch = if sign { 'i' } else { 'u' };
+                write!(pp, "_{}{}", ch, 8 * target_size)?;
             }
             Insn::Arith(arith_op, a, b) => {
                 self.pp_ref(pp, a, self_prec)?;

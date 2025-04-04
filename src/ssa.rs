@@ -107,6 +107,7 @@ impl Program {
             Insn::Widen {
                 reg: _,
                 target_size,
+                sign: _,
             } => RegType::Bytes(target_size as usize),
             Insn::Arith(_, a, b) => {
                 let at = self.value_type(a);
