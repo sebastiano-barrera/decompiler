@@ -116,12 +116,6 @@ pub fn fold_load_store(
         LoadInt { mem, start, end }
     };
 
-    let effs = prog.block_effects(load_bid);
-    let eff_ndx_limit = effs
-        .into_iter()
-        .take_while(|eff_reg| eff_reg.reg_index() < load_reg.reg_index())
-        .count();
-    assert!(eff_ndx_limit < effs.len());
     let Some(store) = find_dominating_conflicting_store(prog, ref_reg, &load) else {
         return false;
     };
@@ -333,7 +327,47 @@ mod tests {
         ));
     }
 
-    // TODO:
-    // - single_bb_part
-    // - single_bb_concat
+    #[test]
+    fn single_bb_concat() {
+        let mut bld = mil::ProgramBuilder::new();
+        bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
+        bld.push(
+            Reg(1),
+            Insn::Const {
+                size: 8,
+                value: -123,
+            },
+        );
+        bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
+        bld.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
+        bld.push(
+            Reg(4),
+            Insn::StoreMem {
+                mem: Reg(0),
+                addr: Reg(3),
+                value: Reg(1),
+            },
+        );
+        bld.push(Reg(5), Insn::ArithK(mil::ArithOp::Add, Reg(3), 2));
+        bld.push(
+            Reg(6),
+            Insn::LoadMem {
+                mem: Reg(4),
+                addr: Reg(5),
+                size: 23,
+            },
+        );
+        bld.push(Reg(7), Insn::Ret(Reg(6)));
+        let program = bld.build();
+        let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
+
+        eprintln!("ssa pre-xform:\n{program:?}");
+        xform::canonical(&mut program);
+        eprintln!("ssa post-xform:\n{program:?}");
+
+        let ret = program.get(Reg(7)).unwrap().insn.get();
+        let Insn::Ret(ret_val) = ret else { panic!() };
+
+        panic!();
+    }
 }
