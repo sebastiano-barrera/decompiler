@@ -139,9 +139,10 @@ pub fn fold_load_store(
     ));
 
     let mid_size = (end_i - start_i).try_into().unwrap();
+    let mid_offset = (start_i - store.start).try_into().unwrap();
     let mid = prog.push_pure(Insn::Part {
         src: store.value,
-        offset: 0,
+        offset: mid_offset,
         size: mid_size,
     });
 
@@ -279,6 +280,57 @@ mod tests {
             let insn = program.get(Reg(6)).unwrap().insn.get();
             assert_eq!(insn, Insn::Ret(Reg(1)));
         }
+    }
+
+    #[test]
+    fn single_bb_part() {
+        let mut bld = mil::ProgramBuilder::new();
+        bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
+        bld.push(
+            Reg(1),
+            Insn::Const {
+                size: 8,
+                value: -123,
+            },
+        );
+        bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
+        bld.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
+        bld.push(
+            Reg(4),
+            Insn::StoreMem {
+                mem: Reg(0),
+                addr: Reg(3),
+                value: Reg(1),
+            },
+        );
+        bld.push(Reg(5), Insn::ArithK(mil::ArithOp::Add, Reg(3), 2));
+        bld.push(
+            Reg(6),
+            Insn::LoadMem {
+                mem: Reg(4),
+                addr: Reg(5),
+                size: 3,
+            },
+        );
+        bld.push(Reg(7), Insn::Ret(Reg(6)));
+        let program = bld.build();
+        let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
+
+        eprintln!("ssa pre-xform:\n{program:?}");
+        xform::canonical(&mut program);
+        eprintln!("ssa post-xform:\n{program:?}");
+
+        let ret = program.get(Reg(7)).unwrap().insn.get();
+        let Insn::Ret(ret_val) = ret else { panic!() };
+
+        assert!(matches!(
+            program.get(ret_val).unwrap().insn.get(),
+            Insn::Part {
+                src: Reg(1),
+                offset: 2,
+                size: 3
+            }
+        ));
     }
 
     // TODO:
