@@ -75,17 +75,11 @@ or logically)
 */
 
 use crate::{
-    cfg,
     mil::{self, Insn, Reg},
     ssa,
 };
 
-pub fn fold_load_store(
-    prog: &mut ssa::Program,
-    ref_reg: mil::Reg,
-    load_bid: cfg::BlockID,
-    load_reg: mil::Reg,
-) -> bool {
+pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil::Reg) -> bool {
     //
     // check if we're looking at a Load that we know how to transform
     // Load(ArithK(Add, ref_reg, offset), size)

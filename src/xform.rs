@@ -467,7 +467,7 @@ pub fn canonical(prog: &mut ssa::Program) {
             any_change = any_change || (insn != orig_insn);
 
             if let Some(mem_ref_reg) = mem_ref_reg {
-                let did_something = mem::fold_load_store(prog, mem_ref_reg, bid, reg);
+                let did_something = mem::fold_load_store(prog, mem_ref_reg, reg);
                 any_change = any_change || did_something;
             }
         }
