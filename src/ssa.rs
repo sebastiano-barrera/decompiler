@@ -744,6 +744,12 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
 
 pub fn eliminate_dead_code(_prog: &mut Program) {
     // TODO just delete this function
+    //
+    // in the current representation, effectful instructions that aren't
+    // referenced by a basic block and pure instructions that are not referenced
+    // (even indirectly) by any effectul instructions are effectively dead (not
+    // reachable via insns_rpo or similar iterators). No need to eliminate them
+    // from the data structures (other than maybe space savings)
 }
 
 #[derive(Clone, Debug)]
