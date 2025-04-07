@@ -163,7 +163,13 @@ impl<'a> Builder<'a> {
                         Self::RSP,
                         mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
                     );
-                    self.emit(v0, mil::Insn::StoreMem(Self::RSP, value));
+                    self.emit(
+                        v0,
+                        mil::Insn::StoreMem {
+                            addr: Self::RSP,
+                            value,
+                        },
+                    );
                 }
                 M::Pop => {
                     assert_eq!(insn.op_count(), 1);
@@ -177,8 +183,8 @@ impl<'a> Builder<'a> {
                     self.emit(
                         v0,
                         mil::Insn::LoadMem {
-                            reg: Self::RSP,
-                            size: sz as i32,
+                            addr: Self::RSP,
+                            size: sz as u32,
                         },
                     );
 
@@ -193,7 +199,7 @@ impl<'a> Builder<'a> {
                     self.emit(
                         Self::RBP,
                         mil::Insn::LoadMem {
-                            reg: Self::RSP,
+                            addr: Self::RSP,
                             size: 8,
                         },
                     );
@@ -905,20 +911,20 @@ impl<'a> Builder<'a> {
                 self.emit(
                     v0,
                     mil::Insn::LoadMem {
-                        reg: addr,
+                        addr,
                         size: memory_size.size().try_into().unwrap(),
                     },
                 );
 
                 match memory_size {
                     MemorySize::WordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 2 });
+                        self.emit(v0, mil::Insn::LoadMem { addr: v0, size: 2 });
                     }
                     MemorySize::DwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 4 });
+                        self.emit(v0, mil::Insn::LoadMem { addr: v0, size: 4 });
                     }
                     MemorySize::QwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { reg: v0, size: 8 });
+                        self.emit(v0, mil::Insn::LoadMem { addr: v0, size: 8 });
                     }
                     _ => {}
                 }
@@ -1009,7 +1015,7 @@ impl<'a> Builder<'a> {
                 assert_ne!(value, addr);
 
                 let v0 = self.reg_gen.next();
-                self.emit(v0, mil::Insn::StoreMem(addr, value));
+                self.emit(v0, mil::Insn::StoreMem { addr, value });
             }
         }
     }

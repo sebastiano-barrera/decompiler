@@ -148,11 +148,14 @@ pub enum Insn {
     TODO(&'static str),
 
     LoadMem {
-        reg: Reg,
-        size: i32,
+        addr: Reg,
+        size: u32,
     },
     #[assoc(has_side_effects = true)]
-    StoreMem(Reg, Reg),
+    StoreMem {
+        addr: Reg,
+        value: Reg,
+    },
 
     OverflowOf(Reg),
     CarryOf(Reg),
@@ -265,7 +268,7 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem { reg, size: _ }
+            | Insn::LoadMem { addr: reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -287,7 +290,7 @@ impl Insn {
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
-            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
+            | Insn::StoreMem { addr: a, value: b } => [Some(a), Some(b)],
         }
     }
 
@@ -330,7 +333,7 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem { reg, size: _ }
+            | Insn::LoadMem { addr: reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -352,7 +355,7 @@ impl Insn {
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
-            | Insn::StoreMem(a, b) => [Some(a), Some(b)],
+            | Insn::StoreMem { addr: a, value: b } => [Some(a), Some(b)],
         }
     }
 

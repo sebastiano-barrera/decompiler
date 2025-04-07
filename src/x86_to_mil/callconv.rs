@@ -188,7 +188,7 @@ fn pass_param<'a>(
                     },
                 );
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
-                bld.emit(addr, Insn::StoreMem(addr, eb));
+                bld.emit(addr, Insn::StoreMem { addr, value: eb });
             }
         }
     }
@@ -291,7 +291,7 @@ pub fn read_return_value<'a>(
                 let eb_offset = (8 * eb_ndx).try_into().unwrap();
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
                 let eb = bld.reg_gen.next();
-                bld.emit(eb, Insn::LoadMem { reg: addr, size: 8 });
+                bld.emit(eb, Insn::LoadMem { addr, size: 8 });
                 bld.emit(
                     ret_val,
                     Insn::Concat {

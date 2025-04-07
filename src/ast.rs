@@ -279,10 +279,11 @@ impl<'a> Ast<'a> {
             Insn::TODO(msg) => {
                 write!(pp, "TODO /* {} */", msg)?;
             }
-            Insn::LoadMem { reg, size } => {
-                self.pp_load_mem(pp, reg, size)?;
+            Insn::LoadMem { addr: reg, size } => {
+                let sz = size.try_into().unwrap();
+                self.pp_load_mem(pp, reg, sz)?;
             }
-            Insn::StoreMem(addr, value) => {
+            Insn::StoreMem { addr, value } => {
                 write!(pp, "[")?;
                 pp.open_box();
                 self.pp_ref(pp, addr, self_prec)?;
@@ -458,6 +459,6 @@ fn precedence(insn: &Insn) -> u8 {
         | Insn::JmpExtIf { .. }
         | Insn::TODO(_)
         | Insn::Upsilon { .. }
-        | Insn::StoreMem(_, _) => 0,
+        | Insn::StoreMem { addr: _, value: _ } => 0,
     }
 }

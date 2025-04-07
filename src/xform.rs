@@ -479,7 +479,13 @@ mod tests {
                 b.push(Reg(0), Insn::Arith(ArithOp::Add, Reg(1), Reg(0)));
                 b.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
                 b.push(Reg(4), Insn::Arith(ArithOp::Add, Reg(2), Reg(1)));
-                b.push(Reg(0), Insn::StoreMem(Reg(4), Reg(3)));
+                b.push(
+                    Reg(0),
+                    Insn::StoreMem {
+                        addr: Reg(4),
+                        value: Reg(3),
+                    },
+                );
                 b.push(Reg(3), Insn::Const { value: 0, size: 8 });
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(3), Reg(4)));
@@ -517,7 +523,13 @@ mod tests {
                 b.push(Reg(3), Insn::Arith(ArithOp::Mul, Reg(0), Reg(1)));
                 b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(2), Reg(3)));
                 b.push(Reg(3), Insn::Const { value: 1, size: 8 });
-                b.push(Reg(0), Insn::StoreMem(Reg(3), Reg(4)));
+                b.push(
+                    Reg(0),
+                    Insn::StoreMem {
+                        addr: Reg(3),
+                        value: Reg(4),
+                    },
+                );
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(3), Reg(4)));
                 b.push(Reg(0), Insn::Ret(Reg(4)));
