@@ -189,7 +189,7 @@ fn pass_param<'a>(
                 );
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
                 bld.emit(
-                    addr,
+                    Builder::MEM,
                     Insn::StoreMem {
                         mem: Builder::MEM,
                         addr,
