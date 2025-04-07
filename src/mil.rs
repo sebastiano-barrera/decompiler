@@ -255,7 +255,7 @@ impl Insn {
             | Insn::Widen {
                 reg,
                 target_size: _,
-                sign: _
+                sign: _,
             }
             | Insn::Not(reg)
             | Insn::Ret(reg)

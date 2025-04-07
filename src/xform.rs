@@ -433,7 +433,11 @@ pub fn canonical(prog: &mut ssa::Program) {
     // introduced by earlier transforms is going to be "dereferenced" and will
     // most likely end up dead and eliminated by the time this function returns.
 
-    for (_, reg) in prog.insns_rpo() {
+    let mut work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
+    // this way we can use 'pop' to get the correct order quickly
+    work.reverse();
+
+    while let Some(reg) = work.pop() {
         let insn_cell = &prog.get(reg).unwrap().insn;
         let insn = insn_cell.get();
         let insn = fold_get(insn, prog);
