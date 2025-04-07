@@ -291,7 +291,14 @@ pub fn read_return_value<'a>(
                 let eb_offset = (8 * eb_ndx).try_into().unwrap();
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
                 let eb = bld.reg_gen.next();
-                bld.emit(eb, Insn::LoadMem { addr, size: 8 });
+                bld.emit(
+                    eb,
+                    Insn::LoadMem {
+                        mem: Builder::MEM,
+                        addr,
+                        size: 8,
+                    },
+                );
                 bld.emit(
                     ret_val,
                     Insn::Concat {

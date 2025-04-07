@@ -279,9 +279,9 @@ impl<'a> Ast<'a> {
             Insn::TODO(msg) => {
                 write!(pp, "TODO /* {} */", msg)?;
             }
-            Insn::LoadMem { addr: reg, size } => {
+            Insn::LoadMem { mem: _, addr, size } => {
                 let sz = size.try_into().unwrap();
-                self.pp_load_mem(pp, reg, sz)?;
+                self.pp_load_mem(pp, addr, sz)?;
             }
             Insn::StoreMem { addr, value } => {
                 write!(pp, "[")?;

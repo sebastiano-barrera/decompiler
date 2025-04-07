@@ -152,6 +152,7 @@ pub enum Insn {
     TODO(&'static str),
 
     LoadMem {
+        mem: Reg,
         addr: Reg,
         size: u32,
     },
@@ -253,44 +254,51 @@ impl Insn {
             | Insn::Ancestral(_) => [None, None],
 
             Insn::Part {
-                src: reg,
+                src: addr,
                 offset: _,
                 size: _,
             }
-            | Insn::Get(reg)
-            | Insn::ArithK(_, reg, _)
+            | Insn::Get(addr)
+            | Insn::ArithK(_, addr, _)
             | Insn::Widen {
-                reg,
+                reg: addr,
                 target_size: _,
                 sign: _,
             }
-            | Insn::Not(reg)
-            | Insn::Ret(reg)
-            | Insn::JmpInd(reg)
-            | Insn::JmpExtIf { cond: reg, addr: _ }
+            | Insn::Not(addr)
+            | Insn::Ret(addr)
+            | Insn::JmpInd(addr)
+            | Insn::JmpExtIf {
+                cond: addr,
+                addr: _,
+            }
             | Insn::JmpIf {
-                cond: reg,
+                cond: addr,
                 target: _,
             }
-            | Insn::LoadMem { addr: reg, size: _ }
-            | Insn::OverflowOf(reg)
-            | Insn::CarryOf(reg)
-            | Insn::SignOf(reg)
-            | Insn::IsZero(reg)
-            | Insn::Parity(reg)
-            | Insn::Call(reg)
-            | Insn::CArg(reg)
+            | Insn::OverflowOf(addr)
+            | Insn::CarryOf(addr)
+            | Insn::SignOf(addr)
+            | Insn::IsZero(addr)
+            | Insn::Parity(addr)
+            | Insn::Call(addr)
+            | Insn::CArg(addr)
             | Insn::StructGetMember {
-                struct_value: reg,
+                struct_value: addr,
                 name: _,
                 size: _,
             }
             | Insn::Upsilon {
-                value: reg,
+                value: addr,
                 phi_ref: _,
-            } => [Some(reg), None],
+            } => [Some(addr), None],
 
             Insn::Concat { lo: a, hi: b }
+            | Insn::LoadMem {
+                mem: a,
+                addr: b,
+                size: _,
+            }
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)
@@ -337,7 +345,6 @@ impl Insn {
                 cond: reg,
                 target: _,
             }
-            | Insn::LoadMem { addr: reg, size: _ }
             | Insn::OverflowOf(reg)
             | Insn::CarryOf(reg)
             | Insn::SignOf(reg)
@@ -356,6 +363,11 @@ impl Insn {
             } => [Some(reg), None],
 
             Insn::Concat { lo: a, hi: b }
+            | Insn::LoadMem {
+                mem: a,
+                addr: b,
+                size: _,
+            }
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
             | Insn::Bool(_, a, b)

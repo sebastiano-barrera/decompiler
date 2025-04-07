@@ -73,6 +73,7 @@ impl<'a> Builder<'a> {
         bld.init_ancestral(Self::ZMM13, ANC_ZMM13, RegType::Bytes(64));
         bld.init_ancestral(Self::ZMM14, ANC_ZMM14, RegType::Bytes(64));
         bld.init_ancestral(Self::ZMM15, ANC_ZMM15, RegType::Bytes(64));
+        bld.init_ancestral(Self::MEM, ANC_MEM, RegType::Bytes(64));
 
         bld
     }
@@ -183,6 +184,7 @@ impl<'a> Builder<'a> {
                     self.emit(
                         v0,
                         mil::Insn::LoadMem {
+                            mem: Self::MEM,
                             addr: Self::RSP,
                             size: sz as u32,
                         },
@@ -199,6 +201,7 @@ impl<'a> Builder<'a> {
                     self.emit(
                         Self::RBP,
                         mil::Insn::LoadMem {
+                            mem: Self::MEM,
                             addr: Self::RSP,
                             size: 8,
                         },
@@ -911,6 +914,7 @@ impl<'a> Builder<'a> {
                 self.emit(
                     v0,
                     mil::Insn::LoadMem {
+                        mem: Self::MEM,
                         addr,
                         size: memory_size.size().try_into().unwrap(),
                     },
@@ -918,13 +922,34 @@ impl<'a> Builder<'a> {
 
                 match memory_size {
                     MemorySize::WordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { addr: v0, size: 2 });
+                        self.emit(
+                            v0,
+                            mil::Insn::LoadMem {
+                                mem: Self::MEM,
+                                addr: v0,
+                                size: 2,
+                            },
+                        );
                     }
                     MemorySize::DwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { addr: v0, size: 4 });
+                        self.emit(
+                            v0,
+                            mil::Insn::LoadMem {
+                                mem: Self::MEM,
+                                addr: v0,
+                                size: 4,
+                            },
+                        );
                     }
                     MemorySize::QwordOffset => {
-                        self.emit(v0, mil::Insn::LoadMem { addr: v0, size: 8 });
+                        self.emit(
+                            v0,
+                            mil::Insn::LoadMem {
+                                mem: Self::MEM,
+                                addr: v0,
+                                size: 8,
+                            },
+                        );
                     }
                     _ => {}
                 }
@@ -1160,8 +1185,10 @@ impl<'a> Builder<'a> {
     const ZMM14: mil::Reg = mil::Reg(42);
     const ZMM15: mil::Reg = mil::Reg(43);
 
-    const R_TMP_FIRST: mil::Reg = mil::Reg(43);
-    const R_TMP_LAST: mil::Reg = mil::Reg(63);
+    const MEM: mil::Reg = mil::Reg(44);
+
+    const R_TMP_FIRST: mil::Reg = mil::Reg(45);
+    const R_TMP_LAST: mil::Reg = mil::Reg(65);
 
     fn reset_reg_gen() -> RegGen {
         RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)
@@ -1280,6 +1307,8 @@ define_ancestral_name!(ANC_ZMM12, "ZMM12");
 define_ancestral_name!(ANC_ZMM13, "ZMM13");
 define_ancestral_name!(ANC_ZMM14, "ZMM14");
 define_ancestral_name!(ANC_ZMM15, "ZMM15");
+
+define_ancestral_name!(ANC_MEM, "memory");
 
 define_ancestral_name!(ANC_ARG0, "arg0");
 define_ancestral_name!(ANC_ARG1, "arg1");
