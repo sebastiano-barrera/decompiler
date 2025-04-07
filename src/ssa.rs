@@ -122,22 +122,22 @@ impl Program {
             // TODO This might have to change based on the use of calling
             // convention and function type info
             Insn::Call(_) => RegType::Bytes(8),
-            Insn::CArg(_) => RegType::Effect,
-            Insn::Ret(_) => RegType::Effect,
-            Insn::JmpInd(_) => RegType::Effect,
-            Insn::Jmp(_) => RegType::Effect,
-            Insn::JmpExt(_) => RegType::Effect,
-            Insn::JmpIf { .. } => RegType::Effect,
-            Insn::JmpExtIf { .. } => RegType::Effect,
-            Insn::TODO(_) => RegType::Effect,
+            Insn::CArg(_) => RegType::Undefined,
+            Insn::Ret(_) => RegType::Unit,
+            Insn::JmpInd(_) => RegType::Unit,
+            Insn::Jmp(_) => RegType::Unit,
+            Insn::JmpExt(_) => RegType::Unit,
+            Insn::JmpIf { .. } => RegType::Unit,
+            Insn::JmpExtIf { .. } => RegType::Unit,
+            Insn::TODO(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
-            Insn::StoreMem(_, _) => RegType::Effect,
-            Insn::OverflowOf(_) => RegType::Effect,
-            Insn::CarryOf(_) => RegType::Effect,
-            Insn::SignOf(_) => RegType::Effect,
-            Insn::IsZero(_) => RegType::Effect,
-            Insn::Parity(_) => RegType::Effect,
-            Insn::Undefined => RegType::Effect,
+            Insn::StoreMem { addr: _, value: _ } => RegType::MemoryEffect,
+            Insn::OverflowOf(_) => RegType::Bool,
+            Insn::CarryOf(_) => RegType::Bool,
+            Insn::SignOf(_) => RegType::Bool,
+            Insn::IsZero(_) => RegType::Bool,
+            Insn::Parity(_) => RegType::Bool,
+            Insn::Undefined => RegType::Undefined,
             Insn::Phi => {
                 let mut ys = self.upsilons_of_phi(reg);
                 let Some(y) = ys.next() else {
@@ -151,7 +151,7 @@ impl Program {
                 .ancestor_type(anc_name)
                 .expect("ancestor has no defined type"),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
-            Insn::Upsilon { .. } => RegType::Effect,
+            Insn::Upsilon { .. } => RegType::Unit,
         }
     }
 
