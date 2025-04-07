@@ -67,8 +67,8 @@ impl<'a> Ast<'a> {
             if ndx > 0 {
                 writeln!(pp)?;
             }
-            self.pp_labeled_inputs(pp, reg)?;
-            self.pp_def(pp, reg, 0)?;
+            self.pp_labeled_inputs(pp, *reg)?;
+            self.pp_def(pp, *reg, 0)?;
         }
 
         match block_cont {
@@ -84,7 +84,7 @@ impl<'a> Ast<'a> {
                 side: (pos_pred_ndx, pos_bid),
             } => {
                 let last_insn_reg = self.ssa.block_effects(bid).last().unwrap();
-                let last_insn = self.ssa.get(last_insn_reg).unwrap().insn.get();
+                let last_insn = self.ssa.get(*last_insn_reg).unwrap().insn.get();
                 if !matches!(last_insn, Insn::JmpIf { .. }) {
                     panic!("block with BlockCont::Alt continuation must end with a JmpIf");
                 }

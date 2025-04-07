@@ -64,8 +64,8 @@ impl Program {
         InsnRPOIter::new(self)
     }
 
-    pub fn block_effects(&self, bid: cfg::BlockID) -> impl '_ + Iterator<Item = mil::Reg> {
-        self.bbs[bid].effects.iter().copied()
+    pub fn block_effects(&self, bid: cfg::BlockID) -> &[mil::Reg] {
+        &self.bbs[bid].effects
     }
 
     pub fn push_pure(&mut self, insn: mil::Insn) -> mil::Reg {
