@@ -158,17 +158,17 @@ impl<'a> Builder<'a> {
                     assert_eq!(insn.op_count(), 1);
 
                     let (value, sz) = self.emit_read(&insn, 0);
-                    let v0 = self.reg_gen.next();
 
                     self.emit(
                         Self::RSP,
                         mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
                     );
                     self.emit(
-                        v0,
+                        Self::MEM,
                         mil::Insn::StoreMem {
                             addr: Self::RSP,
                             value,
+                            mem: Self::MEM,
                         },
                     );
                 }
@@ -186,7 +186,7 @@ impl<'a> Builder<'a> {
                         mil::Insn::LoadMem {
                             mem: Self::MEM,
                             addr: Self::RSP,
-                            size: sz as u32,
+                            size: sz.try_into().unwrap(),
                         },
                     );
 
@@ -1039,8 +1039,14 @@ impl<'a> Builder<'a> {
                 self.emit_compute_address_into(insn, addr);
                 assert_ne!(value, addr);
 
-                let v0 = self.reg_gen.next();
-                self.emit(v0, mil::Insn::StoreMem { addr, value });
+                self.emit(
+                    Self::MEM,
+                    mil::Insn::StoreMem {
+                        mem: Self::MEM,
+                        addr,
+                        value,
+                    },
+                );
             }
         }
     }

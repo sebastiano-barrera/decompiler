@@ -283,7 +283,11 @@ impl<'a> Ast<'a> {
                 let sz = size.try_into().unwrap();
                 self.pp_load_mem(pp, addr, sz)?;
             }
-            Insn::StoreMem { addr, value } => {
+            Insn::StoreMem {
+                mem: _,
+                addr,
+                value,
+            } => {
                 write!(pp, "[")?;
                 pp.open_box();
                 self.pp_ref(pp, addr, self_prec)?;
@@ -351,7 +355,7 @@ impl<'a> Ast<'a> {
         &mut self,
         pp: &mut W,
         op_s: Cow<'_, str>,
-        args: [Option<&Reg>; 2],
+        args: [Option<&Reg>; 3],
         self_prec: u8,
     ) -> Result<(), std::io::Error> {
         write!(pp, "{} (", op_s)?;
@@ -459,6 +463,6 @@ fn precedence(insn: &Insn) -> u8 {
         | Insn::JmpExtIf { .. }
         | Insn::TODO(_)
         | Insn::Upsilon { .. }
-        | Insn::StoreMem { addr: _, value: _ } => 0,
+        | Insn::StoreMem { .. } => 0,
     }
 }

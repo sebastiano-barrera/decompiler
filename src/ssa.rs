@@ -131,7 +131,7 @@ impl Program {
             Insn::JmpExtIf { .. } => RegType::Unit,
             Insn::TODO(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
-            Insn::StoreMem { addr: _, value: _ } => RegType::MemoryEffect,
+            Insn::StoreMem { .. } => RegType::MemoryEffect,
             Insn::OverflowOf(_) => RegType::Bool,
             Insn::CarryOf(_) => RegType::Bool,
             Insn::SignOf(_) => RegType::Bool,

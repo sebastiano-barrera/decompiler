@@ -188,7 +188,14 @@ fn pass_param<'a>(
                     },
                 );
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
-                bld.emit(addr, Insn::StoreMem { addr, value: eb });
+                bld.emit(
+                    addr,
+                    Insn::StoreMem {
+                        mem: Builder::MEM,
+                        addr,
+                        value: eb,
+                    },
+                );
             }
         }
     }

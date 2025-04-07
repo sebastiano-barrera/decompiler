@@ -158,6 +158,7 @@ pub enum Insn {
     },
     #[assoc(has_side_effects = true)]
     StoreMem {
+        mem: Reg,
         addr: Reg,
         value: Reg,
     },
@@ -240,7 +241,7 @@ define_ancestral_name!(ANC_STACK_BOTTOM, "stack_bottom");
 
 impl Insn {
     // TODO There must be some macro magic to generate these two functions
-    pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 2] {
+    pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 3] {
         match self {
             Insn::Void
             | Insn::False
@@ -251,7 +252,7 @@ impl Insn {
             | Insn::TODO(_)
             | Insn::Undefined
             | Insn::Phi
-            | Insn::Ancestral(_) => [None, None],
+            | Insn::Ancestral(_) => [const { None }; 3],
 
             Insn::Part {
                 src: addr,
@@ -291,7 +292,7 @@ impl Insn {
             | Insn::Upsilon {
                 value: addr,
                 phi_ref: _,
-            } => [Some(addr), None],
+            } => [Some(addr), None, None],
 
             Insn::Concat { lo: a, hi: b }
             | Insn::LoadMem {
@@ -301,8 +302,13 @@ impl Insn {
             }
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
-            | Insn::Bool(_, a, b)
-            | Insn::StoreMem { addr: a, value: b } => [Some(a), Some(b)],
+            | Insn::Bool(_, a, b) => [Some(a), Some(b), None],
+
+            Insn::StoreMem {
+                addr: a,
+                value: b,
+                mem: c,
+            } => [Some(a), Some(b), Some(c)],
         }
     }
 
@@ -312,7 +318,7 @@ impl Insn {
     pub fn input_regs_iter_mut<'s>(&'s mut self) -> impl 's + Iterator<Item = &'s mut Reg> {
         self.input_regs_mut().into_iter().flatten()
     }
-    pub fn input_regs(&self) -> [Option<&Reg>; 2] {
+    pub fn input_regs(&self) -> [Option<&Reg>; 3] {
         match self {
             Insn::Void
             | Insn::False
@@ -323,44 +329,47 @@ impl Insn {
             | Insn::TODO(_)
             | Insn::Undefined
             | Insn::Phi
-            | Insn::Ancestral(_) => [None, None],
+            | Insn::Ancestral(_) => [const { None }; 3],
 
             Insn::Part {
-                src: reg,
+                src: addr,
                 offset: _,
                 size: _,
             }
-            | Insn::Get(reg)
-            | Insn::ArithK(_, reg, _)
+            | Insn::Get(addr)
+            | Insn::ArithK(_, addr, _)
             | Insn::Widen {
-                reg,
+                reg: addr,
                 target_size: _,
                 sign: _,
             }
-            | Insn::Not(reg)
-            | Insn::Ret(reg)
-            | Insn::JmpInd(reg)
-            | Insn::JmpExtIf { cond: reg, addr: _ }
+            | Insn::Not(addr)
+            | Insn::Ret(addr)
+            | Insn::JmpInd(addr)
+            | Insn::JmpExtIf {
+                cond: addr,
+                addr: _,
+            }
             | Insn::JmpIf {
-                cond: reg,
+                cond: addr,
                 target: _,
             }
-            | Insn::OverflowOf(reg)
-            | Insn::CarryOf(reg)
-            | Insn::SignOf(reg)
-            | Insn::IsZero(reg)
-            | Insn::Parity(reg)
-            | Insn::Call(reg)
-            | Insn::CArg(reg)
+            | Insn::OverflowOf(addr)
+            | Insn::CarryOf(addr)
+            | Insn::SignOf(addr)
+            | Insn::IsZero(addr)
+            | Insn::Parity(addr)
+            | Insn::Call(addr)
+            | Insn::CArg(addr)
             | Insn::StructGetMember {
-                struct_value: reg,
+                struct_value: addr,
                 name: _,
                 size: _,
             }
             | Insn::Upsilon {
-                value: reg,
+                value: addr,
                 phi_ref: _,
-            } => [Some(reg), None],
+            } => [Some(addr), None, None],
 
             Insn::Concat { lo: a, hi: b }
             | Insn::LoadMem {
@@ -370,8 +379,13 @@ impl Insn {
             }
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
-            | Insn::Bool(_, a, b)
-            | Insn::StoreMem { addr: a, value: b } => [Some(a), Some(b)],
+            | Insn::Bool(_, a, b) => [Some(a), Some(b), None],
+
+            Insn::StoreMem {
+                addr: a,
+                value: b,
+                mem: c,
+            } => [Some(a), Some(b), Some(c)],
         }
     }
 
