@@ -1,7 +1,9 @@
 use crate::{
     mil::{self, ArithOp, Insn, RegType},
-    ssa,
+    ssa, x86_to_mil,
 };
+
+mod mem;
 
 fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>) -> Insn {
     use mil::{ArithOp, Insn};
@@ -433,31 +435,56 @@ pub fn canonical(prog: &mut ssa::Program) {
     // introduced by earlier transforms is going to be "dereferenced" and will
     // most likely end up dead and eliminated by the time this function returns.
 
-    let mut work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
-    // this way we can use 'pop' to get the correct order quickly
-    work.reverse();
+    // TODO make this architecture agnostic
+    let mem_ref_reg = find_mem_ref(prog);
 
-    while let Some(reg) = work.pop() {
-        let insn_cell = &prog.get(reg).unwrap().insn;
-        let insn = insn_cell.get();
-        let insn = fold_get(insn, prog);
-        let insn = fold_subregs(insn, prog);
-        let insn = fold_concat_void(insn, prog);
-        let insn = fold_part_part(insn, prog);
-        let insn = fold_part_widen(insn, prog);
-        let insn = fold_part_concat(insn, prog);
-        let insn = fold_part_null(insn, prog);
-        let insn = fold_part_void(insn);
-        let insn = fold_widen_null(insn, prog);
-        let insn = fold_widen_const(insn, prog);
-        let insn = fold_bitops(insn);
-        let insn = fold_constants(insn, prog, &mut addl_slots);
-        insn_cell.set(insn);
+    let mut any_change = true;
+    while any_change {
+        any_change = false;
+
+        let mut work: Vec<_> = prog.insns_rpo().collect();
+        // this way we can use 'pop' to get the correct order quickly
+        work.reverse();
+
+        while let Some((bid, reg)) = work.pop() {
+            let insn_cell = &prog.get(reg).unwrap().insn;
+            let orig_insn = insn_cell.get();
+            let insn = orig_insn;
+            let insn = fold_get(insn, prog);
+            let insn = fold_subregs(insn, prog);
+            let insn = fold_concat_void(insn, prog);
+            let insn = fold_part_part(insn, prog);
+            let insn = fold_part_widen(insn, prog);
+            let insn = fold_part_concat(insn, prog);
+            let insn = fold_part_null(insn, prog);
+            let insn = fold_part_void(insn);
+            let insn = fold_widen_null(insn, prog);
+            let insn = fold_widen_const(insn, prog);
+            let insn = fold_bitops(insn);
+            let insn = fold_constants(insn, prog, &mut addl_slots);
+            insn_cell.set(insn);
+
+            any_change = any_change || (insn != orig_insn);
+
+            if let Some(mem_ref_reg) = mem_ref_reg {
+                let did_something = mem::fold_load_store(prog, mem_ref_reg, bid, reg);
+                any_change = any_change || did_something;
+            }
+        }
     }
 
     prog.assert_invariants();
 
     ssa::eliminate_dead_code(prog);
+}
+
+fn find_mem_ref(prog: &ssa::Program) -> Option<mil::Reg> {
+    (0..prog.reg_count())
+        .map(mil::Reg)
+        .find(|reg| match prog.get(*reg).unwrap().insn.get() {
+            Insn::Ancestral(x86_to_mil::ANC_RSP) => true,
+            _ => false,
+        })
 }
 
 #[cfg(test)]
@@ -469,11 +496,14 @@ mod tests {
         use crate::{mil, ssa, xform};
         use mil::{ArithOp, Insn, Reg};
 
+        define_ancestral_name!(ANC_MEM, "memory");
+
         #[test]
         fn addk() {
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+                b.push(Reg(20), Insn::Ancestral(ANC_MEM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
                 b.push(Reg(0), Insn::Arith(ArithOp::Add, Reg(1), Reg(0)));
@@ -482,6 +512,7 @@ mod tests {
                 b.push(
                     Reg(0),
                     Insn::StoreMem {
+                        mem: Reg(20),
                         addr: Reg(4),
                         value: Reg(3),
                     },
@@ -517,6 +548,7 @@ mod tests {
             let prog = {
                 let mut b = mil::ProgramBuilder::new();
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+                b.push(Reg(20), Insn::Ancestral(ANC_MEM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
                 b.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(0)));
@@ -526,6 +558,7 @@ mod tests {
                 b.push(
                     Reg(0),
                     Insn::StoreMem {
+                        mem: Reg(20),
                         addr: Reg(3),
                         value: Reg(4),
                     },
