@@ -5,7 +5,7 @@ use crate::{
 
 mod mem;
 
-fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>) -> Insn {
+fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
     use mil::{ArithOp, Insn};
 
     /// Evaluate expression (ak (op) bk)
@@ -52,15 +52,15 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>
     */
 
     let (mut op, mut lr, mut li, mut ri) = match insn {
-        Insn::Arith(op, a, b) => {
-            let li = prog.get(a).unwrap().insn.get();
-            let ri = prog.get(b).unwrap().insn.get();
+        Insn::Arith(op, lr, rr) => {
+            let li = prog.get(lr).unwrap().insn.get();
+            let ri = prog.get(rr).unwrap().insn.get();
 
             // ensure the const is on the right
             if let Insn::Const { .. } = li {
-                (op, b, ri, li)
+                (op, rr, ri, li)
             } else {
-                (op, a, li, ri)
+                (op, lr, li, ri)
             }
         }
         Insn::ArithK(op, a, bk) => (
@@ -92,9 +92,8 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>
             if l_op == r_op && l_op == op =>
         {
             if let Some(k) = assoc_const(op, lk, rk) {
-                lr = addl.pop().expect("insufficient addl slots");
-                li = fold_constants(Insn::Arith(op, llr, rlr), prog, addl);
-                prog.get(lr).unwrap().insn.set(li);
+                li = fold_constants(Insn::Arith(op, llr, rlr), prog);
+                lr = prog.push_pure(li);
                 ri = Insn::Const { value: k, size: 8 };
             }
         }
@@ -118,10 +117,9 @@ fn fold_constants(insn: mil::Insn, prog: &ssa::Program, addl: &mut Vec<mil::Reg>
         (ArithOp::Mul, _, Insn::Const { value: 1, .. }) => Insn::Get(lr),
 
         (op, _, Insn::Const { value: kr, .. }) => Insn::ArithK(op, lr, kr),
-        (op, _, ri) => {
-            let rr = addl.pop().expect("insufficient addl slots");
-            prog.get(rr).unwrap().insn.set(ri);
-            Insn::Arith(op, lr, rr)
+        _ => {
+            // dang it, we couldn't hack it
+            insn
         }
     }
 }
@@ -416,14 +414,6 @@ fn fold_part_void(insn: Insn) -> Insn {
 pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
 
-    // "additional slots": extra dummy nodes, initialized to a "nop",  used by
-    // some xforms as 'free space' to write new instructions without requiring a
-    // `&mut Program`.
-    //
-    // only pure insns can be written into add'l slots without breaking
-    // invariants; assert_invariants will check this later
-    let mut addl_slots: Vec<_> = (0..20).map(|_| prog.push_pure(Insn::Void)).collect();
-
     // apply transforms in lockstep
     //
     // in this setup, we scan the program once; for each instruction, we apply
@@ -442,13 +432,12 @@ pub fn canonical(prog: &mut ssa::Program) {
     while any_change {
         any_change = false;
 
-        let mut work: Vec<_> = prog.insns_rpo().collect();
+        let mut work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
         // this way we can use 'pop' to get the correct order quickly
         work.reverse();
 
-        while let Some((bid, reg)) = work.pop() {
-            let insn_cell = &prog.get(reg).unwrap().insn;
-            let orig_insn = insn_cell.get();
+        while let Some(reg) = work.pop() {
+            let orig_insn = prog.get(reg).unwrap().insn.get();
             let insn = orig_insn;
             let insn = fold_get(insn, prog);
             let insn = fold_subregs(insn, prog);
@@ -461,8 +450,8 @@ pub fn canonical(prog: &mut ssa::Program) {
             let insn = fold_widen_null(insn, prog);
             let insn = fold_widen_const(insn, prog);
             let insn = fold_bitops(insn);
-            let insn = fold_constants(insn, prog, &mut addl_slots);
-            insn_cell.set(insn);
+            let insn = fold_constants(insn, prog);
+            prog.get(reg).unwrap().insn.set(insn);
 
             any_change = any_change || (insn != orig_insn);
 
