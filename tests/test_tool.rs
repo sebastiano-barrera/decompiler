@@ -1,4 +1,4 @@
-use decompiler::{pp::PrettyPrinter, test_tool};
+use decompiler::{pp, test_tool};
 
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
@@ -57,13 +57,18 @@ impl Exe {
 
     fn process_function(&self, function_name: &str) -> String {
         let mut buf = Vec::new();
-        let mut pp = PrettyPrinter::start(&mut buf);
+        let mut out = std::io::stderr().lock();
+        let mut wrt = pp::MultiWriter::new();
+        wrt.add_writer((&mut buf) as &mut dyn std::io::Write);
+        wrt.add_writer((&mut out) as _);
+
+        let mut pp = pp::PrettyPrinter::start(&mut wrt);
         self.get_or_init()
             .process_function(function_name, &mut pp)
             .expect("function decompilation failed");
 
-        let out = String::from_utf8(buf).unwrap();
-        out
+        drop(wrt);
+        String::from_utf8(buf).unwrap()
     }
 }
 

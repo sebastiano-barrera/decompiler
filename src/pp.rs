@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use smallvec::SmallVec;
+
 pub struct PrettyPrinter<W> {
     wrt: W,
     indent_stack: Vec<u16>,
@@ -77,6 +79,33 @@ pub struct IoAsFmt<W>(pub W);
 impl<W: std::io::Write> std::fmt::Write for IoAsFmt<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         self.0.write_all(s.as_bytes()).unwrap();
+        Ok(())
+    }
+}
+
+pub struct MultiWriter<W>(SmallVec<[W; 4]>);
+
+impl<W> MultiWriter<W> {
+    pub fn new() -> Self {
+        MultiWriter(SmallVec::new())
+    }
+
+    pub fn add_writer(&mut self, wrt: W) {
+        self.0.push(wrt);
+    }
+}
+impl<W: std::io::Write> std::io::Write for MultiWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        for wrt in &mut self.0 {
+            let _ = wrt.write(buf);
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        for wrt in &mut self.0 {
+            let _ = wrt.flush();
+        }
         Ok(())
     }
 }
