@@ -449,6 +449,28 @@ impl<'a> Builder<'a> {
                         }
                     }
 
+                    // TODO Use function type info to use the proper number of
+                    // arguments (also allow different calling conventions)
+                    // For now, we always assume exactly 4 simple
+                    // integer/pointer arguments, using the sysv amd64 call
+                    // conv.
+                    let v1 = self.reg_gen.next();
+                    for (ndx, arch_reg) in
+                        [Register::RDI, Register::RSI, Register::RDX, Register::RCX]
+                            .into_iter()
+                            .rev()
+                            .enumerate()
+                    {
+                        let value = Self::xlat_reg(arch_reg);
+                        self.emit(
+                            v1,
+                            mil::Insn::CArg {
+                                value,
+                                next_arg: if ndx == 0 { None } else { Some(v1) },
+                            },
+                        );
+                    }
+
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
                         sz, 8,
@@ -456,17 +478,13 @@ impl<'a> Builder<'a> {
                         sz
                     );
                     let ret_reg = Self::xlat_reg(Register::RAX);
-                    self.emit(ret_reg, mil::Insn::Call(callee));
-
-                    // TODO Use function type info to use the proper number of arguments (also
-                    // allow different calling conventions)
-                    // For now, we always assume exactly 4 arguments, using the sysv amd64 call
-                    // conv.
-                    for arch_reg in [Register::RDI, Register::RSI, Register::RDX, Register::RCX] {
-                        let value = Self::xlat_reg(arch_reg);
-                        let v1 = self.reg_gen.next();
-                        self.emit(v1, mil::Insn::CArg(value));
-                    }
+                    self.emit(
+                        ret_reg,
+                        mil::Insn::Call {
+                            callee,
+                            first_arg: Some(v1),
+                        },
+                    );
 
                     self.emit(Self::CF, mil::Insn::Undefined);
                     self.emit(Self::PF, mil::Insn::Undefined);

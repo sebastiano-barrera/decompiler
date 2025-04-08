@@ -56,8 +56,16 @@ impl Program {
         self.inner.len()
     }
 
-    pub fn get_call_args(&self, reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        self.inner.get_call_args(reg.0)
+    pub fn get_call_args(&self, mut arg: Option<mil::Reg>) -> impl '_ + Iterator<Item = mil::Reg> {
+        std::iter::repeat_with(move || {
+            let insn = self.get(arg?).unwrap().insn.get();
+            let mil::Insn::CArg { value, next_arg } = insn else {
+                panic!("CArg must be chained to other CArgs only")
+            };
+            arg = next_arg;
+            Some(value)
+        })
+        .map_while(|x| x)
     }
 
     pub fn insns_rpo(&self) -> InsnRPOIter {
@@ -121,8 +129,8 @@ impl Program {
             Insn::Not(_) => RegType::Bool,
             // TODO This might have to change based on the use of calling
             // convention and function type info
-            Insn::Call(_) => RegType::Bytes(8),
-            Insn::CArg(_) => RegType::Undefined,
+            Insn::Call { .. } => RegType::Bytes(8),
+            Insn::CArg { value, next_arg: _ } => self.value_type(value),
             Insn::Ret(_) => RegType::Unit,
             Insn::JmpInd(_) => RegType::Unit,
             Insn::Jmp(_) => RegType::Unit,

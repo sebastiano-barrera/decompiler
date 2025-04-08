@@ -259,11 +259,11 @@ impl<'a> Ast<'a> {
             Insn::Not(_) => {
                 self.pp_def_default(pp, "!".into(), insn.input_regs(), self_prec)?;
             }
-            Insn::Call(callee) => {
+            Insn::Call { callee, first_arg } => {
                 self.pp_ref(pp, callee, self_prec)?;
                 write!(pp, "(")?;
                 pp.open_box();
-                for (ndx, arg) in self.ssa.get_call_args(reg).enumerate() {
+                for (ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
                     if ndx > 0 {
                         writeln!(pp, ",")?;
                     }
@@ -272,7 +272,6 @@ impl<'a> Ast<'a> {
                 pp.close_box();
                 write!(pp, ")")?;
             }
-            Insn::CArg(_) => panic!("CArg not handled via this path!"),
             Insn::Ret(_) => {
                 self.pp_def_default(pp, "Ret".into(), insn.input_regs(), self_prec)?;
             }
@@ -342,6 +341,9 @@ impl<'a> Ast<'a> {
                 self.pp_def(pp, value, 0)?;
                 pp.close_box();
                 write!(pp, ";")?;
+            }
+            Insn::CArg { .. } => {
+                unreachable!("CArg should be handled via the Call it belongs to!")
             }
         };
 
@@ -437,7 +439,7 @@ fn precedence(insn: &Insn) -> u8 {
         Insn::Part { .. } => 254,
         Insn::Concat { .. } => 253,
 
-        Insn::Call(_) => 251,
+        Insn::Call { .. } => 251,
         Insn::Not(_) => 250,
         Insn::Widen { .. } => 249,
 
@@ -451,7 +453,6 @@ fn precedence(insn: &Insn) -> u8 {
 
         Insn::Bool(_, _, _) => 199,
         Insn::Cmp(_, _, _) => 197,
-        Insn::CArg(_) => panic!("CArg undefined precedence"),
 
         // effectful instructions are basically *always* done last due to their
         // position in the printed syntax
@@ -464,5 +465,7 @@ fn precedence(insn: &Insn) -> u8 {
         | Insn::TODO(_)
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,
+
+        Insn::CArg { .. } => panic!("CArg undefined precedence"),
     }
 }

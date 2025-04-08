@@ -1,5 +1,5 @@
 use enum_assoc::Assoc;
-/// Machine-Independent Language
+/// MaInsn::Call { field1: _ }dent Language
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
 use std::{cell::Cell, collections::HashMap, ops::Range};
@@ -113,21 +113,16 @@ pub enum Insn {
     Bool(BoolOp, Reg, Reg),
     Not(Reg),
 
-    // call args are represented by a sequence of adjacent CArg instructions,
-    // immediately following the "main" Call insn:
-    //  r0 <- [compute callee]
-    //  r1 <- [compute arg 0]
-    //  r2 <- [compute arg 1]
-    //  r3 <- call r0
-    //  r4 <- carg r1
-    //  r5 <- carg r2
-    //  r6 <- carg r3
-    // destination vreg r3 is for the return value. r4, r5, r6 are entirely
-    // fictitious, they don't correspond to any value.
     #[assoc(has_side_effects = true)]
-    Call(Reg),
-    #[assoc(has_side_effects = true)]
-    CArg(Reg),
+    Call {
+        callee: Reg,
+        first_arg: Option<Reg>,
+    },
+    CArg {
+        value: Reg,
+        next_arg: Option<Reg>,
+    },
+
     #[assoc(has_side_effects = true)]
     Ret(Reg),
     #[assoc(has_side_effects = true)]
@@ -255,44 +250,44 @@ impl Insn {
             | Insn::Ancestral(_) => [const { None }; 3],
 
             Insn::Part {
-                src: addr,
+                src: a,
                 offset: _,
                 size: _,
             }
-            | Insn::Get(addr)
-            | Insn::ArithK(_, addr, _)
+            | Insn::Get(a)
+            | Insn::ArithK(_, a, _)
             | Insn::Widen {
-                reg: addr,
+                reg: a,
                 target_size: _,
                 sign: _,
             }
-            | Insn::Not(addr)
-            | Insn::Ret(addr)
-            | Insn::JmpInd(addr)
-            | Insn::JmpExtIf {
-                cond: addr,
-                addr: _,
+            | Insn::Not(a)
+            | Insn::Ret(a)
+            | Insn::JmpInd(a)
+            | Insn::JmpExtIf { cond: a, addr: _ }
+            | Insn::JmpIf { cond: a, target: _ }
+            | Insn::OverflowOf(a)
+            | Insn::CarryOf(a)
+            | Insn::SignOf(a)
+            | Insn::IsZero(a)
+            | Insn::Parity(a)
+            | Insn::Call {
+                callee: a,
+                first_arg: None,
             }
-            | Insn::JmpIf {
-                cond: addr,
-                target: _,
+            | Insn::CArg {
+                value: a,
+                next_arg: None,
             }
-            | Insn::OverflowOf(addr)
-            | Insn::CarryOf(addr)
-            | Insn::SignOf(addr)
-            | Insn::IsZero(addr)
-            | Insn::Parity(addr)
-            | Insn::Call(addr)
-            | Insn::CArg(addr)
             | Insn::StructGetMember {
-                struct_value: addr,
+                struct_value: a,
                 name: _,
                 size: _,
             }
             | Insn::Upsilon {
-                value: addr,
+                value: a,
                 phi_ref: _,
-            } => [Some(addr), None, None],
+            } => [Some(a), None, None],
 
             Insn::Concat { lo: a, hi: b }
             | Insn::LoadMem {
@@ -302,7 +297,15 @@ impl Insn {
             }
             | Insn::Arith(_, a, b)
             | Insn::Cmp(_, a, b)
-            | Insn::Bool(_, a, b) => [Some(a), Some(b), None],
+            | Insn::Bool(_, a, b)
+            | Insn::Call {
+                callee: a,
+                first_arg: Some(b),
+            }
+            | Insn::CArg {
+                value: a,
+                next_arg: Some(b),
+            } => [Some(a), Some(b), None],
 
             Insn::StoreMem {
                 addr: a,
@@ -359,8 +362,8 @@ impl Insn {
             | Insn::SignOf(addr)
             | Insn::IsZero(addr)
             | Insn::Parity(addr)
-            | Insn::Call(addr)
-            | Insn::CArg(addr)
+            | Insn::Call { callee: addr, .. }
+            | Insn::CArg { value: addr, .. }
             | Insn::StructGetMember {
                 struct_value: addr,
                 name: _,
@@ -441,18 +444,6 @@ impl Program {
             insns: insn,
             dests: dest,
         })
-    }
-
-    pub fn get_call_args(&self, ndx: Index) -> impl '_ + Iterator<Item = Reg> {
-        let ndx = ndx as usize;
-        assert!(matches!(self.insns[ndx].get(), Insn::Call(_)));
-        self.insns
-            .iter()
-            .skip(ndx + 1)
-            .map_while(|i| match i.get() {
-                Insn::CArg(arg) => Some(arg),
-                _ => None,
-            })
     }
 
     #[inline(always)]
