@@ -22,7 +22,7 @@ macro_rules! case {
 }
 
 macro_rules! tests_in_binary {
-    ($group:ident, $exe_path:expr; $($funcs:ident),*) => {
+    ($group:ident, $exe_path:expr; $($funcs:ident),* $(,)?) => {
         mod $group {
             use crate::Exe;
             static EXE: Exe = Exe::new($exe_path);
@@ -77,7 +77,8 @@ tests_in_binary!(
     redis_server, "integration/redis-server";
     ctl_lookup,
     listNext,
-    listTypePush
+    listTypePush,
+    geoArrayCreate,
 );
 
 tests_in_binary!(
