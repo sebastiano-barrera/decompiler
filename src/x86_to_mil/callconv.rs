@@ -211,123 +211,132 @@ pub fn read_return_value<'a>(
 
     let ret_ty = &types.get(ret_tyid).unwrap().ty;
 
-    if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = ret_ty {
-        panic!("invalid type for a function return value: {:?}", ret_ty);
-    }
-    if let ty::Ty::Unknown(_) = ret_ty {
-        // nothing better to do in this case...
-        let ret_val = bld.reg_gen.next();
-        bld.emit(ret_val, Insn::Undefined);
-        return Ok(ret_val);
-    }
-
-    let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
-    // for return values, no more than 2 registers should be used; if the type
-    // is larger than that, it goes to memory
-    let eb_set = eb_set.limit_regs(2);
-
-    let sz = types.bytes_size(ret_tyid).unwrap();
-
     let ret_val = bld.reg_gen.next();
-    bld.emit(ret_val, Insn::Void);
-    let tmp = bld.reg_gen.next();
+    match ret_ty {
+        ty::Ty::Void => {
+            bld.emit(ret_val, Insn::Void);
+        }
+        ty::Ty::Unknown(_) => {
+            // nothing better to do in this case...
+            let ret_val = bld.reg_gen.next();
+            bld.emit(ret_val, Insn::Undefined);
+        }
+        ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
+            panic!("invalid type for a function return value: {:?}", ret_ty);
+        }
+        _ => {
+            let mut eb_set = EightbytesSet::new_regs();
+            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            // for return values, no more than 2 registers should be used; if the type
+            // is larger than that, it goes to memory
+            let eb_set = eb_set.limit_regs(2);
 
-    match eb_set {
-        EightbytesSet::Regs { clss } => {
-            // different than those for parameter passing
-            let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
-            let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
+            let sz = types.bytes_size(ret_tyid).unwrap();
+            assert!(sz > 0);
 
-            // TODO assert that the type is 1-16 bytes long, based on clss
-            let mut clss = clss.used().iter().peekable();
-            while let Some(cls) = clss.next() {
-                let part = match *cls {
-                    RegClass::Integer => *int_regs.next().expect("bug: not enough int regs!"),
-                    RegClass::Sse => {
-                        let sse_reg = *sse_regs.next().expect("bug: not enough sse regs!");
-                        let mut eb_count = 1;
-                        while let Some(RegClass::SseUp) = clss.peek() {
-                            eb_count += 1;
-                        }
+            bld.emit(ret_val, Insn::Void);
+            let tmp = bld.reg_gen.next();
 
+            match eb_set {
+                EightbytesSet::Regs { clss } => {
+                    // different than those for parameter passing
+                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
+                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
+
+                    // TODO assert that the type is 1-16 bytes long, based on clss
+                    let mut clss = clss.used().iter().peekable();
+                    while let Some(cls) = clss.next() {
+                        let part = match *cls {
+                            RegClass::Integer => {
+                                *int_regs.next().expect("bug: not enough int regs!")
+                            }
+                            RegClass::Sse => {
+                                let sse_reg = *sse_regs.next().expect("bug: not enough sse regs!");
+                                let mut eb_count = 1;
+                                while let Some(RegClass::SseUp) = clss.peek() {
+                                    eb_count += 1;
+                                }
+
+                                bld.emit(
+                                    tmp,
+                                    Insn::Part {
+                                        src: sse_reg,
+                                        offset: 0,
+                                        size: 8 * eb_count,
+                                    },
+                                );
+                                tmp
+                            }
+                            RegClass::SseUp => unreachable!(),
+                            RegClass::Unused => {
+                                while let Some(cls) = clss.next() {
+                                    assert_eq!(*cls, RegClass::Unused);
+                                }
+                                break;
+                            }
+                        };
                         bld.emit(
-                            tmp,
-                            Insn::Part {
-                                src: sse_reg,
-                                offset: 0,
-                                size: 8 * eb_count,
+                            ret_val,
+                            Insn::Concat {
+                                lo: ret_val,
+                                hi: part,
                             },
                         );
-                        tmp
                     }
-                    RegClass::SseUp => unreachable!(),
-                    RegClass::Unused => {
-                        while let Some(cls) = clss.next() {
-                            assert_eq!(*cls, RegClass::Unused);
-                        }
-                        break;
+                }
+                EightbytesSet::Memory => {
+                    // From the spec: AMD64 ABI Draft 0.99.6 – July 2, 2012 - page 22
+                    //
+                    // > If the type has class MEMORY, then the caller provides space
+                    // > for the return value and passes the address of this storage
+                    // > in %rdi as if it were the first argument to the function. In
+                    // > effect, this address becomes a “hidden” first argument. This
+                    // > storage must not overlap any data visible to the callee through
+                    // > other names than this argument.
+                    // >
+                    // > On return %rax will contain the address that has been passed in
+                    // > by the caller in %rdi.
+
+                    let eb_count = sz.div_ceil(8);
+
+                    let addr = bld.reg_gen.next();
+                    for eb_ndx in 0..eb_count {
+                        let eb_offset = (8 * eb_ndx).try_into().unwrap();
+                        bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
+                        let eb = bld.reg_gen.next();
+                        bld.emit(
+                            eb,
+                            Insn::LoadMem {
+                                mem: Builder::MEM,
+                                addr,
+                                size: 8,
+                            },
+                        );
+                        bld.emit(
+                            ret_val,
+                            Insn::Concat {
+                                lo: ret_val,
+                                hi: eb,
+                            },
+                        );
                     }
-                };
-                bld.emit(
-                    ret_val,
-                    Insn::Concat {
-                        lo: ret_val,
-                        hi: part,
-                    },
-                );
-            }
+                }
+            };
+
+            // arguments are rounded up to multiples of 8 bytes, and assembly code out
+            // there tends to work on 8 bytes registers; but it's useful to show the
+            // 'small integer' version of the value
+            bld.emit(
+                ret_val,
+                Insn::Part {
+                    src: ret_val,
+                    offset: 0,
+                    size: sz.try_into().unwrap(),
+                },
+            );
         }
-        EightbytesSet::Memory => {
-            // From the spec: AMD64 ABI Draft 0.99.6 – July 2, 2012 - page 22
-            //
-            // > If the type has class MEMORY, then the caller provides space
-            // > for the return value and passes the address of this storage
-            // > in %rdi as if it were the first argument to the function. In
-            // > effect, this address becomes a “hidden” first argument. This
-            // > storage must not overlap any data visible to the callee through
-            // > other names than this argument.
-            // >
-            // > On return %rax will contain the address that has been passed in
-            // > by the caller in %rdi.
+    }
 
-            let eb_count = sz.div_ceil(8);
-
-            let addr = bld.reg_gen.next();
-            for eb_ndx in 0..eb_count {
-                let eb_offset = (8 * eb_ndx).try_into().unwrap();
-                bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
-                let eb = bld.reg_gen.next();
-                bld.emit(
-                    eb,
-                    Insn::LoadMem {
-                        mem: Builder::MEM,
-                        addr,
-                        size: 8,
-                    },
-                );
-                bld.emit(
-                    ret_val,
-                    Insn::Concat {
-                        lo: ret_val,
-                        hi: eb,
-                    },
-                );
-            }
-        }
-    };
-
-    // arguments are rounded up to multiples of 8 bytes, and assembly code out
-    // there tends to work on 8 bytes registers; but it's useful to show the
-    // 'small integer' version of the value
-    bld.emit(
-        ret_val,
-        Insn::Part {
-            src: ret_val,
-            offset: 0,
-            size: sz.try_into().unwrap(),
-        },
-    );
     Ok(ret_val)
 }
 
