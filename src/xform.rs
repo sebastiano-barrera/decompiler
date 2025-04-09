@@ -436,12 +436,8 @@ pub fn canonical(prog: &mut ssa::Program) {
     while any_change {
         any_change = false;
 
-        let mut work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
-
-        // this way we can use 'pop' to get the correct order quickly
-        work.reverse();
-
-        while let Some(reg) = work.pop() {
+        let work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
+        for reg in work {
             let orig_insn = prog.get(reg).unwrap().insn.get();
             let insn = orig_insn;
             let insn = fold_get(insn, prog);
