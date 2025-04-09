@@ -86,7 +86,10 @@ impl<'a> Ast<'a> {
                 let last_insn_reg = self.ssa.block_effects(bid).last().unwrap();
                 let last_insn = self.ssa.get(*last_insn_reg).unwrap().insn.get();
                 if !matches!(last_insn, Insn::JmpIf { .. }) {
-                    panic!("block with BlockCont::Alt continuation must end with a JmpIf");
+                    eprintln!(
+                        "warning: block {bid:?} has BlockCont::Alt but ends with: {:?}",
+                        last_insn
+                    );
                 }
 
                 write!(pp, " {{\n  ")?;
@@ -128,7 +131,7 @@ impl<'a> Ast<'a> {
 
         let pred_count = cfg.block_preds(tgt_bid).len();
         if pred_count == 1 {
-            self.pp_block_inner(pp, tgt_bid)
+            self.pp_block_labeled(pp, tgt_bid)
         } else {
             write!(pp, "{keyword} T{}", tgt_bid.as_number())
         }

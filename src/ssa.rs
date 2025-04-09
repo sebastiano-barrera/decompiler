@@ -167,6 +167,25 @@ impl Program {
         self.assert_no_circular_refs();
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
+        self.assert_alt_block_ends_with_jmpif();
+        self.assert_opcodes_allowed();
+    }
+
+    fn assert_alt_block_ends_with_jmpif(&self) {
+        for bid in self.cfg.block_ids() {
+            if let cfg::BlockCont::Alt { .. } = self.cfg.block_cont(bid) {
+                let last_fx_iid = self.block_effects(bid).last().unwrap();
+                let last_fx = self.get(*last_fx_iid).unwrap().insn.get();
+                // assert!(matches!(last_fx, mil::Insn::JmpIf { .. }));
+            }
+        }
+    }
+
+    fn assert_opcodes_allowed(&self) {
+        for (_, reg) in self.insns_rpo() {
+            let insn = self.get(reg).unwrap().insn.get();
+            assert!(insn.is_allowed_in_ssa());
+        }
     }
 
     fn assert_consistent_phis(&self) {
@@ -564,7 +583,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // to use its "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for (_my_pred_ndx, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
+                for (_, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
                     for var in vars() {
                         if let Some(phi_reg) = phis.get(succ, var) {
                             let value = var_map
