@@ -515,105 +515,141 @@ impl<'a> Builder<'a> {
                     }
                 }
                 M::Ja => {
-                    // jmp if !SF && !ZF
-                    // also jnbe
-                    let v0 = self.reg_gen.next();
-                    let v1 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::SF));
-                    self.emit(v1, mil::Insn::Not(Self::ZF));
-                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_a();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Je => {
-                    self.emit_jmpif(insn, 0, Self::ZF);
+                    let cond = self.emit_cmp_e();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jne => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::ZF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_ne();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jb => {
-                    // also Jc, Jnae
-                    self.emit_jmpif(insn, 0, Self::CF);
+                    let cond = self.emit_cmp_b();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jl => {
-                    // jmp if SF != OF
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
-                    self.emit(v0, mil::Insn::Not(v0));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_l();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jle => {
-                    // jmp if ZF=1 or SF ≠ OF
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
-                    self.emit(v0, mil::Insn::Not(v0));
-                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, v0, Self::ZF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_le();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jae => {
-                    // also jnb, jnc
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::CF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_ae();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jbe => {
-                    // also jna
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, Self::CF, Self::ZF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_be();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jcxz => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::IsZero(Self::RCX));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_cxz();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jecxz => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::IsZero(Self::RCX));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_ecxz();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jg => {
-                    let v0 = self.reg_gen.next();
-                    let v1 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::ZF));
-                    self.emit(v1, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
-                    self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_g();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jge => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_ge();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jno => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::OF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_no();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jnp => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::PF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_np();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jns => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Not(Self::SF));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_ns();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jo => {
-                    self.emit_jmpif(insn, 0, Self::OF);
+                    let cond = self.emit_cmp_o();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jp => {
-                    self.emit_jmpif(insn, 0, Self::PF);
+                    let cond = self.emit_cmp_p();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Jrcxz => {
-                    let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::IsZero(Self::RCX));
-                    self.emit_jmpif(insn, 0, v0);
+                    let cond = self.emit_cmp_rcxz();
+                    self.emit_jmpif(insn, 0, cond);
                 }
                 M::Js => {
-                    self.emit_jmpif(insn, 0, Self::SF);
+                    let cond = self.emit_cmp_s();
+                    self.emit_jmpif(insn, 0, cond);
+                }
+
+                M::Seta => {
+                    let v0 = self.emit_cmp_a();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setae => {
+                    let v0 = self.emit_cmp_ae();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setb => {
+                    let v0 = self.emit_cmp_b();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setbe => {
+                    let v0 = self.emit_cmp_be();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Sete => {
+                    let v0 = self.emit_cmp_e();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setg => {
+                    let v0 = self.emit_cmp_g();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setge => {
+                    let v0 = self.emit_cmp_ge();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setl => {
+                    let v0 = self.emit_cmp_l();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setle => {
+                    let v0 = self.emit_cmp_le();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setne => {
+                    let v0 = self.emit_cmp_ne();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setno => {
+                    let v0 = self.emit_cmp_no();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setnp => {
+                    let v0 = self.emit_cmp_np();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setns => {
+                    let v0 = self.emit_cmp_ns();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Seto => {
+                    let v0 = self.emit_cmp_o();
+                    self.emit_flag_to_byte(v0);
+                }
+                M::Setp => {
+                    let v0 = self.emit_cmp_p();
+                    self.emit_flag_to_byte(v0);
                 }
 
                 M::Cbw => {
@@ -1161,6 +1197,137 @@ impl<'a> Builder<'a> {
                     .push(dest, mil::Insn::Arith(mil::ArithOp::Add, dest, v1));
             }
         }
+    }
+
+    fn emit_cmp_a(&mut self) -> mil::Reg {
+        // jmp if !SF && !ZF (also jnbe)
+        let v0 = self.reg_gen.next();
+        let v1 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::SF));
+        self.emit(v1, mil::Insn::Not(Self::ZF));
+        self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
+        v0
+    }
+
+    fn emit_cmp_e(&mut self) -> mil::Reg {
+        Self::ZF
+    }
+
+    fn emit_cmp_ne(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::ZF));
+        v0
+    }
+
+    fn emit_cmp_b(&mut self) -> mil::Reg {
+        // also Jc, Jnae
+        Self::CF
+    }
+
+    fn emit_cmp_l(&mut self) -> mil::Reg {
+        // jmp if SF != OF
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
+        self.emit(v0, mil::Insn::Not(v0));
+        v0
+    }
+
+    fn emit_cmp_le(&mut self) -> mil::Reg {
+        // jmp if ZF=1 or SF != OF
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
+        self.emit(v0, mil::Insn::Not(v0));
+        self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, v0, Self::ZF));
+        v0
+    }
+
+    fn emit_cmp_ae(&mut self) -> mil::Reg {
+        // also jnb, jnc
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::CF));
+        v0
+    }
+
+    fn emit_cmp_be(&mut self) -> mil::Reg {
+        // also jna
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, Self::CF, Self::ZF));
+        v0
+    }
+
+    fn emit_cmp_cxz(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::IsZero(Self::RCX));
+        v0
+    }
+
+    fn emit_cmp_ecxz(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::IsZero(Self::RCX));
+        v0
+    }
+
+    fn emit_cmp_g(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        let v1 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::ZF));
+        self.emit(v1, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
+        self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
+        v0
+    }
+
+    fn emit_cmp_ge(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
+        v0
+    }
+
+    fn emit_cmp_no(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::OF));
+        v0
+    }
+
+    fn emit_cmp_np(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::PF));
+        v0
+    }
+
+    fn emit_cmp_ns(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::Not(Self::SF));
+        v0
+    }
+
+    fn emit_cmp_o(&mut self) -> mil::Reg {
+        Self::OF
+    }
+
+    fn emit_cmp_p(&mut self) -> mil::Reg {
+        Self::PF
+    }
+
+    fn emit_cmp_rcxz(&mut self) -> mil::Reg {
+        let v0 = self.reg_gen.next();
+        self.emit(v0, mil::Insn::IsZero(Self::RCX));
+        v0
+    }
+
+    fn emit_cmp_s(&mut self) -> mil::Reg {
+        Self::SF
+    }
+
+    fn emit_flag_to_byte(&mut self, reg: mil::Reg) -> mil::Reg {
+        self.emit(
+            reg,
+            mil::Insn::Widen {
+                reg,
+                target_size: 1,
+                sign: false,
+            },
+        );
+        reg
     }
 
     // flags
