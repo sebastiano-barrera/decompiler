@@ -191,11 +191,23 @@ impl<'a> Tester<'a> {
         writeln!(out)?;
         writeln!(out, "cfg:")?;
         let cfg = prog.cfg();
+        writeln!(out, "  entry: {:?}", cfg.direct().entry_bid())?;
+        writeln!(out, "  exit: {:?}", cfg.direct().exit_bid())?;
         for bid in cfg.block_ids() {
-            writeln!(out, "  {:?} -> {:?}", bid, cfg.block_cont(bid))?;
+            let range = cfg.insns_ndx_range(bid);
+            writeln!(
+                out,
+                "  {:?} [{}:{}] -> {:?}",
+                bid,
+                range.start,
+                range.end,
+                cfg.block_cont(bid)
+            )?;
         }
-        writeln!(out, "  domtree:")?;
+        write!(out, "  domtree:\n    ")?;
+        out.open_box();
         cfg.dom_tree().dump(out)?;
+        out.close_box();
 
         writeln!(out)?;
         writeln!(out, "ssa post-xform:")?;
