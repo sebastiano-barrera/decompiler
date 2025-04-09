@@ -71,7 +71,6 @@ impl RegType {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Assoc)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_allowed_in_ssa(&self) -> bool { true })]
-#[allow(clippy::upper_case_acronyms)]
 pub enum Insn {
     Void,
     True,
@@ -132,7 +131,6 @@ pub enum Insn {
     #[assoc(is_allowed_in_ssa = false)]
     Jmp(Index),
     #[assoc(has_side_effects = true)]
-    #[assoc(is_allowed_in_ssa = false)]
     JmpIf {
         cond: Reg,
         target: Index,
@@ -147,7 +145,7 @@ pub enum Insn {
 
     #[allow(clippy::upper_case_acronyms)]
     #[assoc(has_side_effects = true)]
-    TODO(&'static str),
+    NotYetImplemented(&'static str),
 
     LoadMem {
         mem: Reg,
@@ -247,7 +245,7 @@ impl Insn {
             | Insn::Const { .. }
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
-            | Insn::TODO(_)
+            | Insn::NotYetImplemented(_)
             | Insn::Undefined
             | Insn::Phi
             | Insn::Ancestral(_) => [const { None }; 3],
@@ -332,7 +330,7 @@ impl Insn {
             | Insn::Const { .. }
             | Insn::JmpExt(_)
             | Insn::Jmp(_)
-            | Insn::TODO(_)
+            | Insn::NotYetImplemented(_)
             | Insn::Undefined
             | Insn::Phi
             | Insn::Ancestral(_) => [const { None }; 3],

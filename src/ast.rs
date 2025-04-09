@@ -278,7 +278,7 @@ impl<'a> Ast<'a> {
             Insn::Ret(_) => {
                 self.pp_def_default(pp, "Ret".into(), insn.input_regs(), self_prec)?;
             }
-            Insn::TODO(msg) => {
+            Insn::NotYetImplemented(msg) => {
                 write!(pp, "TODO /* {} */", msg)?;
             }
             Insn::LoadMem { mem: _, addr, size } => {
@@ -465,7 +465,7 @@ fn precedence(insn: &Insn) -> u8 {
         | Insn::JmpIf { .. }
         | Insn::JmpExt(_)
         | Insn::JmpExtIf { .. }
-        | Insn::TODO(_)
+        | Insn::NotYetImplemented(_)
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,
 

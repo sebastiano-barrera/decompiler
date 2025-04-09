@@ -137,7 +137,7 @@ impl Program {
             Insn::JmpExt(_) => RegType::Unit,
             Insn::JmpIf { .. } => RegType::Unit,
             Insn::JmpExtIf { .. } => RegType::Unit,
-            Insn::TODO(_) => RegType::Unit,
+            Insn::NotYetImplemented(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
             Insn::StoreMem { .. } => RegType::MemoryEffect,
             Insn::OverflowOf(_) => RegType::Bool,
@@ -176,7 +176,7 @@ impl Program {
             if let cfg::BlockCont::Alt { .. } = self.cfg.block_cont(bid) {
                 let last_fx_iid = self.block_effects(bid).last().unwrap();
                 let last_fx = self.get(*last_fx_iid).unwrap().insn.get();
-                // assert!(matches!(last_fx, mil::Insn::JmpIf { .. }));
+                assert!(matches!(last_fx, mil::Insn::JmpIf { .. }));
             }
         }
     }
@@ -184,7 +184,10 @@ impl Program {
     fn assert_opcodes_allowed(&self) {
         for (_, reg) in self.insns_rpo() {
             let insn = self.get(reg).unwrap().insn.get();
-            assert!(insn.is_allowed_in_ssa());
+            assert!(
+                insn.is_allowed_in_ssa(),
+                "not allowed in ssa: {reg:?}: {insn:?}"
+            );
         }
     }
 
@@ -583,7 +586,8 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // to use its "predecessor position", i.e. whether the current block is the
                 // successor's 1st, 2nd, 3rd predecessor.
 
-                for (_, succ) in cfg.block_cont(bid).as_array().into_iter().flatten() {
+                let block_cont = cfg.block_cont(bid);
+                for (_, succ) in block_cont.as_array().into_iter().flatten() {
                     for var in vars() {
                         if let Some(phi_reg) = phis.get(succ, var) {
                             let value = var_map
@@ -634,6 +638,35 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         cfg,
         bbs,
     };
+
+    // keep JmpIf at the last place in BlockCont::Alt blocks
+    for bid in ssa.cfg.block_ids() {
+        if let cfg::BlockCont::Alt { .. } = ssa.cfg.block_cont(bid) {
+            let fx = &ssa.bbs[bid].effects;
+            let ups_count = fx
+                .iter()
+                .rev()
+                .filter(|reg| {
+                    matches!(
+                        ssa.get(**reg).unwrap().insn.get(),
+                        mil::Insn::Upsilon { .. }
+                    )
+                })
+                .count();
+
+            let last = fx.len() - 1;
+            let last_pre_ups = last - ups_count;
+            let reg = fx[last_pre_ups];
+            assert!(matches!(
+                ssa.get(reg).unwrap().insn.get(),
+                mil::Insn::JmpIf { .. }
+            ));
+
+            let fx = &mut ssa.bbs[bid].effects;
+            fx.swap(last, last_pre_ups);
+        }
+    }
+
     eliminate_dead_code(&mut ssa);
     ssa.assert_invariants();
     ssa

@@ -679,7 +679,7 @@ impl<'a> Builder<'a> {
                     formatter.format(&insn, &mut output);
                     let description = format!("unsupported: {}", output);
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::TODO(description.leak()));
+                    self.emit(v0, mil::Insn::NotYetImplemented(description.leak()));
                 }
             }
         }
