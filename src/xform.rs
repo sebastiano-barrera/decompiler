@@ -209,10 +209,13 @@ fn fold_concat_void(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     }
 }
 
-fn fold_bitops(insn: mil::Insn) -> Insn {
+fn fold_bitops(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     match insn {
         // TODO put the appropriate size
-        Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Const { value: 0, size: 8 },
+        Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Const {
+            value: 0,
+            size: prog.value_type(a).bytes_size().unwrap().try_into().unwrap(),
+        },
         Insn::Arith(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
         Insn::Arith(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
         _ => insn,
@@ -450,7 +453,7 @@ pub fn canonical(prog: &mut ssa::Program) {
             let insn = fold_part_void(insn);
             let insn = fold_widen_null(insn, prog);
             let insn = fold_widen_const(insn, prog);
-            let insn = fold_bitops(insn);
+            let insn = fold_bitops(insn, prog);
             let insn = fold_constants(insn, prog);
             let insn = deduper.try_dedup(reg, insn);
             prog.get(reg).unwrap().insn.set(insn);
