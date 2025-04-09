@@ -12,6 +12,8 @@ pub struct Ast<'a> {
     ssa: &'a ssa::Program,
     let_printed: HashSet<Reg>,
     is_named: ssa::RegMap<bool>,
+
+    block_printed: cfg::BlockMap<bool>,
 }
 
 impl<'a> Ast<'a> {
@@ -27,6 +29,7 @@ impl<'a> Ast<'a> {
             ssa,
             let_printed: HashSet::new(),
             is_named,
+            block_printed: cfg::BlockMap::new(ssa.cfg(), false),
         }
     }
 
@@ -59,6 +62,9 @@ impl<'a> Ast<'a> {
         pp: &mut W,
         bid: cfg::BlockID,
     ) -> std::io::Result<()> {
+        assert!(!self.block_printed[bid]);
+        self.block_printed[bid] = true;
+
         let cfg = self.ssa.cfg();
         let block_cont = cfg.block_cont(bid);
 
@@ -83,22 +89,13 @@ impl<'a> Ast<'a> {
                 straight: (neg_pred_ndx, neg_bid),
                 side: (pos_pred_ndx, pos_bid),
             } => {
-                let last_insn_reg = self.ssa.block_effects(bid).last().unwrap();
-                let last_insn = self.ssa.get(*last_insn_reg).unwrap().insn.get();
-                if !matches!(last_insn, Insn::JmpIf { .. }) {
-                    eprintln!(
-                        "warning: block {bid:?} has BlockCont::Alt but ends with: {:?}",
-                        last_insn
-                    );
-                }
-
-                write!(pp, " {{\n  ")?;
+                write!(pp, " then {{\n  ")?;
 
                 pp.open_box();
                 self.pp_continuation(pp, bid, pos_bid, pos_pred_ndx as u16)?;
                 pp.close_box();
 
-                write!(pp, "\n}}\n")?;
+                write!(pp, "\n}} else:\n")?;
 
                 self.pp_continuation(pp, bid, neg_bid, neg_pred_ndx as u16)?;
             }
@@ -107,7 +104,7 @@ impl<'a> Ast<'a> {
         for &child in cfg.dom_tree().children_of(bid) {
             if cfg.block_preds(child).len() > 1 {
                 writeln!(pp)?;
-                self.pp_block_labeled(pp, child)?;
+                self.pp_block_inner(pp, child)?;
             }
         }
 
@@ -122,17 +119,16 @@ impl<'a> Ast<'a> {
         _pred_ndx: u16,
     ) -> std::io::Result<()> {
         let cfg = self.ssa.cfg();
-        let looping_back = cfg
-            .dom_tree()
-            .imm_doms(src_bid)
-            .find(|i| *i == tgt_bid)
-            .is_some();
-        let keyword = if looping_back { "loop" } else { "goto" };
 
-        let pred_count = cfg.block_preds(tgt_bid).len();
-        if pred_count == 1 {
-            self.pp_block_labeled(pp, tgt_bid)
+        if cfg.block_preds(tgt_bid).len() == 1 {
+            self.pp_block_inner(pp, tgt_bid)
         } else {
+            let looping_back = cfg
+                .dom_tree()
+                .imm_doms(src_bid)
+                .find(|i| *i == tgt_bid)
+                .is_some();
+            let keyword = if looping_back { "loop" } else { "goto" };
             write!(pp, "{keyword} T{}", tgt_bid.as_number())
         }
     }
@@ -325,6 +321,7 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
             }
             Insn::JmpIf { .. } => {
+                writeln!(pp)?;
                 self.pp_def_default(pp, "if".into(), insn.input_regs(), self_prec)?;
             }
             Insn::JmpInd(_) => {

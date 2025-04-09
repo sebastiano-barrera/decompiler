@@ -274,10 +274,10 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
     let direct = {
         let mut target = Vec::new();
-        let mut ndx_range = BlockMap::new(0..0, block_count);
+        let mut ndx_range = BlockMap::new_sized(0..0, block_count);
         // the running counter of predecessors for each block, used to compute
         // the pred ndx
-        let mut pred_count = BlockMap::new(0, block_count);
+        let mut pred_count = BlockMap::new_sized(0, block_count);
         let mut pred_ndx = Vec::new();
 
         let exit_bid = BlockID(block_count - 1);
@@ -330,7 +330,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             succ_ndxr: ndx_range,
             succ_pred_ndx: pred_ndx,
             succ: target,
-            nonbackedge_preds_count: BlockMap::new(0, block_count),
+            nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
         };
         edges.assert_invariants();
         recount_nonbackedge_predecessors(&mut edges);
@@ -338,7 +338,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     };
 
     let inverse = {
-        let mut ndx_range = BlockMap::new(0..0, block_count);
+        let mut ndx_range = BlockMap::new_sized(0..0, block_count);
         let mut target = Vec::with_capacity(block_count as usize * 2);
         let mut pred_ndx = Vec::with_capacity(direct.succ.len());
 
@@ -364,7 +364,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             succ_ndxr: ndx_range,
             succ_pred_ndx: pred_ndx,
             succ: target,
-            nonbackedge_preds_count: BlockMap::new(0, block_count),
+            nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
         };
         edges.assert_invariants();
         recount_nonbackedge_predecessors(&mut edges);
@@ -522,7 +522,7 @@ impl DomTree {
     fn from_parent(parent: BlockMap<Option<BlockID>>) -> DomTree {
         let count = parent.block_count();
 
-        let mut children_ndx_range = BlockMap::new(0..0, count);
+        let mut children_ndx_range = BlockMap::new_sized(0..0, count);
         let mut children = Vec::with_capacity(count as usize);
 
         for bid in parent.block_ids() {
@@ -552,7 +552,7 @@ impl DomTree {
     /// Get an iterator of immediate dominators of the given block
     pub fn imm_doms<'s>(&'s self, bid: BlockID) -> impl 's + Iterator<Item = BlockID> {
         let mut cur = self.parent[bid];
-        let mut visited = BlockMap::new(false, self.parent.block_count());
+        let mut visited = BlockMap::new_sized(false, self.parent.block_count());
         std::iter::from_fn(move || {
             let ret = cur?;
             cur = self.parent[ret];
@@ -613,7 +613,7 @@ pub fn compute_dom_tree(fwd_edges: &Edges, bwd_edges: &Edges) -> DomTree {
     assert_eq!(block_count, bwd_edges.block_count());
     let rpo = Ordering::new(reverse_postorder(fwd_edges));
 
-    let mut parent = BlockMap::new(None, block_count);
+    let mut parent = BlockMap::new_sized(None, block_count);
 
     // process the entry node(s) "manually", so the algorithm can rely on it for successors
     // TODO remove this. should no longer be useful with our `common_ancestor`
@@ -749,7 +749,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     let mut order = Vec::with_capacity(count as usize);
     let mut queue = Vec::with_capacity(count as usize / 2);
     // we must avoid re-visiting a fully processed node. this happens when processing backedges.
-    let mut visited = BlockMap::new(false, count);
+    let mut visited = BlockMap::new_sized(false, count);
 
     queue.push(edges.entry_bid);
     // formally incorrect, but aligns it with the rest of the algorithm
@@ -789,9 +789,9 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
 fn recount_nonbackedge_predecessors(edges: &mut Edges) {
     let count = edges.block_count();
 
-    let mut incoming_count = BlockMap::new(0, count);
-    let mut in_path = BlockMap::new(false, count);
-    let mut finished = BlockMap::new(false, count);
+    let mut incoming_count = BlockMap::new_sized(0, count);
+    let mut in_path = BlockMap::new_sized(false, count);
+    let mut finished = BlockMap::new_sized(false, count);
 
     enum Cmd {
         Enter(BlockID),
@@ -845,8 +845,8 @@ pub struct Ordering {
 impl Ordering {
     pub fn new(order: Vec<BlockID>) -> Self {
         let count = order.len().try_into().unwrap();
-        let mut pos_of = BlockMap::new(0, count);
-        let mut occurs_count = BlockMap::new(0, count);
+        let mut pos_of = BlockMap::new_sized(0, count);
+        let mut occurs_count = BlockMap::new_sized(0, count);
         for (pos, &bid) in order.iter().enumerate() {
             occurs_count[bid] += 1;
             pos_of[bid] = pos;
@@ -873,9 +873,12 @@ impl Ordering {
 pub struct BlockMap<T>(Vec<T>);
 
 impl<T: Clone> BlockMap<T> {
-    pub fn new(init: T, count: u16) -> Self {
+    pub fn new_sized(init: T, count: u16) -> Self {
         let vec = vec![init; count as usize];
         BlockMap(vec)
+    }
+    pub fn new(cfg: &Graph, init: T) -> Self {
+        Self::new_sized(init, cfg.block_count())
     }
 
     pub fn new_with<F>(cfg: &Graph, init_item: F) -> Self

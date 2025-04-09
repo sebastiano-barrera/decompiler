@@ -512,7 +512,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     }
     let mut queue = vec![Cmd::Finish, Cmd::Start(cfg.entry_block_id())];
 
-    let mut bbs = cfg::BlockMap::new(BasicBlock::default(), cfg.block_count());
+    let mut bbs = cfg::BlockMap::new_sized(BasicBlock::default(), cfg.block_count());
 
     while let Some(cmd) = queue.pop() {
         match cmd {
