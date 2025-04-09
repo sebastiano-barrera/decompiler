@@ -22,7 +22,9 @@ impl<'a> Ast<'a> {
 
         let is_named = rdr_count.map(|reg, count| {
             // ancestral are as good as r# refs, so never 'name' them / always print inline
-            *count > 1 && !matches!(ssa.get(reg).unwrap().insn.get(), Insn::Ancestral(_))
+            *count > 1
+                && !matches!(ssa.get(reg).unwrap().insn.get(), Insn::Ancestral(_))
+                && !matches!(ssa.get(reg).unwrap().insn.get(), Insn::Const { .. })
         });
 
         Ast {
@@ -191,7 +193,7 @@ impl<'a> Ast<'a> {
             Insn::True => self.pp_def_default(pp, "True".into(), insn.input_regs(), self_prec)?,
             Insn::False => self.pp_def_default(pp, "False".into(), insn.input_regs(), self_prec)?,
             Insn::Const { value, size } => {
-                write!(pp, "{}_i{}", value, size * 8)?;
+                write!(pp, "{}_i{}", value, size)?;
             }
             Insn::Get(_) | Insn::Jmp(_) => unreachable!(),
 
