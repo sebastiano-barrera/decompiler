@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     mil::{self, ArithOp, Insn, RegType},
     ssa, x86_to_mil,
@@ -428,11 +430,14 @@ pub fn canonical(prog: &mut ssa::Program) {
     // TODO make this architecture agnostic
     let mem_ref_reg = find_mem_ref(prog);
 
+    let mut deduper = Deduper::new();
+
     let mut any_change = true;
     while any_change {
         any_change = false;
 
         let mut work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
+
         // this way we can use 'pop' to get the correct order quickly
         work.reverse();
 
@@ -451,6 +456,7 @@ pub fn canonical(prog: &mut ssa::Program) {
             let insn = fold_widen_const(insn, prog);
             let insn = fold_bitops(insn);
             let insn = fold_constants(insn, prog);
+            let insn = deduper.try_dedup(reg, insn);
             prog.get(reg).unwrap().insn.set(insn);
 
             any_change = any_change || (insn != orig_insn);
@@ -465,6 +471,27 @@ pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
 
     ssa::eliminate_dead_code(prog);
+}
+
+struct Deduper {
+    rev_lookup: HashMap<Insn, mil::Reg>,
+}
+
+impl Deduper {
+    fn new() -> Self {
+        Deduper {
+            rev_lookup: HashMap::new(),
+        }
+    }
+
+    fn try_dedup(&mut self, reg: mil::Reg, insn: Insn) -> Insn {
+        let prev_reg = self.rev_lookup.entry(insn).or_insert(reg);
+        if *prev_reg != reg {
+            Insn::Get(*prev_reg)
+        } else {
+            insn
+        }
+    }
 }
 
 fn find_mem_ref(prog: &ssa::Program) -> Option<mil::Reg> {

@@ -68,7 +68,7 @@ impl RegType {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Assoc)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_allowed_in_ssa(&self) -> bool { true })]
 pub enum Insn {
@@ -183,20 +183,20 @@ pub enum Insn {
 }
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum CmpOp {
     EQ,
     LT,
 }
 
 /// Binary boolean operators. Inputs and outputs are booleans.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum BoolOp {
     Or,
     And,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum ArithOp {
     Add,
     Sub,
