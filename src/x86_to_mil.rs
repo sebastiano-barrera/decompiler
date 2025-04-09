@@ -246,7 +246,7 @@ impl<'a> Builder<'a> {
                     self.emit_write(&insn, 0, a, a_sz);
                     self.emit_set_flags_arith(a);
                 }
-                M::Xor => {
+                M::Xor | M::Pxor => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
                     self.emit_bit_op(a_sz, b_sz, a, b, mil::ArithOp::BitXor, insn);
@@ -718,8 +718,9 @@ impl<'a> Builder<'a> {
     }
 
     fn emit_arith(&mut self, a: mil::Reg, a_sz: u16, b: mil::Reg, b_sz: u16, op: mil::ArithOp) {
-        assert!([1, 2, 4, 8].contains(&a_sz));
-        assert!([1, 2, 4, 8].contains(&b_sz));
+        // integer or xmm/ymm registers
+        assert!([1, 2, 4, 8, 16, 32].contains(&a_sz));
+        assert!([1, 2, 4, 8, 16, 32].contains(&b_sz));
         let sz = a_sz.max(b_sz);
         self.extend_zero(a, a_sz, sz);
         self.extend_zero(b, b_sz, sz);
