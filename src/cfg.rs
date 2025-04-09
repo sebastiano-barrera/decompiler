@@ -26,6 +26,8 @@ pub struct Graph {
 #[derive(Clone)]
 pub struct Edges {
     entry_bid: BlockID,
+    // useful when we reverse this graph: then this graph's exit node becomes
+    // the reverse graph's entry node, which makes the algo very simple
     exit_bid: BlockID,
     succ_ndxr: BlockMap<Range<usize>>,
     // these probably should be Box<[T]>
@@ -53,7 +55,14 @@ impl Edges {
             self.succ_ndxr.block_count(),
             self.nonbackedge_preds_count.block_count()
         );
-        assert!(self.successors(self.exit_bid).len() == 0);
+        for bid in self.block_ids() {
+            let succ_count = self.successors(bid).len();
+            if bid == self.exit_bid {
+                assert_eq!(succ_count, 0);
+            } else {
+                assert_ne!(succ_count, 0);
+            }
+        }
     }
 
     pub fn block_ids(&self) -> impl DoubleEndedIterator<Item = BlockID> {
@@ -70,6 +79,13 @@ impl Edges {
     pub fn successors(&self, bndx: BlockID) -> &[BlockID] {
         let range = &self.succ_ndxr[bndx];
         &self.succ[range.start..range.end]
+    }
+
+    pub fn entry_bid(&self) -> BlockID {
+        self.entry_bid
+    }
+    pub fn exit_bid(&self) -> BlockID {
+        self.exit_bid
     }
 }
 
@@ -173,9 +189,6 @@ impl Graph {
         let ndx = bid.as_usize();
         let start = self.bounds[ndx];
         let end = self.bounds[ndx + 1];
-        // must contain at least 1 instruction
-        // TODO hoist this assertion somewhere else?
-        assert!(end > start);
         start..end
     }
 
@@ -252,15 +265,14 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             }
         }
 
-        // virtual exit node has bounds coinciding with the program's exit
-        bounds.push(program.len());
         bounds.push(program.len());
         bounds.sort();
         bounds.dedup();
+        // virtual exit node has bounds coinciding with the program's exit
+        bounds.push(program.len());
         bounds
     };
 
-    // "real" because it does not include the 2 virtual blocks
     let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
 
     let block_at: HashMap<_, _> = bounds[..block_count as usize]
@@ -403,7 +415,16 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         debug_assert_eq!(&invalid, &[]);
 
         // no duplicates (<=> no 0-length blocks)
-        debug_assert!(bounds.iter().zip(bounds[1..].iter()).all(|(a, b)| a != b));
+        let (_, starts) = bounds.split_last().unwrap();
+        for (i, &start) in starts.iter().enumerate() {
+            let end = bounds[i + 1];
+            if i == starts.len() - 1 {
+                // exit block supposed to stay empty
+                assert_eq!(end, start);
+            } else {
+                assert_ne!(end, start);
+            }
+        }
     }
 
     let dom_tree = compute_dom_tree(&direct, &inverse);
