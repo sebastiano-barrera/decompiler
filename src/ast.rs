@@ -52,7 +52,7 @@ impl<'a> Ast<'a> {
         pp: &mut W,
         bid: cfg::BlockID,
     ) -> std::io::Result<()> {
-        write!(pp, "T{}: {{\n  ", bid.as_number())?;
+        write!(pp, "\nT{}: {{\n  ", bid.as_number())?;
         pp.open_box();
 
         self.pp_block_inner(pp, bid)?;
@@ -108,7 +108,7 @@ impl<'a> Ast<'a> {
         for &child in cfg.dom_tree().children_of(bid) {
             if cfg.block_preds(child).len() > 1 {
                 writeln!(pp)?;
-                self.pp_block_inner(pp, child)?;
+                self.pp_block_labeled(pp, child)?;
             }
         }
 
@@ -125,6 +125,7 @@ impl<'a> Ast<'a> {
         let cfg = self.ssa.cfg();
 
         if cfg.block_preds(tgt_bid).len() == 1 {
+            writeln!(pp, "// T{}", tgt_bid.as_number())?;
             self.pp_block_inner(pp, tgt_bid)
         } else {
             let looping_back = cfg
@@ -150,9 +151,14 @@ impl<'a> Ast<'a> {
             self.pp_labeled_inputs(pp, input)?;
             if self.is_named(input) && !self.let_printed.contains(&input) {
                 self.let_printed.insert(input);
-                write!(pp, "let r{} = ", input.reg_index())?;
-                self.pp_def(pp, input, 0)?;
-                writeln!(pp, ";")?;
+
+                if let Insn::Phi = self.ssa.get(input).unwrap().insn.get() {
+                    writeln!(pp, "let mut r{};", input.reg_index())?;
+                } else {
+                    write!(pp, "let r{} = ", input.reg_index())?;
+                    self.pp_def(pp, input, 0)?;
+                    writeln!(pp, ";")?;
+                }
             }
         }
         Ok(())
