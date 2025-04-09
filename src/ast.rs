@@ -83,6 +83,7 @@ impl<'a> Ast<'a> {
 
         match block_cont {
             cfg::BlockCont::End => {
+                write!(pp, "end");
                 // all done!
             }
             cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
@@ -125,7 +126,6 @@ impl<'a> Ast<'a> {
         let cfg = self.ssa.cfg();
 
         if cfg.block_preds(tgt_bid).len() == 1 {
-            writeln!(pp, "// T{}", tgt_bid.as_number())?;
             self.pp_block_inner(pp, tgt_bid)
         } else {
             let looping_back = cfg
@@ -331,7 +331,6 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
             }
             Insn::JmpIf { .. } => {
-                writeln!(pp)?;
                 self.pp_def_default(pp, "if".into(), insn.input_regs(), self_prec)?;
             }
             Insn::JmpInd(_) => {
