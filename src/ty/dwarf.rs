@@ -91,7 +91,7 @@ struct TypeParser<'a> {
     dwarf: &'a gimli::Dwarf<ESlice<'a>>,
     unit: gimli::Unit<ESlice<'a>, usize>,
     errors: RefCell<Vec<(usize, Error)>>,
-    tyid_of_node: RefCell<HashMap<gimli::DebugInfoOffset, ty::TypeID>>,
+    tyid_of_node: RefCell<HashMap<DebugInfoOffset, ty::TypeID>>,
     default_type: ty::Type,
     void_type: ty::Type,
 }
@@ -148,15 +148,51 @@ impl<'a> TypeParser<'a> {
         // left as a `ty::Unknown`.
         //
         // This function is memoized via `self.tyid_of_node`.
+        const ERRMSG_DEBUG_INFO: &'static str =
+            "entry must be in .debug_info section (DWARF 4 is unsupported)";
         let key = node
             .entry()
             .offset()
             .to_debug_info_offset(&self.unit.header)
-            .expect("unit must be in .debug_info section");
+            .expect(ERRMSG_DEBUG_INFO);
+
+        let entry = node.entry();
+        let offset = entry.offset().0;
+        let addr_av = entry.attr_value(gimli::constants::DW_AT_low_pc)?;
+
+        // for nodes never seen before, allocate a new tyid immediately
+        // (this way nodes can be parsed in any order, even in the presence of cyclic references)
         let tyid = {
             let mut tyid_of_node = self.tyid_of_node.borrow_mut();
             if let Some(&tyid) = tyid_of_node.get(&key) {
+                // cache hit: don't parse anything (we've already parsed this
+                // node, or are parsing it in one of the parent stack frames)
                 return Ok(tyid);
+            }
+
+            // Share the same TypeID for all concrete out-of-line abstract instances of a subprogram
+            if entry.tag() == gimli::constants::DW_TAG_subprogram {
+                if let Some(attr_value) =
+                    entry.attr_value(gimli::constants::DW_AT_abstract_origin)?
+                {
+                    let unit = &self.unit;
+                    let conc_subr_offset = match attr_value {
+                        // (There must be a built-in way to fold these two cases into an offset)
+                        gimli::AttributeValue::DebugInfoRef(ofs) => Some(ofs),
+                        gimli::AttributeValue::UnitRef(unit_ref) => Some(
+                            unit_ref
+                                .to_debug_info_offset(&unit.header)
+                                .expect(ERRMSG_DEBUG_INFO),
+                        ),
+                        _ => None,
+                    };
+
+                    if let Some(conc_subr_offset) = conc_subr_offset {
+                        let mut conc_subr_tree = self.unit.entries_tree(Some(conc_subr_offset))?;
+                        let tyid = self.try_parse_type(conc_subr_tree.root()?, types);
+                        return Ok(tyid);
+                    }
+                }
             }
 
             let tyid = types.add(self.default_type.clone());
@@ -164,9 +200,12 @@ impl<'a> TypeParser<'a> {
             tyid
         };
 
-        let entry = node.entry();
-        let offset = entry.offset().0;
-        let addr_av = entry.attr_value(gimli::constants::DW_AT_low_pc)?;
+        eprintln!(
+            "dwarf: scanning offset 0x{:08x} addr {:?} name {:?}",
+            key.0,
+            addr_av,
+            self.get_name(entry).unwrap()
+        );
 
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
@@ -188,6 +227,10 @@ impl<'a> TypeParser<'a> {
             // subprograms (functions, in C) are considered as subroutine types
             // with a only single instance existing in the program.
             gimli::constants::DW_TAG_subprogram | gimli::constants::DW_TAG_subroutine_type => {
+                // managed elsewhere
+                debug_assert!(entry
+                    .attr_value(gimli::constants::DW_AT_abstract_origin)?
+                    .is_none());
                 self.parse_subroutine_type(node, types)
             }
             gimli::constants::DW_TAG_base_type => self.parse_base_type(node, types),
@@ -465,6 +508,17 @@ fn get_required_attr<'a>(
     attr: gimli::DwAt,
 ) -> Result<gimli::Attribute<ESlice<'a>>> {
     die.attr(attr)?.ok_or(Error::MissingRequiredAttr(attr))
+}
+
+// HACK same as gimli::DebugInfoOffset, but can be used as key in HashMaps
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct DebugInfoOffset(gimli::DebugInfoOffset<usize>);
+
+impl std::ops::Deref for DebugInfoOffset {
+    type Target = gimli::DebugInfoOffset<usize>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 #[cfg(test)]
