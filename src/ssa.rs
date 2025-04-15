@@ -168,7 +168,6 @@ impl Program {
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
         self.assert_alt_block_ends_with_jmpif();
-        self.assert_opcodes_allowed();
     }
 
     fn assert_alt_block_ends_with_jmpif(&self) {
@@ -178,16 +177,6 @@ impl Program {
                 let last_fx = self.get(*last_fx_iid).unwrap().insn.get();
                 assert!(matches!(last_fx, mil::Insn::JmpIf { .. }));
             }
-        }
-    }
-
-    fn assert_opcodes_allowed(&self) {
-        for (_, reg) in self.insns_rpo() {
-            let insn = self.get(reg).unwrap().insn.get();
-            assert!(
-                insn.is_allowed_in_ssa(),
-                "not allowed in ssa: {reg:?}: {insn:?}"
-            );
         }
     }
 

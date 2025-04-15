@@ -70,7 +70,7 @@ impl RegType {
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
-#[func(pub fn is_allowed_in_ssa(&self) -> bool { true })]
+#[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
 pub enum Insn {
     Void,
     True,
@@ -118,6 +118,7 @@ pub enum Insn {
         callee: Reg,
         first_arg: Option<Reg>,
     },
+    #[assoc(is_replaceable_with_get = false)]
     CArg {
         value: Reg,
         next_arg: Option<Reg>,

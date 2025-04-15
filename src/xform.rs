@@ -442,21 +442,35 @@ pub fn canonical(prog: &mut ssa::Program) {
         let work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
         for reg in work {
             let orig_insn = prog.get(reg).unwrap().insn.get();
-            let insn = orig_insn;
-            let insn = fold_get(insn, prog);
-            let insn = fold_subregs(insn, prog);
-            let insn = fold_concat_void(insn, prog);
-            let insn = fold_part_part(insn, prog);
-            let insn = fold_part_widen(insn, prog);
-            let insn = fold_part_concat(insn, prog);
-            let insn = fold_part_null(insn, prog);
-            let insn = fold_part_void(insn);
-            let insn = fold_widen_null(insn, prog);
-            let insn = fold_widen_const(insn, prog);
-            let insn = fold_bitops(insn, prog);
-            let insn = fold_constants(insn, prog);
-            let insn = deduper.try_dedup(reg, insn);
+            let orig_has_fx = orig_insn.has_side_effects();
+
+            let mut insn = orig_insn;
+            insn = fold_get(insn, prog);
+            insn = fold_subregs(insn, prog);
+            insn = fold_concat_void(insn, prog);
+            insn = fold_part_part(insn, prog);
+            insn = fold_part_widen(insn, prog);
+            insn = fold_part_concat(insn, prog);
+            insn = fold_part_null(insn, prog);
+            insn = fold_part_void(insn);
+            insn = fold_widen_null(insn, prog);
+            insn = fold_widen_const(insn, prog);
+            insn = fold_bitops(insn, prog);
+            insn = fold_constants(insn, prog);
+            if !insn.is_replaceable_with_get() {
+                // replacing a side-effecting instruction with a non-side-effecting
+                // Insn::Get is currently wrong (would be quite complicated to handle)
+                insn = deduper.try_dedup(reg, insn);
+            }
             prog.get(reg).unwrap().insn.set(insn);
+
+            let final_has_fx = insn.has_side_effects();
+            if final_has_fx != orig_has_fx {
+                eprintln!(" --- bug:");
+                eprintln!("  orig: side fx: {:?} insn: {:?}", orig_has_fx, orig_insn);
+                eprintln!(" final: side fx: {:?} insn: {:?}", final_has_fx, insn);
+                panic!();
+            }
 
             any_change = any_change || (insn != orig_insn);
 
@@ -484,6 +498,12 @@ impl Deduper {
     }
 
     fn try_dedup(&mut self, reg: mil::Reg, insn: Insn) -> Insn {
+        // replacing a side-effecting instruction with a non-side-effecting
+        // Insn::Get is currently wrong (would be quite complicated to handle)
+        if !insn.is_replaceable_with_get() {
+            return insn;
+        }
+
         let prev_reg = self.rev_lookup.entry(insn).or_insert(reg);
         if *prev_reg != reg {
             Insn::Get(*prev_reg)
