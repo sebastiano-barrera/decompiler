@@ -61,6 +61,17 @@ impl TypeSet {
         self.types.get(tyid)
     }
 
+    pub fn get_through_alias(&self, mut tyid: TypeID) -> Option<&Type> {
+        loop {
+            let typ = self.types.get(tyid)?;
+            if let Ty::Alias(target_tyid) = &typ.ty {
+                tyid = *target_tyid;
+            } else {
+                return Some(typ);
+            }
+        }
+    }
+
     pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
         let ty = &self.get(tyid)?.ty;
         let sz = match ty {

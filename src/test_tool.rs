@@ -161,7 +161,7 @@ impl<'a> Tester<'a> {
 
             let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
             if let Some(func_tyid) = func_tyid_opt {
-                let func_typ = self.types.get(func_tyid).unwrap();
+                let func_typ = self.types.get_through_alias(func_tyid).unwrap();
                 write!(out, "function type: ")?;
                 self.types.dump_type(out, &func_typ).unwrap();
                 writeln!(out)?;
