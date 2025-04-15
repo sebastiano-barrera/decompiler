@@ -452,8 +452,11 @@ fn precedence(insn: &Insn) -> u8 {
         Insn::Not(_) => 250,
         Insn::Widen { .. } => 249,
 
-        Insn::Arith(_, _, _) => 200,
-        Insn::ArithK(_, _, _) => 200,
+        Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
+            ArithOp::Shl | ArithOp::Shr | ArithOp::BitXor | ArithOp::BitAnd | ArithOp::BitOr => 202,
+            ArithOp::Add | ArithOp::Sub => 200,
+            ArithOp::Mul => 201,
+        },
         Insn::OverflowOf(_) => 200,
         Insn::CarryOf(_) => 200,
         Insn::SignOf(_) => 200,
