@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashSet};
 
 use crate::{
     cfg,
-    mil::{ArithOp, BoolOp, CmpOp, Insn, Reg},
+    mil::{self, ArithOp, BoolOp, CmpOp, Insn, Reg},
     pp::PP,
     ssa,
 };
@@ -344,13 +344,19 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, cond, self_prec)?;
                 write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
             }
-            Insn::Upsilon { value, phi_ref } => {
-                write!(pp, "r{} := ", phi_ref.reg_index())?;
-                pp.open_box();
-                self.pp_def(pp, value, 0)?;
-                pp.close_box();
-                write!(pp, ";")?;
-            }
+            Insn::Upsilon { value, phi_ref } => match self.ssa.value_type(value) {
+                mil::RegType::Bool | mil::RegType::Bytes(_) | mil::RegType::Undefined => {
+                    write!(pp, "r{} := ", phi_ref.reg_index())?;
+                    pp.open_box();
+                    self.pp_def(pp, value, 0)?;
+                    pp.close_box();
+                    write!(pp, ";")?;
+                }
+                // `value` doesn't need to be printed here, as it's already been
+                // printed (has side effect) and the target phi register's value
+                // is not significant
+                mil::RegType::MemoryEffect | mil::RegType::Unit => {}
+            },
             Insn::CArg { .. } => {
                 unreachable!("CArg should be handled via the Call it belongs to!")
             }
@@ -449,6 +455,7 @@ fn precedence(insn: &Insn) -> u8 {
         Insn::Concat { .. } => 253,
 
         Insn::Call { .. } => 251,
+        Insn::CArg { .. } => 251,
         Insn::Not(_) => 250,
         Insn::Widen { .. } => 249,
 
@@ -477,7 +484,6 @@ fn precedence(insn: &Insn) -> u8 {
         | Insn::NotYetImplemented(_)
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,
-
-        Insn::CArg { .. } => panic!("CArg undefined precedence"),
+        // Insn::CArg { .. } => panic!("CArg undefined precedence"),
     }
 }
