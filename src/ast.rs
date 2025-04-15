@@ -152,13 +152,15 @@ impl<'a> Ast<'a> {
             if self.is_named(input) && !self.let_printed.contains(&input) {
                 self.let_printed.insert(input);
 
+                let input_rt = self.ssa.value_type(input);
+
                 if let Insn::Phi = self.ssa.get(input).unwrap().insn.get() {
-                    writeln!(pp, "let mut r{};", input.reg_index())?;
+                    write!(pp, "let mut r{}: {:?}", input.reg_index(), input_rt)?;
                 } else {
-                    write!(pp, "let r{} = ", input.reg_index())?;
+                    write!(pp, "let r{}: {:?} = ", input.reg_index(), input_rt)?;
                     self.pp_def(pp, input, 0)?;
-                    writeln!(pp, ";")?;
                 }
+                writeln!(pp, ";");
             }
         }
         Ok(())
@@ -198,10 +200,10 @@ impl<'a> Ast<'a> {
 
         match insn {
             Insn::Void => write!(pp, "void")?,
-            Insn::True => self.pp_def_default(pp, "True".into(), insn.input_regs(), self_prec)?,
-            Insn::False => self.pp_def_default(pp, "False".into(), insn.input_regs(), self_prec)?,
-            Insn::Const { value, size } => {
-                write!(pp, "{}_i{}", value, size)?;
+            Insn::True => write!(pp, "true")?,
+            Insn::False => write!(pp, "false")?,
+            Insn::Const { value, size: _ } => {
+                write!(pp, "{}", value)?;
             }
             Insn::Get(_) | Insn::Jmp(_) => unreachable!(),
 
@@ -220,9 +222,7 @@ impl<'a> Ast<'a> {
                 write!(pp, "[{} .. {}]", offset + size, offset,)?;
             }
             Insn::Concat { lo, hi } => {
-                self.pp_ref(pp, hi, self_prec)?;
-                write!(pp, " ++ ")?;
-                self.pp_ref(pp, lo, self_prec)?;
+                self.pp_bin_op(pp, hi, lo, "++", self_prec)?;
             }
             Insn::Widen {
                 reg: arg,
@@ -231,12 +231,10 @@ impl<'a> Ast<'a> {
             } => {
                 self.pp_ref(pp, arg, self_prec)?;
                 let ch = if sign { 'i' } else { 'u' };
-                write!(pp, "_{}{}", ch, 8 * target_size)?;
+                write!(pp, " as {}{}", ch, 8 * target_size)?;
             }
             Insn::Arith(arith_op, a, b) => {
-                self.pp_ref(pp, a, self_prec)?;
-                write!(pp, " {} ", arith_op_str(arith_op))?;
-                self.pp_ref(pp, b, self_prec)?;
+                self.pp_bin_op(pp, a, b, arith_op_str(arith_op), self_prec)?;
             }
             Insn::ArithK(arith_op, a, k) => {
                 // trick: it's convenient to prefer ArithOp::Add to ArithOp::Sub
@@ -251,19 +249,19 @@ impl<'a> Ast<'a> {
                     write!(pp, " {} {}", arith_op_str(arith_op), k)?;
                 }
             }
-            Insn::Cmp(cmp_op, _, _) => {
+            Insn::Cmp(cmp_op, a, b) => {
                 let op_s = match cmp_op {
                     CmpOp::EQ => "EQ",
                     CmpOp::LT => "LT",
                 };
-                self.pp_def_default(pp, op_s.into(), insn.input_regs(), self_prec)?;
+                self.pp_bin_op(pp, a, b, op_s, self_prec)?;
             }
-            Insn::Bool(bool_op, _, _) => {
+            Insn::Bool(bool_op, a, b) => {
                 let op_s = match bool_op {
                     BoolOp::Or => "OR",
                     BoolOp::And => "AND",
                 };
-                self.pp_def_default(pp, op_s.into(), insn.input_regs(), self_prec)?;
+                self.pp_bin_op(pp, a, b, op_s, self_prec)?;
             }
             Insn::Not(_) => {
                 self.pp_def_default(pp, "!".into(), insn.input_regs(), self_prec)?;
@@ -299,11 +297,12 @@ impl<'a> Ast<'a> {
                 write!(pp, "[")?;
                 pp.open_box();
                 self.pp_ref(pp, addr, self_prec)?;
-                write!(pp, "] = ")?;
+                write!(pp, "] <- ")?;
                 pp.open_box();
                 self.pp_ref(pp, value, self_prec)?;
                 pp.close_box();
                 pp.close_box();
+                write!(pp, ";")?;
             }
             Insn::OverflowOf(_) => {
                 self.pp_def_default(pp, "OverflowOf".into(), insn.input_regs(), self_prec)?;
@@ -366,6 +365,43 @@ impl<'a> Ast<'a> {
             write!(pp, ")")?;
         }
         Ok(())
+    }
+
+    fn pp_bin_op<W: PP + ?Sized>(
+        &mut self,
+        pp: &mut W,
+        a: Reg,
+        b: Reg,
+        op_str: &str,
+        self_prec: u8,
+    ) -> std::io::Result<()> {
+        let (asz, bsz) = self.operands_sizes(a, b);
+
+        self.pp_ref(pp, a, self_prec)?;
+        if let Some(asz) = asz {
+            write!(pp, "as i{}", asz)?;
+        }
+
+        write!(pp, " {} ", op_str)?;
+
+        self.pp_ref(pp, b, self_prec)?;
+        if let Some(bsz) = bsz {
+            write!(pp, "as i{}", bsz)?;
+        }
+
+        Ok(())
+    }
+
+    fn operands_sizes(&self, a: Reg, b: Reg) -> (Option<usize>, Option<usize>) {
+        let at = self.ssa.value_type(a);
+        let bt = self.ssa.value_type(b);
+        if let (Some(asz), Some(bsz)) = (at.bytes_size(), bt.bytes_size()) {
+            if asz != bsz {
+                return (Some(asz), Some(bsz));
+            }
+        }
+
+        (None, None)
     }
 
     fn pp_def_default<W: PP + ?Sized>(
