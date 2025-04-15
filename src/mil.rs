@@ -128,7 +128,6 @@ pub enum Insn {
     #[assoc(has_side_effects = true)]
     JmpInd(Reg),
     #[assoc(has_side_effects = true)]
-    #[assoc(is_allowed_in_ssa = false)]
     Jmp(Index),
     #[assoc(has_side_effects = true)]
     JmpIf {
