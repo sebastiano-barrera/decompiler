@@ -1,5 +1,5 @@
 use enum_assoc::Assoc;
-/// MaInsn::Call { field1: _ }dent Language
+
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
 use std::{cell::Cell, collections::HashMap, ops::Range};
