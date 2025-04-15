@@ -153,13 +153,6 @@ impl<'a> TypeParser<'a> {
             .into();
         let tyid = self.get_tyid(diofs)?;
 
-        eprintln!(
-            "dwarf: scanning offset 0x{:08x} addr {:?} name {:?}",
-            diofs.0 .0,
-            addr_av,
-            self.get_name(entry).unwrap()
-        );
-
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
             // - [ ] DW_TAG_volatile_type
