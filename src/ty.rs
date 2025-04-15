@@ -24,6 +24,7 @@ pub use crate::ssa::TypeID;
 pub struct TypeSet {
     types: SlotMap<TypeID, Type>,
     known_objects: HashMap<Addr, TypeID>,
+    call_sites: CallSites,
 
     tyid_void: TypeID,
 }
@@ -41,6 +42,7 @@ impl TypeSet {
         TypeSet {
             types,
             known_objects: HashMap::new(),
+            call_sites: CallSites::new(),
             tyid_void,
         }
     }
@@ -307,6 +309,16 @@ impl TypeSet {
 
         Ok(())
     }
+
+    pub(crate) fn call_site_by_return_pc(&self, return_pc: u64) -> Option<TypeID> {
+        self.call_sites
+            .get_by_return_pc(return_pc)
+            .map(|call_site| call_site.tyid)
+    }
+    pub(crate) fn add_call_site_by_return_pc(&mut self, return_pc: u64, tyid: TypeID) {
+        self.call_sites
+            .add_by_return_pc(return_pc, CallSite { tyid })
+    }
 }
 
 // use cases:
@@ -457,6 +469,30 @@ fn dump_types<W: pp::PP>(
     }
     writeln!(out, "]]--")?;
     Ok(())
+}
+
+pub struct CallSites {
+    by_return_pc: HashMap<u64, CallSite>,
+}
+
+pub struct CallSite {
+    pub tyid: TypeID,
+}
+
+impl CallSites {
+    pub fn new() -> Self {
+        CallSites {
+            by_return_pc: HashMap::new(),
+        }
+    }
+
+    pub fn add_by_return_pc(&mut self, return_pc: u64, callsite: CallSite) {
+        self.by_return_pc.insert(return_pc, callsite);
+    }
+
+    pub fn get_by_return_pc(&self, return_pc: u64) -> Option<&CallSite> {
+        self.by_return_pc.get(&return_pc)
+    }
 }
 
 #[cfg(test)]

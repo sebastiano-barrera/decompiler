@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::mil::{self, AncestralName, RegType};
 use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
@@ -439,12 +441,23 @@ impl<'a> Builder<'a> {
 
                 M::Call => {
                     if insn.op0_kind() == OpKind::NearBranch64 {
+                        let return_pc = insn.next_ip();
                         let target = insn.near_branch_target();
-                        eprintln!("#call: to address 0x{:x}", target);
-                        if let Some(ts) = self.types {
-                            if let Some(tyid) = ts.get_known_object(target) {
-                                let typ = ts.get(tyid).unwrap();
-                                eprintln!("#call: resolved call to: {:?} = {:?}", tyid, typ);
+                        eprint!(
+                            "#call: to address 0x{:x}, returning to 0x{:x}",
+                            target, return_pc
+                        );
+
+                        if let Some(types) = self.types {
+                            let tyid = types
+                                .call_site_by_return_pc(return_pc)
+                                .or_else(|| types.get_known_object(target));
+
+                            if let Some(tyid) = tyid {
+                                let typ = types.get(tyid).unwrap();
+                                eprintln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
+                            } else {
+                                eprintln!("      -> unresolved");
                             }
                         }
                     }

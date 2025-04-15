@@ -89,6 +89,15 @@ pub fn load_dwarf_types(
         };
         parser.load_types(types)?;
 
+        {
+            let mut entries = unit.entries();
+            while let Some((_, die)) = entries.next_dfs()? {
+                if die.tag() == gimli::constants::DW_TAG_call_site {
+                    parser.parse_call_site(die, types)?;
+                }
+            }
+        }
+
         errors.extend(parser.errors.take());
     }
 
@@ -112,7 +121,7 @@ struct TypeParser<'a> {
 type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
 
 impl<'a> TypeParser<'a> {
-    fn load_types(&self, types: &'a mut ty::TypeSet) -> Result<()> {
+    fn load_types(&self, types: &mut ty::TypeSet) -> Result<()> {
         assert!(!self.tyid_of_node.is_empty());
 
         let mut entries = self.unit.entries_tree(None)?;
@@ -123,6 +132,7 @@ impl<'a> TypeParser<'a> {
         let mut children = root.children();
         while let Some(node) = children.next()? {
             let node_ofs = node.entry().offset().0;
+
             match self.try_parse_type(node, types, self.unit) {
                 Ok(_) => {}
                 Err(Error::UnsupportedDwarfTag(_)) => {}
@@ -422,6 +432,31 @@ impl<'a> TypeParser<'a> {
         })
     }
 
+    fn parse_call_site(&self, entry: &DIE, types: &mut ty::TypeSet) -> Result<()> {
+        let diofs = self.entry_diofs(entry);
+
+        assert_eq!(entry.tag(), gimli::constants::DW_TAG_call_site);
+
+        let Some(attr_value) = entry.attr_value(gimli::constants::DW_AT_call_origin)? else {
+            return Ok(());
+        };
+        let Some(return_pc) = entry.attr_value(gimli::constants::DW_AT_call_return_pc)? else {
+            return Ok(());
+        };
+
+        let gimli::AttributeValue::Addr(return_pc) = return_pc else {
+            return Err(Error::InvalidValueType(
+                diofs.0,
+                gimli::constants::DW_AT_call_origin,
+            ));
+        };
+
+        let tyid = self.resolve_reference(attr_value, diofs)?;
+
+        types.add_call_site_by_return_pc(return_pc, tyid);
+        Ok(())
+    }
+
     fn resolve_type_of(&self, entry_with_type: &DIE<'_, '_, '_>) -> Result<ty::TypeID> {
         let attr_value = get_required_attr(entry_with_type, gimli::DW_AT_type)?.value();
         self.resolve_reference(
@@ -438,6 +473,8 @@ impl<'a> TypeParser<'a> {
         let type_unit_offset = attr_value_as_diofs(attr_value, &self.unit)
             .ok_or(Error::InvalidValueType(
                 diofs.0,
+                // TODO this is wrong, different call sites may be passed
+                // attributes with different tags
                 gimli::constants::DW_AT_abstract_origin,
             ))?
             .into();
