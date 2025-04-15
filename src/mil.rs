@@ -363,8 +363,14 @@ impl Insn {
             | Insn::SignOf(addr)
             | Insn::IsZero(addr)
             | Insn::Parity(addr)
-            | Insn::Call { callee: addr, .. }
-            | Insn::CArg { value: addr, .. }
+            | Insn::Call {
+                callee: addr,
+                first_arg: None,
+            }
+            | Insn::CArg {
+                value: addr,
+                next_arg: None,
+            }
             | Insn::StructGetMember {
                 struct_value: addr,
                 name: _,
@@ -376,6 +382,14 @@ impl Insn {
             } => [Some(addr), None, None],
 
             Insn::Concat { lo: a, hi: b }
+            | Insn::Call {
+                callee: a,
+                first_arg: Some(b),
+            }
+            | Insn::CArg {
+                value: a,
+                next_arg: Some(b),
+            }
             | Insn::LoadMem {
                 mem: a,
                 addr: b,
