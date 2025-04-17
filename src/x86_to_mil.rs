@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::mil::{self, AncestralName, RegType};
 use crate::ty;
 use iced_x86::{Formatter, IntelFormatter};
@@ -119,8 +117,7 @@ impl<'a> Builder<'a> {
 
         if let Some(func_ty) = self.func_ty.take() {
             let param_count = func_ty.param_tyids.len();
-            let res =
-                callconv::read_func_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid);
+            let res = callconv::unpack_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid);
             self.func_ty = Some(func_ty);
 
             let report = res.context("while applying the calling convention for parameters")?;
@@ -215,7 +212,7 @@ impl<'a> Builder<'a> {
                 }
                 M::Ret => {
                     let ret_val = if let Some(func_ty) = self.func_ty.take() {
-                        let res = callconv::read_return_value(&mut self, func_ty.return_tyid);
+                        let res = callconv::pack_return_value(&mut self, func_ty.return_tyid);
                         self.func_ty = Some(func_ty);
                         res.context("decoding return value")?
                     } else {
@@ -364,7 +361,7 @@ impl<'a> Builder<'a> {
                                 _ => panic!("imul: invalid operand size: {}", a_size),
                             };
 
-                            let v0 = self.emit_read_reg(dest_lo);
+                            let v0 = self.emit_read_machine_reg(dest_lo);
                             self.emit(v0, mil::Insn::Arith(mil::ArithOp::Mul, v0, src_b));
                             self.emit(Self::OF, mil::Insn::OverflowOf(v0));
                             self.emit(Self::CF, mil::Insn::Get(Self::OF));
@@ -440,64 +437,63 @@ impl<'a> Builder<'a> {
                 }
 
                 M::Call => {
-                    if insn.op0_kind() == OpKind::NearBranch64 {
+                    let target_ty = if let (OpKind::NearBranch64, Some(types)) =
+                        (insn.op0_kind(), self.types)
+                    {
                         let return_pc = insn.next_ip();
                         let target = insn.near_branch_target();
-                        eprint!(
-                            "#call: to address 0x{:x}, returning to 0x{:x}",
-                            target, return_pc
+                        types.resolve_call(ty::CallSiteKey { return_pc, target })
+                    } else {
+                        None
+                    };
+
+                    let param_values = if let Some(ty::Ty::Subroutine(subr_ty)) = &target_ty {
+                        let param_count = subr_ty.param_tyids.len();
+                        // TODO smallvec?
+                        let param_values: Vec<_> =
+                            (0..param_count).map(|_| self.reg_gen.next()).collect();
+
+                        let report = callconv::pack_params(
+                            &mut self,
+                            &subr_ty.param_tyids,
+                            subr_ty.return_tyid,
+                            &param_values,
+                        )?;
+
+                        eprintln!(
+                            "#call: resolved call; packed {}/{} params",
+                            report.ok_count + 1,
+                            param_count
                         );
 
-                        if let Some(types) = self.types {
-                            let tyid = types
-                                .call_site_by_return_pc(return_pc)
-                                .or_else(|| types.get_known_object(target));
+                        param_values
+                    } else {
+                        vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]
+                    };
 
-                            if let Some(tyid) = tyid {
-                                let typ = types.get(tyid).unwrap();
-                                eprintln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
-                            } else {
-                                eprintln!("      -> unresolved");
-                            }
-                        }
-                    }
-
-                    // TODO Use function type info to use the proper number of
-                    // arguments (also allow different calling conventions)
-                    // For now, we always assume exactly 4 simple
-                    // integer/pointer arguments, using the sysv amd64 call
-                    // conv.
                     let v1 = self.reg_gen.next();
-                    for (ndx, arch_reg) in
-                        [Register::RDI, Register::RSI, Register::RDX, Register::RCX]
-                            .into_iter()
-                            .rev()
-                            .enumerate()
-                    {
-                        let value = Self::xlat_reg(arch_reg);
-                        self.emit(
-                            v1,
-                            mil::Insn::CArg {
-                                value,
-                                next_arg: if ndx == 0 { None } else { Some(v1) },
-                            },
-                        );
-                    }
-
+                    let first_arg = if param_values.is_empty() {
+                        None
+                    } else {
+                        for (ndx, arg) in param_values.into_iter().rev().enumerate() {
+                            self.emit(
+                                v1,
+                                mil::Insn::CArg {
+                                    value: arg,
+                                    next_arg: if ndx > 0 { Some(v1) } else { None },
+                                },
+                            );
+                        }
+                        Some(v1)
+                    };
                     let (callee, sz) = self.emit_read(&insn, 0);
+                    // let (callee, sz) = (Self::RAX, 8);
                     assert_eq!(
                         sz, 8,
                         "invalid call instruction: operand must be 8 bytes, not {}",
                         sz
                     );
-                    let ret_reg = Self::xlat_reg(Register::RAX);
-                    self.emit(
-                        ret_reg,
-                        mil::Insn::Call {
-                            callee,
-                            first_arg: Some(v1),
-                        },
-                    );
+                    self.emit(v1, mil::Insn::Call { callee, first_arg });
 
                     self.emit(Self::CF, mil::Insn::Undefined);
                     self.emit(Self::PF, mil::Insn::Undefined);
@@ -508,6 +504,13 @@ impl<'a> Builder<'a> {
                     self.emit(Self::IF, mil::Insn::Undefined);
                     self.emit(Self::DF, mil::Insn::Undefined);
                     self.emit(Self::OF, mil::Insn::Undefined);
+
+                    if let Some(ty::Ty::Subroutine(subr_ty)) = &target_ty {
+                        callconv::unpack_return_value(&mut self, subr_ty.return_tyid, v1)?;
+                    } else {
+                        // just a dumb approximation of a likely case
+                        self.emit(v1, mil::Insn::Get(Self::RAX));
+                    }
                 }
 
                 //
@@ -882,7 +885,7 @@ impl<'a> Builder<'a> {
         match insn.op_kind(op_ndx) {
             OpKind::Register => {
                 let reg = insn.op_register(op_ndx);
-                self.emit_read_reg(reg)
+                self.emit_read_machine_reg(reg)
             }
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => self.emit(
                 v0,
@@ -1028,7 +1031,7 @@ impl<'a> Builder<'a> {
     }
 
     /// Read a register of any size, emitting mil::Insn::Part as necessary
-    fn emit_read_reg(&mut self, reg: Register) -> mil::Reg {
+    fn emit_read_machine_reg(&mut self, reg: Register) -> mil::Reg {
         let full_reg = reg.full_register();
         let value = Builder::xlat_reg(full_reg);
         if reg == full_reg {

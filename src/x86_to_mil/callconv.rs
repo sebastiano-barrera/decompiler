@@ -22,7 +22,7 @@ pub struct Report {
     pub errors: Vec<anyhow::Error>,
 }
 
-pub fn read_func_params<'a>(
+pub fn unpack_params<'a>(
     bld: &mut Builder<'a>,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
@@ -58,7 +58,7 @@ pub fn read_func_params<'a>(
             let mut eb_set = EightbytesSet::new_regs();
             classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
             // pass a copy of state: we just want to predict the outcome of
-            // read_return_value, we don't want to actually pull regs yet
+            // pack_return_value, we don't want to actually pull regs yet
             let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
             match pass_mode {
                 PassMode::Regs(_) => {}
@@ -96,7 +96,7 @@ pub fn read_func_params<'a>(
         let param_src = bld.reg_gen.next();
         bld.init_ancestral(param_src, param_anc, mil::RegType::Bytes(sz as usize));
 
-        pass_param(bld, &mut state, types, param_tyid, param_src, pass_mode);
+        unpack_param(bld, &mut state, types, param_tyid, param_src, pass_mode);
 
         report.ok_count += 1;
     }
@@ -104,7 +104,7 @@ pub fn read_func_params<'a>(
     Ok(report)
 }
 
-fn pass_param<'a>(
+fn unpack_param<'a>(
     bld: &mut Builder<'a>,
     state: &mut ParamPassing,
     types: &ty::TypeSet,
@@ -201,7 +201,7 @@ fn pass_param<'a>(
     }
 }
 
-pub fn read_return_value<'a>(
+pub fn pack_return_value<'a>(
     bld: &mut Builder<'a>,
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<mil::Reg> {
@@ -338,6 +338,294 @@ pub fn read_return_value<'a>(
     }
 
     Ok(ret_val)
+}
+
+pub fn pack_params<'a>(
+    bld: &mut Builder<'a>,
+    param_types: &[ty::TypeID],
+    ret_tyid: ty::TypeID,
+    param_values: &[mil::Reg],
+) -> anyhow::Result<Report> {
+    assert_eq!(param_types.len(), param_values.len());
+
+    let mut report = Report {
+        ok_count: 0,
+        errors: Vec::new(),
+    };
+
+    let types = bld
+        .types
+        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
+
+    let mut state = ParamPassing::default();
+
+    // We need to check whether the return type is allocated to memory or to a
+    // register. In case it's memory (stack space, typically), the address is
+    // going to be passed in as RDI, so we have to skip *that* for parameters.
+    match &types.get(ret_tyid).unwrap().ty {
+        // we're fine, just let's go
+        ty::Ty::Void => {}
+        ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
+            panic!("invalid type for a function return value: {:?}", ret_ty);
+        }
+        ty::Ty::Unknown(_) => {
+            // nothing better to do in this case...
+            report.errors.push(anyhow!(
+                    "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
+                ));
+            return Ok(report);
+        }
+        _ => {
+            let mut eb_set = EightbytesSet::new_regs();
+            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            // pass a copy of state: we just want to predict the outcome of
+            // pack_return_value, we don't want to actually pull regs yet
+            let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
+            match pass_mode {
+                PassMode::Regs(_) => {}
+                // one-big-sse is the same as memory
+                PassMode::OneBigSse { .. } | PassMode::Memory => {
+                    let _ = state.pull_integer_reg().unwrap();
+                }
+            }
+        }
+    }
+
+    for &param_tyid in param_types.iter() {
+        let param_ty = &types.get(param_tyid).unwrap().ty;
+
+        if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
+            panic!("invalid type for a function parameter: {:?}", param_ty);
+        }
+
+        let mut eb_set = EightbytesSet::new_regs();
+        let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
+        if let Err(err) = res {
+            report.errors.push(err);
+            // because each argument uses a variable number of integer regs, ssa
+            // regs, and stack slots, we can't be sure of how to map ANY of the
+            // remaining parameters
+            break;
+        }
+
+        let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state);
+        let sz = types.bytes_size(param_tyid).unwrap();
+
+        let param_anc = state
+            .pull_arg()
+            .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
+        let param_dest = bld.reg_gen.next();
+        bld.init_ancestral(param_dest, param_anc, mil::RegType::Bytes(sz as usize));
+
+        pack_param(bld, &mut state, types, param_tyid, param_dest, pass_mode);
+
+        report.ok_count += 1;
+    }
+
+    Ok(report)
+}
+
+fn pack_param<'a>(
+    bld: &mut Builder<'a>,
+    state: &mut ParamPassing,
+    types: &ty::TypeSet,
+    tyid: ty::TypeID,
+    arg_value: mil::Reg,
+    mode: PassMode,
+) {
+    let sz = types.bytes_size(tyid).unwrap();
+    let eb_count = sz.div_ceil(8);
+
+    bld.emit(arg_value, Insn::Void);
+
+    match mode {
+        PassMode::Regs(regs) => {
+            assert!(regs[0].is_some());
+
+            // TODO assert that the type is 1-16 bytes long, based on clss
+            let mut regs_eb_count = 0;
+            for (ndx, reg) in regs.into_iter().enumerate() {
+                let Some(reg) = reg else {
+                    continue;
+                };
+
+                let eb_value = bld.emit_read_machine_reg(reg);
+                regs_eb_count += 1;
+
+                if ndx > 0 {
+                    // Combine with previous parts
+                    bld.emit(
+                        arg_value,
+                        mil::Insn::Concat {
+                            lo: eb_value,
+                            hi: arg_value,
+                        },
+                    );
+                } else {
+                    bld.emit(arg_value, mil::Insn::Get(eb_value));
+                }
+            }
+
+            assert_eq!(regs_eb_count, eb_count);
+        }
+        PassMode::OneBigSse { reg, eb_count } => {
+            assert_eq!(sz.div_ceil(8), eb_count as u32);
+            let sse_value = bld.emit_read_machine_reg(reg);
+            bld.emit(arg_value, Insn::Get(sse_value));
+        }
+        PassMode::Memory => {
+            assert!(eb_count > 0);
+            assert!(sz > 0);
+
+            // read all eightbytes in a single 'operation'
+            let addr = bld.reg_gen.next();
+            let eb_offset = state.pull_stack_eightbyte() as i64;
+            bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
+            bld.emit(
+                arg_value,
+                Insn::LoadMem {
+                    mem: Builder::MEM,
+                    addr,
+                    size: (8 * eb_count).try_into().unwrap(),
+                },
+            );
+        }
+    }
+
+    // Trim to the correct size if needed
+    if sz < (8 * eb_count) {
+        bld.emit(
+            arg_value,
+            mil::Insn::Part {
+                src: arg_value,
+                offset: 0,
+                size: sz.try_into().unwrap(),
+            },
+        );
+    }
+}
+
+pub fn unpack_return_value<'a>(
+    bld: &mut Builder<'a>,
+    ret_tyid: ty::TypeID,
+    ret_val: mil::Reg,
+) -> anyhow::Result<()> {
+    let types = bld
+        .types
+        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
+
+    let ret_ty = &types.get(ret_tyid).unwrap().ty;
+    match ret_ty {
+        // no register changed as a result of a call
+        ty::Ty::Void => Ok(()),
+        ty::Ty::Unknown(_) => {
+            // don't know anything better that could be done in this case...
+            for mreg in [Builder::RAX, Builder::RDX, Builder::ZMM0, Builder::ZMM1] {
+                bld.emit(mreg, Insn::Undefined);
+            }
+            Ok(())
+        }
+        ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
+            panic!("invalid type for a function return value: {:?}", ret_ty);
+        }
+        _ => {
+            let mut eb_set = EightbytesSet::new_regs();
+            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            // for return values, no more than 2 registers should be used; if the type
+            // is larger than that, it goes to memory
+            let eb_set = eb_set.limit_regs(2);
+
+            let sz = types.bytes_size(ret_tyid).unwrap();
+            assert!(sz > 0);
+
+            match eb_set {
+                EightbytesSet::Regs { clss } => {
+                    // different than those for parameter passing
+                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
+                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
+
+                    // TODO assert that the type is 1-16 bytes long, based on clss
+                    let mut clss = clss.used().iter().peekable();
+                    let mut eb_dest_ofs = 0;
+                    while let Some(cls) = clss.next() {
+                        let (eb_dest, eb_count) = match *cls {
+                            RegClass::Integer => {
+                                let eb_dest = *int_regs.next().expect("bug: not enough int regs!");
+                                (eb_dest, 1)
+                            }
+                            RegClass::Sse => {
+                                let sse_reg = *sse_regs.next().expect("bug: not enough sse regs!");
+                                let mut eb_count = 1;
+                                while let Some(RegClass::SseUp) = clss.peek() {
+                                    eb_count += 1;
+                                }
+                                (sse_reg, eb_count)
+                            }
+                            RegClass::SseUp => unreachable!(),
+                            RegClass::Unused => {
+                                while let Some(cls) = clss.next() {
+                                    assert_eq!(*cls, RegClass::Unused);
+                                }
+                                break;
+                            }
+                        };
+                        bld.emit(
+                            eb_dest,
+                            Insn::Part {
+                                src: ret_val,
+                                offset: eb_dest_ofs,
+                                size: eb_count * 8,
+                            },
+                        );
+
+                        eb_dest_ofs += eb_count * 8;
+                    }
+
+                    Ok(())
+                }
+                EightbytesSet::Memory => {
+                    // From the spec: AMD64 ABI Draft 0.99.6 – July 2, 2012 - page 22
+                    //
+                    // > If the type has class MEMORY, then the caller provides space
+                    // > for the return value and passes the address of this storage
+                    // > in %rdi as if it were the first argument to the function. In
+                    // > effect, this address becomes a “hidden” first argument. This
+                    // > storage must not overlap any data visible to the callee through
+                    // > other names than this argument.
+                    // >
+                    // > On return %rax will contain the address that has been passed in
+                    // > by the caller in %rdi.
+
+                    let eb_count = sz.div_ceil(8);
+                    let tmp = bld.reg_gen.next();
+                    let ret_val = if sz < eb_count * 8 {
+                        bld.emit(
+                            tmp,
+                            Insn::Widen {
+                                reg: ret_val,
+                                target_size: (eb_count * 8).try_into().unwrap(),
+                                sign: false,
+                            },
+                        );
+                        tmp
+                    } else {
+                        ret_val
+                    };
+
+                    bld.emit(
+                        tmp,
+                        Insn::StoreMem {
+                            mem: Builder::MEM,
+                            addr: Builder::RAX,
+                            value: ret_val,
+                        },
+                    );
+
+                    Ok(())
+                }
+            }
+        }
+    }
 }
 
 fn eightbytes_to_pass_mode(eb_set: EightbytesSet, state_saved: &mut ParamPassing) -> PassMode {
@@ -659,7 +947,7 @@ mod tests {
         )
         .unwrap();
 
-        read_func_params(&mut bld, param_types, types.tyid_void).unwrap();
+        unpack_params(&mut bld, param_types, types.tyid_void).unwrap();
 
         let v0 = bld.reg_gen.next();
         bld.emit(v0, Insn::Ret(Builder::RDI));

@@ -319,6 +319,35 @@ impl TypeSet {
         self.call_sites
             .add_by_return_pc(return_pc, CallSite { tyid })
     }
+
+    pub fn resolve_call(&self, key: CallSiteKey) -> Option<&Ty> {
+        let CallSiteKey { return_pc, target } = key;
+
+        eprint!(
+            "#call: to address 0x{:x}, returning to 0x{:x}",
+            target, return_pc
+        );
+
+        let tyid = self
+            .call_site_by_return_pc(return_pc)
+            .or_else(|| self.get_known_object(target));
+
+        if tyid.is_none() {
+            eprintln!("      -> unresolved");
+        }
+
+        let tyid = tyid?;
+        let typ = self.get_through_alias(tyid).unwrap();
+        let ty = &typ.ty;
+
+        eprintln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
+        Some(ty)
+    }
+}
+
+pub struct CallSiteKey {
+    pub return_pc: u64,
+    pub target: u64,
 }
 
 // use cases:
