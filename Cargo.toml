@@ -15,6 +15,7 @@ thiserror = "2.0.9"
 rayon = "1.10.0"
 slotmap = "1.0.7"
 enum-assoc = "1.2.4"
+arrayvec = "0.7.6"
 
 [dependencies.iced-x86]
 version = "1.21.0"

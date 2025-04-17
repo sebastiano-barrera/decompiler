@@ -394,7 +394,7 @@ fn fold_part_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 }
 
 fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
-    for input in insn.input_regs_iter_mut() {
+    for input in insn.input_regs_iter() {
         loop {
             let input_def = prog.get(*input).unwrap().insn.get();
             if let Insn::Get(arg) = input_def {

@@ -216,7 +216,7 @@ impl Program {
         while let Some(reg) = queue.pop() {
             assert_eq!(rdr_count[reg], 0);
 
-            for input in self.get(reg).unwrap().insn.get().input_regs_iter() {
+            for &mut input in self.get(reg).unwrap().insn.get().input_regs_iter() {
                 rdr_count[input] -= 1;
                 if rdr_count[input] == 0 {
                     queue.push(input);
@@ -325,7 +325,7 @@ impl<'a> Iterator for InsnRPOIter<'a> {
                             .insn
                             .get()
                             .input_regs_iter()
-                            .map(|input| IterCmd::StartInsn((bid, input))),
+                            .map(|input| IterCmd::StartInsn((bid, *input))),
                     );
                 }
                 IterCmd::EndInsn((bid, reg)) => {
@@ -566,7 +566,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     // > }
 
                     let mut insn = iv.insn.get();
-                    for reg in insn.input_regs_mut().into_iter().flatten() {
+                    for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
                     iv.insn.set(insn);
@@ -732,14 +732,14 @@ fn compute_phis_set(
 fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
     let mut is_received = RegMat::for_program(prog, graph, false);
     for bid in graph.block_ids_postorder() {
-        for (dest, insn) in prog
+        for (dest, mut insn) in prog
             .slice(graph.insns_ndx_range(bid))
             .unwrap()
             .iter_copied()
             .rev()
         {
             is_received.set(bid, dest, false);
-            for input in insn.input_regs_iter() {
+            for &mut input in insn.input_regs_iter() {
                 is_received.set(bid, input, true);
             }
         }
@@ -881,7 +881,7 @@ pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
 
     for reg in 0..prog.reg_count() {
         let reg = mil::Reg(reg);
-        for input in prog.get(reg).unwrap().insn.get().input_regs_iter() {
+        for &mut input in prog.get(reg).unwrap().insn.get().input_regs_iter() {
             count[input] += 1;
         }
     }
@@ -902,8 +902,8 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
     let mut count = vec![0; prog.reg_count() as usize];
 
     for (_, reg) in prog.insns_rpo() {
-        for reg in prog.get(reg).unwrap().insn.get().input_regs_iter() {
-            count[reg.0 as usize] += 1;
+        for reg in prog.get(reg).unwrap().insn.get().input_regs() {
+            count[reg.reg_index() as usize] += 1;
         }
     }
 

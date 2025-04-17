@@ -146,8 +146,8 @@ impl<'a> Ast<'a> {
     ///
     /// This function does NOT print reg or the instruction defining reg.
     fn pp_labeled_inputs<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
-        let insn = self.ssa.get(reg).unwrap().insn.get();
-        for input in insn.input_regs_iter() {
+        let mut insn = self.ssa.get(reg).unwrap().insn.get();
+        for &mut input in insn.input_regs_iter() {
             self.pp_labeled_inputs(pp, input)?;
             if self.is_named(input) && !self.let_printed.contains(&input) {
                 self.let_printed.insert(input);
@@ -182,7 +182,7 @@ impl<'a> Ast<'a> {
         //  - printing an instruction definition inline as part of the 1 dependent instruction
         // (For this reason, we can't pp_labeled_inputs here)
         let iv = self.ssa.get(reg).unwrap();
-        let insn = iv.insn.get();
+        let mut insn = iv.insn.get();
 
         if let Insn::Get(x) = insn {
             return self.pp_def(pp, x, parent_prec);
@@ -408,11 +408,11 @@ impl<'a> Ast<'a> {
         &mut self,
         pp: &mut W,
         op_s: Cow<'_, str>,
-        args: [Option<&Reg>; 3],
+        args: mil::ArgsMut,
         self_prec: u8,
     ) -> Result<(), std::io::Error> {
         write!(pp, "{} (", op_s)?;
-        for (arg_ndx, arg) in args.into_iter().flatten().enumerate() {
+        for (arg_ndx, arg) in args.into_iter().enumerate() {
             if arg_ndx > 0 {
                 write!(pp, ", ")?;
             }

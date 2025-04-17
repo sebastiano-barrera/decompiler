@@ -68,9 +68,16 @@ impl RegType {
     }
 }
 
+pub type ArgsMut<'a> = arrayvec::ArrayVec<&'a mut Reg, 3>;
+
+fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec<T, N> {
+    items.into_iter().collect()
+}
+
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
+#[func(pub fn input_regs(&mut self) -> ArgsMut { ArgsMut::new() })]
 pub enum Insn {
     Void,
     True,
@@ -79,58 +86,69 @@ pub enum Insn {
         value: i64,
         size: u16,
     },
+    #[assoc(input_regs = array([_0]))]
     Get(Reg),
 
+    #[assoc(input_regs = array([_src]))]
     Part {
         src: Reg,
         offset: u16,
         size: u16,
     },
-    // TODO Clarify:
-    //   do lo/hi refer to significance (LSB/MSB side of a machine word) or
-    //   address (low/high part of a struct)?
-    //   they happen to be the same in x86_64 due to it being low-endian, but...
+    #[assoc(input_regs = array([_lo, _hi]))]
     Concat {
         lo: Reg,
         hi: Reg,
     },
 
+    #[assoc(input_regs = array([_struct_value]))]
     StructGetMember {
         struct_value: Reg,
         name: &'static str,
         // larger size are definitely possible
         size: u32,
     },
+    #[assoc(input_regs = array([_reg]))]
     Widen {
         reg: Reg,
         target_size: u16,
         sign: bool,
     },
 
+    #[assoc(input_regs = array([_1, _2]))]
     Arith(ArithOp, Reg, Reg),
+    #[assoc(input_regs = array([_1]))]
     ArithK(ArithOp, Reg, i64),
+    #[assoc(input_regs = array([_1, _2]))]
     Cmp(CmpOp, Reg, Reg),
+    #[assoc(input_regs = array([_1, _2]))]
     Bool(BoolOp, Reg, Reg),
+    #[assoc(input_regs = array([_0]))]
     Not(Reg),
 
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_callee]))]
     Call {
         callee: Reg,
         first_arg: Option<Reg>,
     },
     #[assoc(is_replaceable_with_get = false)]
+    #[assoc(input_regs = array([_value]))]
     CArg {
         value: Reg,
         next_arg: Option<Reg>,
     },
 
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_0]))]
     Ret(Reg),
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_0]))]
     JmpInd(Reg),
     #[assoc(has_side_effects = true)]
     Jmp(Index),
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_cond]))]
     JmpIf {
         cond: Reg,
         target: Index,
@@ -138,6 +156,7 @@ pub enum Insn {
     #[assoc(has_side_effects = true)]
     JmpExt(u64),
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_cond]))]
     JmpExtIf {
         cond: Reg,
         addr: u64,
@@ -153,29 +172,32 @@ pub enum Insn {
         size: u32,
     },
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_mem, _addr, _value]))]
     StoreMem {
         mem: Reg,
         addr: Reg,
         value: Reg,
     },
 
+    #[assoc(input_regs = array([_0]))]
     OverflowOf(Reg),
+    #[assoc(input_regs = array([_0]))]
     CarryOf(Reg),
+    #[assoc(input_regs = array([_0]))]
     SignOf(Reg),
+    #[assoc(input_regs = array([_0]))]
     IsZero(Reg),
+    #[assoc(input_regs = array([_0]))]
     Parity(Reg),
 
     Undefined,
     Ancestral(AncestralName),
 
-    /// Phi node.
-    ///
-    /// Exists purely to give the phi node an index that the rest of the program can refer to (in
-    /// SSA).
     Phi,
 
     // must be marked with has_side_effects = true, in order to be associated to specific basic blocks
     #[assoc(has_side_effects = true)]
+    #[assoc(input_regs = array([_value]))]
     Upsilon {
         value: Reg,
         phi_ref: Reg,
@@ -200,7 +222,6 @@ pub enum BoolOp {
 pub enum ArithOp {
     Add,
     Sub,
-    #[allow(dead_code)]
     Mul,
     Shl,
     Shr,
@@ -236,181 +257,8 @@ macro_rules! define_ancestral_name {
 define_ancestral_name!(ANC_STACK_BOTTOM, "stack_bottom");
 
 impl Insn {
-    // TODO There must be some macro magic to generate these two functions
-    pub fn input_regs_mut(&mut self) -> [Option<&mut Reg>; 3] {
-        match self {
-            Insn::Void
-            | Insn::False
-            | Insn::True
-            | Insn::Const { .. }
-            | Insn::JmpExt(_)
-            | Insn::Jmp(_)
-            | Insn::NotYetImplemented(_)
-            | Insn::Undefined
-            | Insn::Phi
-            | Insn::Ancestral(_) => [const { None }; 3],
-
-            Insn::Part {
-                src: a,
-                offset: _,
-                size: _,
-            }
-            | Insn::Get(a)
-            | Insn::ArithK(_, a, _)
-            | Insn::Widen {
-                reg: a,
-                target_size: _,
-                sign: _,
-            }
-            | Insn::Not(a)
-            | Insn::Ret(a)
-            | Insn::JmpInd(a)
-            | Insn::JmpExtIf { cond: a, addr: _ }
-            | Insn::JmpIf { cond: a, target: _ }
-            | Insn::OverflowOf(a)
-            | Insn::CarryOf(a)
-            | Insn::SignOf(a)
-            | Insn::IsZero(a)
-            | Insn::Parity(a)
-            | Insn::Call {
-                callee: a,
-                first_arg: None,
-            }
-            | Insn::CArg {
-                value: a,
-                next_arg: None,
-            }
-            | Insn::StructGetMember {
-                struct_value: a,
-                name: _,
-                size: _,
-            }
-            | Insn::Upsilon {
-                value: a,
-                phi_ref: _,
-            } => [Some(a), None, None],
-
-            Insn::Concat { lo: a, hi: b }
-            | Insn::LoadMem {
-                mem: a,
-                addr: b,
-                size: _,
-            }
-            | Insn::Arith(_, a, b)
-            | Insn::Cmp(_, a, b)
-            | Insn::Bool(_, a, b)
-            | Insn::Call {
-                callee: a,
-                first_arg: Some(b),
-            }
-            | Insn::CArg {
-                value: a,
-                next_arg: Some(b),
-            } => [Some(a), Some(b), None],
-
-            Insn::StoreMem {
-                addr: a,
-                value: b,
-                mem: c,
-            } => [Some(a), Some(b), Some(c)],
-        }
-    }
-
-    pub fn input_regs_iter<'s>(&'s self) -> impl 's + Iterator<Item = Reg> {
-        self.input_regs().into_iter().flatten().copied()
-    }
-    pub fn input_regs_iter_mut<'s>(&'s mut self) -> impl 's + Iterator<Item = &'s mut Reg> {
-        self.input_regs_mut().into_iter().flatten()
-    }
-    pub fn input_regs(&self) -> [Option<&Reg>; 3] {
-        match self {
-            Insn::Void
-            | Insn::False
-            | Insn::True
-            | Insn::Const { .. }
-            | Insn::JmpExt(_)
-            | Insn::Jmp(_)
-            | Insn::NotYetImplemented(_)
-            | Insn::Undefined
-            | Insn::Phi
-            | Insn::Ancestral(_) => [const { None }; 3],
-
-            Insn::Part {
-                src: addr,
-                offset: _,
-                size: _,
-            }
-            | Insn::Get(addr)
-            | Insn::ArithK(_, addr, _)
-            | Insn::Widen {
-                reg: addr,
-                target_size: _,
-                sign: _,
-            }
-            | Insn::Not(addr)
-            | Insn::Ret(addr)
-            | Insn::JmpInd(addr)
-            | Insn::JmpExtIf {
-                cond: addr,
-                addr: _,
-            }
-            | Insn::JmpIf {
-                cond: addr,
-                target: _,
-            }
-            | Insn::OverflowOf(addr)
-            | Insn::CarryOf(addr)
-            | Insn::SignOf(addr)
-            | Insn::IsZero(addr)
-            | Insn::Parity(addr)
-            | Insn::Call {
-                callee: addr,
-                first_arg: None,
-            }
-            | Insn::CArg {
-                value: addr,
-                next_arg: None,
-            }
-            | Insn::StructGetMember {
-                struct_value: addr,
-                name: _,
-                size: _,
-            }
-            | Insn::Upsilon {
-                value: addr,
-                phi_ref: _,
-            } => [Some(addr), None, None],
-
-            Insn::Concat { lo: a, hi: b }
-            | Insn::Call {
-                callee: a,
-                first_arg: Some(b),
-            }
-            | Insn::CArg {
-                value: a,
-                next_arg: Some(b),
-            }
-            | Insn::LoadMem {
-                mem: a,
-                addr: b,
-                size: _,
-            }
-            | Insn::Arith(_, a, b)
-            | Insn::Cmp(_, a, b)
-            | Insn::Bool(_, a, b) => [Some(a), Some(b), None],
-
-            Insn::StoreMem {
-                addr: a,
-                value: b,
-                mem: c,
-            } => [Some(a), Some(b), Some(c)],
-        }
-    }
-
-    // TODO replace this with more general predicates for "allowed for mil" and "allowed for ssa"
-    #[inline(always)]
-    pub fn is_phi(&self) -> bool {
-        matches!(self, Insn::Phi)
+    pub fn input_regs_iter<'s>(&'s mut self) -> impl 's + Iterator<Item = &'s mut Reg> {
+        self.input_regs().into_iter()
     }
 }
 
@@ -539,7 +387,7 @@ impl ProgramBuilder {
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
-        assert!(!insn.is_phi());
+        assert!(!matches!(insn, Insn::Phi));
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
