@@ -168,6 +168,7 @@ impl Program {
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
         self.assert_alt_block_ends_with_jmpif();
+        self.assert_carg_chain();
     }
 
     fn assert_alt_block_ends_with_jmpif(&self) {
@@ -239,6 +240,31 @@ impl Program {
             let reg = mil::Reg(reg);
             let insn = self.get(reg).unwrap().insn.get();
             assert_eq!(in_block[reg], insn.has_side_effects());
+        }
+    }
+
+    fn assert_carg_chain(&self) {
+        for iv in self.inner.iter() {
+            let insn = iv.insn.get();
+            let arg = match insn {
+                mil::Insn::Call {
+                    callee: _,
+                    first_arg: Some(arg),
+                }
+                | mil::Insn::CArg {
+                    value: _,
+                    next_arg: Some(arg),
+                } => arg,
+                _ => continue,
+            };
+
+            let arg_def = self.get(arg).unwrap().insn.get();
+            assert!(
+                matches!(arg_def, mil::Insn::CArg { .. }),
+                "reg {:?} does not point to a CArg, but to {:?}",
+                iv.dest.get(),
+                arg_def
+            );
         }
     }
 }
