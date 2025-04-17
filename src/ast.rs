@@ -21,7 +21,7 @@ impl<'a> Ast<'a> {
         let rdr_count = ssa::count_readers(&ssa);
 
         let is_named = rdr_count.map(|reg, count| {
-            let insn = ssa.get(reg).unwrap().insn.get();
+            let insn = ssa[reg].get();
             // ancestral are as good as r# refs, so never 'name' them / always print inline
             matches!(insn, Insn::Phi)
                 || (*count > 1
@@ -146,7 +146,7 @@ impl<'a> Ast<'a> {
     ///
     /// This function does NOT print reg or the instruction defining reg.
     fn pp_labeled_inputs<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
-        let mut insn = self.ssa.get(reg).unwrap().insn.get();
+        let mut insn = self.ssa[reg].get();
         for &mut input in insn.input_regs_iter() {
             self.pp_labeled_inputs(pp, input)?;
             if self.is_named(input) && !self.let_printed.contains(&input) {
@@ -154,7 +154,7 @@ impl<'a> Ast<'a> {
 
                 let input_rt = self.ssa.value_type(input);
 
-                if let Insn::Phi = self.ssa.get(input).unwrap().insn.get() {
+                if let Insn::Phi = self.ssa[input].get() {
                     write!(pp, "let mut r{}: {:?}", input.reg_index(), input_rt)?;
                 } else {
                     write!(pp, "let r{}: {:?} = ", input.reg_index(), input_rt)?;

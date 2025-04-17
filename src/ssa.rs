@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
 ///
@@ -88,7 +90,7 @@ impl Program {
 
     pub fn upsilons_of_phi<'s>(&'s self, phi_reg: mil::Reg) -> impl 's + Iterator<Item = mil::Reg> {
         assert!(matches!(
-            self.get(phi_reg).unwrap().insn.get(),
+            self[phi_reg].get(),
             mil::Insn::Phi
         ));
 
@@ -164,11 +166,19 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
+        self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
         self.assert_alt_block_ends_with_jmpif();
         self.assert_carg_chain();
+    }
+
+    fn assert_dest_reg_is_index(&self) {
+        for (ndx, iv) in self.inner.iter().enumerate() {
+            let dest = iv.dest.get();
+            assert_eq!(ndx, dest.reg_index() as usize);
+        }
     }
 
     fn assert_alt_block_ends_with_jmpif(&self) {
@@ -216,7 +226,7 @@ impl Program {
         while let Some(reg) = queue.pop() {
             assert_eq!(rdr_count[reg], 0);
 
-            for &mut input in self.get(reg).unwrap().insn.get().input_regs_iter() {
+            for &mut input in self[reg].get().input_regs_iter() {
                 rdr_count[input] -= 1;
                 if rdr_count[input] == 0 {
                     queue.push(input);
@@ -238,7 +248,7 @@ impl Program {
 
         for reg in 0..self.reg_count() {
             let reg = mil::Reg(reg);
-            let insn = self.get(reg).unwrap().insn.get();
+            let insn = self[reg].get();
             assert_eq!(in_block[reg], insn.has_side_effects());
         }
     }
@@ -258,7 +268,7 @@ impl Program {
                 _ => continue,
             };
 
-            let arg_def = self.get(arg).unwrap().insn.get();
+            let arg_def = self[arg].get();
             assert!(
                 matches!(arg_def, mil::Insn::CArg { .. }),
                 "reg {:?} does not point to a CArg, but to {:?}",
@@ -266,6 +276,13 @@ impl Program {
                 arg_def
             );
         }
+    }
+}
+
+impl std::ops::Index<mil::Reg> for Program {
+    type Output = Cell<mil::Insn>;
+    fn index(&self, reg: mil::Reg) -> &Cell<mil::Insn> {
+        &self.get(reg).unwrap().insn
     }
 }
 
@@ -673,7 +690,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
             let last_pre_ups = last - ups_count;
             let reg = fx[last_pre_ups];
             assert!(matches!(
-                ssa.get(reg).unwrap().insn.get(),
+                ssa[reg].get(),
                 mil::Insn::JmpIf { .. }
             ));
 
@@ -881,7 +898,7 @@ pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
 
     for reg in 0..prog.reg_count() {
         let reg = mil::Reg(reg);
-        for &mut input in prog.get(reg).unwrap().insn.get().input_regs_iter() {
+        for &mut input in prog[reg].get().input_regs_iter() {
             count[input] += 1;
         }
     }
@@ -902,7 +919,7 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
     let mut count = vec![0; prog.reg_count() as usize];
 
     for (_, reg) in prog.insns_rpo() {
-        for reg in prog.get(reg).unwrap().insn.get().input_regs() {
+        for reg in prog[reg].get().input_regs() {
             count[reg.reg_index() as usize] += 1;
         }
     }

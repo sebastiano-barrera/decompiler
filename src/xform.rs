@@ -55,8 +55,8 @@ fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
 
     let (mut op, mut lr, mut li, mut ri) = match insn {
         Insn::Arith(op, lr, rr) => {
-            let li = prog.get(lr).unwrap().insn.get();
-            let ri = prog.get(rr).unwrap().insn.get();
+            let li = prog[lr].get();
+            let ri = prog[rr].get();
 
             // ensure the const is on the right
             if let Insn::Const { .. } = li {
@@ -68,7 +68,7 @@ fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
         Insn::ArithK(op, a, bk) => (
             op,
             a,
-            prog.get(a).unwrap().insn.get(),
+            prog[a].get(),
             Insn::Const { value: bk, size: 8 },
         ),
         _ => return insn,
@@ -102,7 +102,7 @@ fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
         // (a op ka) op kb === a op (ka op kb)  (if op is associative)
         (Insn::ArithK(l_op, llr, lk), Insn::Const { value: rk, .. }) if l_op == op => {
             if let Some(k) = assoc_const(op, lk, rk) {
-                li = prog.get(llr).unwrap().insn.get();
+                li = prog[llr].get();
                 lr = llr;
                 ri = Insn::Const { value: k, size: 8 };
             }
@@ -244,7 +244,7 @@ fn fold_part_part(insn: mil::Insn, prog: &ssa::Program) -> Insn {
             src: in_src,
             offset: in_offset,
             size: in_size,
-        } = prog.get(out_src).unwrap().insn.get()
+        } = prog[out_src].get()
         {
             assert!(out_size <= in_size);
             return Insn::Part {
@@ -276,7 +276,7 @@ fn fold_part_concat(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         size: p_size,
     } = insn
     {
-        if let Insn::Concat { lo, hi } = prog.get(p_src).unwrap().insn.get() {
+        if let Insn::Concat { lo, hi } = prog[p_src].get() {
             let lo_size = prog
                 .value_type(lo)
                 .bytes_size()
@@ -325,7 +325,7 @@ fn fold_part_widen(insn: mil::Insn, prog: &ssa::Program) -> Insn {
             reg,
             target_size,
             sign,
-        } = prog.get(part_src).unwrap().insn.get()
+        } = prog[part_src].get()
         {
             if part_size < target_size {
                 return Insn::Widen {
@@ -348,7 +348,7 @@ fn fold_widen_const(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         sign: true,
     } = insn
     {
-        if let Insn::Const { value, size } = prog.get(reg).unwrap().insn.get() {
+        if let Insn::Const { value, size } = prog[reg].get() {
             assert!(target_size > size);
             return Insn::Const {
                 value,
@@ -441,7 +441,7 @@ pub fn canonical(prog: &mut ssa::Program) {
 
         let work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
         for reg in work {
-            let orig_insn = prog.get(reg).unwrap().insn.get();
+            let orig_insn = prog[reg].get();
             let orig_has_fx = orig_insn.has_side_effects();
 
             let mut insn = orig_insn;
@@ -462,7 +462,7 @@ pub fn canonical(prog: &mut ssa::Program) {
                 // Insn::Get is currently wrong (would be quite complicated to handle)
                 insn = deduper.try_dedup(reg, insn);
             }
-            prog.get(reg).unwrap().insn.set(insn);
+            prog[reg].set(insn);
 
             let final_has_fx = insn.has_side_effects();
             if final_has_fx != orig_has_fx {

@@ -88,13 +88,13 @@ pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil
         mem: mem_l,
         addr: addr_l,
         size: size_l,
-    } = prog.get(load_reg).unwrap().insn.get()
+    } = prog[load_reg].get()
     else {
         return false;
     };
     let load = {
         let Insn::ArithK(mil::ArithOp::Add, offset_reg, start) =
-            prog.get(addr_l).unwrap().insn.get()
+            prog[addr_l].get()
         else {
             // not in register-relative form; we can't work with this
             return false;
@@ -145,7 +145,7 @@ pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil
     let mid_left = prog.push_pure(Insn::Concat { lo: mid, hi: left });
 
     // replace the load with the final replacement value (the outermost Concat)
-    prog.get(load_reg).unwrap().insn.set(Insn::Concat {
+    prog[load_reg].set(Insn::Concat {
         lo: right,
         hi: mid_left,
     });
@@ -189,10 +189,10 @@ fn find_dominating_conflicting_store(
         mem: mem_s,
         addr: addr_s,
         value: value_s,
-    } = prog.get(mem).unwrap().insn.get()
+    } = prog[mem].get()
     {
         let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) =
-            prog.get(addr_s).unwrap().insn.get()
+            prog[addr_s].get()
         else {
             // not in register-relative form; we can't work with this
             continue;
@@ -312,7 +312,7 @@ mod tests {
         let Insn::Ret(ret_val) = ret else { panic!() };
 
         assert!(matches!(
-            program.get(ret_val).unwrap().insn.get(),
+            program[ret_val].get(),
             Insn::Part {
                 src: Reg(1),
                 offset: 2,

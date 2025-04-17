@@ -300,6 +300,10 @@ impl Program {
         Some(InsnView { insn, dest, addr })
     }
 
+    pub fn get_insn(&self, ndx: Index) -> Option<&Cell<Insn>> {
+        self.insns.get(ndx as usize)
+    }
+
     pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
         let insn = self.insns.get(range_conv(ndxr.clone()))?;
         let dest = &self.dests[range_conv(ndxr)];
