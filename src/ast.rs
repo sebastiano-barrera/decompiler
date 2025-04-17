@@ -160,7 +160,7 @@ impl<'a> Ast<'a> {
                     write!(pp, "let r{}: {:?} = ", input.reg_index(), input_rt)?;
                     self.pp_def(pp, input, 0)?;
                 }
-                writeln!(pp, ";");
+                writeln!(pp, ";")?;
             }
         }
         Ok(())
