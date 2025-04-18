@@ -166,6 +166,7 @@ pub enum Insn {
     #[assoc(has_side_effects = true)]
     NotYetImplemented(&'static str),
 
+    #[assoc(input_regs = array([_mem, _addr]))]
     LoadMem {
         mem: Reg,
         addr: Reg,

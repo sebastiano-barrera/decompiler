@@ -554,20 +554,11 @@ mod tests {
             xform::canonical(&mut prog);
             eprintln!("ssa post xform:\n\n{:?}", prog);
 
-            assert_eq!(prog.cfg().block_count(), 1);
-            assert_eq!(
-                prog.get(Reg(3)).unwrap().insn.get(),
-                Insn::ArithK(ArithOp::Add, Reg(0), 5)
-            );
-            assert_eq!(
-                prog.get(Reg(4)).unwrap().insn.get(),
-                Insn::ArithK(ArithOp::Add, Reg(0), 10)
-            );
-            assert_eq!(
-                prog.get(Reg(5)).unwrap().insn.get(),
-                Insn::Const { value: 49, size: 8 }
-            );
-            assert_eq!(prog.get(Reg(9)).unwrap().insn.get(), Insn::Get(Reg(8)));
+            assert_eq!(prog.cfg().block_count(), 2);
+            assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
+            assert_eq!(prog[Reg(6)].get(), Insn::Const { value: 49, size: 8 });
+            assert_eq!(prog[Reg(9)].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            assert_eq!(prog[Reg(11)].get(), Insn::Ret(Reg(9)));
         }
 
         #[test]
@@ -600,12 +591,9 @@ mod tests {
             xform::canonical(&mut prog);
             eprintln!("ssa post-xform:\n{prog:?}");
 
-            assert_eq!(prog.insns_rpo().count(), 6);
-            assert_eq!(
-                prog.get(Reg(5)).unwrap().insn.get(),
-                Insn::ArithK(ArithOp::Mul, Reg(0), 1100)
-            );
-            assert_eq!(prog.get(Reg(10)).unwrap().insn.get(), Insn::Ret(Reg(8)));
+            assert_eq!(prog.insns_rpo().count(), 7);
+            assert_eq!(prog[Reg(6)].get(), Insn::ArithK(ArithOp::Mul, Reg(0), 1100));
+            assert_eq!(prog[Reg(11)].get(), Insn::Ret(Reg(9)));
         }
     }
 
@@ -668,7 +656,7 @@ mod tests {
                             xform::canonical(&mut prog);
 
                             assert_eq!(
-                                prog.get(Reg(3)).unwrap().insn.get(),
+                                prog[Reg(3)].get(),
                                 if offset == 0 && size == anc_a_sz {
                                     Insn::Get(Reg(0))
                                 } else {
@@ -695,7 +683,7 @@ mod tests {
                             xform::canonical(&mut prog);
 
                             assert_eq!(
-                                prog.get(Reg(3)).unwrap().insn.get(),
+                                prog[Reg(3)].get(),
                                 if offset == anc_a_sz && size == anc_b_sz {
                                     Insn::Get(Reg(1))
                                 } else {
@@ -726,10 +714,10 @@ mod tests {
                                 size,
                             });
                             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-                            let orig_insn = prog.get(Reg(3)).unwrap().insn.get();
+                            let orig_insn = prog[Reg(3)].get();
 
                             xform::canonical(&mut prog);
-                            assert_eq!(prog.get(Reg(3)).unwrap().insn.get(), orig_insn);
+                            assert_eq!(prog[Reg(3)].get(), orig_insn);
                         }
                     }
                 }
@@ -793,7 +781,7 @@ mod tests {
                                 let exp_offset = offs0 + offs1;
                                 let exp_size = size1;
                                 assert_eq!(
-                                    prog.get(Reg(2)).unwrap().insn.get(),
+                                    prog[Reg(2)].get(),
                                     if offs1 == 0 && size1 == src_sz {
                                         Insn::Get(Reg(0))
                                     } else {
@@ -849,7 +837,7 @@ mod tests {
 
         assert_eq!(prog.insns_rpo().count(), 2);
         assert_eq!(
-            prog.get(Reg(4)).unwrap().insn.get(),
+            prog[Reg(4)].get(),
             Insn::Const {
                 value: 5 * 44,
                 size: 8

@@ -93,9 +93,7 @@ pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil
         return false;
     };
     let load = {
-        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start) =
-            prog[addr_l].get()
-        else {
+        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start) = prog[addr_l].get() else {
             // not in register-relative form; we can't work with this
             return false;
         };
@@ -191,9 +189,7 @@ fn find_dominating_conflicting_store(
         value: value_s,
     } = prog[mem].get()
     {
-        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) =
-            prog[addr_s].get()
-        else {
+        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) = prog[addr_s].get() else {
             // not in register-relative form; we can't work with this
             continue;
         };
@@ -359,9 +355,36 @@ mod tests {
         xform::canonical(&mut program);
         eprintln!("ssa post-xform:\n{program:?}");
 
-        let ret = program.get(Reg(7)).unwrap().insn.get();
-        let Insn::Ret(ret_val) = ret else { panic!() };
+        let Insn::Ret(ret_val) = program[Reg(7)].get() else {
+            panic!()
+        };
+        let Insn::Concat { hi, lo } = program[ret_val].get() else {
+            panic!()
+        };
+        assert_eq!(
+            Insn::Part {
+                src: Reg(1),
+                offset: 2,
+                size: 6
+            },
+            program[hi].get()
+        );
 
-        panic!();
+        let Insn::LoadMem {
+            mem: Reg(4),
+            addr,
+            size: 17,
+        } = program[lo].get()
+        else {
+            panic!()
+        };
+
+        let Insn::ArithK(ArithOp::Add, base_reg, 24) = program[addr].get() else {
+            panic!()
+        };
+        assert_eq!(
+            Insn::Ancestral(x86_to_mil::ANC_RSP),
+            program[base_reg].get()
+        );
     }
 }
