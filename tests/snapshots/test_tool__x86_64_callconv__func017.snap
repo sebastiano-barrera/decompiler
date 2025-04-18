@@ -7,6 +7,9 @@ func017 0x40115f+6 (file 0x115f)
           401164: c3                      ret
 
 function type: "func017" func (arg0 big <TypeID(794v1)>) *void <TypeID(1v1)>
+0 warnings.
+
+
 mil program = 
 program  73 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

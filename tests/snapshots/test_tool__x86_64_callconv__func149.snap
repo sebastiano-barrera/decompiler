@@ -13,6 +13,9 @@ function type: "func149" func (arg0 *void <TypeID(1v1)>,
                                arg4 *void <TypeID(1v1)>,
                                arg5 small <TypeID(784v1)>,
                                arg6 big <TypeID(794v1)>) *void <TypeID(1v1)>
+0 warnings.
+
+
 mil program = 
 program  90 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

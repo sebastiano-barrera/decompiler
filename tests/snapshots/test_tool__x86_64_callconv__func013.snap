@@ -7,6 +7,9 @@ func013 0x401138+4 (file 0x1138)
           40113b: c3                      ret
 
 function type: "func013" func (arg0 small_xmms <TypeID(791v1)>) double <TypeID(783v1)>
+0 warnings.
+
+
 mil program = 
 program  80 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

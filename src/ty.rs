@@ -250,7 +250,11 @@ impl TypeSet {
         if !typ.name.is_empty() {
             write!(out, "\"{}\" ", typ.name)?;
         }
-        match &typ.ty {
+        self.dump_ty(out, &typ.ty)
+    }
+
+    pub fn dump_ty<W: PP + ?Sized>(&self, out: &mut W, ty: &Ty) -> std::io::Result<()> {
+        Ok(match ty {
             Ty::Int(Int { size, signed }) => {
                 let prefix = match signed {
                     Signedness::Signed => "i",
@@ -303,9 +307,7 @@ impl TypeSet {
             }
             Ty::Unknown(_) => write!(out, "?")?,
             Ty::Void => write!(out, "void")?,
-        }
-
-        Ok(())
+        })
     }
 
     pub(crate) fn call_site_by_return_pc(&self, return_pc: u64) -> Option<TypeID> {
@@ -318,7 +320,7 @@ impl TypeSet {
             .add_by_return_pc(return_pc, CallSite { tyid })
     }
 
-    pub fn resolve_call(&self, key: CallSiteKey) -> Option<&Ty> {
+    pub fn resolve_call(&self, key: CallSiteKey) -> Option<TypeID> {
         let CallSiteKey { return_pc, target } = key;
 
         eprint!(
@@ -330,16 +332,18 @@ impl TypeSet {
             .call_site_by_return_pc(return_pc)
             .or_else(|| self.get_known_object(target));
 
-        if tyid.is_none() {
-            eprintln!("      -> unresolved");
+        #[cfg(debug_assertions)]
+        match tyid {
+            Some(tyid) => {
+                let typ = self.get_through_alias(tyid).unwrap();
+                eprintln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
+            }
+            None => {
+                eprintln!("      -> unresolved");
+            }
         }
 
-        let tyid = tyid?;
-        let typ = self.get_through_alias(tyid).unwrap();
-        let ty = &typ.ty;
-
-        eprintln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
-        Some(ty)
+        tyid
     }
 }
 

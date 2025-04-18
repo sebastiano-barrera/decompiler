@@ -157,28 +157,32 @@ impl<'a> Tester<'a> {
         );
         let prog = {
             let insns = decoder.iter();
-            let mut b = x86_to_mil::Builder::new();
+            let b = x86_to_mil::Builder::new();
 
             let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
-            if let Some(func_tyid) = func_tyid_opt {
+            let func_ty = if let Some(func_tyid) = func_tyid_opt {
                 let func_typ = self.types.get_through_alias(func_tyid).unwrap();
                 write!(out, "function type: ")?;
                 self.types.dump_type(out, func_typ).unwrap();
                 writeln!(out)?;
 
-                let func_ty = match &func_typ.ty {
-                    ty::Ty::Subroutine(subr_ty) => subr_ty.clone(),
+                match &func_typ.ty {
+                    ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
                     other => panic!(
                         "can't use type ID {:?} type is not a subroutine: {:?}",
                         func_tyid, other
                     ),
-                };
-                b.use_types(&self.types, func_ty).unwrap();
+                }
             } else {
                 writeln!(out, "function type: 0x{func_addr:x}: no type info")?;
-            }
+                None
+            };
 
-            b.translate(insns).unwrap()
+            let (prog, warnings) = b.translate(insns, &self.types, func_ty).unwrap();
+            writeln!(out, "{:?}", warnings)?;
+            writeln!(out)?;
+
+            prog
         };
         writeln!(out, "mil program = ")?;
         writeln!(out, "{:?}", prog)?;

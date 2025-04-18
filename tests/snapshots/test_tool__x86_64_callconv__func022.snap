@@ -8,6 +8,9 @@ func022 0x401179+3 (file 0x1179)
 
 function type: "func022" func (arg0 small <TypeID(784v1)>,
                                arg1 char <TypeID(778v1)>) char <TypeID(778v1)>
+0 warnings.
+
+
 mil program = 
 program  80 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

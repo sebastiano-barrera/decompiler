@@ -41,6 +41,9 @@ sum_matrix 0x4011c9+115 (file 0x11c9)
           40123b: c3                      ret
 
 function type: "sum_matrix" func (mat mat <TypeID(15v1)>) int <TypeID(9v1)>
+0 warnings.
+
+
 mil program = 
 program  256 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

@@ -10,6 +10,9 @@ func051 0x4011fa+7 (file 0x11fa)
 function type: "func051" func (arg0 *void <TypeID(1v1)>,
                                arg1 small <TypeID(784v1)>,
                                arg2 small <TypeID(784v1)>) small <TypeID(784v1)>
+0 warnings.
+
+
 mil program = 
 program  84 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

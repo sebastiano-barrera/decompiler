@@ -7,6 +7,9 @@ func016 0x401158+7 (file 0x1158)
           40115e: c3                      ret
 
 function type: "func016" func (arg0 big <TypeID(794v1)>) double <TypeID(783v1)>
+0 warnings.
+
+
 mil program = 
 program  76 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

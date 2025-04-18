@@ -7,6 +7,9 @@ func008 0x401125+4 (file 0x1125)
           401128: c3                      ret
 
 function type: "func008" func (arg0 small <TypeID(784v1)>) *void <TypeID(1v1)>
+0 warnings.
+
+
 mil program = 
 program  75 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

@@ -9,6 +9,9 @@ func032 0x40119c+8 (file 0x119c)
 
 function type: "func032" func (arg0 small <TypeID(784v1)>,
                                arg1 small <TypeID(784v1)>) uint8_t <TypeID(788v1)>
+0 warnings.
+
+
 mil program = 
 program  88 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

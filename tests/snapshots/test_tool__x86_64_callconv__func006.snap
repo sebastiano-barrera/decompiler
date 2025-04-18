@@ -6,6 +6,9 @@ func006 0x40111d+1 (file 0x111d)
           40111d: c3                      ret
 
 function type: "func006" func (arg0 double <TypeID(783v1)>) double <TypeID(783v1)>
+0 warnings.
+
+
 mil program = 
 program  74 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

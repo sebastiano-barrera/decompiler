@@ -8,6 +8,9 @@ func041 0x4011d8+5 (file 0x11d8)
 
 function type: "func041" func (arg0 small <TypeID(784v1)>,
                                arg1 big <TypeID(794v1)>) uint8_t <TypeID(788v1)>
+0 warnings.
+
+
 mil program = 
 program  79 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

@@ -26,6 +26,7 @@ pub struct Report {
 
 pub fn unpack_params(
     bld: &mut Builder,
+    types: &ty::TypeSet,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
@@ -33,10 +34,6 @@ pub fn unpack_params(
         ok_count: 0,
         errors: Vec::new(),
     };
-
-    let types = bld
-        .types
-        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
 
     let mut state = ParamPassing::default();
 
@@ -204,11 +201,11 @@ fn unpack_param(
     }
 }
 
-pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
-    let types = bld
-        .types
-        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
-
+pub fn pack_return_value(
+    bld: &mut Builder,
+    types: &ty::TypeSet,
+    ret_tyid: ty::TypeID,
+) -> anyhow::Result<mil::Reg> {
     let ret_ty = &types.get(ret_tyid).unwrap().ty;
 
     let ret_val = bld.reg_gen.next();
@@ -342,6 +339,7 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
 
 pub fn pack_params(
     bld: &mut Builder,
+    types: &ty::TypeSet,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
     param_values: &[mil::Reg],
@@ -352,10 +350,6 @@ pub fn pack_params(
         ok_count: 0,
         errors: Vec::new(),
     };
-
-    let types = bld
-        .types
-        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
 
     let mut state = ParamPassing::default();
 
@@ -507,15 +501,11 @@ fn pack_param(
 
 pub fn unpack_return_value(
     bld: &mut Builder,
+    types: &ty::TypeSet,
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
-    let types = bld
-        .types
-        .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
-
-    let ret_ty = &types.get(ret_tyid).unwrap().ty;
-    match ret_ty {
+    match &types.get(ret_tyid).unwrap().ty {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown(_) => {
@@ -525,7 +515,7 @@ pub fn unpack_return_value(
             }
             Ok(())
         }
-        ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
+        ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);
         }
         _ => {
@@ -936,17 +926,7 @@ mod tests {
 
     fn check_types(types: &Types, param_types: &[ty::TypeID]) -> String {
         let mut bld = Builder::new();
-        bld.use_types(
-            &types.types,
-            ty::Subroutine {
-                return_tyid: types.tyid_void,
-                param_names: vec![None; param_types.len()],
-                param_tyids: param_types.to_vec(),
-            },
-        )
-        .unwrap();
-
-        unpack_params(&mut bld, param_types, types.tyid_void).unwrap();
+        unpack_params(&mut bld, &types.types, param_types, types.tyid_void).unwrap();
 
         let v0 = bld.reg_gen.next();
         bld.emit(v0, Insn::Ret(Builder::RDI));

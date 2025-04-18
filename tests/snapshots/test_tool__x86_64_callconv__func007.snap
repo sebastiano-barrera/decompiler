@@ -8,6 +8,9 @@ func007 0x40111e+7 (file 0x111e)
           401124: c3                      ret
 
 function type: "func007" func (arg0 small <TypeID(784v1)>) small <TypeID(784v1)>
+0 warnings.
+
+
 mil program = 
 program  77 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

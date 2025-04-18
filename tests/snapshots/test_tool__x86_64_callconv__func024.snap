@@ -8,6 +8,9 @@ func024 0x40117f+3 (file 0x117f)
 
 function type: "func024" func (arg0 small <TypeID(784v1)>,
                                arg1 int <TypeID(777v1)>) int <TypeID(777v1)>
+0 warnings.
+
+
 mil program = 
 program  80 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

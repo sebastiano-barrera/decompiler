@@ -7,6 +7,9 @@ func015 0x401151+7 (file 0x1151)
           401157: c3                      ret
 
 function type: "func015" func (arg0 big <TypeID(794v1)>) float <TypeID(782v1)>
+0 warnings.
+
+
 mil program = 
 program  71 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

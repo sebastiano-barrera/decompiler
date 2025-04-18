@@ -7,6 +7,9 @@ func033 0x4011a4+1 (file 0x11a4)
 
 function type: "func033" func (arg0 small <TypeID(784v1)>,
                                arg1 small_xmms <TypeID(791v1)>) small_xmms <TypeID(791v1)>
+0 warnings.
+
+
 mil program = 
 program  84 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

@@ -8,6 +8,9 @@ func055 0x401213+1 (file 0x1213)
 function type: "func055" func (arg0 *void <TypeID(1v1)>,
                                arg1 small <TypeID(784v1)>,
                                arg2 small_xmms <TypeID(791v1)>) small_xmms <TypeID(791v1)>
+0 warnings.
+
+
 mil program = 
 program  86 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

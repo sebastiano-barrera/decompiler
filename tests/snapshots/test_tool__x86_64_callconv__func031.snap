@@ -8,6 +8,9 @@ func031 0x401197+5 (file 0x1197)
 
 function type: "func031" func (arg0 small <TypeID(784v1)>,
                                arg1 small <TypeID(784v1)>) float <TypeID(782v1)>
+0 warnings.
+
+
 mil program = 
 program  81 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

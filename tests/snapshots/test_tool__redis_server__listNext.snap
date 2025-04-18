@@ -18,6 +18,9 @@ listNext 0x4110b0+39 (file 0x110b0)
           4110d6: c3                      ret
 
 function type: "listNext" func (iter *listIter <TypeID(163777v1)>) *listNode <TypeID(163772v1)>
+0 warnings.
+
+
 mil program = 
 program  117 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

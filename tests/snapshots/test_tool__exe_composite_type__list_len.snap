@@ -13,6 +13,9 @@ list_len 0x1120+28 (file 0x1120)
             113b: c3                      ret
 
 function type: "list_len" func (p point <TypeID(17v1)>) int <TypeID(15v1)>
+0 warnings.
+
+
 mil program = 
 program  116 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

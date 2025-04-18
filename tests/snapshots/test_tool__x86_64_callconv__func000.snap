@@ -7,6 +7,9 @@ func000 0x40110b+3 (file 0x110b)
           40110d: c3                      ret
 
 function type: "func000" func (arg0 char <TypeID(778v1)>) char <TypeID(778v1)>
+0 warnings.
+
+
 mil program = 
 program  75 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

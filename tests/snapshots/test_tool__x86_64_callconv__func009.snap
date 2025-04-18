@@ -7,6 +7,9 @@ func009 0x401129+5 (file 0x1129)
           40112d: c3                      ret
 
 function type: "func009" func (arg0 small <TypeID(784v1)>) float <TypeID(782v1)>
+0 warnings.
+
+
 mil program = 
 program  76 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

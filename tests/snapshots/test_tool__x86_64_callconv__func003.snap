@@ -7,6 +7,9 @@ func003 0x401114+4 (file 0x1114)
           401117: c3                      ret
 
 function type: "func003" func (arg0 long long <TypeID(780v1)>) long long <TypeID(780v1)>
+0 warnings.
+
+
 mil program = 
 program  72 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

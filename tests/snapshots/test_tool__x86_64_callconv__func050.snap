@@ -8,6 +8,9 @@ func050 0x4011f9+1 (file 0x11f9)
 function type: "func050" func (arg0 *void <TypeID(1v1)>,
                                arg1 small <TypeID(784v1)>,
                                arg2 double <TypeID(783v1)>) double <TypeID(783v1)>
+0 warnings.
+
+
 mil program = 
 program  81 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

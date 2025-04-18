@@ -8,6 +8,9 @@ func010 0x40112e+8 (file 0x112e)
           401135: c3                      ret
 
 function type: "func010" func (arg0 small <TypeID(784v1)>) uint8_t <TypeID(788v1)>
+0 warnings.
+
+
 mil program = 
 program  83 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

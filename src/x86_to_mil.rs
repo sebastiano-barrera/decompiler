@@ -1,5 +1,6 @@
 use crate::mil::{self, AncestralName, RegType};
 use crate::ty;
+use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
@@ -7,20 +8,16 @@ use anyhow::{Context as _, Result};
 
 pub mod callconv;
 
-pub struct Builder<'a> {
+pub struct Builder {
     pb: mil::ProgramBuilder,
     reg_gen: RegGen,
-    types: Option<&'a ty::TypeSet>,
-    func_ty: Option<ty::Subroutine>,
 }
 
-impl<'a> Builder<'a> {
+impl Builder {
     pub fn new() -> Self {
         let mut bld = Builder {
             pb: mil::ProgramBuilder::new(),
             reg_gen: Self::reset_reg_gen(),
-            types: None,
-            func_ty: None,
         };
 
         bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes(8));
@@ -82,16 +79,6 @@ impl<'a> Builder<'a> {
         self.pb.build()
     }
 
-    pub fn use_types(
-        &mut self,
-        types: &'a ty::TypeSet,
-        func_ty: ty::Subroutine,
-    ) -> anyhow::Result<()> {
-        self.types = Some(types);
-        self.func_ty = Some(func_ty);
-        Ok(())
-    }
-
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
         self.emit(reg, mil::Insn::Ancestral(anc_name));
         self.pb.set_ancestral_type(anc_name, rt);
@@ -100,7 +87,9 @@ impl<'a> Builder<'a> {
     pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
-    ) -> Result<mil::Program> {
+        types: &ty::TypeSet,
+        func_ty: Option<&ty::Subroutine>,
+    ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
 
         let mut formatter = IntelFormatter::new();
@@ -115,16 +104,30 @@ impl<'a> Builder<'a> {
             self.emit(reg, mil::Insn::Undefined);
         }
 
-        if let Some(func_ty) = self.func_ty.take() {
-            let param_count = func_ty.param_tyids.len();
-            let res = callconv::unpack_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid);
-            self.func_ty = Some(func_ty);
+        let mut warnings = Warnings::default();
 
-            let report = res.context("while applying the calling convention for parameters")?;
-            if report.ok_count < param_count {
-                eprintln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
-                for (ndx, err) in report.errors.into_iter().enumerate() {
-                    eprintln!("  #{}: {}", ndx, err);
+        if let Some(func_ty) = func_ty {
+            let param_count = func_ty.param_tyids.len();
+            let res = callconv::unpack_params(
+                &mut self,
+                types,
+                &func_ty.param_tyids,
+                func_ty.return_tyid,
+            )
+            .context("while applying the calling convention for parameters");
+
+            match res {
+                Ok(report) => {
+                    if report.ok_count < param_count {
+                        eprintln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
+                        for (ndx, err) in report.errors.into_iter().enumerate() {
+                            eprintln!("  #{}: {}", ndx, err);
+                        }
+                    }
+                }
+                Err(err) => {
+                    warnings.add(err.into());
+                    // fine to continue with partially non-decoded arguments/return values
                 }
             }
         }
@@ -211,13 +214,15 @@ impl<'a> Builder<'a> {
                     );
                 }
                 M::Ret => {
-                    let ret_val = if let Some(func_ty) = self.func_ty.take() {
-                        let res = callconv::pack_return_value(&mut self, func_ty.return_tyid);
-                        self.func_ty = Some(func_ty);
-                        res.context("decoding return value")?
-                    } else {
-                        Self::RAX
-                    };
+                    let ret_val = func_ty
+                        .ok_or_else(|| anyhow::anyhow!("no function type"))
+                        .and_then(|func_ty| {
+                            callconv::pack_return_value(&mut self, types, func_ty.return_tyid)
+                                .context("decoding return value")
+                        })
+                        .or_warn(&mut warnings)
+                        .unwrap_or(Self::RAX);
+
                     let v0 = self.reg_gen.next();
                     self.emit(v0, mil::Insn::Ret(ret_val));
                 }
@@ -437,9 +442,7 @@ impl<'a> Builder<'a> {
                 }
 
                 M::Call => {
-                    let target_ty = if let (OpKind::NearBranch64, Some(types)) =
-                        (insn.op0_kind(), self.types)
-                    {
+                    let target_tyid = if let OpKind::NearBranch64 = insn.op0_kind() {
                         let return_pc = insn.next_ip();
                         let target = insn.near_branch_target();
                         types.resolve_call(ty::CallSiteKey { return_pc, target })
@@ -447,29 +450,18 @@ impl<'a> Builder<'a> {
                         None
                     };
 
-                    let param_values = if let Some(ty::Ty::Subroutine(subr_ty)) = &target_ty {
-                        let param_count = subr_ty.param_tyids.len();
-                        // TODO smallvec?
-                        let param_values: Vec<_> =
-                            (0..param_count).map(|_| self.reg_gen.next()).collect();
+                    let subr_ty = target_tyid
+                        .ok_or(anyhow::anyhow!("no type hints for this callsite"))
+                        .and_then(|tyid| check_subroutine_type(types, tyid))
+                        .or_warn(&mut warnings);
 
-                        let report = callconv::pack_params(
-                            &mut self,
-                            &subr_ty.param_tyids,
-                            subr_ty.return_tyid,
-                            &param_values,
-                        )?;
-
-                        eprintln!(
-                            "#call: resolved call; packed {}/{} params",
-                            report.ok_count + 1,
-                            param_count
-                        );
-
-                        param_values
-                    } else {
-                        vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]
-                    };
+                    let param_values = subr_ty
+                        .and_then(|subr_ty| {
+                            self.pack_params(types, subr_ty, &mut warnings)
+                                .context("packing parameters for subroutine type")
+                                .or_warn(&mut warnings)
+                        })
+                        .unwrap_or_else(|| vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]);
 
                     let v1 = self.reg_gen.next();
                     let first_arg = if param_values.is_empty() {
@@ -494,23 +486,18 @@ impl<'a> Builder<'a> {
                         sz
                     );
                     self.emit(v1, mil::Insn::Call { callee, first_arg });
+                    self.reset_all_flags();
 
-                    self.emit(Self::CF, mil::Insn::Undefined);
-                    self.emit(Self::PF, mil::Insn::Undefined);
-                    self.emit(Self::AF, mil::Insn::Undefined);
-                    self.emit(Self::ZF, mil::Insn::Undefined);
-                    self.emit(Self::SF, mil::Insn::Undefined);
-                    self.emit(Self::TF, mil::Insn::Undefined);
-                    self.emit(Self::IF, mil::Insn::Undefined);
-                    self.emit(Self::DF, mil::Insn::Undefined);
-                    self.emit(Self::OF, mil::Insn::Undefined);
-
-                    if let Some(ty::Ty::Subroutine(subr_ty)) = &target_ty {
-                        callconv::unpack_return_value(&mut self, subr_ty.return_tyid, v1)?;
-                    } else {
-                        // just a dumb approximation of a likely case
-                        self.emit(v1, mil::Insn::Get(Self::RAX));
-                    }
+                    subr_ty
+                        .and_then(|subr_ty| {
+                            callconv::unpack_return_value(&mut self, types, subr_ty.return_tyid, v1)
+                                .context("while applying calling convention for return value in call site")
+                                .or_warn(&mut warnings)
+                        })
+                        .unwrap_or_else(|| {
+                            // just a dumb approximation of a likely case
+                            self.emit(v1, mil::Insn::Get(Self::RAX));
+                        });
                 }
 
                 //
@@ -736,7 +723,52 @@ impl<'a> Builder<'a> {
             }
         }
 
-        Ok(self.build())
+        let mil = self.build();
+        Ok((mil, warnings))
+    }
+
+    fn reset_all_flags(&mut self) {
+        self.emit(Self::CF, mil::Insn::Undefined);
+        self.emit(Self::PF, mil::Insn::Undefined);
+        self.emit(Self::AF, mil::Insn::Undefined);
+        self.emit(Self::ZF, mil::Insn::Undefined);
+        self.emit(Self::SF, mil::Insn::Undefined);
+        self.emit(Self::TF, mil::Insn::Undefined);
+        self.emit(Self::IF, mil::Insn::Undefined);
+        self.emit(Self::DF, mil::Insn::Undefined);
+        self.emit(Self::OF, mil::Insn::Undefined);
+    }
+
+    fn pack_params(
+        &mut self,
+        types: &ty::TypeSet,
+        subr_ty: &ty::Subroutine,
+        warnings: &mut Warnings,
+    ) -> Result<Vec<mil::Reg>> {
+        let param_count = subr_ty.param_tyids.len();
+        // TODO smallvec?
+        let param_values: Vec<_> = (0..param_count).map(|_| self.reg_gen.next()).collect();
+
+        let report = callconv::pack_params(
+            self,
+            types,
+            &subr_ty.param_tyids,
+            subr_ty.return_tyid,
+            &param_values,
+        )
+        .context("while applying calling convention")?;
+
+        if report.ok_count < param_count {
+            warnings.add(
+                anyhow::anyhow!(
+                    "call: call resolved but only packed {}/{} params",
+                    report.ok_count,
+                    param_count
+                )
+                .into(),
+            );
+        }
+        Ok(param_values)
     }
 
     fn emit_bit_op(
@@ -1451,6 +1483,13 @@ impl<'a> Builder<'a> {
 
     fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
         self.pb.push(dest, insn)
+    }
+}
+
+pub fn check_subroutine_type(types: &ty::TypeSet, tyid: ty::TypeID) -> Result<&ty::Subroutine> {
+    match &types.get(tyid).expect("invalid type ID").ty {
+        ty::Ty::Subroutine(subr_ty) => Ok(subr_ty),
+        _ => anyhow::bail!("not a subroutine type (ID: {:?})", tyid),
     }
 }
 

@@ -8,6 +8,9 @@ func025 0x401182+4 (file 0x1182)
 
 function type: "func025" func (arg0 small <TypeID(784v1)>,
                                arg1 long long <TypeID(780v1)>) long long <TypeID(780v1)>
+0 warnings.
+
+
 mil program = 
 program  77 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

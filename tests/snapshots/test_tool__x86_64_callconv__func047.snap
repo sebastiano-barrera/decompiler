@@ -9,6 +9,9 @@ func047 0x4011f0+4 (file 0x11f0)
 function type: "func047" func (arg0 *void <TypeID(1v1)>,
                                arg1 small <TypeID(784v1)>,
                                arg2 long long <TypeID(780v1)>) long long <TypeID(780v1)>
+0 warnings.
+
+
 mil program = 
 program  79 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))

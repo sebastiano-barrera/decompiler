@@ -7,6 +7,9 @@ func001 0x40110e+3 (file 0x110e)
           401110: c3                      ret
 
 function type: "func001" func (arg0 short <TypeID(779v1)>) short <TypeID(779v1)>
+0 warnings.
+
+
 mil program = 
 program  75 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
