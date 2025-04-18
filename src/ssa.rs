@@ -88,11 +88,8 @@ impl Program {
         mil::Reg(index)
     }
 
-    pub fn upsilons_of_phi<'s>(&'s self, phi_reg: mil::Reg) -> impl 's + Iterator<Item = mil::Reg> {
-        assert!(matches!(
-            self[phi_reg].get(),
-            mil::Insn::Phi
-        ));
+    pub fn upsilons_of_phi(&self, phi_reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
+        assert!(matches!(self[phi_reg].get(), mil::Insn::Phi));
 
         self.inner.iter().filter_map(move |iv| match iv.insn.get() {
             mil::Insn::Upsilon { value, phi_ref } if phi_ref == phi_reg => Some(value),
@@ -282,7 +279,7 @@ impl Program {
 impl std::ops::Index<mil::Reg> for Program {
     type Output = Cell<mil::Insn>;
     fn index(&self, reg: mil::Reg) -> &Cell<mil::Insn> {
-        &self.get(reg).unwrap().insn
+        self.get(reg).unwrap().insn
     }
 }
 
@@ -313,14 +310,12 @@ impl<'a> InsnRPOIter<'a> {
         }
     }
 }
-impl<'a> Iterator for InsnRPOIter<'a> {
+impl Iterator for InsnRPOIter<'_> {
     type Item = (cfg::BlockID, mil::Reg);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let Some(cmd) = self.queue.pop() else {
-                return None;
-            };
+            let cmd = self.queue.pop()?;
 
             match cmd {
                 IterCmd::Block(bid) => {
@@ -393,7 +388,7 @@ impl std::fmt::Debug for Program {
             if cur_bid != Some(bid) {
                 write!(f, ".B{}:    ;; ", bid.as_usize())?;
                 let preds = self.cfg.block_preds(bid);
-                if preds.len() > 0 {
+                if !preds.is_empty() {
                     write!(f, "preds:")?;
                     for (ndx, pred) in preds.iter().enumerate() {
                         if ndx > 0 {
@@ -689,10 +684,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
             let last = fx.len() - 1;
             let last_pre_ups = last - ups_count;
             let reg = fx[last_pre_ups];
-            assert!(matches!(
-                ssa[reg].get(),
-                mil::Insn::JmpIf { .. }
-            ));
+            assert!(matches!(ssa[reg].get(), mil::Insn::JmpIf { .. }));
 
             let fx = &mut ssa.bbs[bid].effects;
             fx.swap(last, last_pre_ups);
@@ -853,7 +845,7 @@ impl<T: Clone> RegMap<T> {
         RegMap(inner)
     }
 
-    fn items<'s>(&'s self) -> impl 's + ExactSizeIterator<Item = (mil::Reg, &'s T)> {
+    fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
         self.0
             .iter()
             .enumerate()

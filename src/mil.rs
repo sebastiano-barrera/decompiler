@@ -257,7 +257,7 @@ macro_rules! define_ancestral_name {
 define_ancestral_name!(ANC_STACK_BOTTOM, "stack_bottom");
 
 impl Insn {
-    pub fn input_regs_iter(&mut self) -> impl  Iterator<Item = &mut Reg> {
+    pub fn input_regs_iter(&mut self) -> impl Iterator<Item = &mut Reg> {
         self.input_regs().into_iter()
     }
 }
@@ -298,10 +298,6 @@ impl Program {
         let dest = &self.dests[ndx];
         let addr = self.addrs[ndx];
         Some(InsnView { insn, dest, addr })
-    }
-
-    pub fn get_insn(&self, ndx: Index) -> Option<&Cell<Insn>> {
-        self.insns.get(ndx as usize)
     }
 
     pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
@@ -365,7 +361,7 @@ impl<'a> InsnSlice<'a> {
     ) -> impl 's + DoubleEndedIterator<Item = (&'a Cell<Reg>, &'a Cell<Insn>)> {
         self.dests.iter().zip(self.insns.iter())
     }
-    pub fn iter_copied<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = (Reg, Insn)> {
+    pub fn iter_copied(&self) -> impl '_ + DoubleEndedIterator<Item = (Reg, Insn)> {
         self.iter().map(|(d, r)| (d.get(), r.get()))
     }
 }

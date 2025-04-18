@@ -115,7 +115,7 @@ impl<'a> Tester<'a> {
 
         // function's offset into the file
         let func_section_ofs = func_addr - vm_range.start;
-        let func_fofs = text_section.sh_offset as usize + func_section_ofs as usize;
+        let func_fofs = text_section.sh_offset as usize + func_section_ofs;
         let func_text = &self.raw_binary[func_fofs..func_fofs + func_size];
         writeln!(
             out,
@@ -163,7 +163,7 @@ impl<'a> Tester<'a> {
             if let Some(func_tyid) = func_tyid_opt {
                 let func_typ = self.types.get_through_alias(func_tyid).unwrap();
                 write!(out, "function type: ")?;
-                self.types.dump_type(out, &func_typ).unwrap();
+                self.types.dump_type(out, func_typ).unwrap();
                 writeln!(out)?;
 
                 let func_ty = match &func_typ.ty {

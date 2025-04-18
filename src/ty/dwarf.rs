@@ -13,7 +13,7 @@ pub enum Error {
     NoCompileUnit,
 
     #[error("error while parsing DWARF: {0}")]
-    ParserError(#[from] gimli::Error),
+    Parser(#[from] gimli::Error),
 
     #[error("unsupported DWARF entry tag: {0}")]
     UnsupportedDwarfTag(gimli::DwTag),
@@ -118,6 +118,7 @@ struct TypeParser<'a> {
     unit: &'a gimli::Unit<ESlice<'a>>,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 type DIE<'a, 'abbrev, 'unit> = gimli::DebuggingInformationEntry<'abbrev, 'unit, ESlice<'a>, usize>;
 
 impl<'a> TypeParser<'a> {
@@ -208,7 +209,7 @@ impl<'a> TypeParser<'a> {
 
         if !matches!(&typ.ty, ty::Ty::Unknown(_)) {
             if let Some(addr_attrvalue) = addr_av {
-                let addr = self.dwarf.attr_address(&unit, addr_attrvalue)?.ok_or(
+                let addr = self.dwarf.attr_address(unit, addr_attrvalue)?.ok_or(
                     Error::InvalidValueType(diofs.0, gimli::constants::DW_AT_low_pc),
                 )?;
                 types.set_known_object(addr, tyid);
@@ -251,15 +252,11 @@ impl<'a> TypeParser<'a> {
         let mut children = node.children();
         while let Some(child_node) = children.next()? {
             let child_entry = child_node.entry();
-            match child_entry.tag() {
-                gimli::DW_TAG_formal_parameter => {
-                    let name = self.get_name(child_entry)?.map(|s| Arc::new(s.to_owned()));
-                    let tyid = self.resolve_type_of(&child_entry)?;
-                    param_names.push(name);
-                    param_tyids.push(tyid);
-                }
-                // not supported yet => ignored
-                _ => {}
+            if child_entry.tag() == gimli::DW_TAG_formal_parameter {
+                let name = self.get_name(child_entry)?.map(|s| Arc::new(s.to_owned()));
+                let tyid = self.resolve_type_of(child_entry)?;
+                param_names.push(name);
+                param_tyids.push(tyid);
             }
         }
 
@@ -461,7 +458,7 @@ impl<'a> TypeParser<'a> {
         let attr_value = get_required_attr(entry_with_type, gimli::DW_AT_type)?.value();
         self.resolve_reference(
             attr_value,
-            uofs_to_diofs(entry_with_type.offset(), &self.unit),
+            uofs_to_diofs(entry_with_type.offset(), self.unit),
         )
     }
 
@@ -470,14 +467,13 @@ impl<'a> TypeParser<'a> {
         attr_value: gimli::AttributeValue<ESlice>,
         diofs: DebugInfoOffset,
     ) -> Result<ty::TypeID> {
-        let type_unit_offset = attr_value_as_diofs(attr_value, &self.unit)
-            .ok_or(Error::InvalidValueType(
+        let type_unit_offset =
+            attr_value_as_diofs(attr_value, self.unit).ok_or(Error::InvalidValueType(
                 diofs.0,
                 // TODO this is wrong, different call sites may be passed
                 // attributes with different tags
                 gimli::constants::DW_AT_abstract_origin,
-            ))?
-            .into();
+            ))?;
         self.get_tyid(type_unit_offset)
     }
 
@@ -493,7 +489,7 @@ impl<'a> TypeParser<'a> {
         &self,
         entry: &gimli::DebuggingInformationEntry<ESlice, usize>,
     ) -> DebugInfoOffset {
-        uofs_to_diofs(entry.offset(), &self.unit)
+        uofs_to_diofs(entry.offset(), self.unit)
     }
 
     fn get_name<'abbrev>(&self, entry: &DIE<'abbrev, '_, '_>) -> Result<Option<&'abbrev str>>
@@ -505,7 +501,7 @@ impl<'a> TypeParser<'a> {
         };
         let name = self
             .dwarf
-            .attr_string(&self.unit, attr.value())
+            .attr_string(self.unit, attr.value())
             .map_err(|_| Error::InvalidValueType(self.entry_diofs(entry).0, gimli::DW_AT_name))?
             .slice();
         // TODO lift the utf8 encoding restriction
@@ -559,8 +555,7 @@ fn uofs_to_diofs(unit_ref: gimli::UnitOffset, unit: &gimli::Unit<ESlice>) -> Deb
         .into()
 }
 
-const ERRMSG_DEBUG_INFO: &'static str =
-    "entry must be in .debug_info section (DWARF 4 is unsupported)";
+const ERRMSG_DEBUG_INFO: &str = "entry must be in .debug_info section (DWARF 4 is unsupported)";
 
 fn get_required_attr<'a>(
     die: &DIE<'a, '_, '_>,

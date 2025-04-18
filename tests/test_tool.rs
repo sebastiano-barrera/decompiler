@@ -2,10 +2,8 @@ use decompiler::{pp, test_tool};
 
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
-use std::{
-    path::{Path, PathBuf},
-    sync::OnceLock,
-};
+
+use std::{path::Path, sync::OnceLock};
 
 static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/");
 

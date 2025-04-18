@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{
     mil::{self, AncestralName, ArithOp, Insn},
     ty,
@@ -22,8 +24,8 @@ pub struct Report {
     pub errors: Vec<anyhow::Error>,
 }
 
-pub fn unpack_params<'a>(
-    bld: &mut Builder<'a>,
+pub fn unpack_params(
+    bld: &mut Builder,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
@@ -104,8 +106,8 @@ pub fn unpack_params<'a>(
     Ok(report)
 }
 
-fn unpack_param<'a>(
-    bld: &mut Builder<'a>,
+fn unpack_param(
+    bld: &mut Builder,
     state: &mut ParamPassing,
     types: &ty::TypeSet,
     tyid: ty::TypeID,
@@ -127,32 +129,33 @@ fn unpack_param<'a>(
                 let offset = (8 * ndx).try_into().unwrap();
                 // write the eightbyte from the source value (opaque) to the
                 // destination reg, rounded up to 8 bytes
-                let arg_value = if sz < 8 {
-                    let v0 = bld.reg_gen.next();
-                    bld.emit(
-                        v0,
-                        mil::Insn::Widen {
-                            reg: arg_value,
-                            target_size: 8,
-                            sign: false,
-                        },
-                    );
-                    v0
-                } else if sz > 8 {
-                    let v0 = bld.reg_gen.next();
-                    bld.emit(
-                        v0,
-                        mil::Insn::Part {
-                            src: arg_value,
-                            offset,
-                            size: 8,
-                        },
-                    );
-                    v0
-                } else {
-                    arg_value
+                let arg_value = match sz.cmp(&8) {
+                    Ordering::Equal => arg_value,
+                    Ordering::Less => {
+                        let v0 = bld.reg_gen.next();
+                        bld.emit(
+                            v0,
+                            mil::Insn::Widen {
+                                reg: arg_value,
+                                target_size: 8,
+                                sign: false,
+                            },
+                        );
+                        v0
+                    }
+                    Ordering::Greater => {
+                        let v0 = bld.reg_gen.next();
+                        bld.emit(
+                            v0,
+                            mil::Insn::Part {
+                                src: arg_value,
+                                offset,
+                                size: 8,
+                            },
+                        );
+                        v0
+                    }
                 };
-
                 bld.emit_write_machine_reg(reg, 8, arg_value);
             }
         }
@@ -201,10 +204,7 @@ fn unpack_param<'a>(
     }
 }
 
-pub fn pack_return_value<'a>(
-    bld: &mut Builder<'a>,
-    ret_tyid: ty::TypeID,
-) -> anyhow::Result<mil::Reg> {
+pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
     let types = bld
         .types
         .ok_or(anyhow!("No TypeSet passed to the Builder"))?;
@@ -240,8 +240,8 @@ pub fn pack_return_value<'a>(
             match eb_set {
                 EightbytesSet::Regs { clss } => {
                     // different than those for parameter passing
-                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
-                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
+                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().iter();
+                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().iter();
 
                     // TODO assert that the type is 1-16 bytes long, based on clss
                     let mut clss = clss.used().iter().peekable();
@@ -269,8 +269,8 @@ pub fn pack_return_value<'a>(
                             }
                             RegClass::SseUp => unreachable!(),
                             RegClass::Unused => {
-                                while let Some(cls) = clss.next() {
-                                    assert_eq!(*cls, RegClass::Unused);
+                                for &cls in clss {
+                                    assert_eq!(cls, RegClass::Unused);
                                 }
                                 break;
                             }
@@ -301,7 +301,7 @@ pub fn pack_return_value<'a>(
 
                     let addr = bld.reg_gen.next();
                     for eb_ndx in 0..eb_count {
-                        let eb_offset = (8 * eb_ndx).try_into().unwrap();
+                        let eb_offset = (8 * eb_ndx).into();
                         bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
                         let eb = bld.reg_gen.next();
                         bld.emit(
@@ -340,8 +340,8 @@ pub fn pack_return_value<'a>(
     Ok(ret_val)
 }
 
-pub fn pack_params<'a>(
-    bld: &mut Builder<'a>,
+pub fn pack_params(
+    bld: &mut Builder,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
     param_values: &[mil::Reg],
@@ -425,8 +425,8 @@ pub fn pack_params<'a>(
     Ok(report)
 }
 
-fn pack_param<'a>(
-    bld: &mut Builder<'a>,
+fn pack_param(
+    bld: &mut Builder,
     state: &mut ParamPassing,
     types: &ty::TypeSet,
     tyid: ty::TypeID,
@@ -486,7 +486,7 @@ fn pack_param<'a>(
                 Insn::LoadMem {
                     mem: Builder::MEM,
                     addr,
-                    size: (8 * eb_count).try_into().unwrap(),
+                    size: 8 * eb_count,
                 },
             );
         }
@@ -505,8 +505,8 @@ fn pack_param<'a>(
     }
 }
 
-pub fn unpack_return_value<'a>(
-    bld: &mut Builder<'a>,
+pub fn unpack_return_value(
+    bld: &mut Builder,
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
@@ -541,8 +541,8 @@ pub fn unpack_return_value<'a>(
             match eb_set {
                 EightbytesSet::Regs { clss } => {
                     // different than those for parameter passing
-                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().into_iter();
-                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().into_iter();
+                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().iter();
+                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().iter();
 
                     // TODO assert that the type is 1-16 bytes long, based on clss
                     let mut clss = clss.used().iter().peekable();
@@ -563,8 +563,8 @@ pub fn unpack_return_value<'a>(
                             }
                             RegClass::SseUp => unreachable!(),
                             RegClass::Unused => {
-                                while let Some(cls) = clss.next() {
-                                    assert_eq!(*cls, RegClass::Unused);
+                                for &cls in clss {
+                                    assert_eq!(cls, RegClass::Unused);
                                 }
                                 break;
                             }
@@ -642,7 +642,7 @@ fn eightbytes_to_pass_mode(eb_set: EightbytesSet, state_saved: &mut ParamPassing
         EightbytesSet::Regs { clss } => {
             let clss = clss.used();
             assert!(clss.iter().all(|cls| *cls != RegClass::Unused));
-            assert!(clss.len() >= 1);
+            assert!(!clss.is_empty());
 
             // [Sse, SseUp...]
             if clss[0] == RegClass::Sse && clss[1..].iter().all(|&cls| cls == RegClass::SseUp) {
@@ -704,9 +704,7 @@ fn classify_eightbytes(
 
     let sz: u32 = types
         .bytes_size(tyid)
-        .ok_or_else(|| anyhow!("type has no size?"))?
-        .try_into()
-        .unwrap();
+        .ok_or_else(|| anyhow!("type has no size?"))?;
     let alignment: u32 = types
         .alignment(tyid)
         .ok_or_else(|| anyhow!("type has no alignment?"))?
@@ -730,7 +728,7 @@ fn classify_eightbytes(
             let (eb_first_ndx, eb_last_ndx) = eightbytes_range(offset, sz);
             eb_set.merge(eb_first_ndx, RegClass::Sse);
             for eb_ndx in (eb_first_ndx + 1)..=eb_last_ndx {
-                eb_set.merge(eb_ndx.try_into().unwrap(), RegClass::SseUp);
+                eb_set.merge(eb_ndx, RegClass::SseUp);
             }
         }
 
@@ -777,7 +775,8 @@ impl EightbytesSet {
                         return EightbytesSet::Memory;
                     }
                 }
-                return self;
+
+                self
             }
         }
     }
@@ -901,9 +900,9 @@ impl ParamPassing {
 impl Default for ParamPassing {
     fn default() -> Self {
         ParamPassing {
-            int_regs: INTEGER_REGS.as_slice().into_iter(),
-            sse_regs: SSE_REGS.as_slice().into_iter(),
-            args: super::ANC_ARGS.as_slice().into_iter(),
+            int_regs: INTEGER_REGS.as_slice().iter(),
+            sse_regs: SSE_REGS.as_slice().iter(),
+            args: super::ANC_ARGS.as_slice().iter(),
             stack_eb_ndx: 1,
         }
     }

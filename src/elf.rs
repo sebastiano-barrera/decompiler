@@ -10,13 +10,13 @@ use thiserror::Error;
 /// turn causes many sections (including symbol names in DWARF debug info) to
 /// be non-functional. (ref: `limitation--no-relocatable`)
 pub fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
-    let object = goblin::Object::parse(&raw_binary).expect("elf parse error");
+    let object = goblin::Object::parse(raw_binary).expect("elf parse error");
     let elf = match object {
         goblin::Object::Elf(elf) => elf,
         _ => return Err(Error::UnsupportedExecFormat(obj_format_name(&object))),
     };
 
-    if elf.dynrelas.len() > 0 || elf.shdr_relocs.len() > 0 || elf.dynrels.len() > 0 {
+    if !elf.dynrelas.is_empty() || !elf.shdr_relocs.is_empty() || !elf.dynrels.is_empty() {
         eprintln!("WARNING: The given executable contains relocations. These are not going to be applied, so some functionality might misbehave.");
     }
     Ok(elf)

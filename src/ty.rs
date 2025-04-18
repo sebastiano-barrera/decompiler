@@ -208,9 +208,7 @@ impl TypeSet {
                 // TODO any further check necessary?
                 let mut align = 1;
                 for memb in &struct_ty.members {
-                    let Some(memb_align) = self.alignment(memb.tyid) else {
-                        return None;
-                    };
+                    let memb_align = self.alignment(memb.tyid)?;
                     align = align.max(memb_align);
                 }
                 Some(align)
@@ -269,7 +267,7 @@ impl TypeSet {
                 out.open_box();
                 for (ndx, memb) in struct_ty.members.iter().enumerate() {
                     if ndx > 0 {
-                        write!(out, "\n")?;
+                        writeln!(out)?;
                     }
                     write!(out, "@{:3} {} ", memb.offset, memb.name)?;
                     self.dump_type_ref(out, memb.tyid)?;
@@ -292,7 +290,7 @@ impl TypeSet {
                     .enumerate()
                 {
                     if ndx > 0 {
-                        write!(out, ",\n")?;
+                        writeln!(out, ",")?;
                     }
                     let name = name.as_ref().map(|s| s.as_str()).unwrap_or("<unnamed>");
                     write!(out, "{} ", name)?;

@@ -185,7 +185,7 @@ impl<'a> Builder<'a> {
                         mil::Insn::LoadMem {
                             mem: Self::MEM,
                             addr: Self::RSP,
-                            size: sz.try_into().unwrap(),
+                            size: sz.into(),
                         },
                     );
 

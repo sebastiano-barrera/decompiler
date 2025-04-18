@@ -18,7 +18,7 @@ pub struct Ast<'a> {
 
 impl<'a> Ast<'a> {
     pub fn new(ssa: &'a ssa::Program) -> Self {
-        let rdr_count = ssa::count_readers(&ssa);
+        let rdr_count = ssa::count_readers(ssa);
 
         let is_named = rdr_count.map(|reg, count| {
             let insn = ssa[reg].get();
@@ -73,7 +73,7 @@ impl<'a> Ast<'a> {
         let block_cont = cfg.block_cont(bid);
 
         let block_effects = self.ssa.block_effects(bid);
-        for (ndx, reg) in block_effects.into_iter().enumerate() {
+        for (ndx, reg) in block_effects.iter().enumerate() {
             if ndx > 0 {
                 writeln!(pp)?;
             }
@@ -83,7 +83,7 @@ impl<'a> Ast<'a> {
 
         match block_cont {
             cfg::BlockCont::End => {
-                write!(pp, "end");
+                write!(pp, "end")?;
                 // all done!
             }
             cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
@@ -128,11 +128,7 @@ impl<'a> Ast<'a> {
         if cfg.block_preds(tgt_bid).len() == 1 {
             self.pp_block_inner(pp, tgt_bid)
         } else {
-            let looping_back = cfg
-                .dom_tree()
-                .imm_doms(src_bid)
-                .find(|i| *i == tgt_bid)
-                .is_some();
+            let looping_back = cfg.dom_tree().imm_doms(src_bid).any(|i| i == tgt_bid);
             let keyword = if looping_back { "loop" } else { "goto" };
             write!(pp, "{keyword} T{}", tgt_bid.as_number())
         }

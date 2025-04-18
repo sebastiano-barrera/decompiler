@@ -65,12 +65,7 @@ fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
                 (op, lr, li, ri)
             }
         }
-        Insn::ArithK(op, a, bk) => (
-            op,
-            a,
-            prog[a].get(),
-            Insn::Const { value: bk, size: 8 },
-        ),
+        Insn::ArithK(op, a, bk) => (op, a, prog[a].get(), Insn::Const { value: bk, size: 8 }),
         _ => return insn,
     };
 
@@ -516,10 +511,7 @@ impl Deduper {
 fn find_mem_ref(prog: &ssa::Program) -> Option<mil::Reg> {
     (0..prog.reg_count())
         .map(mil::Reg)
-        .find(|reg| match prog.get(*reg).unwrap().insn.get() {
-            Insn::Ancestral(x86_to_mil::ANC_RSP) => true,
-            _ => false,
-        })
+        .find(|&reg| matches!(prog[reg].get(), Insn::Ancestral(x86_to_mil::ANC_RSP)))
 }
 
 #[cfg(test)]

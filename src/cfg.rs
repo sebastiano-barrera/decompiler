@@ -153,7 +153,7 @@ impl Graph {
     }
 
     pub fn block_ids(&self) -> impl Iterator<Item = BlockID> {
-        (0..self.block_count()).map(|ndx| BlockID(ndx.try_into().unwrap()))
+        (0..self.block_count()).map(BlockID)
     }
 
     pub fn block_preds(&self, bid: BlockID) -> &[BlockID] {
@@ -215,7 +215,7 @@ impl Graph {
     ///
     /// In this ordering, entry blocks are yielded first; then each block is
     /// only yielded after all of its predecessors.
-    pub fn block_ids_rpo<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = BlockID> {
+    pub fn block_ids_rpo(&self) -> impl '_ + DoubleEndedIterator<Item = BlockID> {
         self.reverse_postorder.block_ids().iter().copied()
     }
 
@@ -223,7 +223,7 @@ impl Graph {
     ///
     /// In this ordering, exit blocks are yielded first; then each block is
     /// only yielded after all of its children.
-    pub fn block_ids_postorder<'s>(&'s self) -> impl 's + DoubleEndedIterator<Item = BlockID> {
+    pub fn block_ids_postorder(&self) -> impl '_ + DoubleEndedIterator<Item = BlockID> {
         self.block_ids_rpo().rev()
     }
 }
@@ -571,7 +571,7 @@ impl DomTree {
     }
 
     /// Get an iterator of immediate dominators of the given block
-    pub fn imm_doms<'s>(&'s self, bid: BlockID) -> impl 's + Iterator<Item = BlockID> {
+    pub fn imm_doms(&self, bid: BlockID) -> impl '_ + Iterator<Item = BlockID> {
         let mut cur = self.parent[bid];
         let mut visited = BlockMap::new_sized(false, self.parent.block_count());
         std::iter::from_fn(move || {

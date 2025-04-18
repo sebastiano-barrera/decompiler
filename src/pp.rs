@@ -50,11 +50,11 @@ impl<W: Write> Write for PrettyPrinter<W> {
         for line in s.split_inclusive(|ch| *ch == b'\n') {
             if self.indent_next_chunk {
                 for _ in 0..self.cur_indent {
-                    self.wrt.write(b" ")?;
+                    self.wrt.write_all(b" ")?;
                 }
             }
 
-            self.wrt.write(line)?;
+            self.wrt.write_all(line)?;
             if line.ends_with(b"\n") {
                 cur_text = 0;
                 self.indent_next_chunk = true;
@@ -86,6 +86,7 @@ impl<W: std::io::Write> std::fmt::Write for IoAsFmt<W> {
 pub struct MultiWriter<W>(SmallVec<[W; 4]>);
 
 impl<W> MultiWriter<W> {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         MultiWriter(SmallVec::new())
     }

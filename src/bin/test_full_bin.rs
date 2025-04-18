@@ -56,11 +56,11 @@ fn main() {
         let res = std::panic::catch_unwind(|| {
             if opts.skip_write {
                 let mut out = pp::PrettyPrinter::start(NullSink);
-                tester.process_function(&function_name, &mut out).unwrap();
+                tester.process_function(function_name, &mut out).unwrap();
             } else {
                 let out_file = File::create(&path).unwrap();
                 let mut out = pp::PrettyPrinter::start(out_file);
-                tester.process_function(&function_name, &mut out).unwrap();
+                tester.process_function(function_name, &mut out).unwrap();
             };
         });
 
