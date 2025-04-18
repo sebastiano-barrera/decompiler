@@ -13,13 +13,9 @@ func014 0x40113c+21 (file 0x113c)
 function type: "func014" func (arg0 big <TypeID(794v1)>) big <TypeID(794v1)>
 2 warnings:
   #   0: while applying the calling convention for parameters
-
-Caused by:
-    type has no alignment?
+           <- type has no alignment?
   #   1: decoding return value
-
-Caused by:
-    type has no alignment?
+           <- type has no alignment?
 
 
 mil program = 

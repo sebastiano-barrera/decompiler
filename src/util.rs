@@ -15,6 +15,12 @@ impl std::fmt::Debug for Warnings {
             writeln!(f, "{} warnings:", self.0.len())?;
             for (ndx, warn) in self.0.iter().enumerate() {
                 writeln!(f, "  #{:4}: {}", ndx, warn)?;
+
+                let mut source = warn.source();
+                while let Some(cur) = source {
+                    writeln!(f, "           <- {}", cur)?;
+                    source = cur.source();
+                }
             }
             Ok(())
         }

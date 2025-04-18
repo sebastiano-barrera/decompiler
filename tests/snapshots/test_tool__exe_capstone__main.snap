@@ -60,23 +60,15 @@ main 0x401090+181 (file 0x1090)
 function type: "main" func () int <TypeID(16v1)>
 4 warnings:
   #   0: packing parameters for subroutine type
-
-Caused by:
-    0: while applying calling convention
-    1: type has no alignment?
+           <- while applying calling convention
+           <- type has no alignment?
   #   1: while applying calling convention for return value in call site
-
-Caused by:
-    type has no alignment?
+           <- type has no alignment?
   #   2: packing parameters for subroutine type
-
-Caused by:
-    0: while applying calling convention
-    1: type has no alignment?
+           <- while applying calling convention
+           <- type has no alignment?
   #   3: while applying calling convention for return value in call site
-
-Caused by:
-    type has no alignment?
+           <- type has no alignment?
 
 
 mil program = 

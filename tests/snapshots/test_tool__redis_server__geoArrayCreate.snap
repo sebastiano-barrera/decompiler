@@ -14,8 +14,7 @@ geoArrayCreate 0x50c4d0+31 (file 0x10c4d0)
           50c4ee: c3                      ret
 
 function type: "geoArrayCreate" func () *geoArray <TypeID(246623v1)>
-1 warnings:
-  #   0: not a subroutine type (ID: TypeID(107947v1))
+0 warnings.
 
 
 mil program = 
@@ -95,12 +94,12 @@ program  113 instrs
 0x50c4d6:
    70 r11 <- Get(r12)
 0x50c4d9:
-   71 r45 <- CArg { value: r18, next_arg: None }
-   72 r45 <- CArg { value: r19, next_arg: Some(r45) }
-   73 r45 <- CArg { value: r15, next_arg: Some(r45) }
-   74 r45 <- CArg { value: r14, next_arg: Some(r45) }
-   75 r46 <- Const { value: 4433936, size: 8 }
-   76 r45 <- Call { callee: r46, first_arg: Some(r45) }
+   71 r46 <- Ancestral(AncestralName("arg0"))
+   72 r46 <- Void
+   73 r46 <- Get(r14)
+   74 r47 <- CArg { value: r45, next_arg: None }
+   75 r48 <- Const { value: 4433936, size: 8 }
+   76 r47 <- Call { callee: r48, first_arg: Some(r47) }
    77 r2 <- Undefined
    78 r3 <- Undefined
    79 r4 <- Undefined
@@ -110,7 +109,7 @@ program  113 instrs
    83 r8 <- Undefined
    84 r9 <- Undefined
    85 r10 <- Undefined
-   86 r45 <- Get(r16)
+   86 r16 <- Part { src: r47, offset: 0, size: 8 }
 0x50c4de:
    87 r46 <- Part { src: r28, offset: 0, size: 16 }
    88 r48 <- Part { src: r28, offset: 0, size: 16 }
@@ -152,23 +151,14 @@ ssa program  113 instrs
          r65 <- ArithK(Add, r11, -8)
          r43 <- Ancestral(AncestralName("memory"))
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
-         r17 <- Ancestral(AncestralName("RCX"))
-         r71 <- CArg { value: r17, next_arg: None }
-         r18 <- Ancestral(AncestralName("RDX"))
-         r72 <- CArg { value: r18, next_arg: Some(r71) }
-         r14 <- Ancestral(AncestralName("RSI"))
-         r73 <- CArg { value: r14, next_arg: Some(r72) }
-         r13 <- Ancestral(AncestralName("RDI"))
-         r68 <- Part { src: r13, offset: 4, size: 4 }
          r67 <- Const { value: 24, size: 4 }
-         r69 <- Concat { lo: r67, hi: r68 }
-         r74 <- CArg { value: r69, next_arg: Some(r73) }
+         r74 <- CArg { value: r67, next_arg: None }
          r75 <- Const { value: 4433936, size: 8 }
          r76 <- Call { callee: r75, first_arg: Some(r74) }
          r98 <- Const { value: 0, size: 8 }
-  (  3)  r15 <- Ancestral(AncestralName("RAX"))
+  (  3)  r86 <- Part { src: r76, offset: 0, size: 8 }
          r99 <- Const { value: 0, size: 8 }
-         r100 <- Arith(Add, r99, r15)
+         r100 <- Arith(Add, r99, r86)
          r101 <- StoreMem { mem: r66, addr: r100, value: r98 }
   (  3)  r27 <- Ancestral(AncestralName("ZMM0"))
          r90 <- Part { src: r27, offset: 16, size: 48 }
@@ -178,10 +168,10 @@ ssa program  113 instrs
          r91 <- Concat { lo: r89, hi: r90 }
          r102 <- Part { src: r91, offset: 0, size: 16 }
          r103 <- Const { value: 8, size: 8 }
-         r104 <- Arith(Add, r103, r15)
+         r104 <- Arith(Add, r103, r86)
          r105 <- StoreMem { mem: r101, addr: r104, value: r102 }
          r109 <- Void
-         r110 <- Concat { lo: r109, hi: r15 }
+         r110 <- Concat { lo: r109, hi: r86 }
          r111 <- Part { src: r110, offset: 0, size: 8 }
          r112 <- Ret(r111)
 
@@ -203,40 +193,28 @@ ssa program  113 instrs
          r65 <- ArithK(Add, r11, -8)
          r43 <- Ancestral(AncestralName("memory"))
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
-         r17 <- Ancestral(AncestralName("RCX"))
-         r71 <- CArg { value: r17, next_arg: None }
-         r18 <- Ancestral(AncestralName("RDX"))
-         r72 <- CArg { value: r18, next_arg: Some(r71) }
-         r14 <- Ancestral(AncestralName("RSI"))
-         r73 <- CArg { value: r14, next_arg: Some(r72) }
-         r13 <- Ancestral(AncestralName("RDI"))
-         r68 <- Part { src: r13, offset: 4, size: 4 }
          r67 <- Const { value: 24, size: 4 }
-         r69 <- Concat { lo: r67, hi: r68 }
-         r74 <- CArg { value: r69, next_arg: Some(r73) }
+         r74 <- CArg { value: r67, next_arg: None }
          r75 <- Const { value: 4433936, size: 8 }
-         r76 <- Call { callee: r75, first_arg: Some(r74) }
+  (  3)  r76 <- Call { callee: r75, first_arg: Some(r74) }
          r98 <- Const { value: 0, size: 8 }
-  (  3)  r15 <- Ancestral(AncestralName("RAX"))
-         r101 <- StoreMem { mem: r66, addr: r15, value: r98 }
+         r101 <- StoreMem { mem: r66, addr: r76, value: r98 }
   (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
          r88 <- Part { src: r27, offset: 0, size: 16 }
          r87 <- Part { src: r27, offset: 0, size: 16 }
          r89 <- Arith(BitXor, r87, r88)
-         r104 <- ArithK(Add, r15, 8)
+         r104 <- ArithK(Add, r76, 8)
          r105 <- StoreMem { mem: r101, addr: r104, value: r89 }
-         r112 <- Ret(r15)
+         r112 <- Ret(r76)
 
 
 
 T0: {
   [pre:RSP - 8] <- pre:RBP;
-  4433936(pre:RDI[8 .. 4] ++ 24,
-          pre:RSI,
-          pre:RDX,
-          pre:RCX)
-  [pre:RAX] <- 0;
-  [pre:RAX + 8] <- pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
-  Ret (pre:RAX)
+  4433936(24)
+  let r76: Bytes(8) = 4433936(24);
+  [r76] <- 0;
+  [r76 + 8] <- pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
+  Ret (r76)
   end
 }

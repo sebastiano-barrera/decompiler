@@ -15,13 +15,9 @@ function type: "func058" func (arg0 *void <TypeID(1v1)>,
                                arg2 big <TypeID(794v1)>) big <TypeID(794v1)>
 2 warnings:
   #   0: while applying the calling convention for parameters
-
-Caused by:
-    type has no alignment?
+           <- type has no alignment?
   #   1: decoding return value
-
-Caused by:
-    type has no alignment?
+           <- type has no alignment?
 
 
 mil program = 
