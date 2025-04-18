@@ -4,6 +4,8 @@ use enum_assoc::Assoc;
 // coming
 use std::{cell::Cell, collections::HashMap, ops::Range};
 
+use crate::ty;
+
 /// A MIL program.
 ///
 /// This is logically constituted of a linear sequence of instructions, each with:
@@ -17,6 +19,7 @@ pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
+    dest_ty: Vec<Cell<Option<ty::TypeID>>>,
     reg_count: Index,
 
     // TODO More specific types
@@ -372,6 +375,7 @@ pub struct ProgramBuilder {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
+    dest_ty: Vec<Cell<Option<ty::TypeID>>>,
     cur_input_addr: u64,
     anc_types: HashMap<AncestralName, RegType>,
 }
@@ -382,6 +386,7 @@ impl ProgramBuilder {
             insns: Vec::new(),
             dests: Vec::new(),
             addrs: Vec::new(),
+            dest_ty: Vec::new(),
             cur_input_addr: 0,
             anc_types: HashMap::new(),
         }
@@ -392,6 +397,7 @@ impl ProgramBuilder {
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
+        self.dest_ty.push(Cell::new(None));
         dest
     }
 
@@ -413,11 +419,13 @@ impl ProgramBuilder {
             insns,
             dests,
             addrs,
+            dest_ty,
             ..
         } = self;
 
         assert_eq!(dests.len(), insns.len());
         assert_eq!(dests.len(), addrs.len());
+        assert_eq!(dests.len(), dest_ty.len());
 
         // addrs is input addr of mil addr;
         // we also need mil addr of input addr to resolve jumps
@@ -473,6 +481,7 @@ impl ProgramBuilder {
             insns,
             dests,
             addrs,
+            dest_ty,
             reg_count,
             mil_of_input_addr,
             anc_types: self.anc_types,

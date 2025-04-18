@@ -323,6 +323,7 @@ impl TypeSet {
     pub fn resolve_call(&self, key: CallSiteKey) -> Option<TypeID> {
         let CallSiteKey { return_pc, target } = key;
 
+        #[cfg(debug_assertions)]
         eprint!(
             "#call: to address 0x{:x}, returning to 0x{:x}",
             target, return_pc
@@ -361,7 +362,6 @@ pub struct CallSiteKey {
 
 #[derive(Debug, Clone)]
 pub struct Type {
-    // TODO alignment, ...
     /// Human-readable name for the type
     pub name: Arc<String>,
     pub ty: Ty,
