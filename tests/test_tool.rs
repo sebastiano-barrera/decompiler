@@ -56,9 +56,14 @@ impl Exe {
     fn process_function(&self, function_name: &str) -> String {
         let mut buf = Vec::new();
         let mut out = std::io::stderr().lock();
+
         let mut wrt = pp::MultiWriter::new();
         wrt.add_writer((&mut buf) as &mut dyn std::io::Write);
-        wrt.add_writer((&mut out) as _);
+
+        let debugging_madly = false;
+        if debugging_madly {
+            wrt.add_writer((&mut out) as _);
+        }
 
         let mut pp = pp::PrettyPrinter::start(&mut wrt);
         self.get_or_init()

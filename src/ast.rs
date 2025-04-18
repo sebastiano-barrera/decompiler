@@ -325,8 +325,9 @@ impl<'a> Ast<'a> {
             Insn::Phi => {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
             }
-            Insn::JmpIf { .. } => {
-                self.pp_def_default(pp, "if".into(), insn.input_regs(), self_prec)?;
+            Insn::JmpIf { cond, target: _ } => {
+                write!(pp, "if ")?;
+                self.pp_def(pp, cond, self_prec)?;
             }
             Insn::JmpInd(_) => {
                 self.pp_def_default(pp, "JmpInd".into(), insn.input_regs(), self_prec)?;
