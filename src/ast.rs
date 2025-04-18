@@ -94,13 +94,16 @@ impl<'a> Ast<'a> {
                 straight: (neg_pred_ndx, neg_bid),
                 side: (pos_pred_ndx, pos_bid),
             } => {
-                write!(pp, " then {{\n  ")?;
+                // otherwise the syntax makes no sense
+                let last_reg = *block_effects.last().unwrap();
+                let last = self.ssa[last_reg].get();
+                assert!(matches!(last, mil::Insn::JmpIf { .. }));
 
+                write!(pp, " {{\n  ")?;
                 pp.open_box();
                 self.pp_continuation(pp, bid, pos_bid, pos_pred_ndx as u16)?;
                 pp.close_box();
-
-                write!(pp, "\n}} else:\n")?;
+                write!(pp, "\n}}\n")?;
 
                 self.pp_continuation(pp, bid, neg_bid, neg_pred_ndx as u16)?;
             }
