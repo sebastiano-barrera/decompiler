@@ -320,7 +320,7 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "Parity".into(), insn.input_regs(), self_prec)?;
             }
             Insn::Undefined => {
-                self.pp_def_default(pp, "Undefined".into(), insn.input_regs(), self_prec)?;
+                write!(pp, "undefined")?;
             }
             Insn::Ancestral(anc_name) => {
                 write!(pp, "pre:{}", anc_name.name())?;

@@ -257,7 +257,7 @@ macro_rules! define_ancestral_name {
 define_ancestral_name!(ANC_STACK_BOTTOM, "stack_bottom");
 
 impl Insn {
-    pub fn input_regs_iter<'s>(&'s mut self) -> impl 's + Iterator<Item = &'s mut Reg> {
+    pub fn input_regs_iter(&mut self) -> impl  Iterator<Item = &mut Reg> {
         self.input_regs().into_iter()
     }
 }
