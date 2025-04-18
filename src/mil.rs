@@ -127,13 +127,13 @@ pub enum Insn {
     Not(Reg),
 
     #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = array([_callee]))]
+    #[assoc(input_regs = [Some(_callee), _first_arg.as_mut()].into_iter().flatten().collect())]
     Call {
         callee: Reg,
         first_arg: Option<Reg>,
     },
     #[assoc(is_replaceable_with_get = false)]
-    #[assoc(input_regs = array([_value]))]
+    #[assoc(input_regs = [Some(_value), _next_arg.as_mut()].into_iter().flatten().collect())]
     CArg {
         value: Reg,
         next_arg: Option<Reg>,
