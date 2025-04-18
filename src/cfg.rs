@@ -7,7 +7,10 @@ use std::{
     ops::{Index, IndexMut, Range},
 };
 
-use crate::{mil, pp::PP};
+use crate::{
+    mil,
+    pp::{self, PP},
+};
 
 /// A graph where nodes are blocks, and edges are successors/predecessors relationships.
 #[derive(Clone)]
@@ -86,6 +89,31 @@ impl Edges {
     }
     pub fn exit_bid(&self) -> BlockID {
         self.exit_bid
+    }
+
+    pub fn dump<W: pp::PP>(&self, out: &mut W) -> std::io::Result<()> {
+        writeln!(out, "digraph {{\n  ")?;
+        out.open_box();
+
+        for bid in self.block_ids() {
+            let dests = self.successors(bid);
+            for (succ_ndx, dest) in dests.iter().enumerate() {
+                let color = match (dests.len(), succ_ndx) {
+                    (2, 0) => "darkred",
+                    (2, 1) => "darkgreen",
+                    _ => "black",
+                };
+                writeln!(
+                    out,
+                    "block{} -> block{} [color=\"{}\"];",
+                    bid.0, dest.0, color
+                )?;
+            }
+        }
+
+        out.close_box();
+        writeln!(out, "\n}}\n")?;
+        Ok(())
     }
 }
 
@@ -427,7 +455,29 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         }
     }
 
+    eprintln!("{} blocks", bounds.len() - 1);
+    for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
+        eprintln!(
+            " #{}: {} - {} ({})",
+            ndx,
+            bb_start,
+            bb_end,
+            bb_end - bb_start
+        );
+    }
+
+    {
+        let f = std::fs::File::create("direct.graphviz").unwrap();
+        let mut wrt = pp::PrettyPrinter::start(f);
+        direct.dump(&mut wrt).unwrap();
+    }
     let dom_tree = compute_dom_tree(&direct, &inverse);
+
+    {
+        let f = std::fs::File::create("inverse.graphviz").unwrap();
+        let mut wrt = pp::PrettyPrinter::start(f);
+        inverse.dump(&mut wrt).unwrap();
+    }
     let inv_dom_tree = compute_dom_tree(&inverse, &direct);
     let reverse_postorder = Ordering::new(reverse_postorder(&direct));
 
@@ -777,9 +827,10 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     rem_preds_count[edges.entry_bid] = 1;
 
     while let Some(bid) = queue.pop() {
-        // each node X must be processed (added to the ordering) only after all its P predecessors
-        // have been processed.  we achieve this by discarding X queue items corresponding to (P-1)
-        // times before processing it the P-th time.
+        // each node X must be processed (added to the ordering) only after
+        // all its P predecessors have been processed.  we achieve this by
+        // discarding X's queue items  (P-1) times corresponding to (P-1)
+        // predecessors before finally allowing processing it the P-th time.
 
         rem_preds_count[bid] -= 1;
         if rem_preds_count[bid] > 0 {
