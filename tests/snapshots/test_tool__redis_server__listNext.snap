@@ -205,12 +205,11 @@ ssa program  117 instrs
 
 cfg:
   entry: BlockID(0)
-  exit: BlockID(5)
-  BlockID(0) [0:79] -> Alt { straight: (0, BlockID(1)), side: (0, BlockID(4)) }
-  BlockID(1) [79:95] -> Alt { straight: (0, BlockID(2)), side: (0, BlockID(3)) }
-  BlockID(2) [95:106] -> Jmp((0, BlockID(5)))
-  BlockID(3) [106:113] -> Jmp((1, BlockID(4)))
-  BlockID(4) [113:117] -> Jmp((1, BlockID(5)))
+  BlockID(0) [0:79] -> Alt { straight: BlockID(1), side: BlockID(4) }
+  BlockID(1) [79:95] -> Alt { straight: BlockID(2), side: BlockID(3) }
+  BlockID(2) [95:106] -> Jmp(BlockID(5))
+  BlockID(3) [106:113] -> Jmp(BlockID(4))
+  BlockID(4) [113:117] -> Jmp(BlockID(5))
   BlockID(5) [117:117] -> End
   domtree:
     BlockID(0)

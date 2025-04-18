@@ -140,8 +140,7 @@ ssa program  94 instrs
 
 cfg:
   entry: BlockID(0)
-  exit: BlockID(1)
-  BlockID(0) [0:94] -> Jmp((0, BlockID(1)))
+  BlockID(0) [0:94] -> Jmp(BlockID(1))
   BlockID(1) [94:94] -> End
   domtree:
     BlockID(0)

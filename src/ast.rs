@@ -86,13 +86,13 @@ impl<'a> Ast<'a> {
                 write!(pp, "end")?;
                 // all done!
             }
-            cfg::BlockCont::Jmp((pred_ndx, tgt)) => {
+            cfg::BlockCont::Jmp(tgt) => {
                 writeln!(pp)?;
-                self.pp_continuation(pp, bid, tgt, pred_ndx as u16)?;
+                self.pp_continuation(pp, bid, tgt)?;
             }
             cfg::BlockCont::Alt {
-                straight: (neg_pred_ndx, neg_bid),
-                side: (pos_pred_ndx, pos_bid),
+                straight: neg_bid,
+                side: pos_bid,
             } => {
                 // otherwise the syntax makes no sense
                 let last_reg = *block_effects.last().unwrap();
@@ -101,11 +101,11 @@ impl<'a> Ast<'a> {
 
                 write!(pp, " {{\n  ")?;
                 pp.open_box();
-                self.pp_continuation(pp, bid, pos_bid, pos_pred_ndx as u16)?;
+                self.pp_continuation(pp, bid, pos_bid)?;
                 pp.close_box();
                 write!(pp, "\n}}\n")?;
 
-                self.pp_continuation(pp, bid, neg_bid, neg_pred_ndx as u16)?;
+                self.pp_continuation(pp, bid, neg_bid)?;
             }
         }
 
@@ -124,7 +124,6 @@ impl<'a> Ast<'a> {
         pp: &mut W,
         src_bid: cfg::BlockID,
         tgt_bid: cfg::BlockID,
-        _pred_ndx: u16,
     ) -> std::io::Result<()> {
         let cfg = self.ssa.cfg();
 

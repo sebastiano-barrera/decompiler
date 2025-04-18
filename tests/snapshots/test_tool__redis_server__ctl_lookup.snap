@@ -2891,62 +2891,61 @@ ssa program  1598 instrs
 
 cfg:
   entry: BlockID(0)
-  exit: BlockID(55)
-  BlockID(0) [0:134] -> Alt { straight: (0, BlockID(1)), side: (0, BlockID(52)) }
-  BlockID(1) [134:148] -> Alt { straight: (0, BlockID(2)), side: (0, BlockID(41)) }
-  BlockID(2) [148:164] -> Alt { straight: (0, BlockID(3)), side: (0, BlockID(54)) }
-  BlockID(3) [164:194] -> Alt { straight: (0, BlockID(4)), side: (0, BlockID(30)) }
-  BlockID(4) [194:209] -> Alt { straight: (0, BlockID(5)), side: (1, BlockID(41)) }
-  BlockID(5) [209:233] -> Alt { straight: (0, BlockID(6)), side: (0, BlockID(14)) }
-  BlockID(6) [233:242] -> Alt { straight: (0, BlockID(7)), side: (0, BlockID(12)) }
-  BlockID(7) [242:251] -> Alt { straight: (0, BlockID(8)), side: (0, BlockID(10)) }
-  BlockID(8) [251:299] -> Alt { straight: (0, BlockID(9)), side: (0, BlockID(50)) }
-  BlockID(9) [299:305] -> Jmp((1, BlockID(10)))
-  BlockID(10) [305:349] -> Alt { straight: (0, BlockID(11)), side: (0, BlockID(48)) }
-  BlockID(11) [349:367] -> Jmp((1, BlockID(12)))
-  BlockID(12) [367:411] -> Alt { straight: (0, BlockID(13)), side: (0, BlockID(46)) }
-  BlockID(13) [411:441] -> Alt { straight: (1, BlockID(14)), side: (2, BlockID(41)) }
-  BlockID(14) [441:452] -> Jmp((0, BlockID(19)))
-  BlockID(15) [452:497] -> Alt { straight: (0, BlockID(16)), side: (0, BlockID(22)) }
-  BlockID(16) [497:540] -> Alt { straight: (0, BlockID(17)), side: (0, BlockID(37)) }
-  BlockID(17) [540:583] -> Alt { straight: (0, BlockID(18)), side: (0, BlockID(39)) }
-  BlockID(18) [583:601] -> Alt { straight: (1, BlockID(19)), side: (3, BlockID(41)) }
-  BlockID(19) [601:632] -> Alt { straight: (0, BlockID(20)), side: (0, BlockID(15)) }
-  BlockID(20) [632:673] -> Alt { straight: (0, BlockID(21)), side: (1, BlockID(15)) }
-  BlockID(21) [673:687] -> Jmp((0, BlockID(24)))
-  BlockID(22) [687:727] -> Alt { straight: (0, BlockID(23)), side: (1, BlockID(16)) }
-  BlockID(23) [727:741] -> Jmp((1, BlockID(24)))
-  BlockID(24) [741:758] -> Alt { straight: (0, BlockID(25)), side: (4, BlockID(41)) }
-  BlockID(25) [758:772] -> Alt { straight: (0, BlockID(26)), side: (0, BlockID(33)) }
-  BlockID(26) [772:782] -> Alt { straight: (0, BlockID(27)), side: (0, BlockID(53)) }
-  BlockID(27) [782:821] -> Alt { straight: (0, BlockID(28)), side: (0, BlockID(42)) }
-  BlockID(28) [821:859] -> Alt { straight: (0, BlockID(29)), side: (0, BlockID(43)) }
-  BlockID(29) [859:877] -> Alt { straight: (1, BlockID(30)), side: (1, BlockID(4)) }
-  BlockID(30) [877:927] -> Alt { straight: (0, BlockID(31)), side: (5, BlockID(41)) }
-  BlockID(31) [927:993] -> Alt { straight: (0, BlockID(32)), side: (6, BlockID(41)) }
-  BlockID(32) [993:1015] -> Alt { straight: (1, BlockID(33)), side: (1, BlockID(26)) }
-  BlockID(33) [1015:1030] -> Alt { straight: (0, BlockID(34)), side: (7, BlockID(41)) }
-  BlockID(34) [1030:1049] -> Alt { straight: (0, BlockID(35)), side: (0, BlockID(45)) }
-  BlockID(35) [1049:1060] -> Jmp((0, BlockID(36)))
-  BlockID(36) [1060:1088] -> Jmp((0, BlockID(55)))
-  BlockID(37) [1088:1128] -> Alt { straight: (0, BlockID(38)), side: (1, BlockID(17)) }
-  BlockID(38) [1128:1129] -> Jmp((1, BlockID(23)))
-  BlockID(39) [1129:1169] -> Alt { straight: (0, BlockID(40)), side: (1, BlockID(18)) }
-  BlockID(40) [1169:1170] -> Jmp((2, BlockID(23)))
-  BlockID(41) [1170:1201] -> Jmp((1, BlockID(55)))
-  BlockID(42) [1201:1247] -> Alt { straight: (1, BlockID(43)), side: (1, BlockID(29)) }
-  BlockID(43) [1247:1251] -> Jmp((0, BlockID(44)))
-  BlockID(44) [1251:1259] -> Alt { straight: (1, BlockID(45)), side: (1, BlockID(35)) }
-  BlockID(45) [1259:1274] -> Jmp((1, BlockID(36)))
-  BlockID(46) [1274:1321] -> Alt { straight: (0, BlockID(47)), side: (1, BlockID(13)) }
-  BlockID(47) [1321:1322] -> Jmp((2, BlockID(24)))
-  BlockID(48) [1322:1369] -> Alt { straight: (0, BlockID(49)), side: (1, BlockID(11)) }
-  BlockID(49) [1369:1370] -> Jmp((3, BlockID(24)))
-  BlockID(50) [1370:1421] -> Alt { straight: (0, BlockID(51)), side: (1, BlockID(9)) }
-  BlockID(51) [1421:1422] -> Jmp((4, BlockID(24)))
-  BlockID(52) [1422:1444] -> Jmp((1, BlockID(1)))
-  BlockID(53) [1444:1449] -> Jmp((1, BlockID(34)))
-  BlockID(54) [1449:1451] -> Jmp((1, BlockID(44)))
+  BlockID(0) [0:134] -> Alt { straight: BlockID(1), side: BlockID(52) }
+  BlockID(1) [134:148] -> Alt { straight: BlockID(2), side: BlockID(41) }
+  BlockID(2) [148:164] -> Alt { straight: BlockID(3), side: BlockID(54) }
+  BlockID(3) [164:194] -> Alt { straight: BlockID(4), side: BlockID(30) }
+  BlockID(4) [194:209] -> Alt { straight: BlockID(5), side: BlockID(41) }
+  BlockID(5) [209:233] -> Alt { straight: BlockID(6), side: BlockID(14) }
+  BlockID(6) [233:242] -> Alt { straight: BlockID(7), side: BlockID(12) }
+  BlockID(7) [242:251] -> Alt { straight: BlockID(8), side: BlockID(10) }
+  BlockID(8) [251:299] -> Alt { straight: BlockID(9), side: BlockID(50) }
+  BlockID(9) [299:305] -> Jmp(BlockID(10))
+  BlockID(10) [305:349] -> Alt { straight: BlockID(11), side: BlockID(48) }
+  BlockID(11) [349:367] -> Jmp(BlockID(12))
+  BlockID(12) [367:411] -> Alt { straight: BlockID(13), side: BlockID(46) }
+  BlockID(13) [411:441] -> Alt { straight: BlockID(14), side: BlockID(41) }
+  BlockID(14) [441:452] -> Jmp(BlockID(19))
+  BlockID(15) [452:497] -> Alt { straight: BlockID(16), side: BlockID(22) }
+  BlockID(16) [497:540] -> Alt { straight: BlockID(17), side: BlockID(37) }
+  BlockID(17) [540:583] -> Alt { straight: BlockID(18), side: BlockID(39) }
+  BlockID(18) [583:601] -> Alt { straight: BlockID(19), side: BlockID(41) }
+  BlockID(19) [601:632] -> Alt { straight: BlockID(20), side: BlockID(15) }
+  BlockID(20) [632:673] -> Alt { straight: BlockID(21), side: BlockID(15) }
+  BlockID(21) [673:687] -> Jmp(BlockID(24))
+  BlockID(22) [687:727] -> Alt { straight: BlockID(23), side: BlockID(16) }
+  BlockID(23) [727:741] -> Jmp(BlockID(24))
+  BlockID(24) [741:758] -> Alt { straight: BlockID(25), side: BlockID(41) }
+  BlockID(25) [758:772] -> Alt { straight: BlockID(26), side: BlockID(33) }
+  BlockID(26) [772:782] -> Alt { straight: BlockID(27), side: BlockID(53) }
+  BlockID(27) [782:821] -> Alt { straight: BlockID(28), side: BlockID(42) }
+  BlockID(28) [821:859] -> Alt { straight: BlockID(29), side: BlockID(43) }
+  BlockID(29) [859:877] -> Alt { straight: BlockID(30), side: BlockID(4) }
+  BlockID(30) [877:927] -> Alt { straight: BlockID(31), side: BlockID(41) }
+  BlockID(31) [927:993] -> Alt { straight: BlockID(32), side: BlockID(41) }
+  BlockID(32) [993:1015] -> Alt { straight: BlockID(33), side: BlockID(26) }
+  BlockID(33) [1015:1030] -> Alt { straight: BlockID(34), side: BlockID(41) }
+  BlockID(34) [1030:1049] -> Alt { straight: BlockID(35), side: BlockID(45) }
+  BlockID(35) [1049:1060] -> Jmp(BlockID(36))
+  BlockID(36) [1060:1088] -> Jmp(BlockID(55))
+  BlockID(37) [1088:1128] -> Alt { straight: BlockID(38), side: BlockID(17) }
+  BlockID(38) [1128:1129] -> Jmp(BlockID(23))
+  BlockID(39) [1129:1169] -> Alt { straight: BlockID(40), side: BlockID(18) }
+  BlockID(40) [1169:1170] -> Jmp(BlockID(23))
+  BlockID(41) [1170:1201] -> Jmp(BlockID(55))
+  BlockID(42) [1201:1247] -> Alt { straight: BlockID(43), side: BlockID(29) }
+  BlockID(43) [1247:1251] -> Jmp(BlockID(44))
+  BlockID(44) [1251:1259] -> Alt { straight: BlockID(45), side: BlockID(35) }
+  BlockID(45) [1259:1274] -> Jmp(BlockID(36))
+  BlockID(46) [1274:1321] -> Alt { straight: BlockID(47), side: BlockID(13) }
+  BlockID(47) [1321:1322] -> Jmp(BlockID(24))
+  BlockID(48) [1322:1369] -> Alt { straight: BlockID(49), side: BlockID(11) }
+  BlockID(49) [1369:1370] -> Jmp(BlockID(24))
+  BlockID(50) [1370:1421] -> Alt { straight: BlockID(51), side: BlockID(9) }
+  BlockID(51) [1421:1422] -> Jmp(BlockID(24))
+  BlockID(52) [1422:1444] -> Jmp(BlockID(1))
+  BlockID(53) [1444:1449] -> Jmp(BlockID(34))
+  BlockID(54) [1449:1451] -> Jmp(BlockID(44))
   BlockID(55) [1451:1451] -> End
   domtree:
     BlockID(0)

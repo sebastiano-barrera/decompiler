@@ -573,7 +573,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     //  conditions to each function... (probably coming from the calling
                     //  convention)
                     //
-                    // > if bid == cfg::ENTRY_BID && insn_ndx == 0 {
+                    // > if bid == cfg::ENTRY_BID && insn_ndx ==  {
                     // >     assert_eq!(inputs, [None, None]);
                     // > }
 
@@ -614,7 +614,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // successor's 1st, 2nd, 3rd predecessor.
 
                 let block_cont = cfg.block_cont(bid);
-                for (_, succ) in block_cont.as_array().into_iter().flatten() {
+                for succ in block_cont.as_array().into_iter().flatten() {
                     for var in vars() {
                         if let Some(phi_reg) = phis.get(succ, var) {
                             let value = var_map

@@ -495,14 +495,13 @@ ssa program  268 instrs
 
 cfg:
   entry: BlockID(0)
-  exit: BlockID(7)
-  BlockID(0) [0:95] -> Jmp((0, BlockID(5)))
-  BlockID(1) [95:100] -> Jmp((0, BlockID(3)))
-  BlockID(2) [100:192] -> Jmp((1, BlockID(3)))
-  BlockID(3) [192:211] -> Alt { straight: (0, BlockID(4)), side: (0, BlockID(2)) }
-  BlockID(4) [211:225] -> Jmp((1, BlockID(5)))
-  BlockID(5) [225:244] -> Alt { straight: (0, BlockID(6)), side: (0, BlockID(1)) }
-  BlockID(6) [244:256] -> Jmp((0, BlockID(7)))
+  BlockID(0) [0:95] -> Jmp(BlockID(5))
+  BlockID(1) [95:100] -> Jmp(BlockID(3))
+  BlockID(2) [100:192] -> Jmp(BlockID(3))
+  BlockID(3) [192:211] -> Alt { straight: BlockID(4), side: BlockID(2) }
+  BlockID(4) [211:225] -> Jmp(BlockID(5))
+  BlockID(5) [225:244] -> Alt { straight: BlockID(6), side: BlockID(1) }
+  BlockID(6) [244:256] -> Jmp(BlockID(7))
   BlockID(7) [256:256] -> End
   domtree:
     BlockID(0)

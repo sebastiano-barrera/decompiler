@@ -679,16 +679,15 @@ ssa program  407 instrs
 
 cfg:
   entry: BlockID(0)
-  exit: BlockID(9)
-  BlockID(0) [0:114] -> Alt { straight: (0, BlockID(1)), side: (0, BlockID(8)) }
-  BlockID(1) [114:187] -> Alt { straight: (0, BlockID(2)), side: (0, BlockID(7)) }
-  BlockID(2) [187:198] -> Jmp((0, BlockID(3)))
-  BlockID(3) [198:282] -> Alt { straight: (0, BlockID(4)), side: (1, BlockID(3)) }
-  BlockID(4) [282:306] -> Jmp((0, BlockID(5)))
-  BlockID(5) [306:334] -> Jmp((0, BlockID(6)))
-  BlockID(6) [334:356] -> Jmp((0, BlockID(9)))
-  BlockID(7) [356:371] -> Jmp((1, BlockID(5)))
-  BlockID(8) [371:383] -> Jmp((1, BlockID(6)))
+  BlockID(0) [0:114] -> Alt { straight: BlockID(1), side: BlockID(8) }
+  BlockID(1) [114:187] -> Alt { straight: BlockID(2), side: BlockID(7) }
+  BlockID(2) [187:198] -> Jmp(BlockID(3))
+  BlockID(3) [198:282] -> Alt { straight: BlockID(4), side: BlockID(3) }
+  BlockID(4) [282:306] -> Jmp(BlockID(5))
+  BlockID(5) [306:334] -> Jmp(BlockID(6))
+  BlockID(6) [334:356] -> Jmp(BlockID(9))
+  BlockID(7) [356:371] -> Jmp(BlockID(5))
+  BlockID(8) [371:383] -> Jmp(BlockID(6))
   BlockID(9) [383:383] -> End
   domtree:
     BlockID(0)

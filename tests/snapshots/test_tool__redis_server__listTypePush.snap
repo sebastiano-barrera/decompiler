@@ -1,0 +1,1615 @@
+---
+source: tests/test_tool.rs
+expression: out
+---
+listTypePush 0x485d60+534 (file 0x85d60)
+          485d60: 55                      push rbp
+          485d61: 48 89 e5                mov rbp,rsp
+          485d64: 41 54                   push r12
+          485d66: 53                      push rbx
+          485d67: 48 89 fb                mov rbx,rdi
+          485d6a: 48 83 ec 30             sub rsp,30h
+          485d6e: 0f b6 07                movzx eax,byte ptr [rdi]
+          485d71: 83 e0 f0                and eax,0FFFFFFF0h
+          485d74: 3c 90                   cmp al,90h
+          485d76: 74 68                   je short 0000000000485DE0h
+          485d78: 3c b0                   cmp al,0B0h
+          485d7a: 0f 85 e0 01 00 00       jne 0000000000485F60h
+          485d80: 0f b6 06                movzx eax,byte ptr [rsi]
+          485d83: 48 8b 4e 08             mov rcx,[rsi+8]
+          485d87: 48 8b 7f 08             mov rdi,[rdi+8]
+          485d8b: 83 e0 f0                and eax,0FFFFFFF0h
+          485d8e: 3c 10                   cmp al,10h
+          485d90: 74 26                   je short 0000000000485DB8h
+          485d92: 0f b6 71 ff             movzx esi,byte ptr [rcx-1]
+          485d96: 89 f0                   mov eax,esi
+          485d98: 83 e0 07                and eax,7
+          485d9b: 85 d2                   test edx,edx
+          485d9d: 75 71                   jne short 0000000000485E10h
+          485d9f: 3c 04                   cmp al,4
+          485da1: 0f 87 a6 c6 f7 ff       ja 000000000040244Dh
+          485da7: 0f b6 c0                movzx eax,al
+          485daa: ff 24 c5 30 8c 68 00    jmp qword ptr [rax*8+688C30h]
+          485db1: 0f 1f 80 00 00 00 00    nop [rax]
+          485db8: 48 89 ce                mov rsi,rcx
+          485dbb: 85 d2                   test edx,edx
+          485dbd: 74 69                   je short 0000000000485E28h
+          485dbf: e8 ec 7e 0d 00          call 000000000055DCB0h
+          485dc4: 66 66 2e 0f 1f 84 00 00 nop [rax+rax]
+          485dcf: 90                      nop
+          485dd0: 48 89 43 08             mov [rbx+8],rax
+          485dd4: 48 83 c4 30             add rsp,30h
+          485dd8: 5b                      pop rbx
+          485dd9: 41 5c                   pop r12
+          485ddb: 5d                      pop rbp
+          485ddc: c3                      ret
+          485ddd: 0f 1f 00                nop [rax]
+          485de0: 0f b6 06                movzx eax,byte ptr [rsi]
+          485de3: f7 da                   neg edx
+          485de5: 48 8b 7e 08             mov rdi,[rsi+8]
+          485de9: 19 c9                   sbb ecx,ecx
+          485deb: 83 e0 f0                and eax,0FFFFFFF0h
+          485dee: 3c 10                   cmp al,10h
+          485df0: 74 3e                   je short 0000000000485E30h
+          485df2: 0f b6 57 ff             movzx edx,byte ptr [rdi-1]
+          485df6: 89 d0                   mov eax,edx
+          485df8: 83 e0 07                and eax,7
+          485dfb: 3c 04                   cmp al,4
+          485dfd: 0f 87 43 c6 f7 ff       ja 0000000000402446h
+          485e03: 0f b6 c0                movzx eax,al
+          485e06: ff 24 c5 58 8c 68 00    jmp qword ptr [rax*8+688C58h]
+          485e0d: 0f 1f 00                nop [rax]
+          485e10: 3c 04                   cmp al,4
+          485e12: 0f 87 3c c6 f7 ff       ja 0000000000402454h
+          485e18: 0f b6 c0                movzx eax,al
+          485e1b: ff 24 c5 80 8c 68 00    jmp qword ptr [rax*8+688C80h]
+          485e22: 66 0f 1f 44 00 00       nop [rax+rax]
+          485e28: e8 b3 7f 0d 00          call 000000000055DDE0h
+          485e2d: eb a1                   jmp short 0000000000485DD0h
+          485e2f: 90                      nop
+          485e30: 4c 8d 65 d0             lea r12,[rbp-30h]
+          485e34: 48 89 fa                mov rdx,rdi
+          485e37: be 20 00 00 00          mov esi,20h
+          485e3c: 89 4d cc                mov [rbp-34h],ecx
+          485e3f: 4c 89 e7                mov rdi,r12
+          485e42: e8 59 9b fc ff          call 000000000044F9A0h
+          485e47: 4c 89 e7                mov rdi,r12
+          485e4a: e8 91 b4 f7 ff          call 00000000004012E0h
+          485e4f: 48 8b 7b 08             mov rdi,[rbx+8]
+          485e53: 8b 4d cc                mov ecx,[rbp-34h]
+          485e56: 4c 89 e6                mov rsi,r12
+          485e59: 48 89 c2                mov rdx,rax
+          485e5c: e8 0f 26 f9 ff          call 0000000000418470h
+          485e61: e9 6e ff ff ff          jmp 0000000000485DD4h
+          485e66: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485e70: 8b 57 f7                mov edx,[rdi-9]
+          485e73: 48 8b 43 08             mov rax,[rbx+8]
+          485e77: 48 83 c4 30             add rsp,30h
+          485e7b: 48 89 fe                mov rsi,rdi
+          485e7e: 5b                      pop rbx
+          485e7f: 41 5c                   pop r12
+          485e81: 48 89 c7                mov rdi,rax
+          485e84: 5d                      pop rbp
+          485e85: e9 e6 25 f9 ff          jmp 0000000000418470h
+          485e8a: 66 0f 1f 44 00 00       nop [rax+rax]
+          485e90: 48 8b 57 ef             mov rdx,[rdi-11h]
+          485e94: eb dd                   jmp short 0000000000485E73h
+          485e96: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485ea0: c0 ea 03                shr dl,3
+          485ea3: 0f b6 d2                movzx edx,dl
+          485ea6: eb cb                   jmp short 0000000000485E73h
+          485ea8: 0f 1f 84 00 00 00 00 00 nop [rax+rax]
+          485eb0: 0f b6 57 fd             movzx edx,byte ptr [rdi-3]
+          485eb4: eb bd                   jmp short 0000000000485E73h
+          485eb6: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485ec0: 0f b7 57 fb             movzx edx,word ptr [rdi-5]
+          485ec4: eb ad                   jmp short 0000000000485E73h
+          485ec6: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485ed0: 40 c0 ee 03             shr sil,3
+          485ed4: 40 0f b6 d6             movzx edx,sil
+          485ed8: 48 89 ce                mov rsi,rcx
+          485edb: e8 40 7d 0d 00          call 000000000055DC20h
+          485ee0: e9 eb fe ff ff          jmp 0000000000485DD0h
+          485ee5: 0f 1f 00                nop [rax]
+          485ee8: 0f b6 51 fd             movzx edx,byte ptr [rcx-3]
+          485eec: eb ea                   jmp short 0000000000485ED8h
+          485eee: 66 90                   xchg ax,ax
+          485ef0: 0f b7 51 fb             movzx edx,word ptr [rcx-5]
+          485ef4: eb e2                   jmp short 0000000000485ED8h
+          485ef6: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485f00: 8b 51 f7                mov edx,[rcx-9]
+          485f03: eb d3                   jmp short 0000000000485ED8h
+          485f05: 0f 1f 00                nop [rax]
+          485f08: 8b 51 ef                mov edx,[rcx-11h]
+          485f0b: 48 89 ce                mov rsi,rcx
+          485f0e: e8 ed 7c 0d 00          call 000000000055DC00h
+          485f13: e9 b8 fe ff ff          jmp 0000000000485DD0h
+          485f18: 0f 1f 84 00 00 00 00 00 nop [rax+rax]
+          485f20: 40 c0 ee 03             shr sil,3
+          485f24: 40 0f b6 d6             movzx edx,sil
+          485f28: eb e1                   jmp short 0000000000485F0Bh
+          485f2a: 66 0f 1f 44 00 00       nop [rax+rax]
+          485f30: 0f b6 51 fd             movzx edx,byte ptr [rcx-3]
+          485f34: eb d5                   jmp short 0000000000485F0Bh
+          485f36: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485f40: 0f b7 51 fb             movzx edx,word ptr [rcx-5]
+          485f44: eb c5                   jmp short 0000000000485F0Bh
+          485f46: 66 2e 0f 1f 84 00 00 00 nop [rax+rax]
+          485f50: 8b 51 f7                mov edx,[rcx-9]
+          485f53: eb b6                   jmp short 0000000000485F0Bh
+          485f55: 0f 1f 00                nop [rax]
+          485f58: 8b 51 ef                mov edx,[rcx-11h]
+          485f5b: e9 78 ff ff ff          jmp 0000000000485ED8h
+          485f60: ba bb 80 6a 00          mov edx,6A80BBh
+          485f65: be a5 00 00 00          mov esi,0A5h
+          485f6a: bf 3b 8b 6a 00          mov edi,6A8B3Bh
+          485f6f: 31 c0                   xor eax,eax
+          485f71: e8 fa c5 03 00          call 00000000004C2570h
+
+function type: 0x485d60: no type info
+2 warnings:
+  #   0: no function type
+  #   1: call: call resolved but only packed 2/4 params
+
+
+mil program = 
+program  628 instrs
+    0 r12 <- Ancestral(AncestralName("stack_bottom"))
+    1 r2 <- Ancestral(AncestralName("CF"))
+    2 r3 <- Ancestral(AncestralName("PF"))
+    3 r4 <- Ancestral(AncestralName("AF"))
+    4 r5 <- Ancestral(AncestralName("ZF"))
+    5 r6 <- Ancestral(AncestralName("SF"))
+    6 r7 <- Ancestral(AncestralName("TF"))
+    7 r8 <- Ancestral(AncestralName("IF"))
+    8 r9 <- Ancestral(AncestralName("DF"))
+    9 r10 <- Ancestral(AncestralName("OF"))
+   10 r11 <- Ancestral(AncestralName("RBP"))
+   11 r12 <- Ancestral(AncestralName("RSP"))
+   12 r13 <- Ancestral(AncestralName("RIP"))
+   13 r14 <- Ancestral(AncestralName("RDI"))
+   14 r15 <- Ancestral(AncestralName("RSI"))
+   15 r16 <- Ancestral(AncestralName("RAX"))
+   16 r17 <- Ancestral(AncestralName("RBX"))
+   17 r18 <- Ancestral(AncestralName("RCX"))
+   18 r19 <- Ancestral(AncestralName("RDX"))
+   19 r20 <- Ancestral(AncestralName("R8"))
+   20 r21 <- Ancestral(AncestralName("R9"))
+   21 r22 <- Ancestral(AncestralName("R10"))
+   22 r23 <- Ancestral(AncestralName("R11"))
+   23 r24 <- Ancestral(AncestralName("R12"))
+   24 r25 <- Ancestral(AncestralName("R13"))
+   25 r26 <- Ancestral(AncestralName("R14"))
+   26 r27 <- Ancestral(AncestralName("R15"))
+   27 r28 <- Ancestral(AncestralName("ZMM0"))
+   28 r29 <- Ancestral(AncestralName("ZMM1"))
+   29 r30 <- Ancestral(AncestralName("ZMM2"))
+   30 r31 <- Ancestral(AncestralName("ZMM3"))
+   31 r32 <- Ancestral(AncestralName("ZMM4"))
+   32 r33 <- Ancestral(AncestralName("ZMM5"))
+   33 r34 <- Ancestral(AncestralName("ZMM6"))
+   34 r35 <- Ancestral(AncestralName("ZMM7"))
+   35 r36 <- Ancestral(AncestralName("ZMM8"))
+   36 r37 <- Ancestral(AncestralName("ZMM9"))
+   37 r38 <- Ancestral(AncestralName("ZMM10"))
+   38 r39 <- Ancestral(AncestralName("ZMM11"))
+   39 r40 <- Ancestral(AncestralName("ZMM12"))
+   40 r41 <- Ancestral(AncestralName("ZMM13"))
+   41 r42 <- Ancestral(AncestralName("ZMM14"))
+   42 r43 <- Ancestral(AncestralName("ZMM15"))
+   43 r44 <- Ancestral(AncestralName("memory"))
+   44 r45 <- Undefined
+   45 r46 <- Undefined
+   46 r47 <- Undefined
+   47 r48 <- Undefined
+   48 r49 <- Undefined
+   49 r50 <- Undefined
+   50 r51 <- Undefined
+   51 r52 <- Undefined
+   52 r53 <- Undefined
+   53 r54 <- Undefined
+   54 r55 <- Undefined
+   55 r56 <- Undefined
+   56 r57 <- Undefined
+   57 r58 <- Undefined
+   58 r59 <- Undefined
+   59 r60 <- Undefined
+   60 r61 <- Undefined
+   61 r62 <- Undefined
+   62 r63 <- Undefined
+   63 r64 <- Undefined
+   64 r65 <- Undefined
+0x485d60:
+   65 r12 <- ArithK(Add, r12, -8)
+   66 r44 <- StoreMem { mem: r44, addr: r12, value: r11 }
+0x485d61:
+   67 r11 <- Get(r12)
+0x485d64:
+   68 r12 <- ArithK(Add, r12, -8)
+   69 r44 <- StoreMem { mem: r44, addr: r12, value: r24 }
+0x485d66:
+   70 r12 <- ArithK(Add, r12, -8)
+   71 r44 <- StoreMem { mem: r44, addr: r12, value: r17 }
+0x485d67:
+   72 r17 <- Get(r14)
+0x485d6a:
+   73 r46 <- Const { value: 48, size: 8 }
+   74 r12 <- Arith(Sub, r12, r46)
+   75 r12 <- Get(r12)
+   76 r10 <- OverflowOf(r12)
+   77 r2 <- CarryOf(r12)
+   78 r6 <- SignOf(r12)
+   79 r5 <- IsZero(r12)
+   80 r47 <- Part { src: r12, offset: 0, size: 1 }
+   81 r3 <- Parity(r47)
+0x485d6e:
+   82 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rdi]")
+0x485d71:
+   83 r46 <- Part { src: r16, offset: 0, size: 4 }
+   84 r47 <- Const { value: -16, size: 4 }
+   85 r46 <- Arith(BitAnd, r46, r47)
+   86 r48 <- Part { src: r16, offset: 4, size: 4 }
+   87 r16 <- Concat { lo: r46, hi: r48 }
+   88 r10 <- False
+   89 r2 <- False
+   90 r6 <- SignOf(r46)
+   91 r5 <- IsZero(r46)
+   92 r49 <- Part { src: r46, offset: 0, size: 1 }
+   93 r3 <- Parity(r49)
+0x485d74:
+   94 r46 <- Part { src: r16, offset: 0, size: 1 }
+   95 r47 <- Const { value: 144, size: 1 }
+   96 r46 <- Arith(Sub, r46, r47)
+   97 r10 <- OverflowOf(r46)
+   98 r2 <- CarryOf(r46)
+   99 r6 <- SignOf(r46)
+  100 r5 <- IsZero(r46)
+  101 r48 <- Part { src: r46, offset: 0, size: 1 }
+  102 r3 <- Parity(r48)
+0x485d76:
+  103 r45 <- JmpIf { cond: r5, target: 242 }
+0x485d78:
+  104 r46 <- Part { src: r16, offset: 0, size: 1 }
+  105 r47 <- Const { value: 176, size: 1 }
+  106 r46 <- Arith(Sub, r46, r47)
+  107 r10 <- OverflowOf(r46)
+  108 r2 <- CarryOf(r46)
+  109 r6 <- SignOf(r46)
+  110 r5 <- IsZero(r46)
+  111 r48 <- Part { src: r46, offset: 0, size: 1 }
+  112 r3 <- Parity(r48)
+0x485d7a:
+  113 r45 <- Not(r5)
+  114 r46 <- JmpIf { cond: r45, target: 584 }
+0x485d80:
+  115 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+0x485d83:
+  116 r46 <- Const { value: 8, size: 8 }
+  117 r46 <- Arith(Add, r46, r15)
+  118 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  119 r18 <- Get(r45)
+0x485d87:
+  120 r46 <- Const { value: 8, size: 8 }
+  121 r46 <- Arith(Add, r46, r14)
+  122 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  123 r14 <- Get(r45)
+0x485d8b:
+  124 r46 <- Part { src: r16, offset: 0, size: 4 }
+  125 r47 <- Const { value: -16, size: 4 }
+  126 r46 <- Arith(BitAnd, r46, r47)
+  127 r48 <- Part { src: r16, offset: 4, size: 4 }
+  128 r16 <- Concat { lo: r46, hi: r48 }
+  129 r10 <- False
+  130 r2 <- False
+  131 r6 <- SignOf(r46)
+  132 r5 <- IsZero(r46)
+  133 r49 <- Part { src: r46, offset: 0, size: 1 }
+  134 r3 <- Parity(r49)
+0x485d8e:
+  135 r46 <- Part { src: r16, offset: 0, size: 1 }
+  136 r47 <- Const { value: 16, size: 1 }
+  137 r46 <- Arith(Sub, r46, r47)
+  138 r10 <- OverflowOf(r46)
+  139 r2 <- CarryOf(r46)
+  140 r6 <- SignOf(r46)
+  141 r5 <- IsZero(r46)
+  142 r48 <- Part { src: r46, offset: 0, size: 1 }
+  143 r3 <- Parity(r48)
+0x485d90:
+  144 r45 <- JmpIf { cond: r5, target: 189 }
+0x485d92:
+  145 r45 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
+0x485d96:
+  146 r46 <- Part { src: r15, offset: 0, size: 4 }
+  147 r47 <- Part { src: r16, offset: 4, size: 4 }
+  148 r16 <- Concat { lo: r46, hi: r47 }
+0x485d98:
+  149 r46 <- Part { src: r16, offset: 0, size: 4 }
+  150 r47 <- Const { value: 7, size: 4 }
+  151 r46 <- Arith(BitAnd, r46, r47)
+  152 r48 <- Part { src: r16, offset: 4, size: 4 }
+  153 r16 <- Concat { lo: r46, hi: r48 }
+  154 r10 <- False
+  155 r2 <- False
+  156 r6 <- SignOf(r46)
+  157 r5 <- IsZero(r46)
+  158 r49 <- Part { src: r46, offset: 0, size: 1 }
+  159 r3 <- Parity(r49)
+0x485d9b:
+  160 r46 <- Part { src: r19, offset: 0, size: 4 }
+  161 r48 <- Part { src: r19, offset: 0, size: 4 }
+  162 r46 <- Arith(BitAnd, r46, r48)
+  163 r6 <- SignOf(r46)
+  164 r5 <- IsZero(r46)
+  165 r49 <- Part { src: r46, offset: 0, size: 1 }
+  166 r3 <- Parity(r46)
+  167 r2 <- False
+  168 r10 <- False
+0x485d9d:
+  169 r45 <- Not(r5)
+  170 r46 <- JmpIf { cond: r45, target: 303 }
+0x485d9f:
+  171 r46 <- Part { src: r16, offset: 0, size: 1 }
+  172 r47 <- Const { value: 4, size: 1 }
+  173 r46 <- Arith(Sub, r46, r47)
+  174 r10 <- OverflowOf(r46)
+  175 r2 <- CarryOf(r46)
+  176 r6 <- SignOf(r46)
+  177 r5 <- IsZero(r46)
+  178 r48 <- Part { src: r46, offset: 0, size: 1 }
+  179 r3 <- Parity(r48)
+0x485da1:
+  180 r45 <- Not(r6)
+  181 r46 <- Not(r5)
+  182 r45 <- Bool(And, r45, r46)
+  183 r47 <- JmpExtIf { cond: r45, addr: 4203597 }
+0x485da7:
+  184 r45 <- NotYetImplemented("unsupported: movzx eax,al")
+0x485daa:
+  185 r45 <- Const { value: 6851632, size: 8 }
+  186 r46 <- ArithK(Mul, r16, 8)
+  187 r45 <- Arith(Add, r45, r46)
+  188 r45 <- JmpInd(r45)
+0x485db8:
+  189 r15 <- Get(r18)
+0x485dbb:
+  190 r46 <- Part { src: r19, offset: 0, size: 4 }
+  191 r48 <- Part { src: r19, offset: 0, size: 4 }
+  192 r46 <- Arith(BitAnd, r46, r48)
+  193 r6 <- SignOf(r46)
+  194 r5 <- IsZero(r46)
+  195 r49 <- Part { src: r46, offset: 0, size: 1 }
+  196 r3 <- Parity(r46)
+  197 r2 <- False
+  198 r10 <- False
+0x485dbd:
+  199 r45 <- JmpIf { cond: r5, target: 321 }
+0x485dbf:
+  200 r47 <- Ancestral(AncestralName("arg0"))
+  201 r47 <- Void
+  202 r47 <- Get(r14)
+  203 r48 <- Ancestral(AncestralName("arg1"))
+  204 r48 <- Void
+  205 r48 <- Get(r15)
+  206 r49 <- CArg { value: r46, next_arg: None }
+  207 r49 <- CArg { value: r45, next_arg: Some(r49) }
+  208 r50 <- Const { value: 5627056, size: 8 }
+  209 r49 <- Call { callee: r50, first_arg: Some(r49) }
+  210 r2 <- Undefined
+  211 r3 <- Undefined
+  212 r4 <- Undefined
+  213 r5 <- Undefined
+  214 r6 <- Undefined
+  215 r7 <- Undefined
+  216 r8 <- Undefined
+  217 r9 <- Undefined
+  218 r10 <- Undefined
+  219 r16 <- Part { src: r49, offset: 0, size: 8 }
+0x485dd0:
+  220 r46 <- Const { value: 8, size: 8 }
+  221 r46 <- Arith(Add, r46, r17)
+  222 r44 <- StoreMem { mem: r44, addr: r46, value: r16 }
+0x485dd4:
+  223 r46 <- Const { value: 48, size: 8 }
+  224 r12 <- Arith(Add, r12, r46)
+  225 r12 <- Get(r12)
+  226 r10 <- OverflowOf(r12)
+  227 r2 <- CarryOf(r12)
+  228 r6 <- SignOf(r12)
+  229 r5 <- IsZero(r12)
+  230 r47 <- Part { src: r12, offset: 0, size: 1 }
+  231 r3 <- Parity(r47)
+0x485dd8:
+  232 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+  233 r17 <- Get(r45)
+  234 r12 <- ArithK(Add, r12, 8)
+0x485dd9:
+  235 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+  236 r24 <- Get(r45)
+  237 r12 <- ArithK(Add, r12, 8)
+0x485ddb:
+  238 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+  239 r11 <- Get(r45)
+  240 r12 <- ArithK(Add, r12, 8)
+0x485ddc:
+  241 r45 <- Ret(r16)
+0x485de0:
+  242 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+0x485de3:
+  243 r45 <- NotYetImplemented("unsupported: neg edx")
+0x485de5:
+  244 r46 <- Const { value: 8, size: 8 }
+  245 r46 <- Arith(Add, r46, r15)
+  246 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  247 r14 <- Get(r45)
+0x485de9:
+  248 r45 <- NotYetImplemented("unsupported: sbb ecx,ecx")
+0x485deb:
+  249 r46 <- Part { src: r16, offset: 0, size: 4 }
+  250 r47 <- Const { value: -16, size: 4 }
+  251 r46 <- Arith(BitAnd, r46, r47)
+  252 r48 <- Part { src: r16, offset: 4, size: 4 }
+  253 r16 <- Concat { lo: r46, hi: r48 }
+  254 r10 <- False
+  255 r2 <- False
+  256 r6 <- SignOf(r46)
+  257 r5 <- IsZero(r46)
+  258 r49 <- Part { src: r46, offset: 0, size: 1 }
+  259 r3 <- Parity(r49)
+0x485dee:
+  260 r46 <- Part { src: r16, offset: 0, size: 1 }
+  261 r47 <- Const { value: 16, size: 1 }
+  262 r46 <- Arith(Sub, r46, r47)
+  263 r10 <- OverflowOf(r46)
+  264 r2 <- CarryOf(r46)
+  265 r6 <- SignOf(r46)
+  266 r5 <- IsZero(r46)
+  267 r48 <- Part { src: r46, offset: 0, size: 1 }
+  268 r3 <- Parity(r48)
+0x485df0:
+  269 r45 <- JmpIf { cond: r5, target: 342 }
+0x485df2:
+  270 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+0x485df6:
+  271 r46 <- Part { src: r19, offset: 0, size: 4 }
+  272 r47 <- Part { src: r16, offset: 4, size: 4 }
+  273 r16 <- Concat { lo: r46, hi: r47 }
+0x485df8:
+  274 r46 <- Part { src: r16, offset: 0, size: 4 }
+  275 r47 <- Const { value: 7, size: 4 }
+  276 r46 <- Arith(BitAnd, r46, r47)
+  277 r48 <- Part { src: r16, offset: 4, size: 4 }
+  278 r16 <- Concat { lo: r46, hi: r48 }
+  279 r10 <- False
+  280 r2 <- False
+  281 r6 <- SignOf(r46)
+  282 r5 <- IsZero(r46)
+  283 r49 <- Part { src: r46, offset: 0, size: 1 }
+  284 r3 <- Parity(r49)
+0x485dfb:
+  285 r46 <- Part { src: r16, offset: 0, size: 1 }
+  286 r47 <- Const { value: 4, size: 1 }
+  287 r46 <- Arith(Sub, r46, r47)
+  288 r10 <- OverflowOf(r46)
+  289 r2 <- CarryOf(r46)
+  290 r6 <- SignOf(r46)
+  291 r5 <- IsZero(r46)
+  292 r48 <- Part { src: r46, offset: 0, size: 1 }
+  293 r3 <- Parity(r48)
+0x485dfd:
+  294 r45 <- Not(r6)
+  295 r46 <- Not(r5)
+  296 r45 <- Bool(And, r45, r46)
+  297 r47 <- JmpExtIf { cond: r45, addr: 4203590 }
+0x485e03:
+  298 r45 <- NotYetImplemented("unsupported: movzx eax,al")
+0x485e06:
+  299 r45 <- Const { value: 6851672, size: 8 }
+  300 r46 <- ArithK(Mul, r16, 8)
+  301 r45 <- Arith(Add, r45, r46)
+  302 r45 <- JmpInd(r45)
+0x485e10:
+  303 r46 <- Part { src: r16, offset: 0, size: 1 }
+  304 r47 <- Const { value: 4, size: 1 }
+  305 r46 <- Arith(Sub, r46, r47)
+  306 r10 <- OverflowOf(r46)
+  307 r2 <- CarryOf(r46)
+  308 r6 <- SignOf(r46)
+  309 r5 <- IsZero(r46)
+  310 r48 <- Part { src: r46, offset: 0, size: 1 }
+  311 r3 <- Parity(r48)
+0x485e12:
+  312 r45 <- Not(r6)
+  313 r46 <- Not(r5)
+  314 r45 <- Bool(And, r45, r46)
+  315 r47 <- JmpExtIf { cond: r45, addr: 4203604 }
+0x485e18:
+  316 r45 <- NotYetImplemented("unsupported: movzx eax,al")
+0x485e1b:
+  317 r45 <- Const { value: 6851712, size: 8 }
+  318 r46 <- ArithK(Mul, r16, 8)
+  319 r45 <- Arith(Add, r45, r46)
+  320 r45 <- JmpInd(r45)
+0x485e28:
+  321 r47 <- Ancestral(AncestralName("arg0"))
+  322 r47 <- Void
+  323 r47 <- Get(r14)
+  324 r48 <- Ancestral(AncestralName("arg1"))
+  325 r48 <- Void
+  326 r48 <- Get(r15)
+  327 r49 <- CArg { value: r46, next_arg: None }
+  328 r49 <- CArg { value: r45, next_arg: Some(r49) }
+  329 r50 <- Const { value: 5627360, size: 8 }
+  330 r49 <- Call { callee: r50, first_arg: Some(r49) }
+  331 r2 <- Undefined
+  332 r3 <- Undefined
+  333 r4 <- Undefined
+  334 r5 <- Undefined
+  335 r6 <- Undefined
+  336 r7 <- Undefined
+  337 r8 <- Undefined
+  338 r9 <- Undefined
+  339 r10 <- Undefined
+  340 r16 <- Part { src: r49, offset: 0, size: 8 }
+0x485e2d:
+  341 r45 <- Jmp(220)
+0x485e30:
+  342 r45 <- Const { value: -48, size: 8 }
+  343 r45 <- Arith(Add, r45, r11)
+  344 r24 <- Get(r45)
+0x485e34:
+  345 r19 <- Get(r14)
+0x485e37:
+  346 r45 <- Const { value: 32, size: 4 }
+  347 r46 <- Part { src: r15, offset: 4, size: 4 }
+  348 r15 <- Concat { lo: r45, hi: r46 }
+0x485e3c:
+  349 r46 <- Part { src: r18, offset: 0, size: 4 }
+  350 r47 <- Const { value: -52, size: 8 }
+  351 r47 <- Arith(Add, r47, r11)
+  352 r44 <- StoreMem { mem: r44, addr: r47, value: r46 }
+0x485e3f:
+  353 r14 <- Get(r24)
+0x485e42:
+  354 r48 <- Ancestral(AncestralName("arg0"))
+  355 r48 <- Void
+  356 r48 <- Get(r14)
+  357 r49 <- Ancestral(AncestralName("arg1"))
+  358 r49 <- Void
+  359 r49 <- Get(r15)
+  360 r50 <- Ancestral(AncestralName("arg2"))
+  361 r50 <- Void
+  362 r50 <- Get(r19)
+  363 r51 <- CArg { value: r47, next_arg: None }
+  364 r51 <- CArg { value: r46, next_arg: Some(r51) }
+  365 r51 <- CArg { value: r45, next_arg: Some(r51) }
+  366 r52 <- Const { value: 4520352, size: 8 }
+  367 r51 <- Call { callee: r52, first_arg: Some(r51) }
+  368 r2 <- Undefined
+  369 r3 <- Undefined
+  370 r4 <- Undefined
+  371 r5 <- Undefined
+  372 r6 <- Undefined
+  373 r7 <- Undefined
+  374 r8 <- Undefined
+  375 r9 <- Undefined
+  376 r10 <- Undefined
+  377 r16 <- Part { src: r51, offset: 0, size: 8 }
+0x485e47:
+  378 r14 <- Get(r24)
+0x485e4a:
+  379 r46 <- Ancestral(AncestralName("arg0"))
+  380 r46 <- Void
+  381 r46 <- Get(r14)
+  382 r47 <- CArg { value: r45, next_arg: None }
+  383 r48 <- Const { value: 4199136, size: 8 }
+  384 r47 <- Call { callee: r48, first_arg: Some(r47) }
+  385 r2 <- Undefined
+  386 r3 <- Undefined
+  387 r4 <- Undefined
+  388 r5 <- Undefined
+  389 r6 <- Undefined
+  390 r7 <- Undefined
+  391 r8 <- Undefined
+  392 r9 <- Undefined
+  393 r10 <- Undefined
+  394 r16 <- Part { src: r47, offset: 0, size: 8 }
+0x485e4f:
+  395 r46 <- Const { value: 8, size: 8 }
+  396 r46 <- Arith(Add, r46, r17)
+  397 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  398 r14 <- Get(r45)
+0x485e53:
+  399 r46 <- Const { value: -52, size: 8 }
+  400 r46 <- Arith(Add, r46, r11)
+  401 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+  402 r47 <- Part { src: r18, offset: 4, size: 4 }
+  403 r18 <- Concat { lo: r45, hi: r47 }
+0x485e56:
+  404 r15 <- Get(r24)
+0x485e59:
+  405 r19 <- Get(r16)
+0x485e5c:
+  406 r49 <- Ancestral(AncestralName("arg0"))
+  407 r49 <- Void
+  408 r49 <- Get(r14)
+  409 r50 <- Ancestral(AncestralName("arg1"))
+  410 r50 <- Void
+  411 r50 <- Get(r15)
+  412 r51 <- CArg { value: r48, next_arg: None }
+  413 r51 <- CArg { value: r47, next_arg: Some(r51) }
+  414 r51 <- CArg { value: r46, next_arg: Some(r51) }
+  415 r51 <- CArg { value: r45, next_arg: Some(r51) }
+  416 r52 <- Const { value: 4293744, size: 8 }
+  417 r51 <- Call { callee: r52, first_arg: Some(r51) }
+  418 r2 <- Undefined
+  419 r3 <- Undefined
+  420 r4 <- Undefined
+  421 r5 <- Undefined
+  422 r6 <- Undefined
+  423 r7 <- Undefined
+  424 r8 <- Undefined
+  425 r9 <- Undefined
+  426 r10 <- Undefined
+0x485e61:
+  427 r45 <- Jmp(223)
+0x485e70:
+  428 r46 <- Const { value: -9, size: 8 }
+  429 r46 <- Arith(Add, r46, r14)
+  430 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+  431 r47 <- Part { src: r19, offset: 4, size: 4 }
+  432 r19 <- Concat { lo: r45, hi: r47 }
+0x485e73:
+  433 r46 <- Const { value: 8, size: 8 }
+  434 r46 <- Arith(Add, r46, r17)
+  435 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  436 r16 <- Get(r45)
+0x485e77:
+  437 r46 <- Const { value: 48, size: 8 }
+  438 r12 <- Arith(Add, r12, r46)
+  439 r12 <- Get(r12)
+  440 r10 <- OverflowOf(r12)
+  441 r2 <- CarryOf(r12)
+  442 r6 <- SignOf(r12)
+  443 r5 <- IsZero(r12)
+  444 r47 <- Part { src: r12, offset: 0, size: 1 }
+  445 r3 <- Parity(r47)
+0x485e7b:
+  446 r15 <- Get(r14)
+0x485e7e:
+  447 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+  448 r17 <- Get(r45)
+  449 r12 <- ArithK(Add, r12, 8)
+0x485e7f:
+  450 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+  451 r24 <- Get(r45)
+  452 r12 <- ArithK(Add, r12, 8)
+0x485e81:
+  453 r14 <- Get(r16)
+0x485e84:
+  454 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+  455 r11 <- Get(r45)
+  456 r12 <- ArithK(Add, r12, 8)
+0x485e85:
+  457 r45 <- JmpExt(4293744)
+0x485e90:
+  458 r46 <- Const { value: -17, size: 8 }
+  459 r46 <- Arith(Add, r46, r14)
+  460 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  461 r19 <- Get(r45)
+0x485e94:
+  462 r45 <- Jmp(433)
+0x485ea0:
+  463 r46 <- Part { src: r19, offset: 0, size: 1 }
+  464 r47 <- Const { value: 3, size: 1 }
+  465 r46 <- Arith(Shr, r46, r47)
+  466 r48 <- Part { src: r19, offset: 1, size: 7 }
+  467 r19 <- Concat { lo: r46, hi: r48 }
+  468 r6 <- SignOf(r46)
+  469 r5 <- IsZero(r46)
+  470 r49 <- Part { src: r46, offset: 0, size: 1 }
+  471 r3 <- Parity(r49)
+0x485ea3:
+  472 r45 <- NotYetImplemented("unsupported: movzx edx,dl")
+0x485ea6:
+  473 r45 <- Jmp(433)
+0x485eb0:
+  474 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
+0x485eb4:
+  475 r45 <- Jmp(433)
+0x485ec0:
+  476 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
+0x485ec4:
+  477 r45 <- Jmp(433)
+0x485ed0:
+  478 r46 <- Part { src: r15, offset: 0, size: 1 }
+  479 r47 <- Const { value: 3, size: 1 }
+  480 r46 <- Arith(Shr, r46, r47)
+  481 r48 <- Part { src: r15, offset: 1, size: 7 }
+  482 r15 <- Concat { lo: r46, hi: r48 }
+  483 r6 <- SignOf(r46)
+  484 r5 <- IsZero(r46)
+  485 r49 <- Part { src: r46, offset: 0, size: 1 }
+  486 r3 <- Parity(r49)
+0x485ed4:
+  487 r45 <- NotYetImplemented("unsupported: movzx edx,sil")
+0x485ed8:
+  488 r15 <- Get(r18)
+0x485edb:
+  489 r48 <- Ancestral(AncestralName("arg0"))
+  490 r48 <- Void
+  491 r48 <- Get(r14)
+  492 r49 <- Ancestral(AncestralName("arg1"))
+  493 r49 <- Void
+  494 r49 <- Get(r15)
+  495 r50 <- Ancestral(AncestralName("arg2"))
+  496 r50 <- Void
+  497 r50 <- Get(r19)
+  498 r50 <- Part { src: r50, offset: 0, size: 4 }
+  499 r51 <- CArg { value: r47, next_arg: None }
+  500 r51 <- CArg { value: r46, next_arg: Some(r51) }
+  501 r51 <- CArg { value: r45, next_arg: Some(r51) }
+  502 r52 <- Const { value: 5626912, size: 8 }
+  503 r51 <- Call { callee: r52, first_arg: Some(r51) }
+  504 r2 <- Undefined
+  505 r3 <- Undefined
+  506 r4 <- Undefined
+  507 r5 <- Undefined
+  508 r6 <- Undefined
+  509 r7 <- Undefined
+  510 r8 <- Undefined
+  511 r9 <- Undefined
+  512 r10 <- Undefined
+  513 r16 <- Part { src: r51, offset: 0, size: 8 }
+0x485ee0:
+  514 r45 <- Jmp(220)
+0x485ee8:
+  515 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+0x485eec:
+  516 r45 <- Jmp(488)
+0x485ef0:
+  517 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+0x485ef4:
+  518 r45 <- Jmp(488)
+0x485f00:
+  519 r46 <- Const { value: -9, size: 8 }
+  520 r46 <- Arith(Add, r46, r18)
+  521 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+  522 r47 <- Part { src: r19, offset: 4, size: 4 }
+  523 r19 <- Concat { lo: r45, hi: r47 }
+0x485f03:
+  524 r45 <- Jmp(488)
+0x485f08:
+  525 r46 <- Const { value: -17, size: 8 }
+  526 r46 <- Arith(Add, r46, r18)
+  527 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+  528 r47 <- Part { src: r19, offset: 4, size: 4 }
+  529 r19 <- Concat { lo: r45, hi: r47 }
+0x485f0b:
+  530 r15 <- Get(r18)
+0x485f0e:
+  531 r48 <- Ancestral(AncestralName("arg0"))
+  532 r48 <- Void
+  533 r48 <- Get(r14)
+  534 r49 <- Ancestral(AncestralName("arg1"))
+  535 r49 <- Void
+  536 r49 <- Get(r15)
+  537 r50 <- Ancestral(AncestralName("arg2"))
+  538 r50 <- Void
+  539 r50 <- Get(r19)
+  540 r50 <- Part { src: r50, offset: 0, size: 4 }
+  541 r51 <- CArg { value: r47, next_arg: None }
+  542 r51 <- CArg { value: r46, next_arg: Some(r51) }
+  543 r51 <- CArg { value: r45, next_arg: Some(r51) }
+  544 r52 <- Const { value: 5626880, size: 8 }
+  545 r51 <- Call { callee: r52, first_arg: Some(r51) }
+  546 r2 <- Undefined
+  547 r3 <- Undefined
+  548 r4 <- Undefined
+  549 r5 <- Undefined
+  550 r6 <- Undefined
+  551 r7 <- Undefined
+  552 r8 <- Undefined
+  553 r9 <- Undefined
+  554 r10 <- Undefined
+  555 r16 <- Part { src: r51, offset: 0, size: 8 }
+0x485f13:
+  556 r45 <- Jmp(220)
+0x485f20:
+  557 r46 <- Part { src: r15, offset: 0, size: 1 }
+  558 r47 <- Const { value: 3, size: 1 }
+  559 r46 <- Arith(Shr, r46, r47)
+  560 r48 <- Part { src: r15, offset: 1, size: 7 }
+  561 r15 <- Concat { lo: r46, hi: r48 }
+  562 r6 <- SignOf(r46)
+  563 r5 <- IsZero(r46)
+  564 r49 <- Part { src: r46, offset: 0, size: 1 }
+  565 r3 <- Parity(r49)
+0x485f24:
+  566 r45 <- NotYetImplemented("unsupported: movzx edx,sil")
+0x485f28:
+  567 r45 <- Jmp(530)
+0x485f30:
+  568 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+0x485f34:
+  569 r45 <- Jmp(530)
+0x485f40:
+  570 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+0x485f44:
+  571 r45 <- Jmp(530)
+0x485f50:
+  572 r46 <- Const { value: -9, size: 8 }
+  573 r46 <- Arith(Add, r46, r18)
+  574 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+  575 r47 <- Part { src: r19, offset: 4, size: 4 }
+  576 r19 <- Concat { lo: r45, hi: r47 }
+0x485f53:
+  577 r45 <- Jmp(530)
+0x485f58:
+  578 r46 <- Const { value: -17, size: 8 }
+  579 r46 <- Arith(Add, r46, r18)
+  580 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+  581 r47 <- Part { src: r19, offset: 4, size: 4 }
+  582 r19 <- Concat { lo: r45, hi: r47 }
+0x485f5b:
+  583 r45 <- Jmp(488)
+0x485f60:
+  584 r45 <- Const { value: 6979771, size: 4 }
+  585 r46 <- Part { src: r19, offset: 4, size: 4 }
+  586 r19 <- Concat { lo: r45, hi: r46 }
+0x485f65:
+  587 r45 <- Const { value: 165, size: 4 }
+  588 r46 <- Part { src: r15, offset: 4, size: 4 }
+  589 r15 <- Concat { lo: r45, hi: r46 }
+0x485f6a:
+  590 r45 <- Const { value: 6982459, size: 4 }
+  591 r46 <- Part { src: r14, offset: 4, size: 4 }
+  592 r14 <- Concat { lo: r45, hi: r46 }
+0x485f6f:
+  593 r46 <- Part { src: r16, offset: 0, size: 4 }
+  594 r48 <- Part { src: r16, offset: 0, size: 4 }
+  595 r46 <- Arith(BitXor, r46, r48)
+  596 r49 <- Part { src: r16, offset: 4, size: 4 }
+  597 r16 <- Concat { lo: r46, hi: r49 }
+  598 r10 <- False
+  599 r2 <- False
+  600 r6 <- SignOf(r46)
+  601 r5 <- IsZero(r46)
+  602 r50 <- Part { src: r46, offset: 0, size: 1 }
+  603 r3 <- Parity(r50)
+0x485f71:
+  604 r48 <- Ancestral(AncestralName("arg0"))
+  605 r48 <- Void
+  606 r48 <- Get(r14)
+  607 r49 <- Ancestral(AncestralName("arg1"))
+  608 r49 <- Void
+  609 r49 <- Get(r15)
+  610 r49 <- Part { src: r49, offset: 0, size: 4 }
+  611 r50 <- Ancestral(AncestralName("arg2"))
+  612 r50 <- Void
+  613 r50 <- Get(r19)
+  614 r51 <- CArg { value: r47, next_arg: None }
+  615 r51 <- CArg { value: r46, next_arg: Some(r51) }
+  616 r51 <- CArg { value: r45, next_arg: Some(r51) }
+  617 r52 <- Const { value: 4990320, size: 8 }
+  618 r51 <- Call { callee: r52, first_arg: Some(r51) }
+  619 r2 <- Undefined
+  620 r3 <- Undefined
+  621 r4 <- Undefined
+  622 r5 <- Undefined
+  623 r6 <- Undefined
+  624 r7 <- Undefined
+  625 r8 <- Undefined
+  626 r9 <- Undefined
+  627 r10 <- Undefined
+
+
+ssa pre-xform:
+ssa program  643 instrs
+.B0:    ;; .
+         r10 <- Ancestral(AncestralName("RBP"))
+         r11 <- Ancestral(AncestralName("RSP"))
+  (  4)  r65 <- ArithK(Add, r11, -8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
+         r23 <- Ancestral(AncestralName("R12"))
+  (  2)  r68 <- ArithK(Add, r65, -8)
+         r69 <- StoreMem { mem: r66, addr: r68, value: r23 }
+         r16 <- Ancestral(AncestralName("RBX"))
+         r70 <- ArithK(Add, r68, -8)
+  (  2)  r71 <- StoreMem { mem: r69, addr: r70, value: r16 }
+         r82 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rdi]")
+         r95 <- Const { value: 144, size: 1 }
+  (  2)  r15 <- Ancestral(AncestralName("RAX"))
+         r86 <- Part { src: r15, offset: 4, size: 4 }
+         r84 <- Const { value: -16, size: 4 }
+         r83 <- Part { src: r15, offset: 0, size: 4 }
+         r85 <- Arith(BitAnd, r83, r84)
+  (  8)  r87 <- Concat { lo: r85, hi: r86 }
+         r94 <- Part { src: r87, offset: 0, size: 1 }
+         r96 <- Arith(Sub, r94, r95)
+         r100 <- IsZero(r96)
+         r103 <- JmpIf { cond: r100, target: 242 }
+.B9:    ;; preds:B0.
+         r242 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r243 <- NotYetImplemented("unsupported: neg edx")
+         r248 <- NotYetImplemented("unsupported: sbb ecx,ecx")
+         r261 <- Const { value: 16, size: 1 }
+         r252 <- Part { src: r87, offset: 4, size: 4 }
+         r250 <- Const { value: -16, size: 4 }
+         r249 <- Part { src: r87, offset: 0, size: 4 }
+         r251 <- Arith(BitAnd, r249, r250)
+  (  2)  r253 <- Concat { lo: r251, hi: r252 }
+         r260 <- Part { src: r253, offset: 0, size: 1 }
+         r262 <- Arith(Sub, r260, r261)
+         r266 <- IsZero(r262)
+         r269 <- JmpIf { cond: r266, target: 342 }
+.B13:    ;; preds:B9.
+  (  2)  r17 <- Ancestral(AncestralName("RCX"))
+  (  2)  r349 <- Part { src: r17, offset: 0, size: 4 }
+         r350 <- Const { value: -52, size: 8 }
+  (  2)  r351 <- Arith(Add, r350, r65)
+  (  8)  r352 <- StoreMem { mem: r71, addr: r351, value: r349 }
+         r363 <- CArg { value: r351, next_arg: None }
+         r364 <- CArg { value: r349, next_arg: Some(r363) }
+  (  2)  r346 <- Const { value: 32, size: 4 }
+         r365 <- CArg { value: r346, next_arg: Some(r364) }
+         r366 <- Const { value: 4520352, size: 8 }
+         r367 <- Call { callee: r366, first_arg: Some(r365) }
+         r382 <- CArg { value: r346, next_arg: None }
+  (  2)  r383 <- Const { value: 4199136, size: 8 }
+         r384 <- Call { callee: r383, first_arg: Some(r382) }
+         r412 <- CArg { value: r383, next_arg: None }
+  (  2)  r402 <- Part { src: r17, offset: 4, size: 4 }
+         r413 <- CArg { value: r402, next_arg: Some(r412) }
+         r399 <- Const { value: -52, size: 8 }
+  (  2)  r400 <- Arith(Add, r399, r65)
+         r414 <- CArg { value: r400, next_arg: Some(r413) }
+  (  2)  r401 <- LoadMem { mem: r352, addr: r400, size: 4 }
+         r415 <- CArg { value: r401, next_arg: Some(r414) }
+         r416 <- Const { value: 4293744, size: 8 }
+         r417 <- Call { callee: r416, first_arg: Some(r415) }
+         r427 <- Jmp(223)
+.B14:    ;; preds:B13.
+         r457 <- JmpExt(4293744)
+         r462 <- Jmp(433)
+         r472 <- NotYetImplemented("unsupported: movzx edx,dl")
+         r473 <- Jmp(433)
+         r474 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
+         r475 <- Jmp(433)
+         r476 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
+         r477 <- Jmp(433)
+         r487 <- NotYetImplemented("unsupported: movzx edx,sil")
+  (  3)  r13 <- Ancestral(AncestralName("RDI"))
+         r433 <- Const { value: 8, size: 8 }
+         r434 <- Arith(Add, r433, r13)
+         r435 <- LoadMem { mem: r352, addr: r434, size: 8 }
+         r458 <- Const { value: -17, size: 8 }
+         r459 <- Arith(Add, r458, r435)
+  (  2)  r460 <- LoadMem { mem: r352, addr: r459, size: 8 }
+         r466 <- Part { src: r460, offset: 1, size: 7 }
+         r464 <- Const { value: 3, size: 1 }
+         r463 <- Part { src: r460, offset: 0, size: 1 }
+         r465 <- Arith(Shr, r463, r464)
+         r467 <- Concat { lo: r465, hi: r466 }
+         r633 <- Upsilon { value: r467, phi_ref: r629 }
+         r634 <- Upsilon { value: r487, phi_ref: r630 }
+  (  2)  r479 <- Const { value: 3, size: 1 }
+         r395 <- Const { value: 8, size: 8 }
+         r396 <- Arith(Add, r395, r13)
+         r397 <- LoadMem { mem: r352, addr: r396, size: 8 }
+         r478 <- Part { src: r397, offset: 0, size: 1 }
+         r480 <- Arith(Shr, r478, r479)
+         r635 <- Upsilon { value: r480, phi_ref: r631 }
+         r636 <- Upsilon { value: r479, phi_ref: r632 }
+.B15:    ;; preds:B14,B16.
+         r632 <- Phi
+         r499 <- CArg { value: r632, next_arg: None }
+         r631 <- Phi
+         r500 <- CArg { value: r631, next_arg: Some(r499) }
+         r630 <- Phi
+         r501 <- CArg { value: r630, next_arg: Some(r500) }
+         r502 <- Const { value: 5626912, size: 8 }
+         r503 <- Call { callee: r502, first_arg: Some(r501) }
+         r514 <- Jmp(220)
+         r515 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+         r516 <- Jmp(488)
+         r517 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+         r518 <- Jmp(488)
+         r524 <- Jmp(488)
+.B16:    ;; preds:B15.
+         r629 <- Phi
+         r522 <- Part { src: r629, offset: 4, size: 4 }
+  (  4)  r403 <- Concat { lo: r401, hi: r402 }
+         r519 <- Const { value: -9, size: 8 }
+         r520 <- Arith(Add, r519, r403)
+         r521 <- LoadMem { mem: r352, addr: r520, size: 4 }
+         r523 <- Concat { lo: r521, hi: r522 }
+  (  2)  r528 <- Part { src: r523, offset: 4, size: 4 }
+         r541 <- CArg { value: r528, next_arg: None }
+         r525 <- Const { value: -17, size: 8 }
+  (  2)  r526 <- Arith(Add, r525, r403)
+         r542 <- CArg { value: r526, next_arg: Some(r541) }
+  (  2)  r527 <- LoadMem { mem: r352, addr: r526, size: 4 }
+         r543 <- CArg { value: r527, next_arg: Some(r542) }
+         r544 <- Const { value: 5626880, size: 8 }
+         r545 <- Call { callee: r544, first_arg: Some(r543) }
+         r556 <- Jmp(220)
+         r566 <- NotYetImplemented("unsupported: movzx edx,sil")
+         r567 <- Jmp(530)
+         r568 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+         r569 <- Jmp(530)
+         r570 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+         r571 <- Jmp(530)
+         r577 <- Jmp(530)
+         r583 <- Jmp(488)
+         r529 <- Concat { lo: r527, hi: r528 }
+         r575 <- Part { src: r529, offset: 4, size: 4 }
+         r572 <- Const { value: -9, size: 8 }
+         r573 <- Arith(Add, r572, r403)
+         r574 <- LoadMem { mem: r352, addr: r573, size: 4 }
+         r576 <- Concat { lo: r574, hi: r575 }
+  (  2)  r581 <- Part { src: r576, offset: 4, size: 4 }
+         r578 <- Const { value: -17, size: 8 }
+  (  2)  r579 <- Arith(Add, r578, r403)
+         r580 <- LoadMem { mem: r352, addr: r579, size: 4 }
+         r582 <- Concat { lo: r580, hi: r581 }
+         r637 <- Upsilon { value: r582, phi_ref: r629 }
+         r638 <- Upsilon { value: r583, phi_ref: r630 }
+         r639 <- Upsilon { value: r579, phi_ref: r631 }
+         r640 <- Upsilon { value: r581, phi_ref: r632 }
+.B10:    ;; preds:B9.
+         r270 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+         r286 <- Const { value: 4, size: 1 }
+         r272 <- Part { src: r253, offset: 4, size: 4 }
+  (  5)  r18 <- Ancestral(AncestralName("RDX"))
+         r271 <- Part { src: r18, offset: 0, size: 4 }
+  (  2)  r273 <- Concat { lo: r271, hi: r272 }
+         r277 <- Part { src: r273, offset: 4, size: 4 }
+         r275 <- Const { value: 7, size: 4 }
+         r274 <- Part { src: r273, offset: 0, size: 4 }
+         r276 <- Arith(BitAnd, r274, r275)
+  (  2)  r278 <- Concat { lo: r276, hi: r277 }
+         r285 <- Part { src: r278, offset: 0, size: 1 }
+  (  2)  r287 <- Arith(Sub, r285, r286)
+         r291 <- IsZero(r287)
+         r295 <- Not(r291)
+         r290 <- SignOf(r287)
+         r294 <- Not(r290)
+         r296 <- Bool(And, r294, r295)
+         r297 <- JmpExtIf { cond: r296, addr: 4203590 }
+         r298 <- NotYetImplemented("unsupported: movzx eax,al")
+         r300 <- ArithK(Mul, r278, 8)
+         r299 <- Const { value: 6851672, size: 8 }
+         r301 <- Arith(Add, r299, r300)
+         r302 <- JmpInd(r301)
+.B1:    ;; preds:B0.
+  (  2)  r105 <- Const { value: 176, size: 1 }
+         r104 <- Part { src: r87, offset: 0, size: 1 }
+         r106 <- Arith(Sub, r104, r105)
+         r110 <- IsZero(r106)
+         r113 <- Not(r110)
+         r114 <- JmpIf { cond: r113, target: 584 }
+.B17:    ;; preds:B1.
+         r614 <- CArg { value: r105, next_arg: None }
+         r594 <- Part { src: r87, offset: 0, size: 4 }
+         r593 <- Part { src: r87, offset: 0, size: 4 }
+         r595 <- Arith(BitXor, r593, r594)
+         r615 <- CArg { value: r595, next_arg: Some(r614) }
+         r590 <- Const { value: 6982459, size: 4 }
+         r616 <- CArg { value: r590, next_arg: Some(r615) }
+         r617 <- Const { value: 4990320, size: 8 }
+         r618 <- Call { callee: r617, first_arg: Some(r616) }
+.B2:    ;; preds:B1.
+         r115 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r136 <- Const { value: 16, size: 1 }
+         r127 <- Part { src: r87, offset: 4, size: 4 }
+         r125 <- Const { value: -16, size: 4 }
+         r124 <- Part { src: r87, offset: 0, size: 4 }
+         r126 <- Arith(BitAnd, r124, r125)
+  (  2)  r128 <- Concat { lo: r126, hi: r127 }
+         r135 <- Part { src: r128, offset: 0, size: 1 }
+         r137 <- Arith(Sub, r135, r136)
+         r141 <- IsZero(r137)
+         r144 <- JmpIf { cond: r141, target: 189 }
+.B5:    ;; preds:B2.
+         r191 <- Part { src: r18, offset: 0, size: 4 }
+         r190 <- Part { src: r18, offset: 0, size: 4 }
+  (  3)  r192 <- Arith(BitAnd, r190, r191)
+         r194 <- IsZero(r192)
+  (  2)  r199 <- JmpIf { cond: r194, target: 321 }
+.B12:    ;; preds:B5.
+         r327 <- CArg { value: r192, next_arg: None }
+         r328 <- CArg { value: r199, next_arg: Some(r327) }
+         r329 <- Const { value: 5627360, size: 8 }
+         r330 <- Call { callee: r329, first_arg: Some(r328) }
+         r341 <- Jmp(220)
+         r340 <- Part { src: r330, offset: 0, size: 8 }
+         r641 <- Upsilon { value: r340, phi_ref: r628 }
+.B6:    ;; preds:B5.
+         r206 <- CArg { value: r192, next_arg: None }
+         r207 <- CArg { value: r199, next_arg: Some(r206) }
+         r208 <- Const { value: 5627056, size: 8 }
+         r209 <- Call { callee: r208, first_arg: Some(r207) }
+         r219 <- Part { src: r209, offset: 0, size: 8 }
+         r642 <- Upsilon { value: r219, phi_ref: r628 }
+.B7:    ;; preds:B6,B12.
+  (  2)  r628 <- Phi
+         r220 <- Const { value: 8, size: 8 }
+         r221 <- Arith(Add, r220, r13)
+         r222 <- StoreMem { mem: r71, addr: r221, value: r628 }
+.B8:    ;; preds:B7.
+         r241 <- Ret(r628)
+.B3:    ;; preds:B2.
+         r145 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
+         r161 <- Part { src: r18, offset: 0, size: 4 }
+         r160 <- Part { src: r18, offset: 0, size: 4 }
+         r162 <- Arith(BitAnd, r160, r161)
+         r164 <- IsZero(r162)
+         r169 <- Not(r164)
+         r170 <- JmpIf { cond: r169, target: 303 }
+.B11:    ;; preds:B3.
+         r304 <- Const { value: 4, size: 1 }
+         r147 <- Part { src: r128, offset: 4, size: 4 }
+         r14 <- Ancestral(AncestralName("RSI"))
+         r146 <- Part { src: r14, offset: 0, size: 4 }
+  (  2)  r148 <- Concat { lo: r146, hi: r147 }
+         r152 <- Part { src: r148, offset: 4, size: 4 }
+         r150 <- Const { value: 7, size: 4 }
+         r149 <- Part { src: r148, offset: 0, size: 4 }
+         r151 <- Arith(BitAnd, r149, r150)
+  (  4)  r153 <- Concat { lo: r151, hi: r152 }
+         r303 <- Part { src: r153, offset: 0, size: 1 }
+  (  2)  r305 <- Arith(Sub, r303, r304)
+         r309 <- IsZero(r305)
+         r313 <- Not(r309)
+         r308 <- SignOf(r305)
+         r312 <- Not(r308)
+         r314 <- Bool(And, r312, r313)
+         r315 <- JmpExtIf { cond: r314, addr: 4203604 }
+         r316 <- NotYetImplemented("unsupported: movzx eax,al")
+         r318 <- ArithK(Mul, r153, 8)
+         r317 <- Const { value: 6851712, size: 8 }
+         r319 <- Arith(Add, r317, r318)
+         r320 <- JmpInd(r319)
+.B4:    ;; preds:B3.
+         r172 <- Const { value: 4, size: 1 }
+         r171 <- Part { src: r153, offset: 0, size: 1 }
+  (  2)  r173 <- Arith(Sub, r171, r172)
+         r177 <- IsZero(r173)
+         r181 <- Not(r177)
+         r176 <- SignOf(r173)
+         r180 <- Not(r176)
+         r182 <- Bool(And, r180, r181)
+         r183 <- JmpExtIf { cond: r182, addr: 4203597 }
+         r184 <- NotYetImplemented("unsupported: movzx eax,al")
+         r186 <- ArithK(Mul, r153, 8)
+         r185 <- Const { value: 6851632, size: 8 }
+         r187 <- Arith(Add, r185, r186)
+         r188 <- JmpInd(r187)
+
+
+cfg:
+  entry: BlockID(0)
+  BlockID(0) [0:104] -> Alt { straight: BlockID(1), side: BlockID(9) }
+  BlockID(1) [104:115] -> Alt { straight: BlockID(2), side: BlockID(17) }
+  BlockID(2) [115:145] -> Alt { straight: BlockID(3), side: BlockID(5) }
+  BlockID(3) [145:171] -> Alt { straight: BlockID(4), side: BlockID(11) }
+  BlockID(4) [171:189] -> Jmp(BlockID(18))
+  BlockID(5) [189:200] -> Alt { straight: BlockID(6), side: BlockID(12) }
+  BlockID(6) [200:220] -> Jmp(BlockID(7))
+  BlockID(7) [220:223] -> Jmp(BlockID(8))
+  BlockID(8) [223:242] -> Jmp(BlockID(18))
+  BlockID(9) [242:270] -> Alt { straight: BlockID(10), side: BlockID(13) }
+  BlockID(10) [270:303] -> Jmp(BlockID(18))
+  BlockID(11) [303:321] -> Jmp(BlockID(18))
+  BlockID(12) [321:342] -> Jmp(BlockID(7))
+  BlockID(13) [342:433] -> Jmp(BlockID(14))
+  BlockID(14) [433:488] -> Jmp(BlockID(15))
+  BlockID(15) [488:530] -> Jmp(BlockID(16))
+  BlockID(16) [530:584] -> Jmp(BlockID(15))
+  BlockID(17) [584:628] -> Jmp(BlockID(18))
+  BlockID(18) [628:628] -> End
+  domtree:
+    BlockID(0)
+    |  BlockID(1)
+    |  |  BlockID(2)
+    |  |  |  BlockID(3)
+    |  |  |  |  BlockID(4)
+    |  |  |  |  BlockID(11)
+    |  |  |  BlockID(5)
+    |  |  |  |  BlockID(6)
+    |  |  |  |  BlockID(7)
+    |  |  |  |  |  BlockID(8)
+    |  |  |  |  BlockID(12)
+    |  |  BlockID(17)
+    |  BlockID(9)
+    |  |  BlockID(10)
+    |  |  BlockID(13)
+    |  |  |  BlockID(14)
+    |  |  |  |  BlockID(15)
+    |  |  |  |  |  BlockID(16)
+    |  BlockID(18)
+
+ssa post-xform:
+ssa program  648 instrs
+.B0:    ;; .
+         r10 <- Ancestral(AncestralName("RBP"))
+  (  5)  r11 <- Ancestral(AncestralName("RSP"))
+         r65 <- ArithK(Add, r11, -8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
+         r23 <- Ancestral(AncestralName("R12"))
+         r68 <- ArithK(Add, r11, -16)
+         r69 <- StoreMem { mem: r66, addr: r68, value: r23 }
+         r16 <- Ancestral(AncestralName("RBX"))
+         r70 <- ArithK(Add, r11, -24)
+  (  2)  r71 <- StoreMem { mem: r69, addr: r70, value: r16 }
+         r82 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rdi]")
+  (  3)  r15 <- Ancestral(AncestralName("RAX"))
+         r83 <- Part { src: r15, offset: 0, size: 4 }
+  (  4)  r85 <- ArithK(BitAnd, r83, -16)
+         r94 <- Part { src: r85, offset: 0, size: 1 }
+         r96 <- ArithK(Add, r94, -144)
+         r100 <- IsZero(r96)
+         r103 <- JmpIf { cond: r100, target: 242 }
+.B9:    ;; preds:B0.
+         r242 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r243 <- NotYetImplemented("unsupported: neg edx")
+         r248 <- NotYetImplemented("unsupported: sbb ecx,ecx")
+         r251 <- ArithK(BitAnd, r85, -16)
+         r260 <- Part { src: r251, offset: 0, size: 1 }
+         r262 <- ArithK(Add, r260, -16)
+         r266 <- IsZero(r262)
+         r269 <- JmpIf { cond: r266, target: 342 }
+.B13:    ;; preds:B9.
+  (  3)  r17 <- Ancestral(AncestralName("RCX"))
+  (  2)  r349 <- Part { src: r17, offset: 0, size: 4 }
+  (  2)  r351 <- ArithK(Add, r11, -60)
+  (  5)  r352 <- StoreMem { mem: r71, addr: r351, value: r349 }
+         r363 <- CArg { value: r351, next_arg: None }
+         r364 <- CArg { value: r349, next_arg: Some(r363) }
+  (  2)  r346 <- Const { value: 32, size: 4 }
+         r365 <- CArg { value: r346, next_arg: Some(r364) }
+         r366 <- Const { value: 4520352, size: 8 }
+         r367 <- Call { callee: r366, first_arg: Some(r365) }
+         r382 <- CArg { value: r346, next_arg: None }
+  (  2)  r383 <- Const { value: 4199136, size: 8 }
+         r384 <- Call { callee: r383, first_arg: Some(r382) }
+         r412 <- CArg { value: r383, next_arg: None }
+  (  2)  r402 <- Part { src: r17, offset: 4, size: 4 }
+         r413 <- CArg { value: r402, next_arg: Some(r412) }
+         r400 <- ArithK(Add, r11, -60)
+         r414 <- CArg { value: r400, next_arg: Some(r413) }
+  (  2)  r644 <- Part { src: r17, offset: 0, size: 4 }
+         r415 <- CArg { value: r644, next_arg: Some(r414) }
+         r416 <- Const { value: 4293744, size: 8 }
+         r417 <- Call { callee: r416, first_arg: Some(r415) }
+         r427 <- Jmp(223)
+.B14:    ;; preds:B13.
+         r457 <- JmpExt(4293744)
+         r462 <- Jmp(433)
+         r472 <- NotYetImplemented("unsupported: movzx edx,dl")
+         r473 <- Jmp(433)
+         r474 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
+         r475 <- Jmp(433)
+         r476 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
+         r477 <- Jmp(433)
+         r487 <- NotYetImplemented("unsupported: movzx edx,sil")
+  (  3)  r13 <- Ancestral(AncestralName("RDI"))
+         r434 <- ArithK(Add, r13, 8)
+         r435 <- LoadMem { mem: r352, addr: r434, size: 8 }
+         r459 <- ArithK(Add, r435, -17)
+  (  2)  r460 <- LoadMem { mem: r352, addr: r459, size: 8 }
+         r466 <- Part { src: r460, offset: 1, size: 7 }
+         r463 <- Part { src: r460, offset: 0, size: 1 }
+         r465 <- ArithK(Shr, r463, 3)
+         r467 <- Concat { lo: r465, hi: r466 }
+         r633 <- Upsilon { value: r467, phi_ref: r629 }
+         r634 <- Upsilon { value: r487, phi_ref: r630 }
+         r396 <- ArithK(Add, r13, 8)
+         r397 <- LoadMem { mem: r352, addr: r396, size: 8 }
+         r478 <- Part { src: r397, offset: 0, size: 1 }
+         r480 <- ArithK(Shr, r478, 3)
+         r635 <- Upsilon { value: r480, phi_ref: r631 }
+         r479 <- Const { value: 3, size: 1 }
+         r636 <- Upsilon { value: r479, phi_ref: r632 }
+.B15:    ;; preds:B14,B16.
+         r632 <- Phi
+         r499 <- CArg { value: r632, next_arg: None }
+         r631 <- Phi
+         r500 <- CArg { value: r631, next_arg: Some(r499) }
+         r630 <- Phi
+         r501 <- CArg { value: r630, next_arg: Some(r500) }
+         r502 <- Const { value: 5626912, size: 8 }
+         r503 <- Call { callee: r502, first_arg: Some(r501) }
+         r514 <- Jmp(220)
+         r515 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+         r516 <- Jmp(488)
+         r517 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+         r518 <- Jmp(488)
+         r524 <- Jmp(488)
+.B16:    ;; preds:B15.
+  (  2)  r629 <- Phi
+         r528 <- Part { src: r629, offset: 4, size: 4 }
+         r541 <- CArg { value: r528, next_arg: None }
+  (  2)  r403 <- Concat { lo: r644, hi: r402 }
+  (  2)  r526 <- ArithK(Add, r403, -17)
+         r542 <- CArg { value: r526, next_arg: Some(r541) }
+         r527 <- LoadMem { mem: r352, addr: r526, size: 4 }
+         r543 <- CArg { value: r527, next_arg: Some(r542) }
+         r544 <- Const { value: 5626880, size: 8 }
+         r545 <- Call { callee: r544, first_arg: Some(r543) }
+         r556 <- Jmp(220)
+         r566 <- NotYetImplemented("unsupported: movzx edx,sil")
+         r567 <- Jmp(530)
+         r568 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+         r569 <- Jmp(530)
+         r570 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+         r571 <- Jmp(530)
+         r577 <- Jmp(530)
+         r583 <- Jmp(488)
+  (  2)  r581 <- Part { src: r629, offset: 4, size: 4 }
+  (  2)  r579 <- ArithK(Add, r403, -17)
+         r580 <- LoadMem { mem: r352, addr: r579, size: 4 }
+         r582 <- Concat { lo: r580, hi: r581 }
+         r637 <- Upsilon { value: r582, phi_ref: r629 }
+         r638 <- Upsilon { value: r583, phi_ref: r630 }
+         r639 <- Upsilon { value: r579, phi_ref: r631 }
+         r640 <- Upsilon { value: r581, phi_ref: r632 }
+.B10:    ;; preds:B9.
+         r270 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+  (  5)  r18 <- Ancestral(AncestralName("RDX"))
+         r274 <- Part { src: r18, offset: 0, size: 4 }
+  (  2)  r276 <- ArithK(BitAnd, r274, 7)
+         r285 <- Part { src: r276, offset: 0, size: 1 }
+  (  2)  r287 <- ArithK(Add, r285, -4)
+         r291 <- IsZero(r287)
+         r295 <- Not(r291)
+         r290 <- SignOf(r287)
+         r294 <- Not(r290)
+         r296 <- Bool(And, r294, r295)
+         r297 <- JmpExtIf { cond: r296, addr: 4203590 }
+         r298 <- NotYetImplemented("unsupported: movzx eax,al")
+         r277 <- Part { src: r15, offset: 4, size: 4 }
+         r278 <- Concat { lo: r276, hi: r277 }
+         r300 <- ArithK(Mul, r278, 8)
+         r301 <- ArithK(Add, r300, 6851672)
+         r302 <- JmpInd(r301)
+.B1:    ;; preds:B0.
+         r104 <- Part { src: r85, offset: 0, size: 1 }
+         r106 <- ArithK(Add, r104, -176)
+         r110 <- IsZero(r106)
+         r113 <- Not(r110)
+         r114 <- JmpIf { cond: r113, target: 584 }
+.B17:    ;; preds:B1.
+         r105 <- Const { value: 176, size: 1 }
+         r614 <- CArg { value: r105, next_arg: None }
+         r595 <- Const { value: 0, size: 4 }
+         r615 <- CArg { value: r595, next_arg: Some(r614) }
+         r590 <- Const { value: 6982459, size: 4 }
+         r616 <- CArg { value: r590, next_arg: Some(r615) }
+         r617 <- Const { value: 4990320, size: 8 }
+         r618 <- Call { callee: r617, first_arg: Some(r616) }
+.B2:    ;; preds:B1.
+         r115 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r126 <- ArithK(BitAnd, r85, -16)
+         r135 <- Part { src: r126, offset: 0, size: 1 }
+         r137 <- ArithK(Add, r135, -16)
+         r141 <- IsZero(r137)
+         r144 <- JmpIf { cond: r141, target: 189 }
+.B5:    ;; preds:B2.
+         r191 <- Part { src: r18, offset: 0, size: 4 }
+         r190 <- Part { src: r18, offset: 0, size: 4 }
+  (  3)  r192 <- Arith(BitAnd, r190, r191)
+         r194 <- IsZero(r192)
+  (  2)  r199 <- JmpIf { cond: r194, target: 321 }
+.B12:    ;; preds:B5.
+         r327 <- CArg { value: r192, next_arg: None }
+         r328 <- CArg { value: r199, next_arg: Some(r327) }
+         r329 <- Const { value: 5627360, size: 8 }
+         r330 <- Call { callee: r329, first_arg: Some(r328) }
+         r341 <- Jmp(220)
+         r641 <- Upsilon { value: r330, phi_ref: r628 }
+.B6:    ;; preds:B5.
+         r206 <- CArg { value: r192, next_arg: None }
+         r207 <- CArg { value: r199, next_arg: Some(r206) }
+         r208 <- Const { value: 5627056, size: 8 }
+         r209 <- Call { callee: r208, first_arg: Some(r207) }
+         r642 <- Upsilon { value: r209, phi_ref: r628 }
+.B7:    ;; preds:B6,B12.
+  (  2)  r628 <- Phi
+         r221 <- ArithK(Add, r13, 8)
+         r222 <- StoreMem { mem: r71, addr: r221, value: r628 }
+.B8:    ;; preds:B7.
+         r241 <- Ret(r628)
+.B3:    ;; preds:B2.
+         r145 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
+         r161 <- Part { src: r18, offset: 0, size: 4 }
+         r160 <- Part { src: r18, offset: 0, size: 4 }
+         r162 <- Arith(BitAnd, r160, r161)
+         r164 <- IsZero(r162)
+         r169 <- Not(r164)
+         r170 <- JmpIf { cond: r169, target: 303 }
+.B11:    ;; preds:B3.
+         r14 <- Ancestral(AncestralName("RSI"))
+         r149 <- Part { src: r14, offset: 0, size: 4 }
+  (  3)  r151 <- ArithK(BitAnd, r149, 7)
+         r303 <- Part { src: r151, offset: 0, size: 1 }
+  (  2)  r305 <- ArithK(Add, r303, -4)
+         r309 <- IsZero(r305)
+         r313 <- Not(r309)
+         r308 <- SignOf(r305)
+         r312 <- Not(r308)
+         r314 <- Bool(And, r312, r313)
+         r315 <- JmpExtIf { cond: r314, addr: 4203604 }
+         r316 <- NotYetImplemented("unsupported: movzx eax,al")
+         r152 <- Part { src: r15, offset: 4, size: 4 }
+  (  2)  r153 <- Concat { lo: r151, hi: r152 }
+         r318 <- ArithK(Mul, r153, 8)
+         r319 <- ArithK(Add, r318, 6851712)
+         r320 <- JmpInd(r319)
+.B4:    ;; preds:B3.
+         r171 <- Part { src: r151, offset: 0, size: 1 }
+  (  2)  r173 <- ArithK(Add, r171, -4)
+         r177 <- IsZero(r173)
+         r181 <- Not(r177)
+         r176 <- SignOf(r173)
+         r180 <- Not(r176)
+         r182 <- Bool(And, r180, r181)
+         r183 <- JmpExtIf { cond: r182, addr: 4203597 }
+         r184 <- NotYetImplemented("unsupported: movzx eax,al")
+         r186 <- ArithK(Mul, r153, 8)
+         r187 <- ArithK(Add, r186, 6851632)
+         r188 <- JmpInd(r187)
+
+
+
+T0: {
+  [pre:RSP - 8] <- pre:RBP;
+  [pre:RSP - 16] <- pre:R12;
+  [pre:RSP - 24] <- pre:RBX;
+  TODO /* unsupported: movzx eax,byte ptr [rdi] */
+  let r85: Bytes(4) = pre:RAX[4 .. 0] & -16;
+  if IsZero (r85[1 .. 0] - 144) {
+    TODO /* unsupported: movzx eax,byte ptr [rsi] */
+    TODO /* unsupported: neg edx */
+    TODO /* unsupported: sbb ecx,ecx */
+    if IsZero ((r85 & -16)[1 .. 0] - 16) {
+      let r71: MemoryEffect = [pre:RSP - 24] <- pre:RBX;;
+      let r351: Bytes(8) = pre:RSP - 60;
+      let r349: Bytes(4) = pre:RCX[4 .. 0];
+      [r351] <- r349;
+      4520352(32,
+              r349,
+              r351)
+      4199136(32)
+      let r644: Bytes(4) = pre:RCX[4 .. 0];
+      let r402: Bytes(4) = pre:RCX[8 .. 4];
+      4293744(r644,
+              (pre:RSP - 60),
+              r402,
+              4199136)
+      
+      JmpExt(0x418470)
+      
+      TODO /* unsupported: movzx edx,dl */
+      
+      TODO /* unsupported: movzx edx,byte ptr [rdi-3] */
+      
+      TODO /* unsupported: movzx edx,word ptr [rdi-5] */
+      
+      TODO /* unsupported: movzx edx,sil */
+      let r352: MemoryEffect = [r351] <- r349;;
+      let r460: Bytes(8) = [[pre:RDI + 8]:8 - 17]:8;
+      r629 := r460[8 .. 1]as i7 ++ (r460[1 .. 0] >> 3)as i1;
+      
+      r631 := [pre:RDI + 8]:8[1 .. 0] >> 3;
+      r632 := 3;
+      goto T15
+      
+      T15: {
+        let mut r630: Unit;
+        let mut r631: Bytes(1);
+        let mut r632: Bytes(1);
+        5626912(r630,
+                r631,
+                r632)
+        
+        TODO /* unsupported: movzx edx,byte ptr [rcx-3] */
+        
+        TODO /* unsupported: movzx edx,word ptr [rcx-5] */
+        
+        
+        let r403: Bytes(8) = r402 ++ r644;
+        let r526: Bytes(8) = r403 - 17;
+        let mut r629: Bytes(8);
+        5626880([r526]:4,
+                r526,
+                r629[8 .. 4])
+        
+        TODO /* unsupported: movzx edx,sil */
+        
+        TODO /* unsupported: movzx edx,byte ptr [rcx-3] */
+        
+        TODO /* unsupported: movzx edx,word ptr [rcx-5] */
+        
+        
+        
+        let r579: Bytes(8) = r403 - 17;
+        let r581: Bytes(4) = r629[8 .. 4];
+        r629 := r581 ++ [r579]:4;
+        
+        r631 := r403 - 17;
+        r632 := r629[8 .. 4];
+        loop T15
+      }
+    
+    }
+    TODO /* unsupported: movzx edx,byte ptr [rdi-1] */
+    let r276: Bytes(4) = pre:RDX[4 .. 0] & 7;
+    let r287: Bytes(1) = r276[1 .. 0] - 4;
+    if ! ((SignOf (r287))) AND ! ((IsZero (r287))){
+      goto 0x402446
+    }
+    TODO /* unsupported: movzx eax,al */
+    JmpInd (pre:RAX[8 .. 4] ++ r276 * 8 + 6851672)
+    goto T18
+  }
+  if ! ((IsZero (r85[1 .. 0] - 176))) {
+    4990320(6982459,
+            0,
+            176)
+    goto T18
+  }
+  TODO /* unsupported: movzx eax,byte ptr [rsi] */
+  if IsZero ((r85 & -16)[1 .. 0] - 16) {
+    let r192: Bytes(4) = pre:RDX[4 .. 0] & pre:RDX[4 .. 0];
+    if IsZero (r192) {
+      let r199: Unit = if IsZero (r192);
+      5627360(r199,
+              r192)
+      
+      r628 := 5627360(r199,
+                      r192);
+      goto T7
+    }
+    5627056(r199,
+            r192)
+    r628 := 5627056(r199,
+                    r192);
+    goto T7
+    
+    T7: {
+      let mut r628: Bytes(8);
+      [pre:RDI + 8] <- r628;
+      Ret (r628)
+      goto T18
+    }
+  
+  }
+  TODO /* unsupported: movzx esi,byte ptr [rcx-1] */
+  if ! ((IsZero (pre:RDX[4 .. 0] & pre:RDX[4 .. 0]))) {
+    let r151: Bytes(4) = pre:RSI[4 .. 0] & 7;
+    let r305: Bytes(1) = r151[1 .. 0] - 4;
+    if ! ((SignOf (r305))) AND ! ((IsZero (r305))){
+      goto 0x402454
+    }
+    TODO /* unsupported: movzx eax,al */
+    let r153: Bytes(8) = pre:RAX[8 .. 4] ++ r151;
+    JmpInd (r153 * 8 + 6851712)
+    goto T18
+  }
+  let r173: Bytes(1) = r151[1 .. 0] - 4;
+  if ! ((SignOf (r173))) AND ! ((IsZero (r173))){
+    goto 0x40244d
+  }
+  TODO /* unsupported: movzx eax,al */
+  JmpInd (r153 * 8 + 6851632)
+  goto T18
+  
+  T18: {
+    end
+  }
+
+}

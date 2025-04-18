@@ -196,7 +196,6 @@ impl<'a> Tester<'a> {
         writeln!(out, "cfg:")?;
         let cfg = prog.cfg();
         writeln!(out, "  entry: {:?}", cfg.direct().entry_bid())?;
-        writeln!(out, "  exit: {:?}", cfg.direct().exit_bid())?;
         for bid in cfg.block_ids() {
             let range = cfg.insns_ndx_range(bid);
             writeln!(
