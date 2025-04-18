@@ -2,13 +2,16 @@
 source: tests/test_tool.rs
 expression: out
 ---
-func016 0x401158+7 (file 0x1158)
-          401158: f2 0f 10 44 24 10       movsd xmm0,[rsp+10h]
-          40115e: c3                      ret
+func086 0x4012be+5 (file 0x12be)
+          4012be: 8a 44 24 22             mov al,[rsp+22h]
+          4012c2: c3                      ret
 
-function type: "func016" func (arg0 big <TypeID(794v1)>) double <TypeID(783v1)>
+function type: "func086" func (arg0 *void <TypeID(1v1)>,
+                               arg1 *void <TypeID(1v1)>,
+                               arg2 small <TypeID(784v1)>,
+                               arg3 big <TypeID(794v1)>) uint8_t <TypeID(788v1)>
 mil program = 
-program  76 instrs
+program  83 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -74,40 +77,47 @@ program  76 instrs
    62 r63 <- Undefined
    63 r64 <- Undefined
    64 r65 <- Undefined
-0x401158:
-   65 r46 <- Const { value: 16, size: 8 }
-   66 r46 <- Arith(Add, r46, r12)
-   67 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-   68 r45 <- Widen { reg: r45, target_size: 16, sign: false }
-   69 r47 <- Part { src: r28, offset: 8, size: 56 }
-   70 r28 <- Concat { lo: r45, hi: r47 }
-0x40115e:
-   71 r45 <- Void
-   72 r46 <- Part { src: r28, offset: 0, size: 8 }
-   73 r45 <- Concat { lo: r45, hi: r46 }
-   74 r45 <- Part { src: r45, offset: 0, size: 8 }
-   75 r47 <- Ret(r45)
+   65 r45 <- Ancestral(AncestralName("arg0"))
+   66 r14 <- Get(r45)
+   67 r46 <- Ancestral(AncestralName("arg1"))
+   68 r15 <- Get(r46)
+   69 r47 <- Ancestral(AncestralName("arg2"))
+   70 r48 <- Part { src: r47, offset: 0, size: 8 }
+   71 r19 <- Get(r48)
+   72 r49 <- Part { src: r47, offset: 8, size: 8 }
+   73 r18 <- Get(r49)
+0x4012be:
+   74 r46 <- Const { value: 34, size: 8 }
+   75 r46 <- Arith(Add, r46, r12)
+   76 r45 <- LoadMem { mem: r44, addr: r46, size: 1 }
+   77 r47 <- Part { src: r16, offset: 1, size: 7 }
+   78 r16 <- Concat { lo: r45, hi: r47 }
+0x4012c2:
+   79 r45 <- Void
+   80 r45 <- Concat { lo: r45, hi: r16 }
+   81 r45 <- Part { src: r45, offset: 0, size: 1 }
+   82 r47 <- Ret(r45)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  83 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r82 <- Ret(r45)
 
 
 cfg:
   entry: BlockID(0)
   exit: BlockID(1)
-  BlockID(0) [0:76] -> Jmp((0, BlockID(1)))
-  BlockID(1) [76:76] -> End
+  BlockID(0) [0:83] -> Jmp((0, BlockID(1)))
+  BlockID(1) [83:83] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  83 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r82 <- Ret(r45)
 
 
 

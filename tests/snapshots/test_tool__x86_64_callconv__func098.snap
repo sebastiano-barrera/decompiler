@@ -2,13 +2,17 @@
 source: tests/test_tool.rs
 expression: out
 ---
-func016 0x401158+7 (file 0x1158)
-          401158: f2 0f 10 44 24 10       movsd xmm0,[rsp+10h]
-          40115e: c3                      ret
+func098 0x4012f6+5 (file 0x12f6)
+          4012f6: 8a 44 24 14             mov al,[rsp+14h]
+          4012fa: c3                      ret
 
-function type: "func016" func (arg0 big <TypeID(794v1)>) double <TypeID(783v1)>
+function type: "func098" func (arg0 *void <TypeID(1v1)>,
+                               arg1 *void <TypeID(1v1)>,
+                               arg2 *void <TypeID(1v1)>,
+                               arg3 small <TypeID(784v1)>,
+                               arg4 small <TypeID(784v1)>) uint8_t <TypeID(788v1)>
 mil program = 
-program  76 instrs
+program  92 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -74,44 +78,66 @@ program  76 instrs
    62 r63 <- Undefined
    63 r64 <- Undefined
    64 r65 <- Undefined
-0x401158:
-   65 r46 <- Const { value: 16, size: 8 }
-   66 r46 <- Arith(Add, r46, r12)
-   67 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-   68 r45 <- Widen { reg: r45, target_size: 16, sign: false }
-   69 r47 <- Part { src: r28, offset: 8, size: 56 }
-   70 r28 <- Concat { lo: r45, hi: r47 }
-0x40115e:
-   71 r45 <- Void
-   72 r46 <- Part { src: r28, offset: 0, size: 8 }
-   73 r45 <- Concat { lo: r45, hi: r46 }
-   74 r45 <- Part { src: r45, offset: 0, size: 8 }
-   75 r47 <- Ret(r45)
+   65 r45 <- Ancestral(AncestralName("arg0"))
+   66 r14 <- Get(r45)
+   67 r46 <- Ancestral(AncestralName("arg1"))
+   68 r15 <- Get(r46)
+   69 r47 <- Ancestral(AncestralName("arg2"))
+   70 r19 <- Get(r47)
+   71 r48 <- Ancestral(AncestralName("arg3"))
+   72 r49 <- Part { src: r48, offset: 0, size: 8 }
+   73 r18 <- Get(r49)
+   74 r50 <- Part { src: r48, offset: 8, size: 8 }
+   75 r20 <- Get(r50)
+   76 r51 <- Ancestral(AncestralName("arg4"))
+   77 r53 <- Part { src: r51, offset: 0, size: 8 }
+   78 r52 <- ArithK(Add, r12, 8)
+   79 r44 <- StoreMem { mem: r44, addr: r52, value: r53 }
+   80 r53 <- Part { src: r51, offset: 8, size: 8 }
+   81 r52 <- ArithK(Add, r12, 16)
+   82 r44 <- StoreMem { mem: r44, addr: r52, value: r53 }
+0x4012f6:
+   83 r46 <- Const { value: 20, size: 8 }
+   84 r46 <- Arith(Add, r46, r12)
+   85 r45 <- LoadMem { mem: r44, addr: r46, size: 1 }
+   86 r47 <- Part { src: r16, offset: 1, size: 7 }
+   87 r16 <- Concat { lo: r45, hi: r47 }
+0x4012fa:
+   88 r45 <- Void
+   89 r45 <- Concat { lo: r45, hi: r16 }
+   90 r45 <- Part { src: r45, offset: 0, size: 1 }
+   91 r47 <- Ret(r45)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  92 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r79 <- StoreMem { mem: r44, addr: r52, value: r53 }
+         r82 <- StoreMem { mem: r44, addr: r52, value: r53 }
+         r91 <- Ret(r45)
 
 
 cfg:
   entry: BlockID(0)
   exit: BlockID(1)
-  BlockID(0) [0:76] -> Jmp((0, BlockID(1)))
-  BlockID(1) [76:76] -> End
+  BlockID(0) [0:92] -> Jmp((0, BlockID(1)))
+  BlockID(1) [92:92] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  92 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r79 <- StoreMem { mem: r44, addr: r52, value: r53 }
+         r82 <- StoreMem { mem: r44, addr: r52, value: r53 }
+         r91 <- Ret(r45)
 
 
 
 T0: {
+  [Undefined ()] <- Undefined ();
+  [Undefined ()] <- Undefined ();
   Ret ()
   end
 }

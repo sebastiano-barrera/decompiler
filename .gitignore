@@ -5,3 +5,4 @@ _unver/
 
 src/.dir-locals.el
 .aider*
+test-data/integration/redis-server.dwarf

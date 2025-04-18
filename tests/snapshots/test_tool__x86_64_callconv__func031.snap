@@ -2,13 +2,14 @@
 source: tests/test_tool.rs
 expression: out
 ---
-func016 0x401158+7 (file 0x1158)
-          401158: f2 0f 10 44 24 10       movsd xmm0,[rsp+10h]
-          40115e: c3                      ret
+func031 0x401197+5 (file 0x1197)
+          401197: 66 0f 6e c1             movd xmm0,ecx
+          40119b: c3                      ret
 
-function type: "func016" func (arg0 big <TypeID(794v1)>) double <TypeID(783v1)>
+function type: "func031" func (arg0 small <TypeID(784v1)>,
+                               arg1 small <TypeID(784v1)>) float <TypeID(782v1)>
 mil program = 
-program  76 instrs
+program  81 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -74,44 +75,52 @@ program  76 instrs
    62 r63 <- Undefined
    63 r64 <- Undefined
    64 r65 <- Undefined
-0x401158:
-   65 r46 <- Const { value: 16, size: 8 }
-   66 r46 <- Arith(Add, r46, r12)
-   67 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-   68 r45 <- Widen { reg: r45, target_size: 16, sign: false }
-   69 r47 <- Part { src: r28, offset: 8, size: 56 }
-   70 r28 <- Concat { lo: r45, hi: r47 }
-0x40115e:
-   71 r45 <- Void
-   72 r46 <- Part { src: r28, offset: 0, size: 8 }
-   73 r45 <- Concat { lo: r45, hi: r46 }
-   74 r45 <- Part { src: r45, offset: 0, size: 8 }
-   75 r47 <- Ret(r45)
+   65 r45 <- Ancestral(AncestralName("arg0"))
+   66 r46 <- Part { src: r45, offset: 0, size: 8 }
+   67 r15 <- Get(r46)
+   68 r47 <- Part { src: r45, offset: 8, size: 8 }
+   69 r19 <- Get(r47)
+   70 r48 <- Ancestral(AncestralName("arg1"))
+   71 r49 <- Part { src: r48, offset: 0, size: 8 }
+   72 r18 <- Get(r49)
+   73 r50 <- Part { src: r48, offset: 8, size: 8 }
+   74 r20 <- Get(r50)
+0x401197:
+   75 r45 <- NotYetImplemented("unsupported: movd xmm0,ecx")
+0x40119b:
+   76 r45 <- Void
+   77 r46 <- Part { src: r28, offset: 0, size: 8 }
+   78 r45 <- Concat { lo: r45, hi: r46 }
+   79 r45 <- Part { src: r45, offset: 0, size: 4 }
+   80 r47 <- Ret(r45)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  81 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r75 <- NotYetImplemented("unsupported: movd xmm0,ecx")
+         r80 <- Ret(r45)
 
 
 cfg:
   entry: BlockID(0)
   exit: BlockID(1)
-  BlockID(0) [0:76] -> Jmp((0, BlockID(1)))
-  BlockID(1) [76:76] -> End
+  BlockID(0) [0:81] -> Jmp((0, BlockID(1)))
+  BlockID(1) [81:81] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  81 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r75 <- NotYetImplemented("unsupported: movd xmm0,ecx")
+         r80 <- Ret(r45)
 
 
 
 T0: {
+  TODO /* unsupported: movd xmm0,ecx */
   Ret ()
   end
 }

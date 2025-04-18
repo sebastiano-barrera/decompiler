@@ -2,13 +2,18 @@
 source: tests/test_tool.rs
 expression: out
 ---
-func016 0x401158+7 (file 0x1158)
-          401158: f2 0f 10 44 24 10       movsd xmm0,[rsp+10h]
-          40115e: c3                      ret
+func111 0x401343+6 (file 0x1343)
+          401343: 0f b7 44 24 08          movzx eax,word ptr [rsp+8]
+          401348: c3                      ret
 
-function type: "func016" func (arg0 big <TypeID(794v1)>) double <TypeID(783v1)>
+function type: "func111" func (arg0 *void <TypeID(1v1)>,
+                               arg1 *void <TypeID(1v1)>,
+                               arg2 *void <TypeID(1v1)>,
+                               arg3 *void <TypeID(1v1)>,
+                               arg4 small <TypeID(784v1)>,
+                               arg5 short <TypeID(779v1)>) short <TypeID(779v1)>
 mil program = 
-program  76 instrs
+program  87 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -74,44 +79,61 @@ program  76 instrs
    62 r63 <- Undefined
    63 r64 <- Undefined
    64 r65 <- Undefined
-0x401158:
-   65 r46 <- Const { value: 16, size: 8 }
-   66 r46 <- Arith(Add, r46, r12)
-   67 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-   68 r45 <- Widen { reg: r45, target_size: 16, sign: false }
-   69 r47 <- Part { src: r28, offset: 8, size: 56 }
-   70 r28 <- Concat { lo: r45, hi: r47 }
-0x40115e:
-   71 r45 <- Void
-   72 r46 <- Part { src: r28, offset: 0, size: 8 }
-   73 r45 <- Concat { lo: r45, hi: r46 }
-   74 r45 <- Part { src: r45, offset: 0, size: 8 }
-   75 r47 <- Ret(r45)
+   65 r45 <- Ancestral(AncestralName("arg0"))
+   66 r14 <- Get(r45)
+   67 r46 <- Ancestral(AncestralName("arg1"))
+   68 r15 <- Get(r46)
+   69 r47 <- Ancestral(AncestralName("arg2"))
+   70 r19 <- Get(r47)
+   71 r48 <- Ancestral(AncestralName("arg3"))
+   72 r18 <- Get(r48)
+   73 r49 <- Ancestral(AncestralName("arg4"))
+   74 r50 <- Part { src: r49, offset: 0, size: 8 }
+   75 r20 <- Get(r50)
+   76 r51 <- Part { src: r49, offset: 8, size: 8 }
+   77 r21 <- Get(r51)
+   78 r52 <- Ancestral(AncestralName("arg5"))
+   79 r54 <- Part { src: r52, offset: 0, size: 2 }
+   80 r53 <- ArithK(Add, r12, 8)
+   81 r44 <- StoreMem { mem: r44, addr: r53, value: r54 }
+0x401343:
+   82 r45 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
+0x401348:
+   83 r45 <- Void
+   84 r45 <- Concat { lo: r45, hi: r16 }
+   85 r45 <- Part { src: r45, offset: 0, size: 2 }
+   86 r47 <- Ret(r45)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  87 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r81 <- StoreMem { mem: r44, addr: r53, value: r54 }
+         r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
+         r86 <- Ret(r45)
 
 
 cfg:
   entry: BlockID(0)
   exit: BlockID(1)
-  BlockID(0) [0:76] -> Jmp((0, BlockID(1)))
-  BlockID(1) [76:76] -> End
+  BlockID(0) [0:87] -> Jmp((0, BlockID(1)))
+  BlockID(1) [87:87] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  87 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r81 <- StoreMem { mem: r44, addr: r53, value: r54 }
+         r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
+         r86 <- Ret(r45)
 
 
 
 T0: {
+  [Undefined ()] <- Undefined ();
+  TODO /* unsupported: movzx eax,word ptr [rsp+8] */
   Ret ()
   end
 }

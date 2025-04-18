@@ -2,13 +2,13 @@
 source: tests/test_tool.rs
 expression: out
 ---
-func016 0x401158+7 (file 0x1158)
-          401158: f2 0f 10 44 24 10       movsd xmm0,[rsp+10h]
-          40115e: c3                      ret
+func003 0x401114+4 (file 0x1114)
+          401114: 48 89 f8                mov rax,rdi
+          401117: c3                      ret
 
-function type: "func016" func (arg0 big <TypeID(794v1)>) double <TypeID(783v1)>
+function type: "func003" func (arg0 long long <TypeID(780v1)>) long long <TypeID(780v1)>
 mil program = 
-program  76 instrs
+program  72 instrs
     0 r12 <- Ancestral(AncestralName("stack_bottom"))
     1 r2 <- Ancestral(AncestralName("CF"))
     2 r3 <- Ancestral(AncestralName("PF"))
@@ -74,40 +74,36 @@ program  76 instrs
    62 r63 <- Undefined
    63 r64 <- Undefined
    64 r65 <- Undefined
-0x401158:
-   65 r46 <- Const { value: 16, size: 8 }
-   66 r46 <- Arith(Add, r46, r12)
-   67 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-   68 r45 <- Widen { reg: r45, target_size: 16, sign: false }
-   69 r47 <- Part { src: r28, offset: 8, size: 56 }
-   70 r28 <- Concat { lo: r45, hi: r47 }
-0x40115e:
-   71 r45 <- Void
-   72 r46 <- Part { src: r28, offset: 0, size: 8 }
-   73 r45 <- Concat { lo: r45, hi: r46 }
-   74 r45 <- Part { src: r45, offset: 0, size: 8 }
-   75 r47 <- Ret(r45)
+   65 r45 <- Ancestral(AncestralName("arg0"))
+   66 r14 <- Get(r45)
+0x401114:
+   67 r16 <- Get(r14)
+0x401117:
+   68 r45 <- Void
+   69 r45 <- Concat { lo: r45, hi: r16 }
+   70 r45 <- Part { src: r45, offset: 0, size: 8 }
+   71 r47 <- Ret(r45)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  72 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r71 <- Ret(r45)
 
 
 cfg:
   entry: BlockID(0)
   exit: BlockID(1)
-  BlockID(0) [0:76] -> Jmp((0, BlockID(1)))
-  BlockID(1) [76:76] -> End
+  BlockID(0) [0:72] -> Jmp((0, BlockID(1)))
+  BlockID(1) [72:72] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  72 instrs
 .B0:    ;; .
-         r75 <- Ret(r45)
+         r71 <- Ret(r45)
 
 
 
