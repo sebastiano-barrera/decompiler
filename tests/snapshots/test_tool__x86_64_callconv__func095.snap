@@ -118,9 +118,26 @@ program  96 instrs
 ssa pre-xform:
 ssa program  96 instrs
 .B0:    ;; .
-         r79 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r82 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r95 <- Ret(r45)
+  (  2)  r76 <- Ancestral(AncestralName("arg4"))
+         r77 <- Part { src: r76, offset: 0, size: 8 }
+  (  4)  r11 <- Ancestral(AncestralName("RSP"))
+         r78 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r79 <- StoreMem { mem: r43, addr: r78, value: r77 }
+         r80 <- Part { src: r76, offset: 8, size: 8 }
+         r81 <- ArithK(Add, r11, 16)
+  (  2)  r82 <- StoreMem { mem: r79, addr: r81, value: r80 }
+         r87 <- Const { value: 16, size: 8 }
+         r88 <- Arith(Add, r87, r11)
+         r89 <- LoadMem { mem: r82, addr: r88, size: 8 }
+         r83 <- Const { value: 8, size: 8 }
+         r84 <- Arith(Add, r83, r11)
+         r85 <- LoadMem { mem: r82, addr: r84, size: 8 }
+         r91 <- Void
+         r92 <- Concat { lo: r91, hi: r85 }
+         r93 <- Concat { lo: r92, hi: r89 }
+         r94 <- Part { src: r93, offset: 0, size: 16 }
+         r95 <- Ret(r94)
 
 
 cfg:
@@ -133,17 +150,27 @@ cfg:
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  96 instrs
+ssa program  106 instrs
 .B0:    ;; .
-         r79 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r82 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r95 <- Ret(r45)
+  (  4)  r76 <- Ancestral(AncestralName("arg4"))
+         r77 <- Part { src: r76, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r78 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r79 <- StoreMem { mem: r43, addr: r78, value: r77 }
+         r80 <- Part { src: r76, offset: 8, size: 8 }
+         r81 <- ArithK(Add, r11, 16)
+         r82 <- StoreMem { mem: r79, addr: r81, value: r80 }
+         r97 <- Part { src: r76, offset: 8, size: 8 }
+         r102 <- Part { src: r76, offset: 0, size: 8 }
+         r93 <- Concat { lo: r102, hi: r97 }
+         r95 <- Ret(r93)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
-  Ret ()
+  [pre:RSP + 8] <- pre:arg4[8 .. 0];
+  [pre:RSP + 16] <- pre:arg4[16 .. 8];
+  Ret (pre:arg4[16 .. 8] ++ pre:arg4[8 .. 0])
   end
 }

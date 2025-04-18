@@ -93,7 +93,12 @@ ssa pre-xform:
 ssa program  76 instrs
 .B0:    ;; .
          r70 <- NotYetImplemented("unsupported: movd xmm0,esi")
-         r75 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r72 <- Part { src: r27, offset: 0, size: 8 }
+         r71 <- Void
+         r73 <- Concat { lo: r71, hi: r72 }
+         r74 <- Part { src: r73, offset: 0, size: 4 }
+         r75 <- Ret(r74)
 
 
 cfg:
@@ -109,12 +114,14 @@ ssa post-xform:
 ssa program  76 instrs
 .B0:    ;; .
          r70 <- NotYetImplemented("unsupported: movd xmm0,esi")
-         r75 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r74 <- Part { src: r27, offset: 0, size: 4 }
+         r75 <- Ret(r74)
 
 
 
 T0: {
   TODO /* unsupported: movd xmm0,esi */
-  Ret ()
+  Ret (pre:ZMM0[4 .. 0])
   end
 }

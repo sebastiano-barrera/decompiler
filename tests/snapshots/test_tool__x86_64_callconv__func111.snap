@@ -108,9 +108,18 @@ program  87 instrs
 ssa pre-xform:
 ssa program  87 instrs
 .B0:    ;; .
-         r81 <- StoreMem { mem: r44, addr: r53, value: r54 }
+         r78 <- Ancestral(AncestralName("arg5"))
+         r79 <- Part { src: r78, offset: 0, size: 2 }
+         r11 <- Ancestral(AncestralName("RSP"))
+         r80 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r81 <- StoreMem { mem: r43, addr: r80, value: r79 }
          r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
-         r86 <- Ret(r45)
+         r15 <- Ancestral(AncestralName("RAX"))
+         r83 <- Void
+         r84 <- Concat { lo: r83, hi: r15 }
+         r85 <- Part { src: r84, offset: 0, size: 2 }
+         r86 <- Ret(r85)
 
 
 cfg:
@@ -125,15 +134,21 @@ cfg:
 ssa post-xform:
 ssa program  87 instrs
 .B0:    ;; .
-         r81 <- StoreMem { mem: r44, addr: r53, value: r54 }
+         r78 <- Ancestral(AncestralName("arg5"))
+         r11 <- Ancestral(AncestralName("RSP"))
+         r80 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r81 <- StoreMem { mem: r43, addr: r80, value: r78 }
          r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
-         r86 <- Ret(r45)
+         r15 <- Ancestral(AncestralName("RAX"))
+         r85 <- Part { src: r15, offset: 0, size: 2 }
+         r86 <- Ret(r85)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
+  [pre:RSP + 8] <- pre:arg5;
   TODO /* unsupported: movzx eax,word ptr [rsp+8] */
-  Ret ()
+  Ret (pre:RAX[2 .. 0])
   end
 }

@@ -107,7 +107,15 @@ program  88 instrs
 ssa pre-xform:
 ssa program  88 instrs
 .B0:    ;; .
-         r87 <- Ret(r45)
+         r76 <- Const { value: 32, size: 1 }
+         r77 <- Widen { reg: r76, target_size: 8, sign: false }
+         r70 <- Ancestral(AncestralName("arg1"))
+         r73 <- Part { src: r70, offset: 8, size: 8 }
+         r78 <- Arith(Shr, r73, r77)
+         r84 <- Void
+         r85 <- Concat { lo: r84, hi: r78 }
+         r86 <- Part { src: r85, offset: 0, size: 1 }
+         r87 <- Ret(r86)
 
 
 cfg:
@@ -122,11 +130,17 @@ cfg:
 ssa post-xform:
 ssa program  88 instrs
 .B0:    ;; .
-         r87 <- Ret(r45)
+         r76 <- Const { value: 32, size: 1 }
+         r77 <- Widen { reg: r76, target_size: 8, sign: false }
+         r70 <- Ancestral(AncestralName("arg1"))
+         r73 <- Part { src: r70, offset: 8, size: 8 }
+         r78 <- Arith(Shr, r73, r77)
+         r86 <- Part { src: r78, offset: 0, size: 1 }
+         r87 <- Ret(r86)
 
 
 
 T0: {
-  Ret ()
+  Ret ((pre:arg1[16 .. 8] >> 32 as u64)[1 .. 0])
   end
 }

@@ -111,9 +111,22 @@ program  91 instrs
 ssa pre-xform:
 ssa program  91 instrs
 .B0:    ;; .
-         r79 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r82 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r90 <- Ret(r45)
+  (  2)  r76 <- Ancestral(AncestralName("arg4"))
+         r77 <- Part { src: r76, offset: 0, size: 8 }
+  (  3)  r11 <- Ancestral(AncestralName("RSP"))
+         r78 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r79 <- StoreMem { mem: r43, addr: r78, value: r77 }
+         r80 <- Part { src: r76, offset: 8, size: 8 }
+         r81 <- ArithK(Add, r11, 16)
+         r82 <- StoreMem { mem: r79, addr: r81, value: r80 }
+         r83 <- Const { value: 8, size: 8 }
+         r84 <- Arith(Add, r83, r11)
+         r85 <- LoadMem { mem: r82, addr: r84, size: 8 }
+         r87 <- Void
+         r88 <- Concat { lo: r87, hi: r85 }
+         r89 <- Part { src: r88, offset: 0, size: 8 }
+         r90 <- Ret(r89)
 
 
 cfg:
@@ -126,17 +139,25 @@ cfg:
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  91 instrs
+ssa program  96 instrs
 .B0:    ;; .
-         r79 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r82 <- StoreMem { mem: r44, addr: r52, value: r53 }
-         r90 <- Ret(r45)
+  (  3)  r76 <- Ancestral(AncestralName("arg4"))
+         r77 <- Part { src: r76, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r78 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r79 <- StoreMem { mem: r43, addr: r78, value: r77 }
+         r80 <- Part { src: r76, offset: 8, size: 8 }
+         r81 <- ArithK(Add, r11, 16)
+         r82 <- StoreMem { mem: r79, addr: r81, value: r80 }
+         r92 <- Part { src: r76, offset: 0, size: 8 }
+         r90 <- Ret(r92)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
-  Ret ()
+  [pre:RSP + 8] <- pre:arg4[8 .. 0];
+  [pre:RSP + 16] <- pre:arg4[16 .. 8];
+  Ret (pre:arg4[8 .. 0])
   end
 }

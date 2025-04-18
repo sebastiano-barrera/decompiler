@@ -141,15 +141,51 @@ program  116 instrs
 
 
 ssa pre-xform:
-ssa program  116 instrs
+ssa program  122 instrs
 .B0:    ;; .
-         r68 <- StoreMem { mem: r44, addr: r46, value: r47 }
-         r71 <- StoreMem { mem: r44, addr: r46, value: r47 }
-         r74 <- StoreMem { mem: r44, addr: r46, value: r47 }
+  (  3)  r65 <- Ancestral(AncestralName("arg0"))
+         r66 <- Part { src: r65, offset: 0, size: 8 }
+  (  4)  r11 <- Ancestral(AncestralName("RSP"))
+         r67 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r68 <- StoreMem { mem: r43, addr: r67, value: r66 }
+         r69 <- Part { src: r65, offset: 8, size: 8 }
+         r70 <- ArithK(Add, r11, 16)
+         r71 <- StoreMem { mem: r68, addr: r70, value: r69 }
+         r72 <- Part { src: r65, offset: 16, size: 8 }
+         r73 <- ArithK(Add, r11, 24)
+         r74 <- StoreMem { mem: r71, addr: r73, value: r72 }
+  (  3)  r15 <- Ancestral(AncestralName("RAX"))
+         r78 <- Part { src: r15, offset: 4, size: 4 }
+         r76 <- Part { src: r15, offset: 0, size: 4 }
+         r75 <- Part { src: r15, offset: 0, size: 4 }
+         r77 <- Arith(BitXor, r75, r76)
+         r79 <- Concat { lo: r77, hi: r78 }
+         r118 <- Upsilon { value: r79, phi_ref: r116 }
+         r86 <- Const { value: 8, size: 8 }
+         r87 <- Arith(Add, r86, r11)
+         r119 <- Upsilon { value: r87, phi_ref: r117 }
 .B1:    ;; preds:B0,B1.
-         r111 <- JmpIf { cond: r45, target: 89 }
+         r117 <- Phi
+         r99 <- Const { value: 16, size: 8 }
+         r100 <- Arith(Add, r99, r117)
+  (  2)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
+  (  2)  r103 <- Arith(BitAnd, r101, r101)
+         r121 <- Upsilon { value: r103, phi_ref: r117 }
+  (  2)  r116 <- Phi
+         r91 <- Part { src: r116, offset: 4, size: 4 }
+         r89 <- Part { src: r116, offset: 0, size: 4 }
+         r90 <- ArithK(Add, r89, 1)
+  (  2)  r92 <- Concat { lo: r90, hi: r91 }
+         r120 <- Upsilon { value: r92, phi_ref: r116 }
+         r105 <- IsZero(r103)
+         r110 <- Not(r105)
+         r111 <- JmpIf { cond: r110, target: 89 }
 .B2:    ;; preds:B1.
-         r115 <- Ret(r45)
+         r112 <- Void
+         r113 <- Concat { lo: r112, hi: r92 }
+         r114 <- Part { src: r113, offset: 0, size: 4 }
+         r115 <- Ret(r114)
 
 
 cfg:
@@ -166,29 +202,67 @@ cfg:
     |  |  |  BlockID(3)
 
 ssa post-xform:
-ssa program  116 instrs
+ssa program  122 instrs
 .B0:    ;; .
-         r68 <- StoreMem { mem: r44, addr: r46, value: r47 }
-         r71 <- StoreMem { mem: r44, addr: r46, value: r47 }
-         r74 <- StoreMem { mem: r44, addr: r46, value: r47 }
+  (  3)  r65 <- Ancestral(AncestralName("arg0"))
+         r66 <- Part { src: r65, offset: 0, size: 8 }
+  (  4)  r11 <- Ancestral(AncestralName("RSP"))
+         r67 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r68 <- StoreMem { mem: r43, addr: r67, value: r66 }
+         r69 <- Part { src: r65, offset: 8, size: 8 }
+         r70 <- ArithK(Add, r11, 16)
+         r71 <- StoreMem { mem: r68, addr: r70, value: r69 }
+         r72 <- Part { src: r65, offset: 16, size: 8 }
+         r73 <- ArithK(Add, r11, 24)
+         r74 <- StoreMem { mem: r71, addr: r73, value: r72 }
+  (  3)  r15 <- Ancestral(AncestralName("RAX"))
+         r78 <- Part { src: r15, offset: 4, size: 4 }
+         r76 <- Part { src: r15, offset: 0, size: 4 }
+         r75 <- Part { src: r15, offset: 0, size: 4 }
+         r77 <- Arith(BitXor, r75, r76)
+         r79 <- Concat { lo: r77, hi: r78 }
+         r118 <- Upsilon { value: r79, phi_ref: r116 }
+         r87 <- ArithK(Add, r11, 8)
+         r119 <- Upsilon { value: r87, phi_ref: r117 }
 .B1:    ;; preds:B0,B1.
-         r111 <- JmpIf { cond: r45, target: 89 }
+         r117 <- Phi
+         r100 <- ArithK(Add, r117, 16)
+  (  2)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
+         r121 <- Upsilon { value: r101, phi_ref: r117 }
+  (  2)  r116 <- Phi
+         r91 <- Part { src: r116, offset: 4, size: 4 }
+         r89 <- Part { src: r116, offset: 0, size: 4 }
+  (  2)  r90 <- ArithK(Add, r89, 1)
+         r92 <- Concat { lo: r90, hi: r91 }
+         r120 <- Upsilon { value: r92, phi_ref: r116 }
+         r105 <- IsZero(r101)
+         r110 <- Not(r105)
+         r111 <- JmpIf { cond: r110, target: 89 }
 .B2:    ;; preds:B1.
-         r115 <- Ret(r45)
+         r115 <- Ret(r90)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
+  [pre:RSP + 8] <- pre:arg0[8 .. 0];
+  [pre:RSP + 16] <- pre:arg0[16 .. 8];
+  [pre:RSP + 24] <- pre:arg0[24 .. 16];
+  r116 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
+  r117 := pre:RSP + 8;
   goto T1
   
   T1: {
-    if () then {
+    let mut r117: Bytes(8);
+    let r101: Bytes(8) = [r117 + 16]:8;
+    r117 := [r117 + 16]:8;
+    let mut r116: Bytes(8);
+    let r90: Bytes(4) = r116[4 .. 0] + 1;
+    r116 := r116[8 .. 4] ++ r90;
+    if (! ((IsZero (r101)))) then {
       goto T1
     } else:
-    Ret ()
+    Ret (r90)
     end
   }
 

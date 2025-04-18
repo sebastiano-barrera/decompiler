@@ -154,14 +154,20 @@ program  117 instrs
 ssa pre-xform:
 ssa program  117 instrs
 .B0:    ;; .
-  (  2)  r69 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  (  3)  r71 <- Arith(BitAnd, r69, r69)
+  (  4)  r65 <- Ancestral(AncestralName("arg0"))
+         r67 <- Const { value: 0, size: 8 }
+         r68 <- Arith(Add, r67, r65)
+  (  6)  r43 <- Ancestral(AncestralName("memory"))
+  (  2)  r69 <- LoadMem { mem: r43, addr: r68, size: 8 }
+  (  5)  r71 <- Arith(BitAnd, r69, r69)
          r73 <- IsZero(r71)
          r78 <- JmpIf { cond: r73, target: 113 }
 .B1:    ;; preds:B0.
          r18 <- Ancestral(AncestralName("RDX"))
          r82 <- Part { src: r18, offset: 4, size: 4 }
-         r81 <- LoadMem { mem: r44, addr: r46, size: 4 }
+         r79 <- Const { value: 8, size: 8 }
+         r80 <- Arith(Add, r79, r65)
+         r81 <- LoadMem { mem: r43, addr: r80, size: 4 }
   (  2)  r83 <- Concat { lo: r81, hi: r82 }
          r85 <- Part { src: r83, offset: 0, size: 4 }
          r84 <- Part { src: r83, offset: 0, size: 4 }
@@ -170,11 +176,11 @@ ssa program  117 instrs
          r93 <- Not(r88)
          r94 <- JmpIf { cond: r93, target: 106 }
 .B3:    ;; preds:B1.
-         r108 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  (  2)  r65 <- Ancestral(AncestralName("arg0"))
+         r106 <- Const { value: 0, size: 8 }
+         r107 <- Arith(Add, r106, r71)
+         r108 <- LoadMem { mem: r43, addr: r107, size: 8 }
          r110 <- Const { value: 0, size: 8 }
          r111 <- Arith(Add, r110, r65)
-  (  2)  r43 <- Ancestral(AncestralName("memory"))
          r112 <- StoreMem { mem: r43, addr: r111, value: r108 }
 .B4:    ;; preds:B0,B3.
          r113 <- Void
@@ -182,7 +188,9 @@ ssa program  117 instrs
          r115 <- Part { src: r114, offset: 0, size: 8 }
          r116 <- Ret(r115)
 .B2:    ;; preds:B1.
-         r97 <- LoadMem { mem: r44, addr: r46, size: 8 }
+         r95 <- Const { value: 8, size: 8 }
+         r96 <- Arith(Add, r95, r71)
+         r97 <- LoadMem { mem: r43, addr: r96, size: 8 }
          r99 <- Const { value: 0, size: 8 }
          r100 <- Arith(Add, r99, r65)
          r101 <- StoreMem { mem: r43, addr: r100, value: r97 }
@@ -212,38 +220,40 @@ cfg:
 ssa post-xform:
 ssa program  117 instrs
 .B0:    ;; .
-  (  3)  r69 <- LoadMem { mem: r44, addr: r46, size: 8 }
+  (  4)  r65 <- Ancestral(AncestralName("arg0"))
+  (  6)  r43 <- Ancestral(AncestralName("memory"))
+  (  5)  r69 <- LoadMem { mem: r43, addr: r65, size: 8 }
          r73 <- IsZero(r69)
          r78 <- JmpIf { cond: r73, target: 113 }
 .B1:    ;; preds:B0.
-         r81 <- LoadMem { mem: r44, addr: r46, size: 4 }
+         r80 <- ArithK(Add, r65, 8)
+         r81 <- LoadMem { mem: r43, addr: r80, size: 4 }
          r88 <- IsZero(r81)
          r93 <- Not(r88)
          r94 <- JmpIf { cond: r93, target: 106 }
 .B3:    ;; preds:B1.
-         r108 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  (  2)  r65 <- Ancestral(AncestralName("arg0"))
-  (  2)  r43 <- Ancestral(AncestralName("memory"))
+         r108 <- LoadMem { mem: r43, addr: r69, size: 8 }
          r112 <- StoreMem { mem: r43, addr: r65, value: r108 }
 .B4:    ;; preds:B0,B3.
          r116 <- Ret(r69)
 .B2:    ;; preds:B1.
-         r97 <- LoadMem { mem: r44, addr: r46, size: 8 }
+         r96 <- ArithK(Add, r69, 8)
+         r97 <- LoadMem { mem: r43, addr: r96, size: 8 }
          r101 <- StoreMem { mem: r43, addr: r65, value: r97 }
          r105 <- Ret(r69)
 
 
 
 T0: {
-  let r69: Bytes(8) = [undefined]:8;
+  let r69: Bytes(8) = [pre:arg0]:8;
   if (IsZero (r69)) then {
     goto T4
   } else:
-  if (! ((IsZero ([undefined]:4)))) then {
-    [pre:arg0] <- [undefined]:8;
+  if (! ((IsZero ([pre:arg0 + 8]:4)))) then {
+    [pre:arg0] <- [r69]:8;
     goto T4
   } else:
-  [pre:arg0] <- [undefined]:8;
+  [pre:arg0] <- [r69 + 8]:8;
   Ret (r69)
   goto T5
   

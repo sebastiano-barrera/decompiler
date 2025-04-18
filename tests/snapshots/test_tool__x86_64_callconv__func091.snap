@@ -103,7 +103,11 @@ program  83 instrs
 ssa pre-xform:
 ssa program  83 instrs
 .B0:    ;; .
-         r82 <- Ret(r45)
+         r76 <- Ancestral(AncestralName("arg4"))
+         r79 <- Void
+         r80 <- Concat { lo: r79, hi: r76 }
+         r81 <- Part { src: r80, offset: 0, size: 8 }
+         r82 <- Ret(r81)
 
 
 cfg:
@@ -118,11 +122,12 @@ cfg:
 ssa post-xform:
 ssa program  83 instrs
 .B0:    ;; .
-         r82 <- Ret(r45)
+         r76 <- Ancestral(AncestralName("arg4"))
+         r82 <- Ret(r76)
 
 
 
 T0: {
-  Ret ()
+  Ret (pre:arg4)
   end
 }

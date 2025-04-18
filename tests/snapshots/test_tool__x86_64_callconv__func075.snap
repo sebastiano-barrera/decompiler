@@ -106,10 +106,22 @@ program  87 instrs
 ssa pre-xform:
 ssa program  87 instrs
 .B0:    ;; .
-         r77 <- StoreMem { mem: r44, addr: r51, value: r52 }
-         r80 <- StoreMem { mem: r44, addr: r51, value: r52 }
+  (  2)  r74 <- Ancestral(AncestralName("arg3"))
+         r75 <- Part { src: r74, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r76 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r77 <- StoreMem { mem: r43, addr: r76, value: r75 }
+         r78 <- Part { src: r74, offset: 8, size: 8 }
+         r79 <- ArithK(Add, r11, 16)
+         r80 <- StoreMem { mem: r77, addr: r79, value: r78 }
          r81 <- NotYetImplemented("unsupported: movd xmm0,r9d")
-         r86 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r83 <- Part { src: r27, offset: 0, size: 8 }
+         r82 <- Void
+         r84 <- Concat { lo: r82, hi: r83 }
+         r85 <- Part { src: r84, offset: 0, size: 4 }
+         r86 <- Ret(r85)
 
 
 cfg:
@@ -124,17 +136,26 @@ cfg:
 ssa post-xform:
 ssa program  87 instrs
 .B0:    ;; .
-         r77 <- StoreMem { mem: r44, addr: r51, value: r52 }
-         r80 <- StoreMem { mem: r44, addr: r51, value: r52 }
+  (  2)  r74 <- Ancestral(AncestralName("arg3"))
+         r75 <- Part { src: r74, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r76 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r77 <- StoreMem { mem: r43, addr: r76, value: r75 }
+         r78 <- Part { src: r74, offset: 8, size: 8 }
+         r79 <- ArithK(Add, r11, 16)
+         r80 <- StoreMem { mem: r77, addr: r79, value: r78 }
          r81 <- NotYetImplemented("unsupported: movd xmm0,r9d")
-         r86 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r85 <- Part { src: r27, offset: 0, size: 4 }
+         r86 <- Ret(r85)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
+  [pre:RSP + 8] <- pre:arg3[8 .. 0];
+  [pre:RSP + 16] <- pre:arg3[16 .. 8];
   TODO /* unsupported: movd xmm0,r9d */
-  Ret ()
+  Ret (pre:ZMM0[4 .. 0])
   end
 }

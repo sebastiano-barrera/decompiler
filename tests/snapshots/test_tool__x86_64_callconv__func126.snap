@@ -112,9 +112,27 @@ program  91 instrs
 ssa pre-xform:
 ssa program  91 instrs
 .B0:    ;; .
-         r76 <- StoreMem { mem: r44, addr: r50, value: r51 }
-         r79 <- StoreMem { mem: r44, addr: r50, value: r51 }
-         r90 <- Ret(r45)
+  (  2)  r73 <- Ancestral(AncestralName("arg4"))
+         r74 <- Part { src: r73, offset: 0, size: 8 }
+  (  3)  r11 <- Ancestral(AncestralName("RSP"))
+         r75 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r76 <- StoreMem { mem: r43, addr: r75, value: r74 }
+         r77 <- Part { src: r73, offset: 8, size: 8 }
+         r78 <- ArithK(Add, r11, 16)
+         r79 <- StoreMem { mem: r76, addr: r78, value: r77 }
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r84 <- Part { src: r27, offset: 8, size: 56 }
+         r80 <- Const { value: 16, size: 8 }
+         r81 <- Arith(Add, r80, r11)
+         r82 <- LoadMem { mem: r79, addr: r81, size: 8 }
+         r83 <- Widen { reg: r82, target_size: 16, sign: false }
+         r85 <- Concat { lo: r83, hi: r84 }
+         r87 <- Part { src: r85, offset: 0, size: 8 }
+         r86 <- Void
+         r88 <- Concat { lo: r86, hi: r87 }
+         r89 <- Part { src: r88, offset: 0, size: 8 }
+         r90 <- Ret(r89)
 
 
 cfg:
@@ -127,17 +145,25 @@ cfg:
     |  BlockID(1)
 
 ssa post-xform:
-ssa program  91 instrs
+ssa program  96 instrs
 .B0:    ;; .
-         r76 <- StoreMem { mem: r44, addr: r50, value: r51 }
-         r79 <- StoreMem { mem: r44, addr: r50, value: r51 }
-         r90 <- Ret(r45)
+  (  3)  r73 <- Ancestral(AncestralName("arg4"))
+         r74 <- Part { src: r73, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r75 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r76 <- StoreMem { mem: r43, addr: r75, value: r74 }
+         r77 <- Part { src: r73, offset: 8, size: 8 }
+         r78 <- ArithK(Add, r11, 16)
+         r79 <- StoreMem { mem: r76, addr: r78, value: r77 }
+         r92 <- Part { src: r73, offset: 8, size: 8 }
+         r90 <- Ret(r92)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
-  Ret ()
+  [pre:RSP + 8] <- pre:arg4[8 .. 0];
+  [pre:RSP + 16] <- pre:arg4[16 .. 8];
+  Ret (pre:arg4[16 .. 8])
   end
 }

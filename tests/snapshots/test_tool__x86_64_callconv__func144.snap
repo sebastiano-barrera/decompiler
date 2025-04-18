@@ -114,9 +114,25 @@ program  94 instrs
 ssa pre-xform:
 ssa program  94 instrs
 .B0:    ;; .
-         r78 <- StoreMem { mem: r44, addr: r51, value: r52 }
-         r81 <- StoreMem { mem: r44, addr: r51, value: r52 }
-         r93 <- Ret(r45)
+  (  2)  r75 <- Ancestral(AncestralName("arg5"))
+         r76 <- Part { src: r75, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r77 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r78 <- StoreMem { mem: r43, addr: r77, value: r76 }
+         r79 <- Part { src: r75, offset: 8, size: 8 }
+         r80 <- ArithK(Add, r11, 16)
+         r81 <- StoreMem { mem: r78, addr: r80, value: r79 }
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r84 <- Part { src: r27, offset: 8, size: 56 }
+         r82 <- Ancestral(AncestralName("arg6"))
+         r83 <- Part { src: r82, offset: 0, size: 8 }
+         r85 <- Concat { lo: r83, hi: r84 }
+         r90 <- Part { src: r85, offset: 0, size: 8 }
+         r89 <- Void
+         r91 <- Concat { lo: r89, hi: r90 }
+         r92 <- Part { src: r91, offset: 0, size: 4 }
+         r93 <- Ret(r92)
 
 
 cfg:
@@ -131,15 +147,24 @@ cfg:
 ssa post-xform:
 ssa program  94 instrs
 .B0:    ;; .
-         r78 <- StoreMem { mem: r44, addr: r51, value: r52 }
-         r81 <- StoreMem { mem: r44, addr: r51, value: r52 }
-         r93 <- Ret(r45)
+  (  2)  r75 <- Ancestral(AncestralName("arg5"))
+         r76 <- Part { src: r75, offset: 0, size: 8 }
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r77 <- ArithK(Add, r11, 8)
+         r43 <- Ancestral(AncestralName("memory"))
+         r78 <- StoreMem { mem: r43, addr: r77, value: r76 }
+         r79 <- Part { src: r75, offset: 8, size: 8 }
+         r80 <- ArithK(Add, r11, 16)
+         r81 <- StoreMem { mem: r78, addr: r80, value: r79 }
+         r82 <- Ancestral(AncestralName("arg6"))
+         r92 <- Part { src: r82, offset: 0, size: 4 }
+         r93 <- Ret(r92)
 
 
 
 T0: {
-  [Undefined ()] <- Undefined ();
-  [Undefined ()] <- Undefined ();
-  Ret ()
+  [pre:RSP + 8] <- pre:arg5[8 .. 0];
+  [pre:RSP + 16] <- pre:arg5[16 .. 8];
+  Ret (pre:arg6[4 .. 0])
   end
 }

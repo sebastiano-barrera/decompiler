@@ -108,7 +108,23 @@ program  89 instrs
 ssa pre-xform:
 ssa program  89 instrs
 .B0:    ;; .
-         r88 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r76 <- Part { src: r27, offset: 8, size: 56 }
+  (  2)  r74 <- Ancestral(AncestralName("arg3"))
+         r75 <- Part { src: r74, offset: 0, size: 8 }
+         r77 <- Concat { lo: r75, hi: r76 }
+         r82 <- Part { src: r77, offset: 16, size: 48 }
+         r28 <- Ancestral(AncestralName("ZMM1"))
+         r79 <- Part { src: r28, offset: 8, size: 56 }
+         r78 <- Part { src: r74, offset: 8, size: 8 }
+         r80 <- Concat { lo: r78, hi: r79 }
+         r81 <- Part { src: r80, offset: 0, size: 16 }
+         r83 <- Concat { lo: r81, hi: r82 }
+         r85 <- Part { src: r83, offset: 0, size: 8 }
+         r84 <- Void
+         r86 <- Concat { lo: r84, hi: r85 }
+         r87 <- Part { src: r86, offset: 0, size: 8 }
+         r88 <- Ret(r87)
 
 
 cfg:
@@ -123,11 +139,13 @@ cfg:
 ssa post-xform:
 ssa program  89 instrs
 .B0:    ;; .
-         r88 <- Ret(r45)
+         r74 <- Ancestral(AncestralName("arg3"))
+         r87 <- Part { src: r74, offset: 8, size: 8 }
+         r88 <- Ret(r87)
 
 
 
 T0: {
-  Ret ()
+  Ret (pre:arg3[16 .. 8])
   end
 }

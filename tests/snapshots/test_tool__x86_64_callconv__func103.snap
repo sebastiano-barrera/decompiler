@@ -103,7 +103,12 @@ ssa pre-xform:
 ssa program  82 instrs
 .B0:    ;; .
          r76 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
-         r81 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r78 <- Part { src: r27, offset: 0, size: 8 }
+         r77 <- Void
+         r79 <- Concat { lo: r77, hi: r78 }
+         r80 <- Part { src: r79, offset: 0, size: 4 }
+         r81 <- Ret(r80)
 
 
 cfg:
@@ -119,12 +124,14 @@ ssa post-xform:
 ssa program  82 instrs
 .B0:    ;; .
          r76 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
-         r81 <- Ret(r45)
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r80 <- Part { src: r27, offset: 0, size: 4 }
+         r81 <- Ret(r80)
 
 
 
 T0: {
   TODO /* unsupported: movss xmm0,[rsp+8] */
-  Ret ()
+  Ret (pre:ZMM0[4 .. 0])
   end
 }

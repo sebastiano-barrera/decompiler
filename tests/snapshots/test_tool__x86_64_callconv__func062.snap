@@ -99,7 +99,18 @@ program  81 instrs
 ssa pre-xform:
 ssa program  81 instrs
 .B0:    ;; .
-         r80 <- Ret(r45)
+         r15 <- Ancestral(AncestralName("RAX"))
+         r75 <- Part { src: r15, offset: 1, size: 7 }
+         r11 <- Ancestral(AncestralName("RSP"))
+         r72 <- Const { value: 32, size: 8 }
+         r73 <- Arith(Add, r72, r11)
+         r43 <- Ancestral(AncestralName("memory"))
+         r74 <- LoadMem { mem: r43, addr: r73, size: 1 }
+         r76 <- Concat { lo: r74, hi: r75 }
+         r77 <- Void
+         r78 <- Concat { lo: r77, hi: r76 }
+         r79 <- Part { src: r78, offset: 0, size: 1 }
+         r80 <- Ret(r79)
 
 
 cfg:
@@ -114,11 +125,15 @@ cfg:
 ssa post-xform:
 ssa program  81 instrs
 .B0:    ;; .
-         r80 <- Ret(r45)
+         r11 <- Ancestral(AncestralName("RSP"))
+         r73 <- ArithK(Add, r11, 32)
+         r43 <- Ancestral(AncestralName("memory"))
+         r74 <- LoadMem { mem: r43, addr: r73, size: 1 }
+         r80 <- Ret(r74)
 
 
 
 T0: {
-  Ret ()
+  Ret ([pre:RSP + 32]:1)
   end
 }
