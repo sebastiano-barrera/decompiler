@@ -1487,7 +1487,7 @@ impl Builder {
 }
 
 pub fn check_subroutine_type(types: &ty::TypeSet, tyid: ty::TypeID) -> Result<&ty::Subroutine> {
-    match &types.get(tyid).expect("invalid type ID").ty {
+    match &types.get_through_alias(tyid).expect("invalid type ID").ty {
         ty::Ty::Subroutine(subr_ty) => Ok(subr_ty),
         _ => anyhow::bail!("not a subroutine type (ID: {:?})", tyid),
     }

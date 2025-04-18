@@ -14,7 +14,7 @@ impl std::fmt::Debug for Warnings {
         } else {
             writeln!(f, "{} warnings:", self.0.len())?;
             for (ndx, warn) in self.0.iter().enumerate() {
-                writeln!(f, "  #{:4}: {:?}", ndx, warn)?;
+                writeln!(f, "  #{:4}: {}", ndx, warn)?;
             }
             Ok(())
         }
