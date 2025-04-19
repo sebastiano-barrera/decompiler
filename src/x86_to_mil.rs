@@ -479,12 +479,12 @@ impl Builder {
                         Some(v1)
                     };
                     let (callee, sz) = self.emit_read(&insn, 0);
-                    // let (callee, sz) = (Self::RAX, 8);
                     assert_eq!(
                         sz, 8,
                         "invalid call instruction: operand must be 8 bytes, not {}",
                         sz
                     );
+                    self.pb.set_type(callee, target_tyid);
                     self.emit(v1, mil::Insn::Call { callee, first_arg });
                     self.reset_all_flags();
 

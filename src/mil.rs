@@ -19,7 +19,7 @@ pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    dest_ty: Vec<Cell<Option<ty::TypeID>>>,
+    dest_tyids: Vec<Cell<Option<ty::TypeID>>>,
     reg_count: Index,
 
     // TODO More specific types
@@ -270,18 +270,22 @@ impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "program  {} instrs", self.insns.len())?;
         let mut last_addr = 0;
-        for (ndx, ((insn, dest), addr)) in self
-            .insns
-            .iter()
-            .zip(self.dests.iter())
-            .zip(self.addrs.iter())
-            .enumerate()
-        {
-            if last_addr != *addr {
+        let len = self.dests.len();
+        for ndx in 0..len {
+            let insn = self.insns[ndx].get();
+            let dest = self.dests[ndx].get();
+            let dest_tyid = self.dest_tyids[ndx].get();
+            let addr = self.addrs[ndx];
+
+            if last_addr != addr {
                 writeln!(f, "0x{:x}:", addr)?;
-                last_addr = *addr;
+                last_addr = addr;
             }
-            writeln!(f, "{:5} {:?} <- {:?}", ndx, dest.get(), insn.get())?;
+            write!(f, "{:5} {:?}", ndx, dest,)?;
+            if let Some(dest_tyid) = dest_tyid {
+                write!(f, ": {:?}", dest_tyid)?;
+            }
+            writeln!(f, " <- {:?}", insn)?;
         }
         Ok(())
     }
@@ -300,8 +304,14 @@ impl Program {
         let ndx = ndx as usize;
         let insn = &self.insns[ndx];
         let dest = &self.dests[ndx];
+        let dest_tyid = &self.dest_tyids[ndx];
         let addr = self.addrs[ndx];
-        Some(InsnView { insn, dest, addr })
+        Some(InsnView {
+            insn,
+            dest,
+            tyid: dest_tyid,
+            addr,
+        })
     }
 
     pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
@@ -332,6 +342,7 @@ impl Program {
         let index = self.insns.len().try_into().unwrap();
         self.insns.push(Cell::new(insn));
         self.dests.push(Cell::new(dest));
+        self.dest_tyids.push(Cell::new(None));
         self.addrs.push(u64::MAX);
         index
     }
@@ -350,6 +361,7 @@ impl Program {
 
 pub struct InsnView<'a> {
     pub insn: &'a Cell<Insn>,
+    pub tyid: &'a Cell<Option<ty::TypeID>>,
     pub dest: &'a Cell<Reg>,
     pub addr: u64,
 }
@@ -412,6 +424,22 @@ impl ProgramBuilder {
     /// code, which is then used to resolve jumps, etc.
     pub fn set_input_addr(&mut self, addr: u64) {
         self.cur_input_addr = addr;
+    }
+
+    /// Associate the given type ID to the given register.
+    ///
+    /// The type ID is associated to the last instruction that assigned the
+    /// register. Panics if this instruction can't be located (it's a user bug)
+    pub fn set_type(&mut self, reg: Reg, tyid: Option<ty::TypeID>) {
+        let (ndx, _) = self
+            .dests
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, dest)| dest.get() == reg)
+            .expect("no instruction writes to the given register");
+
+        self.dest_ty[ndx].set(tyid);
     }
 
     pub fn build(self) -> Program {
@@ -481,7 +509,7 @@ impl ProgramBuilder {
             insns,
             dests,
             addrs,
-            dest_ty,
+            dest_tyids: dest_ty,
             reg_count,
             mil_of_input_addr,
             anc_types: self.anc_types,

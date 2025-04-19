@@ -172,7 +172,7 @@ program  383 instrs
    88 r48 <- CArg { value: r19, next_arg: Some(r48) }
    89 r48 <- CArg { value: r15, next_arg: Some(r48) }
    90 r48 <- CArg { value: r14, next_arg: Some(r48) }
-   91 r49 <- Const { value: 4198512, size: 8 }
+   91 r49: TypeID(3337v1) <- Const { value: 4198512, size: 8 }
    92 r48 <- Call { callee: r49, first_arg: Some(r48) }
    93 r2 <- Undefined
    94 r3 <- Undefined
@@ -257,7 +257,7 @@ program  383 instrs
   163 r57 <- CArg { value: r47, next_arg: Some(r57) }
   164 r57 <- CArg { value: r46, next_arg: Some(r57) }
   165 r57 <- CArg { value: r45, next_arg: Some(r57) }
-  166 r58 <- Const { value: 4198496, size: 8 }
+  166 r58: TypeID(3329v1) <- Const { value: 4198496, size: 8 }
   167 r57 <- Call { callee: r58, first_arg: Some(r57) }
   168 r2 <- Undefined
   169 r3 <- Undefined
@@ -368,7 +368,7 @@ program  383 instrs
   258 r46 <- Void
   259 r46 <- Get(r14)
   260 r47 <- CArg { value: r45, next_arg: None }
-  261 r48 <- Const { value: 4198480, size: 8 }
+  261 r48: TypeID(3326v1) <- Const { value: 4198480, size: 8 }
   262 r47 <- Call { callee: r48, first_arg: Some(r47) }
   263 r2 <- Undefined
   264 r3 <- Undefined
@@ -407,7 +407,7 @@ program  383 instrs
   292 r48 <- Get(r15)
   293 r49 <- CArg { value: r46, next_arg: None }
   294 r49 <- CArg { value: r45, next_arg: Some(r49) }
-  295 r50 <- Const { value: 4198464, size: 8 }
+  295 r50: TypeID(3322v1) <- Const { value: 4198464, size: 8 }
   296 r49 <- Call { callee: r50, first_arg: Some(r49) }
   297 r2 <- Undefined
   298 r3 <- Undefined
@@ -425,7 +425,7 @@ program  383 instrs
   308 r46 <- CArg { value: r19, next_arg: Some(r46) }
   309 r46 <- CArg { value: r15, next_arg: Some(r46) }
   310 r46 <- CArg { value: r14, next_arg: Some(r46) }
-  311 r47 <- Const { value: 4198528, size: 8 }
+  311 r47: TypeID(3319v1) <- Const { value: 4198528, size: 8 }
   312 r46 <- Call { callee: r47, first_arg: Some(r46) }
   313 r2 <- Undefined
   314 r3 <- Undefined
@@ -481,7 +481,7 @@ program  383 instrs
   357 r46 <- Part { src: r14, offset: 4, size: 4 }
   358 r14 <- Concat { lo: r45, hi: r46 }
 0x401139:
-  359 r46 <- Const { value: 4198448, size: 8 }
+  359 r46: TypeID(3365v1) <- Const { value: 4198448, size: 8 }
   360 r45 <- Call { callee: r46, first_arg: None }
   361 r2 <- Undefined
   362 r3 <- Undefined

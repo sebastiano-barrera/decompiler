@@ -449,7 +449,7 @@ program  1451 instrs
   110 r48 <- Part { src: r48, offset: 0, size: 4 }
   111 r49 <- CArg { value: r46, next_arg: None }
   112 r49 <- CArg { value: r45, next_arg: Some(r49) }
-  113 r50 <- Const { value: 4199040, size: 8 }
+  113 r50: TypeID(340441v1) <- Const { value: 4199040, size: 8 }
   114 r49 <- Call { callee: r50, first_arg: Some(r49) }
   115 r2 <- Undefined
   116 r3 <- Undefined
@@ -640,7 +640,7 @@ program  1451 instrs
   267 r46 <- Void
   268 r46 <- Get(r14)
   269 r47 <- CArg { value: r45, next_arg: None }
-  270 r48 <- Const { value: 4199136, size: 8 }
+  270 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   271 r47 <- Call { callee: r48, first_arg: Some(r47) }
   272 r2 <- Undefined
   273 r3 <- Undefined
@@ -704,7 +704,7 @@ program  1451 instrs
   318 r46 <- Void
   319 r46 <- Get(r14)
   320 r47 <- CArg { value: r45, next_arg: None }
-  321 r48 <- Const { value: 4199136, size: 8 }
+  321 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   322 r47 <- Call { callee: r48, first_arg: Some(r47) }
   323 r2 <- Undefined
   324 r3 <- Undefined
@@ -778,7 +778,7 @@ program  1451 instrs
   380 r46 <- Void
   381 r46 <- Get(r14)
   382 r47 <- CArg { value: r45, next_arg: None }
-  383 r48 <- Const { value: 4199136, size: 8 }
+  383 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   384 r47 <- Call { callee: r48, first_arg: Some(r47) }
   385 r2 <- Undefined
   386 r3 <- Undefined
@@ -891,7 +891,7 @@ program  1451 instrs
   470 r46 <- Void
   471 r46 <- Get(r14)
   472 r47 <- CArg { value: r45, next_arg: None }
-  473 r48 <- Const { value: 4199136, size: 8 }
+  473 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   474 r47 <- Call { callee: r48, first_arg: Some(r47) }
   475 r2 <- Undefined
   476 r3 <- Undefined
@@ -944,7 +944,7 @@ program  1451 instrs
   513 r46 <- Void
   514 r46 <- Get(r14)
   515 r47 <- CArg { value: r45, next_arg: None }
-  516 r48 <- Const { value: 4199136, size: 8 }
+  516 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   517 r47 <- Call { callee: r48, first_arg: Some(r47) }
   518 r2 <- Undefined
   519 r3 <- Undefined
@@ -997,7 +997,7 @@ program  1451 instrs
   556 r46 <- Void
   557 r46 <- Get(r14)
   558 r47 <- CArg { value: r45, next_arg: None }
-  559 r48 <- Const { value: 4199136, size: 8 }
+  559 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   560 r47 <- Call { callee: r48, first_arg: Some(r47) }
   561 r2 <- Undefined
   562 r3 <- Undefined
@@ -1061,7 +1061,7 @@ program  1451 instrs
   608 r46 <- Void
   609 r46 <- Get(r14)
   610 r47 <- CArg { value: r45, next_arg: None }
-  611 r48 <- Const { value: 4199136, size: 8 }
+  611 r48: TypeID(340439v1) <- Const { value: 4199136, size: 8 }
   612 r47 <- Call { callee: r48, first_arg: Some(r47) }
   613 r2 <- Undefined
   614 r3 <- Undefined
@@ -1106,7 +1106,7 @@ program  1451 instrs
   647 r51 <- CArg { value: r47, next_arg: None }
   648 r51 <- CArg { value: r46, next_arg: Some(r51) }
   649 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  650 r52 <- Const { value: 4199232, size: 8 }
+  650 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
   651 r51 <- Call { callee: r52, first_arg: Some(r51) }
   652 r2 <- Undefined
   653 r3 <- Undefined
@@ -1170,7 +1170,7 @@ program  1451 instrs
   701 r51 <- CArg { value: r47, next_arg: None }
   702 r51 <- CArg { value: r46, next_arg: Some(r51) }
   703 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  704 r52 <- Const { value: 4199232, size: 8 }
+  704 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
   705 r51 <- Call { callee: r52, first_arg: Some(r51) }
   706 r2 <- Undefined
   707 r3 <- Undefined
@@ -1286,7 +1286,7 @@ program  1451 instrs
   797 r48 <- Part { src: r48, offset: 0, size: 4 }
   798 r49 <- CArg { value: r46, next_arg: None }
   799 r49 <- CArg { value: r45, next_arg: Some(r49) }
-  800 r50 <- Const { value: 4199040, size: 8 }
+  800 r50: TypeID(340441v1) <- Const { value: 4199040, size: 8 }
   801 r49 <- Call { callee: r50, first_arg: Some(r49) }
   802 r2 <- Undefined
   803 r3 <- Undefined
@@ -1406,7 +1406,7 @@ program  1451 instrs
   898 r48 <- CArg { value: r47, next_arg: None }
   899 r48 <- CArg { value: r46, next_arg: Some(r48) }
   900 r48 <- CArg { value: r45, next_arg: Some(r48) }
-  901 r49 <- Const { value: 6451424, size: 8 }
+  901 r49: TypeID(340431v1) <- Const { value: 6451424, size: 8 }
   902 r48 <- Call { callee: r49, first_arg: Some(r48) }
   903 r2 <- Undefined
   904 r3 <- Undefined
@@ -1653,7 +1653,7 @@ program  1451 instrs
  1102 r51 <- CArg { value: r47, next_arg: None }
  1103 r51 <- CArg { value: r46, next_arg: Some(r51) }
  1104 r51 <- CArg { value: r45, next_arg: Some(r51) }
- 1105 r52 <- Const { value: 4199232, size: 8 }
+ 1105 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
  1106 r51 <- Call { callee: r52, first_arg: Some(r51) }
  1107 r2 <- Undefined
  1108 r3 <- Undefined
@@ -1700,7 +1700,7 @@ program  1451 instrs
  1143 r51 <- CArg { value: r47, next_arg: None }
  1144 r51 <- CArg { value: r46, next_arg: Some(r51) }
  1145 r51 <- CArg { value: r45, next_arg: Some(r51) }
- 1146 r52 <- Const { value: 4199232, size: 8 }
+ 1146 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
  1147 r51 <- Call { callee: r52, first_arg: Some(r51) }
  1148 r2 <- Undefined
  1149 r3 <- Undefined
@@ -1785,7 +1785,7 @@ program  1451 instrs
 0x5de350:
  1214 r14 <- Get(r24)
 0x5de353:
- 1215 r46 <- Const { value: 4199136, size: 8 }
+ 1215 r46: TypeID(358626v1) <- Const { value: 4199136, size: 8 }
  1216 r45 <- Call { callee: r46, first_arg: None }
  1217 r2 <- Undefined
  1218 r3 <- Undefined
@@ -1879,7 +1879,7 @@ program  1451 instrs
  1291 r51 <- CArg { value: r47, next_arg: None }
  1292 r51 <- CArg { value: r46, next_arg: Some(r51) }
  1293 r51 <- CArg { value: r45, next_arg: Some(r51) }
- 1294 r52 <- Const { value: 4199232, size: 8 }
+ 1294 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
  1295 r51 <- Call { callee: r52, first_arg: Some(r51) }
  1296 r2 <- Undefined
  1297 r3 <- Undefined
@@ -1935,7 +1935,7 @@ program  1451 instrs
  1339 r51 <- CArg { value: r47, next_arg: None }
  1340 r51 <- CArg { value: r46, next_arg: Some(r51) }
  1341 r51 <- CArg { value: r45, next_arg: Some(r51) }
- 1342 r52 <- Const { value: 4199232, size: 8 }
+ 1342 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
  1343 r51 <- Call { callee: r52, first_arg: Some(r51) }
  1344 r2 <- Undefined
  1345 r3 <- Undefined
@@ -1995,7 +1995,7 @@ program  1451 instrs
  1390 r51 <- CArg { value: r47, next_arg: None }
  1391 r51 <- CArg { value: r46, next_arg: Some(r51) }
  1392 r51 <- CArg { value: r45, next_arg: Some(r51) }
- 1393 r52 <- Const { value: 4199232, size: 8 }
+ 1393 r52: TypeID(340435v1) <- Const { value: 4199232, size: 8 }
  1394 r51 <- Call { callee: r52, first_arg: Some(r51) }
  1395 r2 <- Undefined
  1396 r3 <- Undefined
@@ -2037,7 +2037,7 @@ program  1451 instrs
 0x5de404:
  1426 r14 <- Get(r27)
 0x5de407:
- 1427 r46 <- Const { value: 4199136, size: 8 }
+ 1427 r46: TypeID(358626v1) <- Const { value: 4199136, size: 8 }
  1428 r45 <- Call { callee: r46, first_arg: None }
  1429 r2 <- Undefined
  1430 r3 <- Undefined

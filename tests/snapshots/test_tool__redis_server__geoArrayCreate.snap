@@ -98,7 +98,7 @@ program  113 instrs
    72 r46 <- Void
    73 r46 <- Get(r14)
    74 r47 <- CArg { value: r45, next_arg: None }
-   75 r48 <- Const { value: 4433936, size: 8 }
+   75 r48: TypeID(107947v1) <- Const { value: 4433936, size: 8 }
    76 r47 <- Call { callee: r48, first_arg: Some(r47) }
    77 r2 <- Undefined
    78 r3 <- Undefined
