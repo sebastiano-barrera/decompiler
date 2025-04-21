@@ -115,6 +115,7 @@ ssa program  72 instrs
 
 
 T0: {
-  Ret (pre:arg0)
+  Ret (pre:arg0);
+  
   end
 }

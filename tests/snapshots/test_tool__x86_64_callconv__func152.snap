@@ -164,8 +164,11 @@ ssa program  91 instrs
 
 
 T0: {
-  [pre:RSP + 8] <- pre:arg5[8 .. 0];
-  [pre:RSP + 16] <- pre:arg5[16 .. 8];
-  Ret ([pre:RSP + 50]:1)
+  [pre:RSP + 8] <- pre:arg5[8 .. 0];;
+  
+  [pre:RSP + 16] <- pre:arg5[16 .. 8];;
+  
+  Ret ([pre:RSP + 50]:1);
+  
   end
 }

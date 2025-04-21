@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Ast<'a> {
     ssa: &'a ssa::Program,
-    let_printed: HashSet<Reg>,
+    printed: HashSet<Reg>,
     is_named: ssa::RegMap<bool>,
 
     block_printed: cfg::BlockMap<bool>,
@@ -31,7 +31,7 @@ impl<'a> Ast<'a> {
 
         Ast {
             ssa,
-            let_printed: HashSet::new(),
+            printed: HashSet::new(),
             is_named,
             block_printed: cfg::BlockMap::new(ssa.cfg(), false),
         }
@@ -73,12 +73,9 @@ impl<'a> Ast<'a> {
         let block_cont = cfg.block_cont(bid);
 
         let block_effects = self.ssa.block_effects(bid);
-        for (ndx, reg) in block_effects.iter().enumerate() {
-            if ndx > 0 {
-                writeln!(pp)?;
-            }
-            self.pp_labeled_inputs(pp, *reg)?;
-            self.pp_def(pp, *reg, 0)?;
+        for reg in block_effects.iter() {
+            self.pp_input_let_stmts(pp, *reg)?;
+            self.pp_stmt(pp, *reg)?;
         }
 
         match block_cont {
@@ -87,7 +84,6 @@ impl<'a> Ast<'a> {
                 // all done!
             }
             cfg::BlockCont::Jmp(tgt) => {
-                writeln!(pp)?;
                 self.pp_continuation(pp, bid, tgt)?;
             }
             cfg::BlockCont::Alt {
@@ -111,7 +107,6 @@ impl<'a> Ast<'a> {
 
         for &child in cfg.dom_tree().children_of(bid) {
             if cfg.block_preds(child).len() > 1 {
-                writeln!(pp)?;
                 self.pp_block_labeled(pp, child)?;
             }
         }
@@ -143,24 +138,54 @@ impl<'a> Ast<'a> {
     /// that were already printed in the past are not printed again.
     ///
     /// This function does NOT print reg or the instruction defining reg.
-    fn pp_labeled_inputs<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
+    fn pp_input_let_stmts<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
         let mut insn = self.ssa[reg].get();
+
         for &mut input in insn.input_regs_iter() {
-            self.pp_labeled_inputs(pp, input)?;
-            if self.is_named(input) && !self.let_printed.contains(&input) {
-                self.let_printed.insert(input);
-
-                let input_rt = self.ssa.reg_type(input);
-
-                if let Insn::Phi = self.ssa[input].get() {
-                    write!(pp, "let mut r{}: {:?}", input.reg_index(), input_rt)?;
-                } else {
-                    write!(pp, "let r{}: {:?} = ", input.reg_index(), input_rt)?;
-                    self.pp_def(pp, input, 0)?;
-                }
-                writeln!(pp, ";")?;
+            self.pp_input_let_stmts(pp, input)?;
+            if self.is_named(input) {
+                // named inputs get their name assigned to a `let x = ...`
+                self.pp_stmt(pp, input)?;
+            } else {
+                // unnamed inputs will be printed inline in their only user's definition
             }
         }
+
+        Ok(())
+    }
+
+    /// Prints a single "statement line" in a block.
+    ///
+    /// Named instructions are wrapped in a `let x = ...;`.
+    fn pp_stmt<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
+        // NOTE unlike pp_def, this function is called only when printing the
+        // "toplevel" definition of a named or effectful instruction;
+        //
+        // This is called by pp_labeled_inputs
+
+        if self.printed.contains(&reg) {
+            return Ok(());
+        }
+        self.printed.insert(reg);
+
+        let reg_type = self.ssa.reg_type(reg);
+        let should_print_semicolon = if self.is_named(reg) && reg_type != mil::RegType::MemoryEffect
+        {
+            if let Insn::Phi = self.ssa[reg].get() {
+                write!(pp, "let mut r{}: {:?}", reg.reg_index(), reg_type)?;
+                true
+            } else {
+                write!(pp, "let r{}: {:?} = ", reg.reg_index(), reg_type)?;
+                self.pp_def(pp, reg, 0)?
+            }
+        } else {
+            self.pp_def(pp, reg, 0)?
+        };
+
+        if should_print_semicolon {
+            write!(pp, ";\n")?;
+        }
+
         Ok(())
     }
 
@@ -174,7 +199,7 @@ impl<'a> Ast<'a> {
         pp: &mut W,
         reg: Reg,
         parent_prec: u8,
-    ) -> std::io::Result<()> {
+    ) -> std::io::Result<bool> {
         // NOTE this function is called in both cases:
         //  - printing the "toplevel" definition of a named or effectful instruction;
         //  - printing an instruction definition inline as part of the 1 dependent instruction
@@ -187,7 +212,7 @@ impl<'a> Ast<'a> {
         }
         if let Insn::Jmp(_) = insn {
             // hidden, handled by pp_block
-            return Ok(());
+            return Ok(false);
         }
 
         let self_prec = precedence(&insn);
@@ -309,7 +334,6 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, value, self_prec)?;
                 pp.close_box();
                 pp.close_box();
-                write!(pp, ";")?;
             }
             Insn::OverflowOf(_) => {
                 self.pp_def_default(pp, "OverflowOf".into(), insn.input_regs(), self_prec)?;
@@ -357,7 +381,6 @@ impl<'a> Ast<'a> {
                     pp.open_box();
                     self.pp_def(pp, value, 0)?;
                     pp.close_box();
-                    write!(pp, ";")?;
                 }
                 // `value` doesn't need to be printed here, as it's already been
                 // printed (has side effect) and the target phi register's value
@@ -372,7 +395,7 @@ impl<'a> Ast<'a> {
         if self_prec < parent_prec {
             write!(pp, ")")?;
         }
-        Ok(())
+        Ok(true)
     }
 
     fn pp_bin_op<W: PP + ?Sized>(
@@ -456,13 +479,15 @@ impl<'a> Ast<'a> {
     ) -> std::io::Result<()> {
         if self.is_named(arg) {
             assert!(
-                self.let_printed.contains(&arg),
+                self.printed.contains(&arg),
                 "arg needs let but not yet printed: {:?}",
                 arg
             );
             write!(pp, "r{}", arg.reg_index())
         } else {
-            self.pp_def(pp, arg, parent_prec)
+            let anything_printed = self.pp_def(pp, arg, parent_prec)?;
+            assert!(anything_printed);
+            Ok(())
         }
     }
 }

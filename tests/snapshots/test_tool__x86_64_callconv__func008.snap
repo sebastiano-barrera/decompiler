@@ -120,6 +120,7 @@ ssa program  75 instrs
 
 
 T0: {
-  Ret (pre:arg0[8 .. 0])
+  Ret (pre:arg0[8 .. 0]);
+  
   end
 }

@@ -247,24 +247,33 @@ ssa program  122 instrs
 
 
 T0: {
-  [pre:RSP + 8] <- pre:arg0[8 .. 0];
-  [pre:RSP + 16] <- pre:arg0[16 .. 8];
-  [pre:RSP + 24] <- pre:arg0[24 .. 16];
-  r116 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
-  r117 := pre:RSP + 8;
+  [pre:RSP + 8] <- pre:arg0[8 .. 0];;
+  
+  [pre:RSP + 16] <- pre:arg0[16 .. 8];;
+  
+  [pre:RSP + 24] <- pre:arg0[24 .. 16];;
+  
+  r116 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);;
+  
+  r117 := pre:RSP + 8;;
+  
   goto T1
   
   T1: {
     let mut r117: Bytes(8);
     let r101: Bytes(8) = [r117 + 16]:8;
-    r117 := [r117 + 16]:8;
+    r117 := [r117 + 16]:8;;
+    
     let mut r116: Bytes(8);
     let r90: Bytes(4) = r116[4 .. 0] + 1;
-    r116 := r116[8 .. 4] ++ r90;
-    if ! ((IsZero (r101))) {
+    r116 := r116[8 .. 4] ++ r90;;
+    
+    if ! ((IsZero (r101)));
+     {
       goto T1
     }
-    Ret (r90)
+    Ret (r90);
+    
     end
   }
 

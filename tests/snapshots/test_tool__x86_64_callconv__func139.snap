@@ -193,10 +193,15 @@ ssa program  112 instrs
 
 
 T0: {
-  [pre:RSP + 8] <- pre:arg5[8 .. 0];
-  [pre:RSP + 16] <- pre:arg5[16 .. 8];
-  [pre:RSP + 24] <- pre:arg6[8 .. 0];
-  [pre:RSP + 32] <- pre:arg6[16 .. 8];
-  Ret (pre:arg6[16 .. 8] ++ pre:arg6[8 .. 0])
+  [pre:RSP + 8] <- pre:arg5[8 .. 0];;
+  
+  [pre:RSP + 16] <- pre:arg5[16 .. 8];;
+  
+  [pre:RSP + 24] <- pre:arg6[8 .. 0];;
+  
+  [pre:RSP + 32] <- pre:arg6[16 .. 8];;
+  
+  Ret (pre:arg6[16 .. 8] ++ pre:arg6[8 .. 0]);
+  
   end
 }

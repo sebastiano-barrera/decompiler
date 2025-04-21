@@ -123,6 +123,7 @@ ssa program  73 instrs
 
 
 T0: {
-  Ret ([pre:RSP + 24]:8)
+  Ret ([pre:RSP + 24]:8);
+  
   end
 }

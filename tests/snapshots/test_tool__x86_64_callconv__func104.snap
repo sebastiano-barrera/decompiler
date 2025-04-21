@@ -146,6 +146,7 @@ ssa program  87 instrs
 
 
 T0: {
-  Ret ([pre:RSP + 16]:8)
+  Ret ([pre:RSP + 16]:8);
+  
   end
 }

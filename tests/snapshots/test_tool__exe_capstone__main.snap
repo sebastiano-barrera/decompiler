@@ -862,29 +862,23 @@ T0: {
   cs_open(pre:RDI[8 .. 4] ++ 3,
           pre:RSI[8 .. 4] ++ 8,
           r78,
-          pre:RCX)
-  if ! ((IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0]))) {
-    
+          pre:RCX);
+  if ! ((IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0])));
+   {
     r390 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] | -1);
     goto T6
   }
   let r140: Bytes(4) = pre:RSI[8 .. 4];
   let r122: Bytes(4) = pre:R8[4 .. 0];
-  cs_disasm(4203184,
-            r140,
-            r78[1 .. 0],
-            r122,
-            pre:R8[8 .. 4],
-            (pre:R8[4 .. 0] ^ r122)[1 .. 0])
   let r167: Bytes(8) = cs_disasm(4203184,
                                  r140,
                                  r78[1 .. 0],
                                  r122,
                                  pre:R8[8 .. 4],
                                  (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
-  if IsZero (r167) {
-    __builtin_puts()
-    
+  if IsZero (r167);
+   {
+    __builtin_puts();
     r386 := r140 ++ 4203184;
     r387 := cs_disasm(4203184,
                       r140,
@@ -902,16 +896,14 @@ T0: {
                     r122,
                     pre:R8[8 .. 4],
                     (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
-  let r76: MemoryEffect = [pre:RSP - 24] <- pre:RBX;;
   r384 := [pre:RSP - 40]:8;
   r385 := pre:RBX[8 .. 4] ++ (pre:RBX[4 .. 0] ^ pre:RBX[4 .. 0]);
   goto T3
-  
   T3: {
     let mut r385: Bytes(8);
     let r234: Bytes(8) = [pre:RSP - 32]:8 + (r385 << 5 as u64 - r385) * 8;
     let r244: Bytes(8) = r234 + 42;
-    printf(r244)
+    printf(r244);
     let r223: Bytes(8) = r385 + 1;
     r385 := r385 + 1;
     let mut r383: Bytes(8);
@@ -919,19 +911,19 @@ T0: {
     r383 := r383 - r223;
     let mut r384: Bytes(8);
     r384 := r384[8 .. 4] ++ 4203193;
-    if ! ((IsZero (r273))) {
+    if ! ((IsZero (r273)));
+     {
       goto T3
     }
     let r283: Bytes(8) = pre:RSP - 32;
     cs_free([r283]:8,
-            r283)
+            r283);
     r386 := r383 - r223;
     r387 := printf(r244);
     r388 := r234 + 74;
     r389 := r234 + 42;
     goto T5
   }
-  
   
   T5: {
     let mut r386: Bytes(8);
@@ -940,16 +932,15 @@ T0: {
     cs_close(r78,
              r386,
              r389,
-             r388)
+             r388);
     let mut r387: Bytes(8);
     r390 := r387[8 .. 4] ++ (r387[4 .. 0] ^ r387[4 .. 0]);
     goto T6
   }
   
-  
   T6: {
     let mut r390: Bytes(8);
-    Ret (r390[4 .. 0])
+    Ret (r390[4 .. 0]);
     end
   }
 

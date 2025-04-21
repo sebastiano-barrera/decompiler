@@ -135,6 +135,7 @@ ssa program  84 instrs
 
 
 T0: {
-  Ret (pre:arg3)
+  Ret (pre:arg3);
+  
   end
 }

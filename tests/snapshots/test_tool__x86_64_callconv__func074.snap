@@ -132,6 +132,7 @@ ssa program  84 instrs
 
 
 T0: {
-  Ret (pre:arg3[8 .. 0])
+  Ret (pre:arg3[8 .. 0]);
+  
   end
 }

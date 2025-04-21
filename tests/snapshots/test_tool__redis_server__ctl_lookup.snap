@@ -3653,55 +3653,81 @@ ssa program  1658 instrs
 
 
 T0: {
-  [pre:RSP - 8] <- pre:R15;
-  [pre:RSP - 16] <- pre:R14;
-  [pre:RSP - 24] <- pre:R13;
-  [pre:RSP - 32] <- pre:R12;
-  [pre:RSP - 40] <- pre:RBP;
-  [pre:RSP - 48] <- pre:RBX;
-  [pre:RSP - 72] <- pre:RDI;
-  [pre:RSP - 104] <- pre:R8;
-  [pre:RSP - 136] <- pre:RDX;
+  [pre:RSP - 8] <- pre:R15;;
+  
+  [pre:RSP - 16] <- pre:R14;;
+  
+  [pre:RSP - 24] <- pre:R13;;
+  
+  [pre:RSP - 32] <- pre:R12;;
+  
+  [pre:RSP - 40] <- pre:RBP;;
+  
+  [pre:RSP - 48] <- pre:RBX;;
+  
+  [pre:RSP - 72] <- pre:RDI;;
+  
+  [pre:RSP - 104] <- pre:R8;;
+  
+  [pre:RSP - 136] <- pre:RDX;;
+  
   let r102: Bytes(8) = pre:RSP - 112;
-  [r102] <- pre:R9;
-  strchr(46,
-         r102)
+  let r103: MemoryEffect = [r102] <- pre:R9;;
+  
   let r114: Bytes(8) = strchr(46,
                               r102);
+  
   r1451 := strchr(46,
-                  r102);
-  if IsZero (r114) {
-    __builtin_strlen()
+                  r102);;
+  
+  if IsZero (r114);
+   {
+    __builtin_strlen();
     
-    r1451 := pre:RDX + r114;
+    ;
+    
+    r1451 := pre:RDX + r114;;
+    
     goto T1
   }
   goto T1
   
   T1: {
-    let r103: MemoryEffect = [r102] <- pre:R9;;
+    ;
     
-    r1485 := pre:RDX;
+    r1485 := pre:RDX;;
+    
     let mut r1451: Bytes(8);
     let r139: Bytes(8) = r1451 - pre:RDX;
-    if IsZero (r139) {
+    if IsZero (r139);
+     {
       goto T41
     }
-    if IsZero ([pre:R9]:8) {
+    if IsZero ([pre:R9]:8);
+     {
+      ;
       
-      r1487 := pre:RCX;
+      r1487 := pre:RCX;;
+      
       goto T44
     }
-    [pre:RSP - 64] <- pre:RCX;
-    r1479 := 0;
-    r1452 := pre:RSI;
     let r181: MemoryEffect = [pre:RSP - 64] <- pre:RCX;;
     
-    r1476 := pre:RSI[8 .. 4] ++ 46;
-    r1477 := phi ();
+    r1479 := 0;;
+    
+    r1452 := pre:RSI;;
+    
+    ;
+    
+    r1476 := pre:RSI[8 .. 4] ++ 46;;
+    
+    r1477 := phi ();;
+    
+    ;
     
     let r166: Bytes(8) = [pre:RSI + 24]:8;
-    if IsZero ([r166]:1) {
+    if IsZero ([r166]:1);
+     {
       goto T30
     }
     goto T4
@@ -3710,71 +3736,102 @@ T0: {
       let mut r1453: MemoryEffect;
       let mut r1452: Bytes(8);
       let r196: Bytes(8) = [r1452 + 16]:8;
-      [pre:RSP - 120] <- r196;
       let r200: MemoryEffect = [pre:RSP - 120] <- r196;;
       
-      r1485 := pre:RDX;
-      if IsZero (r196) {
+      ;
+      
+      r1485 := pre:RDX;;
+      
+      if IsZero (r196);
+       {
         goto T41
       }
+      ;
       
-      r1462 := phi ();
-      r1463 := [pre:RSI + 24]:8;
+      r1462 := phi ();;
+      
+      r1463 := [pre:RSI + 24]:8;;
+      
       let r223: Bytes(4) = r196[4 .. 0] & 3;
-      if IsZero (r223) {
+      if IsZero (r223);
+       {
         goto T14
       }
+      ;
       
-      r1458 := phi ();
-      r1459 := [pre:RSI + 24]:8;
+      r1458 := phi ();;
+      
+      r1459 := [pre:RSI + 24]:8;;
+      
       let r225: Bytes(8) = r196[8 .. 4] ++ r223;
-      if IsZero (r225 - 1) {
+      if IsZero (r225 - 1);
+       {
         goto T12
       }
+      ;
       
-      r1455 := phi ();
-      r1456 := [pre:RSI + 24]:8;
-      if IsZero (r225 - 3) {
+      r1455 := phi ();;
+      
+      r1456 := [pre:RSI + 24]:8;;
+      
+      if IsZero (r225 - 3);
+       {
         goto T10
       }
-      [pre:RSP - 88] <- r1451;
-      [pre:RSP - 96] <- r166;
+      [pre:RSP - 88] <- r1451;;
+      
+      [pre:RSP - 96] <- r166;;
+      
       let r253: Bytes(8) = [r166 + 8]:8;
-      [pre:RSP - 128] <- r253;
-      strlen(r253)
-      r1454 := [pre:RSI + 24]:8;
+      let r265: MemoryEffect = [pre:RSP - 128] <- r253;;
+      
+      strlen(r253);
+      
+      r1454 := [pre:RSI + 24]:8;;
+      
       let r291: Bytes(8) = strlen(r253) - r139;
-      if IsZero (r291) {
-        let r265: MemoryEffect = [pre:RSP - 128] <- r253;;
-        [pre:RSP - 96] <- r1451;
+      if IsZero (r291);
+       {
+        [pre:RSP - 96] <- r1451;;
+        
         let r1379: Bytes(8) = pre:RSP - 128;
-        [r1379] <- r166;
-        strncmp([pre:RSP - 136]:8,
-                r1379,
-                r291[1 .. 0])
-        r1454 := [pre:RSI + 24]:8;
+        [r1379] <- r166;;
+        
         let r1394: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                       r1379,
                                       r291[1 .. 0]);
-        if ! ((IsZero (r1394[4 .. 0] & r1394[4 .. 0]))) {
+        
+        r1454 := [pre:RSI + 24]:8;;
+        
+        if ! ((IsZero (r1394[4 .. 0] & r1394[4 .. 0])));
+         {
           goto T9
         }
+        ;
         
         let r214: Bytes(8) = pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);
-        r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);
-        r1471 := [pre:RSI + 24]:8;
-        r1472 := phi ();
+        r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);;
+        
+        r1471 := [pre:RSI + 24]:8;;
+        
+        r1472 := phi ();;
+        
         let r172: Bytes(8) = pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);
-        r1473 := pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);
+        r1473 := pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);;
+        
+        ;
         
         goto T24
       }
       goto T9
       
       T9: {
-        r1455 := phi ();
+        r1455 := phi ();;
+        
         let mut r1454: Bytes(8);
-        r1456 := r1454 + 40;
+        r1456 := r1454 + 40;;
+        
+        ;
         
         goto T10
       }
@@ -3783,38 +3840,50 @@ T0: {
       T10: {
         let mut r1457: MemoryEffect;
         let mut r1455: Bytes(8);
-        [pre:RSP - 96] <- r1455;
+        [pre:RSP - 96] <- r1455;;
+        
         let mut r1456: Bytes(8);
         let r307: Bytes(8) = [r1456 + 8]:8;
-        [pre:RSP - 128] <- r307;
-        strlen(r307)
+        let r316: MemoryEffect = [pre:RSP - 128] <- r307;;
+        
+        strlen(r307);
+        
         let r341: Bytes(8) = strlen(r307) - r139;
-        if IsZero (r341) {
-          let r316: MemoryEffect = [pre:RSP - 128] <- r307;;
+        if IsZero (r341);
+         {
           let r1328: Bytes(8) = pre:RSP - 128;
-          [r1328] <- r1455;
-          strncmp([pre:RSP - 136]:8,
-                  r1328,
-                  r341[1 .. 0])
+          [r1328] <- r1455;;
+          
           let r1343: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                         r1328,
                                         r341[1 .. 0]);
-          if ! ((IsZero (r1343[4 .. 0] & r1343[4 .. 0]))) {
+          
+          if ! ((IsZero (r1343[4 .. 0] & r1343[4 .. 0])));
+           {
             goto T11
           }
+          ;
           
-          r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);
-          r1471 := phi ();
-          r1472 := phi ();
-          r1473 := pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);
+          r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);;
+          
+          r1471 := phi ();;
+          
+          r1472 := phi ();;
+          
+          r1473 := pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);;
+          
+          ;
           
           goto T24
         }
         goto T11
         
         T11: {
-          r1458 := phi ();
-          r1459 := r1456 + 40;
+          r1458 := phi ();;
+          
+          r1459 := r1456 + 40;;
+          
+          ;
           
           goto T12
         }
@@ -3825,33 +3894,43 @@ T0: {
       T12: {
         let mut r1460: MemoryEffect;
         let mut r1458: Bytes(8);
-        [pre:RSP - 96] <- r1458;
+        [pre:RSP - 96] <- r1458;;
+        
         let mut r1459: Bytes(8);
         let r369: Bytes(8) = [r1459 + 8]:8;
-        [pre:RSP - 128] <- r369;
-        strlen(r369)
         let r378: MemoryEffect = [pre:RSP - 128] <- r369;;
         
+        strlen(r369);
+        
+        ;
+        
         let r403: Bytes(8) = strlen(r369) - r139;
-        if IsZero (r403) {
+        if IsZero (r403);
+         {
           let r1280: Bytes(8) = pre:RSP - 128;
-          [r1280] <- r1458;
-          strncmp([pre:RSP - 136]:8,
-                  r1280,
-                  r403[1 .. 0])
           let r1281: MemoryEffect = [r1280] <- r1458;;
           
           let r1295: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                         r1280,
                                         r403[1 .. 0]);
-          if ! ((IsZero (r1295[4 .. 0] & r1295[4 .. 0]))) {
+          
+          ;
+          
+          if ! ((IsZero (r1295[4 .. 0] & r1295[4 .. 0])));
+           {
             goto T13
           }
+          ;
           
-          r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);
-          r1471 := phi ();
-          r1472 := phi ();
-          r1473 := pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);
+          r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);;
+          
+          r1471 := phi ();;
+          
+          r1472 := phi ();;
+          
+          r1473 := pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);;
+          
+          ;
           
           goto T24
         }
@@ -3859,12 +3938,18 @@ T0: {
         
         T13: {
           let mut r1461: MemoryEffect;
+          ;
           
-          r1462 := phi ();
-          r1463 := r1459 + 40;
+          r1462 := phi ();;
           
-          r1485 := strlen(r369) - r139;
-          if IsZero (r214 + 1 - [pre:RSP - 120]:8) {
+          r1463 := r1459 + 40;;
+          
+          ;
+          
+          r1485 := strlen(r369) - r139;;
+          
+          if IsZero (r214 + 1 - [pre:RSP - 120]:8);
+           {
             goto T41
           }
           goto T14
@@ -3875,61 +3960,78 @@ T0: {
       
       T14: {
         let mut r1464: MemoryEffect;
-        [pre:RSP - 80] <- r1452;
-        [pre:RSP - 96] <- r172;
+        [pre:RSP - 80] <- r1452;;
+        
+        [pre:RSP - 96] <- r172;;
+        
         let mut r1462: Bytes(8);
-        [pre:RSP - 88] <- r1462;
+        [pre:RSP - 88] <- r1462;;
+        
+        ;
         
         let mut r1463: Bytes(8);
-        r1465 := phi ();
+        r1465 := phi ();;
+        
+        ;
         
         goto T19
         
         T19: {
           let mut r1466: MemoryEffect;
           let mut r1465: Bytes(8);
-          strlen([r1465 + 8]:8)
+          strlen([r1465 + 8]:8);
+          
           let r623: Bytes(8) = strlen([r1465 + 8]:8) - r139;
-          if ! ((IsZero (r623))) {
+          if ! ((IsZero (r623)));
+           {
             goto T15
           }
           let r633: Bytes(8) = pre:RSP - 136;
-          strncmp([r633]:8,
-                  r633,
-                  r623[1 .. 0])
           let r651: Bytes(8) = strncmp([r633]:8,
                                        r633,
                                        r623[1 .. 0]);
-          if ! ((IsZero (r651[4 .. 0] & r651[4 .. 0]))) {
+          
+          if ! ((IsZero (r651[4 .. 0] & r651[4 .. 0])));
+           {
             goto T15
           }
+          ;
           
-          r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);
-          r1471 := phi ();
-          r1472 := [pre:RSP - 80]:8;
-          r1473 := [pre:RSP - 96]:8;
+          r1470 := pre:RCX[8 .. 4] ++ (pre:RCX[4 .. 0] ^ pre:RCX[4 .. 0]);;
+          
+          r1471 := phi ();;
+          
+          r1472 := [pre:RSP - 80]:8;;
+          
+          r1473 := [pre:RSP - 96]:8;;
+          
+          ;
           
           goto T24
           
           T15: {
-            [pre:RSP - 128] <- [r1465 + 48]:8;
+            let r468: MemoryEffect = [pre:RSP - 128] <- [r1465 + 48]:8;;
+            
             let r460: Bytes(8) = r214 + 1;
-            strlen(r460)
+            strlen(r460);
+            
             let r489: Bytes(8) = strlen(r460) - r139;
-            if IsZero (r489) {
-              let r468: MemoryEffect = [pre:RSP - 128] <- [r1465 + 48]:8;;
+            if IsZero (r489);
+             {
               let r688: Bytes(8) = pre:RSP - 136;
-              strncmp([r688]:8,
-                      r688,
-                      r489[1 .. 0])
-              
-              let r457: Bytes(8) = r1465 + 40;
-              r1467 := r1465 + 40;
-              r1468 := r1465 + 40;
               let r705: Bytes(8) = strncmp([r688]:8,
                                            r688,
                                            r489[1 .. 0]);
-              if ! ((IsZero (r705[4 .. 0] & r705[4 .. 0]))) {
+              
+              ;
+              
+              let r457: Bytes(8) = r1465 + 40;
+              r1467 := r1465 + 40;;
+              
+              r1468 := r1465 + 40;;
+              
+              if ! ((IsZero (r705[4 .. 0] & r705[4 .. 0])));
+               {
                 goto T16
               }
               goto T23
@@ -3937,61 +4039,76 @@ T0: {
             goto T16
             
             T16: {
-              [pre:RSP - 128] <- [r1465 + 88]:8;
-              strlen((r214 + 2))
+              let r511: MemoryEffect = [pre:RSP - 128] <- [r1465 + 88]:8;;
+              
+              strlen((r214 + 2));
+              
               let r532: Bytes(8) = strlen((r214 + 2)) - r139;
-              if IsZero (r532) {
-                let r511: MemoryEffect = [pre:RSP - 128] <- [r1465 + 88]:8;;
+              if IsZero (r532);
+               {
                 let r1089: Bytes(8) = pre:RSP - 136;
-                strncmp([r1089]:8,
-                        r1089,
-                        r532[1 .. 0])
                 let r1106: Bytes(8) = strncmp([r1089]:8,
                                               r1089,
                                               r532[1 .. 0]);
-                if ! ((IsZero (r1106[4 .. 0] & r1106[4 .. 0]))) {
+                
+                if ! ((IsZero (r1106[4 .. 0] & r1106[4 .. 0])));
+                 {
                   goto T17
                 }
+                ;
                 
                 let r502: Bytes(8) = r1465 + 80;
-                r1467 := r1465 + 80;
-                r1468 := r1465 + 80;
+                r1467 := r1465 + 80;;
+                
+                r1468 := r1465 + 80;;
+                
+                ;
                 
                 goto T23
               }
               goto T17
               
               T17: {
-                [pre:RSP - 128] <- [r1465 + 128]:8;
-                strlen((r214 + 3))
+                let r554: MemoryEffect = [pre:RSP - 128] <- [r1465 + 128]:8;;
+                
+                strlen((r214 + 3));
+                
                 let r575: Bytes(8) = strlen((r214 + 3)) - r139;
-                if IsZero (r575) {
-                  let r554: MemoryEffect = [pre:RSP - 128] <- [r1465 + 128]:8;;
+                if IsZero (r575);
+                 {
                   let r1130: Bytes(8) = pre:RSP - 136;
-                  strncmp([r1130]:8,
-                          r1130,
-                          r575[1 .. 0])
                   let r1147: Bytes(8) = strncmp([r1130]:8,
                                                 r1130,
                                                 r575[1 .. 0]);
-                  if ! ((IsZero (r1147[4 .. 0] & r1147[4 .. 0]))) {
+                  
+                  if ! ((IsZero (r1147[4 .. 0] & r1147[4 .. 0])));
+                   {
                     goto T18
                   }
+                  ;
                   
                   let r545: Bytes(8) = r1465 + 120;
-                  r1467 := r1465 + 120;
-                  r1468 := r1465 + 120;
+                  r1467 := r1465 + 120;;
+                  
+                  r1468 := r1465 + 120;;
+                  
+                  ;
                   
                   goto T23
                 }
                 goto T18
                 
                 T18: {
+                  ;
                   
-                  r1465 := r1465 + 160;
+                  r1465 := r1465 + 160;;
                   
-                  r1485 := strlen((r214 + 3)) - r139;
-                  if IsZero (r214 + 4 - [pre:RSP - 120]:8) {
+                  ;
+                  
+                  r1485 := strlen((r214 + 3)) - r139;;
+                  
+                  if IsZero (r214 + 4 - [pre:RSP - 120]:8);
+                   {
                     goto T41
                   }
                   loop T19
@@ -4003,12 +4120,17 @@ T0: {
             
             
             T23: {
-              r1470 := r214 + 1;
+              r1470 := r214 + 1;;
+              
               let mut r1468: Bytes(8);
-              r1471 := phi ();
+              r1471 := phi ();;
+              
               let mut r1469: MemoryEffect;
-              r1472 := [pre:RSP - 80]:8;
-              r1473 := [pre:RSP - 96]:8;
+              r1472 := [pre:RSP - 80]:8;;
+              
+              r1473 := [pre:RSP - 96]:8;;
+              
+              ;
               
               goto T24
             }
@@ -4024,20 +4146,28 @@ T0: {
         let mut r1474: MemoryEffect;
         let mut r1473: Bytes(8);
         let mut r1470: Bytes(8);
-        [[pre:RSP - 104]:8 + r1473 * 8] <- r1470;
         let r749: MemoryEffect = [[pre:RSP - 104]:8 + r1473 * 8] <- r1470;;
         
-        r1485 := pre:RDX;
+        ;
+        
+        r1485 := pre:RDX;;
+        
         let mut r1471: Bytes(8);
         let mut r1472: Bytes(8);
-        if IsZero (r1471 - r1472) {
+        if IsZero (r1471 - r1472);
+         {
           goto T41
         }
-        TODO /* unsupported: movzx edi,byte ptr [r8] */
+        TODO /* unsupported: movzx edi,byte ptr [r8] */;
         
-        r1475 := pre:RDX;
-        r1480 := pre:RDX;
-        if ! ((IsZero ([pre:R13 + 32]:8))) {
+        ;
+        
+        r1475 := pre:RDX;;
+        
+        r1480 := pre:RDX;;
+        
+        if ! ((IsZero ([pre:R13 + 32]:8)));
+         {
           goto T33
         }
         goto T26
@@ -4048,39 +4178,52 @@ T0: {
     
     T26: {
       let mut r1475: Bytes(8);
-      if IsZero (r1475[1 .. 0] & r1475[1 .. 0]) {
+      if IsZero (r1475[1 .. 0] & r1475[1 .. 0]);
+       {
+        ;
         
-        r1482 := pre:RCX;
+        r1482 := pre:RCX;;
+        
         goto T34
       }
       let r789: Bytes(8) = pre:RSP - 136;
-      [r789] <- r1451 + 1;
-      strchr(46,
-             r789)
+      let r790: MemoryEffect = [r789] <- r1451 + 1;;
+      
       let r801: Bytes(8) = strchr(46,
                                   r789);
-      if IsZero (r801) {
-        __builtin_strlen()
-        let r790: MemoryEffect = [r789] <- r1451 + 1;;
-        if CarryOf (r172 + 1 - [pre:R9]:8) {
+      
+      if IsZero (r801);
+       {
+        __builtin_strlen();
+        
+        if CarryOf (r172 + 1 - [pre:R9]:8);
+         {
           goto T29
         }
         goto T43
       }
-      if ! ((CarryOf (r172 + 1 - [pre:R9]:8))) {
+      if ! ((CarryOf (r172 + 1 - [pre:R9]:8)));
+       {
         goto T43
       }
       goto T29
       
       T29: {
+        ;
         
-        r1476 := pre:RSI[8 .. 4] ++ 46;
+        r1476 := pre:RSI[8 .. 4] ++ 46;;
+        
         r1477 := strchr(46,
-                        r789);
+                        r789);;
         
-        r1479 := 0;
-        r1452 := pre:R13;
-        if ! ((IsZero ([[pre:R13 + 24]:8]:1))) {
+        ;
+        
+        r1479 := 0;;
+        
+        r1452 := pre:R13;;
+        
+        if ! ((IsZero ([[pre:R13 + 24]:8]:1)));
+         {
           goto T4
         }
         goto T30
@@ -4088,7 +4231,8 @@ T0: {
       
       
       T43: {
-        r1487 := pre:RCX;
+        r1487 := pre:RCX;;
+        
         goto T44
       }
     
@@ -4099,44 +4243,56 @@ T0: {
       let mut r1478: MemoryEffect;
       let r896: Bytes(8) = pre:RSP - 128;
       let mut r1477: Bytes(8);
-      [r896] <- r1477;
-      let mut r1479: Bytes(1);
-      je_malloc_strtoumax(10,
-                          r896,
-                          r1479)
       let r897: MemoryEffect = [r896] <- r1477;;
       
+      let mut r1479: Bytes(1);
       let r902: Bytes(8) = je_malloc_strtoumax(10,
                                                r896,
                                                r1479);
+      
+      ;
+      
       let r918: Bytes(8) = r902 + 1;
-      r1485 := r902 + 1;
-      if IsZero (r918) {
+      r1485 := r902 + 1;;
+      
+      if IsZero (r918);
+       {
         goto T41
       }
-      [pre:RSP - 136] <- r1477;
       let r933: MemoryEffect = [pre:RSP - 136] <- r1477;;
+      
       let r929: Bytes(8) = [pre:RSI + 24]:8;
       if ! ((IsZero ([r929]:1))){
         goto 0x403143
-      }
+      };
+      
       let r957: Bytes(8) = [pre:RSP - 72]:8;
       let r953: Bytes(8) = [pre:RSP - 104]:8;
       [[r929 + 8]:8]:8(r957,
                        r953,
                        [[pre:RSP - 112]:8]:8,
-                       r918)
+                       r918);
       
-      r1485 := r902 + 1;
-      if IsZero (r918) {
+      ;
+      
+      r1485 := r902 + 1;;
+      
+      if IsZero (r918);
+       {
         goto T41
       }
-      [r953 + r172 * 8] <- r918;
-      TODO /* unsupported: movzx edi,byte ptr [r8] */
-      r1475 := [pre:RSP - 72]:8;
-      r1480 := [pre:RSP - 72]:8;
+      [r953 + r172 * 8] <- r918;;
       
-      if IsZero ([r902 + 33]:8) {
+      TODO /* unsupported: movzx edi,byte ptr [r8] */;
+      
+      r1475 := [pre:RSP - 72]:8;;
+      
+      r1480 := [pre:RSP - 72]:8;;
+      
+      ;
+      
+      if IsZero ([r902 + 33]:8);
+       {
         goto T26
       }
       goto T33
@@ -4145,11 +4301,15 @@ T0: {
     
     T33: {
       let mut r1481: MemoryEffect;
+      ;
       
-      r1482 := [pre:RSP - 64]:8;
-      r1485 := pre:RDX;
+      r1482 := [pre:RSP - 64]:8;;
+      
+      r1485 := pre:RDX;;
+      
       let mut r1480: Bytes(8);
-      if ! ((IsZero (r1480[1 .. 0] & r1480[1 .. 0]))) {
+      if ! ((IsZero (r1480[1 .. 0] & r1480[1 .. 0])));
+       {
         goto T41
       }
       goto T34
@@ -4157,11 +4317,15 @@ T0: {
     
     
     T34: {
-      [pre:R9] <- r172 + 1;
+      [pre:R9] <- r172 + 1;;
+      
+      ;
       
       let mut r1482: Bytes(8);
-      r1488 := phi ();
-      if ! ((IsZero (r1482))) {
+      r1488 := phi ();;
+      
+      if ! ((IsZero (r1482)));
+       {
         goto T45
       }
       goto T35
@@ -4169,7 +4333,9 @@ T0: {
     
     
     T35: {
-      r1483 := pre:RDX[8 .. 4] ++ (pre:RDX[4 .. 0] ^ pre:RDX[4 .. 0]);
+      r1483 := pre:RDX[8 .. 4] ++ (pre:RDX[4 .. 0] ^ pre:RDX[4 .. 0]);;
+      
+      ;
       
       goto T36
     }
@@ -4177,16 +4343,20 @@ T0: {
     
     T36: {
       let mut r1483: Bytes(8);
-      Ret (r1483)
+      Ret (r1483);
+      
       goto T55
     }
     
     
     T44: {
+      ;
       
       let mut r1487: Bytes(8);
-      r1488 := phi ();
-      if IsZero (r1487) {
+      r1488 := phi ();;
+      
+      if IsZero (r1487);
+       {
         goto T35
       }
       goto T45
@@ -4196,9 +4366,13 @@ T0: {
     T45: {
       let mut r1489: MemoryEffect;
       let mut r1488: Bytes(8);
-      [r1488] <- pre:R13;
+      [r1488] <- pre:R13;;
       
-      r1483 := pre:RDX[8 .. 4] ++ (pre:RDX[4 .. 0] ^ pre:RDX[4 .. 0]);
+      ;
+      
+      r1483 := pre:RDX[8 .. 4] ++ (pre:RDX[4 .. 0] ^ pre:RDX[4 .. 0]);;
+      
+      ;
       
       goto T36
     }
@@ -4206,7 +4380,8 @@ T0: {
     
     T41: {
       let mut r1485: Bytes(8);
-      Ret (r1485[8 .. 4] ++ 2)
+      Ret (r1485[8 .. 4] ++ 2);
+      
       goto T55
     }
     

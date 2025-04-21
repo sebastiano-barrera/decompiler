@@ -621,14 +621,22 @@ ssa program  268 instrs
 
 
 T0: {
-  [pre:RSP - 8] <- pre:RBP;
-  let r66: Bytes(8) = pre:arg0[8 .. 0];
-  [pre:RSP - 40] <- r66;
-  [pre:RSP - 32] <- pre:arg0[16 .. 8];
-  [pre:RSP - 12] <- 0;
-  [pre:RSP - 16] <- 0;
+  [pre:RSP - 8] <- pre:RBP;;
   
-  r258 := pre:arg0[8 .. 0];
+  let r66: Bytes(8) = pre:arg0[8 .. 0];
+  [pre:RSP - 40] <- r66;;
+  
+  [pre:RSP - 32] <- pre:arg0[16 .. 8];;
+  
+  [pre:RSP - 12] <- 0;;
+  
+  [pre:RSP - 16] <- 0;;
+  
+  ;
+  
+  r258 := pre:arg0[8 .. 0];;
+  
+  ;
   
   goto T5
   
@@ -636,11 +644,16 @@ T0: {
     let mut r259: MemoryEffect;
     let r227: Bytes(4) = [pre:RSP - 32]:4;
     let r234: Bytes(4) = [pre:RSP - 16]:4 - r227;
-    if ! ((SignOf (r234) EQ OverflowOf (r234))) {
-      [pre:RSP - 20] <- 0;
+    if ! ((SignOf (r234) EQ OverflowOf (r234)));
+     {
+      [pre:RSP - 20] <- 0;;
+      
+      ;
       
       let mut r258: Bytes(8);
-      r256 := r258[8 .. 4] ++ r227;
+      r256 := r258[8 .. 4] ++ r227;;
+      
+      ;
       
       goto T3
       
@@ -648,25 +661,33 @@ T0: {
         let mut r257: MemoryEffect;
         let r194: Bytes(4) = [pre:RSP - 28]:4;
         let r201: Bytes(4) = [pre:RSP - 20]:4 - r194;
-        if ! ((SignOf (r201) EQ OverflowOf (r201))) {
+        if ! ((SignOf (r201) EQ OverflowOf (r201)));
+         {
           let r151: Bytes(8) = ([pre:RSP - 20]:4 + [pre:RSP - 28]:4 * [pre:RSP - 16]:4) as i64 << 2 as u64 + [pre:RSP - 40]:8;
           let r161: Bytes(4) = [r151]:4;
-          [pre:RSP - 12] <- [pre:RSP - 12]:4 + r161;
           let r171: MemoryEffect = [pre:RSP - 12] <- [pre:RSP - 12]:4 + r161;;
-          [pre:RSP - 20] <- [pre:RSP - 20]:4 + 1;
-          r256 := r151[8 .. 4] ++ r161;
+          
+          [pre:RSP - 20] <- [pre:RSP - 20]:4 + 1;;
+          
+          r256 := r151[8 .. 4] ++ r161;;
+          
+          ;
           
           loop T3
         }
-        [pre:RSP - 16] <- [pre:RSP - 16]:4 + 1;
+        [pre:RSP - 16] <- [pre:RSP - 16]:4 + 1;;
+        
         let mut r256: Bytes(8);
-        r258 := r256[8 .. 4] ++ r194;
+        r258 := r256[8 .. 4] ++ r194;;
+        
+        ;
         
         loop T5
       }
     
     }
-    Ret ([pre:RSP - 12]:4)
+    Ret ([pre:RSP - 12]:4);
+    
     end
   }
 

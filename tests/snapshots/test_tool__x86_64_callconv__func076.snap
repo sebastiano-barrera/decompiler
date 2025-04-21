@@ -149,6 +149,7 @@ ssa program  92 instrs
 
 
 T0: {
-  Ret ((pre:arg3[16 .. 8] >> 32 as u64)[1 .. 0])
+  Ret ((pre:arg3[16 .. 8] >> 32 as u64)[1 .. 0]);
+  
   end
 }

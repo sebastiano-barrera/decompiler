@@ -248,19 +248,25 @@ ssa program  117 instrs
 
 T0: {
   let r69: Bytes(8) = [pre:arg0]:8;
-  if IsZero (r69) {
+  if IsZero (r69);
+   {
     goto T4
   }
-  if ! ((IsZero ([pre:arg0 + 8]:4))) {
-    [pre:arg0] <- [r69]:8;
+  if ! ((IsZero ([pre:arg0 + 8]:4)));
+   {
+    [pre:arg0] <- [r69]:8;;
+    
     goto T4
   }
-  [pre:arg0] <- [r69 + 8]:8;
-  Ret (r69)
+  [pre:arg0] <- [r69 + 8]:8;;
+  
+  Ret (r69);
+  
   goto T5
   
   T4: {
-    Ret (r69)
+    Ret (r69);
+    
     goto T5
   }
   
