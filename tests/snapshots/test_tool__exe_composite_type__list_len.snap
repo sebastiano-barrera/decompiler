@@ -260,7 +260,7 @@ T0: {
     let mut r116: Bytes(8);
     let r90: Bytes(4) = r116[4 .. 0] + 1;
     r116 := r116[8 .. 4] ++ r90;
-    if ! ((IsZero (r101)));
+    if ! IsZero (r101);
      {
       goto T1
     }

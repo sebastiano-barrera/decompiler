@@ -634,7 +634,7 @@ T0: {
     let mut r259: MemoryEffect;
     let r227: Bytes(4) = [pre:RSP - 32]:4;
     let r234: Bytes(4) = [pre:RSP - 16]:4 - r227;
-    if ! ((SignOf (r234) EQ OverflowOf (r234)));
+    if ! (SignOf (r234) EQ OverflowOf (r234));
      {
       [pre:RSP - 20]:* := 0;
       let mut r258: Bytes(8);
@@ -645,7 +645,7 @@ T0: {
         let mut r257: MemoryEffect;
         let r194: Bytes(4) = [pre:RSP - 28]:4;
         let r201: Bytes(4) = [pre:RSP - 20]:4 - r194;
-        if ! ((SignOf (r201) EQ OverflowOf (r201)));
+        if ! (SignOf (r201) EQ OverflowOf (r201));
          {
           let r151: Bytes(8) = ([pre:RSP - 20]:4 + [pre:RSP - 28]:4 * [pre:RSP - 16]:4) as i64 << 2 as u64 + [pre:RSP - 40]:8;
           let r161: Bytes(4) = [r151]:4;

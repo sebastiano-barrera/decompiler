@@ -283,8 +283,9 @@ impl<'a> Ast<'a> {
                 };
                 self.pp_bin_op(pp, a, b, op_s, self_prec)?;
             }
-            Insn::Not(_) => {
-                self.pp_def_default(pp, "!".into(), insn.input_regs(), self_prec)?;
+            Insn::Not(operand) => {
+                write!(pp, "! ")?;
+                self.pp_ref(pp, operand, self_prec)?;
             }
             Insn::Call { callee, first_arg } => {
                 let callee_iv = self.ssa.get(callee).unwrap();
@@ -522,7 +523,6 @@ fn precedence(insn: &Insn) -> u8 {
 
         Insn::Call { .. } => 251,
         Insn::CArg { .. } => 251,
-        Insn::Not(_) => 250,
         Insn::Widen { .. } => 249,
 
         Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
@@ -537,6 +537,7 @@ fn precedence(insn: &Insn) -> u8 {
         Insn::Parity(_) => 200,
 
         Insn::Bool(_, _, _) => 199,
+        Insn::Not(_) => 199,
         Insn::Cmp(_, _, _) => 197,
 
         // effectful instructions are basically *always* done last due to their

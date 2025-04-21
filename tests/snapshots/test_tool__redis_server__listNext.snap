@@ -252,7 +252,7 @@ T0: {
    {
     goto T4
   }
-  if ! ((IsZero ([pre:arg0 + 8]:4)));
+  if ! IsZero ([pre:arg0 + 8]:4);
    {
     [pre:arg0]:* := [r69]:8;
     goto T4

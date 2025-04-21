@@ -1533,14 +1533,14 @@ T0: {
     TODO /* unsupported: movzx edx,byte ptr [rdi-1] */;
     let r276: Bytes(4) = pre:RDX[4 .. 0] & 7;
     let r287: Bytes(1) = r276[1 .. 0] - 4;
-    if ! ((SignOf (r287))) AND ! ((IsZero (r287))){
+    if ! SignOf (r287) AND ! IsZero (r287){
       goto 0x402446
     };
     TODO /* unsupported: movzx eax,al */;
     JmpInd (pre:RAX[8 .. 4] ++ r276 * 8 + 6851672);
     goto T18
   }
-  if ! ((IsZero (r85[1 .. 0] - 176)));
+  if ! IsZero (r85[1 .. 0] - 176);
    {
     _serverPanic(6982459,
                  0,
@@ -1573,11 +1573,11 @@ T0: {
   
   }
   TODO /* unsupported: movzx esi,byte ptr [rcx-1] */;
-  if ! ((IsZero (pre:RDX[4 .. 0] & pre:RDX[4 .. 0])));
+  if ! IsZero (pre:RDX[4 .. 0] & pre:RDX[4 .. 0]);
    {
     let r151: Bytes(4) = pre:RSI[4 .. 0] & 7;
     let r305: Bytes(1) = r151[1 .. 0] - 4;
-    if ! ((SignOf (r305))) AND ! ((IsZero (r305))){
+    if ! SignOf (r305) AND ! IsZero (r305){
       goto 0x402454
     };
     TODO /* unsupported: movzx eax,al */;
@@ -1586,7 +1586,7 @@ T0: {
     goto T18
   }
   let r173: Bytes(1) = r151[1 .. 0] - 4;
-  if ! ((SignOf (r173))) AND ! ((IsZero (r173))){
+  if ! SignOf (r173) AND ! IsZero (r173){
     goto 0x40244d
   };
   TODO /* unsupported: movzx eax,al */;

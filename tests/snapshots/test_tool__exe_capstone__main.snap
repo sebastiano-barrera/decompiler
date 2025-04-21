@@ -863,7 +863,7 @@ T0: {
           pre:RSI[8 .. 4] ++ 8,
           r78,
           pre:RCX);
-  if ! ((IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0])));
+  if ! IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0]);
    {
     r390 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] | -1);
     goto T6
@@ -911,7 +911,7 @@ T0: {
     r383 := r383 - r223;
     let mut r384: Bytes(8);
     r384 := r384[8 .. 4] ++ 4203193;
-    if ! ((IsZero (r273)));
+    if ! IsZero (r273);
      {
       goto T3
     }

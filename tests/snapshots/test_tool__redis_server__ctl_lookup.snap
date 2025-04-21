@@ -3752,7 +3752,7 @@ T0: {
                                       r1379,
                                       r291[1 .. 0]);
         r1454 := [pre:RSI + 24]:8;
-        if ! ((IsZero (r1394[4 .. 0] & r1394[4 .. 0])));
+        if ! IsZero (r1394[4 .. 0] & r1394[4 .. 0]);
          {
           goto T9
         }
@@ -3790,7 +3790,7 @@ T0: {
           let r1343: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                         r1328,
                                         r341[1 .. 0]);
-          if ! ((IsZero (r1343[4 .. 0] & r1343[4 .. 0])));
+          if ! IsZero (r1343[4 .. 0] & r1343[4 .. 0]);
            {
             goto T11
           }
@@ -3829,7 +3829,7 @@ T0: {
                                         r1280,
                                         r403[1 .. 0]);
           ;
-          if ! ((IsZero (r1295[4 .. 0] & r1295[4 .. 0])));
+          if ! IsZero (r1295[4 .. 0] & r1295[4 .. 0]);
            {
             goto T13
           }
@@ -3872,7 +3872,7 @@ T0: {
           let mut r1465: Bytes(8);
           strlen([r1465 + 8]:8);
           let r623: Bytes(8) = strlen([r1465 + 8]:8) - r139;
-          if ! ((IsZero (r623)));
+          if ! IsZero (r623);
            {
             goto T15
           }
@@ -3880,7 +3880,7 @@ T0: {
           let r651: Bytes(8) = strncmp([r633]:8,
                                        r633,
                                        r623[1 .. 0]);
-          if ! ((IsZero (r651[4 .. 0] & r651[4 .. 0])));
+          if ! IsZero (r651[4 .. 0] & r651[4 .. 0]);
            {
             goto T15
           }
@@ -3905,7 +3905,7 @@ T0: {
               let r457: Bytes(8) = r1465 + 40;
               r1467 := r1465 + 40;
               r1468 := r1465 + 40;
-              if ! ((IsZero (r705[4 .. 0] & r705[4 .. 0])));
+              if ! IsZero (r705[4 .. 0] & r705[4 .. 0]);
                {
                 goto T16
               }
@@ -3922,7 +3922,7 @@ T0: {
                 let r1106: Bytes(8) = strncmp([r1089]:8,
                                               r1089,
                                               r532[1 .. 0]);
-                if ! ((IsZero (r1106[4 .. 0] & r1106[4 .. 0])));
+                if ! IsZero (r1106[4 .. 0] & r1106[4 .. 0]);
                  {
                   goto T17
                 }
@@ -3943,7 +3943,7 @@ T0: {
                   let r1147: Bytes(8) = strncmp([r1130]:8,
                                                 r1130,
                                                 r575[1 .. 0]);
-                  if ! ((IsZero (r1147[4 .. 0] & r1147[4 .. 0])));
+                  if ! IsZero (r1147[4 .. 0] & r1147[4 .. 0]);
                    {
                     goto T18
                   }
@@ -4004,7 +4004,7 @@ T0: {
         ;
         r1475 := pre:RDX;
         r1480 := pre:RDX;
-        if ! ((IsZero ([pre:R13 + 32]:8)));
+        if ! IsZero ([pre:R13 + 32]:8);
          {
           goto T33
         }
@@ -4033,7 +4033,7 @@ T0: {
         }
         goto T43
       }
-      if ! ((CarryOf (r172 + 1 - [pre:R9]:8)));
+      if ! CarryOf (r172 + 1 - [pre:R9]:8);
        {
         goto T43
       }
@@ -4046,7 +4046,7 @@ T0: {
         ;
         r1479 := 0;
         r1452 := pre:R13;
-        if ! ((IsZero ([[pre:R13 + 24]:8]:1)));
+        if ! IsZero ([[pre:R13 + 24]:8]:1);
          {
           goto T4
         }
@@ -4078,7 +4078,7 @@ T0: {
       }
       [pre:RSP - 136]:* := r1477;
       let r929: Bytes(8) = [pre:RSI + 24]:8;
-      if ! ((IsZero ([r929]:1))){
+      if ! IsZero ([r929]:1){
         goto 0x403143
       };
       let r957: Bytes(8) = [pre:RSP - 72]:8;
@@ -4111,7 +4111,7 @@ T0: {
       r1482 := [pre:RSP - 64]:8;
       r1485 := pre:RDX;
       let mut r1480: Bytes(8);
-      if ! ((IsZero (r1480[1 .. 0] & r1480[1 .. 0])));
+      if ! IsZero (r1480[1 .. 0] & r1480[1 .. 0]);
        {
         goto T41
       }
@@ -4123,7 +4123,7 @@ T0: {
       ;
       let mut r1482: Bytes(8);
       r1488 := phi ();
-      if ! ((IsZero (r1482)));
+      if ! IsZero (r1482);
        {
         goto T45
       }
