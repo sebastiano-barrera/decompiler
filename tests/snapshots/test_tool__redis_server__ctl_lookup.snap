@@ -2113,7 +2113,7 @@ ssa program  1598 instrs
          r111 <- CArg { value: r102, next_arg: None }
   (  2)  r70 <- Const { value: 46, size: 4 }
          r112 <- CArg { value: r70, next_arg: Some(r111) }
-         r113 <- Const { value: 4199040, size: 8 }
+         r113: strchr <TypeID(340441v1)> <- Const { value: 4199040, size: 8 }
          r114 <- Call { callee: r113, first_arg: Some(r112) }
   (  3)  r124 <- Part { src: r114, offset: 0, size: 8 }
          r1490 <- Upsilon { value: r124, phi_ref: r1451 }
@@ -2121,7 +2121,7 @@ ssa program  1598 instrs
          r128 <- IsZero(r126)
          r133 <- JmpIf { cond: r128, target: 1422 }
 .B52:    ;; preds:B0.
-         r1427 <- Const { value: 4199136, size: 8 }
+         r1427: __builtin_strlen <TypeID(358626v1)> <- Const { value: 4199136, size: 8 }
          r1428 <- Call { callee: r1427, first_arg: None }
          r1443 <- Jmp(134)
          r1440 <- ArithK(Mul, r126, 1)
@@ -2191,7 +2191,7 @@ ssa program  1598 instrs
          r899 <- CArg { value: r896, next_arg: Some(r898) }
          r892 <- Const { value: 10, size: 4 }
          r900 <- CArg { value: r892, next_arg: Some(r899) }
-         r901 <- Const { value: 6451424, size: 8 }
+         r901: je_malloc_strtoumax <TypeID(340431v1)> <- Const { value: 6451424, size: 8 }
          r902 <- Call { callee: r901, first_arg: Some(r900) }
          r1513 <- Upsilon { value: r897, phi_ref: r1486 }
          r917 <- Const { value: -1, size: 8 }
@@ -2288,14 +2288,14 @@ ssa program  1598 instrs
          r798 <- CArg { value: r789, next_arg: None }
   (  2)  r785 <- Const { value: 46, size: 4 }
          r799 <- CArg { value: r785, next_arg: Some(r798) }
-         r800 <- Const { value: 4199040, size: 8 }
+         r800: strchr <TypeID(340441v1)> <- Const { value: 4199040, size: 8 }
          r801 <- Call { callee: r800, first_arg: Some(r799) }
   (  3)  r811 <- Part { src: r801, offset: 0, size: 8 }
          r813 <- Arith(BitAnd, r811, r811)
          r815 <- IsZero(r813)
          r820 <- JmpIf { cond: r815, target: 1201 }
 .B42:    ;; preds:B27.
-         r1215 <- Const { value: 4199136, size: 8 }
+         r1215: __builtin_strlen <TypeID(358626v1)> <- Const { value: 4199136, size: 8 }
          r1216 <- Call { callee: r1215, first_arg: None }
          r1226 <- Const { value: 24, size: 8 }
          r1227 <- Arith(Add, r1226, r83)
@@ -2408,7 +2408,7 @@ ssa program  1598 instrs
          r264 <- Arith(Add, r263, r83)
   (  4)  r265 <- StoreMem { mem: r261, addr: r264, value: r253 }
          r269 <- CArg { value: r253, next_arg: None }
-         r270 <- Const { value: 4199136, size: 8 }
+         r270: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r271 <- Call { callee: r270, first_arg: Some(r269) }
          r1588 <- Upsilon { value: r166, phi_ref: r1454 }
          r281 <- Part { src: r271, offset: 0, size: 8 }
@@ -2432,7 +2432,7 @@ ssa program  1598 instrs
          r1371 <- Arith(Add, r1370, r83)
          r1372 <- LoadMem { mem: r265, addr: r1371, size: 8 }
          r1392 <- CArg { value: r1372, next_arg: Some(r1391) }
-         r1393 <- Const { value: 4199232, size: 8 }
+         r1393: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r1394 <- Call { callee: r1393, first_arg: Some(r1392) }
          r1589 <- Upsilon { value: r166, phi_ref: r1454 }
   (  2)  r1404 <- Part { src: r1394, offset: 0, size: 8 }
@@ -2475,7 +2475,7 @@ ssa program  1598 instrs
          r315 <- Arith(Add, r314, r83)
   (  4)  r316 <- StoreMem { mem: r311, addr: r315, value: r307 }
          r320 <- CArg { value: r307, next_arg: None }
-         r321 <- Const { value: 4199136, size: 8 }
+         r321: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r322 <- Call { callee: r321, first_arg: Some(r320) }
          r332 <- Part { src: r322, offset: 0, size: 8 }
   (  2)  r341 <- Arith(Sub, r332, r139)
@@ -2495,7 +2495,7 @@ ssa program  1598 instrs
          r1323 <- Arith(Add, r1322, r83)
          r1324 <- LoadMem { mem: r316, addr: r1323, size: 8 }
          r1341 <- CArg { value: r1324, next_arg: Some(r1340) }
-         r1342 <- Const { value: 4199232, size: 8 }
+         r1342: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r1343 <- Call { callee: r1342, first_arg: Some(r1341) }
   (  2)  r1353 <- Part { src: r1343, offset: 0, size: 8 }
          r1359 <- Part { src: r1353, offset: 0, size: 4 }
@@ -2531,7 +2531,7 @@ ssa program  1598 instrs
          r377 <- Arith(Add, r376, r83)
   (  4)  r378 <- StoreMem { mem: r373, addr: r377, value: r369 }
          r382 <- CArg { value: r369, next_arg: None }
-         r383 <- Const { value: 4199136, size: 8 }
+         r383: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r384 <- Call { callee: r383, first_arg: Some(r382) }
          r1565 <- Upsilon { value: r378, phi_ref: r1461 }
          r394 <- Part { src: r384, offset: 0, size: 8 }
@@ -2552,7 +2552,7 @@ ssa program  1598 instrs
          r1275 <- Arith(Add, r1274, r83)
          r1276 <- LoadMem { mem: r378, addr: r1275, size: 8 }
          r1293 <- CArg { value: r1276, next_arg: Some(r1292) }
-         r1294 <- Const { value: 4199232, size: 8 }
+         r1294: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r1295 <- Call { callee: r1294, first_arg: Some(r1293) }
          r1566 <- Upsilon { value: r1281, phi_ref: r1461 }
   (  2)  r1305 <- Part { src: r1295, offset: 0, size: 8 }
@@ -2609,7 +2609,7 @@ ssa program  1598 instrs
   (  7)  r1466 <- Phi
          r603 <- LoadMem { mem: r1466, addr: r602, size: 8 }
          r610 <- CArg { value: r603, next_arg: None }
-         r611 <- Const { value: 4199136, size: 8 }
+         r611: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r612 <- Call { callee: r611, first_arg: Some(r610) }
          r622 <- Part { src: r612, offset: 0, size: 8 }
   (  2)  r623 <- Arith(Sub, r622, r139)
@@ -2624,7 +2624,7 @@ ssa program  1598 instrs
          r648 <- CArg { value: r633, next_arg: Some(r647) }
          r634 <- LoadMem { mem: r1466, addr: r633, size: 8 }
          r649 <- CArg { value: r634, next_arg: Some(r648) }
-         r650 <- Const { value: 4199232, size: 8 }
+         r650: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r651 <- Call { callee: r650, first_arg: Some(r649) }
   (  2)  r661 <- Part { src: r651, offset: 0, size: 8 }
          r663 <- Part { src: r661, offset: 0, size: 4 }
@@ -2643,7 +2643,7 @@ ssa program  1598 instrs
          r459 <- Const { value: 1, size: 8 }
   (  5)  r460 <- Arith(Add, r459, r214)
          r472 <- CArg { value: r460, next_arg: None }
-         r473 <- Const { value: 4199136, size: 8 }
+         r473: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r474 <- Call { callee: r473, first_arg: Some(r472) }
          r484 <- Part { src: r474, offset: 0, size: 8 }
   (  2)  r489 <- Arith(Sub, r484, r139)
@@ -2657,7 +2657,7 @@ ssa program  1598 instrs
          r702 <- CArg { value: r688, next_arg: Some(r701) }
          r689 <- LoadMem { mem: r468, addr: r688, size: 8 }
          r703 <- CArg { value: r689, next_arg: Some(r702) }
-         r704 <- Const { value: 4199232, size: 8 }
+         r704: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r705 <- Call { callee: r704, first_arg: Some(r703) }
          r1551 <- Upsilon { value: r468, phi_ref: r1469 }
          r456 <- Const { value: 40, size: 8 }
@@ -2681,7 +2681,7 @@ ssa program  1598 instrs
          r504 <- Const { value: 1, size: 8 }
          r505 <- Arith(Add, r504, r460)
          r515 <- CArg { value: r505, next_arg: None }
-         r516 <- Const { value: 4199136, size: 8 }
+         r516: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r517 <- Call { callee: r516, first_arg: Some(r515) }
          r527 <- Part { src: r517, offset: 0, size: 8 }
   (  2)  r532 <- Arith(Sub, r527, r139)
@@ -2695,7 +2695,7 @@ ssa program  1598 instrs
          r1103 <- CArg { value: r1089, next_arg: Some(r1102) }
          r1090 <- LoadMem { mem: r511, addr: r1089, size: 8 }
          r1104 <- CArg { value: r1090, next_arg: Some(r1103) }
-         r1105 <- Const { value: 4199232, size: 8 }
+         r1105: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r1106 <- Call { callee: r1105, first_arg: Some(r1104) }
   (  2)  r1116 <- Part { src: r1106, offset: 0, size: 8 }
          r1118 <- Part { src: r1116, offset: 0, size: 4 }
@@ -2721,7 +2721,7 @@ ssa program  1598 instrs
          r547 <- Const { value: 2, size: 8 }
          r548 <- Arith(Add, r547, r460)
          r558 <- CArg { value: r548, next_arg: None }
-         r559 <- Const { value: 4199136, size: 8 }
+         r559: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r560 <- Call { callee: r559, first_arg: Some(r558) }
          r570 <- Part { src: r560, offset: 0, size: 8 }
   (  3)  r575 <- Arith(Sub, r570, r139)
@@ -2735,7 +2735,7 @@ ssa program  1598 instrs
          r1144 <- CArg { value: r1130, next_arg: Some(r1143) }
          r1131 <- LoadMem { mem: r554, addr: r1130, size: 8 }
          r1145 <- CArg { value: r1131, next_arg: Some(r1144) }
-         r1146 <- Const { value: 4199232, size: 8 }
+         r1146: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
          r1147 <- Call { callee: r1146, first_arg: Some(r1145) }
   (  2)  r1157 <- Part { src: r1147, offset: 0, size: 8 }
          r1159 <- Part { src: r1157, offset: 0, size: 4 }
@@ -3043,13 +3043,13 @@ ssa program  1658 instrs
          r111 <- CArg { value: r102, next_arg: None }
   (  2)  r70 <- Const { value: 46, size: 4 }
          r112 <- CArg { value: r70, next_arg: Some(r111) }
-         r113 <- Const { value: 4199040, size: 8 }
+         r113: strchr <TypeID(340441v1)> <- Const { value: 4199040, size: 8 }
   (  3)  r114 <- Call { callee: r113, first_arg: Some(r112) }
          r1490 <- Upsilon { value: r114, phi_ref: r1451 }
          r128 <- IsZero(r114)
          r133 <- JmpIf { cond: r128, target: 1422 }
 .B52:    ;; preds:B0.
-         r1427 <- Const { value: 4199136, size: 8 }
+         r1427: __builtin_strlen <TypeID(358626v1)> <- Const { value: 4199136, size: 8 }
          r1428 <- Call { callee: r1427, first_arg: None }
          r1443 <- Jmp(134)
          r1441 <- Arith(Add, r18, r114)
@@ -3097,7 +3097,7 @@ ssa program  1658 instrs
          r899 <- CArg { value: r896, next_arg: Some(r898) }
          r892 <- Const { value: 10, size: 4 }
          r900 <- CArg { value: r892, next_arg: Some(r899) }
-         r901 <- Const { value: 6451424, size: 8 }
+         r901: je_malloc_strtoumax <TypeID(340431v1)> <- Const { value: 6451424, size: 8 }
   (  2)  r902 <- Call { callee: r901, first_arg: Some(r900) }
          r1513 <- Upsilon { value: r897, phi_ref: r1486 }
   (  6)  r918 <- ArithK(Add, r902, 1)
@@ -3166,12 +3166,12 @@ ssa program  1658 instrs
          r798 <- CArg { value: r789, next_arg: None }
   (  2)  r785 <- Const { value: 46, size: 4 }
          r799 <- CArg { value: r785, next_arg: Some(r798) }
-         r800 <- Const { value: 4199040, size: 8 }
+         r800: strchr <TypeID(340441v1)> <- Const { value: 4199040, size: 8 }
   (  2)  r801 <- Call { callee: r800, first_arg: Some(r799) }
          r815 <- IsZero(r801)
          r820 <- JmpIf { cond: r815, target: 1201 }
 .B42:    ;; preds:B27.
-         r1215 <- Const { value: 4199136, size: 8 }
+         r1215: __builtin_strlen <TypeID(358626v1)> <- Const { value: 4199136, size: 8 }
          r1216 <- Call { callee: r1215, first_arg: None }
          r1238 <- LoadMem { mem: r790, addr: r20, size: 8 }
          r1206 <- ArithK(Add, r172, 1)
@@ -3254,7 +3254,7 @@ ssa program  1658 instrs
          r264 <- ArithK(Add, r11, -128)
   (  3)  r265 <- StoreMem { mem: r261, addr: r264, value: r253 }
          r269 <- CArg { value: r253, next_arg: None }
-         r270 <- Const { value: 4199136, size: 8 }
+         r270: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r271 <- Call { callee: r270, first_arg: Some(r269) }
          r1588 <- Upsilon { value: r166, phi_ref: r1454 }
   (  2)  r291 <- Arith(Sub, r271, r139)
@@ -3271,7 +3271,7 @@ ssa program  1658 instrs
          r1371 <- ArithK(Add, r11, -136)
          r1372 <- LoadMem { mem: r265, addr: r1371, size: 8 }
          r1392 <- CArg { value: r1372, next_arg: Some(r1391) }
-         r1393 <- Const { value: 4199232, size: 8 }
+         r1393: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r1394 <- Call { callee: r1393, first_arg: Some(r1392) }
          r1589 <- Upsilon { value: r166, phi_ref: r1454 }
          r1411 <- Part { src: r1394, offset: 0, size: 4 }
@@ -3309,7 +3309,7 @@ ssa program  1658 instrs
          r315 <- ArithK(Add, r11, -128)
   (  3)  r316 <- StoreMem { mem: r311, addr: r315, value: r307 }
          r320 <- CArg { value: r307, next_arg: None }
-         r321 <- Const { value: 4199136, size: 8 }
+         r321: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r322 <- Call { callee: r321, first_arg: Some(r320) }
   (  2)  r341 <- Arith(Sub, r322, r139)
          r345 <- IsZero(r341)
@@ -3323,7 +3323,7 @@ ssa program  1658 instrs
          r1323 <- ArithK(Add, r11, -136)
          r1324 <- LoadMem { mem: r316, addr: r1323, size: 8 }
          r1341 <- CArg { value: r1324, next_arg: Some(r1340) }
-         r1342 <- Const { value: 4199232, size: 8 }
+         r1342: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r1343 <- Call { callee: r1342, first_arg: Some(r1341) }
          r1359 <- Part { src: r1343, offset: 0, size: 4 }
          r1358 <- Part { src: r1343, offset: 0, size: 4 }
@@ -3354,7 +3354,7 @@ ssa program  1658 instrs
          r377 <- ArithK(Add, r11, -128)
   (  3)  r378 <- StoreMem { mem: r373, addr: r377, value: r369 }
          r382 <- CArg { value: r369, next_arg: None }
-         r383 <- Const { value: 4199136, size: 8 }
+         r383: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r384 <- Call { callee: r383, first_arg: Some(r382) }
          r1565 <- Upsilon { value: r378, phi_ref: r1461 }
   (  3)  r403 <- Arith(Sub, r384, r139)
@@ -3369,7 +3369,7 @@ ssa program  1658 instrs
          r1275 <- ArithK(Add, r11, -136)
          r1276 <- LoadMem { mem: r378, addr: r1275, size: 8 }
          r1293 <- CArg { value: r1276, next_arg: Some(r1292) }
-         r1294 <- Const { value: 4199232, size: 8 }
+         r1294: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r1295 <- Call { callee: r1294, first_arg: Some(r1293) }
          r1566 <- Upsilon { value: r1281, phi_ref: r1461 }
          r1311 <- Part { src: r1295, offset: 0, size: 4 }
@@ -3418,7 +3418,7 @@ ssa program  1658 instrs
   (  7)  r1466 <- Phi
          r603 <- LoadMem { mem: r1466, addr: r602, size: 8 }
          r610 <- CArg { value: r603, next_arg: None }
-         r611 <- Const { value: 4199136, size: 8 }
+         r611: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r612 <- Call { callee: r611, first_arg: Some(r610) }
   (  2)  r623 <- Arith(Sub, r612, r139)
          r627 <- IsZero(r623)
@@ -3431,7 +3431,7 @@ ssa program  1658 instrs
          r648 <- CArg { value: r633, next_arg: Some(r647) }
          r634 <- LoadMem { mem: r1466, addr: r633, size: 8 }
          r649 <- CArg { value: r634, next_arg: Some(r648) }
-         r650 <- Const { value: 4199232, size: 8 }
+         r650: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r651 <- Call { callee: r650, first_arg: Some(r649) }
          r663 <- Part { src: r651, offset: 0, size: 4 }
          r662 <- Part { src: r651, offset: 0, size: 4 }
@@ -3446,7 +3446,7 @@ ssa program  1658 instrs
   (  4)  r468 <- StoreMem { mem: r1466, addr: r467, value: r454 }
   (  2)  r460 <- ArithK(Add, r214, 1)
          r472 <- CArg { value: r460, next_arg: None }
-         r473 <- Const { value: 4199136, size: 8 }
+         r473: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r474 <- Call { callee: r473, first_arg: Some(r472) }
   (  2)  r489 <- Arith(Sub, r474, r139)
          r493 <- IsZero(r489)
@@ -3458,7 +3458,7 @@ ssa program  1658 instrs
          r702 <- CArg { value: r688, next_arg: Some(r701) }
          r689 <- LoadMem { mem: r468, addr: r688, size: 8 }
          r703 <- CArg { value: r689, next_arg: Some(r702) }
-         r704 <- Const { value: 4199232, size: 8 }
+         r704: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r705 <- Call { callee: r704, first_arg: Some(r703) }
          r1551 <- Upsilon { value: r468, phi_ref: r1469 }
   (  2)  r457 <- ArithK(Add, r1465, 40)
@@ -3477,7 +3477,7 @@ ssa program  1658 instrs
   (  4)  r511 <- StoreMem { mem: r468, addr: r510, value: r499 }
          r505 <- ArithK(Add, r214, 2)
          r515 <- CArg { value: r505, next_arg: None }
-         r516 <- Const { value: 4199136, size: 8 }
+         r516: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r517 <- Call { callee: r516, first_arg: Some(r515) }
   (  2)  r532 <- Arith(Sub, r517, r139)
          r536 <- IsZero(r532)
@@ -3489,7 +3489,7 @@ ssa program  1658 instrs
          r1103 <- CArg { value: r1089, next_arg: Some(r1102) }
          r1090 <- LoadMem { mem: r511, addr: r1089, size: 8 }
          r1104 <- CArg { value: r1090, next_arg: Some(r1103) }
-         r1105 <- Const { value: 4199232, size: 8 }
+         r1105: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r1106 <- Call { callee: r1105, first_arg: Some(r1104) }
          r1118 <- Part { src: r1106, offset: 0, size: 4 }
          r1117 <- Part { src: r1106, offset: 0, size: 4 }
@@ -3510,7 +3510,7 @@ ssa program  1658 instrs
   (  5)  r554 <- StoreMem { mem: r511, addr: r553, value: r542 }
          r548 <- ArithK(Add, r214, 3)
          r558 <- CArg { value: r548, next_arg: None }
-         r559 <- Const { value: 4199136, size: 8 }
+         r559: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
          r560 <- Call { callee: r559, first_arg: Some(r558) }
   (  3)  r575 <- Arith(Sub, r560, r139)
          r579 <- IsZero(r575)
@@ -3522,7 +3522,7 @@ ssa program  1658 instrs
          r1144 <- CArg { value: r1130, next_arg: Some(r1143) }
          r1131 <- LoadMem { mem: r554, addr: r1130, size: 8 }
          r1145 <- CArg { value: r1131, next_arg: Some(r1144) }
-         r1146 <- Const { value: 4199232, size: 8 }
+         r1146: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
   (  2)  r1147 <- Call { callee: r1146, first_arg: Some(r1145) }
          r1159 <- Part { src: r1147, offset: 0, size: 4 }
          r1158 <- Part { src: r1147, offset: 0, size: 4 }
@@ -3664,14 +3664,14 @@ T0: {
   [pre:RSP - 136] <- pre:RDX;
   let r102: Bytes(8) = pre:RSP - 112;
   [r102] <- pre:R9;
-  4199040(46,
-          r102)
-  let r114: Bytes(8) = 4199040(46,
-                               r102);
-  r1451 := 4199040(46,
-                   r102);
+  strchr(46,
+         r102)
+  let r114: Bytes(8) = strchr(46,
+                              r102);
+  r1451 := strchr(46,
+                  r102);
   if IsZero (r114) {
-    4199136()
+    __builtin_strlen()
     
     r1451 := pre:RDX + r114;
     goto T1
@@ -3741,19 +3741,19 @@ T0: {
       [pre:RSP - 96] <- r166;
       let r253: Bytes(8) = [r166 + 8]:8;
       [pre:RSP - 128] <- r253;
-      4199136(r253)
+      strlen(r253)
       r1454 := [pre:RSI + 24]:8;
-      let r291: Bytes(8) = 4199136(r253) - r139;
+      let r291: Bytes(8) = strlen(r253) - r139;
       if IsZero (r291) {
         let r265: MemoryEffect = [pre:RSP - 128] <- r253;;
         [pre:RSP - 96] <- r1451;
         let r1379: Bytes(8) = pre:RSP - 128;
         [r1379] <- r166;
-        4199232([pre:RSP - 136]:8,
+        strncmp([pre:RSP - 136]:8,
                 r1379,
                 r291[1 .. 0])
         r1454 := [pre:RSI + 24]:8;
-        let r1394: Bytes(8) = 4199232([pre:RSP - 136]:8,
+        let r1394: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                       r1379,
                                       r291[1 .. 0]);
         if ! ((IsZero (r1394[4 .. 0] & r1394[4 .. 0]))) {
@@ -3787,16 +3787,16 @@ T0: {
         let mut r1456: Bytes(8);
         let r307: Bytes(8) = [r1456 + 8]:8;
         [pre:RSP - 128] <- r307;
-        4199136(r307)
-        let r341: Bytes(8) = 4199136(r307) - r139;
+        strlen(r307)
+        let r341: Bytes(8) = strlen(r307) - r139;
         if IsZero (r341) {
           let r316: MemoryEffect = [pre:RSP - 128] <- r307;;
           let r1328: Bytes(8) = pre:RSP - 128;
           [r1328] <- r1455;
-          4199232([pre:RSP - 136]:8,
+          strncmp([pre:RSP - 136]:8,
                   r1328,
                   r341[1 .. 0])
-          let r1343: Bytes(8) = 4199232([pre:RSP - 136]:8,
+          let r1343: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                         r1328,
                                         r341[1 .. 0]);
           if ! ((IsZero (r1343[4 .. 0] & r1343[4 .. 0]))) {
@@ -3829,19 +3829,19 @@ T0: {
         let mut r1459: Bytes(8);
         let r369: Bytes(8) = [r1459 + 8]:8;
         [pre:RSP - 128] <- r369;
-        4199136(r369)
+        strlen(r369)
         let r378: MemoryEffect = [pre:RSP - 128] <- r369;;
         
-        let r403: Bytes(8) = 4199136(r369) - r139;
+        let r403: Bytes(8) = strlen(r369) - r139;
         if IsZero (r403) {
           let r1280: Bytes(8) = pre:RSP - 128;
           [r1280] <- r1458;
-          4199232([pre:RSP - 136]:8,
+          strncmp([pre:RSP - 136]:8,
                   r1280,
                   r403[1 .. 0])
           let r1281: MemoryEffect = [r1280] <- r1458;;
           
-          let r1295: Bytes(8) = 4199232([pre:RSP - 136]:8,
+          let r1295: Bytes(8) = strncmp([pre:RSP - 136]:8,
                                         r1280,
                                         r403[1 .. 0]);
           if ! ((IsZero (r1295[4 .. 0] & r1295[4 .. 0]))) {
@@ -3863,7 +3863,7 @@ T0: {
           r1462 := phi ();
           r1463 := r1459 + 40;
           
-          r1485 := 4199136(r369) - r139;
+          r1485 := strlen(r369) - r139;
           if IsZero (r214 + 1 - [pre:RSP - 120]:8) {
             goto T41
           }
@@ -3888,16 +3888,16 @@ T0: {
         T19: {
           let mut r1466: MemoryEffect;
           let mut r1465: Bytes(8);
-          4199136([r1465 + 8]:8)
-          let r623: Bytes(8) = 4199136([r1465 + 8]:8) - r139;
+          strlen([r1465 + 8]:8)
+          let r623: Bytes(8) = strlen([r1465 + 8]:8) - r139;
           if ! ((IsZero (r623))) {
             goto T15
           }
           let r633: Bytes(8) = pre:RSP - 136;
-          4199232([r633]:8,
+          strncmp([r633]:8,
                   r633,
                   r623[1 .. 0])
-          let r651: Bytes(8) = 4199232([r633]:8,
+          let r651: Bytes(8) = strncmp([r633]:8,
                                        r633,
                                        r623[1 .. 0]);
           if ! ((IsZero (r651[4 .. 0] & r651[4 .. 0]))) {
@@ -3914,19 +3914,19 @@ T0: {
           T15: {
             [pre:RSP - 128] <- [r1465 + 48]:8;
             let r460: Bytes(8) = r214 + 1;
-            4199136(r460)
-            let r489: Bytes(8) = 4199136(r460) - r139;
+            strlen(r460)
+            let r489: Bytes(8) = strlen(r460) - r139;
             if IsZero (r489) {
               let r468: MemoryEffect = [pre:RSP - 128] <- [r1465 + 48]:8;;
               let r688: Bytes(8) = pre:RSP - 136;
-              4199232([r688]:8,
+              strncmp([r688]:8,
                       r688,
                       r489[1 .. 0])
               
               let r457: Bytes(8) = r1465 + 40;
               r1467 := r1465 + 40;
               r1468 := r1465 + 40;
-              let r705: Bytes(8) = 4199232([r688]:8,
+              let r705: Bytes(8) = strncmp([r688]:8,
                                            r688,
                                            r489[1 .. 0]);
               if ! ((IsZero (r705[4 .. 0] & r705[4 .. 0]))) {
@@ -3938,15 +3938,15 @@ T0: {
             
             T16: {
               [pre:RSP - 128] <- [r1465 + 88]:8;
-              4199136((r214 + 2))
-              let r532: Bytes(8) = 4199136((r214 + 2)) - r139;
+              strlen((r214 + 2))
+              let r532: Bytes(8) = strlen((r214 + 2)) - r139;
               if IsZero (r532) {
                 let r511: MemoryEffect = [pre:RSP - 128] <- [r1465 + 88]:8;;
                 let r1089: Bytes(8) = pre:RSP - 136;
-                4199232([r1089]:8,
+                strncmp([r1089]:8,
                         r1089,
                         r532[1 .. 0])
-                let r1106: Bytes(8) = 4199232([r1089]:8,
+                let r1106: Bytes(8) = strncmp([r1089]:8,
                                               r1089,
                                               r532[1 .. 0]);
                 if ! ((IsZero (r1106[4 .. 0] & r1106[4 .. 0]))) {
@@ -3963,15 +3963,15 @@ T0: {
               
               T17: {
                 [pre:RSP - 128] <- [r1465 + 128]:8;
-                4199136((r214 + 3))
-                let r575: Bytes(8) = 4199136((r214 + 3)) - r139;
+                strlen((r214 + 3))
+                let r575: Bytes(8) = strlen((r214 + 3)) - r139;
                 if IsZero (r575) {
                   let r554: MemoryEffect = [pre:RSP - 128] <- [r1465 + 128]:8;;
                   let r1130: Bytes(8) = pre:RSP - 136;
-                  4199232([r1130]:8,
+                  strncmp([r1130]:8,
                           r1130,
                           r575[1 .. 0])
-                  let r1147: Bytes(8) = 4199232([r1130]:8,
+                  let r1147: Bytes(8) = strncmp([r1130]:8,
                                                 r1130,
                                                 r575[1 .. 0]);
                   if ! ((IsZero (r1147[4 .. 0] & r1147[4 .. 0]))) {
@@ -3990,7 +3990,7 @@ T0: {
                   
                   r1465 := r1465 + 160;
                   
-                  r1485 := 4199136((r214 + 3)) - r139;
+                  r1485 := strlen((r214 + 3)) - r139;
                   if IsZero (r214 + 4 - [pre:RSP - 120]:8) {
                     goto T41
                   }
@@ -4055,12 +4055,12 @@ T0: {
       }
       let r789: Bytes(8) = pre:RSP - 136;
       [r789] <- r1451 + 1;
-      4199040(46,
-              r789)
-      let r801: Bytes(8) = 4199040(46,
-                                   r789);
+      strchr(46,
+             r789)
+      let r801: Bytes(8) = strchr(46,
+                                  r789);
       if IsZero (r801) {
-        4199136()
+        __builtin_strlen()
         let r790: MemoryEffect = [r789] <- r1451 + 1;;
         if CarryOf (r172 + 1 - [pre:R9]:8) {
           goto T29
@@ -4075,8 +4075,8 @@ T0: {
       T29: {
         
         r1476 := pre:RSI[8 .. 4] ++ 46;
-        r1477 := 4199040(46,
-                         r789);
+        r1477 := strchr(46,
+                        r789);
         
         r1479 := 0;
         r1452 := pre:R13;
@@ -4101,14 +4101,14 @@ T0: {
       let mut r1477: Bytes(8);
       [r896] <- r1477;
       let mut r1479: Bytes(1);
-      6451424(10,
-              r896,
-              r1479)
+      je_malloc_strtoumax(10,
+                          r896,
+                          r1479)
       let r897: MemoryEffect = [r896] <- r1477;;
       
-      let r902: Bytes(8) = 6451424(10,
-                                   r896,
-                                   r1479);
+      let r902: Bytes(8) = je_malloc_strtoumax(10,
+                                               r896,
+                                               r1479);
       let r918: Bytes(8) = r902 + 1;
       r1485 := r902 + 1;
       if IsZero (r918) {

@@ -153,7 +153,7 @@ ssa program  113 instrs
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
          r67 <- Const { value: 24, size: 4 }
          r74 <- CArg { value: r67, next_arg: None }
-         r75 <- Const { value: 4433936, size: 8 }
+         r75: zmalloc <TypeID(173060v1)> <- Const { value: 4433936, size: 8 }
          r76 <- Call { callee: r75, first_arg: Some(r74) }
          r98 <- Const { value: 0, size: 8 }
   (  3)  r86 <- Part { src: r76, offset: 0, size: 8 }
@@ -194,7 +194,7 @@ ssa program  113 instrs
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
          r67 <- Const { value: 24, size: 4 }
          r74 <- CArg { value: r67, next_arg: None }
-         r75 <- Const { value: 4433936, size: 8 }
+         r75: zmalloc <TypeID(173060v1)> <- Const { value: 4433936, size: 8 }
   (  3)  r76 <- Call { callee: r75, first_arg: Some(r74) }
          r98 <- Const { value: 0, size: 8 }
          r101 <- StoreMem { mem: r66, addr: r76, value: r98 }
@@ -210,8 +210,8 @@ ssa program  113 instrs
 
 T0: {
   [pre:RSP - 8] <- pre:RBP;
-  4433936(24)
-  let r76: Bytes(8) = 4433936(24);
+  zmalloc(24)
+  let r76: Bytes(8) = zmalloc(24);
   [r76] <- 0;
   [r76 + 8] <- pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
   Ret (r76)

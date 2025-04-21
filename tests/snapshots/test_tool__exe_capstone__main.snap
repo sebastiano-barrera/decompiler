@@ -539,7 +539,7 @@ ssa program  407 instrs
          r70 <- Const { value: 3, size: 4 }
          r72 <- Concat { lo: r70, hi: r71 }
          r90 <- CArg { value: r72, next_arg: Some(r89) }
-         r91 <- Const { value: 4198512, size: 8 }
+         r91: cs_open <TypeID(3337v1)> <- Const { value: 4198512, size: 8 }
          r92 <- Call { callee: r91, first_arg: Some(r90) }
   (  4)  r15 <- Ancestral(AncestralName("RAX"))
          r104 <- Part { src: r15, offset: 0, size: 4 }
@@ -572,14 +572,14 @@ ssa program  407 instrs
          r164 <- CArg { value: r140, next_arg: Some(r163) }
   (  2)  r139 <- Const { value: 4203184, size: 4 }
          r165 <- CArg { value: r139, next_arg: Some(r164) }
-         r166 <- Const { value: 4198496, size: 8 }
+         r166: cs_disasm <TypeID(3329v1)> <- Const { value: 4198496, size: 8 }
          r167 <- Call { callee: r166, first_arg: Some(r165) }
   (  3)  r177 <- Part { src: r167, offset: 0, size: 8 }
   (  2)  r179 <- Arith(BitAnd, r177, r177)
          r181 <- IsZero(r179)
          r186 <- JmpIf { cond: r181, target: 356 }
 .B7:    ;; preds:B1.
-         r359 <- Const { value: 4198448, size: 8 }
+         r359: __builtin_puts <TypeID(3365v1)> <- Const { value: 4198448, size: 8 }
          r360 <- Call { callee: r359, first_arg: None }
          r370 <- Jmp(306)
          r141 <- Concat { lo: r139, hi: r140 }
@@ -621,7 +621,7 @@ ssa program  407 instrs
          r243 <- Const { value: 42, size: 8 }
   (  2)  r244 <- Arith(Add, r243, r234)
          r260 <- CArg { value: r244, next_arg: None }
-         r261 <- Const { value: 4198480, size: 8 }
+         r261: printf <TypeID(3326v1)> <- Const { value: 4198480, size: 8 }
          r262 <- Call { callee: r261, first_arg: Some(r260) }
          r222 <- Const { value: 1, size: 8 }
   (  2)  r223 <- Arith(Add, r385, r222)
@@ -643,7 +643,7 @@ ssa program  407 instrs
          r293 <- CArg { value: r283, next_arg: None }
          r284 <- LoadMem { mem: r76, addr: r283, size: 8 }
          r294 <- CArg { value: r284, next_arg: Some(r293) }
-         r295 <- Const { value: 4198464, size: 8 }
+         r295: cs_free <TypeID(3322v1)> <- Const { value: 4198464, size: 8 }
          r296 <- Call { callee: r295, first_arg: Some(r294) }
          r403 <- Upsilon { value: r273, phi_ref: r386 }
          r272 <- Part { src: r262, offset: 0, size: 8 }
@@ -660,7 +660,7 @@ ssa program  407 instrs
          r386 <- Phi
          r309 <- CArg { value: r386, next_arg: Some(r308) }
          r310 <- CArg { value: r78, next_arg: Some(r309) }
-         r311 <- Const { value: 4198528, size: 8 }
+         r311: cs_close <TypeID(3319v1)> <- Const { value: 4198528, size: 8 }
          r312 <- Call { callee: r311, first_arg: Some(r310) }
   (  3)  r387 <- Phi
          r326 <- Part { src: r387, offset: 4, size: 4 }
@@ -729,7 +729,7 @@ ssa program  407 instrs
          r70 <- Const { value: 3, size: 4 }
          r72 <- Concat { lo: r70, hi: r71 }
          r90 <- CArg { value: r72, next_arg: Some(r89) }
-         r91 <- Const { value: 4198512, size: 8 }
+         r91: cs_open <TypeID(3337v1)> <- Const { value: 4198512, size: 8 }
          r92 <- Call { callee: r91, first_arg: Some(r90) }
   (  4)  r15 <- Ancestral(AncestralName("RAX"))
          r104 <- Part { src: r15, offset: 0, size: 4 }
@@ -761,12 +761,12 @@ ssa program  407 instrs
          r164 <- CArg { value: r140, next_arg: Some(r163) }
   (  2)  r139 <- Const { value: 4203184, size: 4 }
          r165 <- CArg { value: r139, next_arg: Some(r164) }
-         r166 <- Const { value: 4198496, size: 8 }
+         r166: cs_disasm <TypeID(3329v1)> <- Const { value: 4198496, size: 8 }
   (  3)  r167 <- Call { callee: r166, first_arg: Some(r165) }
          r181 <- IsZero(r167)
          r186 <- JmpIf { cond: r181, target: 356 }
 .B7:    ;; preds:B1.
-         r359 <- Const { value: 4198448, size: 8 }
+         r359: __builtin_puts <TypeID(3365v1)> <- Const { value: 4198448, size: 8 }
          r360 <- Call { callee: r359, first_arg: None }
          r370 <- Jmp(306)
          r141 <- Concat { lo: r139, hi: r140 }
@@ -803,7 +803,7 @@ ssa program  407 instrs
   (  2)  r234 <- Arith(Add, r201, r233)
   (  2)  r244 <- ArithK(Add, r234, 42)
          r260 <- CArg { value: r244, next_arg: None }
-         r261 <- Const { value: 4198480, size: 8 }
+         r261: printf <TypeID(3326v1)> <- Const { value: 4198480, size: 8 }
          r262 <- Call { callee: r261, first_arg: Some(r260) }
   (  2)  r223 <- ArithK(Add, r385, 1)
          r402 <- Upsilon { value: r223, phi_ref: r385 }
@@ -823,7 +823,7 @@ ssa program  407 instrs
          r293 <- CArg { value: r283, next_arg: None }
          r284 <- LoadMem { mem: r76, addr: r283, size: 8 }
          r294 <- CArg { value: r284, next_arg: Some(r293) }
-         r295 <- Const { value: 4198464, size: 8 }
+         r295: cs_free <TypeID(3322v1)> <- Const { value: 4198464, size: 8 }
          r296 <- Call { callee: r295, first_arg: Some(r294) }
          r403 <- Upsilon { value: r273, phi_ref: r386 }
          r404 <- Upsilon { value: r262, phi_ref: r387 }
@@ -838,7 +838,7 @@ ssa program  407 instrs
          r386 <- Phi
          r309 <- CArg { value: r386, next_arg: Some(r308) }
          r310 <- CArg { value: r78, next_arg: Some(r309) }
-         r311 <- Const { value: 4198528, size: 8 }
+         r311: cs_close <TypeID(3319v1)> <- Const { value: 4198528, size: 8 }
          r312 <- Call { callee: r311, first_arg: Some(r310) }
   (  3)  r387 <- Phi
          r326 <- Part { src: r387, offset: 4, size: 4 }
@@ -859,7 +859,7 @@ T0: {
   [pre:RSP - 16] <- pre:RBP;
   [pre:RSP - 24] <- pre:RBX;
   let r78: Bytes(8) = pre:RSP - 40;
-  4198512(pre:RDI[8 .. 4] ++ 3,
+  cs_open(pre:RDI[8 .. 4] ++ 3,
           pre:RSI[8 .. 4] ++ 8,
           r78,
           pre:RCX)
@@ -870,38 +870,38 @@ T0: {
   }
   let r140: Bytes(4) = pre:RSI[8 .. 4];
   let r122: Bytes(4) = pre:R8[4 .. 0];
-  4198496(4203184,
-          r140,
-          r78[1 .. 0],
-          r122,
-          pre:R8[8 .. 4],
-          (pre:R8[4 .. 0] ^ r122)[1 .. 0])
-  let r167: Bytes(8) = 4198496(4203184,
-                               r140,
-                               r78[1 .. 0],
-                               r122,
-                               pre:R8[8 .. 4],
-                               (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
+  cs_disasm(4203184,
+            r140,
+            r78[1 .. 0],
+            r122,
+            pre:R8[8 .. 4],
+            (pre:R8[4 .. 0] ^ r122)[1 .. 0])
+  let r167: Bytes(8) = cs_disasm(4203184,
+                                 r140,
+                                 r78[1 .. 0],
+                                 r122,
+                                 pre:R8[8 .. 4],
+                                 (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
   if IsZero (r167) {
-    4198448()
+    __builtin_puts()
     
     r386 := r140 ++ 4203184;
-    r387 := 4198496(4203184,
+    r387 := cs_disasm(4203184,
+                      r140,
+                      r78[1 .. 0],
+                      r122,
+                      pre:R8[8 .. 4],
+                      (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
+    r388 := pre:RCX[8 .. 4] ++ 4096;
+    r389 := r78[8 .. 4] ++ 8;
+    goto T5
+  }
+  r383 := cs_disasm(4203184,
                     r140,
                     r78[1 .. 0],
                     r122,
                     pre:R8[8 .. 4],
                     (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
-    r388 := pre:RCX[8 .. 4] ++ 4096;
-    r389 := r78[8 .. 4] ++ 8;
-    goto T5
-  }
-  r383 := 4198496(4203184,
-                  r140,
-                  r78[1 .. 0],
-                  r122,
-                  pre:R8[8 .. 4],
-                  (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
   let r76: MemoryEffect = [pre:RSP - 24] <- pre:RBX;;
   r384 := [pre:RSP - 40]:8;
   r385 := pre:RBX[8 .. 4] ++ (pre:RBX[4 .. 0] ^ pre:RBX[4 .. 0]);
@@ -911,7 +911,7 @@ T0: {
     let mut r385: Bytes(8);
     let r234: Bytes(8) = [pre:RSP - 32]:8 + (r385 << 5 as u64 - r385) * 8;
     let r244: Bytes(8) = r234 + 42;
-    4198480(r244)
+    printf(r244)
     let r223: Bytes(8) = r385 + 1;
     r385 := r385 + 1;
     let mut r383: Bytes(8);
@@ -923,10 +923,10 @@ T0: {
       goto T3
     }
     let r283: Bytes(8) = pre:RSP - 32;
-    4198464([r283]:8,
+    cs_free([r283]:8,
             r283)
     r386 := r383 - r223;
-    r387 := 4198480(r244);
+    r387 := printf(r244);
     r388 := r234 + 74;
     r389 := r234 + 42;
     goto T5
@@ -937,10 +937,10 @@ T0: {
     let mut r386: Bytes(8);
     let mut r389: Bytes(8);
     let mut r388: Bytes(8);
-    4198528(r78,
-            r386,
-            r389,
-            r388)
+    cs_close(r78,
+             r386,
+             r389,
+             r388)
     let mut r387: Bytes(8);
     r390 := r387[8 .. 4] ++ (r387[4 .. 0] ^ r387[4 .. 0]);
     goto T6

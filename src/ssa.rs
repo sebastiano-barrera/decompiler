@@ -386,8 +386,6 @@ fn test_assert_no_circular_refs() {
 
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use std::fmt::Write;
-
         let rdr_count = count_readers(self);
         let mut type_s = Vec::with_capacity(64);
 
@@ -424,11 +422,12 @@ impl std::fmt::Debug for Program {
             type_s.clear();
             if let Some(tyid) = iv.tyid.get() {
                 let mut pp = pp::PrettyPrinter::start(&mut type_s);
+                write!(pp, ": ").unwrap();
                 self.inner.types().dump_type_ref(&mut pp, tyid).unwrap();
             }
 
             let type_s = std::str::from_utf8(&type_s).unwrap();
-            writeln!(f, "{:40} {:?} <- {:?}", type_s, reg, iv.insn.get())?;
+            writeln!(f, "{:?}{} <- {:?}", reg, type_s, iv.insn.get())?;
         }
 
         Ok(())

@@ -954,10 +954,10 @@ ssa program  643 instrs
          r364 <- CArg { value: r349, next_arg: Some(r363) }
   (  2)  r346 <- Const { value: 32, size: 4 }
          r365 <- CArg { value: r346, next_arg: Some(r364) }
-         r366 <- Const { value: 4520352, size: 8 }
+         r366: ll2string <TypeID(177639v1)> <- Const { value: 4520352, size: 8 }
          r367 <- Call { callee: r366, first_arg: Some(r365) }
          r382 <- CArg { value: r346, next_arg: None }
-  (  2)  r383 <- Const { value: 4199136, size: 8 }
+  (  2)  r383: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
          r384 <- Call { callee: r383, first_arg: Some(r382) }
          r412 <- CArg { value: r383, next_arg: None }
   (  2)  r402 <- Part { src: r17, offset: 4, size: 4 }
@@ -967,7 +967,7 @@ ssa program  643 instrs
          r414 <- CArg { value: r400, next_arg: Some(r413) }
   (  2)  r401 <- LoadMem { mem: r352, addr: r400, size: 4 }
          r415 <- CArg { value: r401, next_arg: Some(r414) }
-         r416 <- Const { value: 4293744, size: 8 }
+         r416: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
          r417 <- Call { callee: r416, first_arg: Some(r415) }
          r427 <- Jmp(223)
 .B14:    ;; preds:B13.
@@ -1009,7 +1009,7 @@ ssa program  643 instrs
          r500 <- CArg { value: r631, next_arg: Some(r499) }
          r630 <- Phi
          r501 <- CArg { value: r630, next_arg: Some(r500) }
-         r502 <- Const { value: 5626912, size: 8 }
+         r502: lpPrepend <TypeID(266453v1)> <- Const { value: 5626912, size: 8 }
          r503 <- Call { callee: r502, first_arg: Some(r501) }
          r514 <- Jmp(220)
          r515 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
@@ -1032,7 +1032,7 @@ ssa program  643 instrs
          r542 <- CArg { value: r526, next_arg: Some(r541) }
   (  2)  r527 <- LoadMem { mem: r352, addr: r526, size: 4 }
          r543 <- CArg { value: r527, next_arg: Some(r542) }
-         r544 <- Const { value: 5626880, size: 8 }
+         r544: lpAppend <TypeID(266443v1)> <- Const { value: 5626880, size: 8 }
          r545 <- Call { callee: r544, first_arg: Some(r543) }
          r556 <- Jmp(220)
          r566 <- NotYetImplemented("unsupported: movzx edx,sil")
@@ -1098,7 +1098,7 @@ ssa program  643 instrs
          r615 <- CArg { value: r595, next_arg: Some(r614) }
          r590 <- Const { value: 6982459, size: 4 }
          r616 <- CArg { value: r590, next_arg: Some(r615) }
-         r617 <- Const { value: 4990320, size: 8 }
+         r617: _serverPanic <TypeID(214853v1)> <- Const { value: 4990320, size: 8 }
          r618 <- Call { callee: r617, first_arg: Some(r616) }
 .B2:    ;; preds:B1.
          r115 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
@@ -1121,7 +1121,7 @@ ssa program  643 instrs
 .B12:    ;; preds:B5.
          r327 <- CArg { value: r192, next_arg: None }
          r328 <- CArg { value: r199, next_arg: Some(r327) }
-         r329 <- Const { value: 5627360, size: 8 }
+         r329: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
          r330 <- Call { callee: r329, first_arg: Some(r328) }
          r341 <- Jmp(220)
          r340 <- Part { src: r330, offset: 0, size: 8 }
@@ -1129,7 +1129,7 @@ ssa program  643 instrs
 .B6:    ;; preds:B5.
          r206 <- CArg { value: r192, next_arg: None }
          r207 <- CArg { value: r199, next_arg: Some(r206) }
-         r208 <- Const { value: 5627056, size: 8 }
+         r208: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
          r209 <- Call { callee: r208, first_arg: Some(r207) }
          r219 <- Part { src: r209, offset: 0, size: 8 }
          r642 <- Upsilon { value: r219, phi_ref: r628 }
@@ -1271,10 +1271,10 @@ ssa program  648 instrs
          r364 <- CArg { value: r349, next_arg: Some(r363) }
   (  2)  r346 <- Const { value: 32, size: 4 }
          r365 <- CArg { value: r346, next_arg: Some(r364) }
-         r366 <- Const { value: 4520352, size: 8 }
+         r366: ll2string <TypeID(177639v1)> <- Const { value: 4520352, size: 8 }
          r367 <- Call { callee: r366, first_arg: Some(r365) }
          r382 <- CArg { value: r346, next_arg: None }
-  (  2)  r383 <- Const { value: 4199136, size: 8 }
+  (  2)  r383: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
          r384 <- Call { callee: r383, first_arg: Some(r382) }
          r412 <- CArg { value: r383, next_arg: None }
   (  2)  r402 <- Part { src: r17, offset: 4, size: 4 }
@@ -1283,7 +1283,7 @@ ssa program  648 instrs
          r414 <- CArg { value: r400, next_arg: Some(r413) }
   (  2)  r644 <- Part { src: r17, offset: 0, size: 4 }
          r415 <- CArg { value: r644, next_arg: Some(r414) }
-         r416 <- Const { value: 4293744, size: 8 }
+         r416: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
          r417 <- Call { callee: r416, first_arg: Some(r415) }
          r427 <- Jmp(223)
 .B14:    ;; preds:B13.
@@ -1321,7 +1321,7 @@ ssa program  648 instrs
          r500 <- CArg { value: r631, next_arg: Some(r499) }
          r630 <- Phi
          r501 <- CArg { value: r630, next_arg: Some(r500) }
-         r502 <- Const { value: 5626912, size: 8 }
+         r502: lpPrepend <TypeID(266453v1)> <- Const { value: 5626912, size: 8 }
          r503 <- Call { callee: r502, first_arg: Some(r501) }
          r514 <- Jmp(220)
          r515 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
@@ -1338,7 +1338,7 @@ ssa program  648 instrs
          r542 <- CArg { value: r526, next_arg: Some(r541) }
          r527 <- LoadMem { mem: r352, addr: r526, size: 4 }
          r543 <- CArg { value: r527, next_arg: Some(r542) }
-         r544 <- Const { value: 5626880, size: 8 }
+         r544: lpAppend <TypeID(266443v1)> <- Const { value: 5626880, size: 8 }
          r545 <- Call { callee: r544, first_arg: Some(r543) }
          r556 <- Jmp(220)
          r566 <- NotYetImplemented("unsupported: movzx edx,sil")
@@ -1389,7 +1389,7 @@ ssa program  648 instrs
          r615 <- CArg { value: r595, next_arg: Some(r614) }
          r590 <- Const { value: 6982459, size: 4 }
          r616 <- CArg { value: r590, next_arg: Some(r615) }
-         r617 <- Const { value: 4990320, size: 8 }
+         r617: _serverPanic <TypeID(214853v1)> <- Const { value: 4990320, size: 8 }
          r618 <- Call { callee: r617, first_arg: Some(r616) }
 .B2:    ;; preds:B1.
          r115 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
@@ -1407,14 +1407,14 @@ ssa program  648 instrs
 .B12:    ;; preds:B5.
          r327 <- CArg { value: r192, next_arg: None }
          r328 <- CArg { value: r199, next_arg: Some(r327) }
-         r329 <- Const { value: 5627360, size: 8 }
+         r329: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
          r330 <- Call { callee: r329, first_arg: Some(r328) }
          r341 <- Jmp(220)
          r641 <- Upsilon { value: r330, phi_ref: r628 }
 .B6:    ;; preds:B5.
          r206 <- CArg { value: r192, next_arg: None }
          r207 <- CArg { value: r199, next_arg: Some(r206) }
-         r208 <- Const { value: 5627056, size: 8 }
+         r208: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
          r209 <- Call { callee: r208, first_arg: Some(r207) }
          r642 <- Upsilon { value: r209, phi_ref: r628 }
 .B7:    ;; preds:B6,B12.
@@ -1480,16 +1480,16 @@ T0: {
       let r351: Bytes(8) = pre:RSP - 60;
       let r349: Bytes(4) = pre:RCX[4 .. 0];
       [r351] <- r349;
-      4520352(32,
-              r349,
-              r351)
-      4199136(32)
+      ll2string(32,
+                r349,
+                r351)
+      strlen(32)
       let r644: Bytes(4) = pre:RCX[4 .. 0];
       let r402: Bytes(4) = pre:RCX[8 .. 4];
-      4293744(r644,
-              (pre:RSP - 60),
-              r402,
-              4199136)
+      quicklistPush(r644,
+                    (pre:RSP - 60),
+                    r402,
+                    4199136)
       
       JmpExt(0x418470)
       
@@ -1512,9 +1512,9 @@ T0: {
         let mut r630: Unit;
         let mut r631: Bytes(1);
         let mut r632: Bytes(1);
-        5626912(r630,
-                r631,
-                r632)
+        lpPrepend(r630,
+                  r631,
+                  r632)
         
         TODO /* unsupported: movzx edx,byte ptr [rcx-3] */
         
@@ -1524,9 +1524,9 @@ T0: {
         let r403: Bytes(8) = r402 ++ r644;
         let r526: Bytes(8) = r403 - 17;
         let mut r629: Bytes(8);
-        5626880([r526]:4,
-                r526,
-                r629[8 .. 4])
+        lpAppend([r526]:4,
+                 r526,
+                 r629[8 .. 4])
         
         TODO /* unsupported: movzx edx,sil */
         
@@ -1557,9 +1557,9 @@ T0: {
     goto T18
   }
   if ! ((IsZero (r85[1 .. 0] - 176))) {
-    4990320(6982459,
-            0,
-            176)
+    _serverPanic(6982459,
+                 0,
+                 176)
     goto T18
   }
   TODO /* unsupported: movzx eax,byte ptr [rsi] */
@@ -1567,17 +1567,17 @@ T0: {
     let r192: Bytes(4) = pre:RDX[4 .. 0] & pre:RDX[4 .. 0];
     if IsZero (r192) {
       let r199: Unit = if IsZero (r192);
-      5627360(r199,
-              r192)
+      lpPrependInteger(r199,
+                       r192)
       
-      r628 := 5627360(r199,
-                      r192);
+      r628 := lpPrependInteger(r199,
+                               r192);
       goto T7
     }
-    5627056(r199,
-            r192)
-    r628 := 5627056(r199,
-                    r192);
+    lpAppendInteger(r199,
+                    r192)
+    r628 := lpAppendInteger(r199,
+                            r192);
     goto T7
     
     T7: {
