@@ -516,11 +516,15 @@ fn find_mem_ref(prog: &ssa::Program) -> Option<mil::Reg> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{mil, ssa};
+    use std::sync::Arc;
+
+    use crate::{mil, ssa, ty};
     use mil::{ArithOp, Insn, Reg};
 
     mod constant_folding {
-        use crate::{mil, ssa, xform};
+        use std::sync::Arc;
+
+        use crate::{mil, ssa, ty, xform};
         use mil::{ArithOp, Insn, Reg};
 
         define_ancestral_name!(ANC_MEM, "memory");
@@ -528,7 +532,7 @@ mod tests {
         #[test]
         fn addk() {
             let prog = {
-                let mut b = mil::ProgramBuilder::new();
+                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(20), Insn::Ancestral(ANC_MEM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
@@ -564,7 +568,7 @@ mod tests {
         #[test]
         fn mulk() {
             let prog = {
-                let mut b = mil::ProgramBuilder::new();
+                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(20), Insn::Ancestral(ANC_MEM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
@@ -598,7 +602,9 @@ mod tests {
     }
 
     mod subreg_folding {
-        use crate::{mil, ssa, xform};
+        use std::sync::Arc;
+
+        use crate::{mil, ssa, ty, xform};
 
         define_ancestral_name!(ANC_A, "A");
         define_ancestral_name!(ANC_B, "B");
@@ -615,7 +621,7 @@ mod tests {
                 size: u16,
             }
             fn gen_prog(vp: VariantParams) -> mil::Program {
-                let mut b = mil::ProgramBuilder::new();
+                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
                 b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.anc_a_sz as usize));
                 b.set_ancestral_type(ANC_B, mil::RegType::Bytes(vp.anc_b_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
@@ -738,7 +744,7 @@ mod tests {
             }
 
             fn gen_prog(vp: VariantParams) -> mil::Program {
-                let mut b = mil::ProgramBuilder::new();
+                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
                 b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.src_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
                 b.push(
@@ -817,7 +823,7 @@ mod tests {
         // earlier transform
 
         let prog = {
-            let mut b = mil::ProgramBuilder::new();
+            let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
             b.push(Reg(1), Insn::Const { value: 5, size: 8 });
             b.push(Reg(2), Insn::Const { value: 44, size: 8 });
 

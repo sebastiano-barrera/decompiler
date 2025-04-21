@@ -222,9 +222,11 @@ fn find_dominating_conflicting_store(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::{
         mil::{self, ArithOp, Insn, Reg},
-        ssa, x86_to_mil, xform,
+        ssa, ty, x86_to_mil, xform,
     };
 
     define_ancestral_name!(ANC_MEM, "memory");
@@ -232,7 +234,7 @@ mod tests {
     #[test]
     fn single_bb_direct() {
         for size in [1, 2, 4, 5, 8] {
-            let mut bld = mil::ProgramBuilder::new();
+            let mut bld = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
             bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
             bld.push(Reg(1), Insn::Const { size, value: -123 });
             bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
@@ -268,7 +270,7 @@ mod tests {
 
     #[test]
     fn single_bb_part() {
-        let mut bld = mil::ProgramBuilder::new();
+        let mut bld = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
         bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
         bld.push(
             Reg(1),
@@ -319,7 +321,7 @@ mod tests {
 
     #[test]
     fn single_bb_concat() {
-        let mut bld = mil::ProgramBuilder::new();
+        let mut bld = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
         bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
         bld.push(
             Reg(1),

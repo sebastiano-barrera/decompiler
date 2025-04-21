@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use iced_x86::Formatter;
 use thiserror::Error;
@@ -33,7 +33,7 @@ pub struct Tester<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
     func_syms: HashMap<String, AddrRange>,
-    types: ty::TypeSet,
+    types: Arc<ty::TypeSet>,
 }
 
 #[derive(Clone, Copy)]
@@ -71,7 +71,7 @@ impl<'a> Tester<'a> {
             raw_binary,
             elf,
             func_syms,
-            types,
+            types: Arc::new(types),
         })
     }
 
@@ -157,7 +157,7 @@ impl<'a> Tester<'a> {
         );
         let prog = {
             let insns = decoder.iter();
-            let b = x86_to_mil::Builder::new();
+            let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
 
             let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
             let func_ty = if let Some(func_tyid) = func_tyid_opt {
@@ -178,7 +178,7 @@ impl<'a> Tester<'a> {
                 None
             };
 
-            let (prog, warnings) = b.translate(insns, &self.types, func_ty).unwrap();
+            let (prog, warnings) = b.translate(insns, func_ty).unwrap();
             writeln!(out, "{:?}", warnings)?;
             writeln!(out)?;
 

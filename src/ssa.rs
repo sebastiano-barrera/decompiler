@@ -356,10 +356,14 @@ impl Iterator for InsnRPOIter<'_> {
 #[test]
 #[should_panic]
 fn test_assert_no_circular_refs() {
+    use std::sync::Arc;
+
     use mil::{ArithOp, Insn, Reg};
 
+    use crate::ty;
+
     let prog = {
-        let mut pb = mil::ProgramBuilder::new();
+        let mut pb = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
         pb.set_input_addr(0xf0);
         pb.push(
             Reg(0),
@@ -921,13 +925,15 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
 
 #[cfg(test)]
 mod tests {
-    use crate::mil;
+    use std::sync::Arc;
+
+    use crate::{mil, ty};
     use mil::{ArithOp, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
         let prog = {
-            let mut pb = mil::ProgramBuilder::new();
+            let mut pb = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
 
             pb.set_input_addr(0xf0);
             pb.push(
@@ -987,7 +993,7 @@ mod tests {
 
     fn make_prog_no_cycles() -> super::Program {
         let prog = {
-            let mut b = mil::ProgramBuilder::new();
+            let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
             b.push(Reg(0), Insn::Const { value: 5, size: 8 });
             b.push(Reg(1), Insn::Const { value: 5, size: 8 });
             b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));

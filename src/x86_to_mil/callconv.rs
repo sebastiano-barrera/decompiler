@@ -925,7 +925,7 @@ mod tests {
     }
 
     fn check_types(types: &Types, param_types: &[ty::TypeID]) -> String {
-        let mut bld = Builder::new();
+        let mut bld = Builder::new(Arc::new(ty::TypeSet::new()));
         unpack_params(&mut bld, &types.types, param_types, types.tyid_void).unwrap();
 
         let v0 = bld.reg_gen.next();

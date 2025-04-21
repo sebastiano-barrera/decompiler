@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::mil::{self, AncestralName, RegType};
 use crate::ty;
 use crate::util::{ToWarnings, Warnings};
@@ -14,9 +16,13 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn new() -> Self {
+    pub fn new(
+        // this may become a simple &ty::TypeSet and be passed directly to
+        // Self::translate
+        types: Arc<ty::TypeSet>,
+    ) -> Self {
         let mut bld = Builder {
-            pb: mil::ProgramBuilder::new(),
+            pb: mil::ProgramBuilder::new(types),
             reg_gen: Self::reset_reg_gen(),
         };
 
@@ -87,10 +93,11 @@ impl Builder {
     pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
-        types: &ty::TypeSet,
         func_ty: Option<&ty::Subroutine>,
     ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
+
+        let types = Arc::clone(self.pb.types());
 
         let mut formatter = IntelFormatter::new();
 
@@ -110,7 +117,7 @@ impl Builder {
             let param_count = func_ty.param_tyids.len();
             let res = callconv::unpack_params(
                 &mut self,
-                types,
+                &types,
                 &func_ty.param_tyids,
                 func_ty.return_tyid,
             )
@@ -217,7 +224,7 @@ impl Builder {
                     let ret_val = func_ty
                         .ok_or_else(|| anyhow::anyhow!("no function type"))
                         .and_then(|func_ty| {
-                            callconv::pack_return_value(&mut self, types, func_ty.return_tyid)
+                            callconv::pack_return_value(&mut self, &types, func_ty.return_tyid)
                                 .context("decoding return value")
                         })
                         .or_warn(&mut warnings)
@@ -452,12 +459,12 @@ impl Builder {
 
                     let subr_ty = target_tyid
                         .ok_or(anyhow::anyhow!("no type hints for this callsite"))
-                        .and_then(|tyid| check_subroutine_type(types, tyid))
+                        .and_then(|tyid| check_subroutine_type(&types, tyid))
                         .or_warn(&mut warnings);
 
                     let param_values = subr_ty
                         .and_then(|subr_ty| {
-                            self.pack_params(types, subr_ty, &mut warnings)
+                            self.pack_params(&types, subr_ty, &mut warnings)
                                 .context("packing parameters for subroutine type")
                                 .or_warn(&mut warnings)
                         })
@@ -490,9 +497,16 @@ impl Builder {
 
                     subr_ty
                         .and_then(|subr_ty| {
-                            callconv::unpack_return_value(&mut self, types, subr_ty.return_tyid, v1)
-                                .context("while applying calling convention for return value in call site")
-                                .or_warn(&mut warnings)
+                            callconv::unpack_return_value(
+                                &mut self,
+                                &types,
+                                subr_ty.return_tyid,
+                                v1,
+                            )
+                            .context(
+                                "while applying calling convention for return value in call site",
+                            )
+                            .or_warn(&mut warnings)
                         })
                         .unwrap_or_else(|| {
                             // just a dumb approximation of a likely case

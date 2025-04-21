@@ -2,7 +2,7 @@ use enum_assoc::Assoc;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{cell::Cell, collections::HashMap, ops::Range};
+use std::{cell::Cell, collections::HashMap, ops::Range, sync::Arc};
 
 use crate::ty;
 
@@ -21,6 +21,10 @@ pub struct Program {
     addrs: Vec<u64>,
     dest_tyids: Vec<Cell<Option<ty::TypeID>>>,
     reg_count: Index,
+
+    // Not sure about the Arc here.  Very likely that it's going to have to
+    // change when I do the GUI layer.
+    types: Arc<ty::TypeSet>,
 
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
@@ -390,10 +394,11 @@ pub struct ProgramBuilder {
     dest_ty: Vec<Cell<Option<ty::TypeID>>>,
     cur_input_addr: u64,
     anc_types: HashMap<AncestralName, RegType>,
+    types: Arc<ty::TypeSet>,
 }
 
 impl ProgramBuilder {
-    pub fn new() -> Self {
+    pub fn new(types: Arc<ty::TypeSet>) -> Self {
         Self {
             insns: Vec::new(),
             dests: Vec::new(),
@@ -401,7 +406,12 @@ impl ProgramBuilder {
             dest_ty: Vec::new(),
             cur_input_addr: 0,
             anc_types: HashMap::new(),
+            types,
         }
+    }
+
+    pub fn types(&self) -> &Arc<ty::TypeSet> {
+        &self.types
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
@@ -510,6 +520,7 @@ impl ProgramBuilder {
             dests,
             addrs,
             dest_tyids: dest_ty,
+            types: Arc::new(ty::TypeSet::new()),
             reg_count,
             mil_of_input_addr,
             anc_types: self.anc_types,
