@@ -370,11 +370,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         );
     }
 
-    {
-        let f = std::fs::File::create("direct.graphviz").unwrap();
-        let mut wrt = pp::PrettyPrinter::start(f);
-        direct.dump(&mut wrt).unwrap();
-    }
     let predecessors = compute_predecessors(&direct.successors);
     let dom_tree = compute_dom_tree(&direct, &predecessors);
 
