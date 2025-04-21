@@ -1466,73 +1466,42 @@ ssa program  648 instrs
 
 
 T0: {
-  [pre:RSP - 8] <- pre:RBP;;
-  
-  [pre:RSP - 16] <- pre:R12;;
-  
-  let r71: MemoryEffect = [pre:RSP - 24] <- pre:RBX;;
-  
+  [pre:RSP - 8]:* := pre:RBP;
+  [pre:RSP - 16]:* := pre:R12;
+  [pre:RSP - 24]:* := pre:RBX;
   TODO /* unsupported: movzx eax,byte ptr [rdi] */;
-  
   let r85: Bytes(4) = pre:RAX[4 .. 0] & -16;
   if IsZero (r85[1 .. 0] - 144);
    {
     TODO /* unsupported: movzx eax,byte ptr [rsi] */;
-    
     TODO /* unsupported: neg edx */;
-    
     TODO /* unsupported: sbb ecx,ecx */;
-    
     if IsZero ((r85 & -16)[1 .. 0] - 16);
      {
       let r351: Bytes(8) = pre:RSP - 60;
       let r349: Bytes(4) = pre:RCX[4 .. 0];
-      let r352: MemoryEffect = [r351] <- r349;;
-      
+      [r351]:* := r349;
       ll2string(32,
                 r349,
                 r351);
-      
       strlen(32);
-      
       let r644: Bytes(4) = pre:RCX[4 .. 0];
       let r402: Bytes(4) = pre:RCX[8 .. 4];
       quicklistPush(r644,
                     (pre:RSP - 60),
                     r402,
                     4199136);
-      
-      ;
-      
       JmpExt(0x418470);
-      
-      ;
-      
       TODO /* unsupported: movzx edx,dl */;
-      
-      ;
-      
       TODO /* unsupported: movzx edx,byte ptr [rdi-3] */;
-      
-      ;
-      
       TODO /* unsupported: movzx edx,word ptr [rdi-5] */;
-      
-      ;
-      
       TODO /* unsupported: movzx edx,sil */;
-      
       let r460: Bytes(8) = [[pre:RDI + 8]:8 - 17]:8;
-      r629 := r460[8 .. 1]as i7 ++ (r460[1 .. 0] >> 3)as i1;;
-      
+      r629 := r460[8 .. 1]as i7 ++ (r460[1 .. 0] >> 3)as i1;
       ;
-      
-      r631 := [pre:RDI + 8]:8[1 .. 0] >> 3;;
-      
-      r632 := 3;;
-      
+      r631 := [pre:RDI + 8]:8[1 .. 0] >> 3;
+      r632 := 3;
       goto T15
-      
       T15: {
         let mut r630: Unit;
         let mut r631: Bytes(1);
@@ -1540,70 +1509,35 @@ T0: {
         lpPrepend(r630,
                   r631,
                   r632);
-        
-        ;
-        
         TODO /* unsupported: movzx edx,byte ptr [rcx-3] */;
-        
-        ;
-        
         TODO /* unsupported: movzx edx,word ptr [rcx-5] */;
-        
-        ;
-        
-        ;
-        
         let r403: Bytes(8) = r402 ++ r644;
         let r526: Bytes(8) = r403 - 17;
         let mut r629: Bytes(8);
         lpAppend([r526]:4,
                  r526,
                  r629[8 .. 4]);
-        
-        ;
-        
         TODO /* unsupported: movzx edx,sil */;
-        
-        ;
-        
         TODO /* unsupported: movzx edx,byte ptr [rcx-3] */;
-        
-        ;
-        
         TODO /* unsupported: movzx edx,word ptr [rcx-5] */;
-        
-        ;
-        
-        ;
-        
-        ;
-        
         let r579: Bytes(8) = r403 - 17;
         let r581: Bytes(4) = r629[8 .. 4];
-        r629 := r581 ++ [r579]:4;;
-        
+        r629 := r581 ++ [r579]:4;
         ;
-        
-        r631 := r403 - 17;;
-        
-        r632 := r629[8 .. 4];;
-        
+        r631 := r403 - 17;
+        r632 := r629[8 .. 4];
         loop T15
       }
     
     }
     TODO /* unsupported: movzx edx,byte ptr [rdi-1] */;
-    
     let r276: Bytes(4) = pre:RDX[4 .. 0] & 7;
     let r287: Bytes(1) = r276[1 .. 0] - 4;
     if ! ((SignOf (r287))) AND ! ((IsZero (r287))){
       goto 0x402446
     };
-    
     TODO /* unsupported: movzx eax,al */;
-    
     JmpInd (pre:RAX[8 .. 4] ++ r276 * 8 + 6851672);
-    
     goto T18
   }
   if ! ((IsZero (r85[1 .. 0] - 176)));
@@ -1611,11 +1545,9 @@ T0: {
     _serverPanic(6982459,
                  0,
                  176);
-    
     goto T18
   }
   TODO /* unsupported: movzx eax,byte ptr [rsi] */;
-  
   if IsZero ((r85 & -16)[1 .. 0] - 16);
    {
     let r192: Bytes(4) = pre:RDX[4 .. 0] & pre:RDX[4 .. 0];
@@ -1623,34 +1555,24 @@ T0: {
      {
       lpPrependInteger(r199,
                        r192);
-      
-      ;
-      
       r628 := lpPrependInteger(r199,
-                               r192);;
-      
+                               r192);
       goto T7
     }
     lpAppendInteger(r199,
                     r192);
-    
     r628 := lpAppendInteger(r199,
-                            r192);;
-    
+                            r192);
     goto T7
-    
     T7: {
       let mut r628: Bytes(8);
-      [pre:RDI + 8] <- r628;;
-      
+      [pre:RDI + 8]:* := r628;
       Ret (r628);
-      
       goto T18
     }
   
   }
   TODO /* unsupported: movzx esi,byte ptr [rcx-1] */;
-  
   if ! ((IsZero (pre:RDX[4 .. 0] & pre:RDX[4 .. 0])));
    {
     let r151: Bytes(4) = pre:RSI[4 .. 0] & 7;
@@ -1658,25 +1580,18 @@ T0: {
     if ! ((SignOf (r305))) AND ! ((IsZero (r305))){
       goto 0x402454
     };
-    
     TODO /* unsupported: movzx eax,al */;
-    
     let r153: Bytes(8) = pre:RAX[8 .. 4] ++ r151;
     JmpInd (r153 * 8 + 6851712);
-    
     goto T18
   }
   let r173: Bytes(1) = r151[1 .. 0] - 4;
   if ! ((SignOf (r173))) AND ! ((IsZero (r173))){
     goto 0x40244d
   };
-  
   TODO /* unsupported: movzx eax,al */;
-  
   JmpInd (r153 * 8 + 6851632);
-  
   goto T18
-  
   T18: {
     end
   }

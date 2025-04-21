@@ -149,11 +149,8 @@ ssa program  87 instrs
 
 
 T0: {
-  [pre:RSP + 8] <- pre:arg5;;
-  
+  [pre:RSP + 8]:* := pre:arg5;
   TODO /* unsupported: movzx eax,word ptr [rsp+8] */;
-  
   Ret (pre:RAX[2 .. 0]);
-  
   end
 }

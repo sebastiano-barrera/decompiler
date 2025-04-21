@@ -174,11 +174,8 @@ ssa program  85 instrs
 
 
 T0: {
-  [pre:RDI + 16] <- [pre:RSP + 40]:16;;
-  
-  [pre:RDI] <- [pre:RSP + 24]:16;;
-  
+  [pre:RDI + 16]:* := [pre:RSP + 40]:16;
+  [pre:RDI]:* := [pre:RSP + 24]:16;
   Ret (pre:RDI);
-  
   end
 }

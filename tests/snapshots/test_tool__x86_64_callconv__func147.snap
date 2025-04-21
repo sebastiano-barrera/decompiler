@@ -159,13 +159,9 @@ ssa program  88 instrs
 
 
 T0: {
-  [pre:RSP + 8] <- pre:arg5[8 .. 0];;
-  
-  [pre:RSP + 16] <- pre:arg5[16 .. 8];;
-  
+  [pre:RSP + 8]:* := pre:arg5[8 .. 0];
+  [pre:RSP + 16]:* := pre:arg5[16 .. 8];
   TODO /* unsupported: movss xmm0,[rsp+18h] */;
-  
   Ret (pre:ZMM0[4 .. 0]);
-  
   end
 }

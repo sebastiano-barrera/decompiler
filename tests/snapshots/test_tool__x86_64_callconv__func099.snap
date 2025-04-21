@@ -150,6 +150,5 @@ ssa program  90 instrs
 
 T0: {
   Ret (pre:arg4[16 .. 8] ++ pre:arg4[8 .. 0]);
-  
   end
 }

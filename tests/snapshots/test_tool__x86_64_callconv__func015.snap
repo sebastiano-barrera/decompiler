@@ -119,8 +119,6 @@ ssa program  71 instrs
 
 T0: {
   TODO /* unsupported: movss xmm0,[rsp+8] */;
-  
   Ret (pre:ZMM0[4 .. 0]);
-  
   end
 }

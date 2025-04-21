@@ -130,8 +130,6 @@ ssa program  81 instrs
 
 T0: {
   TODO /* unsupported: movd xmm0,ecx */;
-  
   Ret (pre:ZMM0[4 .. 0]);
-  
   end
 }

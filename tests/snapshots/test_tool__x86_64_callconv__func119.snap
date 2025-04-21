@@ -177,17 +177,11 @@ ssa program  93 instrs
 
 
 T0: {
-  [pre:RSP + 8] <- pre:arg4[8 .. 0];;
-  
-  [pre:RSP + 16] <- pre:arg4[16 .. 8];;
-  
-  [pre:RSP + 24] <- pre:arg5[8 .. 0];;
-  
-  [pre:RSP + 32] <- pre:arg5[16 .. 8];;
-  
+  [pre:RSP + 8]:* := pre:arg4[8 .. 0];
+  [pre:RSP + 16]:* := pre:arg4[16 .. 8];
+  [pre:RSP + 24]:* := pre:arg5[8 .. 0];
+  [pre:RSP + 32]:* := pre:arg5[16 .. 8];
   TODO /* unsupported: movss xmm0,[rsp+10h] */;
-  
   Ret (pre:ZMM0[4 .. 0]);
-  
   end
 }

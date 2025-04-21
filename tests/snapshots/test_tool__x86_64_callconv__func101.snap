@@ -152,6 +152,5 @@ ssa program  91 instrs
 
 T0: {
   Ret (pre:arg4[16 .. 8]);
-  
   end
 }

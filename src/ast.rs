@@ -169,15 +169,12 @@ impl<'a> Ast<'a> {
         self.printed.insert(reg);
 
         let reg_type = self.ssa.reg_type(reg);
-        let should_print_semicolon = if self.is_named(reg) && reg_type != mil::RegType::MemoryEffect
-        {
-            if let Insn::Phi = self.ssa[reg].get() {
-                write!(pp, "let mut r{}: {:?}", reg.reg_index(), reg_type)?;
-                true
-            } else {
-                write!(pp, "let r{}: {:?} = ", reg.reg_index(), reg_type)?;
-                self.pp_def(pp, reg, 0)?
-            }
+        let should_print_semicolon = if let Insn::Phi = self.ssa[reg].get() {
+            write!(pp, "let mut r{}: {:?}", reg.reg_index(), reg_type)?;
+            true
+        } else if self.is_named(reg) && reg_type != mil::RegType::MemoryEffect {
+            write!(pp, "let r{}: {:?} = ", reg.reg_index(), reg_type)?;
+            self.pp_def(pp, reg, 0)?
         } else {
             self.pp_def(pp, reg, 0)?
         };

@@ -209,15 +209,10 @@ ssa program  113 instrs
 
 
 T0: {
-  [pre:RSP - 8] <- pre:RBP;;
-  
+  [pre:RSP - 8]:* := pre:RBP;
   let r76: Bytes(8) = zmalloc(24);
-  
-  [r76] <- 0;;
-  
-  [r76 + 8] <- pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];;
-  
+  [r76]:* := 0;
+  [r76 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
   Ret (r76);
-  
   end
 }

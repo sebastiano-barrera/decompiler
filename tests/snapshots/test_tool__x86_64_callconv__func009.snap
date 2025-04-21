@@ -124,8 +124,6 @@ ssa program  76 instrs
 
 T0: {
   TODO /* unsupported: movd xmm0,esi */;
-  
   Ret (pre:ZMM0[4 .. 0]);
-  
   end
 }

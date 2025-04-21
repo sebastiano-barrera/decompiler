@@ -855,9 +855,9 @@ ssa program  407 instrs
 
 
 T0: {
-  [pre:RSP - 8] <- pre:R12;
-  [pre:RSP - 16] <- pre:RBP;
-  [pre:RSP - 24] <- pre:RBX;
+  [pre:RSP - 8]:* := pre:R12;
+  [pre:RSP - 16]:* := pre:RBP;
+  [pre:RSP - 24]:* := pre:RBX;
   let r78: Bytes(8) = pre:RSP - 40;
   cs_open(pre:RDI[8 .. 4] ++ 3,
           pre:RSI[8 .. 4] ++ 8,

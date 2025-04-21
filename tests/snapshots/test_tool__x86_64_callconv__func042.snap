@@ -134,6 +134,5 @@ ssa program  79 instrs
 
 T0: {
   Ret ([pre:RSP + 34]:1);
-  
   end
 }
