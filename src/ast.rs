@@ -265,7 +265,16 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "!".into(), insn.input_regs(), self_prec)?;
             }
             Insn::Call { callee, first_arg } => {
-                self.pp_ref(pp, callee, self_prec)?;
+                let callee_iv = self.ssa.get(callee).unwrap();
+                if let Some(tyid) = callee_iv.tyid.get() {
+                    // Not quite correct (why would we print the type name?) but
+                    // happens to be always correct for well formed programs
+                    let typ = self.ssa.types().get_through_alias(tyid).unwrap();
+                    write!(pp, "{}", typ.name)?;
+                } else {
+                    self.pp_ref(pp, callee, self_prec)?;
+                }
+
                 write!(pp, "(")?;
                 pp.open_box();
                 for (ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {

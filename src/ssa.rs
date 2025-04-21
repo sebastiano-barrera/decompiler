@@ -7,7 +7,7 @@ use std::{cell::Cell, io::Write};
 /// > Cooper, Keith & Harvey, Timothy & Kennedy, Ken. (2006).
 /// > A Simple, Fast Dominance Algorithm.
 /// > Rice University, CS Technical Report 06-33870.
-use crate::{cfg, mil, pp};
+use crate::{cfg, mil, pp, ty};
 
 #[derive(Clone)]
 pub struct Program {
@@ -160,6 +160,10 @@ impl Program {
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
             Insn::Upsilon { .. } => RegType::Unit,
         }
+    }
+
+    pub fn types(&self) -> &ty::TypeSet {
+        self.inner.types()
     }
 
     pub fn assert_invariants(&self) {
