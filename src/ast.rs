@@ -329,7 +329,7 @@ impl<'a> Ast<'a> {
                 write!(pp, "[")?;
                 pp.open_box();
                 self.pp_ref(pp, addr, self_prec)?;
-                write!(pp, "] <- ")?;
+                write!(pp, "]:* := ")?;
                 pp.open_box();
                 self.pp_ref(pp, value, self_prec)?;
                 pp.close_box();
