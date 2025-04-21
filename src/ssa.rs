@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::{cell::Cell, io::Write};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -7,7 +7,7 @@ use std::cell::Cell;
 /// > Cooper, Keith & Harvey, Timothy & Kennedy, Ken. (2006).
 /// > A Simple, Fast Dominance Algorithm.
 /// > Rice University, CS Technical Report 06-33870.
-use crate::{cfg, mil};
+use crate::{cfg, mil, pp};
 
 #[derive(Clone)]
 pub struct Program {
@@ -382,12 +382,14 @@ fn test_assert_no_circular_refs() {
 
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::fmt::Write;
+
         let rdr_count = count_readers(self);
+        let mut type_s = Vec::with_capacity(64);
 
         writeln!(f, "ssa program  {} instrs", self.reg_count())?;
 
         let mut cur_bid = None;
-
         for (bid, reg) in self.insns_rpo() {
             if cur_bid != Some(bid) {
                 write!(f, ".B{}:    ;; ", bid.as_usize())?;
@@ -414,7 +416,15 @@ impl std::fmt::Debug for Program {
             }
 
             let iv = self.get(reg).unwrap();
-            writeln!(f, "{:?} <- {:?}", reg, iv.insn.get())?;
+
+            type_s.clear();
+            if let Some(tyid) = iv.tyid.get() {
+                let mut pp = pp::PrettyPrinter::start(&mut type_s);
+                self.inner.types().dump_type_ref(&mut pp, tyid).unwrap();
+            }
+
+            let type_s = std::str::from_utf8(&type_s).unwrap();
+            writeln!(f, "{:40} {:?} <- {:?}", type_s, reg, iv.insn.get())?;
         }
 
         Ok(())

@@ -361,6 +361,10 @@ impl Program {
     pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
         self.anc_types.get(&anc_name).copied()
     }
+
+    pub fn types(&self) -> &ty::TypeSet {
+        &self.types
+    }
 }
 
 pub struct InsnView<'a> {
@@ -458,6 +462,7 @@ impl ProgramBuilder {
             dests,
             addrs,
             dest_ty,
+            types,
             ..
         } = self;
 
@@ -520,7 +525,7 @@ impl ProgramBuilder {
             dests,
             addrs,
             dest_tyids: dest_ty,
-            types: Arc::new(ty::TypeSet::new()),
+            types,
             reg_count,
             mil_of_input_addr,
             anc_types: self.anc_types,
