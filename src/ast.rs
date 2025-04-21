@@ -150,7 +150,7 @@ impl<'a> Ast<'a> {
             if self.is_named(input) && !self.let_printed.contains(&input) {
                 self.let_printed.insert(input);
 
-                let input_rt = self.ssa.value_type(input);
+                let input_rt = self.ssa.reg_type(input);
 
                 if let Insn::Phi = self.ssa[input].get() {
                     write!(pp, "let mut r{}: {:?}", input.reg_index(), input_rt)?;
@@ -342,7 +342,7 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, cond, self_prec)?;
                 write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
             }
-            Insn::Upsilon { value, phi_ref } => match self.ssa.value_type(value) {
+            Insn::Upsilon { value, phi_ref } => match self.ssa.reg_type(value) {
                 mil::RegType::Bool | mil::RegType::Bytes(_) | mil::RegType::Undefined => {
                     write!(pp, "r{} := ", phi_ref.reg_index())?;
                     pp.open_box();
@@ -392,8 +392,8 @@ impl<'a> Ast<'a> {
     }
 
     fn operands_sizes(&self, a: Reg, b: Reg) -> (Option<usize>, Option<usize>) {
-        let at = self.ssa.value_type(a);
-        let bt = self.ssa.value_type(b);
+        let at = self.ssa.reg_type(a);
+        let bt = self.ssa.reg_type(b);
         if let (Some(asz), Some(bsz)) = (at.bytes_size(), bt.bytes_size()) {
             if asz != bsz {
                 return (Some(asz), Some(bsz));

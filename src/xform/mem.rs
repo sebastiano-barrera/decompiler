@@ -200,7 +200,7 @@ fn find_dominating_conflicting_store(
         }
 
         let size_s = prog
-            .value_type(value_s)
+            .reg_type(value_s)
             .bytes_size()
             .expect("StoreMem: value with unsized type?!");
         let end_s = start_s + size_s as i64;

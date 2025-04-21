@@ -97,7 +97,7 @@ impl Program {
         })
     }
 
-    pub fn value_type(&self, reg: mil::Reg) -> mil::RegType {
+    pub fn reg_type(&self, reg: mil::Reg) -> mil::RegType {
         use mil::{Insn, RegType};
         match self.inner.get(reg.0).unwrap().insn.get() {
             Insn::Void => RegType::Bytes(0), // TODO better choice here?
@@ -105,10 +105,10 @@ impl Program {
             Insn::False => RegType::Bool,
             Insn::Const { size, .. } => RegType::Bytes(size as usize),
             Insn::Part { size, .. } => RegType::Bytes(size as usize),
-            Insn::Get(arg) => self.value_type(arg),
+            Insn::Get(arg) => self.reg_type(arg),
             Insn::Concat { lo, hi } => {
-                let lo_size = self.value_type(lo).bytes_size().unwrap();
-                let hi_size = self.value_type(hi).bytes_size().unwrap();
+                let lo_size = self.reg_type(lo).bytes_size().unwrap();
+                let hi_size = self.reg_type(hi).bytes_size().unwrap();
                 RegType::Bytes(lo_size + hi_size)
             }
             Insn::Widen {
@@ -117,19 +117,19 @@ impl Program {
                 sign: _,
             } => RegType::Bytes(target_size as usize),
             Insn::Arith(_, a, b) => {
-                let at = self.value_type(a);
-                let bt = self.value_type(b);
+                let at = self.reg_type(a);
+                let bt = self.reg_type(b);
                 assert_eq!(at, bt); // TODO check this some better way
                 at
             }
-            Insn::ArithK(_, a, _) => self.value_type(a),
+            Insn::ArithK(_, a, _) => self.reg_type(a),
             Insn::Cmp(_, _, _) => RegType::Bool,
             Insn::Bool(_, _, _) => RegType::Bool,
             Insn::Not(_) => RegType::Bool,
             // TODO This might have to change based on the use of calling
             // convention and function type info
             Insn::Call { .. } => RegType::Bytes(8),
-            Insn::CArg { value, next_arg: _ } => self.value_type(value),
+            Insn::CArg { value, next_arg: _ } => self.reg_type(value),
             Insn::Ret(_) => RegType::Unit,
             Insn::JmpInd(_) => RegType::Unit,
             Insn::Jmp(_) => RegType::Unit,
@@ -151,7 +151,7 @@ impl Program {
                     panic!("no upsilons for this phi? {:?}", reg)
                 };
                 // assuming that all types are the same, as per assert_phis_consistent
-                self.value_type(y)
+                self.reg_type(y)
             }
             Insn::Ancestral(anc_name) => self
                 .inner
@@ -197,13 +197,13 @@ impl Program {
                 continue;
             }
             if let mil::Insn::Upsilon { value, phi_ref } = iv.insn.get() {
-                let value_type = self.value_type(value);
+                let reg_type = self.reg_type(value);
                 match &mut phi_type[phi_ref] {
                     slot @ None => {
-                        *slot = Some(value_type);
+                        *slot = Some(reg_type);
                     }
                     Some(prev) => {
-                        assert_eq!(*prev, value_type);
+                        assert_eq!(*prev, reg_type);
                     }
                 }
             }

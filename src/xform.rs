@@ -138,7 +138,7 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 
     let end = offset + size;
 
-    let src_sz = prog.value_type(src).bytes_size().unwrap();
+    let src_sz = prog.reg_type(src).bytes_size().unwrap();
     assert!(end as usize <= src_sz);
 
     let src = prog.get(src).unwrap();
@@ -149,7 +149,7 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
             size: up_size,
         } => {
             let up_end = up_offset + up_size;
-            let up_src_sz = prog.value_type(up_src).bytes_size().unwrap();
+            let up_src_sz = prog.reg_type(up_src).bytes_size().unwrap();
             assert!(up_end as usize <= up_src_sz);
 
             Insn::Part {
@@ -161,7 +161,7 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 
         Insn::Concat { lo, hi } => {
             let lo_sz = prog
-                .value_type(lo)
+                .reg_type(lo)
                 .bytes_size()
                 .unwrap()
                 .try_into()
@@ -196,7 +196,7 @@ fn fold_concat_void(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         return insn;
     };
 
-    match (prog.value_type(lo), prog.value_type(hi)) {
+    match (prog.reg_type(lo), prog.reg_type(hi)) {
         (RegType::Bytes(0), RegType::Bytes(0)) => Insn::Void,
         (RegType::Bytes(0), _) => Insn::Get(hi),
         (_, RegType::Bytes(0)) => Insn::Get(lo),
@@ -209,7 +209,7 @@ fn fold_bitops(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         // TODO put the appropriate size
         Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Const {
             value: 0,
-            size: prog.value_type(a).bytes_size().unwrap().try_into().unwrap(),
+            size: prog.reg_type(a).bytes_size().unwrap().try_into().unwrap(),
         },
         Insn::Arith(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
         Insn::Arith(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
@@ -272,12 +272,7 @@ fn fold_part_concat(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     } = insn
     {
         if let Insn::Concat { lo, hi } = prog[p_src].get() {
-            let lo_size = prog
-                .value_type(lo)
-                .bytes_size()
-                .unwrap()
-                .try_into()
-                .unwrap();
+            let lo_size = prog.reg_type(lo).bytes_size().unwrap().try_into().unwrap();
 
             if p_offset + p_size <= lo_size {
                 return Insn::Part {
@@ -361,7 +356,7 @@ fn fold_widen_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         sign: _,
     } = insn
     {
-        if let RegType::Bytes(sz) = prog.value_type(reg) {
+        if let RegType::Bytes(sz) = prog.reg_type(reg) {
             if target_size as usize == sz {
                 return Insn::Get(reg);
             }
@@ -378,7 +373,7 @@ fn fold_part_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
         size,
     } = insn
     {
-        if let RegType::Bytes(src_size) = prog.value_type(src) {
+        if let RegType::Bytes(src_size) = prog.reg_type(src) {
             if src_size == size as usize {
                 return Insn::Get(src);
             }
