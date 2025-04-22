@@ -250,8 +250,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         bounds.push(program.len());
         bounds.sort();
         bounds.dedup();
-        // virtual exit node has bounds coinciding with the program's exit
-        bounds.push(program.len());
         bounds
     };
 
@@ -291,14 +289,10 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
                 };
 
                 for &dest in dests {
-                    let dest = if dest == program.len() {
-                        // TODO this should already be in block_at, which would simplify this
-                        // exit node
-                        exit_bid
-                    } else {
-                        *block_at.get(&dest).unwrap()
-                    };
-                    appender.append(dest);
+                    if dest != program.len() {
+                        let dest = *block_at.get(&dest).unwrap();
+                        appender.append(dest);
+                    }
                 }
             }
 
@@ -350,12 +344,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         let (_, starts) = bounds.split_last().unwrap();
         for (i, &start) in starts.iter().enumerate() {
             let end = bounds[i + 1];
-            if i == starts.len() - 1 {
-                // exit block supposed to stay empty
-                assert_eq!(end, start);
-            } else {
-                assert_ne!(end, start);
-            }
+            assert_ne!(end, start);
         }
     }
 
