@@ -144,11 +144,9 @@ ssa program  93 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:93] -> Jmp(BlockID(1))
-  BlockID(1) [93:93] -> End
+  BlockID(0) [0:93] -> End
   domtree:
     BlockID(0)
-    |  BlockID(1)
 
 ssa post-xform:
 ssa program  93 instrs
@@ -182,6 +180,5 @@ T0: {
   [pre:RSP + 24]:* := pre:arg5[8 .. 0];
   [pre:RSP + 32]:* := pre:arg5[16 .. 8];
   TODO /* unsupported: movss xmm0,[rsp+10h] */;
-  Ret (pre:ZMM0[4 .. 0]);
-  end
+  return pre:ZMM0[4 .. 0]
 }

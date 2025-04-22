@@ -178,11 +178,9 @@ ssa program  113 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:113] -> Jmp(BlockID(1))
-  BlockID(1) [113:113] -> End
+  BlockID(0) [0:113] -> End
   domtree:
     BlockID(0)
-    |  BlockID(1)
 
 ssa post-xform:
 ssa program  113 instrs
@@ -213,6 +211,5 @@ T0: {
   let r76: Bytes(8) = zmalloc(24);
   [r76]:* := 0;
   [r76 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
-  Ret (r76);
-  end
+  return r76
 }

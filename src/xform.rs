@@ -553,7 +553,7 @@ mod tests {
             xform::canonical(&mut prog);
             eprintln!("ssa post xform:\n\n{:?}", prog);
 
-            assert_eq!(prog.cfg().block_count(), 2);
+            assert_eq!(prog.cfg().block_count(), 1);
             assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
             assert_eq!(prog[Reg(6)].get(), Insn::Const { value: 49, size: 8 });
             assert_eq!(prog[Reg(9)].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));

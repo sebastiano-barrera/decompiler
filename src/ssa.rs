@@ -171,7 +171,7 @@ impl Program {
         self.assert_no_circular_refs();
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
-        self.assert_alt_block_ends_with_jmpif();
+        self.assert_valid_block_ends();
         self.assert_carg_chain();
     }
 
@@ -182,12 +182,42 @@ impl Program {
         }
     }
 
-    fn assert_alt_block_ends_with_jmpif(&self) {
+    fn assert_valid_block_ends(&self) {
         for bid in self.cfg.block_ids() {
-            if let cfg::BlockCont::Alt { .. } = self.cfg.block_cont(bid) {
-                let last_fx_iid = self.block_effects(bid).last().unwrap();
-                let last_fx = self.get(*last_fx_iid).unwrap().insn.get();
-                assert!(matches!(last_fx, mil::Insn::JmpIf { .. }));
+            let block_effects = self.block_effects(bid);
+            let cont = self.cfg.block_cont(bid);
+
+            let split_last = block_effects.split_last();
+
+            if let Some((_, fx_nonlast)) = split_last {
+                for &reg in fx_nonlast {
+                    assert!(!matches!(
+                        self[reg].get(),
+                        mil::Insn::JmpIf { .. } | mil::Insn::Jmp(_) | mil::Insn::Ret(_)
+                    ));
+                }
+            }
+
+            match (cont, split_last) {
+                (cfg::BlockCont::End, None) => {
+                    panic!("block {bid:?} with End ending must not be empty")
+                }
+                (cfg::BlockCont::End, Some((&fx_last_reg, _))) => {
+                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::Ret(_)));
+                }
+                (cfg::BlockCont::Jmp(_), None) => {}
+                (cfg::BlockCont::Jmp(_), Some((&fx_last_reg, _))) => {
+                    assert!(!matches!(
+                        self[fx_last_reg].get(),
+                        mil::Insn::JmpIf { .. } | mil::Insn::Jmp(_) | mil::Insn::Ret(_)
+                    ));
+                }
+                (cfg::BlockCont::Alt { .. }, None) => {
+                    panic!("block {bid:?} with Alt ending must not be empty")
+                }
+                (cfg::BlockCont::Alt { .. }, Some((&fx_last_reg, _))) => {
+                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::JmpIf { .. }));
+                }
             }
         }
     }
@@ -597,6 +627,14 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     let mut insn = iv.insn.get();
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
+                    }
+                    if let mil::Insn::Jmp(_) = insn {
+                        let insn_ndx_last = cfg.insns_ndx_range(bid).last().unwrap();
+                        assert_eq!(insn_ndx, insn_ndx_last);
+                        // patch it out, otherwise we violate the effectful/pure partitionng
+                        insn = mil::Insn::Void;
+                        // ... and do not add it to bb.effects (the
+                        // BlockCont is deemed sufficient)
                     }
                     iv.insn.set(insn);
 

@@ -71,30 +71,45 @@ impl<'a> Ast<'a> {
 
         let cfg = self.ssa.cfg();
         let block_cont = cfg.block_cont(bid);
-
         let block_effects = self.ssa.block_effects(bid);
-        for reg in block_effects.iter() {
-            self.pp_input_let_stmts(pp, *reg)?;
-            self.pp_stmt(pp, *reg)?;
-        }
 
         match block_cont {
             cfg::BlockCont::End => {
-                write!(pp, "end")?;
-                // all done!
+                let (&last_reg, block_effects) = block_effects
+                    .split_last()
+                    .expect("block with Alt ending cannot be empty");
+
+                self.pp_effects(pp, block_effects)?;
+
+                match self.ssa[last_reg].get() {
+                    mil::Insn::Ret(value) => {
+                        write!(pp, "return ")?;
+                        self.pp_ref(pp, value, 0)?;
+                    }
+                    _ => panic!("block with End ending must have Ret as last insn"),
+                };
             }
             cfg::BlockCont::Jmp(tgt) => {
+                self.pp_effects(pp, block_effects)?;
                 self.pp_continuation(pp, bid, tgt)?;
             }
             cfg::BlockCont::Alt {
                 straight: neg_bid,
                 side: pos_bid,
             } => {
-                // otherwise the syntax makes no sense
-                let last_reg = *block_effects.last().unwrap();
-                let last = self.ssa[last_reg].get();
-                assert!(matches!(last, mil::Insn::JmpIf { .. }));
+                let (&last_reg, block_effects) = block_effects
+                    .split_last()
+                    .expect("block with Alt ending cannot be empty");
 
+                let cond = match self.ssa[last_reg].get() {
+                    mil::Insn::JmpIf { cond, target: _ } => cond,
+                    _ => panic!("block with Alt ending must have JmpIf as last insn"),
+                };
+
+                self.pp_effects(pp, block_effects)?;
+
+                write!(pp, "if ")?;
+                self.pp_ref(pp, cond, 0)?;
                 write!(pp, " {{\n  ")?;
                 pp.open_box();
                 self.pp_continuation(pp, bid, pos_bid)?;
@@ -109,6 +124,19 @@ impl<'a> Ast<'a> {
             if cfg.block_preds(child).len() > 1 {
                 self.pp_block_labeled(pp, child)?;
             }
+        }
+
+        Ok(())
+    }
+
+    fn pp_effects<W: PP + ?Sized>(
+        &mut self,
+        pp: &mut W,
+        block_effects: &[Reg],
+    ) -> std::io::Result<()> {
+        for reg in block_effects.iter() {
+            self.pp_input_let_stmts(pp, *reg)?;
+            self.pp_stmt(pp, *reg)?;
         }
 
         Ok(())
@@ -207,10 +235,6 @@ impl<'a> Ast<'a> {
         if let Insn::Get(x) = insn {
             return self.pp_def(pp, x, parent_prec);
         }
-        if let Insn::Jmp(_) = insn {
-            // hidden, handled by pp_block
-            return Ok(false);
-        }
 
         let self_prec = precedence(&insn);
 
@@ -225,7 +249,12 @@ impl<'a> Ast<'a> {
             Insn::Const { value, size: _ } => {
                 write!(pp, "{}", value)?;
             }
-            Insn::Get(_) | Insn::Jmp(_) => unreachable!(),
+            Insn::Get(_) | Insn::Jmp(_) | Insn::JmpIf { .. } | Insn::Ret(_) => {
+                panic!(
+                    "block-terminating instructions are not printed via pp_def ({:?})",
+                    insn
+                );
+            }
 
             Insn::StructGetMember {
                 struct_value,
@@ -309,9 +338,6 @@ impl<'a> Ast<'a> {
                 pp.close_box();
                 write!(pp, ")")?;
             }
-            Insn::Ret(_) => {
-                self.pp_def_default(pp, "Ret".into(), insn.input_regs(), self_prec)?;
-            }
             Insn::NotYetImplemented(msg) => {
                 write!(pp, "TODO /* {} */", msg)?;
             }
@@ -357,10 +383,6 @@ impl<'a> Ast<'a> {
 
             Insn::Phi => {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::JmpIf { cond, target: _ } => {
-                write!(pp, "if ")?;
-                self.pp_def(pp, cond, self_prec)?;
             }
             Insn::JmpInd(_) => {
                 self.pp_def_default(pp, "JmpInd".into(), insn.input_regs(), self_prec)?;

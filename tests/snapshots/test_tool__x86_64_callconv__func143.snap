@@ -148,11 +148,9 @@ ssa program  96 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:96] -> Jmp(BlockID(1))
-  BlockID(1) [96:96] -> End
+  BlockID(0) [0:96] -> End
   domtree:
     BlockID(0)
-    |  BlockID(1)
 
 ssa post-xform:
 ssa program  96 instrs
@@ -177,6 +175,5 @@ ssa program  96 instrs
 T0: {
   [pre:RSP + 8]:* := pre:arg5[8 .. 0];
   [pre:RSP + 16]:* := pre:arg5[16 .. 8];
-  Ret (pre:arg6[16 .. 8] ++ pre:arg6[8 .. 0]);
-  end
+  return pre:arg6[16 .. 8] ++ pre:arg6[8 .. 0]
 }
