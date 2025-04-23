@@ -108,6 +108,8 @@ impl<'a> Ast<'a> {
 
                 self.pp_effects(pp, block_effects)?;
 
+                self.pp_input_let_stmts(pp, cond)?;
+
                 write!(pp, "if ")?;
                 self.pp_ref(pp, cond, 0)?;
                 write!(pp, " {{\n  ")?;
