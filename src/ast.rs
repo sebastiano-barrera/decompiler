@@ -83,6 +83,7 @@ impl<'a> Ast<'a> {
 
                 match self.ssa[last_reg].get() {
                     mil::Insn::Ret(value) => {
+                        self.pp_input_let_stmts(pp, value)?;
                         write!(pp, "return ")?;
                         self.pp_ref(pp, value, 0)?;
                     }

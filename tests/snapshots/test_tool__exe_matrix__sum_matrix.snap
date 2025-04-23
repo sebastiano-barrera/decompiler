@@ -365,7 +365,6 @@ ssa program  268 instrs
          r91 <- Const { value: -8, size: 8 }
          r92 <- Arith(Add, r91, r70)
          r93 <- StoreMem { mem: r89, addr: r92, value: r90 }
-         r94 <- Jmp(225)
          r260 <- Upsilon { value: r66, phi_ref: r258 }
          r261 <- Upsilon { value: r93, phi_ref: r259 }
 .B5:    ;; preds:B0,B4.
@@ -391,7 +390,6 @@ ssa program  268 instrs
          r96 <- Const { value: -12, size: 8 }
          r97 <- Arith(Add, r96, r70)
          r98 <- StoreMem { mem: r259, addr: r97, value: r95 }
-         r99 <- Jmp(192)
          r262 <- Upsilon { value: r229, phi_ref: r256 }
          r263 <- Upsilon { value: r98, phi_ref: r257 }
 .B3:    ;; preds:B1,B2.
@@ -501,8 +499,7 @@ cfg:
   BlockID(3) [192:211] -> Alt { straight: BlockID(4), side: BlockID(2) }
   BlockID(4) [211:225] -> Jmp(BlockID(5))
   BlockID(5) [225:244] -> Alt { straight: BlockID(6), side: BlockID(1) }
-  BlockID(6) [244:256] -> Jmp(BlockID(7))
-  BlockID(7) [256:256] -> End
+  BlockID(6) [244:256] -> End
   domtree:
     BlockID(0)
     |  BlockID(5)
@@ -511,7 +508,6 @@ cfg:
     |  |  |  |  BlockID(2)
     |  |  |  |  BlockID(4)
     |  |  BlockID(6)
-    |  |  |  BlockID(7)
 
 ssa post-xform:
 ssa program  268 instrs
@@ -534,7 +530,6 @@ ssa program  268 instrs
          r90 <- Const { value: 0, size: 4 }
          r92 <- ArithK(Add, r11, -16)
          r93 <- StoreMem { mem: r89, addr: r92, value: r90 }
-         r94 <- Jmp(225)
          r260 <- Upsilon { value: r66, phi_ref: r258 }
          r261 <- Upsilon { value: r93, phi_ref: r259 }
 .B5:    ;; preds:B0,B4.
@@ -553,7 +548,6 @@ ssa program  268 instrs
          r95 <- Const { value: 0, size: 4 }
          r97 <- ArithK(Add, r11, -20)
          r98 <- StoreMem { mem: r259, addr: r97, value: r95 }
-         r99 <- Jmp(192)
          r258 <- Phi
          r228 <- Part { src: r258, offset: 4, size: 4 }
          r229 <- Concat { lo: r227, hi: r228 }
@@ -634,8 +628,7 @@ T0: {
     let mut r259: MemoryEffect;
     let r227: Bytes(4) = [pre:RSP - 32]:4;
     let r234: Bytes(4) = [pre:RSP - 16]:4 - r227;
-    if ! (SignOf (r234) EQ OverflowOf (r234));
-     {
+    if ! (SignOf (r234) EQ OverflowOf (r234)) {
       [pre:RSP - 20]:* := 0;
       let mut r258: Bytes(8);
       r256 := r258[8 .. 4] ++ r227;
@@ -645,8 +638,7 @@ T0: {
         let mut r257: MemoryEffect;
         let r194: Bytes(4) = [pre:RSP - 28]:4;
         let r201: Bytes(4) = [pre:RSP - 20]:4 - r194;
-        if ! (SignOf (r201) EQ OverflowOf (r201));
-         {
+        if ! (SignOf (r201) EQ OverflowOf (r201)) {
           let r151: Bytes(8) = ([pre:RSP - 20]:4 + [pre:RSP - 28]:4 * [pre:RSP - 16]:4) as i64 << 2 as u64 + [pre:RSP - 40]:8;
           let r161: Bytes(4) = [r151]:4;
           [pre:RSP - 12]:* := [pre:RSP - 12]:4 + r161;
@@ -663,8 +655,7 @@ T0: {
       }
     
     }
-    Ret ([pre:RSP - 12]:4);
-    end
+    return [pre:RSP - 12]:4
   }
 
 }

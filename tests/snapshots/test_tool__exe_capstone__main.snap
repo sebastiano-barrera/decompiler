@@ -549,7 +549,6 @@ ssa program  407 instrs
          r112 <- Not(r107)
          r113 <- JmpIf { cond: r112, target: 371 }
 .B8:    ;; preds:B0.
-         r382 <- Jmp(334)
          r374 <- Part { src: r15, offset: 4, size: 4 }
          r372 <- Const { value: -1, size: 4 }
          r371 <- Part { src: r15, offset: 0, size: 4 }
@@ -581,7 +580,6 @@ ssa program  407 instrs
 .B7:    ;; preds:B1.
          r359: __builtin_puts <TypeID(3365v1)> <- Const { value: 4198448, size: 8 }
          r360 <- Call { callee: r359, first_arg: None }
-         r370 <- Jmp(306)
          r141 <- Concat { lo: r139, hi: r140 }
          r392 <- Upsilon { value: r141, phi_ref: r386 }
          r393 <- Upsilon { value: r179, phi_ref: r387 }
@@ -685,10 +683,9 @@ cfg:
   BlockID(3) [198:282] -> Alt { straight: BlockID(4), side: BlockID(3) }
   BlockID(4) [282:306] -> Jmp(BlockID(5))
   BlockID(5) [306:334] -> Jmp(BlockID(6))
-  BlockID(6) [334:356] -> Jmp(BlockID(9))
+  BlockID(6) [334:356] -> End
   BlockID(7) [356:371] -> Jmp(BlockID(5))
   BlockID(8) [371:383] -> Jmp(BlockID(6))
-  BlockID(9) [383:383] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
@@ -698,7 +695,6 @@ cfg:
     |  |  BlockID(5)
     |  |  BlockID(7)
     |  BlockID(6)
-    |  |  BlockID(9)
     |  BlockID(8)
 
 ssa post-xform:
@@ -739,7 +735,6 @@ ssa program  407 instrs
          r112 <- Not(r107)
          r113 <- JmpIf { cond: r112, target: 371 }
 .B8:    ;; preds:B0.
-         r382 <- Jmp(334)
          r374 <- Part { src: r15, offset: 4, size: 4 }
          r371 <- Part { src: r15, offset: 0, size: 4 }
          r373 <- ArithK(BitOr, r371, -1)
@@ -768,7 +763,6 @@ ssa program  407 instrs
 .B7:    ;; preds:B1.
          r359: __builtin_puts <TypeID(3365v1)> <- Const { value: 4198448, size: 8 }
          r360 <- Call { callee: r359, first_arg: None }
-         r370 <- Jmp(306)
          r141 <- Concat { lo: r139, hi: r140 }
          r392 <- Upsilon { value: r141, phi_ref: r386 }
          r393 <- Upsilon { value: r167, phi_ref: r387 }
@@ -863,8 +857,7 @@ T0: {
           pre:RSI[8 .. 4] ++ 8,
           r78,
           pre:RCX);
-  if ! IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0]);
-   {
+  if ! IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0]) {
     r390 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] | -1);
     goto T6
   }
@@ -876,8 +869,7 @@ T0: {
                                  r122,
                                  pre:R8[8 .. 4],
                                  (pre:R8[4 .. 0] ^ r122)[1 .. 0]);
-  if IsZero (r167);
-   {
+  if IsZero (r167) {
     __builtin_puts();
     r386 := r140 ++ 4203184;
     r387 := cs_disasm(4203184,
@@ -911,8 +903,7 @@ T0: {
     r383 := r383 - r223;
     let mut r384: Bytes(8);
     r384 := r384[8 .. 4] ++ 4203193;
-    if ! IsZero (r273);
-     {
+    if ! IsZero (r273) {
       goto T3
     }
     let r283: Bytes(8) = pre:RSP - 32;
@@ -940,8 +931,7 @@ T0: {
   
   T6: {
     let mut r390: Bytes(8);
-    Ret (r390[4 .. 0]);
-    end
+    return r390[4 .. 0]
   }
 
 }

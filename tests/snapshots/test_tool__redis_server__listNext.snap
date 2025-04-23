@@ -207,17 +207,15 @@ cfg:
   entry: BlockID(0)
   BlockID(0) [0:79] -> Alt { straight: BlockID(1), side: BlockID(4) }
   BlockID(1) [79:95] -> Alt { straight: BlockID(2), side: BlockID(3) }
-  BlockID(2) [95:106] -> Jmp(BlockID(5))
+  BlockID(2) [95:106] -> End
   BlockID(3) [106:113] -> Jmp(BlockID(4))
-  BlockID(4) [113:117] -> Jmp(BlockID(5))
-  BlockID(5) [117:117] -> End
+  BlockID(4) [113:117] -> End
   domtree:
     BlockID(0)
     |  BlockID(1)
     |  |  BlockID(2)
     |  |  BlockID(3)
     |  BlockID(4)
-    |  BlockID(5)
 
 ssa post-xform:
 ssa program  117 instrs
@@ -248,25 +246,17 @@ ssa program  117 instrs
 
 T0: {
   let r69: Bytes(8) = [pre:arg0]:8;
-  if IsZero (r69);
-   {
+  if IsZero (r69) {
     goto T4
   }
-  if ! IsZero ([pre:arg0 + 8]:4);
-   {
+  if ! IsZero ([pre:arg0 + 8]:4) {
     [pre:arg0]:* := [r69]:8;
     goto T4
   }
   [pre:arg0]:* := [r69 + 8]:8;
-  Ret (r69);
-  goto T5
+  return r69
   T4: {
-    Ret (r69);
-    goto T5
-  }
-  
-  T5: {
-    end
+    return r69
   }
 
 }
