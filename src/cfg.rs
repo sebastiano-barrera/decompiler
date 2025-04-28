@@ -230,20 +230,19 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         bounds.push(0);
 
         for ndx in 0..program.len() {
-            match dest_of_insn(program, ndx) {
-                // (straight_dest, side_dest)
-                (None, None) => panic!("all instructions must go *somewhere*!"),
-                (_, None) => {
-                    // here we don't care about straight_dest, as it's the default and does not influence
-                    // basic block structure
-                }
-                (None, Some(a)) => {
-                    bounds.push(a);
-                }
-                (Some(a), Some(b)) => {
-                    bounds.push(a);
-                    bounds.push(b);
-                }
+            // the instruction jumps to tgt. ndx MUST be a "block ender",
+            // i.e. the last instruction in the block; equivalently, ndx+1
+            // must be a block's start.
+            //
+            // This is regardless of `conditional`. For some weird programs,
+            // nothing ever jumps to ndx+1 even , but we don't care here.
+            if let Some(Branch {
+                target,
+                conditional: _,
+            }) = branch_target(program, ndx)
+            {
+                bounds.push(target);
+                bounds.push(ndx + 1);
             }
         }
 
@@ -266,7 +265,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
     let direct = {
         let mut successors = BlockMultiMap::new(block_count);
-        let exit_bid = BlockID(block_count - 1);
 
         for (blk_ndx, (&insn_ndx_start, &insn_ndx_end)) in
             bounds.iter().zip(&bounds[1..]).enumerate()
@@ -282,10 +280,16 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
                 let last_ndx = insn_ndx_end - 1;
 
                 // TODO make this return an array?
-                let dests: &[u16] = match dest_of_insn(program, last_ndx) {
-                    (None, None) => panic!("all instructions must lead *somewhere*!"),
-                    (Some(dest), None) | (None, Some(dest)) => &[dest],
-                    (Some(straight_dest), Some(side_dest)) => &[straight_dest, side_dest],
+                let dests: &[mil::Index] = match branch_target(program, last_ndx) {
+                    None => &[last_ndx + 1],
+                    Some(Branch {
+                        target,
+                        conditional: false,
+                    }) => &[target],
+                    Some(Branch {
+                        target,
+                        conditional: true,
+                    }) => &[last_ndx + 1, target],
                 };
 
                 for &dest in dests {
@@ -348,7 +352,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         }
     }
 
-    eprintln!("{} blocks", bounds.len() - 1);
+    eprintln!("{} blocks", block_count);
     for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
         eprintln!(
             " #{}: {} - {} ({})",
@@ -362,7 +366,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     let predecessors = compute_predecessors(&direct.successors);
     let dom_tree = compute_dom_tree(&direct, &predecessors);
 
-    let reverse_postorder = Ordering::new(reverse_postorder(&direct));
+    let reverse_postorder = Ordering::new(reverse_postorder(&direct), block_count);
 
     Graph {
         bounds,
@@ -490,35 +494,47 @@ impl<T> BlockMultiMapSorter<T> {
     }
 }
 
-/// Returns the indices of the instruction(s) that may follow the given one.
+/// Returns the index that the given instruction may jump to. For branch-like
+/// instructions, this is the index to follow to when the branch is taken. For
+/// Ret and JmpInd, this is the "exit index" i.e. one past the program's end
+/// (`program.len()`).
 ///
-/// The return value is a tuple of two elements:
-///
-///  - the first is the "straight" destination, the index to follow when the
-///    branch (if any) IS NOT taken;
-///
-///  - the second is only set for branches and is the "side" destination, the
-///    index to follow when the branch IS taken.
-fn dest_of_insn(
-    program: &mil::Program,
-    ndx: mil::Index,
-) -> (Option<mil::Index>, Option<mil::Index>) {
+/// Returns None if the instruction only ever proceeds to the next one (i.e.
+/// it's not a branch or branch-like instruction).
+fn branch_target(program: &mil::Program, ndx: mil::Index) -> Option<Branch> {
     let insn = program.get(ndx).unwrap().insn.get();
     match insn {
-        mil::Insn::Jmp(ndx) => (None, Some(ndx)),
-        mil::Insn::JmpIf { target, .. } => (Some(ndx + 1), Some(target)),
+        mil::Insn::Jmp(target) => Some(Branch {
+            target,
+            conditional: false,
+        }),
+        mil::Insn::JmpIf { target, .. } => Some(Branch {
+            target,
+            conditional: true,
+        }),
+
         // indirect jumps (Insn::JmpI, x86_64: jmp [reg]) are treated like
         // "jumps to somewhere else".  They potentially exit the function, or
         // re-enter it at some unknown location; we can only know at runtime.
         // With the little information we have, we can only treat it as "exit".
-        mil::Insn::Ret(_) | mil::Insn::JmpInd(_) => {
-            // one-past-the-end of the program is a valid index; signifies "exit the function"
-            (None, Some(program.len()))
-        }
+        //
+        // one-past-the-end of the program is a valid index; signifies "exit the function"
+        mil::Insn::Ret(_) | mil::Insn::JmpInd(_) => Some(Branch {
+            target: program.len(),
+            conditional: false,
+        }),
+
         // external are currently handled as non-control-flow instruction
         // (mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. })
-        _ => (Some(ndx + 1), None),
+        _ => None,
     }
+}
+
+struct Branch {
+    /// Iff true, the branch may or may not be taken.
+    conditional: bool,
+    /// Index to jump to when the branch is taken.
+    target: mil::Index,
 }
 
 impl Graph {
@@ -681,7 +697,7 @@ impl Index<BlockID> for DomTree {
 fn compute_dom_tree(fwd_edges: &Edges, predecessors: &BlockMultiMap<BlockID>) -> DomTree {
     let block_count = fwd_edges.block_count();
     assert_eq!(block_count, predecessors.block_count());
-    let rpo = Ordering::new(reverse_postorder(fwd_edges));
+    let rpo = Ordering::new(reverse_postorder(fwd_edges), block_count);
 
     let mut parent = BlockMap::new_sized(None, block_count);
 
@@ -810,6 +826,11 @@ where
     Some(ndx_a)
 }
 
+/// Visit the blocks in the given graph in reverse postorder, and a return the
+/// resulting ordering.
+///
+/// The returned ordering will only contain the blocks that are reachable from
+/// the entry block.
 fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     let count = edges.block_count();
 
@@ -848,10 +869,9 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     }
 
     // all incoming edges have been processed
-    if let Some(max) = rem_preds_count.items().map(|(_, count)| *count).max() {
-        assert_eq!(0, max);
-    }
-    assert_eq!(order.len(), count as usize);
+    assert!(rem_preds_count.items().all(|(_, &count)| count == 0));
+    // it may be that count < order.len(), if any blocks are unrechable from the
+    // entry.
     order
 }
 
@@ -914,16 +934,21 @@ pub struct Ordering {
 }
 
 impl Ordering {
-    pub fn new(order: Vec<BlockID>) -> Self {
-        let count = order.len().try_into().unwrap();
-        let mut pos_of = BlockMap::new_sized(0, count);
-        let mut occurs_count = BlockMap::new_sized(0, count);
+    /// Create a new Ordering representing the same as `order`.
+    ///
+    /// `total_count` is the total number of blocks existing in the graph,
+    /// whether or not they are included in the ordering. This number equals 1 +
+    /// the maximum numeric value (.as_number()) of the existing BlockIDs.
+    ///
+    /// Panics if any BlockID appears more than once in `order`.
+    pub fn new(order: Vec<BlockID>, total_count: u16) -> Self {
+        let mut pos_of = BlockMap::new_sized(0, total_count);
+        let mut occurred = BlockMap::new_sized(false, total_count);
         for (pos, &bid) in order.iter().enumerate() {
-            occurs_count[bid] += 1;
+            assert!(!occurred[bid]);
+            occurred[bid] = true;
             pos_of[bid] = pos;
         }
-
-        assert!(occurs_count.items().all(|(_, count)| *count == 1));
 
         Ordering { order, pos_of }
     }
