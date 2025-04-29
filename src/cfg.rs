@@ -27,7 +27,6 @@ pub struct Graph {
 pub struct Edges {
     entry_bid: BlockID,
     successors: BlockMultiMap<BlockID>,
-    nonbackedge_preds_count: BlockMap<u16>,
 }
 
 impl std::ops::Index<BlockID> for Edges {
@@ -40,21 +39,22 @@ impl std::ops::Index<BlockID> for Edges {
 
 impl Edges {
     fn assert_invariants(&self) {
-        assert!(self.entry_bid.as_number() < self.successors.block_count());
-        assert_eq!(
-            self.block_count(),
-            self.nonbackedge_preds_count.block_count()
-        );
+        let block_count = self.successors.block_count();
+
+        assert!(self.entry_bid.as_number() < block_count);
+        for (_, succs) in self.successors.items() {
+            for succ in succs {
+                assert!(succ.as_number() < block_count);
+            }
+        }
     }
 
     /// Create an `Edges` structure, starting from a BlockMultiMap that
     /// associates each block to its successors (by their IDs).
     fn from_successors(successors: BlockMultiMap<BlockID>, entry_bid: BlockID) -> Self {
-        let block_count = successors.block_count();
         let edges = Edges {
             entry_bid,
             successors,
-            nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
         };
         edges.assert_invariants();
         edges
@@ -218,63 +218,46 @@ impl Graph {
         self.block_ids_rpo().rev()
     }
 }
-pub fn analyze_mil(program: &mil::Program) -> Graph {
-    // CFGs with multiple entry points are readily transformed into ones with a
-    // single entry point, by just adding a number of "virtual entry" blocks
-    // that "formally jump" to each actual entry block.
-    //
-    // (Remember, we just want to represent the program for the purpose of
-    // static analysis; there is some wiggle room for semantics.)
-    //
-    // We still assume that the program always starts at mil::Index(0). Still, we may
-    // find some binaries in the real world that contain blocks apparently never
-    // jumped to. In the remainder, these are called "multiple entry point". (I
-    // suspect these are also due to indirect jumps and spurious machine code
-    // that is never executed, neither of which we can meaningfully analyze
-    // statically.)
 
+pub fn analyze_mil(program: &mil::Program) -> Graph {
     // if bounds == [b0, b1, b2, b3, ...]
     // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
     // in general, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
-    let bounds = {
-        let mut bounds = Vec::with_capacity(program.len() as usize / 5);
-        bounds.push(0);
+    let mut bounds = Vec::with_capacity(program.len() as usize / 5);
+    bounds.push(0);
 
-        for ndx in 0..program.len() {
-            // the instruction jumps to tgt. ndx MUST be a "block ender",
-            // i.e. the last instruction in the block; equivalently, ndx+1
-            // must be a block's start.
-            //
-            // This is regardless of `conditional`. For some weird programs,
-            // nothing ever jumps to ndx+1 even , but we don't care here.
-            if let Some(Branch {
-                target,
-                conditional: _,
-            }) = branch_target(program, ndx)
-            {
-                bounds.push(target);
-                bounds.push(ndx + 1);
-            }
+    for ndx in 0..program.len() {
+        // the instruction jumps to tgt. ndx MUST be a "block ender",
+        // i.e. the last instruction in the block; equivalently, ndx+1
+        // must be a block's start.
+        //
+        // This is regardless of `conditional`. For some weird programs,
+        // nothing ever jumps to ndx+1 even , but we don't care here.
+        if let Some(Branch {
+            target,
+            conditional: _,
+        }) = branch_target(program, ndx)
+        {
+            bounds.push(target);
+            bounds.push(ndx + 1);
         }
-
-        bounds.push(program.len());
-        bounds.sort();
-        bounds.dedup();
-        bounds
-    };
-
-    let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
-
-    let block_at: HashMap<_, _> = bounds[..block_count as usize]
-        .iter()
-        .enumerate()
-        .map(|(bndx, start_ndx)| {
-            let bndx = bndx.try_into().unwrap();
-            (*start_ndx, BlockID(bndx))
-        })
-        .collect();
+    }
+    bounds.push(program.len());
+    bounds.sort();
+    bounds.dedup();
 
     let direct = {
+        // temporary; will be changed by add_virtual_entry_blocks
+        let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
+        let block_at: HashMap<_, _> = bounds[..block_count as usize]
+            .iter()
+            .enumerate()
+            .map(|(bndx, start_ndx)| {
+                let bndx = bndx.try_into().unwrap();
+                (*start_ndx, BlockID(bndx))
+            })
+            .collect();
+
         let mut successors = BlockMultiMap::new(block_count);
 
         for (blk_ndx, (&insn_ndx_start, &insn_ndx_end)) in
@@ -320,7 +303,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     let predecessors = compute_predecessors(&direct.successors);
     let dom_tree = compute_dom_tree(&direct, &predecessors);
 
-    let reverse_postorder = Ordering::new(reverse_postorder(&direct), block_count);
+    let reverse_postorder = Ordering::new(reverse_postorder(&direct), direct.block_count());
 
     let graph = Graph {
         bounds,
@@ -497,12 +480,13 @@ impl Graph {
     fn assert_invariants(&self) {
         #[cfg(debug_assertions)]
         {
-            let bounds = &self.bounds;
-            let program_len = *self.bounds.last().unwrap();
-
             eprintln!("checking Graph:");
             eprintln!("{} blocks", self.block_count());
-            for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
+            for (ndx, (bb_start, bb_end)) in (&self.bounds)
+                .iter()
+                .zip((&self.bounds)[1..].iter())
+                .enumerate()
+            {
                 eprintln!(
                     " #{}: {} - {} ({})",
                     ndx,
@@ -512,42 +496,54 @@ impl Graph {
                 );
             }
 
-            let is_covered = {
-                let mut is = vec![false; program_len as usize];
-                for (&start_ndx, &end_ndx) in bounds.iter().zip(bounds[1..].iter()) {
-                    let start_ndx = start_ndx as usize;
-                    let end_ndx = end_ndx as usize;
-                    for item in &mut is[start_ndx..end_ndx] {
-                        *item = true;
-                    }
-                }
-                is
-            };
-
-            let uncovered: Vec<_> = is_covered
-                .into_iter()
-                .enumerate()
-                .filter(|(_, is)| !*is)
-                .map(|(ndx, _)| ndx)
-                .collect();
-
-            // this way if the assertion fails we can see which indices are uncovered
-            debug_assert_eq!(&uncovered, &[]);
-
-            let invalid: Vec<_> = bounds
-                .iter()
-                .copied()
-                .filter(|&i| i > program_len)
-                .collect();
-            debug_assert_eq!(&invalid, &[]);
+            self.assert_full_mil_covered();
+            self.assert_bounds_valid();
 
             // no duplicates (<=> no 0-length blocks)
-            let (_, starts) = bounds.split_last().unwrap();
+            let (_, starts) = (&self.bounds).split_last().unwrap();
             for (i, &start) in starts.iter().enumerate() {
-                let end = bounds[i + 1];
+                let end = (&self.bounds)[i + 1];
                 assert_ne!(end, start);
             }
+
+            self.direct.assert_invariants();
         }
+    }
+
+    fn assert_bounds_valid(&self) {
+        let program_len = *self.bounds.last().unwrap();
+        let invalid: Vec<_> = self
+            .bounds
+            .iter()
+            .copied()
+            .filter(|&i| i > program_len)
+            .collect();
+        assert_eq!(&invalid, &[]);
+    }
+
+    fn assert_full_mil_covered(&self) {
+        let program_len = *self.bounds.last().unwrap();
+        let is_covered = {
+            let mut is = vec![false; program_len as usize];
+            for (&start_ndx, &end_ndx) in self.bounds.iter().zip(self.bounds[1..].iter()) {
+                let start_ndx = start_ndx as usize;
+                let end_ndx = end_ndx as usize;
+                for item in &mut is[start_ndx..end_ndx] {
+                    *item = true;
+                }
+            }
+            is
+        };
+
+        let uncovered: Vec<_> = is_covered
+            .into_iter()
+            .enumerate()
+            .filter(|(_, is)| !*is)
+            .map(|(ndx, _)| ndx)
+            .collect();
+
+        // this way if the assertion fails we can see which indices are uncovered
+        assert_eq!(&uncovered, &[]);
     }
 
     pub fn dump_graphviz<W: PP + ?Sized>(
