@@ -47,17 +47,8 @@ impl Edges {
         );
     }
 
-    /// Create an `Edges` structure, starting from a BlockMultiMap that associates each block to its successors (by their IDs).
-    ///
-    /// NOTE: edges that are not reachable from the entry block (identified by
-    /// `entry_bid`) are removed from the resulting Edges. This is important
-    /// because many algorithms in the decompiler assume that the control flow
-    /// graph has a single connected component, which is not true in general for
-    /// certain chunks of machine code found in the wild. (To handle these, we
-    /// can decompile them mulitple times, each time with a different block
-    /// chosen as the entry block).
-    ///
-    ///
+    /// Create an `Edges` structure, starting from a BlockMultiMap that
+    /// associates each block to its successors (by their IDs).
     fn from_successors(successors: BlockMultiMap<BlockID>, entry_bid: BlockID) -> Self {
         let block_count = successors.block_count();
         let mut edges = Edges {
@@ -65,13 +56,7 @@ impl Edges {
             successors,
             nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
         };
-
-        #[cfg(debug_assertions)]
-        edges.assert_invariants();
-
-        remove_unreachable_edges(&mut edges);
         edges.nonbackedge_preds_count = recount_nonbackedge_predecessors(&edges);
-
         edges.assert_invariants();
         edges
     }
@@ -238,22 +223,24 @@ impl Graph {
         self.block_ids_rpo().rev()
     }
 }
-
 pub fn analyze_mil(program: &mil::Program) -> Graph {
-    // graphs with multiple exit nodes are converted into graphs with exactly 1
-    // exit node. this algorithm makes sure to add exactly 1 virtual exit node,
-    // and to link the "real" exits from the program to these.
+    // CFGs with multiple entry points are readily transformed into ones with a
+    // single entry point, by just adding a number of "virtual entry" blocks
+    // that "formally jump" to each actual entry block.
     //
-    // we already assume that the program can only start "at the beginning", so
-    // there IS always a single entry node.
+    // (Remember, we just want to represent the program for the purpose of
+    // static analysis; there is some wiggle room for semantics.)
     //
-    // many algorithms assume one single entry node per graph, including the
-    // inverse graph. This yield significantly simpler algorithms (and easier to
-    // get right, too).
+    // We still assume that the program always starts at mil::Index(0). Still, we may
+    // find some binaries in the real world that contain blocks apparently never
+    // jumped to. In the remainder, these are called "multiple entry point". (I
+    // suspect these are also due to indirect jumps and spurious machine code
+    // that is never executed, neither of which we can meaningfully analyze
+    // statically.)
 
     // if bounds == [b0, b1, b2, b3, ...]
     // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
-    // in particular, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
+    // in general, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
     let bounds = {
         let mut bounds = Vec::with_capacity(program.len() as usize / 5);
         bounds.push(0);
@@ -335,68 +322,20 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         Edges::from_successors(successors, entry_bid)
     };
 
-    #[cfg(debug_assertions)]
-    {
-        let is_covered = {
-            let mut is = vec![false; program.len() as usize];
-            for (&start_ndx, &end_ndx) in bounds.iter().zip(bounds[1..].iter()) {
-                let start_ndx = start_ndx as usize;
-                let end_ndx = end_ndx as usize;
-                for item in &mut is[start_ndx..end_ndx] {
-                    *item = true;
-                }
-            }
-            is
-        };
-
-        let uncovered: Vec<_> = is_covered
-            .into_iter()
-            .enumerate()
-            .filter(|(_, is)| !*is)
-            .map(|(ndx, _)| ndx)
-            .collect();
-
-        // this way if the assertion fails we can see which indices are uncovered
-        debug_assert_eq!(&uncovered, &[]);
-
-        let invalid: Vec<_> = bounds
-            .iter()
-            .copied()
-            .filter(|&i| i > program.len())
-            .collect();
-        debug_assert_eq!(&invalid, &[]);
-
-        // no duplicates (<=> no 0-length blocks)
-        let (_, starts) = bounds.split_last().unwrap();
-        for (i, &start) in starts.iter().enumerate() {
-            let end = bounds[i + 1];
-            assert_ne!(end, start);
-        }
-
-        eprintln!("{} blocks", block_count);
-        for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
-            eprintln!(
-                " #{}: {} - {} ({})",
-                ndx,
-                bb_start,
-                bb_end,
-                bb_end - bb_start
-            );
-        }
-    }
-
     let predecessors = compute_predecessors(&direct.successors);
     let dom_tree = compute_dom_tree(&direct, &predecessors);
 
     let reverse_postorder = Ordering::new(reverse_postorder(&direct), block_count);
 
-    Graph {
+    let graph = Graph {
         bounds,
         direct,
         predecessors,
         dom_tree,
         reverse_postorder,
-    }
+    };
+    graph.assert_invariants();
+    graph
 }
 
 fn compute_predecessors(successors: &BlockMultiMap<BlockID>) -> BlockMultiMap<BlockID> {
@@ -560,6 +499,62 @@ struct Branch {
 }
 
 impl Graph {
+    fn assert_invariants(&self) {
+        #[cfg(debug_assertions)]
+        {
+            let bounds = &self.bounds;
+            let program_len = *self.bounds.last().unwrap();
+
+            eprintln!("checking Graph:");
+            eprintln!("{} blocks", self.block_count());
+            for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
+                eprintln!(
+                    " #{}: {} - {} ({})",
+                    ndx,
+                    bb_start,
+                    bb_end,
+                    bb_end - bb_start
+                );
+            }
+
+            let is_covered = {
+                let mut is = vec![false; program_len as usize];
+                for (&start_ndx, &end_ndx) in bounds.iter().zip(bounds[1..].iter()) {
+                    let start_ndx = start_ndx as usize;
+                    let end_ndx = end_ndx as usize;
+                    for item in &mut is[start_ndx..end_ndx] {
+                        *item = true;
+                    }
+                }
+                is
+            };
+
+            let uncovered: Vec<_> = is_covered
+                .into_iter()
+                .enumerate()
+                .filter(|(_, is)| !*is)
+                .map(|(ndx, _)| ndx)
+                .collect();
+
+            // this way if the assertion fails we can see which indices are uncovered
+            debug_assert_eq!(&uncovered, &[]);
+
+            let invalid: Vec<_> = bounds
+                .iter()
+                .copied()
+                .filter(|&i| i > program_len)
+                .collect();
+            debug_assert_eq!(&invalid, &[]);
+
+            // no duplicates (<=> no 0-length blocks)
+            let (_, starts) = bounds.split_last().unwrap();
+            for (i, &start) in starts.iter().enumerate() {
+                let end = bounds[i + 1];
+                assert_ne!(end, start);
+            }
+        }
+    }
+
     pub fn dump_graphviz<W: PP + ?Sized>(
         &self,
         out: &mut W,
@@ -951,40 +946,6 @@ fn recount_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
     }
 
     incoming_count
-}
-
-fn remove_unreachable_edges(edges: &mut Edges) {
-    let is_reachable = {
-        let mut reached = BlockMap::new_sized(false, edges.block_count());
-
-        let mut queue = Vec::with_capacity(edges.block_count() as usize / 2);
-        queue.push(edges.entry_bid);
-
-        while let Some(bid) = queue.pop() {
-            assert!(!reached[bid]);
-            reached[bid] = true;
-
-            for &succ in edges.successors(bid) {
-                if !reached[succ] {
-                    queue.push(succ);
-                }
-            }
-        }
-
-        reached
-    };
-
-    for (bid, &is_bid_rchbl) in is_reachable.items() {
-        if is_bid_rchbl {
-            // remove edges *to* unreachable blocks
-            edges
-                .successors
-                .remove_values(bid, |succ| !is_reachable[*succ]);
-        } else {
-            // remove data edges *from* unreachable block
-            edges.successors.remove_entry(bid);
-        }
-    }
 }
 
 #[derive(Clone)]
