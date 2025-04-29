@@ -47,6 +47,35 @@ impl Edges {
         );
     }
 
+    /// Create an `Edges` structure, starting from a BlockMultiMap that associates each block to its successors (by their IDs).
+    ///
+    /// NOTE: edges that are not reachable from the entry block (identified by
+    /// `entry_bid`) are removed from the resulting Edges. This is important
+    /// because many algorithms in the decompiler assume that the control flow
+    /// graph has a single connected component, which is not true in general for
+    /// certain chunks of machine code found in the wild. (To handle these, we
+    /// can decompile them mulitple times, each time with a different block
+    /// chosen as the entry block).
+    ///
+    ///
+    fn from_successors(successors: BlockMultiMap<BlockID>, entry_bid: BlockID) -> Self {
+        let block_count = successors.block_count();
+        let mut edges = Edges {
+            entry_bid,
+            successors,
+            nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
+        };
+
+        #[cfg(debug_assertions)]
+        edges.assert_invariants();
+
+        remove_unreachable_edges(&mut edges);
+        edges.nonbackedge_preds_count = recount_nonbackedge_predecessors(&edges);
+
+        edges.assert_invariants();
+        edges
+    }
+
     pub fn block_ids(&self) -> impl DoubleEndedIterator<Item = BlockID> {
         (0..self.block_count()).map(BlockID)
     }
@@ -279,7 +308,6 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
                 let last_ndx = insn_ndx_end - 1;
 
-                // TODO make this return an array?
                 let dests: &[mil::Index] = match branch_target(program, last_ndx) {
                     None => &[last_ndx + 1],
                     Some(Branch {
@@ -303,14 +331,8 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             appender.finish();
         }
 
-        let mut edges = Edges {
-            entry_bid: BlockID(0),
-            successors,
-            nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
-        };
-        edges.assert_invariants();
-        recount_nonbackedge_predecessors(&mut edges);
-        edges
+        let entry_bid = BlockID(0);
+        Edges::from_successors(successors, entry_bid)
     };
 
     #[cfg(debug_assertions)]
@@ -350,17 +372,17 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             let end = bounds[i + 1];
             assert_ne!(end, start);
         }
-    }
 
-    eprintln!("{} blocks", block_count);
-    for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
-        eprintln!(
-            " #{}: {} - {} ({})",
-            ndx,
-            bb_start,
-            bb_end,
-            bb_end - bb_start
-        );
+        eprintln!("{} blocks", block_count);
+        for (ndx, (bb_start, bb_end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
+            eprintln!(
+                " #{}: {} - {} ({})",
+                ndx,
+                bb_start,
+                bb_end,
+                bb_end - bb_start
+            );
+        }
     }
 
     let predecessors = compute_predecessors(&direct.successors);
@@ -877,7 +899,11 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
 
 /// Count, for each node, the number of incoming edges (or, equivalently, predecessor nodes) that
 /// are not back-edges (i.e. don't form a cycle).
-fn recount_nonbackedge_predecessors(edges: &mut Edges) {
+///
+/// Returns a tuple of two BlockMaps, associating each block to:
+///  - the number of non-backedge predecessors (main purpose of this function)
+///  - whether it's is reachable from the entry block (as a boolean)
+fn recount_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
     let count = edges.block_count();
 
     let mut incoming_count = BlockMap::new_sized(0, count);
@@ -924,7 +950,41 @@ fn recount_nonbackedge_predecessors(edges: &mut Edges) {
         }
     }
 
-    edges.nonbackedge_preds_count = incoming_count;
+    incoming_count
+}
+
+fn remove_unreachable_edges(edges: &mut Edges) {
+    let is_reachable = {
+        let mut reached = BlockMap::new_sized(false, edges.block_count());
+
+        let mut queue = Vec::with_capacity(edges.block_count() as usize / 2);
+        queue.push(edges.entry_bid);
+
+        while let Some(bid) = queue.pop() {
+            assert!(!reached[bid]);
+            reached[bid] = true;
+
+            for &succ in edges.successors(bid) {
+                if !reached[succ] {
+                    queue.push(succ);
+                }
+            }
+        }
+
+        reached
+    };
+
+    for (bid, &is_bid_rchbl) in is_reachable.items() {
+        if is_bid_rchbl {
+            // remove edges *to* unreachable blocks
+            edges
+                .successors
+                .remove_values(bid, |succ| !is_reachable[*succ]);
+        } else {
+            // remove data edges *from* unreachable block
+            edges.successors.remove_entry(bid);
+        }
+    }
 }
 
 #[derive(Clone)]
