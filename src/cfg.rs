@@ -300,10 +300,12 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         Edges::from_successors(successors, entry_bid)
     };
 
-    let predecessors = compute_predecessors(&direct.successors);
-    let dom_tree = compute_dom_tree(&direct, &predecessors);
+    let (order, is_reachable) = reverse_postorder(&direct);
+    assert_eq!(is_reachable.block_count(), direct.block_count());
+    let reverse_postorder = Ordering::new(order, direct.block_count());
 
-    let reverse_postorder = Ordering::new(reverse_postorder(&direct), direct.block_count());
+    let predecessors = compute_predecessors(&direct.successors);
+    let dom_tree = compute_dom_tree(&direct, &reverse_postorder, &predecessors);
 
     let graph = Graph {
         bounds,
@@ -702,10 +704,13 @@ impl Index<BlockID> for DomTree {
     }
 }
 
-fn compute_dom_tree(fwd_edges: &Edges, predecessors: &BlockMultiMap<BlockID>) -> DomTree {
+fn compute_dom_tree(
+    fwd_edges: &Edges,
+    rpo: &Ordering,
+    predecessors: &BlockMultiMap<BlockID>,
+) -> DomTree {
     let block_count = fwd_edges.block_count();
     assert_eq!(block_count, predecessors.block_count());
-    let rpo = Ordering::new(reverse_postorder(fwd_edges), block_count);
 
     let mut parent = BlockMap::new_sized(None, block_count);
 
@@ -839,7 +844,7 @@ where
 ///
 /// The returned ordering will only contain the blocks that are reachable from
 /// the entry block.
-fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
+fn reverse_postorder(edges: &Edges) -> (Vec<BlockID>, BlockMap<bool>) {
     let count = edges.block_count();
 
     // Remaining predecessors count
@@ -878,9 +883,9 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
 
     // all incoming edges have been processed
     assert!(rem_preds_count.items().all(|(_, &count)| count == 0));
-    // it may be that count < order.len(), if any blocks are unrechable from the
+    // it may be that count > order.len(), if any blocks are unrechable from the
     // entry.
-    order
+    (order, visited)
 }
 
 /// Count, for each node, the number of incoming edges (or, equivalently, predecessor nodes) that
