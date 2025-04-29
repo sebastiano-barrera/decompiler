@@ -51,12 +51,11 @@ impl Edges {
     /// associates each block to its successors (by their IDs).
     fn from_successors(successors: BlockMultiMap<BlockID>, entry_bid: BlockID) -> Self {
         let block_count = successors.block_count();
-        let mut edges = Edges {
+        let edges = Edges {
             entry_bid,
             successors,
             nonbackedge_preds_count: BlockMap::new_sized(0, block_count),
         };
-        edges.nonbackedge_preds_count = recount_nonbackedge_predecessors(&edges);
         edges.assert_invariants();
         edges
     }
@@ -66,10 +65,6 @@ impl Edges {
     }
     fn block_count(&self) -> u16 {
         self.successors.block_count()
-    }
-
-    pub fn nonbackedge_predecessor_count(&self, bid: BlockID) -> u16 {
-        self.nonbackedge_preds_count[bid]
     }
 
     pub fn successors(&self, bndx: BlockID) -> &[BlockID] {
@@ -852,7 +847,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
     let count = edges.block_count();
 
     // Remaining predecessors count
-    let mut rem_preds_count = edges.nonbackedge_preds_count.clone();
+    let mut rem_preds_count = count_nonbackedge_predecessors(&edges);
 
     let mut order = Vec::with_capacity(count as usize);
     let mut queue = Vec::with_capacity(count as usize / 2);
@@ -898,7 +893,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
 /// Returns a tuple of two BlockMaps, associating each block to:
 ///  - the number of non-backedge predecessors (main purpose of this function)
 ///  - whether it's is reachable from the entry block (as a boolean)
-fn recount_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
+fn count_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
     let count = edges.block_count();
 
     let mut incoming_count = BlockMap::new_sized(0, count);
