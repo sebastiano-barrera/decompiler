@@ -7,6 +7,8 @@ use std::{
     ops::{Index, IndexMut, Range},
 };
 
+use arrayvec::ArrayVec;
+
 use crate::{
     mil,
     pp::{self, PP},
@@ -26,15 +28,7 @@ pub struct Graph {
 #[derive(Clone)]
 pub struct Edges {
     entry_bid: BlockID,
-    successors: BlockMultiMap<BlockID>,
-}
-
-impl std::ops::Index<BlockID> for Edges {
-    type Output = [BlockID];
-
-    fn index(&self, bid: BlockID) -> &Self::Output {
-        &self.successors[bid]
-    }
+    successors: BlockMap<BlockCont>,
 }
 
 impl Edges {
@@ -43,7 +37,7 @@ impl Edges {
 
         assert!(self.entry_bid.as_number() < block_count);
         for (_, succs) in self.successors.items() {
-            for succ in succs {
+            for succ in succs.as_array() {
                 assert!(succ.as_number() < block_count);
             }
         }
@@ -51,7 +45,7 @@ impl Edges {
 
     /// Create an `Edges` structure, starting from a BlockMultiMap that
     /// associates each block to its successors (by their IDs).
-    fn from_successors(successors: BlockMultiMap<BlockID>, entry_bid: BlockID) -> Self {
+    fn from_successors(successors: BlockMap<BlockCont>, entry_bid: BlockID) -> Self {
         let edges = Edges {
             entry_bid,
             successors,
@@ -67,8 +61,8 @@ impl Edges {
         self.successors.block_count()
     }
 
-    pub fn successors(&self, bndx: BlockID) -> &[BlockID] {
-        &self.successors[bndx]
+    pub fn successors(&self, bndx: BlockID) -> BlockContArray {
+        self.successors[bndx].as_array()
     }
 
     pub fn entry_bid(&self) -> BlockID {
@@ -105,7 +99,7 @@ impl std::fmt::Debug for Edges {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "digraph {{")?;
         for (bid, succs) in self.successors.items() {
-            for succ in succs {
+            for succ in succs.as_array() {
                 writeln!(f, "  block{} -> block{};", bid.0, succ.0)?;
             }
         }
@@ -113,20 +107,35 @@ impl std::fmt::Debug for Edges {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BlockCont {
     End,
     Jmp(BlockID),
-    Alt { straight: BlockID, side: BlockID },
+    Alt {
+        straight: BlockID,
+        side: BlockID,
+    },
+    ExtraEntry {
+        addr: u64,
+        straight: BlockID,
+        side: BlockID,
+    },
 }
+
+pub type BlockContArray = ArrayVec<BlockID, 3>;
 
 impl BlockCont {
     #[inline]
-    pub fn as_array(&self) -> [Option<BlockID>; 2] {
+    pub fn as_array(&self) -> BlockContArray {
         match self {
-            BlockCont::End => [None, None],
-            BlockCont::Jmp(d) => [Some(*d), None],
-            BlockCont::Alt { straight, side } => [Some(*straight), Some(*side)],
+            BlockCont::End => ArrayVec::new(),
+            BlockCont::Jmp(d) => [*d].into_iter().collect(),
+            BlockCont::Alt { straight, side }
+            | BlockCont::ExtraEntry {
+                addr: _,
+                straight,
+                side,
+            } => [*straight, *side].into_iter().collect(),
         }
     }
 }
@@ -161,17 +170,7 @@ impl Graph {
     }
 
     pub fn block_cont(&self, bid: BlockID) -> BlockCont {
-        let successors = &self.direct.successors[bid];
-
-        match successors {
-            [] => BlockCont::End,
-            [cons] => BlockCont::Jmp(*cons),
-            [alt, cons] => BlockCont::Alt {
-                straight: *alt,
-                side: *cons,
-            },
-            _ => panic!("blocks must have 2 successors max"),
-        }
+        self.direct.successors[bid].clone()
     }
 
     /// Get the range of instructions covered by this basic block.
@@ -231,15 +230,18 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         // i.e. the last instruction in the block; equivalently, ndx+1
         // must be a block's start.
         //
-        // This is regardless of `conditional`. For some weird programs,
-        // nothing ever jumps to ndx+1 even , but we don't care here.
-        if let Some(Branch {
-            target,
-            conditional: _,
-        }) = branch_target(program, ndx)
-        {
-            bounds.push(target);
-            bounds.push(ndx + 1);
+        // This is regardless of whether or not the branch is conditional. For
+        // some weird programs, nothing ever jumps to ndx+1; nevertheless we
+        // still need the block split. we might get a "block that nobody ever
+        // jumps to" (aka an "extra entry point") but we will handle it later.
+
+        match as_branch(program, ndx) {
+            Branch::Always(target) | Branch::Conditional(target) => {
+                bounds.push(target);
+                bounds.push(ndx + 1);
+            }
+            // for Branch::Exit: program.len() is added as block bound anyways
+            Branch::No | Branch::Exit => {}
         }
     }
     bounds.push(program.len());
@@ -258,7 +260,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             })
             .collect();
 
-        let mut successors = BlockMultiMap::new(block_count);
+        let mut successors = BlockMap::new_sized(BlockCont::End, block_count);
 
         for (blk_ndx, (&insn_ndx_start, &insn_ndx_end)) in
             bounds.iter().zip(&bounds[1..]).enumerate()
@@ -266,34 +268,29 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
             assert!(insn_ndx_end >= insn_ndx_start);
 
             let bid = BlockID(blk_ndx.try_into().unwrap());
-            let mut appender = successors.append(bid);
 
             if insn_ndx_end > insn_ndx_start {
                 // non-empty block
 
                 let last_ndx = insn_ndx_end - 1;
-
-                let dests: &[mil::Index] = match branch_target(program, last_ndx) {
-                    None => &[last_ndx + 1],
-                    Some(Branch {
-                        target,
-                        conditional: false,
-                    }) => &[target],
-                    Some(Branch {
-                        target,
-                        conditional: true,
-                    }) => &[last_ndx + 1, target],
-                };
-
-                for &dest in dests {
-                    if dest != program.len() {
-                        let dest = *block_at.get(&dest).unwrap();
-                        appender.append(dest);
+                successors[bid] = match as_branch(program, last_ndx) {
+                    Branch::No if last_ndx == program.len() - 1 => BlockCont::End,
+                    Branch::No => {
+                        let target_bid = block_at[&(last_ndx + 1)];
+                        BlockCont::Jmp(target_bid)
                     }
-                }
+                    Branch::Always(target) => {
+                        let target_bid = block_at[&target];
+                        BlockCont::Jmp(target_bid)
+                    }
+                    Branch::Conditional(target) => {
+                        let straight = block_at[&(last_ndx + 1)];
+                        let side = block_at[&target];
+                        BlockCont::Alt { straight, side }
+                    }
+                    Branch::Exit => BlockCont::End,
+                };
             }
-
-            appender.finish();
         }
 
         let mut direct = Edges::from_successors(successors, BlockID(0));
@@ -317,11 +314,11 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     graph
 }
 
-fn compute_predecessors(successors: &BlockMultiMap<BlockID>) -> BlockMultiMap<BlockID> {
+fn compute_predecessors(successors: &BlockMap<BlockCont>) -> BlockMultiMap<BlockID> {
     let mut builder = BlockMultiMapSorter::new(successors.block_count());
     for (pred, succs) in successors.items() {
-        for succ in succs {
-            builder.add(*succ, pred);
+        for succ in succs.as_array() {
+            builder.add(succ, pred);
         }
     }
     builder.build()
@@ -336,7 +333,7 @@ fn add_virtual_entry_blocks(edges: &mut Edges, bounds: &mut Vec<mil::Index>) {
     // static analysis; there is some wiggle room for semantics.)
     //
     // We still assume that the program always starts at mil::Index(0). By
-    // "multiple entry points" we refer to blocks apparently never jumped to,
+    // "extra entry points" we refer to blocks apparently never jumped to,
     // which we may find in some real world binaries. (I suspect these are also
     // due to indirect jumps and spurious machine code that is never executed,
     // neither of which we can meaningfully analyze statically.)
@@ -347,20 +344,21 @@ fn add_virtual_entry_blocks(edges: &mut Edges, bounds: &mut Vec<mil::Index>) {
     // Extra entry points (in addition to `edges.entry_bid`) are defined as blocks with
     // no predecessors.
     for (bid, preds) in predecessors.items() {
-        if preds.is_empty() {
+        if preds.is_empty() && bid != edges.entry_bid {
             // additional "real" entry block to be linked to a new virtual entry
             // block ("real" because we suspect that the analyzed program has
             // them as entries).
-            let virtual_entry_bid = edges.successors.add_block();
-            let mut pndr = edges.successors.append(virtual_entry_bid);
-            pndr.append(edges.entry_bid);
-            pndr.append(bid);
-            pndr.finish();
-
+            let virtual_entry_bid = edges.successors.add_block(BlockCont::ExtraEntry {
+                // TODO!
+                addr: 0xdeadbeef,
+                straight: edges.entry_bid,
+                side: bid,
+            });
             edges.entry_bid = virtual_entry_bid;
 
             // make the new entry block point to an empty range of instructions
             // (that's what makes the block virtual)
+            assert_eq!(bounds.len() - 1, virtual_entry_bid.as_usize());
             bounds.push(end_ndx);
         }
     }
@@ -478,24 +476,14 @@ impl<T> BlockMultiMapSorter<T> {
     }
 }
 
-/// Returns the index that the given instruction may jump to. For branch-like
-/// instructions, this is the index to follow to when the branch is taken. For
-/// Ret and JmpInd, this is the "exit index" i.e. one past the program's end
-/// (`program.len()`).
+/// Analyze an instruction from a [Program] and return a model of it as a pure
+/// branch.
 ///
-/// Returns None if the instruction only ever proceeds to the next one (i.e.
-/// it's not a branch or branch-like instruction).
-fn branch_target(program: &mil::Program, ndx: mil::Index) -> Option<Branch> {
-    let insn = program.get(ndx).unwrap().insn.get();
-    match insn {
-        mil::Insn::Jmp(target) => Some(Branch {
-            target,
-            conditional: false,
-        }),
-        mil::Insn::JmpIf { target, .. } => Some(Branch {
-            target,
-            conditional: true,
-        }),
+/// See [`Branch`] for the returned model.
+fn as_branch(program: &mil::Program, ndx: mil::Index) -> Branch {
+    match program.get(ndx).unwrap().insn.get() {
+        mil::Insn::Jmp(target) => Branch::Always(target),
+        mil::Insn::JmpIf { target, .. } => Branch::Conditional(target),
 
         // indirect jumps (Insn::JmpI, x86_64: jmp [reg]) are treated like
         // "jumps to somewhere else".  They potentially exit the function, or
@@ -503,22 +491,33 @@ fn branch_target(program: &mil::Program, ndx: mil::Index) -> Option<Branch> {
         // With the little information we have, we can only treat it as "exit".
         //
         // one-past-the-end of the program is a valid index; signifies "exit the function"
-        mil::Insn::Ret(_) | mil::Insn::JmpInd(_) => Some(Branch {
-            target: program.len(),
-            conditional: false,
-        }),
+        mil::Insn::Ret(_) | mil::Insn::JmpInd(_) => Branch::Exit,
 
         // external are currently handled as non-control-flow instruction
         // (mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. })
-        _ => None,
+        _ => Branch::No,
     }
 }
 
-struct Branch {
-    /// Iff true, the branch may or may not be taken.
-    conditional: bool,
-    /// Index to jump to when the branch is taken.
-    target: mil::Index,
+/// Represents the "branching facet" of a given instruction.
+#[derive(PartialEq, Eq)]
+enum Branch {
+    /// Not a branch instruction. Just proceeds to the next one without further
+    /// manipulation of the instruction pointer.
+    No,
+
+    /// The instruction jumps unconditionally. (Never proceeds to the next one.)
+    Always(mil::Index),
+
+    /// The instruction may or may not jump to the given instruction, based on a
+    /// runtime condition. If the branch is not taken, the instruction pointer
+    /// proceeds to the next instruction in the program sequence, just like
+    /// non-branches.
+    Conditional(mil::Index),
+
+    /// The instruction "exits" the function. This is used for function returns
+    /// or external jumps (which are handled similarly by this decompiler).
+    Exit,
 }
 
 impl Graph {
@@ -543,14 +542,6 @@ impl Graph {
 
             self.assert_full_mil_covered();
             self.assert_bounds_valid();
-
-            // no duplicates (<=> no 0-length blocks)
-            let (_, starts) = (&self.bounds).split_last().unwrap();
-            for (i, &start) in starts.iter().enumerate() {
-                let end = (&self.bounds)[i + 1];
-                assert_ne!(end, start);
-            }
-
             self.direct.assert_invariants();
         }
     }
@@ -609,7 +600,7 @@ impl Graph {
                 bid.0, bid.0, start, end,
             )?;
 
-            match self.direct.successors(bid) {
+            match self.direct.successors(bid).as_slice() {
                 [] => writeln!(out, "  block{} -> end", bid.0)?,
                 dests => {
                     for (succ_ndx, dest) in dests.iter().enumerate() {
@@ -628,7 +619,7 @@ impl Graph {
                 }
             }
 
-            writeln!(out,)?;
+            writeln!(out)?;
         }
 
         if let Some(dom_tree) = dom_tree {
@@ -914,7 +905,7 @@ fn reverse_postorder(edges: &Edges) -> Vec<BlockID> {
         order.push(bid);
         visited[bid] = true;
 
-        for &succ in edges.successors(bid) {
+        for succ in edges.successors(bid) {
             if !visited[succ] {
                 queue.push(succ);
             }
@@ -961,7 +952,7 @@ fn count_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
                     continue;
                 }
 
-                for &succ in edges.successors(bid) {
+                for succ in edges.successors(bid) {
                     if !in_path[succ] {
                         incoming_count[succ] += 1;
                         queue.push(Cmd::Exit(succ));

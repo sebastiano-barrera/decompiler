@@ -218,6 +218,11 @@ impl Program {
                 (cfg::BlockCont::Alt { .. }, Some((&fx_last_reg, _))) => {
                     assert!(matches!(self[fx_last_reg].get(), mil::Insn::JmpIf { .. }));
                 }
+
+                (cfg::BlockCont::ExtraEntry { .. }, None) => {}
+                (cfg::BlockCont::ExtraEntry { .. }, Some(_)) => {
+                    panic!("block {bid:?} with ExtraEntry ending must be empty");
+                }
             }
         }
     }
@@ -669,7 +674,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // successor's 1st, 2nd, 3rd predecessor.
 
                 let block_cont = cfg.block_cont(bid);
-                for succ in block_cont.as_array().into_iter().flatten() {
+                for succ in block_cont.as_array() {
                     for var in vars() {
                         if let Some(phi_reg) = phis.get(succ, var) {
                             let value = var_map

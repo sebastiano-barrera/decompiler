@@ -121,6 +121,16 @@ impl<'a> Ast<'a> {
 
                 self.pp_continuation(pp, bid, neg_bid)?;
             }
+            cfg::BlockCont::ExtraEntry {
+                addr,
+                straight,
+                side,
+            } => {
+                write!(pp, "entry 0x{:x} => ", addr)?;
+                self.pp_continuation(pp, bid, side)?;
+                writeln!(pp, ";")?;
+                self.pp_continuation(pp, bid, straight)?;
+            }
         }
 
         for &child in cfg.dom_tree().children_of(bid) {
