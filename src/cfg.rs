@@ -99,6 +99,27 @@ impl Edges {
         writeln!(out, "\n}}\n")?;
         Ok(())
     }
+
+    /// Unlink (remove the edges from and to) the blocks whose ID has value
+    /// `false` in `is_kept`.
+    ///
+    /// Unlinking the entry block is not allowed (punished by panic).
+    fn filter_blocks_inplace(&mut self, is_kept: &BlockMap<bool>) {
+        assert!(is_kept[self.entry_bid]);
+
+        // remove edges "from"
+        for (bid, &is_kept_bid) in is_kept.items() {
+            if !is_kept_bid {
+                self.successors.remove(bid);
+            }
+        }
+
+        // remove edges "to"
+        self.successors.remove_values(|_, &value| !is_kept[value]);
+
+        #[cfg(debug_assertions)]
+        self.assert_invariants();
+    }
 }
 
 impl std::fmt::Debug for Edges {
@@ -246,18 +267,21 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     bounds.sort();
     bounds.dedup();
 
-    let direct = {
-        // temporary; will be changed by add_virtual_entry_blocks
-        let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
-        let block_at: HashMap<_, _> = bounds[..block_count as usize]
-            .iter()
-            .enumerate()
-            .map(|(bndx, start_ndx)| {
-                let bndx = bndx.try_into().unwrap();
-                (*start_ndx, BlockID(bndx))
-            })
-            .collect();
+    // number of blocks
+    //
+    // this number is not going to change, even though we're going to remove the
+    // unreachable blocks.
+    let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
+    let block_at: HashMap<_, _> = bounds[..block_count as usize]
+        .iter()
+        .enumerate()
+        .map(|(bndx, start_ndx)| {
+            let bndx = bndx.try_into().unwrap();
+            (*start_ndx, BlockID(bndx))
+        })
+        .collect();
 
+    let mut direct = {
         let mut successors = BlockMultiMap::new(block_count);
 
         for (blk_ndx, (&insn_ndx_start, &insn_ndx_end)) in
@@ -302,6 +326,9 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
 
     let (order, is_reachable) = reverse_postorder(&direct);
     assert_eq!(is_reachable.block_count(), direct.block_count());
+
+    direct.filter_blocks_inplace(&is_reachable);
+
     let reverse_postorder = Ordering::new(order, direct.block_count());
 
     let predecessors = compute_predecessors(&direct.successors);
@@ -354,6 +381,44 @@ impl<T> BlockMultiMap<T> {
             bid,
             ndx_start: self.items.len(),
             multimap: self,
+        }
+    }
+
+    /// Remove all the values associated to `bid` from the map.
+    ///
+    /// This function does not change the set of BlockIDs defined as keys (e.g.
+    /// [block_count] will return the same number).
+    fn remove(&mut self, bid: BlockID) {
+        // we actually leak the corresponding items in `items`, but we only plan
+        // to have a handful of them. the cost is acceptable, and we save a
+        // bunch of time in avoiding to manipulate `items` altogether
+        self.ndx_range[bid] = 0..0;
+    }
+
+    /// Remove all values matching the predicate.
+    ///
+    /// The predicate is called with the key BlockID and a read-only reference
+    /// to the value. The value is removed iff it returns true.
+    fn remove_values<P>(&mut self, predicate: P)
+    where
+        P: Fn(BlockID, &T) -> bool,
+    {
+        for (bid, ndxr) in self.ndx_range.items_mut() {
+            // weird, std has this algorithm for Vec but not for slice
+            let bid_items = &mut self.items[ndxr.clone()];
+
+            let mut len = bid_items.len();
+            let mut ndx = 0;
+            while ndx < len {
+                if predicate(bid, &bid_items[ndx]) {
+                    bid_items.swap(ndx, len - 1);
+                    len -= 1;
+                } else {
+                    ndx += 1;
+                }
+            }
+
+            ndxr.end = ndxr.start + len;
         }
     }
 }

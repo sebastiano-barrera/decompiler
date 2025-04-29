@@ -21,6 +21,10 @@ pub struct Program {
     //   mil::Index values are just as good as mil::Reg for identifying both insns and
     //   values.
     inner: mil::Program,
+
+    // whether each instruction is reachable from the entry point (as not all may be)
+    is_reachable: Vec<bool>,
+
     cfg: cfg::Graph,
     bbs: cfg::BlockMap<BasicBlock>,
 }
@@ -85,6 +89,7 @@ impl Program {
         // particular.
         assert!(!insn.has_side_effects());
         let index = self.inner.push_new(insn);
+        self.is_reachable.push(true);
         mil::Reg(index)
     }
 
@@ -167,6 +172,7 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
+        assert_eq!(self.is_reachable.len(), self.inner.len() as usize);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
         self.assert_effectful_partitioned();
@@ -177,8 +183,10 @@ impl Program {
 
     fn assert_dest_reg_is_index(&self) {
         for (ndx, iv) in self.inner.iter().enumerate() {
-            let dest = iv.dest.get();
-            assert_eq!(ndx, dest.reg_index() as usize);
+            if self.is_reachable[ndx] {
+                let dest = iv.dest.get();
+                assert_eq!(ndx, dest.reg_index() as usize);
+            }
         }
     }
 
@@ -701,22 +709,19 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    // establish SSA invariants
-    // the returned Program will no longer change (just some instructions are going to be marked as
-    // "dead" and ignored)
-    for (ndx, insn) in program.iter().enumerate() {
-        let ndx = ndx.try_into().unwrap();
-        assert_eq!(
-            insn.dest.get(),
-            mil::Reg(ndx),
-            "insn unvisited: {:?} <- {:?}",
-            insn.dest,
-            insn.insn
-        );
-    }
+    let is_reachable = {
+        let mut map = vec![false; program.len() as usize];
+        for bid in cfg.block_ids_postorder() {
+            for ndx in cfg.insns_ndx_range(bid) {
+                map[ndx as usize] = true;
+            }
+        }
+        map
+    };
 
     let mut ssa = Program {
         inner: program,
+        is_reachable,
         cfg,
         bbs,
     };
