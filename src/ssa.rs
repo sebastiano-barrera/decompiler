@@ -49,8 +49,15 @@ impl Program {
         // But it's a detail we try to hide, as it's likely we're going to have
         // to transition to a more complex structure in the future.
         let iv = self.inner.get(reg.0)?;
-        debug_assert_eq!(iv.dest.get(), reg);
-
+        #[cfg(debug_assertions)]
+        {
+            let iv_reg = iv.dest.get();
+            let iv_reg_ndx = iv_reg.reg_index() as usize;
+            if !self.is_reachable[iv_reg_ndx] {
+                panic!("unreachable instruction: {:?}", reg);
+            }
+            debug_assert_eq!(iv_reg, reg);
+        }
         Some(iv)
     }
 
