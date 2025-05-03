@@ -405,10 +405,10 @@ impl std::fmt::Debug for Program {
         let mut cur_bid = None;
         for (bid, reg) in self.insns_rpo() {
             if cur_bid != Some(bid) {
-                write!(f, ".B{}:    ;; ", bid.as_usize())?;
+                write!(f, ".B{}:    ;;", bid.as_usize())?;
                 let preds = self.cfg.block_preds(bid);
                 if !preds.is_empty() {
-                    write!(f, "preds:")?;
+                    write!(f, " preds:")?;
                     for (ndx, pred) in preds.iter().enumerate() {
                         if ndx > 0 {
                             write!(f, ",")?;
@@ -416,6 +416,7 @@ impl std::fmt::Debug for Program {
                         write!(f, "B{}", pred.as_number())?;
                     }
                 }
+                write!(f, "  → {:?}", self.cfg.block_cont(bid))?;
                 writeln!(f, ".")?;
 
                 cur_bid = Some(bid);
@@ -769,6 +770,7 @@ fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
     is_received
 }
 
+#[derive(Debug)]
 struct RegMat<T>(Mat<T>);
 
 impl<T: Clone> RegMat<T> {
@@ -812,6 +814,24 @@ impl<T: Clone> Mat<T> {
     fn new(init: T, rows: usize, cols: usize) -> Self {
         let items = vec![init; rows * cols].into_boxed_slice();
         Mat { items, rows, cols }
+    }
+}
+impl<T: std::fmt::Debug> std::fmt::Debug for Mat<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut item_buf = Vec::new();
+
+        writeln!(f, "mat. {}×{}", self.rows, self.cols)?;
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                let value = self.item(i, j);
+                item_buf.clear();
+                write!(item_buf, "{:?}", value).unwrap();
+                write!(f, "{:10} ", std::str::from_utf8(&item_buf).unwrap())?;
+            }
+            writeln!(f)?;
+        }
+
+        Ok(())
     }
 }
 

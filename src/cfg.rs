@@ -585,37 +585,17 @@ enum BranchDest {
 
 impl Graph {
     fn assert_invariants(&self) {
-        #[cfg(debug_assertions)]
-        {
-            eprintln!("checking Graph:");
-            eprintln!("{} blocks", self.block_count());
-            for (ndx, (bb_start, bb_end)) in self
-                .bounds
-                .iter()
-                .zip((&self.bounds)[1..].iter())
-                .enumerate()
-            {
-                eprintln!(
-                    " #{}: {} - {} ({})",
-                    ndx,
-                    bb_start,
-                    bb_end,
-                    bb_end - bb_start
-                );
-            }
+        self.assert_full_mil_covered();
+        self.assert_bounds_valid();
 
-            self.assert_full_mil_covered();
-            self.assert_bounds_valid();
-
-            // no duplicates (<=> no 0-length blocks)
-            let (_, starts) = self.bounds.split_last().unwrap();
-            for (i, &start) in starts.iter().enumerate() {
-                let end = (&self.bounds)[i + 1];
-                assert_ne!(end, start);
-            }
-
-            self.direct.assert_invariants();
+        // no duplicates (<=> no 0-length blocks)
+        let (_, starts) = self.bounds.split_last().unwrap();
+        for (i, &start) in starts.iter().enumerate() {
+            let end = (&self.bounds)[i + 1];
+            assert_ne!(end, start);
         }
+
+        self.direct.assert_invariants();
     }
 
     fn assert_bounds_valid(&self) {
@@ -666,6 +646,7 @@ impl Graph {
         for bid in self.block_ids() {
             let Range { start, end } = self.insns_ndx_range(bid);
 
+            writeln!(out, "  // {:4} - {:4} ({}) ", start, end, end - start,)?;
             writeln!(
                 out,
                 "  block{} [label=\"{}\\n{}..{}\"];",
