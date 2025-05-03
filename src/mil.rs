@@ -283,6 +283,7 @@ impl std::fmt::Debug for Program {
         let mut last_addr = 0;
         let len = self.dests.len();
         for ndx in 0..len {
+            let is_enabled = self.is_enabled[ndx];
             let insn = self.insns[ndx].get();
             let dest = self.dests[ndx].get();
             let dest_tyid = self.dest_tyids[ndx].get();
@@ -292,6 +293,7 @@ impl std::fmt::Debug for Program {
                 writeln!(f, "0x{:x}:", addr)?;
                 last_addr = addr;
             }
+            write!(f, "   {:10}", if is_enabled { "" } else { "|DISABLED|" })?;
             write!(f, "{:5} {:?}", ndx, dest,)?;
             if let Some(dest_tyid) = dest_tyid {
                 write!(f, ": {:?}", dest_tyid)?;
