@@ -20,6 +20,11 @@ pub struct Program {
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
     dest_tyids: Vec<Cell<Option<ty::TypeID>>>,
+    // aligned to insns. when false, the corresponding instruction is entirely
+    // disabled and inaccessible. for all intents and purposes, it's deleted.
+    // its index never yielded by iterators, and accesses to it result in
+    // a panic.
+    is_enabled: Vec<bool>,
     reg_count: Index,
 
     // Not sure about the Arc here.  Very likely that it's going to have to
@@ -348,6 +353,7 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.dest_tyids.push(Cell::new(None));
         self.addrs.push(u64::MAX);
+        self.is_enabled.push(true);
         index
     }
 
@@ -520,11 +526,14 @@ impl ProgramBuilder {
             1 + max_dest.max(max_input)
         };
 
+        let is_enabled = vec![true; insns.len()];
+
         Program {
             insns,
             dests,
             addrs,
             dest_tyids: dest_ty,
+            is_enabled,
             types,
             reg_count,
             mil_of_input_addr,
