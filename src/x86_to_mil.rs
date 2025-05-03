@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::mil::{self, AncestralName, RegType};
+use crate::mil::{self, AncestralName, Control, RegType};
 use crate::ty;
 use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};
@@ -231,7 +231,8 @@ impl Builder {
                         .unwrap_or(Self::RAX);
 
                     let v0 = self.reg_gen.next();
-                    self.emit(v0, mil::Insn::Ret(ret_val));
+                    self.emit(v0, mil::Insn::SetReturnValue(ret_val));
+                    self.emit(v0, mil::Insn::Control(Control::Ret));
                 }
 
                 // assuming that the instruction is correct and correctly
@@ -519,15 +520,16 @@ impl Builder {
                 //
                 M::Jmp => {
                     // refactor with emit_jmpif?
+                    let v0 = self.reg_gen.next();
                     match insn.op0_kind() {
                         OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                             let target = insn.near_branch_target();
-                            let v0 = self.reg_gen.next();
-                            self.emit(v0, mil::Insn::JmpExt(target));
+                            self.emit(v0, mil::Insn::Control(Control::JmpExt(target)));
                         }
                         _ => {
-                            let addr = self.emit_compute_address(&insn);
-                            self.emit(addr, mil::Insn::JmpInd(addr));
+                            let addr_reg = self.emit_compute_address(&insn);
+                            self.emit(addr_reg, mil::Insn::SetJumpTarget(addr_reg));
+                            self.emit(v0, mil::Insn::Control(Control::JmpIndirect));
                         }
                     }
                 }
@@ -854,7 +856,8 @@ impl Builder {
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                 let target = insn.near_branch_target();
                 let v0 = self.reg_gen.next();
-                self.emit(v0, mil::Insn::JmpExtIf { cond, addr: target });
+                self.emit(v0, mil::Insn::SetJumpCondition(cond));
+                self.emit(v0, mil::Insn::Control(Control::JmpExtIf(target)));
             }
             _ => {
                 todo!("indirect jmpif");

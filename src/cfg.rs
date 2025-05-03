@@ -7,6 +7,8 @@ use std::{
     ops::{Index, IndexMut, Range},
 };
 
+use arrayvec::ArrayVec;
+
 use crate::{
     mil,
     pp::{self, PP},
@@ -26,11 +28,11 @@ pub struct Graph {
 #[derive(Clone)]
 pub struct Edges {
     entry_bid: BlockID,
-    successors: BlockMultiMap<BlockID>,
+    successors: BlockMap<BlockCont>,
 }
 
 impl std::ops::Index<BlockID> for Edges {
-    type Output = [BlockID];
+    type Output = BlockCont;
 
     fn index(&self, bid: BlockID) -> &Self::Output {
         &self.successors[bid]
@@ -43,15 +45,15 @@ impl Edges {
 
         assert!(self.entry_bid.as_number() < block_count);
         for (_, succs) in self.successors.items() {
-            for succ in succs {
+            for succ in succs.block_dests() {
                 assert!(succ.as_number() < block_count);
             }
         }
     }
 
-    /// Create an `Edges` structure, starting from a BlockMultiMap that
-    /// associates each block to its successors (by their IDs).
-    fn from_successors(successors: BlockMultiMap<BlockID>, entry_bid: BlockID) -> Self {
+    /// Create an `Edges` structure, starting from a BlockMap that
+    /// associates each block to its BlockCont.
+    fn from_successors(successors: BlockMap<BlockCont>, entry_bid: BlockID) -> Self {
         let edges = Edges {
             entry_bid,
             successors,
@@ -67,8 +69,8 @@ impl Edges {
         self.successors.block_count()
     }
 
-    pub fn successors(&self, bndx: BlockID) -> &[BlockID] {
-        &self.successors[bndx]
+    pub fn successors(&self, bndx: BlockID) -> ArrayVec<BlockID, 2> {
+        self.successors[bndx].block_dests()
     }
 
     pub fn entry_bid(&self) -> BlockID {
@@ -99,34 +101,13 @@ impl Edges {
         writeln!(out, "\n}}\n")?;
         Ok(())
     }
-
-    /// Unlink (remove the edges from and to) the blocks whose ID has value
-    /// `false` in `is_kept`.
-    ///
-    /// Unlinking the entry block is not allowed (punished by panic).
-    fn filter_blocks_inplace(&mut self, is_kept: &BlockMap<bool>) {
-        assert!(is_kept[self.entry_bid]);
-
-        // remove edges "from"
-        for (bid, &is_kept_bid) in is_kept.items() {
-            if !is_kept_bid {
-                self.successors.remove(bid);
-            }
-        }
-
-        // remove edges "to"
-        self.successors.remove_values(|_, &value| !is_kept[value]);
-
-        #[cfg(debug_assertions)]
-        self.assert_invariants();
-    }
 }
 
 impl std::fmt::Debug for Edges {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "digraph {{")?;
         for (bid, succs) in self.successors.items() {
-            for succ in succs {
+            for succ in succs.block_dests() {
                 writeln!(f, "  block{} -> block{};", bid.0, succ.0)?;
             }
         }
@@ -134,20 +115,59 @@ impl std::fmt::Debug for Edges {
     }
 }
 
-#[derive(Debug)]
+/// Block continuation destination.
+///
+/// Describes where control flow may continue to after running through a specific basic
+/// block (i.e. the block's successors).
+#[derive(Debug, Clone, Copy)]
 pub enum BlockCont {
-    End,
-    Jmp(BlockID),
-    Alt { straight: BlockID, side: BlockID },
+    /// Jump to the associated destination unconditionally.
+    Always(Dest),
+    /// Jump to either associated destination, conditionally (i.e. based on the
+    /// value of the implicit condition register).
+    Conditional { pos: Dest, neg: Dest },
+}
+
+impl Default for BlockCont {
+    fn default() -> Self {
+        BlockCont::Always(Dest::Undefined)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Dest {
+    /// A machine address, external to the program/function
+    Ext(u64),
+    /// A basic block within the program/function
+    Block(BlockID),
+    /// The destination is stored in a machine register (or SSA value), and
+    /// therefore only known at runtime
+    Indirect,
+    /// Return to the calling function
+    Return,
+    /// No information about where the block is going to jump to (e.g.
+    /// the decompiler couldn't figure it out due to an internal bug or a
+    /// limitation).
+    Undefined,
 }
 
 impl BlockCont {
     #[inline]
-    pub fn as_array(&self) -> [Option<BlockID>; 2] {
+    pub fn block_dests(&self) -> ArrayVec<BlockID, 2> {
+        self.dests()
+            .into_iter()
+            .filter_map(|dest| match dest {
+                Dest::Block(bid) => Some(bid),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[inline]
+    pub fn dests(&self) -> ArrayVec<Dest, 2> {
         match self {
-            BlockCont::End => [None, None],
-            BlockCont::Jmp(d) => [Some(*d), None],
-            BlockCont::Alt { straight, side } => [Some(*straight), Some(*side)],
+            BlockCont::Always(tgt) => [*tgt].into_iter().collect(),
+            BlockCont::Conditional { pos, neg } => [*pos, *neg].into_iter().collect(),
         }
     }
 }
@@ -182,17 +202,7 @@ impl Graph {
     }
 
     pub fn block_cont(&self, bid: BlockID) -> BlockCont {
-        let successors = &self.direct.successors[bid];
-
-        match successors {
-            [] => BlockCont::End,
-            [cons] => BlockCont::Jmp(*cons),
-            [alt, cons] => BlockCont::Alt {
-                straight: *alt,
-                side: *cons,
-            },
-            _ => panic!("blocks must have 2 successors max"),
-        }
+        self.direct.successors[bid]
     }
 
     /// Get the range of instructions covered by this basic block.
@@ -248,18 +258,21 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     bounds.push(0);
 
     for ndx in 0..program.len() {
-        // the instruction jumps to tgt. ndx MUST be a "block ender",
-        // i.e. the last instruction in the block; equivalently, ndx+1
-        // must be a block's start.
+        // the instruction jumps or otherwise affects control flow, and is a
+        // "block ender", i.e. the last instruction in the block; equivalently,
+        // ndx+1 must be a block's start.
         //
-        // This is regardless of `conditional`. For some weird programs,
-        // nothing ever jumps to ndx+1 even , but we don't care here.
+        // This is regardless of whether the jump (if any) happens
+        // conditionally. For some weird programs, nothing ever jumps to ndx+1
+        // even , but we don't care here.
         if let Some(Branch {
             target,
             conditional: _,
         }) = branch_target(program, ndx)
         {
-            bounds.push(target);
+            if let BranchDest::Index(target_ndx) = target {
+                bounds.push(target_ndx);
+            }
             bounds.push(ndx + 1);
         }
     }
@@ -272,7 +285,7 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     // this number is not going to change, even though we're going to remove the
     // unreachable blocks.
     let block_count: u16 = (bounds.len() - 1).try_into().unwrap();
-    let block_at: HashMap<_, _> = bounds[..block_count as usize]
+    let block_at_map: HashMap<_, _> = bounds[..block_count as usize]
         .iter()
         .enumerate()
         .map(|(bndx, start_ndx)| {
@@ -281,53 +294,66 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
         })
         .collect();
 
+    let dest_at = |ndx| {
+        block_at_map
+            .get(&ndx)
+            .map(|&bid| Dest::Block(bid))
+            // mostly happens when ndx == program.len()
+            .unwrap_or(Dest::Undefined)
+    };
+
     let mut direct = {
-        let mut successors = BlockMultiMap::new(block_count);
+        let mut block_conts = BlockMap::new_sized(BlockCont::default(), block_count);
 
         for (blk_ndx, (&insn_ndx_start, &insn_ndx_end)) in
             bounds.iter().zip(&bounds[1..]).enumerate()
         {
             assert!(insn_ndx_end >= insn_ndx_start);
-
             let bid = BlockID(blk_ndx.try_into().unwrap());
-            let mut appender = successors.append(bid);
 
             if insn_ndx_end > insn_ndx_start {
                 // non-empty block
-
                 let last_ndx = insn_ndx_end - 1;
+                block_conts[bid] = match program.get(last_ndx).unwrap().insn.get() {
+                    mil::Insn::Control(ctl) => match ctl {
+                        mil::Control::Ret => BlockCont::Always(Dest::Return),
+                        mil::Control::Jmp(tgt_ndx) => {
+                            let dest_bid = *block_at_map.get(&tgt_ndx).unwrap();
+                            BlockCont::Always(Dest::Block(dest_bid))
+                        }
+                        mil::Control::JmpIf(pos_ndx) => {
+                            let pos = dest_at(pos_ndx);
+                            let neg = dest_at(last_ndx + 1);
+                            BlockCont::Conditional { pos, neg }
+                        }
+                        mil::Control::JmpExt(addr) => BlockCont::Always(Dest::Ext(addr)),
+                        mil::Control::JmpExtIf(addr) => {
+                            let pos = Dest::Ext(addr);
+                            let neg = dest_at(last_ndx + 1);
+                            BlockCont::Conditional { pos, neg }
+                        }
+                        mil::Control::JmpIndirect => BlockCont::Always(Dest::Indirect),
+                    },
 
-                let dests: &[mil::Index] = match branch_target(program, last_ndx) {
-                    None => &[last_ndx + 1],
-                    Some(Branch {
-                        target,
-                        conditional: false,
-                    }) => &[target],
-                    Some(Branch {
-                        target,
-                        conditional: true,
-                    }) => &[last_ndx + 1, target],
+                    _ => BlockCont::Always(dest_at(last_ndx + 1)),
                 };
-
-                for &dest in dests {
-                    if dest != program.len() {
-                        let dest = *block_at.get(&dest).unwrap();
-                        appender.append(dest);
-                    }
-                }
             }
-
-            appender.finish();
         }
 
         let entry_bid = BlockID(0);
-        Edges::from_successors(successors, entry_bid)
+        Edges::from_successors(block_conts, entry_bid)
     };
 
     let (order, is_reachable) = reverse_postorder(&direct);
     assert_eq!(is_reachable.block_count(), direct.block_count());
 
-    direct.filter_blocks_inplace(&is_reachable);
+    // prevent "unreachable blocks" from being any other block's predecessor
+    assert!(is_reachable[direct.entry_bid]);
+    for (bid, &is_reachable_bid) in is_reachable.items() {
+        if !is_reachable_bid {
+            direct.successors[bid] = BlockCont::Always(Dest::Undefined);
+        }
+    }
 
     let reverse_postorder = Ordering::new(order, direct.block_count());
 
@@ -345,11 +371,11 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     graph
 }
 
-fn compute_predecessors(successors: &BlockMultiMap<BlockID>) -> BlockMultiMap<BlockID> {
+fn compute_predecessors(successors: &BlockMap<BlockCont>) -> BlockMultiMap<BlockID> {
     let mut builder = BlockMultiMapSorter::new(successors.block_count());
     for (pred, succs) in successors.items() {
-        for succ in succs {
-            builder.add(*succ, pred);
+        for succ in succs.block_dests() {
+            builder.add(succ, pred);
         }
     }
     builder.build()
@@ -508,39 +534,53 @@ impl<T> BlockMultiMapSorter<T> {
 /// Returns None if the instruction only ever proceeds to the next one (i.e.
 /// it's not a branch or branch-like instruction).
 fn branch_target(program: &mil::Program, ndx: mil::Index) -> Option<Branch> {
-    let insn = program.get(ndx).unwrap().insn.get();
-    match insn {
-        mil::Insn::Jmp(target) => Some(Branch {
-            target,
+    let insn = program.get(ndx)?.insn.get();
+    let mil::Insn::Control(ctl) = insn else {
+        return None;
+    };
+
+    // TODO roll this repr directly in mil?
+
+    let branch = match ctl {
+        mil::Control::Ret => Branch {
+            target: BranchDest::Index(program.len()),
             conditional: false,
-        }),
-        mil::Insn::JmpIf { target, .. } => Some(Branch {
-            target,
+        },
+        mil::Control::Jmp(target) => Branch {
+            target: BranchDest::Index(target),
+            conditional: false,
+        },
+        mil::Control::JmpIf(target) => Branch {
+            target: BranchDest::Index(target),
             conditional: true,
-        }),
-
-        // indirect jumps (Insn::JmpI, x86_64: jmp [reg]) are treated like
-        // "jumps to somewhere else".  They potentially exit the function, or
-        // re-enter it at some unknown location; we can only know at runtime.
-        // With the little information we have, we can only treat it as "exit".
-        //
-        // one-past-the-end of the program is a valid index; signifies "exit the function"
-        mil::Insn::Ret(_) | mil::Insn::JmpInd(_) => Some(Branch {
-            target: program.len(),
+        },
+        mil::Control::JmpExt(addr) => Branch {
+            target: BranchDest::Ext(addr),
             conditional: false,
-        }),
+        },
+        mil::Control::JmpExtIf(addr) => Branch {
+            target: BranchDest::Ext(addr),
+            conditional: true,
+        },
+        mil::Control::JmpIndirect => Branch {
+            target: BranchDest::Runtime,
+            conditional: false,
+        },
+    };
 
-        // external are currently handled as non-control-flow instruction
-        // (mil::Insn::JmpExt(_) | mil::Insn::JmpExtIf { .. })
-        _ => None,
-    }
+    Some(branch)
 }
 
 struct Branch {
     /// Iff true, the branch may or may not be taken.
     conditional: bool,
     /// Index to jump to when the branch is taken.
-    target: mil::Index,
+    target: BranchDest,
+}
+enum BranchDest {
+    Index(mil::Index),
+    Ext(u64),
+    Runtime,
 }
 
 impl Graph {
@@ -632,7 +672,7 @@ impl Graph {
                 bid.0, bid.0, start, end,
             )?;
 
-            match self.direct.successors(bid) {
+            match self.direct.successors(bid).as_slice() {
                 [] => writeln!(out, "  block{} -> end", bid.0)?,
                 dests => {
                     for (succ_ndx, dest) in dests.iter().enumerate() {
@@ -940,7 +980,7 @@ fn reverse_postorder(edges: &Edges) -> (Vec<BlockID>, BlockMap<bool>) {
         order.push(bid);
         visited[bid] = true;
 
-        for &succ in edges.successors(bid) {
+        for succ in edges.successors(bid) {
             if !visited[succ] {
                 queue.push(succ);
             }
@@ -987,7 +1027,7 @@ fn count_nonbackedge_predecessors(edges: &Edges) -> BlockMap<u16> {
                     continue;
                 }
 
-                for &succ in edges.successors(bid) {
+                for succ in edges.successors(bid) {
                     if !in_path[succ] {
                         incoming_count[succ] += 1;
                         queue.push(Cmd::Exit(succ));

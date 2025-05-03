@@ -911,7 +911,7 @@ mod tests {
     use insta::assert_snapshot;
     use ty::TypeID;
 
-    use crate::ssa;
+    use crate::{mil::Control, ssa};
 
     use super::*;
     use std::sync::Arc;
@@ -929,7 +929,8 @@ mod tests {
         unpack_params(&mut bld, &types.types, param_types, types.tyid_void).unwrap();
 
         let v0 = bld.reg_gen.next();
-        bld.emit(v0, Insn::Ret(Builder::RDI));
+        bld.emit(v0, Insn::SetReturnValue(Builder::RDI));
+        bld.emit(v0, Insn::Control(Control::Ret));
 
         let prog = bld.build();
         let prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });

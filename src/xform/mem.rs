@@ -225,7 +225,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        mil::{self, ArithOp, Insn, Reg},
+        mil::{self, ArithOp, Control, Insn, Reg},
         ssa, ty, x86_to_mil, xform,
     };
 
@@ -255,7 +255,8 @@ mod tests {
                     size: size.try_into().unwrap(),
                 },
             );
-            bld.push(Reg(6), Insn::Ret(Reg(5)));
+            bld.push(Reg(6), Insn::SetReturnValue(Reg(5)));
+            bld.push(Reg(6), Insn::Control(Control::Ret));
             let program = bld.build();
             let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
@@ -264,7 +265,7 @@ mod tests {
             eprintln!("ssa post-xform:\n{program:?}");
 
             let insn = program.get(Reg(6)).unwrap().insn.get();
-            assert_eq!(insn, Insn::Ret(Reg(1)));
+            assert_eq!(insn, Insn::SetReturnValue(Reg(1)));
         }
     }
 
@@ -298,7 +299,8 @@ mod tests {
                 size: 3,
             },
         );
-        bld.push(Reg(7), Insn::Ret(Reg(6)));
+        bld.push(Reg(7), Insn::SetReturnValue(Reg(6)));
+        bld.push(Reg(7), Insn::Control(Control::Ret));
         let program = bld.build();
         let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
@@ -307,7 +309,9 @@ mod tests {
         eprintln!("ssa post-xform:\n{program:?}");
 
         let ret = program.get(Reg(7)).unwrap().insn.get();
-        let Insn::Ret(ret_val) = ret else { panic!() };
+        let Insn::SetReturnValue(ret_val) = ret else {
+            panic!()
+        };
 
         assert!(matches!(
             program[ret_val].get(),
@@ -349,7 +353,8 @@ mod tests {
                 size: 23,
             },
         );
-        bld.push(Reg(7), Insn::Ret(Reg(6)));
+        bld.push(Reg(7), Insn::SetReturnValue(Reg(6)));
+        bld.push(Reg(7), Insn::Control(Control::Ret));
         let program = bld.build();
         let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
@@ -357,7 +362,7 @@ mod tests {
         xform::canonical(&mut program);
         eprintln!("ssa post-xform:\n{program:?}");
 
-        let Insn::Ret(ret_val) = program[Reg(7)].get() else {
+        let Insn::SetReturnValue(ret_val) = program[Reg(7)].get() else {
             panic!()
         };
         let Insn::Concat { hi, lo } = program[ret_val].get() else {

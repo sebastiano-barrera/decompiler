@@ -135,12 +135,12 @@ impl Program {
             // convention and function type info
             Insn::Call { .. } => RegType::Bytes(8),
             Insn::CArg { value, next_arg: _ } => self.reg_type(value),
-            Insn::Ret(_) => RegType::Unit,
-            Insn::JmpInd(_) => RegType::Unit,
-            Insn::Jmp(_) => RegType::Unit,
-            Insn::JmpExt(_) => RegType::Unit,
-            Insn::JmpIf { .. } => RegType::Unit,
-            Insn::JmpExtIf { .. } => RegType::Unit,
+
+            Insn::SetReturnValue(_)
+            | Insn::SetJumpTarget(_)
+            | Insn::SetJumpCondition(_)
+            | Insn::Control(_) => RegType::Unit,
+
             Insn::NotYetImplemented(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
             Insn::StoreMem { .. } => RegType::MemoryEffect,
@@ -177,7 +177,6 @@ impl Program {
         self.assert_inputs_reachable();
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
-        self.assert_valid_block_ends();
         self.assert_carg_chain();
     }
 
@@ -196,49 +195,6 @@ impl Program {
                     iv.index,
                     input,
                 );
-            }
-        }
-    }
-
-    fn assert_valid_block_ends(&self) {
-        for bid in self.cfg.block_ids() {
-            let block_effects = self.block_effects(bid);
-            let cont = self.cfg.block_cont(bid);
-
-            let split_last = block_effects.split_last();
-
-            if let Some((_, fx_nonlast)) = split_last {
-                for &reg in fx_nonlast {
-                    assert!(!matches!(
-                        self[reg].get(),
-                        mil::Insn::JmpIf { .. } | mil::Insn::Jmp(_) | mil::Insn::Ret(_)
-                    ));
-                }
-            }
-
-            match (cont, split_last) {
-                (cfg::BlockCont::End, None) => {
-                    panic!("block {bid:?} with End ending must not be empty")
-                }
-                (cfg::BlockCont::End, Some((&fx_last_reg, _))) => {
-                    assert!(matches!(
-                        self[fx_last_reg].get(),
-                        mil::Insn::Ret(_) | mil::Insn::JmpInd(_)
-                    ));
-                }
-                (cfg::BlockCont::Jmp(_), None) => {}
-                (cfg::BlockCont::Jmp(_), Some((&fx_last_reg, _))) => {
-                    assert!(!matches!(
-                        self[fx_last_reg].get(),
-                        mil::Insn::JmpIf { .. } | mil::Insn::Jmp(_) | mil::Insn::Ret(_)
-                    ));
-                }
-                (cfg::BlockCont::Alt { .. }, None) => {
-                    panic!("block {bid:?} with Alt ending must not be empty")
-                }
-                (cfg::BlockCont::Alt { .. }, Some((&fx_last_reg, _))) => {
-                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::JmpIf { .. }));
-                }
             }
         }
     }
@@ -664,7 +620,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
-                    if let mil::Insn::Jmp(_) = insn {
+                    if let mil::Insn::Control(_) = insn {
                         let insn_ndx_last = cfg.insns_ndx_range(bid).last().unwrap();
                         assert_eq!(insn_ndx, insn_ndx_last);
                         // patch it out, otherwise we violate the effectful/pure partitionng
@@ -705,7 +661,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // successor's 1st, 2nd, 3rd predecessor.
 
                 let block_cont = cfg.block_cont(bid);
-                for succ in block_cont.as_array().into_iter().flatten() {
+                for succ in block_cont.block_dests() {
                     for var in vars() {
                         if let Some(phi_reg) = phis.get(succ, var) {
                             let value = var_map
@@ -737,38 +693,18 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let mut ssa = Program {
+    let ssa = Program {
         inner: program,
         cfg,
         bbs,
     };
-
-    // keep JmpIf at the last place in BlockCont::Alt blocks
-    for bid in ssa.cfg.block_ids() {
-        if let cfg::BlockCont::Alt { .. } = ssa.cfg.block_cont(bid) {
-            let fx = &ssa.bbs[bid].effects;
-            let ups_count = fx
-                .iter()
-                .rev()
-                .filter(|reg| {
-                    matches!(
-                        ssa.get(**reg).unwrap().insn.get(),
-                        mil::Insn::Upsilon { .. }
-                    )
-                })
-                .count();
-
-            let last = fx.len() - 1;
-            let last_pre_ups = last - ups_count;
-            let reg = fx[last_pre_ups];
-            assert!(matches!(ssa[reg].get(), mil::Insn::JmpIf { .. }));
-
-            let fx = &mut ssa.bbs[bid].effects;
-            fx.swap(last, last_pre_ups);
-        }
-    }
-
-    eliminate_dead_code(&mut ssa);
+    // no need for dead code elimination
+    //
+    // in the current representation, effectful instructions that aren't
+    // referenced by a basic block and pure instructions that are not referenced
+    // (even indirectly) by any effectul instructions are effectively dead (not
+    // reachable via insns_rpo or similar iterators). No need to eliminate them
+    // from the data structures (other than maybe space savings)
     ssa.assert_invariants();
     ssa
 }
@@ -903,16 +839,6 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     mat
 }
 
-pub fn eliminate_dead_code(_prog: &mut Program) {
-    // TODO just delete this function
-    //
-    // in the current representation, effectful instructions that aren't
-    // referenced by a basic block and pure instructions that are not referenced
-    // (even indirectly) by any effectul instructions are effectively dead (not
-    // reachable via insns_rpo or similar iterators). No need to eliminate them
-    // from the data structures (other than maybe space savings)
-}
-
 #[derive(Clone, Debug)]
 pub struct RegMap<T>(Vec<T>);
 
@@ -1000,7 +926,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{mil, ty};
-    use mil::{ArithOp, Insn, Reg};
+    use mil::{ArithOp, Control, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
@@ -1015,24 +941,20 @@ mod tests {
                     size: 8,
                 },
             );
-            pb.push(
-                Reg(1),
-                Insn::JmpExtIf {
-                    cond: Reg(0),
-                    addr: 0xf2,
-                },
-            );
+            pb.push(Reg(1), Insn::SetJumpCondition(Reg(0)));
+            pb.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
 
             pb.set_input_addr(0xf1);
             pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
-            pb.push(Reg(3), Insn::JmpExt(0xf3));
+            pb.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
 
             pb.set_input_addr(0xf2);
             pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
 
             pb.set_input_addr(0xf3);
             pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
-            pb.push(Reg(5), Insn::Ret(Reg(4)));
+            pb.push(Reg(5), Insn::SetReturnValue(Reg(4)));
+            pb.push(Reg(5), Insn::Control(Control::Ret));
 
             pb.build()
         };
@@ -1069,7 +991,8 @@ mod tests {
             b.push(Reg(0), Insn::Const { value: 5, size: 8 });
             b.push(Reg(1), Insn::Const { value: 5, size: 8 });
             b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
-            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.push(Reg(0), Insn::SetReturnValue(Reg(0)));
+            b.push(Reg(0), Insn::Control(Control::Ret));
             b.build()
         };
         let prog = super::mil_to_ssa(super::ConversionParams::new(prog));

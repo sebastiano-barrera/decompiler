@@ -73,53 +73,39 @@ impl<'a> Ast<'a> {
         let block_cont = cfg.block_cont(bid);
         let block_effects = self.ssa.block_effects(bid);
 
+        self.pp_effects(pp, block_effects)?;
+
         match block_cont {
-            cfg::BlockCont::End => {
-                let (&last_reg, block_effects) = block_effects
-                    .split_last()
-                    .expect("block with Alt ending cannot be empty");
-
-                self.pp_effects(pp, block_effects)?;
-
-                match self.ssa[last_reg].get() {
-                    mil::Insn::Ret(value) => {
-                        self.pp_input_let_stmts(pp, value)?;
-                        write!(pp, "return ")?;
-                        self.pp_ref(pp, value, 0)?;
-                    }
-                    _ => panic!("block with End ending must have Ret as last insn"),
-                };
-            }
-            cfg::BlockCont::Jmp(tgt) => {
-                self.pp_effects(pp, block_effects)?;
+            cfg::BlockCont::Always(tgt) => {
                 self.pp_continuation(pp, bid, tgt)?;
             }
-            cfg::BlockCont::Alt {
-                straight: neg_bid,
-                side: pos_bid,
-            } => {
-                let (&last_reg, block_effects) = block_effects
-                    .split_last()
-                    .expect("block with Alt ending cannot be empty");
+            cfg::BlockCont::Conditional { pos, neg } => {
+                let cond = block_effects
+                    .iter()
+                    .rev()
+                    .find_map(|&reg| match self.ssa[reg].get() {
+                        Insn::SetJumpCondition(value) => Some(value),
+                        _ => None,
+                    });
 
-                let cond = match self.ssa[last_reg].get() {
-                    mil::Insn::JmpIf { cond, target: _ } => cond,
-                    _ => panic!("block with Alt ending must have JmpIf as last insn"),
-                };
+                match cond {
+                    Some(cond) => {
+                        self.pp_input_let_stmts(pp, cond)?;
+                        write!(pp, "if ")?;
+                        self.pp_ref(pp, cond, 0)?;
+                    }
+                    None => {
+                        write!(pp, "if ???")?;
+                    }
+                }
 
-                self.pp_effects(pp, block_effects)?;
-
-                self.pp_input_let_stmts(pp, cond)?;
-
-                write!(pp, "if ")?;
-                self.pp_ref(pp, cond, 0)?;
                 write!(pp, " {{\n  ")?;
                 pp.open_box();
-                self.pp_continuation(pp, bid, pos_bid)?;
+                self.pp_continuation(pp, bid, pos)?;
                 pp.close_box();
                 write!(pp, "\n}}\n")?;
 
-                self.pp_continuation(pp, bid, neg_bid)?;
+                self.pp_continuation(pp, bid, neg)?;
             }
         }
 
@@ -149,17 +135,83 @@ impl<'a> Ast<'a> {
         &mut self,
         pp: &mut W,
         src_bid: cfg::BlockID,
-        tgt_bid: cfg::BlockID,
+        tgt: cfg::Dest,
     ) -> std::io::Result<()> {
         let cfg = self.ssa.cfg();
 
-        if cfg.block_preds(tgt_bid).len() == 1 {
-            self.pp_block_inner(pp, tgt_bid)
-        } else {
-            let looping_back = cfg.dom_tree().imm_doms(src_bid).any(|i| i == tgt_bid);
-            let keyword = if looping_back { "loop" } else { "goto" };
-            write!(pp, "{keyword} T{}", tgt_bid.as_number())
+        match tgt {
+            cfg::Dest::Ext(addr) => {
+                write!(pp, "goto ext 0x{:x}", addr)?;
+            }
+            cfg::Dest::Block(tgt_bid) => {
+                if cfg.block_preds(tgt_bid).len() == 1 {
+                    self.pp_block_inner(pp, tgt_bid)?;
+                } else {
+                    let looping_back = cfg.dom_tree().imm_doms(src_bid).any(|i| i == tgt_bid);
+                    let keyword = if looping_back { "loop" } else { "goto" };
+                    write!(pp, "{keyword} T{}", tgt_bid.as_number())?;
+                }
+            }
+            cfg::Dest::Indirect => {
+                let target =
+                    self.ssa
+                        .block_effects(src_bid)
+                        .iter()
+                        .rev()
+                        .find_map(|&reg| match self.ssa[reg].get() {
+                            Insn::SetJumpTarget(value) => Some(value),
+                            _ => None,
+                        });
+
+                match target {
+                    Some(target) => {
+                        self.pp_input_let_stmts(pp, target)?;
+                        write!(pp, "goto (")?;
+                        self.pp_ref(pp, target, 0)?;
+                        write!(pp, ").*")?;
+                    }
+                    None => {
+                        write!(
+                            pp,
+                            "goto (???).* /* internal bug: unspecified jump target */"
+                        )?;
+                    }
+                }
+            }
+            cfg::Dest::Return => {
+                let ret_val = self
+                    .ssa
+                    .block_effects(src_bid)
+                    .iter()
+                    .rev()
+                    .find_map(|&reg| match self.ssa[reg].get() {
+                        Insn::SetReturnValue(value) => Some(value),
+                        _ => None,
+                    });
+
+                match ret_val {
+                    Some(ret_val) => {
+                        self.pp_input_let_stmts(pp, ret_val)?;
+                        write!(pp, "return ")?;
+                        self.pp_ref(pp, ret_val, 0)?;
+                    }
+                    None => {
+                        write!(
+                            pp,
+                            "return undefined /* actually unspecified in source program! */"
+                        )?;
+                    }
+                }
+            }
+            cfg::Dest::Undefined => {
+                write!(
+                    pp,
+                    "goto undefined /* warning: due to decompiler bug or limitation */"
+                )?;
+            }
         }
+
+        Ok(())
     }
 
     /// Results in a series of `let x = ...` expressions being printed.
@@ -252,12 +304,23 @@ impl<'a> Ast<'a> {
             Insn::Const { value, size: _ } => {
                 write!(pp, "{}", value)?;
             }
-            Insn::Get(_) | Insn::Jmp(_) | Insn::JmpIf { .. } | Insn::Ret(_) => {
-                panic!(
-                    "block-terminating instructions are not printed via pp_def ({:?})",
-                    insn
-                );
+
+            Insn::Get(arg) => {
+                write!(pp, "/* warning: residual Get */ ")?;
+                self.pp_def(pp, arg, parent_prec)?;
             }
+
+            Insn::Control(ctl_insn) => {
+                // any effect on control-flow should be encoded only in the CFG.
+                // by the time we get here, it should have been patched out and
+                // *replaced* by the CFG's BlockConts. Still, we can cope by
+                // treating Control as a normal instruction and only trust the
+                // CFG to understand control flow structure.
+                write!(pp, "/* warning: unexpected Control */ {:?}", ctl_insn)?;
+            }
+
+            // nothing to do: handled in this block's BlockCont (see pp_block_inner)
+            Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) | Insn::SetReturnValue(_) => {}
 
             Insn::StructGetMember {
                 struct_value,
@@ -386,17 +449,6 @@ impl<'a> Ast<'a> {
 
             Insn::Phi => {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::JmpInd(_) => {
-                self.pp_def_default(pp, "JmpInd".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::JmpExt(addr) => {
-                write!(pp, "JmpExt(0x{:x})", addr)?;
-            }
-            Insn::JmpExtIf { cond, addr } => {
-                write!(pp, "if ")?;
-                self.pp_ref(pp, cond, self_prec)?;
-                write!(pp, "{{\n  goto 0x{:0x}\n}}", addr)?;
             }
             Insn::Upsilon { value, phi_ref } => match self.ssa.reg_type(value) {
                 mil::RegType::Bool | mil::RegType::Bytes(_) | mil::RegType::Undefined => {
@@ -567,12 +619,10 @@ fn precedence(insn: &Insn) -> u8 {
 
         // effectful instructions are basically *always* done last due to their
         // position in the printed syntax
-        Insn::Ret(_)
-        | Insn::JmpInd(_)
-        | Insn::Jmp(_)
-        | Insn::JmpIf { .. }
-        | Insn::JmpExt(_)
-        | Insn::JmpExtIf { .. }
+        Insn::SetReturnValue(_)
+        | Insn::SetJumpTarget(_)
+        | Insn::SetJumpCondition(_)
+        | Insn::Control(_)
         | Insn::NotYetImplemented(_)
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,

@@ -154,26 +154,17 @@ pub enum Insn {
 
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
-    Ret(Reg),
+    SetReturnValue(Reg),
+
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
-    JmpInd(Reg),
+    SetJumpCondition(Reg),
+
     #[assoc(has_side_effects = true)]
-    Jmp(Index),
-    #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = array([_cond]))]
-    JmpIf {
-        cond: Reg,
-        target: Index,
-    },
-    #[assoc(has_side_effects = true)]
-    JmpExt(u64),
-    #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = array([_cond]))]
-    JmpExtIf {
-        cond: Reg,
-        addr: u64,
-    },
+    #[assoc(input_regs = array([_0]))]
+    SetJumpTarget(Reg),
+
+    Control(Control),
 
     #[allow(clippy::upper_case_acronyms)]
     #[assoc(has_side_effects = true)]
@@ -216,6 +207,35 @@ pub enum Insn {
         value: Reg,
         phi_ref: Reg,
     },
+}
+
+// TODO Match/unify Control and cfg::BlockCont?
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+pub enum Control {
+    /// Return to the calling function.
+    ///
+    /// The return value must previously be set by an `Insn::SetReturnValue(_)`.
+    /// If the function has no return value, an `Insn::Void` value can be used; if
+    /// it is unknown, `Insn::Undefined` can be used.
+    Ret,
+
+    /// Jump to the associated Index.
+    Jmp(Index),
+
+    /// Jump to the associated Index if the value set by the last
+    /// Insn::SetJumpCondition(_) is true (must be a RegType::Bool).
+    JmpIf(Index),
+
+    /// Jump to the associated machine address, which is external to the function.
+    JmpExt(u64),
+
+    /// Jump to the associated machine address, which is external to the
+    /// function, if the value set by the last Insn::SetJumpCondition(_) is true
+    /// (must be a RegType::Bool).
+    JmpExtIf(u64),
+
+    /// Jump to the last address set by Insn::SetJumpTarget(_) in this block
+    JmpIndirect,
 }
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
@@ -524,14 +544,14 @@ impl ProgramBuilder {
 
         for insn in &insns {
             match insn.get() {
-                Insn::JmpExt(addr) => {
+                Insn::Control(Control::JmpExt(addr)) => {
                     if let Some(ndx) = mil_of_input_addr.get(&addr) {
-                        insn.set(Insn::Jmp(*ndx));
+                        insn.set(Insn::Control(Control::Jmp(*ndx)));
                     }
                 }
-                Insn::JmpExtIf { cond, addr: target } => {
-                    if let Some(ndx) = mil_of_input_addr.get(&target) {
-                        insn.set(Insn::JmpIf { cond, target: *ndx });
+                Insn::Control(Control::JmpExtIf(addr)) => {
+                    if let Some(ndx) = mil_of_input_addr.get(&addr) {
+                        insn.set(Insn::Control(Control::JmpIf(*ndx)));
                     }
                 }
                 _ => {}
