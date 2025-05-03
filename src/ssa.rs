@@ -172,7 +172,6 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
-        eprintln!("------ checking program:\n{:?}", self);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
         self.assert_inputs_reachable();
