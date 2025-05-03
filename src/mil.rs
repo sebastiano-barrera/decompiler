@@ -315,6 +315,7 @@ impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
         if self.is_enabled(ndx) {
+            let index = ndx;
             let ndx = ndx as usize;
             // if this  slot is enabled as per the mask, then every Vec access must succeed
             let insn = &self.insns[ndx];
@@ -326,6 +327,7 @@ impl Program {
                 insn,
                 dest,
                 tyid: dest_tyid,
+                index,
             })
         } else {
             None
@@ -404,6 +406,7 @@ pub struct InsnView<'a> {
     pub insn: &'a Cell<Insn>,
     pub tyid: &'a Cell<Option<ty::TypeID>>,
     pub dest: &'a Cell<Reg>,
+    pub index: Index,
     // no use for this right now
     // pub addr: u64,
 }

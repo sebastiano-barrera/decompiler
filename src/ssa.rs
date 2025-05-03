@@ -183,17 +183,19 @@ impl Program {
     }
 
     fn assert_dest_reg_is_index(&self) {
-        for (ndx, iv) in self.inner.iter().enumerate() {
-            assert_eq!(ndx, iv.dest.get().reg_index() as usize);
+        for iv in self.inner.iter() {
+            assert_eq!(iv.index, iv.dest.get().reg_index());
         }
     }
 
     fn assert_inputs_reachable(&self) {
-        for (ndx, iv) in self.inner.iter().enumerate() {
+        for iv in self.inner.iter() {
             for &mut input in iv.insn.get().input_regs() {
                 assert!(
                     self.get(input).is_some(),
-                    "#{ndx} has unreachable input {input:?}"
+                    "#{} has unreachable input {:?}",
+                    iv.index,
+                    input,
                 );
             }
         }
