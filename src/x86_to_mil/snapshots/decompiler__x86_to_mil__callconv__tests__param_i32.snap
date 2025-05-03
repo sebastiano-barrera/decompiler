@@ -4,8 +4,8 @@ expression: snap
 ---
 params: [TypeID(5v1)]
 program:
-ssa program  48 instrs
-.B0:    ;; .
+ssa program  49 instrs
+.B0:    ;;  → Always(Return).
          r44 <- Ancestral(AncestralName("arg0"))
          r45 <- Widen { reg: r44, target_size: 8, sign: false }
-         r47 <- Ret(r45)
+         r47 <- SetReturnValue(r45)

@@ -18,134 +18,135 @@ function type: "geoArrayCreate" func () *geoArray <TypeID(246623v1)>
 
 
 mil program = 
-program  113 instrs
-    0 r12 <- Ancestral(AncestralName("stack_bottom"))
-    1 r2 <- Ancestral(AncestralName("CF"))
-    2 r3 <- Ancestral(AncestralName("PF"))
-    3 r4 <- Ancestral(AncestralName("AF"))
-    4 r5 <- Ancestral(AncestralName("ZF"))
-    5 r6 <- Ancestral(AncestralName("SF"))
-    6 r7 <- Ancestral(AncestralName("TF"))
-    7 r8 <- Ancestral(AncestralName("IF"))
-    8 r9 <- Ancestral(AncestralName("DF"))
-    9 r10 <- Ancestral(AncestralName("OF"))
-   10 r11 <- Ancestral(AncestralName("RBP"))
-   11 r12 <- Ancestral(AncestralName("RSP"))
-   12 r13 <- Ancestral(AncestralName("RIP"))
-   13 r14 <- Ancestral(AncestralName("RDI"))
-   14 r15 <- Ancestral(AncestralName("RSI"))
-   15 r16 <- Ancestral(AncestralName("RAX"))
-   16 r17 <- Ancestral(AncestralName("RBX"))
-   17 r18 <- Ancestral(AncestralName("RCX"))
-   18 r19 <- Ancestral(AncestralName("RDX"))
-   19 r20 <- Ancestral(AncestralName("R8"))
-   20 r21 <- Ancestral(AncestralName("R9"))
-   21 r22 <- Ancestral(AncestralName("R10"))
-   22 r23 <- Ancestral(AncestralName("R11"))
-   23 r24 <- Ancestral(AncestralName("R12"))
-   24 r25 <- Ancestral(AncestralName("R13"))
-   25 r26 <- Ancestral(AncestralName("R14"))
-   26 r27 <- Ancestral(AncestralName("R15"))
-   27 r28 <- Ancestral(AncestralName("ZMM0"))
-   28 r29 <- Ancestral(AncestralName("ZMM1"))
-   29 r30 <- Ancestral(AncestralName("ZMM2"))
-   30 r31 <- Ancestral(AncestralName("ZMM3"))
-   31 r32 <- Ancestral(AncestralName("ZMM4"))
-   32 r33 <- Ancestral(AncestralName("ZMM5"))
-   33 r34 <- Ancestral(AncestralName("ZMM6"))
-   34 r35 <- Ancestral(AncestralName("ZMM7"))
-   35 r36 <- Ancestral(AncestralName("ZMM8"))
-   36 r37 <- Ancestral(AncestralName("ZMM9"))
-   37 r38 <- Ancestral(AncestralName("ZMM10"))
-   38 r39 <- Ancestral(AncestralName("ZMM11"))
-   39 r40 <- Ancestral(AncestralName("ZMM12"))
-   40 r41 <- Ancestral(AncestralName("ZMM13"))
-   41 r42 <- Ancestral(AncestralName("ZMM14"))
-   42 r43 <- Ancestral(AncestralName("ZMM15"))
-   43 r44 <- Ancestral(AncestralName("memory"))
-   44 r45 <- Undefined
-   45 r46 <- Undefined
-   46 r47 <- Undefined
-   47 r48 <- Undefined
-   48 r49 <- Undefined
-   49 r50 <- Undefined
-   50 r51 <- Undefined
-   51 r52 <- Undefined
-   52 r53 <- Undefined
-   53 r54 <- Undefined
-   54 r55 <- Undefined
-   55 r56 <- Undefined
-   56 r57 <- Undefined
-   57 r58 <- Undefined
-   58 r59 <- Undefined
-   59 r60 <- Undefined
-   60 r61 <- Undefined
-   61 r62 <- Undefined
-   62 r63 <- Undefined
-   63 r64 <- Undefined
-   64 r65 <- Undefined
+program  114 instrs
+                 0 r12 <- Ancestral(AncestralName("stack_bottom"))
+                 1 r2 <- Ancestral(AncestralName("CF"))
+                 2 r3 <- Ancestral(AncestralName("PF"))
+                 3 r4 <- Ancestral(AncestralName("AF"))
+                 4 r5 <- Ancestral(AncestralName("ZF"))
+                 5 r6 <- Ancestral(AncestralName("SF"))
+                 6 r7 <- Ancestral(AncestralName("TF"))
+                 7 r8 <- Ancestral(AncestralName("IF"))
+                 8 r9 <- Ancestral(AncestralName("DF"))
+                 9 r10 <- Ancestral(AncestralName("OF"))
+                10 r11 <- Ancestral(AncestralName("RBP"))
+                11 r12 <- Ancestral(AncestralName("RSP"))
+                12 r13 <- Ancestral(AncestralName("RIP"))
+                13 r14 <- Ancestral(AncestralName("RDI"))
+                14 r15 <- Ancestral(AncestralName("RSI"))
+                15 r16 <- Ancestral(AncestralName("RAX"))
+                16 r17 <- Ancestral(AncestralName("RBX"))
+                17 r18 <- Ancestral(AncestralName("RCX"))
+                18 r19 <- Ancestral(AncestralName("RDX"))
+                19 r20 <- Ancestral(AncestralName("R8"))
+                20 r21 <- Ancestral(AncestralName("R9"))
+                21 r22 <- Ancestral(AncestralName("R10"))
+                22 r23 <- Ancestral(AncestralName("R11"))
+                23 r24 <- Ancestral(AncestralName("R12"))
+                24 r25 <- Ancestral(AncestralName("R13"))
+                25 r26 <- Ancestral(AncestralName("R14"))
+                26 r27 <- Ancestral(AncestralName("R15"))
+                27 r28 <- Ancestral(AncestralName("ZMM0"))
+                28 r29 <- Ancestral(AncestralName("ZMM1"))
+                29 r30 <- Ancestral(AncestralName("ZMM2"))
+                30 r31 <- Ancestral(AncestralName("ZMM3"))
+                31 r32 <- Ancestral(AncestralName("ZMM4"))
+                32 r33 <- Ancestral(AncestralName("ZMM5"))
+                33 r34 <- Ancestral(AncestralName("ZMM6"))
+                34 r35 <- Ancestral(AncestralName("ZMM7"))
+                35 r36 <- Ancestral(AncestralName("ZMM8"))
+                36 r37 <- Ancestral(AncestralName("ZMM9"))
+                37 r38 <- Ancestral(AncestralName("ZMM10"))
+                38 r39 <- Ancestral(AncestralName("ZMM11"))
+                39 r40 <- Ancestral(AncestralName("ZMM12"))
+                40 r41 <- Ancestral(AncestralName("ZMM13"))
+                41 r42 <- Ancestral(AncestralName("ZMM14"))
+                42 r43 <- Ancestral(AncestralName("ZMM15"))
+                43 r44 <- Ancestral(AncestralName("memory"))
+                44 r45 <- Undefined
+                45 r46 <- Undefined
+                46 r47 <- Undefined
+                47 r48 <- Undefined
+                48 r49 <- Undefined
+                49 r50 <- Undefined
+                50 r51 <- Undefined
+                51 r52 <- Undefined
+                52 r53 <- Undefined
+                53 r54 <- Undefined
+                54 r55 <- Undefined
+                55 r56 <- Undefined
+                56 r57 <- Undefined
+                57 r58 <- Undefined
+                58 r59 <- Undefined
+                59 r60 <- Undefined
+                60 r61 <- Undefined
+                61 r62 <- Undefined
+                62 r63 <- Undefined
+                63 r64 <- Undefined
+                64 r65 <- Undefined
 0x50c4d0:
-   65 r12 <- ArithK(Add, r12, -8)
-   66 r44 <- StoreMem { mem: r44, addr: r12, value: r11 }
+                65 r12 <- ArithK(Add, r12, -8)
+                66 r44 <- StoreMem { mem: r44, addr: r12, value: r11 }
 0x50c4d1:
-   67 r45 <- Const { value: 24, size: 4 }
-   68 r46 <- Part { src: r14, offset: 4, size: 4 }
-   69 r14 <- Concat { lo: r45, hi: r46 }
+                67 r45 <- Const { value: 24, size: 4 }
+                68 r46 <- Part { src: r14, offset: 4, size: 4 }
+                69 r14 <- Concat { lo: r45, hi: r46 }
 0x50c4d6:
-   70 r11 <- Get(r12)
+                70 r11 <- Get(r12)
 0x50c4d9:
-   71 r46 <- Ancestral(AncestralName("arg0"))
-   72 r46 <- Void
-   73 r46 <- Get(r14)
-   74 r47 <- CArg { value: r45, next_arg: None }
-   75 r48: TypeID(107947v1) <- Const { value: 4433936, size: 8 }
-   76 r47 <- Call { callee: r48, first_arg: Some(r47) }
-   77 r2 <- Undefined
-   78 r3 <- Undefined
-   79 r4 <- Undefined
-   80 r5 <- Undefined
-   81 r6 <- Undefined
-   82 r7 <- Undefined
-   83 r8 <- Undefined
-   84 r9 <- Undefined
-   85 r10 <- Undefined
-   86 r16 <- Part { src: r47, offset: 0, size: 8 }
+                71 r46 <- Ancestral(AncestralName("arg0"))
+                72 r46 <- Void
+                73 r46 <- Get(r14)
+                74 r47 <- CArg { value: r45, next_arg: None }
+                75 r48: TypeID(107947v1) <- Const { value: 4433936, size: 8 }
+                76 r47 <- Call { callee: r48, first_arg: Some(r47) }
+                77 r2 <- Undefined
+                78 r3 <- Undefined
+                79 r4 <- Undefined
+                80 r5 <- Undefined
+                81 r6 <- Undefined
+                82 r7 <- Undefined
+                83 r8 <- Undefined
+                84 r9 <- Undefined
+                85 r10 <- Undefined
+                86 r16 <- Part { src: r47, offset: 0, size: 8 }
 0x50c4de:
-   87 r46 <- Part { src: r28, offset: 0, size: 16 }
-   88 r48 <- Part { src: r28, offset: 0, size: 16 }
-   89 r46 <- Arith(BitXor, r46, r48)
-   90 r49 <- Part { src: r28, offset: 16, size: 48 }
-   91 r28 <- Concat { lo: r46, hi: r49 }
-   92 r10 <- False
-   93 r2 <- False
-   94 r6 <- SignOf(r46)
-   95 r5 <- IsZero(r46)
-   96 r50 <- Part { src: r46, offset: 0, size: 1 }
-   97 r3 <- Parity(r50)
+                87 r46 <- Part { src: r28, offset: 0, size: 16 }
+                88 r48 <- Part { src: r28, offset: 0, size: 16 }
+                89 r46 <- Arith(BitXor, r46, r48)
+                90 r49 <- Part { src: r28, offset: 16, size: 48 }
+                91 r28 <- Concat { lo: r46, hi: r49 }
+                92 r10 <- False
+                93 r2 <- False
+                94 r6 <- SignOf(r46)
+                95 r5 <- IsZero(r46)
+                96 r50 <- Part { src: r46, offset: 0, size: 1 }
+                97 r3 <- Parity(r50)
 0x50c4e2:
-   98 r45 <- Const { value: 0, size: 8 }
-   99 r46 <- Const { value: 0, size: 8 }
-  100 r46 <- Arith(Add, r46, r16)
-  101 r44 <- StoreMem { mem: r44, addr: r46, value: r45 }
+                98 r45 <- Const { value: 0, size: 8 }
+                99 r46 <- Const { value: 0, size: 8 }
+               100 r46 <- Arith(Add, r46, r16)
+               101 r44 <- StoreMem { mem: r44, addr: r46, value: r45 }
 0x50c4e9:
-  102 r46 <- Part { src: r28, offset: 0, size: 16 }
-  103 r47 <- Const { value: 8, size: 8 }
-  104 r47 <- Arith(Add, r47, r16)
-  105 r44 <- StoreMem { mem: r44, addr: r47, value: r46 }
+               102 r46 <- Part { src: r28, offset: 0, size: 16 }
+               103 r47 <- Const { value: 8, size: 8 }
+               104 r47 <- Arith(Add, r47, r16)
+               105 r44 <- StoreMem { mem: r44, addr: r47, value: r46 }
 0x50c4ed:
-  106 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  107 r11 <- Get(r45)
-  108 r12 <- ArithK(Add, r12, 8)
+               106 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               107 r11 <- Get(r45)
+               108 r12 <- ArithK(Add, r12, 8)
 0x50c4ee:
-  109 r45 <- Void
-  110 r45 <- Concat { lo: r45, hi: r16 }
-  111 r45 <- Part { src: r45, offset: 0, size: 8 }
-  112 r47 <- Ret(r45)
+               109 r45 <- Void
+               110 r45 <- Concat { lo: r45, hi: r16 }
+               111 r45 <- Part { src: r45, offset: 0, size: 8 }
+               112 r47 <- SetReturnValue(r45)
+               113 r47 <- Control(Ret)
 
 
 ssa pre-xform:
-ssa program  113 instrs
-.B0:    ;; .
+ssa program  114 instrs
+.B0:    ;;  → Always(Return).
          r10 <- Ancestral(AncestralName("RBP"))
          r11 <- Ancestral(AncestralName("RSP"))
          r65 <- ArithK(Add, r11, -8)
@@ -173,18 +174,18 @@ ssa program  113 instrs
          r109 <- Void
          r110 <- Concat { lo: r109, hi: r86 }
          r111 <- Part { src: r110, offset: 0, size: 8 }
-         r112 <- Ret(r111)
+         r112 <- SetReturnValue(r111)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:113] -> End
+  BlockID(0) [0:114] -> Always(Return)
   domtree:
     BlockID(0)
 
 ssa post-xform:
-ssa program  113 instrs
-.B0:    ;; .
+ssa program  114 instrs
+.B0:    ;;  → Always(Return).
          r10 <- Ancestral(AncestralName("RBP"))
          r11 <- Ancestral(AncestralName("RSP"))
          r65 <- ArithK(Add, r11, -8)
@@ -202,7 +203,7 @@ ssa program  113 instrs
          r89 <- Arith(BitXor, r87, r88)
          r104 <- ArithK(Add, r76, 8)
          r105 <- StoreMem { mem: r101, addr: r104, value: r89 }
-         r112 <- Ret(r76)
+         r112 <- SetReturnValue(r76)
 
 
 
@@ -211,5 +212,6 @@ T0: {
   let r76: Bytes(8) = zmalloc(24);
   [r76]:* := 0;
   [r76 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
+  ;
   return r76
 }
