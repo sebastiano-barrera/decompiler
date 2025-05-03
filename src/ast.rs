@@ -211,7 +211,7 @@ impl<'a> Ast<'a> {
         };
 
         if should_print_semicolon {
-            write!(pp, ";\n")?;
+            writeln!(pp, ";")?;
         }
 
         Ok(())
