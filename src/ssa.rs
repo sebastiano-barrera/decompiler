@@ -51,12 +51,12 @@ impl Program {
         let iv = self.inner.get(reg.0)?;
         #[cfg(debug_assertions)]
         {
-            let iv_reg = iv.dest.get();
-            let iv_reg_ndx = iv_reg.reg_index() as usize;
-            if !self.is_reachable[iv_reg_ndx] {
+            let dest = iv.dest.get();
+            let reg_ndx = reg.reg_index() as usize;
+            if !self.is_reachable[reg_ndx] {
                 panic!("unreachable instruction: {:?}", reg);
             }
-            debug_assert_eq!(iv_reg, reg);
+            debug_assert_eq!(dest, reg);
         }
         Some(iv)
     }
@@ -179,9 +179,11 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
+        eprintln!("------ checking program:\n{:?}", self);
         assert_eq!(self.is_reachable.len(), self.inner.len() as usize);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
+        self.assert_inputs_reachable();
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
         self.assert_valid_block_ends();
@@ -193,6 +195,17 @@ impl Program {
             if self.is_reachable[ndx] {
                 let dest = iv.dest.get();
                 assert_eq!(ndx, dest.reg_index() as usize);
+            }
+        }
+    }
+
+    fn assert_inputs_reachable(&self) {
+        for (ndx, iv) in self.inner.iter().enumerate() {
+            for &mut input in iv.insn.get().input_regs() {
+                assert!(
+                    self.is_reachable[input.0 as usize],
+                    "#{ndx} has unreachable input {input:?}"
+                );
             }
         }
     }
@@ -218,7 +231,7 @@ impl Program {
                     panic!("block {bid:?} with End ending must not be empty")
                 }
                 (cfg::BlockCont::End, Some((&fx_last_reg, _))) => {
-                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::Ret(_)));
+                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::Ret(_) | mil::Insn::JmpInd(_)));
                 }
                 (cfg::BlockCont::Jmp(_), None) => {}
                 (cfg::BlockCont::Jmp(_), Some((&fx_last_reg, _))) => {
@@ -272,10 +285,12 @@ impl Program {
         while let Some(reg) = queue.pop() {
             assert_eq!(rdr_count[reg], 0);
 
-            for &mut input in self[reg].get().input_regs_iter() {
-                rdr_count[input] -= 1;
-                if rdr_count[input] == 0 {
-                    queue.push(input);
+            if self.is_reachable[reg.reg_index() as usize] {
+                for &mut input in self[reg].get().input_regs_iter() {
+                    rdr_count[input] -= 1;
+                    if rdr_count[input] == 0 {
+                        queue.push(input);
+                    }
                 }
             }
         }
@@ -293,9 +308,11 @@ impl Program {
         }
 
         for reg in 0..self.reg_count() {
-            let reg = mil::Reg(reg);
-            let insn = self[reg].get();
-            assert_eq!(in_block[reg], insn.has_side_effects());
+            if self.is_reachable[reg as usize] {
+                let reg = mil::Reg(reg);
+                let insn = self[reg].get();
+                assert_eq!(in_block[reg], insn.has_side_effects());
+            }
         }
     }
 
@@ -500,6 +517,8 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let dom_tree = cfg.dom_tree();
     let is_phi_needed = compute_phis_set(&program, &cfg, dom_tree);
 
+    let mut is_reachable = vec![false; program.len() as usize];
+
     // create all required phi nodes, and link them to basic blocks and
     // variables, to be "wired" later to the data flow graph
     let phis = {
@@ -508,6 +527,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
             for var in vars() {
                 if *is_phi_needed.get(bid, var) {
                     let ndx = program.push_new(mil::Insn::Phi);
+                    is_reachable.push(true);
                     let phi = mil::Reg(ndx);
                     phis.set(bid, var, Some(phi));
                 }
@@ -668,6 +688,8 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     };
                     var_map.set(old_name, new_name);
 
+                    is_reachable[insn_ndx as usize] = true;
+
                     if insn.has_side_effects() {
                         bb.effects.push(new_name);
                     }
@@ -694,6 +716,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                                 value,
                                 phi_ref: *phi_reg,
                             });
+                            is_reachable.push(true);
                             bb.effects.push(mil::Reg(ups));
                         }
                     }
@@ -715,16 +738,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
             }
         }
     }
-
-    let is_reachable = {
-        let mut map = vec![false; program.len() as usize];
-        for bid in cfg.block_ids_postorder() {
-            for ndx in cfg.insns_ndx_range(bid) {
-                map[ndx as usize] = true;
-            }
-        }
-        map
-    };
 
     let mut ssa = Program {
         inner: program,
@@ -956,9 +969,11 @@ pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
     // infinite loop
 
     for reg in 0..prog.reg_count() {
-        let reg = mil::Reg(reg);
-        for &mut input in prog[reg].get().input_regs_iter() {
-            count[input] += 1;
+        if prog.is_reachable[reg as usize] {
+            let reg = mil::Reg(reg);
+            for &mut input in prog[reg].get().input_regs_iter() {
+                count[input] += 1;
+            }
         }
     }
 
