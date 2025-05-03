@@ -310,17 +310,22 @@ fn range_conv<T, U: From<T>>(range: Range<T>) -> Range<U> {
 impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
-        let ndx = ndx as usize;
-        let insn = &self.insns[ndx];
-        let dest = &self.dests[ndx];
-        let dest_tyid = &self.dest_tyids[ndx];
-        let addr = self.addrs[ndx];
-        Some(InsnView {
-            insn,
-            dest,
-            tyid: dest_tyid,
-            addr,
-        })
+        if self.is_enabled(ndx) {
+            let ndx = ndx as usize;
+            // if this  slot is enabled as per the mask, then every Vec access must succeed
+            let insn = &self.insns[ndx];
+            let dest = &self.dests[ndx];
+            let dest_tyid = &self.dest_tyids[ndx];
+            let addr = self.addrs[ndx];
+            Some(InsnView {
+                insn,
+                dest,
+                tyid: dest_tyid,
+                addr,
+            })
+        } else {
+            None
+        }
     }
 
     pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
@@ -343,8 +348,8 @@ impl Program {
     }
 
     #[inline(always)]
-    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = InsnView> {
-        (0..self.len()).map(|ndx| self.get(ndx).unwrap())
+    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView> {
+        (0..self.len()).filter_map(|ndx| self.get(ndx))
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
@@ -370,6 +375,24 @@ impl Program {
 
     pub fn types(&self) -> &ty::TypeSet {
         &self.types
+    }
+
+    /// Replace the "enabled" mask.
+    ///
+    /// `mask` MUST be a Vec with length equal to `self.len()`. `mask[i]`
+    /// is true iff the i-th instruction is enabled. Otherwise, index `i` is
+    /// disabled (accesses to it via .get() result in a panic) and it is never
+    /// yielded from iterators.
+    pub fn set_enabled_mask(&mut self, mask: Vec<bool>) {
+        assert_eq!(mask.len(), self.len() as usize);
+        self.is_enabled = mask;
+    }
+
+    /// Return true iff the instruction at the given Index is enabled, as per the mask (see [`set_enabled_mask`]).
+    ///
+    /// Panics if `ndx` is invalid (out of the Program's range, i.e. `>= self.len()`)
+    pub(crate) fn is_enabled(&self, ndx: Index) -> bool {
+        self.is_enabled[ndx as usize]
     }
 }
 
@@ -539,5 +562,38 @@ impl ProgramBuilder {
             mil_of_input_addr,
             anc_types: self.anc_types,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mask() {
+        let mut bld = ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+        bld.push(Reg(10), Insn::True);
+        bld.push(
+            Reg(20),
+            Insn::Const {
+                value: 874,
+                size: 4,
+            },
+        );
+        bld.push(Reg(15), Insn::Arith(ArithOp::Add, Reg(10), Reg(10)));
+        let mut prog = bld.build();
+        let mask = vec![true, false, true];
+        prog.set_enabled_mask(mask.clone());
+
+        // the register count stays the same (nicer to let every downstream user
+        // reserve space for insn slots that may be made active later)
+        assert_eq!(prog.reg_count(), 21);
+
+        let dests: Vec<_> = prog.iter().map(|iv| iv.dest.get()).collect();
+        assert_eq!(&dests, &[Reg(10), Reg(15)]);
+
+        // the point is these won't panic
+        let mask_check: Vec<_> = (0..3).map(|ndx| prog.get(ndx).is_some()).collect();
+        assert_eq!(mask_check, mask);
     }
 }
