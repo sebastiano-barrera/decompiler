@@ -435,7 +435,7 @@ struct BlockMultiMapAppender<'a, T> {
     ndx_start: usize,
     multimap: &'a mut BlockMultiMap<T>,
 }
-impl<'a, T> BlockMultiMapAppender<'a, T> {
+impl<T> BlockMultiMapAppender<'_, T> {
     fn append(&mut self, item: T) {
         self.multimap.items.push(item);
     }
@@ -549,7 +549,8 @@ impl Graph {
         {
             eprintln!("checking Graph:");
             eprintln!("{} blocks", self.block_count());
-            for (ndx, (bb_start, bb_end)) in (&self.bounds)
+            for (ndx, (bb_start, bb_end)) in self
+                .bounds
                 .iter()
                 .zip((&self.bounds)[1..].iter())
                 .enumerate()
@@ -567,7 +568,7 @@ impl Graph {
             self.assert_bounds_valid();
 
             // no duplicates (<=> no 0-length blocks)
-            let (_, starts) = (&self.bounds).split_last().unwrap();
+            let (_, starts) = self.bounds.split_last().unwrap();
             for (i, &start) in starts.iter().enumerate() {
                 let end = (&self.bounds)[i + 1];
                 assert_ne!(end, start);
@@ -913,7 +914,7 @@ fn reverse_postorder(edges: &Edges) -> (Vec<BlockID>, BlockMap<bool>) {
     let count = edges.block_count();
 
     // Remaining predecessors count
-    let mut rem_preds_count = count_nonbackedge_predecessors(&edges);
+    let mut rem_preds_count = count_nonbackedge_predecessors(edges);
 
     let mut order = Vec::with_capacity(count as usize);
     let mut queue = Vec::with_capacity(count as usize / 2);

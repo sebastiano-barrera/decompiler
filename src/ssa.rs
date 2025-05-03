@@ -304,8 +304,7 @@ impl Program {
         for reg in 0..self.reg_count() {
             let reg = mil::Reg(reg);
             let Some(iv) = self.get(reg) else { continue };
-            let insn = self[reg].get();
-            assert_eq!(in_block[reg], insn.has_side_effects());
+            assert_eq!(in_block[reg], iv.insn.get().has_side_effects());
         }
     }
 

@@ -90,6 +90,7 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
 #[func(pub fn input_regs(&mut self) -> ArgsMut { ArgsMut::new() })]
+#[allow(dead_code)]
 pub enum Insn {
     Void,
     True,
@@ -219,6 +220,7 @@ pub enum Insn {
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[allow(dead_code)]
 pub enum CmpOp {
     EQ,
     LT,
@@ -316,12 +318,12 @@ impl Program {
             let insn = &self.insns[ndx];
             let dest = &self.dests[ndx];
             let dest_tyid = &self.dest_tyids[ndx];
-            let addr = self.addrs[ndx];
+            // will be re-enabled one day
+            // let addr = self.addrs[ndx];
             Some(InsnView {
                 insn,
                 dest,
                 tyid: dest_tyid,
-                addr,
             })
         } else {
             None
@@ -400,7 +402,8 @@ pub struct InsnView<'a> {
     pub insn: &'a Cell<Insn>,
     pub tyid: &'a Cell<Option<ty::TypeID>>,
     pub dest: &'a Cell<Reg>,
-    pub addr: u64,
+    // no use for this right now
+    // pub addr: u64,
 }
 
 #[derive(Clone, Copy)]
