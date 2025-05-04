@@ -153,760 +153,773 @@ function type: 0x485d60: no type info
 
 
 mil program = 
-program  628 instrs
-    0 r12 <- Ancestral(AncestralName("stack_bottom"))
-    1 r2 <- Ancestral(AncestralName("CF"))
-    2 r3 <- Ancestral(AncestralName("PF"))
-    3 r4 <- Ancestral(AncestralName("AF"))
-    4 r5 <- Ancestral(AncestralName("ZF"))
-    5 r6 <- Ancestral(AncestralName("SF"))
-    6 r7 <- Ancestral(AncestralName("TF"))
-    7 r8 <- Ancestral(AncestralName("IF"))
-    8 r9 <- Ancestral(AncestralName("DF"))
-    9 r10 <- Ancestral(AncestralName("OF"))
-   10 r11 <- Ancestral(AncestralName("RBP"))
-   11 r12 <- Ancestral(AncestralName("RSP"))
-   12 r13 <- Ancestral(AncestralName("RIP"))
-   13 r14 <- Ancestral(AncestralName("RDI"))
-   14 r15 <- Ancestral(AncestralName("RSI"))
-   15 r16 <- Ancestral(AncestralName("RAX"))
-   16 r17 <- Ancestral(AncestralName("RBX"))
-   17 r18 <- Ancestral(AncestralName("RCX"))
-   18 r19 <- Ancestral(AncestralName("RDX"))
-   19 r20 <- Ancestral(AncestralName("R8"))
-   20 r21 <- Ancestral(AncestralName("R9"))
-   21 r22 <- Ancestral(AncestralName("R10"))
-   22 r23 <- Ancestral(AncestralName("R11"))
-   23 r24 <- Ancestral(AncestralName("R12"))
-   24 r25 <- Ancestral(AncestralName("R13"))
-   25 r26 <- Ancestral(AncestralName("R14"))
-   26 r27 <- Ancestral(AncestralName("R15"))
-   27 r28 <- Ancestral(AncestralName("ZMM0"))
-   28 r29 <- Ancestral(AncestralName("ZMM1"))
-   29 r30 <- Ancestral(AncestralName("ZMM2"))
-   30 r31 <- Ancestral(AncestralName("ZMM3"))
-   31 r32 <- Ancestral(AncestralName("ZMM4"))
-   32 r33 <- Ancestral(AncestralName("ZMM5"))
-   33 r34 <- Ancestral(AncestralName("ZMM6"))
-   34 r35 <- Ancestral(AncestralName("ZMM7"))
-   35 r36 <- Ancestral(AncestralName("ZMM8"))
-   36 r37 <- Ancestral(AncestralName("ZMM9"))
-   37 r38 <- Ancestral(AncestralName("ZMM10"))
-   38 r39 <- Ancestral(AncestralName("ZMM11"))
-   39 r40 <- Ancestral(AncestralName("ZMM12"))
-   40 r41 <- Ancestral(AncestralName("ZMM13"))
-   41 r42 <- Ancestral(AncestralName("ZMM14"))
-   42 r43 <- Ancestral(AncestralName("ZMM15"))
-   43 r44 <- Ancestral(AncestralName("memory"))
-   44 r45 <- Undefined
-   45 r46 <- Undefined
-   46 r47 <- Undefined
-   47 r48 <- Undefined
-   48 r49 <- Undefined
-   49 r50 <- Undefined
-   50 r51 <- Undefined
-   51 r52 <- Undefined
-   52 r53 <- Undefined
-   53 r54 <- Undefined
-   54 r55 <- Undefined
-   55 r56 <- Undefined
-   56 r57 <- Undefined
-   57 r58 <- Undefined
-   58 r59 <- Undefined
-   59 r60 <- Undefined
-   60 r61 <- Undefined
-   61 r62 <- Undefined
-   62 r63 <- Undefined
-   63 r64 <- Undefined
-   64 r65 <- Undefined
+program  641 instrs
+                 0 r12 <- Ancestral(AncestralName("stack_bottom"))
+                 1 r2 <- Ancestral(AncestralName("CF"))
+                 2 r3 <- Ancestral(AncestralName("PF"))
+                 3 r4 <- Ancestral(AncestralName("AF"))
+                 4 r5 <- Ancestral(AncestralName("ZF"))
+                 5 r6 <- Ancestral(AncestralName("SF"))
+                 6 r7 <- Ancestral(AncestralName("TF"))
+                 7 r8 <- Ancestral(AncestralName("IF"))
+                 8 r9 <- Ancestral(AncestralName("DF"))
+                 9 r10 <- Ancestral(AncestralName("OF"))
+                10 r11 <- Ancestral(AncestralName("RBP"))
+                11 r12 <- Ancestral(AncestralName("RSP"))
+                12 r13 <- Ancestral(AncestralName("RIP"))
+                13 r14 <- Ancestral(AncestralName("RDI"))
+                14 r15 <- Ancestral(AncestralName("RSI"))
+                15 r16 <- Ancestral(AncestralName("RAX"))
+                16 r17 <- Ancestral(AncestralName("RBX"))
+                17 r18 <- Ancestral(AncestralName("RCX"))
+                18 r19 <- Ancestral(AncestralName("RDX"))
+                19 r20 <- Ancestral(AncestralName("R8"))
+                20 r21 <- Ancestral(AncestralName("R9"))
+                21 r22 <- Ancestral(AncestralName("R10"))
+                22 r23 <- Ancestral(AncestralName("R11"))
+                23 r24 <- Ancestral(AncestralName("R12"))
+                24 r25 <- Ancestral(AncestralName("R13"))
+                25 r26 <- Ancestral(AncestralName("R14"))
+                26 r27 <- Ancestral(AncestralName("R15"))
+                27 r28 <- Ancestral(AncestralName("ZMM0"))
+                28 r29 <- Ancestral(AncestralName("ZMM1"))
+                29 r30 <- Ancestral(AncestralName("ZMM2"))
+                30 r31 <- Ancestral(AncestralName("ZMM3"))
+                31 r32 <- Ancestral(AncestralName("ZMM4"))
+                32 r33 <- Ancestral(AncestralName("ZMM5"))
+                33 r34 <- Ancestral(AncestralName("ZMM6"))
+                34 r35 <- Ancestral(AncestralName("ZMM7"))
+                35 r36 <- Ancestral(AncestralName("ZMM8"))
+                36 r37 <- Ancestral(AncestralName("ZMM9"))
+                37 r38 <- Ancestral(AncestralName("ZMM10"))
+                38 r39 <- Ancestral(AncestralName("ZMM11"))
+                39 r40 <- Ancestral(AncestralName("ZMM12"))
+                40 r41 <- Ancestral(AncestralName("ZMM13"))
+                41 r42 <- Ancestral(AncestralName("ZMM14"))
+                42 r43 <- Ancestral(AncestralName("ZMM15"))
+                43 r44 <- Ancestral(AncestralName("memory"))
+                44 r45 <- Undefined
+                45 r46 <- Undefined
+                46 r47 <- Undefined
+                47 r48 <- Undefined
+                48 r49 <- Undefined
+                49 r50 <- Undefined
+                50 r51 <- Undefined
+                51 r52 <- Undefined
+                52 r53 <- Undefined
+                53 r54 <- Undefined
+                54 r55 <- Undefined
+                55 r56 <- Undefined
+                56 r57 <- Undefined
+                57 r58 <- Undefined
+                58 r59 <- Undefined
+                59 r60 <- Undefined
+                60 r61 <- Undefined
+                61 r62 <- Undefined
+                62 r63 <- Undefined
+                63 r64 <- Undefined
+                64 r65 <- Undefined
 0x485d60:
-   65 r12 <- ArithK(Add, r12, -8)
-   66 r44 <- StoreMem { mem: r44, addr: r12, value: r11 }
+                65 r12 <- ArithK(Add, r12, -8)
+                66 r44 <- StoreMem { mem: r44, addr: r12, value: r11 }
 0x485d61:
-   67 r11 <- Get(r12)
+                67 r11 <- Get(r12)
 0x485d64:
-   68 r12 <- ArithK(Add, r12, -8)
-   69 r44 <- StoreMem { mem: r44, addr: r12, value: r24 }
+                68 r12 <- ArithK(Add, r12, -8)
+                69 r44 <- StoreMem { mem: r44, addr: r12, value: r24 }
 0x485d66:
-   70 r12 <- ArithK(Add, r12, -8)
-   71 r44 <- StoreMem { mem: r44, addr: r12, value: r17 }
+                70 r12 <- ArithK(Add, r12, -8)
+                71 r44 <- StoreMem { mem: r44, addr: r12, value: r17 }
 0x485d67:
-   72 r17 <- Get(r14)
+                72 r17 <- Get(r14)
 0x485d6a:
-   73 r46 <- Const { value: 48, size: 8 }
-   74 r12 <- Arith(Sub, r12, r46)
-   75 r12 <- Get(r12)
-   76 r10 <- OverflowOf(r12)
-   77 r2 <- CarryOf(r12)
-   78 r6 <- SignOf(r12)
-   79 r5 <- IsZero(r12)
-   80 r47 <- Part { src: r12, offset: 0, size: 1 }
-   81 r3 <- Parity(r47)
+                73 r46 <- Const { value: 48, size: 8 }
+                74 r12 <- Arith(Sub, r12, r46)
+                75 r12 <- Get(r12)
+                76 r10 <- OverflowOf(r12)
+                77 r2 <- CarryOf(r12)
+                78 r6 <- SignOf(r12)
+                79 r5 <- IsZero(r12)
+                80 r47 <- Part { src: r12, offset: 0, size: 1 }
+                81 r3 <- Parity(r47)
 0x485d6e:
-   82 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rdi]")
+                82 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rdi]")
 0x485d71:
-   83 r46 <- Part { src: r16, offset: 0, size: 4 }
-   84 r47 <- Const { value: -16, size: 4 }
-   85 r46 <- Arith(BitAnd, r46, r47)
-   86 r48 <- Part { src: r16, offset: 4, size: 4 }
-   87 r16 <- Concat { lo: r46, hi: r48 }
-   88 r10 <- False
-   89 r2 <- False
-   90 r6 <- SignOf(r46)
-   91 r5 <- IsZero(r46)
-   92 r49 <- Part { src: r46, offset: 0, size: 1 }
-   93 r3 <- Parity(r49)
+                83 r46 <- Part { src: r16, offset: 0, size: 4 }
+                84 r47 <- Const { value: -16, size: 4 }
+                85 r46 <- Arith(BitAnd, r46, r47)
+                86 r48 <- Part { src: r16, offset: 4, size: 4 }
+                87 r16 <- Concat { lo: r46, hi: r48 }
+                88 r10 <- False
+                89 r2 <- False
+                90 r6 <- SignOf(r46)
+                91 r5 <- IsZero(r46)
+                92 r49 <- Part { src: r46, offset: 0, size: 1 }
+                93 r3 <- Parity(r49)
 0x485d74:
-   94 r46 <- Part { src: r16, offset: 0, size: 1 }
-   95 r47 <- Const { value: 144, size: 1 }
-   96 r46 <- Arith(Sub, r46, r47)
-   97 r10 <- OverflowOf(r46)
-   98 r2 <- CarryOf(r46)
-   99 r6 <- SignOf(r46)
-  100 r5 <- IsZero(r46)
-  101 r48 <- Part { src: r46, offset: 0, size: 1 }
-  102 r3 <- Parity(r48)
+                94 r46 <- Part { src: r16, offset: 0, size: 1 }
+                95 r47 <- Const { value: 144, size: 1 }
+                96 r46 <- Arith(Sub, r46, r47)
+                97 r10 <- OverflowOf(r46)
+                98 r2 <- CarryOf(r46)
+                99 r6 <- SignOf(r46)
+               100 r5 <- IsZero(r46)
+               101 r48 <- Part { src: r46, offset: 0, size: 1 }
+               102 r3 <- Parity(r48)
 0x485d76:
-  103 r45 <- JmpIf { cond: r5, target: 242 }
+               103 r45 <- SetJumpCondition(r5)
+               104 r45 <- Control(JmpIf(250))
 0x485d78:
-  104 r46 <- Part { src: r16, offset: 0, size: 1 }
-  105 r47 <- Const { value: 176, size: 1 }
-  106 r46 <- Arith(Sub, r46, r47)
-  107 r10 <- OverflowOf(r46)
-  108 r2 <- CarryOf(r46)
-  109 r6 <- SignOf(r46)
-  110 r5 <- IsZero(r46)
-  111 r48 <- Part { src: r46, offset: 0, size: 1 }
-  112 r3 <- Parity(r48)
+               105 r46 <- Part { src: r16, offset: 0, size: 1 }
+               106 r47 <- Const { value: 176, size: 1 }
+               107 r46 <- Arith(Sub, r46, r47)
+               108 r10 <- OverflowOf(r46)
+               109 r2 <- CarryOf(r46)
+               110 r6 <- SignOf(r46)
+               111 r5 <- IsZero(r46)
+               112 r48 <- Part { src: r46, offset: 0, size: 1 }
+               113 r3 <- Parity(r48)
 0x485d7a:
-  113 r45 <- Not(r5)
-  114 r46 <- JmpIf { cond: r45, target: 584 }
+               114 r45 <- Not(r5)
+               115 r46 <- SetJumpCondition(r45)
+               116 r46 <- Control(JmpIf(597))
 0x485d80:
-  115 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+               117 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
 0x485d83:
-  116 r46 <- Const { value: 8, size: 8 }
-  117 r46 <- Arith(Add, r46, r15)
-  118 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  119 r18 <- Get(r45)
+               118 r46 <- Const { value: 8, size: 8 }
+               119 r46 <- Arith(Add, r46, r15)
+               120 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+               121 r18 <- Get(r45)
 0x485d87:
-  120 r46 <- Const { value: 8, size: 8 }
-  121 r46 <- Arith(Add, r46, r14)
-  122 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  123 r14 <- Get(r45)
+               122 r46 <- Const { value: 8, size: 8 }
+               123 r46 <- Arith(Add, r46, r14)
+               124 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+               125 r14 <- Get(r45)
 0x485d8b:
-  124 r46 <- Part { src: r16, offset: 0, size: 4 }
-  125 r47 <- Const { value: -16, size: 4 }
-  126 r46 <- Arith(BitAnd, r46, r47)
-  127 r48 <- Part { src: r16, offset: 4, size: 4 }
-  128 r16 <- Concat { lo: r46, hi: r48 }
-  129 r10 <- False
-  130 r2 <- False
-  131 r6 <- SignOf(r46)
-  132 r5 <- IsZero(r46)
-  133 r49 <- Part { src: r46, offset: 0, size: 1 }
-  134 r3 <- Parity(r49)
+               126 r46 <- Part { src: r16, offset: 0, size: 4 }
+               127 r47 <- Const { value: -16, size: 4 }
+               128 r46 <- Arith(BitAnd, r46, r47)
+               129 r48 <- Part { src: r16, offset: 4, size: 4 }
+               130 r16 <- Concat { lo: r46, hi: r48 }
+               131 r10 <- False
+               132 r2 <- False
+               133 r6 <- SignOf(r46)
+               134 r5 <- IsZero(r46)
+               135 r49 <- Part { src: r46, offset: 0, size: 1 }
+               136 r3 <- Parity(r49)
 0x485d8e:
-  135 r46 <- Part { src: r16, offset: 0, size: 1 }
-  136 r47 <- Const { value: 16, size: 1 }
-  137 r46 <- Arith(Sub, r46, r47)
-  138 r10 <- OverflowOf(r46)
-  139 r2 <- CarryOf(r46)
-  140 r6 <- SignOf(r46)
-  141 r5 <- IsZero(r46)
-  142 r48 <- Part { src: r46, offset: 0, size: 1 }
-  143 r3 <- Parity(r48)
+               137 r46 <- Part { src: r16, offset: 0, size: 1 }
+               138 r47 <- Const { value: 16, size: 1 }
+               139 r46 <- Arith(Sub, r46, r47)
+               140 r10 <- OverflowOf(r46)
+               141 r2 <- CarryOf(r46)
+               142 r6 <- SignOf(r46)
+               143 r5 <- IsZero(r46)
+               144 r48 <- Part { src: r46, offset: 0, size: 1 }
+               145 r3 <- Parity(r48)
 0x485d90:
-  144 r45 <- JmpIf { cond: r5, target: 189 }
+               146 r45 <- SetJumpCondition(r5)
+               147 r45 <- Control(JmpIf(195))
 0x485d92:
-  145 r45 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
+               148 r45 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
 0x485d96:
-  146 r46 <- Part { src: r15, offset: 0, size: 4 }
-  147 r47 <- Part { src: r16, offset: 4, size: 4 }
-  148 r16 <- Concat { lo: r46, hi: r47 }
+               149 r46 <- Part { src: r15, offset: 0, size: 4 }
+               150 r47 <- Part { src: r16, offset: 4, size: 4 }
+               151 r16 <- Concat { lo: r46, hi: r47 }
 0x485d98:
-  149 r46 <- Part { src: r16, offset: 0, size: 4 }
-  150 r47 <- Const { value: 7, size: 4 }
-  151 r46 <- Arith(BitAnd, r46, r47)
-  152 r48 <- Part { src: r16, offset: 4, size: 4 }
-  153 r16 <- Concat { lo: r46, hi: r48 }
-  154 r10 <- False
-  155 r2 <- False
-  156 r6 <- SignOf(r46)
-  157 r5 <- IsZero(r46)
-  158 r49 <- Part { src: r46, offset: 0, size: 1 }
-  159 r3 <- Parity(r49)
+               152 r46 <- Part { src: r16, offset: 0, size: 4 }
+               153 r47 <- Const { value: 7, size: 4 }
+               154 r46 <- Arith(BitAnd, r46, r47)
+               155 r48 <- Part { src: r16, offset: 4, size: 4 }
+               156 r16 <- Concat { lo: r46, hi: r48 }
+               157 r10 <- False
+               158 r2 <- False
+               159 r6 <- SignOf(r46)
+               160 r5 <- IsZero(r46)
+               161 r49 <- Part { src: r46, offset: 0, size: 1 }
+               162 r3 <- Parity(r49)
 0x485d9b:
-  160 r46 <- Part { src: r19, offset: 0, size: 4 }
-  161 r48 <- Part { src: r19, offset: 0, size: 4 }
-  162 r46 <- Arith(BitAnd, r46, r48)
-  163 r6 <- SignOf(r46)
-  164 r5 <- IsZero(r46)
-  165 r49 <- Part { src: r46, offset: 0, size: 1 }
-  166 r3 <- Parity(r46)
-  167 r2 <- False
-  168 r10 <- False
+               163 r46 <- Part { src: r19, offset: 0, size: 4 }
+               164 r48 <- Part { src: r19, offset: 0, size: 4 }
+               165 r46 <- Arith(BitAnd, r46, r48)
+               166 r6 <- SignOf(r46)
+               167 r5 <- IsZero(r46)
+               168 r49 <- Part { src: r46, offset: 0, size: 1 }
+               169 r3 <- Parity(r46)
+               170 r2 <- False
+               171 r10 <- False
 0x485d9d:
-  169 r45 <- Not(r5)
-  170 r46 <- JmpIf { cond: r45, target: 303 }
+               172 r45 <- Not(r5)
+               173 r46 <- SetJumpCondition(r45)
+               174 r46 <- Control(JmpIf(314))
 0x485d9f:
-  171 r46 <- Part { src: r16, offset: 0, size: 1 }
-  172 r47 <- Const { value: 4, size: 1 }
-  173 r46 <- Arith(Sub, r46, r47)
-  174 r10 <- OverflowOf(r46)
-  175 r2 <- CarryOf(r46)
-  176 r6 <- SignOf(r46)
-  177 r5 <- IsZero(r46)
-  178 r48 <- Part { src: r46, offset: 0, size: 1 }
-  179 r3 <- Parity(r48)
+               175 r46 <- Part { src: r16, offset: 0, size: 1 }
+               176 r47 <- Const { value: 4, size: 1 }
+               177 r46 <- Arith(Sub, r46, r47)
+               178 r10 <- OverflowOf(r46)
+               179 r2 <- CarryOf(r46)
+               180 r6 <- SignOf(r46)
+               181 r5 <- IsZero(r46)
+               182 r48 <- Part { src: r46, offset: 0, size: 1 }
+               183 r3 <- Parity(r48)
 0x485da1:
-  180 r45 <- Not(r6)
-  181 r46 <- Not(r5)
-  182 r45 <- Bool(And, r45, r46)
-  183 r47 <- JmpExtIf { cond: r45, addr: 4203597 }
+               184 r45 <- Not(r6)
+               185 r46 <- Not(r5)
+               186 r45 <- Bool(And, r45, r46)
+               187 r47 <- SetJumpCondition(r45)
+               188 r47 <- Control(JmpExtIf(4203597))
 0x485da7:
-  184 r45 <- NotYetImplemented("unsupported: movzx eax,al")
+               189 r45 <- NotYetImplemented("unsupported: movzx eax,al")
 0x485daa:
-  185 r45 <- Const { value: 6851632, size: 8 }
-  186 r46 <- ArithK(Mul, r16, 8)
-  187 r45 <- Arith(Add, r45, r46)
-  188 r45 <- JmpInd(r45)
+               190 r46 <- Const { value: 6851632, size: 8 }
+               191 r47 <- ArithK(Mul, r16, 8)
+               192 r46 <- Arith(Add, r46, r47)
+               193 r46 <- SetJumpTarget(r46)
+               194 r45 <- Control(JmpIndirect)
 0x485db8:
-  189 r15 <- Get(r18)
+               195 r15 <- Get(r18)
 0x485dbb:
-  190 r46 <- Part { src: r19, offset: 0, size: 4 }
-  191 r48 <- Part { src: r19, offset: 0, size: 4 }
-  192 r46 <- Arith(BitAnd, r46, r48)
-  193 r6 <- SignOf(r46)
-  194 r5 <- IsZero(r46)
-  195 r49 <- Part { src: r46, offset: 0, size: 1 }
-  196 r3 <- Parity(r46)
-  197 r2 <- False
-  198 r10 <- False
+               196 r46 <- Part { src: r19, offset: 0, size: 4 }
+               197 r48 <- Part { src: r19, offset: 0, size: 4 }
+               198 r46 <- Arith(BitAnd, r46, r48)
+               199 r6 <- SignOf(r46)
+               200 r5 <- IsZero(r46)
+               201 r49 <- Part { src: r46, offset: 0, size: 1 }
+               202 r3 <- Parity(r46)
+               203 r2 <- False
+               204 r10 <- False
 0x485dbd:
-  199 r45 <- JmpIf { cond: r5, target: 321 }
+               205 r45 <- SetJumpCondition(r5)
+               206 r45 <- Control(JmpIf(334))
 0x485dbf:
-  200 r47 <- Ancestral(AncestralName("arg0"))
-  201 r47 <- Void
-  202 r47 <- Get(r14)
-  203 r48 <- Ancestral(AncestralName("arg1"))
-  204 r48 <- Void
-  205 r48 <- Get(r15)
-  206 r49 <- CArg { value: r46, next_arg: None }
-  207 r49 <- CArg { value: r45, next_arg: Some(r49) }
-  208 r50: TypeID(48713v1) <- Const { value: 5627056, size: 8 }
-  209 r49 <- Call { callee: r50, first_arg: Some(r49) }
-  210 r2 <- Undefined
-  211 r3 <- Undefined
-  212 r4 <- Undefined
-  213 r5 <- Undefined
-  214 r6 <- Undefined
-  215 r7 <- Undefined
-  216 r8 <- Undefined
-  217 r9 <- Undefined
-  218 r10 <- Undefined
-  219 r16 <- Part { src: r49, offset: 0, size: 8 }
+               207 r47 <- Ancestral(AncestralName("arg0"))
+               208 r47 <- Void
+               209 r47 <- Get(r14)
+               210 r48 <- Ancestral(AncestralName("arg1"))
+               211 r48 <- Void
+               212 r48 <- Get(r15)
+               213 r49 <- CArg { value: r46, next_arg: None }
+               214 r49 <- CArg { value: r45, next_arg: Some(r49) }
+               215 r50: TypeID(48713v1) <- Const { value: 5627056, size: 8 }
+               216 r49 <- Call { callee: r50, first_arg: Some(r49) }
+               217 r2 <- Undefined
+               218 r3 <- Undefined
+               219 r4 <- Undefined
+               220 r5 <- Undefined
+               221 r6 <- Undefined
+               222 r7 <- Undefined
+               223 r8 <- Undefined
+               224 r9 <- Undefined
+               225 r10 <- Undefined
+               226 r16 <- Part { src: r49, offset: 0, size: 8 }
 0x485dd0:
-  220 r46 <- Const { value: 8, size: 8 }
-  221 r46 <- Arith(Add, r46, r17)
-  222 r44 <- StoreMem { mem: r44, addr: r46, value: r16 }
+               227 r46 <- Const { value: 8, size: 8 }
+               228 r46 <- Arith(Add, r46, r17)
+               229 r44 <- StoreMem { mem: r44, addr: r46, value: r16 }
 0x485dd4:
-  223 r46 <- Const { value: 48, size: 8 }
-  224 r12 <- Arith(Add, r12, r46)
-  225 r12 <- Get(r12)
-  226 r10 <- OverflowOf(r12)
-  227 r2 <- CarryOf(r12)
-  228 r6 <- SignOf(r12)
-  229 r5 <- IsZero(r12)
-  230 r47 <- Part { src: r12, offset: 0, size: 1 }
-  231 r3 <- Parity(r47)
+               230 r46 <- Const { value: 48, size: 8 }
+               231 r12 <- Arith(Add, r12, r46)
+               232 r12 <- Get(r12)
+               233 r10 <- OverflowOf(r12)
+               234 r2 <- CarryOf(r12)
+               235 r6 <- SignOf(r12)
+               236 r5 <- IsZero(r12)
+               237 r47 <- Part { src: r12, offset: 0, size: 1 }
+               238 r3 <- Parity(r47)
 0x485dd8:
-  232 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  233 r17 <- Get(r45)
-  234 r12 <- ArithK(Add, r12, 8)
+               239 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               240 r17 <- Get(r45)
+               241 r12 <- ArithK(Add, r12, 8)
 0x485dd9:
-  235 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  236 r24 <- Get(r45)
-  237 r12 <- ArithK(Add, r12, 8)
+               242 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               243 r24 <- Get(r45)
+               244 r12 <- ArithK(Add, r12, 8)
 0x485ddb:
-  238 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  239 r11 <- Get(r45)
-  240 r12 <- ArithK(Add, r12, 8)
+               245 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               246 r11 <- Get(r45)
+               247 r12 <- ArithK(Add, r12, 8)
 0x485ddc:
-  241 r45 <- Ret(r16)
+               248 r45 <- SetReturnValue(r16)
+               249 r45 <- Control(Ret)
 0x485de0:
-  242 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+               250 r45 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
 0x485de3:
-  243 r45 <- NotYetImplemented("unsupported: neg edx")
+               251 r45 <- NotYetImplemented("unsupported: neg edx")
 0x485de5:
-  244 r46 <- Const { value: 8, size: 8 }
-  245 r46 <- Arith(Add, r46, r15)
-  246 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  247 r14 <- Get(r45)
+               252 r46 <- Const { value: 8, size: 8 }
+               253 r46 <- Arith(Add, r46, r15)
+               254 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+               255 r14 <- Get(r45)
 0x485de9:
-  248 r45 <- NotYetImplemented("unsupported: sbb ecx,ecx")
+               256 r45 <- NotYetImplemented("unsupported: sbb ecx,ecx")
 0x485deb:
-  249 r46 <- Part { src: r16, offset: 0, size: 4 }
-  250 r47 <- Const { value: -16, size: 4 }
-  251 r46 <- Arith(BitAnd, r46, r47)
-  252 r48 <- Part { src: r16, offset: 4, size: 4 }
-  253 r16 <- Concat { lo: r46, hi: r48 }
-  254 r10 <- False
-  255 r2 <- False
-  256 r6 <- SignOf(r46)
-  257 r5 <- IsZero(r46)
-  258 r49 <- Part { src: r46, offset: 0, size: 1 }
-  259 r3 <- Parity(r49)
+               257 r46 <- Part { src: r16, offset: 0, size: 4 }
+               258 r47 <- Const { value: -16, size: 4 }
+               259 r46 <- Arith(BitAnd, r46, r47)
+               260 r48 <- Part { src: r16, offset: 4, size: 4 }
+               261 r16 <- Concat { lo: r46, hi: r48 }
+               262 r10 <- False
+               263 r2 <- False
+               264 r6 <- SignOf(r46)
+               265 r5 <- IsZero(r46)
+               266 r49 <- Part { src: r46, offset: 0, size: 1 }
+               267 r3 <- Parity(r49)
 0x485dee:
-  260 r46 <- Part { src: r16, offset: 0, size: 1 }
-  261 r47 <- Const { value: 16, size: 1 }
-  262 r46 <- Arith(Sub, r46, r47)
-  263 r10 <- OverflowOf(r46)
-  264 r2 <- CarryOf(r46)
-  265 r6 <- SignOf(r46)
-  266 r5 <- IsZero(r46)
-  267 r48 <- Part { src: r46, offset: 0, size: 1 }
-  268 r3 <- Parity(r48)
+               268 r46 <- Part { src: r16, offset: 0, size: 1 }
+               269 r47 <- Const { value: 16, size: 1 }
+               270 r46 <- Arith(Sub, r46, r47)
+               271 r10 <- OverflowOf(r46)
+               272 r2 <- CarryOf(r46)
+               273 r6 <- SignOf(r46)
+               274 r5 <- IsZero(r46)
+               275 r48 <- Part { src: r46, offset: 0, size: 1 }
+               276 r3 <- Parity(r48)
 0x485df0:
-  269 r45 <- JmpIf { cond: r5, target: 342 }
+               277 r45 <- SetJumpCondition(r5)
+               278 r45 <- Control(JmpIf(355))
 0x485df2:
-  270 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+               279 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
 0x485df6:
-  271 r46 <- Part { src: r19, offset: 0, size: 4 }
-  272 r47 <- Part { src: r16, offset: 4, size: 4 }
-  273 r16 <- Concat { lo: r46, hi: r47 }
+               280 r46 <- Part { src: r19, offset: 0, size: 4 }
+               281 r47 <- Part { src: r16, offset: 4, size: 4 }
+               282 r16 <- Concat { lo: r46, hi: r47 }
 0x485df8:
-  274 r46 <- Part { src: r16, offset: 0, size: 4 }
-  275 r47 <- Const { value: 7, size: 4 }
-  276 r46 <- Arith(BitAnd, r46, r47)
-  277 r48 <- Part { src: r16, offset: 4, size: 4 }
-  278 r16 <- Concat { lo: r46, hi: r48 }
-  279 r10 <- False
-  280 r2 <- False
-  281 r6 <- SignOf(r46)
-  282 r5 <- IsZero(r46)
-  283 r49 <- Part { src: r46, offset: 0, size: 1 }
-  284 r3 <- Parity(r49)
+               283 r46 <- Part { src: r16, offset: 0, size: 4 }
+               284 r47 <- Const { value: 7, size: 4 }
+               285 r46 <- Arith(BitAnd, r46, r47)
+               286 r48 <- Part { src: r16, offset: 4, size: 4 }
+               287 r16 <- Concat { lo: r46, hi: r48 }
+               288 r10 <- False
+               289 r2 <- False
+               290 r6 <- SignOf(r46)
+               291 r5 <- IsZero(r46)
+               292 r49 <- Part { src: r46, offset: 0, size: 1 }
+               293 r3 <- Parity(r49)
 0x485dfb:
-  285 r46 <- Part { src: r16, offset: 0, size: 1 }
-  286 r47 <- Const { value: 4, size: 1 }
-  287 r46 <- Arith(Sub, r46, r47)
-  288 r10 <- OverflowOf(r46)
-  289 r2 <- CarryOf(r46)
-  290 r6 <- SignOf(r46)
-  291 r5 <- IsZero(r46)
-  292 r48 <- Part { src: r46, offset: 0, size: 1 }
-  293 r3 <- Parity(r48)
+               294 r46 <- Part { src: r16, offset: 0, size: 1 }
+               295 r47 <- Const { value: 4, size: 1 }
+               296 r46 <- Arith(Sub, r46, r47)
+               297 r10 <- OverflowOf(r46)
+               298 r2 <- CarryOf(r46)
+               299 r6 <- SignOf(r46)
+               300 r5 <- IsZero(r46)
+               301 r48 <- Part { src: r46, offset: 0, size: 1 }
+               302 r3 <- Parity(r48)
 0x485dfd:
-  294 r45 <- Not(r6)
-  295 r46 <- Not(r5)
-  296 r45 <- Bool(And, r45, r46)
-  297 r47 <- JmpExtIf { cond: r45, addr: 4203590 }
+               303 r45 <- Not(r6)
+               304 r46 <- Not(r5)
+               305 r45 <- Bool(And, r45, r46)
+               306 r47 <- SetJumpCondition(r45)
+               307 r47 <- Control(JmpExtIf(4203590))
 0x485e03:
-  298 r45 <- NotYetImplemented("unsupported: movzx eax,al")
+               308 r45 <- NotYetImplemented("unsupported: movzx eax,al")
 0x485e06:
-  299 r45 <- Const { value: 6851672, size: 8 }
-  300 r46 <- ArithK(Mul, r16, 8)
-  301 r45 <- Arith(Add, r45, r46)
-  302 r45 <- JmpInd(r45)
+               309 r46 <- Const { value: 6851672, size: 8 }
+               310 r47 <- ArithK(Mul, r16, 8)
+               311 r46 <- Arith(Add, r46, r47)
+               312 r46 <- SetJumpTarget(r46)
+               313 r45 <- Control(JmpIndirect)
 0x485e10:
-  303 r46 <- Part { src: r16, offset: 0, size: 1 }
-  304 r47 <- Const { value: 4, size: 1 }
-  305 r46 <- Arith(Sub, r46, r47)
-  306 r10 <- OverflowOf(r46)
-  307 r2 <- CarryOf(r46)
-  308 r6 <- SignOf(r46)
-  309 r5 <- IsZero(r46)
-  310 r48 <- Part { src: r46, offset: 0, size: 1 }
-  311 r3 <- Parity(r48)
+               314 r46 <- Part { src: r16, offset: 0, size: 1 }
+               315 r47 <- Const { value: 4, size: 1 }
+               316 r46 <- Arith(Sub, r46, r47)
+               317 r10 <- OverflowOf(r46)
+               318 r2 <- CarryOf(r46)
+               319 r6 <- SignOf(r46)
+               320 r5 <- IsZero(r46)
+               321 r48 <- Part { src: r46, offset: 0, size: 1 }
+               322 r3 <- Parity(r48)
 0x485e12:
-  312 r45 <- Not(r6)
-  313 r46 <- Not(r5)
-  314 r45 <- Bool(And, r45, r46)
-  315 r47 <- JmpExtIf { cond: r45, addr: 4203604 }
+               323 r45 <- Not(r6)
+               324 r46 <- Not(r5)
+               325 r45 <- Bool(And, r45, r46)
+               326 r47 <- SetJumpCondition(r45)
+               327 r47 <- Control(JmpExtIf(4203604))
 0x485e18:
-  316 r45 <- NotYetImplemented("unsupported: movzx eax,al")
+               328 r45 <- NotYetImplemented("unsupported: movzx eax,al")
 0x485e1b:
-  317 r45 <- Const { value: 6851712, size: 8 }
-  318 r46 <- ArithK(Mul, r16, 8)
-  319 r45 <- Arith(Add, r45, r46)
-  320 r45 <- JmpInd(r45)
+               329 r46 <- Const { value: 6851712, size: 8 }
+               330 r47 <- ArithK(Mul, r16, 8)
+               331 r46 <- Arith(Add, r46, r47)
+               332 r46 <- SetJumpTarget(r46)
+               333 r45 <- Control(JmpIndirect)
 0x485e28:
-  321 r47 <- Ancestral(AncestralName("arg0"))
-  322 r47 <- Void
-  323 r47 <- Get(r14)
-  324 r48 <- Ancestral(AncestralName("arg1"))
-  325 r48 <- Void
-  326 r48 <- Get(r15)
-  327 r49 <- CArg { value: r46, next_arg: None }
-  328 r49 <- CArg { value: r45, next_arg: Some(r49) }
-  329 r50: TypeID(48714v1) <- Const { value: 5627360, size: 8 }
-  330 r49 <- Call { callee: r50, first_arg: Some(r49) }
-  331 r2 <- Undefined
-  332 r3 <- Undefined
-  333 r4 <- Undefined
-  334 r5 <- Undefined
-  335 r6 <- Undefined
-  336 r7 <- Undefined
-  337 r8 <- Undefined
-  338 r9 <- Undefined
-  339 r10 <- Undefined
-  340 r16 <- Part { src: r49, offset: 0, size: 8 }
+               334 r47 <- Ancestral(AncestralName("arg0"))
+               335 r47 <- Void
+               336 r47 <- Get(r14)
+               337 r48 <- Ancestral(AncestralName("arg1"))
+               338 r48 <- Void
+               339 r48 <- Get(r15)
+               340 r49 <- CArg { value: r46, next_arg: None }
+               341 r49 <- CArg { value: r45, next_arg: Some(r49) }
+               342 r50: TypeID(48714v1) <- Const { value: 5627360, size: 8 }
+               343 r49 <- Call { callee: r50, first_arg: Some(r49) }
+               344 r2 <- Undefined
+               345 r3 <- Undefined
+               346 r4 <- Undefined
+               347 r5 <- Undefined
+               348 r6 <- Undefined
+               349 r7 <- Undefined
+               350 r8 <- Undefined
+               351 r9 <- Undefined
+               352 r10 <- Undefined
+               353 r16 <- Part { src: r49, offset: 0, size: 8 }
 0x485e2d:
-  341 r45 <- Jmp(220)
+               354 r45 <- Control(Jmp(227))
 0x485e30:
-  342 r45 <- Const { value: -48, size: 8 }
-  343 r45 <- Arith(Add, r45, r11)
-  344 r24 <- Get(r45)
+               355 r45 <- Const { value: -48, size: 8 }
+               356 r45 <- Arith(Add, r45, r11)
+               357 r24 <- Get(r45)
 0x485e34:
-  345 r19 <- Get(r14)
+               358 r19 <- Get(r14)
 0x485e37:
-  346 r45 <- Const { value: 32, size: 4 }
-  347 r46 <- Part { src: r15, offset: 4, size: 4 }
-  348 r15 <- Concat { lo: r45, hi: r46 }
+               359 r45 <- Const { value: 32, size: 4 }
+               360 r46 <- Part { src: r15, offset: 4, size: 4 }
+               361 r15 <- Concat { lo: r45, hi: r46 }
 0x485e3c:
-  349 r46 <- Part { src: r18, offset: 0, size: 4 }
-  350 r47 <- Const { value: -52, size: 8 }
-  351 r47 <- Arith(Add, r47, r11)
-  352 r44 <- StoreMem { mem: r44, addr: r47, value: r46 }
+               362 r46 <- Part { src: r18, offset: 0, size: 4 }
+               363 r47 <- Const { value: -52, size: 8 }
+               364 r47 <- Arith(Add, r47, r11)
+               365 r44 <- StoreMem { mem: r44, addr: r47, value: r46 }
 0x485e3f:
-  353 r14 <- Get(r24)
+               366 r14 <- Get(r24)
 0x485e42:
-  354 r48 <- Ancestral(AncestralName("arg0"))
-  355 r48 <- Void
-  356 r48 <- Get(r14)
-  357 r49 <- Ancestral(AncestralName("arg1"))
-  358 r49 <- Void
-  359 r49 <- Get(r15)
-  360 r50 <- Ancestral(AncestralName("arg2"))
-  361 r50 <- Void
-  362 r50 <- Get(r19)
-  363 r51 <- CArg { value: r47, next_arg: None }
-  364 r51 <- CArg { value: r46, next_arg: Some(r51) }
-  365 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  366 r52: TypeID(47971v1) <- Const { value: 4520352, size: 8 }
-  367 r51 <- Call { callee: r52, first_arg: Some(r51) }
-  368 r2 <- Undefined
-  369 r3 <- Undefined
-  370 r4 <- Undefined
-  371 r5 <- Undefined
-  372 r6 <- Undefined
-  373 r7 <- Undefined
-  374 r8 <- Undefined
-  375 r9 <- Undefined
-  376 r10 <- Undefined
-  377 r16 <- Part { src: r51, offset: 0, size: 8 }
+               367 r48 <- Ancestral(AncestralName("arg0"))
+               368 r48 <- Void
+               369 r48 <- Get(r14)
+               370 r49 <- Ancestral(AncestralName("arg1"))
+               371 r49 <- Void
+               372 r49 <- Get(r15)
+               373 r50 <- Ancestral(AncestralName("arg2"))
+               374 r50 <- Void
+               375 r50 <- Get(r19)
+               376 r51 <- CArg { value: r47, next_arg: None }
+               377 r51 <- CArg { value: r46, next_arg: Some(r51) }
+               378 r51 <- CArg { value: r45, next_arg: Some(r51) }
+               379 r52: TypeID(47971v1) <- Const { value: 4520352, size: 8 }
+               380 r51 <- Call { callee: r52, first_arg: Some(r51) }
+               381 r2 <- Undefined
+               382 r3 <- Undefined
+               383 r4 <- Undefined
+               384 r5 <- Undefined
+               385 r6 <- Undefined
+               386 r7 <- Undefined
+               387 r8 <- Undefined
+               388 r9 <- Undefined
+               389 r10 <- Undefined
+               390 r16 <- Part { src: r51, offset: 0, size: 8 }
 0x485e47:
-  378 r14 <- Get(r24)
+               391 r14 <- Get(r24)
 0x485e4a:
-  379 r46 <- Ancestral(AncestralName("arg0"))
-  380 r46 <- Void
-  381 r46 <- Get(r14)
-  382 r47 <- CArg { value: r45, next_arg: None }
-  383 r48: TypeID(48715v1) <- Const { value: 4199136, size: 8 }
-  384 r47 <- Call { callee: r48, first_arg: Some(r47) }
-  385 r2 <- Undefined
-  386 r3 <- Undefined
-  387 r4 <- Undefined
-  388 r5 <- Undefined
-  389 r6 <- Undefined
-  390 r7 <- Undefined
-  391 r8 <- Undefined
-  392 r9 <- Undefined
-  393 r10 <- Undefined
-  394 r16 <- Part { src: r47, offset: 0, size: 8 }
+               392 r46 <- Ancestral(AncestralName("arg0"))
+               393 r46 <- Void
+               394 r46 <- Get(r14)
+               395 r47 <- CArg { value: r45, next_arg: None }
+               396 r48: TypeID(48715v1) <- Const { value: 4199136, size: 8 }
+               397 r47 <- Call { callee: r48, first_arg: Some(r47) }
+               398 r2 <- Undefined
+               399 r3 <- Undefined
+               400 r4 <- Undefined
+               401 r5 <- Undefined
+               402 r6 <- Undefined
+               403 r7 <- Undefined
+               404 r8 <- Undefined
+               405 r9 <- Undefined
+               406 r10 <- Undefined
+               407 r16 <- Part { src: r47, offset: 0, size: 8 }
 0x485e4f:
-  395 r46 <- Const { value: 8, size: 8 }
-  396 r46 <- Arith(Add, r46, r17)
-  397 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  398 r14 <- Get(r45)
+               408 r46 <- Const { value: 8, size: 8 }
+               409 r46 <- Arith(Add, r46, r17)
+               410 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+               411 r14 <- Get(r45)
 0x485e53:
-  399 r46 <- Const { value: -52, size: 8 }
-  400 r46 <- Arith(Add, r46, r11)
-  401 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
-  402 r47 <- Part { src: r18, offset: 4, size: 4 }
-  403 r18 <- Concat { lo: r45, hi: r47 }
+               412 r46 <- Const { value: -52, size: 8 }
+               413 r46 <- Arith(Add, r46, r11)
+               414 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+               415 r47 <- Part { src: r18, offset: 4, size: 4 }
+               416 r18 <- Concat { lo: r45, hi: r47 }
 0x485e56:
-  404 r15 <- Get(r24)
+               417 r15 <- Get(r24)
 0x485e59:
-  405 r19 <- Get(r16)
+               418 r19 <- Get(r16)
 0x485e5c:
-  406 r49 <- Ancestral(AncestralName("arg0"))
-  407 r49 <- Void
-  408 r49 <- Get(r14)
-  409 r50 <- Ancestral(AncestralName("arg1"))
-  410 r50 <- Void
-  411 r50 <- Get(r15)
-  412 r51 <- CArg { value: r48, next_arg: None }
-  413 r51 <- CArg { value: r47, next_arg: Some(r51) }
-  414 r51 <- CArg { value: r46, next_arg: Some(r51) }
-  415 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  416 r52: TypeID(48716v1) <- Const { value: 4293744, size: 8 }
-  417 r51 <- Call { callee: r52, first_arg: Some(r51) }
-  418 r2 <- Undefined
-  419 r3 <- Undefined
-  420 r4 <- Undefined
-  421 r5 <- Undefined
-  422 r6 <- Undefined
-  423 r7 <- Undefined
-  424 r8 <- Undefined
-  425 r9 <- Undefined
-  426 r10 <- Undefined
+               419 r49 <- Ancestral(AncestralName("arg0"))
+               420 r49 <- Void
+               421 r49 <- Get(r14)
+               422 r50 <- Ancestral(AncestralName("arg1"))
+               423 r50 <- Void
+               424 r50 <- Get(r15)
+               425 r51 <- CArg { value: r48, next_arg: None }
+               426 r51 <- CArg { value: r47, next_arg: Some(r51) }
+               427 r51 <- CArg { value: r46, next_arg: Some(r51) }
+               428 r51 <- CArg { value: r45, next_arg: Some(r51) }
+               429 r52: TypeID(48716v1) <- Const { value: 4293744, size: 8 }
+               430 r51 <- Call { callee: r52, first_arg: Some(r51) }
+               431 r2 <- Undefined
+               432 r3 <- Undefined
+               433 r4 <- Undefined
+               434 r5 <- Undefined
+               435 r6 <- Undefined
+               436 r7 <- Undefined
+               437 r8 <- Undefined
+               438 r9 <- Undefined
+               439 r10 <- Undefined
 0x485e61:
-  427 r45 <- Jmp(223)
+               440 r45 <- Control(Jmp(230))
 0x485e70:
-  428 r46 <- Const { value: -9, size: 8 }
-  429 r46 <- Arith(Add, r46, r14)
-  430 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
-  431 r47 <- Part { src: r19, offset: 4, size: 4 }
-  432 r19 <- Concat { lo: r45, hi: r47 }
+               441 r46 <- Const { value: -9, size: 8 }
+               442 r46 <- Arith(Add, r46, r14)
+               443 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+               444 r47 <- Part { src: r19, offset: 4, size: 4 }
+               445 r19 <- Concat { lo: r45, hi: r47 }
 0x485e73:
-  433 r46 <- Const { value: 8, size: 8 }
-  434 r46 <- Arith(Add, r46, r17)
-  435 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  436 r16 <- Get(r45)
+               446 r46 <- Const { value: 8, size: 8 }
+               447 r46 <- Arith(Add, r46, r17)
+               448 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+               449 r16 <- Get(r45)
 0x485e77:
-  437 r46 <- Const { value: 48, size: 8 }
-  438 r12 <- Arith(Add, r12, r46)
-  439 r12 <- Get(r12)
-  440 r10 <- OverflowOf(r12)
-  441 r2 <- CarryOf(r12)
-  442 r6 <- SignOf(r12)
-  443 r5 <- IsZero(r12)
-  444 r47 <- Part { src: r12, offset: 0, size: 1 }
-  445 r3 <- Parity(r47)
+               450 r46 <- Const { value: 48, size: 8 }
+               451 r12 <- Arith(Add, r12, r46)
+               452 r12 <- Get(r12)
+               453 r10 <- OverflowOf(r12)
+               454 r2 <- CarryOf(r12)
+               455 r6 <- SignOf(r12)
+               456 r5 <- IsZero(r12)
+               457 r47 <- Part { src: r12, offset: 0, size: 1 }
+               458 r3 <- Parity(r47)
 0x485e7b:
-  446 r15 <- Get(r14)
+               459 r15 <- Get(r14)
 0x485e7e:
-  447 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  448 r17 <- Get(r45)
-  449 r12 <- ArithK(Add, r12, 8)
+               460 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               461 r17 <- Get(r45)
+               462 r12 <- ArithK(Add, r12, 8)
 0x485e7f:
-  450 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  451 r24 <- Get(r45)
-  452 r12 <- ArithK(Add, r12, 8)
+               463 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               464 r24 <- Get(r45)
+               465 r12 <- ArithK(Add, r12, 8)
 0x485e81:
-  453 r14 <- Get(r16)
+               466 r14 <- Get(r16)
 0x485e84:
-  454 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
-  455 r11 <- Get(r45)
-  456 r12 <- ArithK(Add, r12, 8)
+               467 r45 <- LoadMem { mem: r44, addr: r12, size: 8 }
+               468 r11 <- Get(r45)
+               469 r12 <- ArithK(Add, r12, 8)
 0x485e85:
-  457 r45 <- JmpExt(4293744)
+               470 r45 <- Control(JmpExt(4293744))
 0x485e90:
-  458 r46 <- Const { value: -17, size: 8 }
-  459 r46 <- Arith(Add, r46, r14)
-  460 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
-  461 r19 <- Get(r45)
+               471 r46 <- Const { value: -17, size: 8 }
+               472 r46 <- Arith(Add, r46, r14)
+               473 r45 <- LoadMem { mem: r44, addr: r46, size: 8 }
+               474 r19 <- Get(r45)
 0x485e94:
-  462 r45 <- Jmp(433)
+               475 r45 <- Control(Jmp(446))
 0x485ea0:
-  463 r46 <- Part { src: r19, offset: 0, size: 1 }
-  464 r47 <- Const { value: 3, size: 1 }
-  465 r46 <- Arith(Shr, r46, r47)
-  466 r48 <- Part { src: r19, offset: 1, size: 7 }
-  467 r19 <- Concat { lo: r46, hi: r48 }
-  468 r6 <- SignOf(r46)
-  469 r5 <- IsZero(r46)
-  470 r49 <- Part { src: r46, offset: 0, size: 1 }
-  471 r3 <- Parity(r49)
+               476 r46 <- Part { src: r19, offset: 0, size: 1 }
+               477 r47 <- Const { value: 3, size: 1 }
+               478 r46 <- Arith(Shr, r46, r47)
+               479 r48 <- Part { src: r19, offset: 1, size: 7 }
+               480 r19 <- Concat { lo: r46, hi: r48 }
+               481 r6 <- SignOf(r46)
+               482 r5 <- IsZero(r46)
+               483 r49 <- Part { src: r46, offset: 0, size: 1 }
+               484 r3 <- Parity(r49)
 0x485ea3:
-  472 r45 <- NotYetImplemented("unsupported: movzx edx,dl")
+               485 r45 <- NotYetImplemented("unsupported: movzx edx,dl")
 0x485ea6:
-  473 r45 <- Jmp(433)
+               486 r45 <- Control(Jmp(446))
 0x485eb0:
-  474 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
+               487 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
 0x485eb4:
-  475 r45 <- Jmp(433)
+               488 r45 <- Control(Jmp(446))
 0x485ec0:
-  476 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
+               489 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
 0x485ec4:
-  477 r45 <- Jmp(433)
+               490 r45 <- Control(Jmp(446))
 0x485ed0:
-  478 r46 <- Part { src: r15, offset: 0, size: 1 }
-  479 r47 <- Const { value: 3, size: 1 }
-  480 r46 <- Arith(Shr, r46, r47)
-  481 r48 <- Part { src: r15, offset: 1, size: 7 }
-  482 r15 <- Concat { lo: r46, hi: r48 }
-  483 r6 <- SignOf(r46)
-  484 r5 <- IsZero(r46)
-  485 r49 <- Part { src: r46, offset: 0, size: 1 }
-  486 r3 <- Parity(r49)
+               491 r46 <- Part { src: r15, offset: 0, size: 1 }
+               492 r47 <- Const { value: 3, size: 1 }
+               493 r46 <- Arith(Shr, r46, r47)
+               494 r48 <- Part { src: r15, offset: 1, size: 7 }
+               495 r15 <- Concat { lo: r46, hi: r48 }
+               496 r6 <- SignOf(r46)
+               497 r5 <- IsZero(r46)
+               498 r49 <- Part { src: r46, offset: 0, size: 1 }
+               499 r3 <- Parity(r49)
 0x485ed4:
-  487 r45 <- NotYetImplemented("unsupported: movzx edx,sil")
+               500 r45 <- NotYetImplemented("unsupported: movzx edx,sil")
 0x485ed8:
-  488 r15 <- Get(r18)
+               501 r15 <- Get(r18)
 0x485edb:
-  489 r48 <- Ancestral(AncestralName("arg0"))
-  490 r48 <- Void
-  491 r48 <- Get(r14)
-  492 r49 <- Ancestral(AncestralName("arg1"))
-  493 r49 <- Void
-  494 r49 <- Get(r15)
-  495 r50 <- Ancestral(AncestralName("arg2"))
-  496 r50 <- Void
-  497 r50 <- Get(r19)
-  498 r50 <- Part { src: r50, offset: 0, size: 4 }
-  499 r51 <- CArg { value: r47, next_arg: None }
-  500 r51 <- CArg { value: r46, next_arg: Some(r51) }
-  501 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  502 r52: TypeID(48717v1) <- Const { value: 5626912, size: 8 }
-  503 r51 <- Call { callee: r52, first_arg: Some(r51) }
-  504 r2 <- Undefined
-  505 r3 <- Undefined
-  506 r4 <- Undefined
-  507 r5 <- Undefined
-  508 r6 <- Undefined
-  509 r7 <- Undefined
-  510 r8 <- Undefined
-  511 r9 <- Undefined
-  512 r10 <- Undefined
-  513 r16 <- Part { src: r51, offset: 0, size: 8 }
+               502 r48 <- Ancestral(AncestralName("arg0"))
+               503 r48 <- Void
+               504 r48 <- Get(r14)
+               505 r49 <- Ancestral(AncestralName("arg1"))
+               506 r49 <- Void
+               507 r49 <- Get(r15)
+               508 r50 <- Ancestral(AncestralName("arg2"))
+               509 r50 <- Void
+               510 r50 <- Get(r19)
+               511 r50 <- Part { src: r50, offset: 0, size: 4 }
+               512 r51 <- CArg { value: r47, next_arg: None }
+               513 r51 <- CArg { value: r46, next_arg: Some(r51) }
+               514 r51 <- CArg { value: r45, next_arg: Some(r51) }
+               515 r52: TypeID(48717v1) <- Const { value: 5626912, size: 8 }
+               516 r51 <- Call { callee: r52, first_arg: Some(r51) }
+               517 r2 <- Undefined
+               518 r3 <- Undefined
+               519 r4 <- Undefined
+               520 r5 <- Undefined
+               521 r6 <- Undefined
+               522 r7 <- Undefined
+               523 r8 <- Undefined
+               524 r9 <- Undefined
+               525 r10 <- Undefined
+               526 r16 <- Part { src: r51, offset: 0, size: 8 }
 0x485ee0:
-  514 r45 <- Jmp(220)
+               527 r45 <- Control(Jmp(227))
 0x485ee8:
-  515 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+               528 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
 0x485eec:
-  516 r45 <- Jmp(488)
+               529 r45 <- Control(Jmp(501))
 0x485ef0:
-  517 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+               530 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
 0x485ef4:
-  518 r45 <- Jmp(488)
+               531 r45 <- Control(Jmp(501))
 0x485f00:
-  519 r46 <- Const { value: -9, size: 8 }
-  520 r46 <- Arith(Add, r46, r18)
-  521 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
-  522 r47 <- Part { src: r19, offset: 4, size: 4 }
-  523 r19 <- Concat { lo: r45, hi: r47 }
+               532 r46 <- Const { value: -9, size: 8 }
+               533 r46 <- Arith(Add, r46, r18)
+               534 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+               535 r47 <- Part { src: r19, offset: 4, size: 4 }
+               536 r19 <- Concat { lo: r45, hi: r47 }
 0x485f03:
-  524 r45 <- Jmp(488)
+               537 r45 <- Control(Jmp(501))
 0x485f08:
-  525 r46 <- Const { value: -17, size: 8 }
-  526 r46 <- Arith(Add, r46, r18)
-  527 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
-  528 r47 <- Part { src: r19, offset: 4, size: 4 }
-  529 r19 <- Concat { lo: r45, hi: r47 }
+               538 r46 <- Const { value: -17, size: 8 }
+               539 r46 <- Arith(Add, r46, r18)
+               540 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+               541 r47 <- Part { src: r19, offset: 4, size: 4 }
+               542 r19 <- Concat { lo: r45, hi: r47 }
 0x485f0b:
-  530 r15 <- Get(r18)
+               543 r15 <- Get(r18)
 0x485f0e:
-  531 r48 <- Ancestral(AncestralName("arg0"))
-  532 r48 <- Void
-  533 r48 <- Get(r14)
-  534 r49 <- Ancestral(AncestralName("arg1"))
-  535 r49 <- Void
-  536 r49 <- Get(r15)
-  537 r50 <- Ancestral(AncestralName("arg2"))
-  538 r50 <- Void
-  539 r50 <- Get(r19)
-  540 r50 <- Part { src: r50, offset: 0, size: 4 }
-  541 r51 <- CArg { value: r47, next_arg: None }
-  542 r51 <- CArg { value: r46, next_arg: Some(r51) }
-  543 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  544 r52: TypeID(45899v1) <- Const { value: 5626880, size: 8 }
-  545 r51 <- Call { callee: r52, first_arg: Some(r51) }
-  546 r2 <- Undefined
-  547 r3 <- Undefined
-  548 r4 <- Undefined
-  549 r5 <- Undefined
-  550 r6 <- Undefined
-  551 r7 <- Undefined
-  552 r8 <- Undefined
-  553 r9 <- Undefined
-  554 r10 <- Undefined
-  555 r16 <- Part { src: r51, offset: 0, size: 8 }
+               544 r48 <- Ancestral(AncestralName("arg0"))
+               545 r48 <- Void
+               546 r48 <- Get(r14)
+               547 r49 <- Ancestral(AncestralName("arg1"))
+               548 r49 <- Void
+               549 r49 <- Get(r15)
+               550 r50 <- Ancestral(AncestralName("arg2"))
+               551 r50 <- Void
+               552 r50 <- Get(r19)
+               553 r50 <- Part { src: r50, offset: 0, size: 4 }
+               554 r51 <- CArg { value: r47, next_arg: None }
+               555 r51 <- CArg { value: r46, next_arg: Some(r51) }
+               556 r51 <- CArg { value: r45, next_arg: Some(r51) }
+               557 r52: TypeID(45899v1) <- Const { value: 5626880, size: 8 }
+               558 r51 <- Call { callee: r52, first_arg: Some(r51) }
+               559 r2 <- Undefined
+               560 r3 <- Undefined
+               561 r4 <- Undefined
+               562 r5 <- Undefined
+               563 r6 <- Undefined
+               564 r7 <- Undefined
+               565 r8 <- Undefined
+               566 r9 <- Undefined
+               567 r10 <- Undefined
+               568 r16 <- Part { src: r51, offset: 0, size: 8 }
 0x485f13:
-  556 r45 <- Jmp(220)
+               569 r45 <- Control(Jmp(227))
 0x485f20:
-  557 r46 <- Part { src: r15, offset: 0, size: 1 }
-  558 r47 <- Const { value: 3, size: 1 }
-  559 r46 <- Arith(Shr, r46, r47)
-  560 r48 <- Part { src: r15, offset: 1, size: 7 }
-  561 r15 <- Concat { lo: r46, hi: r48 }
-  562 r6 <- SignOf(r46)
-  563 r5 <- IsZero(r46)
-  564 r49 <- Part { src: r46, offset: 0, size: 1 }
-  565 r3 <- Parity(r49)
+               570 r46 <- Part { src: r15, offset: 0, size: 1 }
+               571 r47 <- Const { value: 3, size: 1 }
+               572 r46 <- Arith(Shr, r46, r47)
+               573 r48 <- Part { src: r15, offset: 1, size: 7 }
+               574 r15 <- Concat { lo: r46, hi: r48 }
+               575 r6 <- SignOf(r46)
+               576 r5 <- IsZero(r46)
+               577 r49 <- Part { src: r46, offset: 0, size: 1 }
+               578 r3 <- Parity(r49)
 0x485f24:
-  566 r45 <- NotYetImplemented("unsupported: movzx edx,sil")
+               579 r45 <- NotYetImplemented("unsupported: movzx edx,sil")
 0x485f28:
-  567 r45 <- Jmp(530)
+               580 r45 <- Control(Jmp(543))
 0x485f30:
-  568 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
+               581 r45 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
 0x485f34:
-  569 r45 <- Jmp(530)
+               582 r45 <- Control(Jmp(543))
 0x485f40:
-  570 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
+               583 r45 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
 0x485f44:
-  571 r45 <- Jmp(530)
+               584 r45 <- Control(Jmp(543))
 0x485f50:
-  572 r46 <- Const { value: -9, size: 8 }
-  573 r46 <- Arith(Add, r46, r18)
-  574 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
-  575 r47 <- Part { src: r19, offset: 4, size: 4 }
-  576 r19 <- Concat { lo: r45, hi: r47 }
+               585 r46 <- Const { value: -9, size: 8 }
+               586 r46 <- Arith(Add, r46, r18)
+               587 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+               588 r47 <- Part { src: r19, offset: 4, size: 4 }
+               589 r19 <- Concat { lo: r45, hi: r47 }
 0x485f53:
-  577 r45 <- Jmp(530)
+               590 r45 <- Control(Jmp(543))
 0x485f58:
-  578 r46 <- Const { value: -17, size: 8 }
-  579 r46 <- Arith(Add, r46, r18)
-  580 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
-  581 r47 <- Part { src: r19, offset: 4, size: 4 }
-  582 r19 <- Concat { lo: r45, hi: r47 }
+               591 r46 <- Const { value: -17, size: 8 }
+               592 r46 <- Arith(Add, r46, r18)
+               593 r45 <- LoadMem { mem: r44, addr: r46, size: 4 }
+               594 r47 <- Part { src: r19, offset: 4, size: 4 }
+               595 r19 <- Concat { lo: r45, hi: r47 }
 0x485f5b:
-  583 r45 <- Jmp(488)
+               596 r45 <- Control(Jmp(501))
 0x485f60:
-  584 r45 <- Const { value: 6979771, size: 4 }
-  585 r46 <- Part { src: r19, offset: 4, size: 4 }
-  586 r19 <- Concat { lo: r45, hi: r46 }
+               597 r45 <- Const { value: 6979771, size: 4 }
+               598 r46 <- Part { src: r19, offset: 4, size: 4 }
+               599 r19 <- Concat { lo: r45, hi: r46 }
 0x485f65:
-  587 r45 <- Const { value: 165, size: 4 }
-  588 r46 <- Part { src: r15, offset: 4, size: 4 }
-  589 r15 <- Concat { lo: r45, hi: r46 }
+               600 r45 <- Const { value: 165, size: 4 }
+               601 r46 <- Part { src: r15, offset: 4, size: 4 }
+               602 r15 <- Concat { lo: r45, hi: r46 }
 0x485f6a:
-  590 r45 <- Const { value: 6982459, size: 4 }
-  591 r46 <- Part { src: r14, offset: 4, size: 4 }
-  592 r14 <- Concat { lo: r45, hi: r46 }
+               603 r45 <- Const { value: 6982459, size: 4 }
+               604 r46 <- Part { src: r14, offset: 4, size: 4 }
+               605 r14 <- Concat { lo: r45, hi: r46 }
 0x485f6f:
-  593 r46 <- Part { src: r16, offset: 0, size: 4 }
-  594 r48 <- Part { src: r16, offset: 0, size: 4 }
-  595 r46 <- Arith(BitXor, r46, r48)
-  596 r49 <- Part { src: r16, offset: 4, size: 4 }
-  597 r16 <- Concat { lo: r46, hi: r49 }
-  598 r10 <- False
-  599 r2 <- False
-  600 r6 <- SignOf(r46)
-  601 r5 <- IsZero(r46)
-  602 r50 <- Part { src: r46, offset: 0, size: 1 }
-  603 r3 <- Parity(r50)
+               606 r46 <- Part { src: r16, offset: 0, size: 4 }
+               607 r48 <- Part { src: r16, offset: 0, size: 4 }
+               608 r46 <- Arith(BitXor, r46, r48)
+               609 r49 <- Part { src: r16, offset: 4, size: 4 }
+               610 r16 <- Concat { lo: r46, hi: r49 }
+               611 r10 <- False
+               612 r2 <- False
+               613 r6 <- SignOf(r46)
+               614 r5 <- IsZero(r46)
+               615 r50 <- Part { src: r46, offset: 0, size: 1 }
+               616 r3 <- Parity(r50)
 0x485f71:
-  604 r48 <- Ancestral(AncestralName("arg0"))
-  605 r48 <- Void
-  606 r48 <- Get(r14)
-  607 r49 <- Ancestral(AncestralName("arg1"))
-  608 r49 <- Void
-  609 r49 <- Get(r15)
-  610 r49 <- Part { src: r49, offset: 0, size: 4 }
-  611 r50 <- Ancestral(AncestralName("arg2"))
-  612 r50 <- Void
-  613 r50 <- Get(r19)
-  614 r51 <- CArg { value: r47, next_arg: None }
-  615 r51 <- CArg { value: r46, next_arg: Some(r51) }
-  616 r51 <- CArg { value: r45, next_arg: Some(r51) }
-  617 r52: TypeID(46167v1) <- Const { value: 4990320, size: 8 }
-  618 r51 <- Call { callee: r52, first_arg: Some(r51) }
-  619 r2 <- Undefined
-  620 r3 <- Undefined
-  621 r4 <- Undefined
-  622 r5 <- Undefined
-  623 r6 <- Undefined
-  624 r7 <- Undefined
-  625 r8 <- Undefined
-  626 r9 <- Undefined
-  627 r10 <- Undefined
+               617 r48 <- Ancestral(AncestralName("arg0"))
+               618 r48 <- Void
+               619 r48 <- Get(r14)
+               620 r49 <- Ancestral(AncestralName("arg1"))
+               621 r49 <- Void
+               622 r49 <- Get(r15)
+               623 r49 <- Part { src: r49, offset: 0, size: 4 }
+               624 r50 <- Ancestral(AncestralName("arg2"))
+               625 r50 <- Void
+               626 r50 <- Get(r19)
+               627 r51 <- CArg { value: r47, next_arg: None }
+               628 r51 <- CArg { value: r46, next_arg: Some(r51) }
+               629 r51 <- CArg { value: r45, next_arg: Some(r51) }
+               630 r52: TypeID(46167v1) <- Const { value: 4990320, size: 8 }
+               631 r51 <- Call { callee: r52, first_arg: Some(r51) }
+               632 r2 <- Undefined
+               633 r3 <- Undefined
+               634 r4 <- Undefined
+               635 r5 <- Undefined
+               636 r6 <- Undefined
+               637 r7 <- Undefined
+               638 r8 <- Undefined
+               639 r9 <- Undefined
+               640 r10 <- Undefined
 
 
 ssa pre-xform:
-ssa program  643 instrs
-.B0:    ;; .
+ssa program  650 instrs
+.B0:    ;;  → Conditional { pos: Block(BlockID(10)), neg: Block(BlockID(1)) }.
          r10 <- Ancestral(AncestralName("RBP"))
          r11 <- Ancestral(AncestralName("RSP"))
   (  4)  r65 <- ArithK(Add, r11, -8)
@@ -929,311 +942,266 @@ ssa program  643 instrs
          r94 <- Part { src: r87, offset: 0, size: 1 }
          r96 <- Arith(Sub, r94, r95)
          r100 <- IsZero(r96)
-         r103 <- JmpIf { cond: r100, target: 242 }
-.B9:    ;; preds:B0.
-         r242 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
-         r243 <- NotYetImplemented("unsupported: neg edx")
-         r248 <- NotYetImplemented("unsupported: sbb ecx,ecx")
-         r261 <- Const { value: 16, size: 1 }
-         r252 <- Part { src: r87, offset: 4, size: 4 }
-         r250 <- Const { value: -16, size: 4 }
-         r249 <- Part { src: r87, offset: 0, size: 4 }
-         r251 <- Arith(BitAnd, r249, r250)
-  (  2)  r253 <- Concat { lo: r251, hi: r252 }
-         r260 <- Part { src: r253, offset: 0, size: 1 }
-         r262 <- Arith(Sub, r260, r261)
-         r266 <- IsZero(r262)
-         r269 <- JmpIf { cond: r266, target: 342 }
-.B13:    ;; preds:B9.
-  (  2)  r17 <- Ancestral(AncestralName("RCX"))
-  (  2)  r349 <- Part { src: r17, offset: 0, size: 4 }
-         r350 <- Const { value: -52, size: 8 }
-  (  2)  r351 <- Arith(Add, r350, r65)
-  (  8)  r352 <- StoreMem { mem: r71, addr: r351, value: r349 }
-         r363 <- CArg { value: r351, next_arg: None }
-         r364 <- CArg { value: r349, next_arg: Some(r363) }
-  (  2)  r346 <- Const { value: 32, size: 4 }
-         r365 <- CArg { value: r346, next_arg: Some(r364) }
-         r366: ll2string <TypeID(177639v1)> <- Const { value: 4520352, size: 8 }
-         r367 <- Call { callee: r366, first_arg: Some(r365) }
-         r382 <- CArg { value: r346, next_arg: None }
-  (  2)  r383: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
-         r384 <- Call { callee: r383, first_arg: Some(r382) }
-         r412 <- CArg { value: r383, next_arg: None }
-  (  2)  r402 <- Part { src: r17, offset: 4, size: 4 }
-         r413 <- CArg { value: r402, next_arg: Some(r412) }
-         r399 <- Const { value: -52, size: 8 }
-  (  2)  r400 <- Arith(Add, r399, r65)
-         r414 <- CArg { value: r400, next_arg: Some(r413) }
-  (  2)  r401 <- LoadMem { mem: r352, addr: r400, size: 4 }
-         r415 <- CArg { value: r401, next_arg: Some(r414) }
-         r416: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
-         r417 <- Call { callee: r416, first_arg: Some(r415) }
-         r427 <- Jmp(223)
-.B14:    ;; preds:B13.
-         r457 <- JmpExt(4293744)
-         r462 <- Jmp(433)
-         r472 <- NotYetImplemented("unsupported: movzx edx,dl")
-         r473 <- Jmp(433)
-         r474 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
-         r475 <- Jmp(433)
-         r476 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
-         r477 <- Jmp(433)
-         r487 <- NotYetImplemented("unsupported: movzx edx,sil")
-  (  3)  r13 <- Ancestral(AncestralName("RDI"))
-         r433 <- Const { value: 8, size: 8 }
-         r434 <- Arith(Add, r433, r13)
-         r435 <- LoadMem { mem: r352, addr: r434, size: 8 }
-         r458 <- Const { value: -17, size: 8 }
-         r459 <- Arith(Add, r458, r435)
-  (  2)  r460 <- LoadMem { mem: r352, addr: r459, size: 8 }
-         r466 <- Part { src: r460, offset: 1, size: 7 }
-         r464 <- Const { value: 3, size: 1 }
-         r463 <- Part { src: r460, offset: 0, size: 1 }
-         r465 <- Arith(Shr, r463, r464)
-         r467 <- Concat { lo: r465, hi: r466 }
-         r633 <- Upsilon { value: r467, phi_ref: r629 }
-         r634 <- Upsilon { value: r487, phi_ref: r630 }
-  (  2)  r479 <- Const { value: 3, size: 1 }
-         r395 <- Const { value: 8, size: 8 }
-         r396 <- Arith(Add, r395, r13)
-         r397 <- LoadMem { mem: r352, addr: r396, size: 8 }
-         r478 <- Part { src: r397, offset: 0, size: 1 }
-         r480 <- Arith(Shr, r478, r479)
-         r635 <- Upsilon { value: r480, phi_ref: r631 }
-         r636 <- Upsilon { value: r479, phi_ref: r632 }
-.B15:    ;; preds:B14,B16.
-         r632 <- Phi
-         r499 <- CArg { value: r632, next_arg: None }
-         r631 <- Phi
-         r500 <- CArg { value: r631, next_arg: Some(r499) }
-         r630 <- Phi
-         r501 <- CArg { value: r630, next_arg: Some(r500) }
-         r502: lpPrepend <TypeID(266453v1)> <- Const { value: 5626912, size: 8 }
-         r503 <- Call { callee: r502, first_arg: Some(r501) }
-         r514 <- Jmp(220)
-         r515 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
-         r516 <- Jmp(488)
-         r517 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
-         r518 <- Jmp(488)
-         r524 <- Jmp(488)
-.B16:    ;; preds:B15.
-         r629 <- Phi
-         r522 <- Part { src: r629, offset: 4, size: 4 }
-  (  4)  r403 <- Concat { lo: r401, hi: r402 }
-         r519 <- Const { value: -9, size: 8 }
-         r520 <- Arith(Add, r519, r403)
-         r521 <- LoadMem { mem: r352, addr: r520, size: 4 }
-         r523 <- Concat { lo: r521, hi: r522 }
-  (  2)  r528 <- Part { src: r523, offset: 4, size: 4 }
-         r541 <- CArg { value: r528, next_arg: None }
-         r525 <- Const { value: -17, size: 8 }
-  (  2)  r526 <- Arith(Add, r525, r403)
-         r542 <- CArg { value: r526, next_arg: Some(r541) }
-  (  2)  r527 <- LoadMem { mem: r352, addr: r526, size: 4 }
-         r543 <- CArg { value: r527, next_arg: Some(r542) }
-         r544: lpAppend <TypeID(266443v1)> <- Const { value: 5626880, size: 8 }
-         r545 <- Call { callee: r544, first_arg: Some(r543) }
-         r556 <- Jmp(220)
-         r566 <- NotYetImplemented("unsupported: movzx edx,sil")
-         r567 <- Jmp(530)
-         r568 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
-         r569 <- Jmp(530)
-         r570 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
-         r571 <- Jmp(530)
-         r577 <- Jmp(530)
-         r583 <- Jmp(488)
-         r529 <- Concat { lo: r527, hi: r528 }
-         r575 <- Part { src: r529, offset: 4, size: 4 }
-         r572 <- Const { value: -9, size: 8 }
-         r573 <- Arith(Add, r572, r403)
-         r574 <- LoadMem { mem: r352, addr: r573, size: 4 }
-         r576 <- Concat { lo: r574, hi: r575 }
-  (  2)  r581 <- Part { src: r576, offset: 4, size: 4 }
-         r578 <- Const { value: -17, size: 8 }
-  (  2)  r579 <- Arith(Add, r578, r403)
-         r580 <- LoadMem { mem: r352, addr: r579, size: 4 }
-         r582 <- Concat { lo: r580, hi: r581 }
-         r637 <- Upsilon { value: r582, phi_ref: r629 }
-         r638 <- Upsilon { value: r583, phi_ref: r630 }
-         r639 <- Upsilon { value: r579, phi_ref: r631 }
-         r640 <- Upsilon { value: r581, phi_ref: r632 }
-.B10:    ;; preds:B9.
-         r270 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
-         r286 <- Const { value: 4, size: 1 }
-         r272 <- Part { src: r253, offset: 4, size: 4 }
+         r103 <- SetJumpCondition(r100)
+.B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(35)), neg: Block(BlockID(2)) }.
+  (  2)  r106 <- Const { value: 176, size: 1 }
+         r105 <- Part { src: r87, offset: 0, size: 1 }
+         r107 <- Arith(Sub, r105, r106)
+         r111 <- IsZero(r107)
+         r114 <- Not(r111)
+         r115 <- SetJumpCondition(r114)
+.B2:    ;; preds:B1  → Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(3)) }.
+         r117 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r138 <- Const { value: 16, size: 1 }
+         r129 <- Part { src: r87, offset: 4, size: 4 }
+         r127 <- Const { value: -16, size: 4 }
+         r126 <- Part { src: r87, offset: 0, size: 4 }
+         r128 <- Arith(BitAnd, r126, r127)
+  (  2)  r130 <- Concat { lo: r128, hi: r129 }
+         r137 <- Part { src: r130, offset: 0, size: 1 }
+         r139 <- Arith(Sub, r137, r138)
+         r143 <- IsZero(r139)
+         r146 <- SetJumpCondition(r143)
+.B3:    ;; preds:B2  → Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(4)) }.
+         r148 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
   (  5)  r18 <- Ancestral(AncestralName("RDX"))
-         r271 <- Part { src: r18, offset: 0, size: 4 }
-  (  2)  r273 <- Concat { lo: r271, hi: r272 }
-         r277 <- Part { src: r273, offset: 4, size: 4 }
-         r275 <- Const { value: 7, size: 4 }
-         r274 <- Part { src: r273, offset: 0, size: 4 }
-         r276 <- Arith(BitAnd, r274, r275)
-  (  2)  r278 <- Concat { lo: r276, hi: r277 }
-         r285 <- Part { src: r278, offset: 0, size: 1 }
-  (  2)  r287 <- Arith(Sub, r285, r286)
-         r291 <- IsZero(r287)
-         r295 <- Not(r291)
-         r290 <- SignOf(r287)
-         r294 <- Not(r290)
-         r296 <- Bool(And, r294, r295)
-         r297 <- JmpExtIf { cond: r296, addr: 4203590 }
-         r298 <- NotYetImplemented("unsupported: movzx eax,al")
-         r300 <- ArithK(Mul, r278, 8)
-         r299 <- Const { value: 6851672, size: 8 }
-         r301 <- Arith(Add, r299, r300)
-         r302 <- JmpInd(r301)
-.B1:    ;; preds:B0.
-  (  2)  r105 <- Const { value: 176, size: 1 }
-         r104 <- Part { src: r87, offset: 0, size: 1 }
-         r106 <- Arith(Sub, r104, r105)
-         r110 <- IsZero(r106)
-         r113 <- Not(r110)
-         r114 <- JmpIf { cond: r113, target: 584 }
-.B17:    ;; preds:B1.
-         r614 <- CArg { value: r105, next_arg: None }
-         r594 <- Part { src: r87, offset: 0, size: 4 }
-         r593 <- Part { src: r87, offset: 0, size: 4 }
-         r595 <- Arith(BitXor, r593, r594)
-         r615 <- CArg { value: r595, next_arg: Some(r614) }
-         r590 <- Const { value: 6982459, size: 4 }
-         r616 <- CArg { value: r590, next_arg: Some(r615) }
-         r617: _serverPanic <TypeID(214853v1)> <- Const { value: 4990320, size: 8 }
-         r618 <- Call { callee: r617, first_arg: Some(r616) }
-.B2:    ;; preds:B1.
-         r115 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
-         r136 <- Const { value: 16, size: 1 }
-         r127 <- Part { src: r87, offset: 4, size: 4 }
-         r125 <- Const { value: -16, size: 4 }
-         r124 <- Part { src: r87, offset: 0, size: 4 }
-         r126 <- Arith(BitAnd, r124, r125)
-  (  2)  r128 <- Concat { lo: r126, hi: r127 }
-         r135 <- Part { src: r128, offset: 0, size: 1 }
-         r137 <- Arith(Sub, r135, r136)
-         r141 <- IsZero(r137)
-         r144 <- JmpIf { cond: r141, target: 189 }
-.B5:    ;; preds:B2.
-         r191 <- Part { src: r18, offset: 0, size: 4 }
-         r190 <- Part { src: r18, offset: 0, size: 4 }
-  (  3)  r192 <- Arith(BitAnd, r190, r191)
-         r194 <- IsZero(r192)
-  (  2)  r199 <- JmpIf { cond: r194, target: 321 }
-.B12:    ;; preds:B5.
-         r327 <- CArg { value: r192, next_arg: None }
-         r328 <- CArg { value: r199, next_arg: Some(r327) }
-         r329: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
-         r330 <- Call { callee: r329, first_arg: Some(r328) }
-         r341 <- Jmp(220)
-         r340 <- Part { src: r330, offset: 0, size: 8 }
-         r641 <- Upsilon { value: r340, phi_ref: r628 }
-.B6:    ;; preds:B5.
-         r206 <- CArg { value: r192, next_arg: None }
-         r207 <- CArg { value: r199, next_arg: Some(r206) }
-         r208: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
-         r209 <- Call { callee: r208, first_arg: Some(r207) }
-         r219 <- Part { src: r209, offset: 0, size: 8 }
-         r642 <- Upsilon { value: r219, phi_ref: r628 }
-.B7:    ;; preds:B6,B12.
-  (  2)  r628 <- Phi
-         r220 <- Const { value: 8, size: 8 }
-         r221 <- Arith(Add, r220, r13)
-         r222 <- StoreMem { mem: r71, addr: r221, value: r628 }
-.B8:    ;; preds:B7.
-         r241 <- Ret(r628)
-.B3:    ;; preds:B2.
-         r145 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
-         r161 <- Part { src: r18, offset: 0, size: 4 }
-         r160 <- Part { src: r18, offset: 0, size: 4 }
-         r162 <- Arith(BitAnd, r160, r161)
-         r164 <- IsZero(r162)
-         r169 <- Not(r164)
-         r170 <- JmpIf { cond: r169, target: 303 }
-.B11:    ;; preds:B3.
-         r304 <- Const { value: 4, size: 1 }
-         r147 <- Part { src: r128, offset: 4, size: 4 }
+         r164 <- Part { src: r18, offset: 0, size: 4 }
+         r163 <- Part { src: r18, offset: 0, size: 4 }
+         r165 <- Arith(BitAnd, r163, r164)
+         r167 <- IsZero(r165)
+         r172 <- Not(r167)
+         r173 <- SetJumpCondition(r172)
+.B4:    ;; preds:B3  → Conditional { pos: Ext(4203597), neg: Block(BlockID(5)) }.
+         r176 <- Const { value: 4, size: 1 }
+         r150 <- Part { src: r130, offset: 4, size: 4 }
          r14 <- Ancestral(AncestralName("RSI"))
-         r146 <- Part { src: r14, offset: 0, size: 4 }
-  (  2)  r148 <- Concat { lo: r146, hi: r147 }
-         r152 <- Part { src: r148, offset: 4, size: 4 }
-         r150 <- Const { value: 7, size: 4 }
-         r149 <- Part { src: r148, offset: 0, size: 4 }
-         r151 <- Arith(BitAnd, r149, r150)
-  (  4)  r153 <- Concat { lo: r151, hi: r152 }
-         r303 <- Part { src: r153, offset: 0, size: 1 }
-  (  2)  r305 <- Arith(Sub, r303, r304)
-         r309 <- IsZero(r305)
-         r313 <- Not(r309)
-         r308 <- SignOf(r305)
-         r312 <- Not(r308)
-         r314 <- Bool(And, r312, r313)
-         r315 <- JmpExtIf { cond: r314, addr: 4203604 }
-         r316 <- NotYetImplemented("unsupported: movzx eax,al")
-         r318 <- ArithK(Mul, r153, 8)
-         r317 <- Const { value: 6851712, size: 8 }
-         r319 <- Arith(Add, r317, r318)
-         r320 <- JmpInd(r319)
-.B4:    ;; preds:B3.
-         r172 <- Const { value: 4, size: 1 }
-         r171 <- Part { src: r153, offset: 0, size: 1 }
-  (  2)  r173 <- Arith(Sub, r171, r172)
-         r177 <- IsZero(r173)
-         r181 <- Not(r177)
-         r176 <- SignOf(r173)
-         r180 <- Not(r176)
-         r182 <- Bool(And, r180, r181)
-         r183 <- JmpExtIf { cond: r182, addr: 4203597 }
-         r184 <- NotYetImplemented("unsupported: movzx eax,al")
-         r186 <- ArithK(Mul, r153, 8)
-         r185 <- Const { value: 6851632, size: 8 }
-         r187 <- Arith(Add, r185, r186)
-         r188 <- JmpInd(r187)
+         r149 <- Part { src: r14, offset: 0, size: 4 }
+  (  2)  r151 <- Concat { lo: r149, hi: r150 }
+         r155 <- Part { src: r151, offset: 4, size: 4 }
+         r153 <- Const { value: 7, size: 4 }
+         r152 <- Part { src: r151, offset: 0, size: 4 }
+         r154 <- Arith(BitAnd, r152, r153)
+  (  4)  r156 <- Concat { lo: r154, hi: r155 }
+         r175 <- Part { src: r156, offset: 0, size: 1 }
+  (  2)  r177 <- Arith(Sub, r175, r176)
+         r181 <- IsZero(r177)
+         r185 <- Not(r181)
+         r180 <- SignOf(r177)
+         r184 <- Not(r180)
+         r186 <- Bool(And, r184, r185)
+         r187 <- SetJumpCondition(r186)
+.B5:    ;; preds:B4  → Always(Indirect).
+         r189 <- NotYetImplemented("unsupported: movzx eax,al")
+         r191 <- ArithK(Mul, r156, 8)
+         r190 <- Const { value: 6851632, size: 8 }
+         r192 <- Arith(Add, r190, r191)
+         r193 <- SetJumpTarget(r192)
+.B13:    ;; preds:B3  → Conditional { pos: Ext(4203604), neg: Block(BlockID(14)) }.
+         r315 <- Const { value: 4, size: 1 }
+         r314 <- Part { src: r156, offset: 0, size: 1 }
+  (  2)  r316 <- Arith(Sub, r314, r315)
+         r320 <- IsZero(r316)
+         r324 <- Not(r320)
+         r319 <- SignOf(r316)
+         r323 <- Not(r319)
+         r325 <- Bool(And, r323, r324)
+         r326 <- SetJumpCondition(r325)
+.B14:    ;; preds:B13  → Always(Indirect).
+         r328 <- NotYetImplemented("unsupported: movzx eax,al")
+         r330 <- ArithK(Mul, r156, 8)
+         r329 <- Const { value: 6851712, size: 8 }
+         r331 <- Arith(Add, r329, r330)
+         r332 <- SetJumpTarget(r331)
+.B6:    ;; preds:B2  → Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(7)) }.
+         r197 <- Part { src: r18, offset: 0, size: 4 }
+         r196 <- Part { src: r18, offset: 0, size: 4 }
+  (  3)  r198 <- Arith(BitAnd, r196, r197)
+         r200 <- IsZero(r198)
+         r205 <- SetJumpCondition(r200)
+.B7:    ;; preds:B6  → Always(Block(BlockID(8))).
+         r213 <- CArg { value: r198, next_arg: None }
+  (  2)  r206 <- Void
+         r214 <- CArg { value: r206, next_arg: Some(r213) }
+         r215: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
+         r216 <- Call { callee: r215, first_arg: Some(r214) }
+         r226 <- Part { src: r216, offset: 0, size: 8 }
+         r649 <- Upsilon { value: r226, phi_ref: r641 }
+.B15:    ;; preds:B6  → Always(Block(BlockID(8))).
+         r340 <- CArg { value: r198, next_arg: None }
+         r341 <- CArg { value: r206, next_arg: Some(r340) }
+         r342: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
+         r343 <- Call { callee: r342, first_arg: Some(r341) }
+         r353 <- Part { src: r343, offset: 0, size: 8 }
+         r646 <- Upsilon { value: r353, phi_ref: r641 }
+.B8:    ;; preds:B7,B15  → Always(Block(BlockID(9))).
+  (  2)  r641 <- Phi
+         r13 <- Ancestral(AncestralName("RDI"))
+         r227 <- Const { value: 8, size: 8 }
+         r228 <- Arith(Add, r227, r13)
+         r229 <- StoreMem { mem: r71, addr: r228, value: r641 }
+         r647 <- Upsilon { value: r641, phi_ref: r642 }
+         r648 <- Upsilon { value: r229, phi_ref: r643 }
+.B35:    ;; preds:B1  → Always(Undefined).
+         r627 <- CArg { value: r106, next_arg: None }
+         r607 <- Part { src: r87, offset: 0, size: 4 }
+         r606 <- Part { src: r87, offset: 0, size: 4 }
+         r608 <- Arith(BitXor, r606, r607)
+         r628 <- CArg { value: r608, next_arg: Some(r627) }
+         r603 <- Const { value: 6982459, size: 4 }
+         r629 <- CArg { value: r603, next_arg: Some(r628) }
+         r630: _serverPanic <TypeID(214853v1)> <- Const { value: 4990320, size: 8 }
+         r631 <- Call { callee: r630, first_arg: Some(r629) }
+.B10:    ;; preds:B0  → Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(11)) }.
+         r250 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r251 <- NotYetImplemented("unsupported: neg edx")
+         r256 <- NotYetImplemented("unsupported: sbb ecx,ecx")
+         r269 <- Const { value: 16, size: 1 }
+         r260 <- Part { src: r87, offset: 4, size: 4 }
+         r258 <- Const { value: -16, size: 4 }
+         r257 <- Part { src: r87, offset: 0, size: 4 }
+         r259 <- Arith(BitAnd, r257, r258)
+  (  2)  r261 <- Concat { lo: r259, hi: r260 }
+         r268 <- Part { src: r261, offset: 0, size: 1 }
+         r270 <- Arith(Sub, r268, r269)
+         r274 <- IsZero(r270)
+         r277 <- SetJumpCondition(r274)
+.B11:    ;; preds:B10  → Conditional { pos: Ext(4203590), neg: Block(BlockID(12)) }.
+         r279 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+         r295 <- Const { value: 4, size: 1 }
+         r281 <- Part { src: r261, offset: 4, size: 4 }
+         r280 <- Part { src: r18, offset: 0, size: 4 }
+  (  2)  r282 <- Concat { lo: r280, hi: r281 }
+         r286 <- Part { src: r282, offset: 4, size: 4 }
+         r284 <- Const { value: 7, size: 4 }
+         r283 <- Part { src: r282, offset: 0, size: 4 }
+         r285 <- Arith(BitAnd, r283, r284)
+  (  2)  r287 <- Concat { lo: r285, hi: r286 }
+         r294 <- Part { src: r287, offset: 0, size: 1 }
+  (  2)  r296 <- Arith(Sub, r294, r295)
+         r300 <- IsZero(r296)
+         r304 <- Not(r300)
+         r299 <- SignOf(r296)
+         r303 <- Not(r299)
+         r305 <- Bool(And, r303, r304)
+         r306 <- SetJumpCondition(r305)
+.B12:    ;; preds:B11  → Always(Indirect).
+         r308 <- NotYetImplemented("unsupported: movzx eax,al")
+         r310 <- ArithK(Mul, r287, 8)
+         r309 <- Const { value: 6851672, size: 8 }
+         r311 <- Arith(Add, r309, r310)
+         r312 <- SetJumpTarget(r311)
+.B16:    ;; preds:B10  → Always(Block(BlockID(9))).
+  (  2)  r17 <- Ancestral(AncestralName("RCX"))
+  (  2)  r362 <- Part { src: r17, offset: 0, size: 4 }
+         r363 <- Const { value: -52, size: 8 }
+  (  2)  r364 <- Arith(Add, r363, r65)
+  (  2)  r365 <- StoreMem { mem: r71, addr: r364, value: r362 }
+         r376 <- CArg { value: r364, next_arg: None }
+         r377 <- CArg { value: r362, next_arg: Some(r376) }
+  (  2)  r359 <- Const { value: 32, size: 4 }
+         r378 <- CArg { value: r359, next_arg: Some(r377) }
+         r379: ll2string <TypeID(177639v1)> <- Const { value: 4520352, size: 8 }
+         r380 <- Call { callee: r379, first_arg: Some(r378) }
+         r395 <- CArg { value: r359, next_arg: None }
+  (  2)  r396: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
+         r397 <- Call { callee: r396, first_arg: Some(r395) }
+         r425 <- CArg { value: r396, next_arg: None }
+         r415 <- Part { src: r17, offset: 4, size: 4 }
+         r426 <- CArg { value: r415, next_arg: Some(r425) }
+         r412 <- Const { value: -52, size: 8 }
+  (  2)  r413 <- Arith(Add, r412, r65)
+         r427 <- CArg { value: r413, next_arg: Some(r426) }
+         r414 <- LoadMem { mem: r365, addr: r413, size: 4 }
+         r428 <- CArg { value: r414, next_arg: Some(r427) }
+         r429: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
+         r430 <- Call { callee: r429, first_arg: Some(r428) }
+         r407 <- Part { src: r397, offset: 0, size: 8 }
+         r644 <- Upsilon { value: r407, phi_ref: r642 }
+         r645 <- Upsilon { value: r365, phi_ref: r643 }
+.B9:    ;; preds:B8,B16  → Always(Return).
+         r642 <- Phi
+         r248 <- SetReturnValue(r642)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:104] -> Alt { straight: BlockID(1), side: BlockID(9) }
-  BlockID(1) [104:115] -> Alt { straight: BlockID(2), side: BlockID(17) }
-  BlockID(2) [115:145] -> Alt { straight: BlockID(3), side: BlockID(5) }
-  BlockID(3) [145:171] -> Alt { straight: BlockID(4), side: BlockID(11) }
-  BlockID(4) [171:189] -> Jmp(BlockID(18))
-  BlockID(5) [189:200] -> Alt { straight: BlockID(6), side: BlockID(12) }
-  BlockID(6) [200:220] -> Jmp(BlockID(7))
-  BlockID(7) [220:223] -> Jmp(BlockID(8))
-  BlockID(8) [223:242] -> Jmp(BlockID(18))
-  BlockID(9) [242:270] -> Alt { straight: BlockID(10), side: BlockID(13) }
-  BlockID(10) [270:303] -> Jmp(BlockID(18))
-  BlockID(11) [303:321] -> Jmp(BlockID(18))
-  BlockID(12) [321:342] -> Jmp(BlockID(7))
-  BlockID(13) [342:433] -> Jmp(BlockID(14))
-  BlockID(14) [433:488] -> Jmp(BlockID(15))
-  BlockID(15) [488:530] -> Jmp(BlockID(16))
-  BlockID(16) [530:584] -> Jmp(BlockID(15))
-  BlockID(17) [584:628] -> Jmp(BlockID(18))
-  BlockID(18) [628:628] -> End
+  BlockID(0) [0:105] -> Conditional { pos: Block(BlockID(10)), neg: Block(BlockID(1)) }
+  BlockID(1) [105:117] -> Conditional { pos: Block(BlockID(35)), neg: Block(BlockID(2)) }
+  BlockID(2) [117:148] -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(3)) }
+  BlockID(3) [148:175] -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(4)) }
+  BlockID(4) [175:189] -> Conditional { pos: Ext(4203597), neg: Block(BlockID(5)) }
+  BlockID(5) [189:195] -> Always(Indirect)
+  BlockID(6) [195:207] -> Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(7)) }
+  BlockID(7) [207:227] -> Always(Block(BlockID(8)))
+  BlockID(8) [227:230] -> Always(Block(BlockID(9)))
+  BlockID(9) [230:250] -> Always(Return)
+  BlockID(10) [250:279] -> Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(11)) }
+  BlockID(11) [279:308] -> Conditional { pos: Ext(4203590), neg: Block(BlockID(12)) }
+  BlockID(12) [308:314] -> Always(Indirect)
+  BlockID(13) [314:328] -> Conditional { pos: Ext(4203604), neg: Block(BlockID(14)) }
+  BlockID(14) [328:334] -> Always(Indirect)
+  BlockID(15) [334:355] -> Always(Block(BlockID(8)))
+  BlockID(16) [355:441] -> Always(Block(BlockID(9)))
+  BlockID(17) [441:446] -> Always(Undefined)
+  BlockID(18) [446:471] -> Always(Undefined)
+  BlockID(19) [471:476] -> Always(Undefined)
+  BlockID(20) [476:487] -> Always(Undefined)
+  BlockID(21) [487:489] -> Always(Undefined)
+  BlockID(22) [489:491] -> Always(Undefined)
+  BlockID(23) [491:501] -> Always(Undefined)
+  BlockID(24) [501:528] -> Always(Undefined)
+  BlockID(25) [528:530] -> Always(Undefined)
+  BlockID(26) [530:532] -> Always(Undefined)
+  BlockID(27) [532:538] -> Always(Undefined)
+  BlockID(28) [538:543] -> Always(Undefined)
+  BlockID(29) [543:570] -> Always(Undefined)
+  BlockID(30) [570:581] -> Always(Undefined)
+  BlockID(31) [581:583] -> Always(Undefined)
+  BlockID(32) [583:585] -> Always(Undefined)
+  BlockID(33) [585:591] -> Always(Undefined)
+  BlockID(34) [591:597] -> Always(Undefined)
+  BlockID(35) [597:641] -> Always(Undefined)
   domtree:
     BlockID(0)
     |  BlockID(1)
     |  |  BlockID(2)
     |  |  |  BlockID(3)
     |  |  |  |  BlockID(4)
-    |  |  |  |  BlockID(11)
-    |  |  |  BlockID(5)
-    |  |  |  |  BlockID(6)
+    |  |  |  |  |  BlockID(5)
+    |  |  |  |  BlockID(13)
+    |  |  |  |  |  BlockID(14)
+    |  |  |  BlockID(6)
     |  |  |  |  BlockID(7)
-    |  |  |  |  |  BlockID(8)
-    |  |  |  |  BlockID(12)
-    |  |  BlockID(17)
-    |  BlockID(9)
-    |  |  BlockID(10)
-    |  |  BlockID(13)
-    |  |  |  BlockID(14)
+    |  |  |  |  BlockID(8)
     |  |  |  |  BlockID(15)
-    |  |  |  |  |  BlockID(16)
-    |  BlockID(18)
+    |  |  BlockID(35)
+    |  BlockID(9)
+    |  BlockID(10)
+    |  |  BlockID(11)
+    |  |  |  BlockID(12)
+    |  |  BlockID(16)
+    BlockID(17)
+    BlockID(18)
+    BlockID(19)
+    BlockID(20)
+    BlockID(21)
+    BlockID(22)
+    BlockID(23)
+    BlockID(24)
+    BlockID(25)
+    BlockID(26)
+    BlockID(27)
+    BlockID(28)
+    BlockID(29)
+    BlockID(30)
+    BlockID(31)
+    BlockID(32)
+    BlockID(33)
+    BlockID(34)
 
 ssa post-xform:
-ssa program  648 instrs
-.B0:    ;; .
+ssa program  655 instrs
+.B0:    ;;  → Conditional { pos: Block(BlockID(10)), neg: Block(BlockID(1)) }.
          r10 <- Ancestral(AncestralName("RBP"))
   (  5)  r11 <- Ancestral(AncestralName("RSP"))
          r65 <- ArithK(Add, r11, -8)
@@ -1252,216 +1220,153 @@ ssa program  648 instrs
          r94 <- Part { src: r85, offset: 0, size: 1 }
          r96 <- ArithK(Add, r94, -144)
          r100 <- IsZero(r96)
-         r103 <- JmpIf { cond: r100, target: 242 }
-.B9:    ;; preds:B0.
-         r242 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
-         r243 <- NotYetImplemented("unsupported: neg edx")
-         r248 <- NotYetImplemented("unsupported: sbb ecx,ecx")
-         r251 <- ArithK(BitAnd, r85, -16)
-         r260 <- Part { src: r251, offset: 0, size: 1 }
-         r262 <- ArithK(Add, r260, -16)
-         r266 <- IsZero(r262)
-         r269 <- JmpIf { cond: r266, target: 342 }
-.B13:    ;; preds:B9.
-  (  3)  r17 <- Ancestral(AncestralName("RCX"))
-  (  2)  r349 <- Part { src: r17, offset: 0, size: 4 }
-  (  2)  r351 <- ArithK(Add, r11, -60)
-  (  5)  r352 <- StoreMem { mem: r71, addr: r351, value: r349 }
-         r363 <- CArg { value: r351, next_arg: None }
-         r364 <- CArg { value: r349, next_arg: Some(r363) }
-  (  2)  r346 <- Const { value: 32, size: 4 }
-         r365 <- CArg { value: r346, next_arg: Some(r364) }
-         r366: ll2string <TypeID(177639v1)> <- Const { value: 4520352, size: 8 }
-         r367 <- Call { callee: r366, first_arg: Some(r365) }
-         r382 <- CArg { value: r346, next_arg: None }
-  (  2)  r383: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
-         r384 <- Call { callee: r383, first_arg: Some(r382) }
-         r412 <- CArg { value: r383, next_arg: None }
-  (  2)  r402 <- Part { src: r17, offset: 4, size: 4 }
-         r413 <- CArg { value: r402, next_arg: Some(r412) }
-         r400 <- ArithK(Add, r11, -60)
-         r414 <- CArg { value: r400, next_arg: Some(r413) }
-  (  2)  r644 <- Part { src: r17, offset: 0, size: 4 }
-         r415 <- CArg { value: r644, next_arg: Some(r414) }
-         r416: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
-         r417 <- Call { callee: r416, first_arg: Some(r415) }
-         r427 <- Jmp(223)
-.B14:    ;; preds:B13.
-         r457 <- JmpExt(4293744)
-         r462 <- Jmp(433)
-         r472 <- NotYetImplemented("unsupported: movzx edx,dl")
-         r473 <- Jmp(433)
-         r474 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-3]")
-         r475 <- Jmp(433)
-         r476 <- NotYetImplemented("unsupported: movzx edx,word ptr [rdi-5]")
-         r477 <- Jmp(433)
-         r487 <- NotYetImplemented("unsupported: movzx edx,sil")
-  (  3)  r13 <- Ancestral(AncestralName("RDI"))
-         r434 <- ArithK(Add, r13, 8)
-         r435 <- LoadMem { mem: r352, addr: r434, size: 8 }
-         r459 <- ArithK(Add, r435, -17)
-  (  2)  r460 <- LoadMem { mem: r352, addr: r459, size: 8 }
-         r466 <- Part { src: r460, offset: 1, size: 7 }
-         r463 <- Part { src: r460, offset: 0, size: 1 }
-         r465 <- ArithK(Shr, r463, 3)
-         r467 <- Concat { lo: r465, hi: r466 }
-         r633 <- Upsilon { value: r467, phi_ref: r629 }
-         r634 <- Upsilon { value: r487, phi_ref: r630 }
-         r396 <- ArithK(Add, r13, 8)
-         r397 <- LoadMem { mem: r352, addr: r396, size: 8 }
-         r478 <- Part { src: r397, offset: 0, size: 1 }
-         r480 <- ArithK(Shr, r478, 3)
-         r635 <- Upsilon { value: r480, phi_ref: r631 }
-         r479 <- Const { value: 3, size: 1 }
-         r636 <- Upsilon { value: r479, phi_ref: r632 }
-.B15:    ;; preds:B14,B16.
-         r632 <- Phi
-         r499 <- CArg { value: r632, next_arg: None }
-         r631 <- Phi
-         r500 <- CArg { value: r631, next_arg: Some(r499) }
-         r630 <- Phi
-         r501 <- CArg { value: r630, next_arg: Some(r500) }
-         r502: lpPrepend <TypeID(266453v1)> <- Const { value: 5626912, size: 8 }
-         r503 <- Call { callee: r502, first_arg: Some(r501) }
-         r514 <- Jmp(220)
-         r515 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
-         r516 <- Jmp(488)
-         r517 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
-         r518 <- Jmp(488)
-         r524 <- Jmp(488)
-.B16:    ;; preds:B15.
-  (  2)  r629 <- Phi
-         r528 <- Part { src: r629, offset: 4, size: 4 }
-         r541 <- CArg { value: r528, next_arg: None }
-  (  2)  r403 <- Concat { lo: r644, hi: r402 }
-  (  2)  r526 <- ArithK(Add, r403, -17)
-         r542 <- CArg { value: r526, next_arg: Some(r541) }
-         r527 <- LoadMem { mem: r352, addr: r526, size: 4 }
-         r543 <- CArg { value: r527, next_arg: Some(r542) }
-         r544: lpAppend <TypeID(266443v1)> <- Const { value: 5626880, size: 8 }
-         r545 <- Call { callee: r544, first_arg: Some(r543) }
-         r556 <- Jmp(220)
-         r566 <- NotYetImplemented("unsupported: movzx edx,sil")
-         r567 <- Jmp(530)
-         r568 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rcx-3]")
-         r569 <- Jmp(530)
-         r570 <- NotYetImplemented("unsupported: movzx edx,word ptr [rcx-5]")
-         r571 <- Jmp(530)
-         r577 <- Jmp(530)
-         r583 <- Jmp(488)
-  (  2)  r581 <- Part { src: r629, offset: 4, size: 4 }
-  (  2)  r579 <- ArithK(Add, r403, -17)
-         r580 <- LoadMem { mem: r352, addr: r579, size: 4 }
-         r582 <- Concat { lo: r580, hi: r581 }
-         r637 <- Upsilon { value: r582, phi_ref: r629 }
-         r638 <- Upsilon { value: r583, phi_ref: r630 }
-         r639 <- Upsilon { value: r579, phi_ref: r631 }
-         r640 <- Upsilon { value: r581, phi_ref: r632 }
-.B10:    ;; preds:B9.
-         r270 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+         r103 <- SetJumpCondition(r100)
+.B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(35)), neg: Block(BlockID(2)) }.
+         r105 <- Part { src: r85, offset: 0, size: 1 }
+         r107 <- ArithK(Add, r105, -176)
+         r111 <- IsZero(r107)
+         r114 <- Not(r111)
+         r115 <- SetJumpCondition(r114)
+.B2:    ;; preds:B1  → Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(3)) }.
+         r117 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r128 <- ArithK(BitAnd, r85, -16)
+         r137 <- Part { src: r128, offset: 0, size: 1 }
+         r139 <- ArithK(Add, r137, -16)
+         r143 <- IsZero(r139)
+         r146 <- SetJumpCondition(r143)
+.B3:    ;; preds:B2  → Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(4)) }.
+         r148 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
   (  5)  r18 <- Ancestral(AncestralName("RDX"))
-         r274 <- Part { src: r18, offset: 0, size: 4 }
-  (  2)  r276 <- ArithK(BitAnd, r274, 7)
-         r285 <- Part { src: r276, offset: 0, size: 1 }
-  (  2)  r287 <- ArithK(Add, r285, -4)
-         r291 <- IsZero(r287)
-         r295 <- Not(r291)
-         r290 <- SignOf(r287)
-         r294 <- Not(r290)
-         r296 <- Bool(And, r294, r295)
-         r297 <- JmpExtIf { cond: r296, addr: 4203590 }
-         r298 <- NotYetImplemented("unsupported: movzx eax,al")
-         r277 <- Part { src: r15, offset: 4, size: 4 }
-         r278 <- Concat { lo: r276, hi: r277 }
-         r300 <- ArithK(Mul, r278, 8)
-         r301 <- ArithK(Add, r300, 6851672)
-         r302 <- JmpInd(r301)
-.B1:    ;; preds:B0.
-         r104 <- Part { src: r85, offset: 0, size: 1 }
-         r106 <- ArithK(Add, r104, -176)
-         r110 <- IsZero(r106)
-         r113 <- Not(r110)
-         r114 <- JmpIf { cond: r113, target: 584 }
-.B17:    ;; preds:B1.
-         r105 <- Const { value: 176, size: 1 }
-         r614 <- CArg { value: r105, next_arg: None }
-         r595 <- Const { value: 0, size: 4 }
-         r615 <- CArg { value: r595, next_arg: Some(r614) }
-         r590 <- Const { value: 6982459, size: 4 }
-         r616 <- CArg { value: r590, next_arg: Some(r615) }
-         r617: _serverPanic <TypeID(214853v1)> <- Const { value: 4990320, size: 8 }
-         r618 <- Call { callee: r617, first_arg: Some(r616) }
-.B2:    ;; preds:B1.
-         r115 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
-         r126 <- ArithK(BitAnd, r85, -16)
-         r135 <- Part { src: r126, offset: 0, size: 1 }
-         r137 <- ArithK(Add, r135, -16)
-         r141 <- IsZero(r137)
-         r144 <- JmpIf { cond: r141, target: 189 }
-.B5:    ;; preds:B2.
-         r191 <- Part { src: r18, offset: 0, size: 4 }
-         r190 <- Part { src: r18, offset: 0, size: 4 }
-  (  3)  r192 <- Arith(BitAnd, r190, r191)
-         r194 <- IsZero(r192)
-  (  2)  r199 <- JmpIf { cond: r194, target: 321 }
-.B12:    ;; preds:B5.
-         r327 <- CArg { value: r192, next_arg: None }
-         r328 <- CArg { value: r199, next_arg: Some(r327) }
-         r329: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
-         r330 <- Call { callee: r329, first_arg: Some(r328) }
-         r341 <- Jmp(220)
-         r641 <- Upsilon { value: r330, phi_ref: r628 }
-.B6:    ;; preds:B5.
-         r206 <- CArg { value: r192, next_arg: None }
-         r207 <- CArg { value: r199, next_arg: Some(r206) }
-         r208: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
-         r209 <- Call { callee: r208, first_arg: Some(r207) }
-         r642 <- Upsilon { value: r209, phi_ref: r628 }
-.B7:    ;; preds:B6,B12.
-  (  2)  r628 <- Phi
-         r221 <- ArithK(Add, r13, 8)
-         r222 <- StoreMem { mem: r71, addr: r221, value: r628 }
-.B8:    ;; preds:B7.
-         r241 <- Ret(r628)
-.B3:    ;; preds:B2.
-         r145 <- NotYetImplemented("unsupported: movzx esi,byte ptr [rcx-1]")
-         r161 <- Part { src: r18, offset: 0, size: 4 }
-         r160 <- Part { src: r18, offset: 0, size: 4 }
-         r162 <- Arith(BitAnd, r160, r161)
-         r164 <- IsZero(r162)
-         r169 <- Not(r164)
-         r170 <- JmpIf { cond: r169, target: 303 }
-.B11:    ;; preds:B3.
+         r164 <- Part { src: r18, offset: 0, size: 4 }
+         r163 <- Part { src: r18, offset: 0, size: 4 }
+         r165 <- Arith(BitAnd, r163, r164)
+         r167 <- IsZero(r165)
+         r172 <- Not(r167)
+         r173 <- SetJumpCondition(r172)
+.B4:    ;; preds:B3  → Conditional { pos: Ext(4203597), neg: Block(BlockID(5)) }.
          r14 <- Ancestral(AncestralName("RSI"))
-         r149 <- Part { src: r14, offset: 0, size: 4 }
-  (  3)  r151 <- ArithK(BitAnd, r149, 7)
-         r303 <- Part { src: r151, offset: 0, size: 1 }
-  (  2)  r305 <- ArithK(Add, r303, -4)
-         r309 <- IsZero(r305)
-         r313 <- Not(r309)
-         r308 <- SignOf(r305)
-         r312 <- Not(r308)
-         r314 <- Bool(And, r312, r313)
-         r315 <- JmpExtIf { cond: r314, addr: 4203604 }
-         r316 <- NotYetImplemented("unsupported: movzx eax,al")
-         r152 <- Part { src: r15, offset: 4, size: 4 }
-  (  2)  r153 <- Concat { lo: r151, hi: r152 }
-         r318 <- ArithK(Mul, r153, 8)
-         r319 <- ArithK(Add, r318, 6851712)
-         r320 <- JmpInd(r319)
-.B4:    ;; preds:B3.
-         r171 <- Part { src: r151, offset: 0, size: 1 }
-  (  2)  r173 <- ArithK(Add, r171, -4)
-         r177 <- IsZero(r173)
-         r181 <- Not(r177)
-         r176 <- SignOf(r173)
-         r180 <- Not(r176)
-         r182 <- Bool(And, r180, r181)
-         r183 <- JmpExtIf { cond: r182, addr: 4203597 }
-         r184 <- NotYetImplemented("unsupported: movzx eax,al")
-         r186 <- ArithK(Mul, r153, 8)
-         r187 <- ArithK(Add, r186, 6851632)
-         r188 <- JmpInd(r187)
+         r152 <- Part { src: r14, offset: 0, size: 4 }
+  (  3)  r154 <- ArithK(BitAnd, r152, 7)
+         r175 <- Part { src: r154, offset: 0, size: 1 }
+  (  2)  r177 <- ArithK(Add, r175, -4)
+         r181 <- IsZero(r177)
+         r185 <- Not(r181)
+         r180 <- SignOf(r177)
+         r184 <- Not(r180)
+         r186 <- Bool(And, r184, r185)
+         r187 <- SetJumpCondition(r186)
+.B5:    ;; preds:B4  → Always(Indirect).
+         r189 <- NotYetImplemented("unsupported: movzx eax,al")
+         r155 <- Part { src: r15, offset: 4, size: 4 }
+  (  2)  r156 <- Concat { lo: r154, hi: r155 }
+         r191 <- ArithK(Mul, r156, 8)
+         r192 <- ArithK(Add, r191, 6851632)
+         r193 <- SetJumpTarget(r192)
+.B13:    ;; preds:B3  → Conditional { pos: Ext(4203604), neg: Block(BlockID(14)) }.
+         r314 <- Part { src: r154, offset: 0, size: 1 }
+  (  2)  r316 <- ArithK(Add, r314, -4)
+         r320 <- IsZero(r316)
+         r324 <- Not(r320)
+         r319 <- SignOf(r316)
+         r323 <- Not(r319)
+         r325 <- Bool(And, r323, r324)
+         r326 <- SetJumpCondition(r325)
+.B14:    ;; preds:B13  → Always(Indirect).
+         r328 <- NotYetImplemented("unsupported: movzx eax,al")
+         r330 <- ArithK(Mul, r156, 8)
+         r331 <- ArithK(Add, r330, 6851712)
+         r332 <- SetJumpTarget(r331)
+.B6:    ;; preds:B2  → Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(7)) }.
+         r197 <- Part { src: r18, offset: 0, size: 4 }
+         r196 <- Part { src: r18, offset: 0, size: 4 }
+  (  3)  r198 <- Arith(BitAnd, r196, r197)
+         r200 <- IsZero(r198)
+         r205 <- SetJumpCondition(r200)
+.B7:    ;; preds:B6  → Always(Block(BlockID(8))).
+         r213 <- CArg { value: r198, next_arg: None }
+  (  2)  r206 <- Void
+         r214 <- CArg { value: r206, next_arg: Some(r213) }
+         r215: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
+         r216 <- Call { callee: r215, first_arg: Some(r214) }
+         r649 <- Upsilon { value: r216, phi_ref: r641 }
+.B15:    ;; preds:B6  → Always(Block(BlockID(8))).
+         r340 <- CArg { value: r198, next_arg: None }
+         r341 <- CArg { value: r206, next_arg: Some(r340) }
+         r342: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
+         r343 <- Call { callee: r342, first_arg: Some(r341) }
+         r646 <- Upsilon { value: r343, phi_ref: r641 }
+.B8:    ;; preds:B7,B15  → Always(Block(BlockID(9))).
+  (  2)  r641 <- Phi
+         r13 <- Ancestral(AncestralName("RDI"))
+         r228 <- ArithK(Add, r13, 8)
+         r229 <- StoreMem { mem: r71, addr: r228, value: r641 }
+         r647 <- Upsilon { value: r641, phi_ref: r642 }
+         r648 <- Upsilon { value: r229, phi_ref: r643 }
+.B35:    ;; preds:B1  → Always(Undefined).
+         r106 <- Const { value: 176, size: 1 }
+         r627 <- CArg { value: r106, next_arg: None }
+         r608 <- Const { value: 0, size: 4 }
+         r628 <- CArg { value: r608, next_arg: Some(r627) }
+         r603 <- Const { value: 6982459, size: 4 }
+         r629 <- CArg { value: r603, next_arg: Some(r628) }
+         r630: _serverPanic <TypeID(214853v1)> <- Const { value: 4990320, size: 8 }
+         r631 <- Call { callee: r630, first_arg: Some(r629) }
+.B10:    ;; preds:B0  → Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(11)) }.
+         r250 <- NotYetImplemented("unsupported: movzx eax,byte ptr [rsi]")
+         r251 <- NotYetImplemented("unsupported: neg edx")
+         r256 <- NotYetImplemented("unsupported: sbb ecx,ecx")
+         r259 <- ArithK(BitAnd, r85, -16)
+         r268 <- Part { src: r259, offset: 0, size: 1 }
+         r270 <- ArithK(Add, r268, -16)
+         r274 <- IsZero(r270)
+         r277 <- SetJumpCondition(r274)
+.B11:    ;; preds:B10  → Conditional { pos: Ext(4203590), neg: Block(BlockID(12)) }.
+         r279 <- NotYetImplemented("unsupported: movzx edx,byte ptr [rdi-1]")
+         r283 <- Part { src: r18, offset: 0, size: 4 }
+  (  2)  r285 <- ArithK(BitAnd, r283, 7)
+         r294 <- Part { src: r285, offset: 0, size: 1 }
+  (  2)  r296 <- ArithK(Add, r294, -4)
+         r300 <- IsZero(r296)
+         r304 <- Not(r300)
+         r299 <- SignOf(r296)
+         r303 <- Not(r299)
+         r305 <- Bool(And, r303, r304)
+         r306 <- SetJumpCondition(r305)
+.B12:    ;; preds:B11  → Always(Indirect).
+         r308 <- NotYetImplemented("unsupported: movzx eax,al")
+         r286 <- Part { src: r15, offset: 4, size: 4 }
+         r287 <- Concat { lo: r285, hi: r286 }
+         r310 <- ArithK(Mul, r287, 8)
+         r311 <- ArithK(Add, r310, 6851672)
+         r312 <- SetJumpTarget(r311)
+.B16:    ;; preds:B10  → Always(Block(BlockID(9))).
+  (  3)  r17 <- Ancestral(AncestralName("RCX"))
+  (  2)  r362 <- Part { src: r17, offset: 0, size: 4 }
+  (  2)  r364 <- ArithK(Add, r11, -60)
+         r365 <- StoreMem { mem: r71, addr: r364, value: r362 }
+         r376 <- CArg { value: r364, next_arg: None }
+         r377 <- CArg { value: r362, next_arg: Some(r376) }
+  (  2)  r359 <- Const { value: 32, size: 4 }
+         r378 <- CArg { value: r359, next_arg: Some(r377) }
+         r379: ll2string <TypeID(177639v1)> <- Const { value: 4520352, size: 8 }
+         r380 <- Call { callee: r379, first_arg: Some(r378) }
+         r395 <- CArg { value: r359, next_arg: None }
+  (  2)  r396: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
+         r397 <- Call { callee: r396, first_arg: Some(r395) }
+         r425 <- CArg { value: r396, next_arg: None }
+         r415 <- Part { src: r17, offset: 4, size: 4 }
+         r426 <- CArg { value: r415, next_arg: Some(r425) }
+         r413 <- ArithK(Add, r11, -60)
+         r427 <- CArg { value: r413, next_arg: Some(r426) }
+         r651 <- Part { src: r17, offset: 0, size: 4 }
+         r428 <- CArg { value: r651, next_arg: Some(r427) }
+         r429: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
+         r430 <- Call { callee: r429, first_arg: Some(r428) }
+         r644 <- Upsilon { value: r397, phi_ref: r642 }
+         r645 <- Upsilon { value: r365, phi_ref: r643 }
+.B9:    ;; preds:B8,B16  → Always(Return).
+         r642 <- Phi
+         r248 <- SetReturnValue(r642)
 
 
 
@@ -1471,129 +1376,99 @@ T0: {
   [pre:RSP - 24]:* := pre:RBX;
   TODO /* unsupported: movzx eax,byte ptr [rdi] */;
   let r85: Bytes(4) = pre:RAX[4 .. 0] & -16;
-  if IsZero (r85[1 .. 0] - 144);
-   {
+  ;
+  if IsZero (r85[1 .. 0] - 144) {
     TODO /* unsupported: movzx eax,byte ptr [rsi] */;
     TODO /* unsupported: neg edx */;
     TODO /* unsupported: sbb ecx,ecx */;
-    if IsZero ((r85 & -16)[1 .. 0] - 16);
-     {
-      let r351: Bytes(8) = pre:RSP - 60;
-      let r349: Bytes(4) = pre:RCX[4 .. 0];
-      [r351]:* := r349;
+    ;
+    if IsZero ((r85 & -16)[1 .. 0] - 16) {
+      let r364: Bytes(8) = pre:RSP - 60;
+      let r362: Bytes(4) = pre:RCX[4 .. 0];
+      [r364]:* := r362;
       ll2string(32,
-                r349,
-                r351);
+                r362,
+                r364);
       strlen(32);
-      let r644: Bytes(4) = pre:RCX[4 .. 0];
-      let r402: Bytes(4) = pre:RCX[8 .. 4];
-      quicklistPush(r644,
+      quicklistPush(pre:RCX[4 .. 0],
                     (pre:RSP - 60),
-                    r402,
+                    pre:RCX[8 .. 4],
                     4199136);
-      JmpExt(0x418470);
-      TODO /* unsupported: movzx edx,dl */;
-      TODO /* unsupported: movzx edx,byte ptr [rdi-3] */;
-      TODO /* unsupported: movzx edx,word ptr [rdi-5] */;
-      TODO /* unsupported: movzx edx,sil */;
-      let r460: Bytes(8) = [[pre:RDI + 8]:8 - 17]:8;
-      r629 := r460[8 .. 1]as i7 ++ (r460[1 .. 0] >> 3)as i1;
+      r642 := strlen(32);
       ;
-      r631 := [pre:RDI + 8]:8[1 .. 0] >> 3;
-      r632 := 3;
-      goto T15
-      T15: {
-        let mut r630: Unit;
-        let mut r631: Bytes(1);
-        let mut r632: Bytes(1);
-        lpPrepend(r630,
-                  r631,
-                  r632);
-        TODO /* unsupported: movzx edx,byte ptr [rcx-3] */;
-        TODO /* unsupported: movzx edx,word ptr [rcx-5] */;
-        let r403: Bytes(8) = r402 ++ r644;
-        let r526: Bytes(8) = r403 - 17;
-        let mut r629: Bytes(8);
-        lpAppend([r526]:4,
-                 r526,
-                 r629[8 .. 4]);
-        TODO /* unsupported: movzx edx,sil */;
-        TODO /* unsupported: movzx edx,byte ptr [rcx-3] */;
-        TODO /* unsupported: movzx edx,word ptr [rcx-5] */;
-        let r579: Bytes(8) = r403 - 17;
-        let r581: Bytes(4) = r629[8 .. 4];
-        r629 := r581 ++ [r579]:4;
-        ;
-        r631 := r403 - 17;
-        r632 := r629[8 .. 4];
-        loop T15
-      }
-    
+      goto T9
     }
     TODO /* unsupported: movzx edx,byte ptr [rdi-1] */;
-    let r276: Bytes(4) = pre:RDX[4 .. 0] & 7;
-    let r287: Bytes(1) = r276[1 .. 0] - 4;
-    if ! SignOf (r287) AND ! IsZero (r287){
-      goto 0x402446
-    };
+    let r285: Bytes(4) = pre:RDX[4 .. 0] & 7;
+    let r296: Bytes(1) = r285[1 .. 0] - 4;
+    ;
+    if ! SignOf (r296) AND ! IsZero (r296) {
+      goto ext 0x402446
+    }
     TODO /* unsupported: movzx eax,al */;
-    JmpInd (pre:RAX[8 .. 4] ++ r276 * 8 + 6851672);
-    goto T18
+    ;
+    goto (pre:RAX[8 .. 4] ++ r285 * 8 + 6851672).*
   }
-  if ! IsZero (r85[1 .. 0] - 176);
-   {
+  ;
+  if ! IsZero (r85[1 .. 0] - 176) {
     _serverPanic(6982459,
                  0,
                  176);
-    goto T18
+    goto undefined /* warning: due to decompiler bug or limitation */
   }
   TODO /* unsupported: movzx eax,byte ptr [rsi] */;
-  if IsZero ((r85 & -16)[1 .. 0] - 16);
-   {
-    let r192: Bytes(4) = pre:RDX[4 .. 0] & pre:RDX[4 .. 0];
-    let r199: Unit = if IsZero (r192);
-     {
-      lpPrependInteger(r199,
-                       r192);
-      r628 := lpPrependInteger(r199,
-                               r192);
-      goto T7
+  ;
+  if IsZero ((r85 & -16)[1 .. 0] - 16) {
+    let r198: Bytes(4) = pre:RDX[4 .. 0] & pre:RDX[4 .. 0];
+    ;
+    if IsZero (r198) {
+      let r206: Bytes(0) = void;
+      lpPrependInteger(r206,
+                       r198);
+      r641 := lpPrependInteger(r206,
+                               r198);
+      goto T8
     }
-    lpAppendInteger(r199,
-                    r192);
-    r628 := lpAppendInteger(r199,
-                            r192);
-    goto T7
-    T7: {
-      let mut r628: Bytes(8);
-      [pre:RDI + 8]:* := r628;
-      Ret (r628);
-      goto T18
+    lpAppendInteger(r206,
+                    r198);
+    r641 := lpAppendInteger(r206,
+                            r198);
+    goto T8
+    T8: {
+      let mut r641: Bytes(8);
+      [pre:RDI + 8]:* := r641;
+      r642 := phi ();
+      ;
+      goto T9
     }
   
   }
   TODO /* unsupported: movzx esi,byte ptr [rcx-1] */;
-  if ! IsZero (pre:RDX[4 .. 0] & pre:RDX[4 .. 0]);
-   {
-    let r151: Bytes(4) = pre:RSI[4 .. 0] & 7;
-    let r305: Bytes(1) = r151[1 .. 0] - 4;
-    if ! SignOf (r305) AND ! IsZero (r305){
-      goto 0x402454
-    };
+  ;
+  if ! IsZero (pre:RDX[4 .. 0] & pre:RDX[4 .. 0]) {
+    let r154: Bytes(4) = pre:RSI[4 .. 0] & 7;
+    let r316: Bytes(1) = r154[1 .. 0] - 4;
+    ;
+    if ! SignOf (r316) AND ! IsZero (r316) {
+      goto ext 0x402454
+    }
     TODO /* unsupported: movzx eax,al */;
-    let r153: Bytes(8) = pre:RAX[8 .. 4] ++ r151;
-    JmpInd (r153 * 8 + 6851712);
-    goto T18
+    let r156: Bytes(8) = pre:RAX[8 .. 4] ++ r154;
+    ;
+    goto (r156 * 8 + 6851712).*
   }
-  let r173: Bytes(1) = r151[1 .. 0] - 4;
-  if ! SignOf (r173) AND ! IsZero (r173){
-    goto 0x40244d
-  };
+  let r177: Bytes(1) = r154[1 .. 0] - 4;
+  ;
+  if ! SignOf (r177) AND ! IsZero (r177) {
+    goto ext 0x40244d
+  }
   TODO /* unsupported: movzx eax,al */;
-  JmpInd (r153 * 8 + 6851632);
-  goto T18
-  T18: {
-    end
+  ;
+  goto (r156 * 8 + 6851632).*
+  T9: {
+    let mut r642: Bytes(8);
+    ;
+    return r642
   }
 
 }

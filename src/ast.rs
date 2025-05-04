@@ -21,7 +21,8 @@ impl<'a> Ast<'a> {
         let rdr_count = ssa::count_readers(ssa);
 
         let is_named = rdr_count.map(|reg, count| {
-            let insn = ssa[reg].get();
+            let Some(iv) = ssa.get(reg) else { return false };
+            let insn = iv.insn.get();
             // ancestral are as good as r# refs, so never 'name' them / always print inline
             matches!(insn, Insn::Phi)
                 || (*count > 1
