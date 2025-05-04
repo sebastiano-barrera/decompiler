@@ -258,22 +258,21 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     bounds.push(0);
 
     for ndx in 0..program.len() {
-        // the instruction jumps or otherwise affects control flow, and is a
-        // "block ender", i.e. the last instruction in the block; equivalently,
-        // ndx+1 must be a block's start.
-        //
-        // This is regardless of whether the jump (if any) happens
-        // conditionally. For some weird programs, nothing ever jumps to ndx+1
-        // even , but we don't care here.
-        if let Some(Branch {
-            target,
-            conditional: _,
-        }) = branch_target(program, ndx)
-        {
-            if let BranchDest::Index(target_ndx) = target {
-                bounds.push(target_ndx);
+        if let Some(iv) = program.get(ndx) {
+            if let mil::Insn::Control(ctl) = iv.insn.get() {
+                // the instruction jumps or otherwise affects control flow, and is a
+                // "block ender", i.e. the last instruction in the block; equivalently,
+                // ndx+1 must be a block's start.
+                //
+                // This is regardless of whether the jump (if any) happens
+                // conditionally. For some weird programs, nothing ever jumps to ndx+1
+                // even , but we don't care here.
+                if let mil::Control::Jmp(target_ndx) | mil::Control::JmpIf(target_ndx) = ctl {
+                    // we *also* have a block starting at target_ndx
+                    bounds.push(target_ndx);
+                }
+                bounds.push(ndx + 1);
             }
-            bounds.push(ndx + 1);
         }
     }
     bounds.push(program.len());
@@ -387,65 +386,8 @@ struct BlockMultiMap<T> {
     items: Vec<T>,
 }
 impl<T> BlockMultiMap<T> {
-    fn new(block_count: u16) -> Self {
-        Self {
-            ndx_range: BlockMap::new_sized(0..0, block_count),
-            items: Vec::new(),
-        }
-    }
-
     fn block_count(&self) -> u16 {
         self.ndx_range.block_count()
-    }
-
-    fn items(&self) -> impl Iterator<Item = (BlockID, &[T])> {
-        self.ndx_range.block_ids().map(|bid| (bid, &self[bid]))
-    }
-
-    fn append(&mut self, bid: BlockID) -> BlockMultiMapAppender<T> {
-        BlockMultiMapAppender {
-            bid,
-            ndx_start: self.items.len(),
-            multimap: self,
-        }
-    }
-
-    /// Remove all the values associated to `bid` from the map.
-    ///
-    /// This function does not change the set of BlockIDs defined as keys (e.g.
-    /// [block_count] will return the same number).
-    fn remove(&mut self, bid: BlockID) {
-        // we actually leak the corresponding items in `items`, but we only plan
-        // to have a handful of them. the cost is acceptable, and we save a
-        // bunch of time in avoiding to manipulate `items` altogether
-        self.ndx_range[bid] = 0..0;
-    }
-
-    /// Remove all values matching the predicate.
-    ///
-    /// The predicate is called with the key BlockID and a read-only reference
-    /// to the value. The value is removed iff it returns true.
-    fn remove_values<P>(&mut self, predicate: P)
-    where
-        P: Fn(BlockID, &T) -> bool,
-    {
-        for (bid, ndxr) in self.ndx_range.items_mut() {
-            // weird, std has this algorithm for Vec but not for slice
-            let bid_items = &mut self.items[ndxr.clone()];
-
-            let mut len = bid_items.len();
-            let mut ndx = 0;
-            while ndx < len {
-                if predicate(bid, &bid_items[ndx]) {
-                    bid_items.swap(ndx, len - 1);
-                    len -= 1;
-                } else {
-                    ndx += 1;
-                }
-            }
-
-            ndxr.end = ndxr.start + len;
-        }
     }
 }
 impl<T> std::ops::Index<BlockID> for BlockMultiMap<T> {
@@ -453,30 +395,6 @@ impl<T> std::ops::Index<BlockID> for BlockMultiMap<T> {
     fn index(&self, bid: BlockID) -> &Self::Output {
         let range = self.ndx_range[bid].clone();
         &self.items[range]
-    }
-}
-
-struct BlockMultiMapAppender<'a, T> {
-    bid: BlockID,
-    ndx_start: usize,
-    multimap: &'a mut BlockMultiMap<T>,
-}
-impl<T> BlockMultiMapAppender<'_, T> {
-    fn append(&mut self, item: T) {
-        self.multimap.items.push(item);
-    }
-
-    fn finish(mut self) {
-        assert_ne!(self.ndx_start, usize::MAX);
-        let ndx_start = self.ndx_start;
-        let ndx_end = self.multimap.items.len();
-        self.multimap.ndx_range[self.bid] = ndx_start..ndx_end;
-        self.ndx_start = usize::MAX;
-    }
-}
-impl<T> Drop for BlockMultiMapAppender<'_, T> {
-    fn drop(&mut self) {
-        assert_eq!(self.ndx_start, usize::MAX);
     }
 }
 
@@ -524,63 +442,6 @@ impl<T> BlockMultiMapSorter<T> {
 
         mm
     }
-}
-
-/// Returns the index that the given instruction may jump to. For branch-like
-/// instructions, this is the index to follow to when the branch is taken. For
-/// Ret and JmpInd, this is the "exit index" i.e. one past the program's end
-/// (`program.len()`).
-///
-/// Returns None if the instruction only ever proceeds to the next one (i.e.
-/// it's not a branch or branch-like instruction).
-fn branch_target(program: &mil::Program, ndx: mil::Index) -> Option<Branch> {
-    let insn = program.get(ndx)?.insn.get();
-    let mil::Insn::Control(ctl) = insn else {
-        return None;
-    };
-
-    // TODO roll this repr directly in mil?
-
-    let branch = match ctl {
-        mil::Control::Ret => Branch {
-            target: BranchDest::Index(program.len()),
-            conditional: false,
-        },
-        mil::Control::Jmp(target) => Branch {
-            target: BranchDest::Index(target),
-            conditional: false,
-        },
-        mil::Control::JmpIf(target) => Branch {
-            target: BranchDest::Index(target),
-            conditional: true,
-        },
-        mil::Control::JmpExt(addr) => Branch {
-            target: BranchDest::Ext(addr),
-            conditional: false,
-        },
-        mil::Control::JmpExtIf(addr) => Branch {
-            target: BranchDest::Ext(addr),
-            conditional: true,
-        },
-        mil::Control::JmpIndirect => Branch {
-            target: BranchDest::Runtime,
-            conditional: false,
-        },
-    };
-
-    Some(branch)
-}
-
-struct Branch {
-    /// Iff true, the branch may or may not be taken.
-    conditional: bool,
-    /// Index to jump to when the branch is taken.
-    target: BranchDest,
-}
-enum BranchDest {
-    Index(mil::Index),
-    Ext(u64),
-    Runtime,
 }
 
 impl Graph {
