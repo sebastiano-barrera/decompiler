@@ -4,4 +4,9 @@ members = [
   "decompiler"
 , "decompiler_tester"]
 
+[profile.dev.package]
+gimli.opt-level = 3
+slotmap.opt-level = 3
+insta.opt-level = 3
+
 
