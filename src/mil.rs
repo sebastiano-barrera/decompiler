@@ -20,6 +20,11 @@ pub struct Program {
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
     dest_tyids: Vec<Cell<Option<ty::TypeID>>>,
+    // aligned to insns. when false, the corresponding instruction is entirely
+    // disabled and inaccessible. for all intents and purposes, it's deleted.
+    // its index never yielded by iterators, and accesses to it result in
+    // a panic.
+    is_enabled: Vec<bool>,
     reg_count: Index,
 
     // Not sure about the Arc here.  Very likely that it's going to have to
@@ -85,6 +90,7 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
 #[func(pub fn input_regs(&mut self) -> ArgsMut { ArgsMut::new() })]
+#[allow(dead_code)]
 pub enum Insn {
     Void,
     True,
@@ -148,26 +154,17 @@ pub enum Insn {
 
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
-    Ret(Reg),
+    SetReturnValue(Reg),
+
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
-    JmpInd(Reg),
+    SetJumpCondition(Reg),
+
     #[assoc(has_side_effects = true)]
-    Jmp(Index),
-    #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = array([_cond]))]
-    JmpIf {
-        cond: Reg,
-        target: Index,
-    },
-    #[assoc(has_side_effects = true)]
-    JmpExt(u64),
-    #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = array([_cond]))]
-    JmpExtIf {
-        cond: Reg,
-        addr: u64,
-    },
+    #[assoc(input_regs = array([_0]))]
+    SetJumpTarget(Reg),
+
+    Control(Control),
 
     #[allow(clippy::upper_case_acronyms)]
     #[assoc(has_side_effects = true)]
@@ -212,8 +209,38 @@ pub enum Insn {
     },
 }
 
+// TODO Match/unify Control and cfg::BlockCont?
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+pub enum Control {
+    /// Return to the calling function.
+    ///
+    /// The return value must previously be set by an `Insn::SetReturnValue(_)`.
+    /// If the function has no return value, an `Insn::Void` value can be used; if
+    /// it is unknown, `Insn::Undefined` can be used.
+    Ret,
+
+    /// Jump to the associated Index.
+    Jmp(Index),
+
+    /// Jump to the associated Index if the value set by the last
+    /// Insn::SetJumpCondition(_) is true (must be a RegType::Bool).
+    JmpIf(Index),
+
+    /// Jump to the associated machine address, which is external to the function.
+    JmpExt(u64),
+
+    /// Jump to the associated machine address, which is external to the
+    /// function, if the value set by the last Insn::SetJumpCondition(_) is true
+    /// (must be a RegType::Bool).
+    JmpExtIf(u64),
+
+    /// Jump to the last address set by Insn::SetJumpTarget(_) in this block
+    JmpIndirect,
+}
+
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[allow(dead_code)]
 pub enum CmpOp {
     EQ,
     LT,
@@ -276,6 +303,7 @@ impl std::fmt::Debug for Program {
         let mut last_addr = 0;
         let len = self.dests.len();
         for ndx in 0..len {
+            let is_enabled = self.is_enabled[ndx];
             let insn = self.insns[ndx].get();
             let dest = self.dests[ndx].get();
             let dest_tyid = self.dest_tyids[ndx].get();
@@ -285,6 +313,7 @@ impl std::fmt::Debug for Program {
                 writeln!(f, "0x{:x}:", addr)?;
                 last_addr = addr;
             }
+            write!(f, "   {:10}", if is_enabled { "" } else { "|DISABLED|" })?;
             write!(f, "{:5} {:?}", ndx, dest,)?;
             if let Some(dest_tyid) = dest_tyid {
                 write!(f, ": {:?}", dest_tyid)?;
@@ -305,17 +334,24 @@ fn range_conv<T, U: From<T>>(range: Range<T>) -> Range<U> {
 impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
-        let ndx = ndx as usize;
-        let insn = &self.insns[ndx];
-        let dest = &self.dests[ndx];
-        let dest_tyid = &self.dest_tyids[ndx];
-        let addr = self.addrs[ndx];
-        Some(InsnView {
-            insn,
-            dest,
-            tyid: dest_tyid,
-            addr,
-        })
+        if self.is_enabled(ndx) {
+            let index = ndx;
+            let ndx = ndx as usize;
+            // if this  slot is enabled as per the mask, then every Vec access must succeed
+            let insn = &self.insns[ndx];
+            let dest = &self.dests[ndx];
+            let dest_tyid = &self.dest_tyids[ndx];
+            // will be re-enabled one day
+            // let addr = self.addrs[ndx];
+            Some(InsnView {
+                insn,
+                dest,
+                tyid: dest_tyid,
+                index,
+            })
+        } else {
+            None
+        }
     }
 
     pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
@@ -338,8 +374,8 @@ impl Program {
     }
 
     #[inline(always)]
-    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = InsnView> {
-        (0..self.len()).map(|ndx| self.get(ndx).unwrap())
+    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView> {
+        (0..self.len()).filter_map(|ndx| self.get(ndx))
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
@@ -348,6 +384,7 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.dest_tyids.push(Cell::new(None));
         self.addrs.push(u64::MAX);
+        self.is_enabled.push(true);
         index
     }
 
@@ -365,13 +402,33 @@ impl Program {
     pub fn types(&self) -> &ty::TypeSet {
         &self.types
     }
+
+    /// Replace the "enabled" mask.
+    ///
+    /// `mask` MUST be a Vec with length equal to `self.len()`. `mask[i]`
+    /// is true iff the i-th instruction is enabled. Otherwise, index `i` is
+    /// disabled (accesses to it via .get() result in a panic) and it is never
+    /// yielded from iterators.
+    pub fn set_enabled_mask(&mut self, mask: Vec<bool>) {
+        assert_eq!(mask.len(), self.len() as usize);
+        self.is_enabled = mask;
+    }
+
+    /// Return true iff the instruction at the given Index is enabled, as per the mask (see [`set_enabled_mask`]).
+    ///
+    /// Panics if `ndx` is invalid (out of the Program's range, i.e. `>= self.len()`)
+    pub(crate) fn is_enabled(&self, ndx: Index) -> bool {
+        self.is_enabled[ndx as usize]
+    }
 }
 
 pub struct InsnView<'a> {
     pub insn: &'a Cell<Insn>,
     pub tyid: &'a Cell<Option<ty::TypeID>>,
     pub dest: &'a Cell<Reg>,
-    pub addr: u64,
+    pub index: Index,
+    // no use for this right now
+    // pub addr: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -487,14 +544,14 @@ impl ProgramBuilder {
 
         for insn in &insns {
             match insn.get() {
-                Insn::JmpExt(addr) => {
+                Insn::Control(Control::JmpExt(addr)) => {
                     if let Some(ndx) = mil_of_input_addr.get(&addr) {
-                        insn.set(Insn::Jmp(*ndx));
+                        insn.set(Insn::Control(Control::Jmp(*ndx)));
                     }
                 }
-                Insn::JmpExtIf { cond, addr: target } => {
-                    if let Some(ndx) = mil_of_input_addr.get(&target) {
-                        insn.set(Insn::JmpIf { cond, target: *ndx });
+                Insn::Control(Control::JmpExtIf(addr)) => {
+                    if let Some(ndx) = mil_of_input_addr.get(&addr) {
+                        insn.set(Insn::Control(Control::JmpIf(*ndx)));
                     }
                 }
                 _ => {}
@@ -520,15 +577,51 @@ impl ProgramBuilder {
             1 + max_dest.max(max_input)
         };
 
+        let is_enabled = vec![true; insns.len()];
+
         Program {
             insns,
             dests,
             addrs,
             dest_tyids: dest_ty,
+            is_enabled,
             types,
             reg_count,
             mil_of_input_addr,
             anc_types: self.anc_types,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mask() {
+        let mut bld = ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+        bld.push(Reg(10), Insn::True);
+        bld.push(
+            Reg(20),
+            Insn::Const {
+                value: 874,
+                size: 4,
+            },
+        );
+        bld.push(Reg(15), Insn::Arith(ArithOp::Add, Reg(10), Reg(10)));
+        let mut prog = bld.build();
+        let mask = vec![true, false, true];
+        prog.set_enabled_mask(mask.clone());
+
+        // the register count stays the same (nicer to let every downstream user
+        // reserve space for insn slots that may be made active later)
+        assert_eq!(prog.reg_count(), 21);
+
+        let dests: Vec<_> = prog.iter().map(|iv| iv.dest.get()).collect();
+        assert_eq!(&dests, &[Reg(10), Reg(15)]);
+
+        // the point is these won't panic
+        let mask_check: Vec<_> = (0..3).map(|ndx| prog.get(ndx).is_some()).collect();
+        assert_eq!(mask_check, mask);
     }
 }

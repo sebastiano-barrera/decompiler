@@ -22,9 +22,6 @@ pub struct Program {
     //   values.
     inner: mil::Program,
 
-    // whether each instruction is reachable from the entry point (as not all may be)
-    is_reachable: Vec<bool>,
-
     cfg: cfg::Graph,
     bbs: cfg::BlockMap<BasicBlock>,
 }
@@ -49,15 +46,7 @@ impl Program {
         // But it's a detail we try to hide, as it's likely we're going to have
         // to transition to a more complex structure in the future.
         let iv = self.inner.get(reg.0)?;
-        #[cfg(debug_assertions)]
-        {
-            let iv_reg = iv.dest.get();
-            let iv_reg_ndx = iv_reg.reg_index() as usize;
-            if !self.is_reachable[iv_reg_ndx] {
-                panic!("unreachable instruction: {:?}", reg);
-            }
-            debug_assert_eq!(iv_reg, reg);
-        }
+        debug_assert_eq!(iv.dest.get(), reg);
         Some(iv)
     }
 
@@ -67,6 +56,12 @@ impl Program {
     /// the program only "through dependency edges" and only get live registers.
     pub fn reg_count(&self) -> mil::Index {
         self.inner.len()
+    }
+
+    pub fn registers(&self) -> impl '_ + Iterator<Item = mil::Reg> {
+        (0..self.reg_count())
+            .filter(|&reg_ndx| self.inner.is_enabled(reg_ndx))
+            .map(mil::Reg)
     }
 
     pub fn get_call_args(&self, mut arg: Option<mil::Reg>) -> impl '_ + Iterator<Item = mil::Reg> {
@@ -95,9 +90,7 @@ impl Program {
         // pure instructions, instead, aren't really attached to anywhere in
         // particular.
         assert!(!insn.has_side_effects());
-        let index = self.inner.push_new(insn);
-        self.is_reachable.push(true);
-        mil::Reg(index)
+        mil::Reg(self.inner.push_new(insn))
     }
 
     pub fn upsilons_of_phi(&self, phi_reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
@@ -142,12 +135,12 @@ impl Program {
             // convention and function type info
             Insn::Call { .. } => RegType::Bytes(8),
             Insn::CArg { value, next_arg: _ } => self.reg_type(value),
-            Insn::Ret(_) => RegType::Unit,
-            Insn::JmpInd(_) => RegType::Unit,
-            Insn::Jmp(_) => RegType::Unit,
-            Insn::JmpExt(_) => RegType::Unit,
-            Insn::JmpIf { .. } => RegType::Unit,
-            Insn::JmpExtIf { .. } => RegType::Unit,
+
+            Insn::SetReturnValue(_)
+            | Insn::SetJumpTarget(_)
+            | Insn::SetJumpCondition(_)
+            | Insn::Control(_) => RegType::Unit,
+
             Insn::NotYetImplemented(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
             Insn::StoreMem { .. } => RegType::MemoryEffect,
@@ -179,60 +172,29 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
-        assert_eq!(self.is_reachable.len(), self.inner.len() as usize);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
+        self.assert_inputs_reachable();
         self.assert_effectful_partitioned();
         self.assert_consistent_phis();
-        self.assert_valid_block_ends();
         self.assert_carg_chain();
     }
 
     fn assert_dest_reg_is_index(&self) {
-        for (ndx, iv) in self.inner.iter().enumerate() {
-            if self.is_reachable[ndx] {
-                let dest = iv.dest.get();
-                assert_eq!(ndx, dest.reg_index() as usize);
-            }
+        for iv in self.inner.iter() {
+            assert_eq!(iv.index, iv.dest.get().reg_index());
         }
     }
 
-    fn assert_valid_block_ends(&self) {
-        for bid in self.cfg.block_ids() {
-            let block_effects = self.block_effects(bid);
-            let cont = self.cfg.block_cont(bid);
-
-            let split_last = block_effects.split_last();
-
-            if let Some((_, fx_nonlast)) = split_last {
-                for &reg in fx_nonlast {
-                    assert!(!matches!(
-                        self[reg].get(),
-                        mil::Insn::JmpIf { .. } | mil::Insn::Jmp(_) | mil::Insn::Ret(_)
-                    ));
-                }
-            }
-
-            match (cont, split_last) {
-                (cfg::BlockCont::End, None) => {
-                    panic!("block {bid:?} with End ending must not be empty")
-                }
-                (cfg::BlockCont::End, Some((&fx_last_reg, _))) => {
-                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::Ret(_)));
-                }
-                (cfg::BlockCont::Jmp(_), None) => {}
-                (cfg::BlockCont::Jmp(_), Some((&fx_last_reg, _))) => {
-                    assert!(!matches!(
-                        self[fx_last_reg].get(),
-                        mil::Insn::JmpIf { .. } | mil::Insn::Jmp(_) | mil::Insn::Ret(_)
-                    ));
-                }
-                (cfg::BlockCont::Alt { .. }, None) => {
-                    panic!("block {bid:?} with Alt ending must not be empty")
-                }
-                (cfg::BlockCont::Alt { .. }, Some((&fx_last_reg, _))) => {
-                    assert!(matches!(self[fx_last_reg].get(), mil::Insn::JmpIf { .. }));
-                }
+    fn assert_inputs_reachable(&self) {
+        for iv in self.inner.iter() {
+            for &mut input in iv.insn.get().input_regs() {
+                assert!(
+                    self.get(input).is_some(),
+                    "#{} has unreachable input {:?}",
+                    iv.index,
+                    input,
+                );
             }
         }
     }
@@ -272,6 +234,10 @@ impl Program {
         while let Some(reg) = queue.pop() {
             assert_eq!(rdr_count[reg], 0);
 
+            if !self.inner.is_enabled(reg.reg_index()) {
+                continue;
+            }
+
             for &mut input in self[reg].get().input_regs_iter() {
                 rdr_count[input] -= 1;
                 if rdr_count[input] == 0 {
@@ -294,8 +260,8 @@ impl Program {
 
         for reg in 0..self.reg_count() {
             let reg = mil::Reg(reg);
-            let insn = self[reg].get();
-            assert_eq!(in_block[reg], insn.has_side_effects());
+            let Some(iv) = self.get(reg) else { continue };
+            assert_eq!(in_block[reg], iv.insn.get().has_side_effects());
         }
     }
 
@@ -439,10 +405,10 @@ impl std::fmt::Debug for Program {
         let mut cur_bid = None;
         for (bid, reg) in self.insns_rpo() {
             if cur_bid != Some(bid) {
-                write!(f, ".B{}:    ;; ", bid.as_usize())?;
+                write!(f, ".B{}:    ;;", bid.as_usize())?;
                 let preds = self.cfg.block_preds(bid);
                 if !preds.is_empty() {
-                    write!(f, "preds:")?;
+                    write!(f, " preds:")?;
                     for (ndx, pred) in preds.iter().enumerate() {
                         if ndx > 0 {
                             write!(f, ",")?;
@@ -450,6 +416,7 @@ impl std::fmt::Debug for Program {
                         write!(f, "B{}", pred.as_number())?;
                     }
                 }
+                write!(f, "  → {:?}", self.cfg.block_cont(bid))?;
                 writeln!(f, ".")?;
 
                 cur_bid = Some(bid);
@@ -499,6 +466,17 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let cfg = cfg::analyze_mil(&program);
     let dom_tree = cfg.dom_tree();
     let is_phi_needed = compute_phis_set(&program, &cfg, dom_tree);
+
+    {
+        let mut mask = vec![false; program.len() as usize];
+        for bid in cfg.block_ids_rpo() {
+            for ndx in cfg.insns_ndx_range(bid) {
+                mask[ndx as usize] = true;
+            }
+        }
+
+        program.set_enabled_mask(mask);
+    }
 
     // create all required phi nodes, and link them to basic blocks and
     // variables, to be "wired" later to the data flow graph
@@ -643,7 +621,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
-                    if let mil::Insn::Jmp(_) = insn {
+                    if let mil::Insn::Control(_) = insn {
                         let insn_ndx_last = cfg.insns_ndx_range(bid).last().unwrap();
                         assert_eq!(insn_ndx, insn_ndx_last);
                         // patch it out, otherwise we violate the effectful/pure partitionng
@@ -684,7 +662,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // successor's 1st, 2nd, 3rd predecessor.
 
                 let block_cont = cfg.block_cont(bid);
-                for succ in block_cont.as_array().into_iter().flatten() {
+                for succ in block_cont.block_dests() {
                     for var in vars() {
                         if let Some(phi_reg) = phis.get(succ, var) {
                             let value = var_map
@@ -716,49 +694,18 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    let is_reachable = {
-        let mut map = vec![false; program.len() as usize];
-        for bid in cfg.block_ids_postorder() {
-            for ndx in cfg.insns_ndx_range(bid) {
-                map[ndx as usize] = true;
-            }
-        }
-        map
-    };
-
-    let mut ssa = Program {
+    let ssa = Program {
         inner: program,
-        is_reachable,
         cfg,
         bbs,
     };
-
-    // keep JmpIf at the last place in BlockCont::Alt blocks
-    for bid in ssa.cfg.block_ids() {
-        if let cfg::BlockCont::Alt { .. } = ssa.cfg.block_cont(bid) {
-            let fx = &ssa.bbs[bid].effects;
-            let ups_count = fx
-                .iter()
-                .rev()
-                .filter(|reg| {
-                    matches!(
-                        ssa.get(**reg).unwrap().insn.get(),
-                        mil::Insn::Upsilon { .. }
-                    )
-                })
-                .count();
-
-            let last = fx.len() - 1;
-            let last_pre_ups = last - ups_count;
-            let reg = fx[last_pre_ups];
-            assert!(matches!(ssa[reg].get(), mil::Insn::JmpIf { .. }));
-
-            let fx = &mut ssa.bbs[bid].effects;
-            fx.swap(last, last_pre_ups);
-        }
-    }
-
-    eliminate_dead_code(&mut ssa);
+    // no need for dead code elimination
+    //
+    // in the current representation, effectful instructions that aren't
+    // referenced by a basic block and pure instructions that are not referenced
+    // (even indirectly) by any effectul instructions are effectively dead (not
+    // reachable via insns_rpo or similar iterators). No need to eliminate them
+    // from the data structures (other than maybe space savings)
     ssa.assert_invariants();
     ssa
 }
@@ -823,6 +770,7 @@ fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
     is_received
 }
 
+#[derive(Debug)]
 struct RegMat<T>(Mat<T>);
 
 impl<T: Clone> RegMat<T> {
@@ -868,6 +816,24 @@ impl<T: Clone> Mat<T> {
         Mat { items, rows, cols }
     }
 }
+impl<T: std::fmt::Debug> std::fmt::Debug for Mat<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut item_buf = Vec::new();
+
+        writeln!(f, "mat. {}×{}", self.rows, self.cols)?;
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                let value = self.item(i, j);
+                item_buf.clear();
+                write!(item_buf, "{:?}", value).unwrap();
+                write!(f, "{:10} ", std::str::from_utf8(&item_buf).unwrap())?;
+            }
+            writeln!(f)?;
+        }
+
+        Ok(())
+    }
+}
 
 fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Mat<bool> {
     let count = graph.block_count() as usize;
@@ -891,16 +857,6 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     }
 
     mat
-}
-
-pub fn eliminate_dead_code(_prog: &mut Program) {
-    // TODO just delete this function
-    //
-    // in the current representation, effectful instructions that aren't
-    // referenced by a basic block and pure instructions that are not referenced
-    // (even indirectly) by any effectul instructions are effectively dead (not
-    // reachable via insns_rpo or similar iterators). No need to eliminate them
-    // from the data structures (other than maybe space savings)
 }
 
 #[derive(Clone, Debug)]
@@ -955,8 +911,7 @@ pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
     // for circular graphs, and circular graphs make insns_rpo hang in an
     // infinite loop
 
-    for reg in 0..prog.reg_count() {
-        let reg = mil::Reg(reg);
+    for reg in prog.registers() {
         for &mut input in prog[reg].get().input_regs_iter() {
             count[input] += 1;
         }
@@ -991,7 +946,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{mil, ty};
-    use mil::{ArithOp, Insn, Reg};
+    use mil::{ArithOp, Control, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
@@ -1006,24 +961,20 @@ mod tests {
                     size: 8,
                 },
             );
-            pb.push(
-                Reg(1),
-                Insn::JmpExtIf {
-                    cond: Reg(0),
-                    addr: 0xf2,
-                },
-            );
+            pb.push(Reg(1), Insn::SetJumpCondition(Reg(0)));
+            pb.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
 
             pb.set_input_addr(0xf1);
             pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
-            pb.push(Reg(3), Insn::JmpExt(0xf3));
+            pb.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
 
             pb.set_input_addr(0xf2);
             pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
 
             pb.set_input_addr(0xf3);
             pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
-            pb.push(Reg(5), Insn::Ret(Reg(4)));
+            pb.push(Reg(5), Insn::SetReturnValue(Reg(4)));
+            pb.push(Reg(5), Insn::Control(Control::Ret));
 
             pb.build()
         };
@@ -1060,7 +1011,8 @@ mod tests {
             b.push(Reg(0), Insn::Const { value: 5, size: 8 });
             b.push(Reg(1), Insn::Const { value: 5, size: 8 });
             b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
-            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.push(Reg(0), Insn::SetReturnValue(Reg(0)));
+            b.push(Reg(0), Insn::Control(Control::Ret));
             b.build()
         };
         let prog = super::mil_to_ssa(super::ConversionParams::new(prog));

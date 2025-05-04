@@ -472,8 +472,6 @@ pub fn canonical(prog: &mut ssa::Program) {
     }
 
     prog.assert_invariants();
-
-    ssa::eliminate_dead_code(prog);
 }
 
 struct Deduper {
@@ -513,13 +511,19 @@ fn find_mem_ref(prog: &ssa::Program) -> Option<mil::Reg> {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{mil, ssa, ty};
+    use crate::{
+        mil::{self, Control},
+        ssa, ty,
+    };
     use mil::{ArithOp, Insn, Reg};
 
     mod constant_folding {
         use std::sync::Arc;
 
-        use crate::{mil, ssa, ty, xform};
+        use crate::{
+            mil::{self, Control},
+            ssa, ty, xform,
+        };
         use mil::{ArithOp, Insn, Reg};
 
         define_ancestral_name!(ANC_MEM, "memory");
@@ -546,7 +550,8 @@ mod tests {
                 b.push(Reg(3), Insn::Const { value: 0, size: 8 });
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(3), Reg(4)));
-                b.push(Reg(0), Insn::Ret(Reg(3)));
+                b.push(Reg(0), Insn::SetReturnValue(Reg(3)));
+                b.push(Reg(0), Insn::Control(Control::Ret));
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
@@ -557,7 +562,7 @@ mod tests {
             assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
             assert_eq!(prog[Reg(6)].get(), Insn::Const { value: 49, size: 8 });
             assert_eq!(prog[Reg(9)].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-            assert_eq!(prog[Reg(11)].get(), Insn::Ret(Reg(9)));
+            assert_eq!(prog[Reg(11)].get(), Insn::SetReturnValue(Reg(9)));
         }
 
         #[test]
@@ -582,7 +587,8 @@ mod tests {
                 );
                 b.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(3), Reg(4)));
-                b.push(Reg(0), Insn::Ret(Reg(4)));
+                b.push(Reg(0), Insn::SetReturnValue(Reg(4)));
+                b.push(Reg(0), Insn::Control(Control::Ret));
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
@@ -592,14 +598,17 @@ mod tests {
 
             assert_eq!(prog.insns_rpo().count(), 7);
             assert_eq!(prog[Reg(6)].get(), Insn::ArithK(ArithOp::Mul, Reg(0), 1100));
-            assert_eq!(prog[Reg(11)].get(), Insn::Ret(Reg(9)));
+            assert_eq!(prog[Reg(11)].get(), Insn::SetReturnValue(Reg(9)));
         }
     }
 
     mod subreg_folding {
         use std::sync::Arc;
 
-        use crate::{mil, ssa, ty, xform};
+        use crate::{
+            mil::{self, Control},
+            ssa, ty, xform,
+        };
 
         define_ancestral_name!(ANC_A, "A");
         define_ancestral_name!(ANC_B, "B");
@@ -636,7 +645,8 @@ mod tests {
                         size: vp.size,
                     },
                 );
-                b.push(Reg(0), Insn::Ret(Reg(3)));
+                b.push(Reg(0), Insn::SetReturnValue(Reg(3)));
+                b.push(Reg(0), Insn::Control(Control::Ret));
                 b.build()
             }
 
@@ -758,7 +768,8 @@ mod tests {
                         size: vp.size1,
                     },
                 );
-                b.push(Reg(0), Insn::Ret(Reg(2)));
+                b.push(Reg(0), Insn::SetReturnValue(Reg(2)));
+                b.push(Reg(0), Insn::Control(Control::Ret));
                 b.build()
             }
 
@@ -829,7 +840,8 @@ mod tests {
             // removed by fold_constants IF the Insn::Get's added by fold_bitops
             // is dereferenced
             b.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(2)));
-            b.push(Reg(0), Insn::Ret(Reg(0)));
+            b.push(Reg(0), Insn::SetReturnValue(Reg(0)));
+            b.push(Reg(0), Insn::Control(Control::Ret));
             b.build()
         };
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));

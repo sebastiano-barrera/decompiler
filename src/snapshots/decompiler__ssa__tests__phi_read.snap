@@ -2,17 +2,17 @@
 source: src/ssa.rs
 expression: prog
 ---
-ssa program  10 instrs
-.B0:    ;; .
+ssa program  12 instrs
+.B0:    ;;  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(1)) }.
          r0 <- Const { value: 123, size: 8 }
-         r1 <- JmpIf { cond: r0, target: 4 }
-.B2:    ;; preds:B0.
-         r4 <- Const { value: 8, size: 1 }
-         r8 <- Upsilon { value: r4, phi_ref: r7 }
-.B1:    ;; preds:B0.
-         r2 <- Const { value: 4, size: 1 }
-         r9 <- Upsilon { value: r2, phi_ref: r7 }
-.B3:    ;; preds:B1,B2.
-         r7 <- Phi
-         r5 <- ArithK(Add, r7, 456)
-         r6 <- Ret(r5)
+         r1 <- SetJumpCondition(r0)
+.B1:    ;; preds:B0  → Always(Block(BlockID(3))).
+         r3 <- Const { value: 4, size: 1 }
+         r11 <- Upsilon { value: r3, phi_ref: r9 }
+.B2:    ;; preds:B0  → Always(Block(BlockID(3))).
+         r5 <- Const { value: 8, size: 1 }
+         r10 <- Upsilon { value: r5, phi_ref: r9 }
+.B3:    ;; preds:B1,B2  → Always(Return).
+         r9 <- Phi
+         r6 <- ArithK(Add, r9, 456)
+         r7 <- SetReturnValue(r6)

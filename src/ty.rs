@@ -137,6 +137,7 @@ impl TypeSet {
         }
     }
 
+    #[allow(dead_code)]
     pub fn select(&self, tyid: TypeID, byte_range: Range<i64>) -> Result<Selection, SelectError> {
         assert!(!byte_range.is_empty());
         let ty = &self.get(tyid).unwrap().ty;
@@ -216,6 +217,7 @@ impl TypeSet {
         }
     }
 
+    #[allow(dead_code)]
     pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
         writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
 
@@ -254,7 +256,7 @@ impl TypeSet {
     }
 
     pub fn dump_ty<W: PP + ?Sized>(&self, out: &mut W, ty: &Ty) -> std::io::Result<()> {
-        Ok(match ty {
+        match ty {
             Ty::Int(Int { size, signed }) => {
                 let prefix = match signed {
                     Signedness::Signed => "i",
@@ -307,7 +309,9 @@ impl TypeSet {
             }
             Ty::Unknown(_) => write!(out, "?")?,
             Ty::Void => write!(out, "void")?,
-        })
+        }
+
+        Ok(())
     }
 
     pub(crate) fn call_site_by_return_pc(&self, return_pc: u64) -> Option<TypeID> {
@@ -371,6 +375,7 @@ pub struct Type {
 pub enum Ty {
     Int(Int),
     Bool(Bool),
+    #[allow(dead_code)]
     Enum(Enum),
     Struct(Struct),
     Ptr(TypeID),
@@ -412,11 +417,13 @@ impl Float {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Enum {
     pub variants: Vec<EnumVariant>,
     pub base_type: Int,
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct EnumVariant {
     pub value: i64,
@@ -462,12 +469,14 @@ pub struct Selection {
     pub tyid: TypeID,
     pub path: SmallVec<[SelectStep; 4]>,
 }
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum SelectStep {
     Index(i64),
     Member(Arc<String>),
 }
 impl SelectStep {
+    #[allow(dead_code)]
     fn as_str(&self) -> Option<&str> {
         match self {
             SelectStep::Index(_) => None,
@@ -485,6 +494,7 @@ pub enum SelectError {
     InvalidRange,
 }
 
+#[allow(dead_code)]
 fn dump_types<W: pp::PP>(
     out: &mut W,
     report: &dwarf::Report,
