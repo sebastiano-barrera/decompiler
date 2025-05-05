@@ -11,5 +11,7 @@ serde = "1.0.219"
 
 decompiler = { path = "../decompiler" }
 anyhow = "1.0.98"
+ouroboros = "0.18.5"
+thiserror = "2.0.12"
 
 
