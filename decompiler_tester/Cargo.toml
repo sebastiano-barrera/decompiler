@@ -4,3 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+eframe = { version = "0.31.1", features = ["persistence"] }
+egui = "0.31.1"
+ron = "0.10.1"
+serde = "1.0.219"
+
+decompiler = { path = "../decompiler" }
+anyhow = "1.0.98"
+
+
