@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use decompiler::test_tool::Tester;
-use egui::{TextBuffer, Widget};
+use egui::TextBuffer;
 use ouroboros::self_referencing;
 
 fn main() {
@@ -27,7 +27,7 @@ fn main() {
         Box::new(|_cctx| {
             let mut app = Box::new(App::new());
             _cctx.egui_ctx.set_theme(app.theme_preference);
-            app.open_executable(exe_filename);
+            app.open_executable(&exe_filename);
             Ok(app)
         }),
     );
@@ -48,22 +48,23 @@ struct Exe {
 }
 
 struct App {
-    restore_file: RestoreFile,
-    exe: Option<Result<Exe>>,
-
-    ui_function_name: String,
-    ui_function_name_selecting: bool,
-    // ordered lexicographically
-    ui_function_names: Vec<String>,
-
-    process_log: String,
-    file_view: FileView,
-    status: StatusView,
-
     theme_preference: egui::ThemePreference,
+    status: StatusView,
+    stage_exe: Option<StageExe>,
 }
 
-#[derive(serde::Serialize, Default, Clone)]
+struct StageExe {
+    exe: Result<Exe>,
+    path: PathBuf,
+    function_selector: Option<FunctionSelector>,
+    stage_func: Option<StageFunc>,
+}
+struct StageFunc {
+    function_name: String,
+    process_log: String,
+}
+
+#[derive(serde::Serialize, Default, Clone, Debug)]
 struct RestoreFile {
     exe_filename: Option<PathBuf>,
     function_name: Option<String>,
@@ -71,123 +72,42 @@ struct RestoreFile {
 
 impl App {
     fn new() -> Self {
-        let mut app = App {
-            restore_file: RestoreFile::default(),
-            exe: None,
-            ui_function_name: String::new(),
-            ui_function_name_selecting: false,
-            process_log: String::new(),
-            file_view: FileView::default(),
-            status: StatusView::default(),
+        App {
             theme_preference: egui::ThemePreference::Light,
-        };
-        app.status.push(StatusMessage {
-            text: "Ready.".into(),
-            category: StatusCategory::Info,
-            ..Default::default()
-        });
-
-        app
-    }
-
-    fn open_executable(&mut self, path: PathBuf) {
-        self.restore(RestoreFile {
-            exe_filename: Some(path),
-            function_name: None,
-        });
-    }
-
-    fn restore(&mut self, restore_file: RestoreFile) {
-        // move off thread?
-
-        let prev_restore_file = std::mem::replace(&mut self.restore_file, restore_file);
-
-        if self.restore_file.exe_filename != prev_restore_file.exe_filename {
-            self.exe = self
-                .restore_file
-                .exe_filename
-                .as_ref()
-                .map(|p| load_executable(&p));
-        }
-
-        if let Some(Ok(exe)) = &mut self.exe {
-            if self.restore_file.function_name != prev_restore_file.function_name {
-                match &self.restore_file.function_name {
-                    Some(function_name) => {
-                        exe.with_tester_mut(|tester| {
-                            let mut log = Vec::new();
-                            let mut pp = decompiler::pp::PrettyPrinter::start(&mut log);
-                            let res = tester.process_function(function_name, &mut pp);
-
-                            let mut log = String::from_utf8(log).unwrap();
-                            if let Err(err) = res {
-                                writeln!(log, "\nfinished with error: {:?}", err).unwrap();
-                            }
-
-                            self.process_log = log;
-                            self.ui_function_name = function_name.clone();
-                            self.ui_function_names =
-                                tester.function_names().map(ToOwned::to_owned).collect();
-                            self.ui_function_names.sort();
-                        });
-                    }
-                    None => {
-                        self.process_log = format!("No function loaded.");
-                    }
-                }
-            }
+            status: StatusView::default(),
+            stage_exe: None,
         }
     }
-}
 
-fn load_executable(path: &Path) -> Result<Exe> {
-    use std::io::Read as _;
-
-    let mut exe_bytes = Vec::new();
-    let mut elf = File::open(&path).context("opening file")?;
-    elf.read_to_end(&mut exe_bytes).context("reading file")?;
-
-    ExeTryBuilder {
-        exe_bytes,
-        tester_builder: |exe_bytes| Tester::start(&exe_bytes).context("parsing executable"),
+    fn open_executable(&mut self, path: &Path) {
+        let exe = load_executable(path);
+        self.stage_exe = Some(StageExe {
+            exe,
+            path: path.to_path_buf(),
+            function_selector: None,
+            stage_func: None,
+        });
     }
-    .try_build()
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let stage_exe = match &mut self.stage_exe {
+            Some(stage_exe) => stage_exe,
+            None => {
+                egui::CentralPanel::default()
+                    .show(ctx, |ui| ui.label("No executable loaded. (To do!)"));
+                return;
+            }
+        };
+
         egui::TopBottomPanel::top("top_bar")
             .resizable(false)
             .show_separator_line(false)
             .exact_height(25.)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    if let Some(Ok(exe)) = &self.exe {
-                        let response = egui::TextEdit::singleline(&mut self.ui_function_name)
-                            .hint_text("Function name...")
-                            .show(ui)
-                            .response;
-
-                        if response.has_focus() {
-                            self.ui_function_name_selecting = true;
-                        }
-
-                        if response.lost_focus() {
-                            if exe
-                                .borrow_tester()
-                                .has_function_named(&self.ui_function_name)
-                            {
-                                self.ui_function_name_selecting = false;
-                                self.restore(RestoreFile {
-                                    function_name: Some(self.ui_function_name.clone()),
-                                    ..self.restore_file.clone()
-                                });
-                                return;
-                            } else {
-                                ui.label("no such function");
-                            }
-                        }
-                    }
+                    stage_exe.show_topbar(ui);
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
                         if ui.button("Quit").clicked() {
@@ -213,21 +133,7 @@ impl eframe::App for App {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.ui_function_name_selecting {
-                if let Some(Ok(exe)) = &self.exe {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        for name in exe.borrow_tester().function_names() {
-                            if name.contains(&self.ui_function_name) {
-                                if ui.selectable_label(false, name).clicked() {
-                                    self.ui_function_name = name.to_string();
-                                }
-                            }
-                        }
-                    });
-                }
-            } else {
-                self.file_view.show(ui, &self.process_log);
-            }
+            stage_exe.show_central(ctx, ui);
         });
 
         egui::TopBottomPanel::bottom("statusbar")
@@ -240,7 +146,15 @@ impl eframe::App for App {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        match ron::to_string(&self.restore_file) {
+        let stage_exe = self.stage_exe.as_ref();
+        let restore_file = RestoreFile {
+            exe_filename: stage_exe.map(|st| st.path.clone()),
+            function_name: stage_exe
+                .and_then(|st| st.stage_func.as_ref())
+                .map(|st| st.function_name.clone()),
+        };
+
+        match ron::to_string(&restore_file) {
             Ok(payload) => {
                 storage.set_string("state", payload);
                 self.status.push(StatusMessage {
@@ -256,6 +170,152 @@ impl eframe::App for App {
                 });
             }
         }
+    }
+}
+
+impl StageExe {
+    fn show_topbar(&mut self, ui: &mut egui::Ui) {
+        match &mut self.exe {
+            Ok(exe) => {
+                if ui.button("Load function…").clicked() {
+                    let mut all_names: Vec<_> = exe
+                        .borrow_tester()
+                        .function_names()
+                        .map(|s| s.to_owned())
+                        .collect();
+                    all_names.sort();
+                    self.function_selector =
+                        Some(FunctionSelector::new("modal load function", all_names));
+                }
+
+                if let Some(stage_func) = &self.stage_func {
+                    ui.label(&stage_func.function_name);
+                } else {
+                    ui.label("No function loaded.");
+                }
+            }
+            Err(_) => {}
+        }
+    }
+
+    fn show_central(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        match &mut self.stage_func {
+            Some(stage_func) => {
+                stage_func.show_central(ui);
+            }
+            None => {
+                ui.label("No function loaded.");
+            }
+        }
+
+        if let Some(function_selector) = &mut self.function_selector {
+            let res = function_selector.show(ctx);
+            if let Some(function_name) = res.inner.cloned() {
+                self.load_function(&function_name);
+                self.function_selector = None;
+            } else if res.should_close() {
+                self.function_selector = None;
+            }
+        }
+    }
+
+    fn load_function(&mut self, function_name: &str) {
+        let Ok(exe) = &mut self.exe else { return };
+
+        let process_log = exe.with_tester_mut(|tester| {
+            let mut log = Vec::new();
+            let mut pp = decompiler::pp::PrettyPrinter::start(&mut log);
+            let res = tester.process_function(function_name, &mut pp);
+
+            let mut log = String::from_utf8(log).unwrap();
+            if let Err(err) = res {
+                writeln!(log, "\nfinished with error: {:?}", err).unwrap();
+            }
+
+            log
+        });
+
+        self.stage_func = Some(StageFunc {
+            function_name: function_name.to_string(),
+            process_log,
+        });
+    }
+}
+
+impl StageFunc {
+    fn show_central(&self, ui: &mut egui::Ui) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.label(&self.process_log);
+        });
+    }
+}
+
+fn load_executable(path: &Path) -> Result<Exe> {
+    use std::io::Read as _;
+
+    let mut exe_bytes = Vec::new();
+    let mut elf = File::open(&path).context("opening file")?;
+    elf.read_to_end(&mut exe_bytes).context("reading file")?;
+
+    ExeTryBuilder {
+        exe_bytes,
+        tester_builder: |exe_bytes| Tester::start(&exe_bytes).context("parsing executable"),
+    }
+    .try_build()
+}
+
+struct FunctionSelector {
+    id: &'static str,
+    line: String,
+    all_names: Vec<String>,
+    filtered_ndxs: Vec<usize>,
+}
+
+impl FunctionSelector {
+    fn new(id: &'static str, all_names: Vec<String>) -> Self {
+        FunctionSelector {
+            id,
+            line: String::new(),
+            all_names,
+            filtered_ndxs: Vec::new(),
+        }
+    }
+
+    fn show(&mut self, ctx: &egui::Context) -> egui::ModalResponse<Option<&String>> {
+        egui::Modal::new(self.id.into()).show(ctx, |ui| {
+            egui::TextEdit::singleline(&mut self.line)
+                .font(egui::TextStyle::Monospace)
+                .hint_text("Function name...")
+                .show(ui);
+
+            ui.add_space(5.0);
+
+            self.filtered_ndxs.clear();
+            self.filtered_ndxs.extend(
+                self.all_names
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, name)| name.contains(&self.line))
+                    .map(|(ndx, _)| ndx),
+            );
+
+            let mut response_inner = None;
+            egui::ScrollArea::vertical().show_rows(
+                ui,
+                18.0,
+                self.filtered_ndxs.len(),
+                |ui, ndxs| {
+                    for ndx in ndxs {
+                        let name = &self.all_names[self.filtered_ndxs[ndx]];
+                        if ui.selectable_label(false, name).clicked() {
+                            response_inner = Some(name);
+                        }
+                    }
+                },
+            );
+
+            response_inner
+        })
     }
 }
 
@@ -303,19 +363,5 @@ impl Default for StatusMessage {
             category: StatusCategory::Info,
             timeout: Duration::from_secs(5),
         }
-    }
-}
-
-struct FileView {}
-
-impl Default for FileView {
-    fn default() -> Self {
-        FileView {}
-    }
-}
-
-impl FileView {
-    fn show(&mut self, ui: &mut egui::Ui, log: &str) {
-        ui.label(log);
     }
 }
