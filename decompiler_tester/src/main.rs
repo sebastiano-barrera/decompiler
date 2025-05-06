@@ -66,7 +66,7 @@ struct RestoreFile {
 
 impl App {
     fn new() -> Self {
-        App {
+        let mut app = App {
             restore_file: RestoreFile::default(),
             exe: None,
             ui_function_name: String::new(),
@@ -74,7 +74,14 @@ impl App {
             file_view: FileView::default(),
             status: StatusView::default(),
             theme_preference: egui::ThemePreference::Light,
-        }
+        };
+        app.status.push(StatusMessage {
+            text: "Ready.".into(),
+            category: StatusCategory::Info,
+            ..Default::default()
+        });
+
+        app
     }
 
     fn open_executable(&mut self, path: PathBuf) {
@@ -159,7 +166,6 @@ impl eframe::App for App {
                         ctx.set_theme(value);
                     }
                 });
-                self.status.show(ui);
             });
 
             if ui
@@ -175,6 +181,14 @@ impl eframe::App for App {
 
             self.file_view.show(ui, &self.process_log);
         });
+
+        egui::TopBottomPanel::bottom("statusbar")
+            .exact_height(20.)
+            .resizable(false)
+            .show_separator_line(false)
+            .show(ctx, |ui| {
+                self.status.show(ui);
+            });
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
