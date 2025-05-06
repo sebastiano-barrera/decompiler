@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use decompiler::test_tool::Tester;
-use egui::TextBuffer;
+use egui::{TextBuffer, Widget};
 use ouroboros::self_referencing;
 
 fn main() {
@@ -50,7 +50,12 @@ struct Exe {
 struct App {
     restore_file: RestoreFile,
     exe: Option<Result<Exe>>,
+
     ui_function_name: String,
+    ui_function_name_selecting: bool,
+    // ordered lexicographically
+    ui_function_names: Vec<String>,
+
     process_log: String,
     file_view: FileView,
     status: StatusView,
@@ -70,6 +75,7 @@ impl App {
             restore_file: RestoreFile::default(),
             exe: None,
             ui_function_name: String::new(),
+            ui_function_name_selecting: false,
             process_log: String::new(),
             file_view: FileView::default(),
             status: StatusView::default(),
@@ -120,6 +126,9 @@ impl App {
 
                             self.process_log = log;
                             self.ui_function_name = function_name.clone();
+                            self.ui_function_names =
+                                tester.function_names().map(ToOwned::to_owned).collect();
+                            self.ui_function_names.sort();
                         });
                     }
                     None => {
@@ -147,39 +156,78 @@ fn load_executable(path: &Path) -> Result<Exe> {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                if ui.button("Quit").clicked() {
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                }
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                    let (label, value) = match self.theme_preference {
-                        // not super correct, but whatever
-                        egui::ThemePreference::System | egui::ThemePreference::Dark => {
-                            ("Light mode", egui::ThemePreference::Light)
-                        }
-                        egui::ThemePreference::Light => ("Dark mode", egui::ThemePreference::Dark),
-                    };
+        egui::TopBottomPanel::top("top_bar")
+            .resizable(false)
+            .show_separator_line(false)
+            .exact_height(25.)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    if let Some(Ok(exe)) = &self.exe {
+                        let response = egui::TextEdit::singleline(&mut self.ui_function_name)
+                            .hint_text("Function name...")
+                            .show(ui)
+                            .response;
 
-                    if ui.button(label).clicked() {
-                        self.theme_preference = value;
-                        ctx.set_theme(value);
+                        if response.has_focus() {
+                            self.ui_function_name_selecting = true;
+                        }
+
+                        if response.lost_focus() {
+                            if exe
+                                .borrow_tester()
+                                .has_function_named(&self.ui_function_name)
+                            {
+                                self.ui_function_name_selecting = false;
+                                self.restore(RestoreFile {
+                                    function_name: Some(self.ui_function_name.clone()),
+                                    ..self.restore_file.clone()
+                                });
+                                return;
+                            } else {
+                                ui.label("no such function");
+                            }
+                        }
                     }
+
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                        if ui.button("Quit").clicked() {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+
+                        let (label, value) = match self.theme_preference {
+                            // not super correct, but whatever
+                            egui::ThemePreference::System | egui::ThemePreference::Dark => {
+                                ("Light mode", egui::ThemePreference::Light)
+                            }
+                            egui::ThemePreference::Light => {
+                                ("Dark mode", egui::ThemePreference::Dark)
+                            }
+                        };
+
+                        if ui.button(label).clicked() {
+                            self.theme_preference = value;
+                            ctx.set_theme(value);
+                        }
+                    });
                 });
             });
 
-            if ui
-                .text_edit_singleline(&mut self.ui_function_name)
-                .lost_focus()
-            {
-                self.restore(RestoreFile {
-                    function_name: Some(self.ui_function_name.clone()),
-                    ..self.restore_file.clone()
-                });
-                return;
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if self.ui_function_name_selecting {
+                if let Some(Ok(exe)) = &self.exe {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for name in exe.borrow_tester().function_names() {
+                            if name.contains(&self.ui_function_name) {
+                                if ui.selectable_label(false, name).clicked() {
+                                    self.ui_function_name = name.to_string();
+                                }
+                            }
+                        }
+                    });
+                }
+            } else {
+                self.file_view.show(ui, &self.process_log);
             }
-
-            self.file_view.show(ui, &self.process_log);
         });
 
         egui::TopBottomPanel::bottom("statusbar")

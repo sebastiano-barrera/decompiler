@@ -79,6 +79,10 @@ impl<'a> Tester<'a> {
         self.func_syms.keys().map(|s| s.as_str())
     }
 
+    pub fn has_function_named(&self, name: &str) -> bool {
+        self.func_syms.contains_key(name)
+    }
+
     pub fn process_function<W: pp::PP + ?Sized>(
         &self,
         function_name: &str,
