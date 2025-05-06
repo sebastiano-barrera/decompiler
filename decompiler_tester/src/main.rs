@@ -26,6 +26,7 @@ fn main() {
         eframe::NativeOptions::default(),
         Box::new(|_cctx| {
             let mut app = Box::new(App::new());
+            _cctx.egui_ctx.set_theme(app.theme_preference);
             app.open_executable(exe_filename);
             Ok(app)
         }),
@@ -53,6 +54,8 @@ struct App {
     process_log: String,
     file_view: FileView,
     status: StatusView,
+
+    theme_preference: egui::ThemePreference,
 }
 
 #[derive(serde::Serialize, Default, Clone)]
@@ -70,6 +73,7 @@ impl App {
             process_log: String::new(),
             file_view: FileView::default(),
             status: StatusView::default(),
+            theme_preference: egui::ThemePreference::Light,
         }
     }
 
@@ -141,6 +145,20 @@ impl eframe::App for App {
                 if ui.button("Quit").clicked() {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                    let (label, value) = match self.theme_preference {
+                        // not super correct, but whatever
+                        egui::ThemePreference::System | egui::ThemePreference::Dark => {
+                            ("Light mode", egui::ThemePreference::Light)
+                        }
+                        egui::ThemePreference::Light => ("Dark mode", egui::ThemePreference::Dark),
+                    };
+
+                    if ui.button(label).clicked() {
+                        self.theme_preference = value;
+                        ctx.set_theme(value);
+                    }
+                });
                 self.status.show(ui);
             });
 
