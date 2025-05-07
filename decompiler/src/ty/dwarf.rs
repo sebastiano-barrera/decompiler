@@ -105,6 +105,7 @@ pub fn load_dwarf_types(
         return Err(Error::NoCompileUnit);
     }
 
+    types.assert_invariants();
     Ok(Report { errors })
 }
 
@@ -144,7 +145,6 @@ impl<'a> TypeParser<'a> {
             }
         }
 
-        types.assert_invariants();
         Ok(())
     }
 
