@@ -1,4 +1,4 @@
-use decompiler::{pp, test_tool};
+use decompiler::pp;
 
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
@@ -31,7 +31,7 @@ macro_rules! tests_in_binary {
 }
 
 struct Exe {
-    once_lock: OnceLock<test_tool::Result<test_tool::Tester<'static>>>,
+    once_lock: OnceLock<decompiler::Result<decompiler::Executable<'static>>>,
     path: &'static str,
 }
 impl Exe {
@@ -42,12 +42,12 @@ impl Exe {
         }
     }
 
-    fn get_or_init(&self) -> &test_tool::Tester<'static> {
+    fn get_or_init(&self) -> &decompiler::Executable<'static> {
         self.once_lock
             .get_or_init(|| {
                 let rel_path = Path::new(self.path);
                 let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
-                test_tool::Tester::start(raw)
+                decompiler::Executable::parse(raw)
             })
             .as_ref()
             .unwrap()

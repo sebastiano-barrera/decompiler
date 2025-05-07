@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use decompiler::test_tool::Tester;
+use decompiler::Executable;
 use egui::TextBuffer;
 use ouroboros::self_referencing;
 
@@ -44,7 +44,7 @@ struct Exe {
 
     #[borrows(exe_bytes)]
     #[covariant]
-    tester: Tester<'this>,
+    exe: Executable<'this>,
 }
 
 struct App {
@@ -179,7 +179,7 @@ impl StageExe {
             Ok(exe) => {
                 if ui.button("Load function…").clicked() {
                     let mut all_names: Vec<_> = exe
-                        .borrow_tester()
+                        .borrow_exe()
                         .function_names()
                         .map(|s| s.to_owned())
                         .collect();
@@ -222,10 +222,10 @@ impl StageExe {
     fn load_function(&mut self, function_name: &str) {
         let Ok(exe) = &mut self.exe else { return };
 
-        let process_log = exe.with_tester_mut(|tester| {
+        let process_log = exe.with_exe_mut(|exe| {
             let mut log = Vec::new();
             let mut pp = decompiler::pp::PrettyPrinter::start(&mut log);
-            let res = tester.process_function(function_name, &mut pp);
+            let res = exe.process_function(function_name, &mut pp);
 
             let mut log = String::from_utf8(log).unwrap();
             if let Err(err) = res {
@@ -259,7 +259,7 @@ fn load_executable(path: &Path) -> Result<Exe> {
 
     ExeTryBuilder {
         exe_bytes,
-        tester_builder: |exe_bytes| Tester::start(&exe_bytes).context("parsing executable"),
+        exe_builder: |exe_bytes| Executable::parse(&exe_bytes).context("parsing executable"),
     }
     .try_build()
 }

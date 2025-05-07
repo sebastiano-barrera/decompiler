@@ -3,11 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use iced_x86::Formatter;
 use thiserror::Error;
 
-use crate::{
-    ast,
-    pp::{self, PP},
-    ssa, ty, x86_to_mil, xform,
-};
+use crate::{ast, pp, ssa, ty, x86_to_mil, xform};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -25,11 +21,18 @@ pub enum Error {
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn run<W: PP + ?Sized>(raw_binary: &[u8], function_name: &str, out: &mut W) -> Result<()> {
-    Tester::start(raw_binary)?.process_function(function_name, out)
-}
-
-pub struct Tester<'a> {
+/// Represents an executable analyzed by the decompiler.
+///
+/// An [Executable] borrows the executable's raw content in ELF format as a
+/// bytes slice (`&'a [u8]`).
+///
+/// This is the main entry point for the decompiler's API.
+///
+/// The typical usage is:
+///  - Create an object via [`Executable::parse`]
+///  - Check the list of functions via [`Executable::function_names`]
+///  - Decompile a given function via [`Executable::process_function`]
+pub struct Executable<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
     func_syms: HashMap<String, AddrRange>,
@@ -42,8 +45,8 @@ struct AddrRange {
     size: usize,
 }
 
-impl<'a> Tester<'a> {
-    pub fn start(raw_binary: &'a [u8]) -> Result<Self> {
+impl<'a> Executable<'a> {
+    pub fn parse(raw_binary: &'a [u8]) -> Result<Self> {
         let elf = crate::elf::parse_elf(raw_binary)?;
         let func_syms = elf
             .syms
@@ -67,7 +70,7 @@ impl<'a> Tester<'a> {
             println!(" #{}: 0x{:08x}: {}", ndx, addr, err);
         }
 
-        Ok(Tester {
+        Ok(Executable {
             raw_binary,
             elf,
             func_syms,

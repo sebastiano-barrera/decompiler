@@ -1,7 +1,4 @@
-use decompiler::{
-    pp::{self},
-    test_tool,
-};
+use decompiler::pp;
 
 use rayon::prelude::*;
 use std::{borrow::Cow, io::Write};
@@ -40,14 +37,14 @@ fn main() {
         contents
     };
 
-    let tester = test_tool::Tester::start(&raw_binary).unwrap();
+    let exe = decompiler::Executable::parse(&raw_binary).unwrap();
 
-    println!("parsing {} functions:", tester.function_names().len());
-    for name in tester.function_names() {
+    println!("parsing {} functions:", exe.function_names().len());
+    for name in exe.function_names() {
         println!(" - {}", name);
     }
 
-    let function_names: Vec<_> = tester.function_names().map(|s| s.to_owned()).collect();
+    let function_names: Vec<_> = exe.function_names().map(|s| s.to_owned()).collect();
     function_names.par_iter().for_each(|function_name| {
         println!("starting: {}", function_name);
         let filename = function_name.replace(|ch: char| !ch.is_alphanumeric(), "_");
@@ -56,11 +53,11 @@ fn main() {
         let res = std::panic::catch_unwind(|| {
             if opts.skip_write {
                 let mut out = pp::PrettyPrinter::start(NullSink);
-                tester.process_function(function_name, &mut out).unwrap();
+                exe.process_function(function_name, &mut out).unwrap();
             } else {
                 let out_file = File::create(&path).unwrap();
                 let mut out = pp::PrettyPrinter::start(out_file);
-                tester.process_function(function_name, &mut out).unwrap();
+                exe.process_function(function_name, &mut out).unwrap();
             };
         });
 
