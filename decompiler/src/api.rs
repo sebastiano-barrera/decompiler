@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use iced_x86::Formatter;
 use thiserror::Error;
 
-use crate::{ast, pp, ssa, ty, x86_to_mil, xform};
+use crate::{ast, mil, pp, ssa, ty, util::Warnings, x86_to_mil, xform};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -15,6 +15,15 @@ pub enum Error {
 
     #[error("symbol `{0}` is not a function")]
     NotAFunction(String),
+
+    #[error("no .text section?!")]
+    NoTextSection,
+
+    #[error("can't use type ID {0:?} as subroutine type")]
+    NotASubroutineType(ty::TypeID),
+
+    #[error("while compiling to MIL: {0}")]
+    FrontendError(String),
 
     #[error("while parsing DWARF type info: {0}")]
     DwarfTypeParserError(#[from] ty::dwarf::Error),
@@ -86,6 +95,10 @@ impl<'a> Executable<'a> {
         self.func_syms.contains_key(name)
     }
 
+    // This function is legacy. Only used by the test tool.
+    //
+    // We should change `decompile_function` so that it is good enough for
+    // test_tool, then migrate the latter.
     pub fn process_function<W: pp::PP + ?Sized>(
         &self,
         function_name: &str,
@@ -229,5 +242,147 @@ impl<'a> Executable<'a> {
         ast.pretty_print(out).unwrap();
 
         Ok(())
+    }
+
+    pub fn decompile_function<W: pp::PP + ?Sized>(
+        &self,
+        function_name: &str,
+    ) -> Result<DecompiledFunction> {
+        // (func_addr, func_size, file_offset, func_text)
+        let mut df = self.find_function(function_name)?;
+
+        let mil_res = std::panic::catch_unwind(|| {
+            let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
+
+            let func_tyid_opt = self.types.get_known_object(df.vm_addr.try_into().unwrap());
+            let func_ty = match func_tyid_opt {
+                Some(func_tyid) => {
+                    let func_typ = self.types.get_through_alias(func_tyid).unwrap();
+                    match &func_typ.ty {
+                        ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
+                        _ => {
+                            return Err(Error::NotASubroutineType(func_tyid));
+                        }
+                    }
+                }
+                None => None,
+            };
+
+            let mut decoder = df.disassemble(self);
+            let ret = b.translate(decoder.iter(), func_ty);
+            Ok(ret)
+        });
+
+        match mil_res {
+            // TODO!
+        }
+
+        let Some(Ok((mil, _))) = &df.mil else {
+            return Ok(df);
+        };
+
+        let mut ssa = ssa::mil_to_ssa(ssa::ConversionParams::new(mil.clone()));
+        let ssa_pre_xform = ssa.clone();
+        xform::canonical(&mut ssa);
+
+        df.ssa = Some(ssa);
+        df.ssa_pre_xform = Some(ssa_pre_xform);
+
+        Ok(df)
+    }
+
+    fn find_function(&self, function_name: &str) -> Result<DecompiledFunction> {
+        let AddrRange {
+            base: vm_addr,
+            size: code_size,
+        } = self
+            .func_syms
+            .get(function_name)
+            .copied()
+            .ok_or(Error::NotAFunction(function_name.to_owned()))?;
+        let func_end = vm_addr + code_size;
+        let text_section = self
+            .elf
+            .section_headers
+            .iter()
+            .find(|sec| {
+                sec.is_executable() && self.elf.shdr_strtab.get_at(sec.sh_name) == Some(".text")
+            })
+            .ok_or(Error::NoTextSection)?;
+        let vm_range = text_section.vm_range();
+        if vm_range.start > vm_addr || vm_range.end < func_end {
+            eprintln!(
+                "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
+                vm_addr, func_end, vm_range.start, vm_range.end,
+            );
+        }
+        let text_section_offset = vm_addr - vm_range.start;
+        let file_offset = text_section.sh_offset as usize + text_section_offset;
+        Ok(DecompiledFunction {
+            function_name: function_name.to_string(),
+            text_section_offset,
+            file_offset,
+            vm_addr,
+            code_size,
+            mil: None,
+            ssa_pre_xform: None,
+            ssa: None,
+            error: None,
+        })
+    }
+}
+
+pub struct DecompiledFunction {
+    function_name: String,
+
+    /// Offset of the machine code from the ELF's .text section
+    text_section_offset: usize,
+    /// Offset of the machine code from the start of the executable file.
+    file_offset: usize,
+    /// Address of the machine code at runtime, in the process' virtual memory.
+    vm_addr: usize,
+
+    /// Size of the original machine code, in bytes.
+    code_size: usize,
+
+    mil: Option<(mil::Program, Warnings)>,
+    ssa_pre_xform: Option<crate::ssa::Program>,
+    ssa: Option<crate::ssa::Program>,
+
+    error: Option<Error>,
+}
+
+impl DecompiledFunction {
+    pub fn name(&self) -> &str {
+        &self.function_name
+    }
+
+    pub fn error(&self) -> Option<&Error> {
+        self.error.as_ref()
+    }
+
+    pub fn machine_code<'e>(&self, exe: &'e Executable) -> &'e [u8] {
+        &exe.raw_binary[self.file_offset..self.file_offset + self.code_size]
+    }
+
+    pub fn disassemble<'e>(&self, exe: &'e Executable) -> iced_x86::Decoder<'e> {
+        iced_x86::Decoder::with_ip(
+            64,
+            self.machine_code(exe),
+            self.vm_addr.try_into().unwrap(),
+            iced_x86::DecoderOptions::NONE,
+        )
+    }
+
+    pub fn mil(&self) -> Option<&anyhow::Result<(mil::Program, Warnings)>> {
+        self.mil.as_ref()
+    }
+
+    pub fn ssa_pre_xform(&self) -> Option<&crate::ssa::Program> {
+        self.ssa_pre_xform.as_ref()
+    }
+
+    pub fn ssa(&self) -> Option<&crate::ssa::Program> {
+        self.ssa.as_ref()
     }
 }
