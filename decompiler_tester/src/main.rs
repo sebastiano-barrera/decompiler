@@ -283,8 +283,15 @@ impl StageExe {
             eprintln!("unable to load function: no exe loaded");
             return;
         };
-        self.stage_func =
-            Some(exe.with_exe_mut(|exe| exe.decompile_function(function_name).map(StageFunc::new)));
+
+        let mut stage_func =
+            exe.with_exe_mut(|exe| exe.decompile_function(function_name).map(StageFunc::new));
+        if let Ok(stage_func) = &mut stage_func {
+            stage_func.error_panel_visible =
+                stage_func.df.error().is_some() || !stage_func.df.warnings().is_empty();
+        }
+
+        self.stage_func = Some(stage_func);
     }
 
     fn show_status(&mut self, ui: &mut egui::Ui) {
