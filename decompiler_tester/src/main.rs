@@ -72,8 +72,10 @@ struct StageFunc {
     problems_title: String,
     problems_error: Option<String>,
 }
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 enum Pane {
+    Assembly,
     Mil,
     Ssa,
     SsaPreXform,
@@ -149,6 +151,13 @@ impl App {
             ),
         });
     }
+
+    fn function_name(&self) -> Option<&str> {
+        let stage_exe = self.stage_exe.as_ref()?;
+        let stage_func_res = stage_exe.stage_func.as_ref()?;
+        let stage_func = stage_func_res.as_ref().ok()?;
+        Some(stage_func.df.name())
+    }
 }
 
 impl eframe::App for App {
@@ -213,10 +222,7 @@ impl eframe::App for App {
         let stage_exe = self.stage_exe.as_ref();
         let restore_file = RestoreFile {
             exe_filename: stage_exe.map(|st| st.path.clone()),
-            function_name: stage_exe
-                .and_then(|st| st.stage_func.as_ref())
-                .and_then(|st_res| st_res.as_ref().ok())
-                .map(|st| st.df.name().to_string()),
+            function_name: self.function_name().map(ToOwned::to_owned),
         };
 
         match ron::to_string(&restore_file) {
@@ -412,6 +418,7 @@ impl egui_tiles::Behavior<Pane> for StageFunc {
             Pane::Ssa => "SSA",
             Pane::SsaPreXform => "SSA pre-transforms",
             Pane::Ast => "AST",
+            Pane::Assembly => "Assembly",
         }
         .into()
     }
