@@ -439,16 +439,19 @@ impl StageFunc {
 
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
-        egui::ScrollArea::vertical()
+        egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show_rows(ui, height, self.assembly.lines.len(), |ui, ndxs| {
                 for ndx in ndxs {
                     let asm_line = &self.assembly.lines[ndx];
-                    ui.horizontal(|ui| {
+                    ui.horizontal_top(|ui| {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             ui.monospace(format!("0x{:x}", asm_line.addr));
                         });
-                        ui.monospace(&asm_line.text);
+                        ui.add(
+                            egui::Label::new(egui::RichText::new(&asm_line.text).monospace())
+                                .extend(),
+                        );
                     });
                 }
             });
@@ -456,11 +459,14 @@ impl StageFunc {
 
     fn ui_tab_mil(&mut self, ui: &mut egui::Ui) {
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
-        egui::ScrollArea::vertical()
+        egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show_rows(ui, height, self.mil_lines.len(), |ui, ndxs| {
                 for ndx in ndxs {
-                    ui.monospace(&self.mil_lines[ndx]);
+                    ui.add(
+                        egui::Label::new(egui::RichText::new(&self.mil_lines[ndx]).monospace())
+                            .extend(),
+                    );
                 }
             });
     }
