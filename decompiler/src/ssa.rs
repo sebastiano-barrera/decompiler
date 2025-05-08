@@ -344,16 +344,18 @@ impl Iterator for InsnRPOIter<'_> {
                     );
                 }
                 IterCmd::StartInsn((bid, reg)) => {
-                    self.queue.push(IterCmd::EndInsn((bid, reg)));
-                    self.queue.extend(
-                        self.prog
-                            .get(reg)
-                            .unwrap()
-                            .insn
-                            .get()
-                            .input_regs_iter()
-                            .map(|input| IterCmd::StartInsn((bid, *input))),
-                    );
+                    if self.was_yielded[reg.reg_index() as usize] {
+                        self.queue.push(IterCmd::EndInsn((bid, reg)));
+                        self.queue.extend(
+                            self.prog
+                                .get(reg)
+                                .unwrap()
+                                .insn
+                                .get()
+                                .input_regs_iter()
+                                .map(|input| IterCmd::StartInsn((bid, *input))),
+                        );
+                    }
                 }
                 IterCmd::EndInsn((bid, reg)) => {
                     let was_yielded =
