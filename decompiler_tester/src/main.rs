@@ -376,9 +376,16 @@ impl FunctionSelector {
 
     fn show(&mut self, ctx: &egui::Context) -> egui::ModalResponse<Option<&String>> {
         egui::Modal::new(self.id.into()).show(ctx, |ui| {
+            let screen_rect = ctx.screen_rect();
+            ui.set_min_size(egui::Vec2::new(
+                screen_rect.width() * 0.6,
+                screen_rect.height() * 0.6,
+            ));
+
             egui::TextEdit::singleline(&mut self.line)
                 .font(egui::TextStyle::Monospace)
                 .hint_text("Function name...")
+                .desired_width(f32::INFINITY)
                 .show(ui);
 
             ui.add_space(5.0);
@@ -392,20 +399,19 @@ impl FunctionSelector {
                     .map(|(ndx, _)| ndx),
             );
 
+            use egui::scroll_area::ScrollBarVisibility;
             let mut response_inner = None;
-            egui::ScrollArea::vertical().show_rows(
-                ui,
-                18.0,
-                self.filtered_ndxs.len(),
-                |ui, ndxs| {
+            egui::ScrollArea::vertical()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+                .show_rows(ui, 18.0, self.filtered_ndxs.len(), |ui, ndxs| {
+                    ui.set_min_width(ui.available_width());
                     for ndx in ndxs {
                         let name = &self.all_names[self.filtered_ndxs[ndx]];
                         if ui.selectable_label(false, name).clicked() {
                             response_inner = Some(name);
                         }
                     }
-                },
-            );
+                });
 
             response_inner
         })
