@@ -64,12 +64,20 @@ struct StageExe {
     path: PathBuf,
     function_selector: Option<FunctionSelector>,
     stage_func: Option<Result<StageFunc, decompiler::Error>>,
+    stage_func_tree: egui_tiles::Tree<Pane>,
 }
 struct StageFunc {
     df: decompiler::DecompiledFunction,
-    error_panel_visible: bool,
-    title: String,
-    error_label: Option<String>,
+    problems_is_visible: bool,
+    problems_title: String,
+    problems_error: Option<String>,
+}
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+enum Pane {
+    Mil,
+    Ssa,
+    SsaPreXform,
+    Ast,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug)]
@@ -126,6 +134,8 @@ impl App {
         }
     }
 
+    const TREE_ID: &'static str = "stage_func_tree";
+
     fn open_executable(&mut self, path: &Path) {
         let exe = load_executable(path);
         self.stage_exe = Some(StageExe {
@@ -133,6 +143,10 @@ impl App {
             path: path.to_path_buf(),
             function_selector: None,
             stage_func: None,
+            stage_func_tree: egui_tiles::Tree::new_horizontal(
+                Self::TREE_ID,
+                vec![Pane::Mil, Pane::Ast],
+            ),
         });
     }
 }
@@ -238,9 +252,9 @@ impl StageExe {
             self.function_selector = Some(FunctionSelector::new("modal load function", all_names));
         }
 
-        match &self.stage_func {
+        match &mut self.stage_func {
             Some(Ok(stage_func)) => {
-                stage_func.show_topbar(ui);
+                stage_func.show_topbar(ui, &mut self.stage_func_tree);
             }
             Some(Err(_)) => {
                 // error shown in central area
@@ -254,7 +268,8 @@ impl StageExe {
     fn show_central(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         match &mut self.stage_func {
             Some(Ok(stage_func)) => {
-                stage_func.show_central(ui);
+                stage_func.show_panels(ui);
+                self.stage_func_tree.ui(stage_func, ui);
             }
             Some(Err(err)) => {
                 egui::Frame::new().show(ui, |ui| {
@@ -289,7 +304,7 @@ impl StageExe {
         let mut stage_func =
             exe.with_exe_mut(|exe| exe.decompile_function(function_name).map(StageFunc::new));
         if let Ok(stage_func) = &mut stage_func {
-            stage_func.error_panel_visible =
+            stage_func.problems_is_visible =
                 stage_func.df.error().is_some() || !stage_func.df.warnings().is_empty();
         }
 
@@ -314,22 +329,40 @@ impl StageFunc {
 
         StageFunc {
             df,
-            title,
-            error_label,
-            error_panel_visible: false,
+            problems_title: title,
+            problems_error: error_label,
+            problems_is_visible: false,
         }
     }
 
-    fn show_topbar(&self, ui: &mut egui::Ui) {
+    fn show_topbar(&mut self, ui: &mut egui::Ui, tree: &mut egui_tiles::Tree<Pane>) {
         ui.label(self.df.name());
-        let _ = ui.button("MIL");
-        let _ = ui.button("SSA");
-        let _ = ui.button("SSA pre-xform");
-        let _ = ui.button("AST");
+
+        ui.menu_button("Add view", |ui| {
+            for (pane, label) in [
+                (Pane::Mil, "MIL"),
+                (Pane::Ssa, "SSA"),
+                (Pane::SsaPreXform, "SSA pre-xform"),
+                (Pane::Ast, "AST"),
+            ] {
+                if ui.button(label).clicked() {
+                    let root_id = *tree
+                        .root
+                        .get_or_insert_with(|| tree.tiles.insert_vertical_tile(vec![]));
+                    let child = tree.tiles.insert_pane(pane);
+                    let egui_tiles::Tile::Container(root) = tree.tiles.get_mut(root_id).unwrap()
+                    else {
+                        panic!()
+                    };
+                    root.add_child(child);
+                    // do not close menu, in case the user wants another tile
+                }
+            }
+        });
     }
 
-    fn show_central(&self, ui: &mut egui::Ui) {
-        if self.error_panel_visible {
+    fn show_panels(&mut self, ui: &mut egui::Ui) {
+        if self.problems_is_visible {
             egui::TopBottomPanel::bottom("func_errors")
                 .resizable(true)
                 .default_height(ui.text_style_height(&egui::TextStyle::Body) * 10.0)
@@ -338,9 +371,9 @@ impl StageFunc {
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             // TODO cache
-                            ui.heading(&self.title);
+                            ui.heading(&self.problems_title);
 
-                            if let Some(error_label) = &self.error_label {
+                            if let Some(error_label) = &self.problems_error {
                                 ui.label(
                                     egui::RichText::new(error_label).color(egui::Color32::DARK_RED),
                                 );
@@ -358,7 +391,44 @@ impl StageFunc {
     }
 
     fn show_status(&mut self, ui: &mut egui::Ui) {
-        ui.toggle_value(&mut self.error_panel_visible, &self.title);
+        ui.toggle_value(&mut self.problems_is_visible, &self.problems_title);
+    }
+}
+
+impl egui_tiles::Behavior<Pane> for StageFunc {
+    fn pane_ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        _tile_id: egui_tiles::TileId,
+        pane: &mut Pane,
+    ) -> egui_tiles::UiResponse {
+        ui.label(format!("{:?}", pane));
+        egui_tiles::UiResponse::None
+    }
+
+    fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
+        match pane {
+            Pane::Mil => "MIL",
+            Pane::Ssa => "SSA",
+            Pane::SsaPreXform => "SSA pre-transforms",
+            Pane::Ast => "AST",
+        }
+        .into()
+    }
+
+    fn simplification_options(&self) -> egui_tiles::SimplificationOptions {
+        egui_tiles::SimplificationOptions {
+            all_panes_must_have_tabs: true,
+            ..Default::default()
+        }
+    }
+
+    fn is_tab_closable(
+        &self,
+        _tiles: &egui_tiles::Tiles<Pane>,
+        _tile_id: egui_tiles::TileId,
+    ) -> bool {
+        true
     }
 }
 
