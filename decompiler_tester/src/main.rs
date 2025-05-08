@@ -1,6 +1,5 @@
 use std::{
     borrow::Cow,
-    fmt::Write,
     fs::File,
     path::{Path, PathBuf},
     time::Duration,
@@ -57,11 +56,11 @@ struct StageExe {
     exe: Result<Exe>,
     path: PathBuf,
     function_selector: Option<FunctionSelector>,
-    stage_func: Option<StageFunc>,
+    stage_func: Option<Result<StageFunc, decompiler::Error>>,
 }
 struct StageFunc {
     function_name: String,
-    process_log: String,
+    df: decompiler::DecompiledFunction,
 }
 
 #[derive(serde::Serialize, Default, Clone, Debug)]
@@ -151,6 +150,7 @@ impl eframe::App for App {
             exe_filename: stage_exe.map(|st| st.path.clone()),
             function_name: stage_exe
                 .and_then(|st| st.stage_func.as_ref())
+                .and_then(|st_res| st_res.as_ref().ok())
                 .map(|st| st.function_name.clone()),
         };
 
@@ -175,36 +175,45 @@ impl eframe::App for App {
 
 impl StageExe {
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
-        match &mut self.exe {
-            Ok(exe) => {
-                if ui.button("Load function…").clicked() {
-                    let mut all_names: Vec<_> = exe
-                        .borrow_exe()
-                        .function_names()
-                        .map(|s| s.to_owned())
-                        .collect();
-                    all_names.sort();
-                    self.function_selector =
-                        Some(FunctionSelector::new("modal load function", all_names));
-                }
+        let Ok(exe) = &mut self.exe else { return };
 
-                if let Some(stage_func) = &self.stage_func {
-                    ui.label(&stage_func.function_name);
-                } else {
-                    ui.label("No function loaded.");
-                }
+        if ui.button("Load function…").clicked() {
+            let mut all_names: Vec<_> = exe
+                .borrow_exe()
+                .function_names()
+                .map(|s| s.to_owned())
+                .collect();
+            all_names.sort();
+            self.function_selector = Some(FunctionSelector::new("modal load function", all_names));
+        }
+
+        match &self.stage_func {
+            Some(Ok(stage_func)) => {
+                stage_func.show_topbar(ui);
             }
-            Err(_) => {}
+            Some(Err(_)) => {
+                // error shown in central area
+            }
+            None => {
+                ui.label("No function loaded.");
+            }
         }
     }
 
     fn show_central(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         match &mut self.stage_func {
-            Some(stage_func) => {
+            Some(Ok(stage_func)) => {
                 stage_func.show_central(ui);
             }
+            Some(Err(err)) => {
+                egui::Frame::new().show(ui, |ui| {
+                    ui.label("Error");
+                    // TODO cache instead of alloc'ing and deallocing every frame
+                    ui.label(err.to_string());
+                });
+            }
             None => {
-                ui.label("No function loaded.");
+                // message shown in topbar
             }
         }
 
@@ -220,33 +229,32 @@ impl StageExe {
     }
 
     fn load_function(&mut self, function_name: &str) {
-        let Ok(exe) = &mut self.exe else { return };
-
-        let process_log = exe.with_exe_mut(|exe| {
-            let mut log = Vec::new();
-            let mut pp = decompiler::pp::PrettyPrinter::start(&mut log);
-            let res = exe.process_function(function_name, &mut pp);
-
-            let mut log = String::from_utf8(log).unwrap();
-            if let Err(err) = res {
-                writeln!(log, "\nfinished with error: {:?}", err).unwrap();
-            }
-
-            log
-        });
-
-        self.stage_func = Some(StageFunc {
-            function_name: function_name.to_string(),
-            process_log,
-        });
+        let Ok(exe) = &mut self.exe else {
+            // TODO: show this in statusbar (with a cleaner message?)
+            eprintln!("unable to load function: no exe loaded");
+            return;
+        };
+        self.stage_func = Some(exe.with_exe_mut(|exe| {
+            exe.decompile_function(function_name).map(|df| StageFunc {
+                function_name: function_name.to_string(),
+                df,
+            })
+        }));
     }
 }
 
 impl StageFunc {
+    fn show_topbar(&self, ui: &mut egui::Ui) {
+        ui.label(&self.function_name);
+        let _ = ui.button("MIL");
+        let _ = ui.button("SSA");
+        let _ = ui.button("SSA pre-xform");
+        let _ = ui.button("AST");
+    }
+
     fn show_central(&self, ui: &mut egui::Ui) {
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.label(&self.process_log);
-        });
+        // egui::ScrollArea::vertical().show(ui, |ui| {
+        // });
     }
 }
 
