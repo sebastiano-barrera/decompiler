@@ -74,6 +74,7 @@ struct StageFunc {
     problems_error: Option<String>,
 
     assembly: Assembly,
+    mil_lines: Vec<String>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -341,12 +342,29 @@ impl StageFunc {
         let decoder = df.disassemble(exe);
         let assembly = Assembly::from_decoder(decoder);
 
+        let mil_lines = {
+            let mut lines = Vec::new();
+
+            match df.mil() {
+                None => {
+                    lines.push("No MIL generated!".to_string());
+                }
+                Some(mil) => {
+                    let buf = format!("{:?}", mil);
+                    lines.extend(buf.lines().map(|line| line.to_string()))
+                }
+            }
+
+            lines
+        };
+
         StageFunc {
             df,
             problems_title: title,
             problems_error: error_label,
             problems_is_visible: false,
             assembly,
+            mil_lines,
         }
     }
 
@@ -411,9 +429,10 @@ impl StageFunc {
     }
 
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
+        let height = ui.text_style_height(&egui::TextStyle::Monospace);
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
-            .show_rows(ui, 18.0, self.assembly.lines.len(), |ui, ndxs| {
+            .show_rows(ui, height, self.assembly.lines.len(), |ui, ndxs| {
                 for ndx in ndxs {
                     let asm_line = &self.assembly.lines[ndx];
                     ui.horizontal(|ui| {
@@ -422,6 +441,17 @@ impl StageFunc {
                         });
                         ui.monospace(&asm_line.text);
                     });
+                }
+            });
+    }
+
+    fn ui_tab_mil(&mut self, ui: &mut egui::Ui) {
+        let height = ui.text_style_height(&egui::TextStyle::Monospace);
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show_rows(ui, height, self.mil_lines.len(), |ui, ndxs| {
+                for ndx in ndxs {
+                    ui.monospace(&self.mil_lines[ndx]);
                 }
             });
     }
@@ -437,6 +467,9 @@ impl egui_tiles::Behavior<Pane> for StageFunc {
         match pane {
             Pane::Assembly => {
                 self.ui_tab_assembly(ui);
+            }
+            Pane::Mil => {
+                self.ui_tab_mil(ui);
             }
             _ => {
                 ui.label(format!("{:?}", pane));
