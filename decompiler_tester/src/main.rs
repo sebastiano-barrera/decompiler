@@ -1,5 +1,6 @@
 use std::{
     borrow::Cow,
+    collections::BTreeMap,
     fs::File,
     path::{Path, PathBuf},
     time::Duration,
@@ -71,6 +72,8 @@ struct StageFunc {
     problems_is_visible: bool,
     problems_title: String,
     problems_error: Option<String>,
+
+    assembly: Assembly,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -307,8 +310,10 @@ impl StageExe {
             return;
         };
 
-        let mut stage_func =
-            exe.with_exe_mut(|exe| exe.decompile_function(function_name).map(StageFunc::new));
+        let mut stage_func = exe.with_exe_mut(|exe| {
+            let df = exe.decompile_function(function_name)?;
+            Ok(StageFunc::new(df, exe))
+        });
         if let Ok(stage_func) = &mut stage_func {
             stage_func.problems_is_visible =
                 stage_func.df.error().is_some() || !stage_func.df.warnings().is_empty();
@@ -325,7 +330,7 @@ impl StageExe {
 }
 
 impl StageFunc {
-    fn new(df: decompiler::DecompiledFunction) -> Self {
+    fn new(df: decompiler::DecompiledFunction, exe: &Executable) -> Self {
         let title = format!(
             "{}{} warnings",
             if df.error().is_some() { "ERROR!, " } else { "" },
@@ -333,11 +338,15 @@ impl StageFunc {
         );
         let error_label = df.error().map(|err| err.to_string());
 
+        let decoder = df.disassemble(exe);
+        let assembly = Assembly::from_decoder(decoder);
+
         StageFunc {
             df,
             problems_title: title,
             problems_error: error_label,
             problems_is_visible: false,
+            assembly,
         }
     }
 
@@ -346,6 +355,7 @@ impl StageFunc {
 
         ui.menu_button("Add view", |ui| {
             for (pane, label) in [
+                (Pane::Assembly, "Assembly"),
                 (Pane::Mil, "MIL"),
                 (Pane::Ssa, "SSA"),
                 (Pane::SsaPreXform, "SSA pre-xform"),
@@ -399,6 +409,22 @@ impl StageFunc {
     fn show_status(&mut self, ui: &mut egui::Ui) {
         ui.toggle_value(&mut self.problems_is_visible, &self.problems_title);
     }
+
+    fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show_rows(ui, 18.0, self.assembly.lines.len(), |ui, ndxs| {
+                for ndx in ndxs {
+                    let asm_line = &self.assembly.lines[ndx];
+                    ui.horizontal(|ui| {
+                        ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
+                            ui.monospace(format!("0x{:x}", asm_line.addr));
+                        });
+                        ui.monospace(&asm_line.text);
+                    });
+                }
+            });
+    }
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
@@ -408,7 +434,15 @@ impl egui_tiles::Behavior<Pane> for StageFunc {
         _tile_id: egui_tiles::TileId,
         pane: &mut Pane,
     ) -> egui_tiles::UiResponse {
-        ui.label(format!("{:?}", pane));
+        match pane {
+            Pane::Assembly => {
+                self.ui_tab_assembly(ui);
+            }
+            _ => {
+                ui.label(format!("{:?}", pane));
+            }
+        }
+
         egui_tiles::UiResponse::None
     }
 
@@ -558,5 +592,42 @@ impl Default for StatusMessage {
             category: StatusCategory::Info,
             timeout: Duration::from_secs(5),
         }
+    }
+}
+
+struct Assembly {
+    lines: Vec<AssemblyLine>,
+    ndx_of_addr: BTreeMap<u64, usize>,
+}
+struct AssemblyLine {
+    addr: u64,
+    code_size: u8,
+    text: String,
+}
+
+impl Assembly {
+    fn from_decoder(mut decoder: iced_x86::Decoder) -> Self {
+        let mut lines = Vec::new();
+        let mut ndx_of_addr = BTreeMap::new();
+
+        let mut formatter = iced_x86::IntelFormatter::new();
+        for instr in decoder {
+            use iced_x86::Formatter as _;
+
+            let addr = instr.ip();
+            let code_size: u8 = instr.len().try_into().unwrap();
+            let mut text = String::new();
+            formatter.format(&instr, &mut text);
+
+            let ndx = lines.len();
+            ndx_of_addr.insert(addr, ndx);
+            lines.push(AssemblyLine {
+                addr,
+                code_size,
+                text,
+            });
+        }
+
+        Assembly { lines, ndx_of_addr }
     }
 }

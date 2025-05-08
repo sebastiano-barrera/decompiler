@@ -798,6 +798,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui_tiles",
+ "iced-x86",
  "ouroboros",
  "ron 0.10.1",
  "serde",
