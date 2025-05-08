@@ -498,7 +498,17 @@ impl StageFunc {
         ui.label(format!("{} instructions/registers", ssa.reg_count()));
     }
 
-    fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {}
+    fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {
+        let ssa = match self.df.ssa() {
+            Some(ssa) => ssa,
+            None => {
+                ui.label("No SSA generated");
+                return;
+            }
+        };
+
+        ast_view::show(ui, ssa);
+    }
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
@@ -715,5 +725,11 @@ impl Assembly {
         }
 
         Assembly { lines, ndx_of_addr }
+    }
+}
+
+mod ast_view {
+    pub fn show(ui: &mut egui::Ui, ssa: &decompiler::SSAProgram) {
+        ui.label("--ast goes here--");
     }
 }

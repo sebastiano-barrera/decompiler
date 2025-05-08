@@ -15,3 +15,4 @@ pub mod api;
 pub mod pp;
 
 pub use api::*;
+pub use ssa::Program as SSAProgram;
