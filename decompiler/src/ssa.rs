@@ -344,7 +344,7 @@ impl Iterator for InsnRPOIter<'_> {
                     );
                 }
                 IterCmd::StartInsn((bid, reg)) => {
-                    if self.was_yielded[reg.reg_index() as usize] {
+                    if !self.was_yielded[reg.reg_index() as usize] {
                         self.queue.push(IterCmd::EndInsn((bid, reg)));
                         self.queue.extend(
                             self.prog

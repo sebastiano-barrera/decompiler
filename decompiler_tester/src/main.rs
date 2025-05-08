@@ -470,6 +470,35 @@ impl StageFunc {
                 }
             });
     }
+
+    fn ui_tab_ssa(&mut self, ui: &mut egui::Ui) {
+        let ssa = match self.df.ssa() {
+            Some(ssa) => ssa,
+            None => {
+                ui.label("No SSA generated");
+                return;
+            }
+        };
+
+        // TODO too slow?
+        let mut cur_bid = None;
+        for (bid, reg) in ssa.insns_rpo() {
+            if cur_bid != Some(bid) {
+                ui.separator();
+                ui.label(format!("block {}", bid.as_number()));
+                cur_bid = Some(bid);
+            }
+
+            let iv = ssa.get(reg).unwrap();
+            // TODO show type information
+            ui.label(format!("{:?} <- {:?}", reg, iv.insn.get()));
+        }
+
+        ui.separator();
+        ui.label(format!("{} instructions/registers", ssa.reg_count()));
+    }
+
+    fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {}
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
@@ -480,12 +509,10 @@ impl egui_tiles::Behavior<Pane> for StageFunc {
         pane: &mut Pane,
     ) -> egui_tiles::UiResponse {
         match pane {
-            Pane::Assembly => {
-                self.ui_tab_assembly(ui);
-            }
-            Pane::Mil => {
-                self.ui_tab_mil(ui);
-            }
+            Pane::Assembly => self.ui_tab_assembly(ui),
+            Pane::Mil => self.ui_tab_mil(ui),
+            Pane::Ssa => self.ui_tab_ssa(ui),
+            Pane::Ast => self.ui_tab_ast(ui),
             _ => {
                 ui.label(format!("{:?}", pane));
             }
