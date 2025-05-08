@@ -77,7 +77,7 @@ struct StageFunc {
     mil_lines: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
 enum Pane {
     Assembly,
     Mil,
@@ -86,10 +86,11 @@ enum Pane {
     Ast,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
 struct RestoreFile {
     exe_filename: Option<PathBuf>,
     function_name: Option<String>,
+    tree: Option<egui_tiles::Tree<Pane>>,
 }
 
 impl App {
@@ -124,6 +125,7 @@ impl App {
         let RestoreFile {
             exe_filename,
             function_name,
+            tree,
         } = restore_file;
 
         // TODO: enable after exe filename is no longer taken from CLI
@@ -136,6 +138,12 @@ impl App {
         if let Some(function_name) = function_name {
             if let Some(stage_exe) = self.stage_exe.as_mut() {
                 stage_exe.load_function(&function_name);
+            }
+        }
+
+        if let Some(tree) = tree {
+            if let Some(stage_exe) = &mut self.stage_exe {
+                stage_exe.stage_func_tree = tree;
             }
         }
     }
@@ -227,6 +235,7 @@ impl eframe::App for App {
         let restore_file = RestoreFile {
             exe_filename: stage_exe.map(|st| st.path.clone()),
             function_name: self.function_name().map(ToOwned::to_owned),
+            tree: stage_exe.map(|st| st.stage_func_tree.clone()),
         };
 
         match ron::to_string(&restore_file) {
@@ -639,7 +648,7 @@ struct AssemblyLine {
 }
 
 impl Assembly {
-    fn from_decoder(mut decoder: iced_x86::Decoder) -> Self {
+    fn from_decoder(decoder: iced_x86::Decoder) -> Self {
         let mut lines = Vec::new();
         let mut ndx_of_addr = BTreeMap::new();
 
