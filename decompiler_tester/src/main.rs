@@ -323,6 +323,8 @@ impl StageFunc {
                         // TODO cache
                         ui.label(warn.to_string());
                     }
+
+                    ui.add_space(50.0);
                 });
         }
     }
