@@ -5,6 +5,10 @@ impl Warnings {
     pub fn add(&mut self, warn: Box<dyn std::error::Error>) {
         self.0.push(warn);
     }
+
+    pub fn into_vec(self) -> Vec<Box<dyn std::error::Error>> {
+        self.0
+    }
 }
 
 impl std::fmt::Debug for Warnings {

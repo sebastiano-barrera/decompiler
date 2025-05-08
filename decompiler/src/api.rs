@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use iced_x86::Formatter;
 use thiserror::Error;
 
-use crate::{ast, mil, pp, ssa, ty, util::Warnings, x86_to_mil, xform};
+use crate::{ast, mil, pp, ssa, ty, x86_to_mil, xform};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -22,11 +22,17 @@ pub enum Error {
     #[error("can't use type ID {0:?} as subroutine type")]
     NotASubroutineType(ty::TypeID),
 
+    #[error("while parsing DWARF type info: {0}")]
+    DwarfTypeParserError(#[from] ty::dwarf::Error),
+
     #[error("while compiling to MIL: {0}")]
     FrontendError(String),
 
-    #[error("while parsing DWARF type info: {0}")]
-    DwarfTypeParserError(#[from] ty::dwarf::Error),
+    #[error("while translating into SSA: {0}")]
+    SSAError(String),
+
+    #[error("while applying clarifying transformations: {0}")]
+    XformError(String),
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -244,14 +250,11 @@ impl<'a> Executable<'a> {
         Ok(())
     }
 
-    pub fn decompile_function<W: pp::PP + ?Sized>(
-        &self,
-        function_name: &str,
-    ) -> Result<DecompiledFunction> {
-        // (func_addr, func_size, file_offset, func_text)
+    pub fn decompile_function(&self, function_name: &str) -> Result<DecompiledFunction> {
         let mut df = self.find_function(function_name)?;
 
-        let mil_res = std::panic::catch_unwind(|| {
+        let mut decoder = df.disassemble(self);
+        let mil_res = std::panic::catch_unwind(move || {
             let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
 
             let func_tyid_opt = self.types.get_known_object(df.vm_addr.try_into().unwrap());
@@ -268,25 +271,56 @@ impl<'a> Executable<'a> {
                 None => None,
             };
 
-            let mut decoder = df.disassemble(self);
-            let ret = b.translate(decoder.iter(), func_ty);
-            Ok(ret)
+            b.translate(decoder.iter(), func_ty)
+                .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()))
         });
 
-        match mil_res {
-            // TODO!
-        }
-
-        let Some(Ok((mil, _))) = &df.mil else {
-            return Ok(df);
+        // fold a panic into a regular error
+        let mil_res = match mil_res {
+            Ok(Ok(res)) => Ok(res),
+            Ok(Err(err)) => Err(err),
+            Err(panic_err) => Err(Error::FrontendError(panic_message(panic_err))),
         };
 
-        let mut ssa = ssa::mil_to_ssa(ssa::ConversionParams::new(mil.clone()));
-        let ssa_pre_xform = ssa.clone();
-        xform::canonical(&mut ssa);
+        let (mil, warnings) = match mil_res {
+            Ok(mw) => mw,
+            Err(err) => {
+                df.error = Some(err);
+                return Ok(df);
+            }
+        };
 
-        df.ssa = Some(ssa);
-        df.ssa_pre_xform = Some(ssa_pre_xform);
+        df.mil = Some(mil.clone());
+        df.warnings.extend(
+            warnings
+                .into_vec()
+                .into_iter()
+                .map(|err| Error::FrontendError(err.to_string())),
+        );
+
+        let mut ssa =
+            match std::panic::catch_unwind(|| ssa::mil_to_ssa(ssa::ConversionParams::new(mil))) {
+                Ok(p) => p,
+                Err(err) => {
+                    df.error = Some(Error::SSAError(panic_message(err)));
+                    return Ok(df);
+                }
+            };
+        df.ssa_pre_xform = Some(ssa.clone());
+
+        let xform_res = std::panic::catch_unwind(move || {
+            xform::canonical(&mut ssa);
+            ssa
+        });
+        match xform_res {
+            Err(err) => {
+                df.warnings.push(Error::XformError(panic_message(err)));
+                return Ok(df);
+            }
+            Ok(ssa) => {
+                df.ssa = Some(ssa);
+            }
+        };
 
         Ok(df)
     }
@@ -328,8 +362,18 @@ impl<'a> Executable<'a> {
             ssa_pre_xform: None,
             ssa: None,
             error: None,
+            warnings: Vec::new(),
         })
     }
+}
+
+fn panic_message(panic_err: Box<dyn std::any::Any + Send>) -> String {
+    let msg = if let Some(err_str) = panic_err.downcast_ref::<String>() {
+        err_str.clone()
+    } else {
+        "(no description)".to_string()
+    };
+    msg
 }
 
 pub struct DecompiledFunction {
@@ -345,11 +389,12 @@ pub struct DecompiledFunction {
     /// Size of the original machine code, in bytes.
     code_size: usize,
 
-    mil: Option<(mil::Program, Warnings)>,
+    mil: Option<mil::Program>,
     ssa_pre_xform: Option<crate::ssa::Program>,
     ssa: Option<crate::ssa::Program>,
 
     error: Option<Error>,
+    warnings: Vec<Error>,
 }
 
 impl DecompiledFunction {
@@ -359,6 +404,10 @@ impl DecompiledFunction {
 
     pub fn error(&self) -> Option<&Error> {
         self.error.as_ref()
+    }
+
+    pub fn warnings(&self) -> &[Error] {
+        self.warnings.as_slice()
     }
 
     pub fn machine_code<'e>(&self, exe: &'e Executable) -> &'e [u8] {
@@ -374,7 +423,7 @@ impl DecompiledFunction {
         )
     }
 
-    pub fn mil(&self) -> Option<&anyhow::Result<(mil::Program, Warnings)>> {
+    pub fn mil(&self) -> Option<&mil::Program> {
         self.mil.as_ref()
     }
 
