@@ -532,16 +532,21 @@ fn load_executable(path: &Path) -> Result<Exe> {
 struct FunctionSelector {
     id: &'static str,
     line: String,
+    line_lower: String,
     all_names: Vec<String>,
+    all_names_lower: Vec<String>,
     filtered_ndxs: Vec<usize>,
 }
 
 impl FunctionSelector {
     fn new(id: &'static str, all_names: Vec<String>) -> Self {
+        let all_names_lower = all_names.iter().map(|s| s.to_lowercase()).collect();
         FunctionSelector {
             id,
             line: String::new(),
+            line_lower: String::new(),
             all_names,
+            all_names_lower,
             filtered_ndxs: Vec::new(),
         }
     }
@@ -559,15 +564,21 @@ impl FunctionSelector {
                 .hint_text("Function name...")
                 .desired_width(f32::INFINITY)
                 .show(ui);
+            self.line_lower = self.line.to_lowercase();
 
             ui.add_space(5.0);
 
             self.filtered_ndxs.clear();
             self.filtered_ndxs.extend(
-                self.all_names
+                self.all_names_lower
                     .iter()
                     .enumerate()
-                    .filter(|(_, name)| name.contains(&self.line))
+                    .filter(|(_, name_lower)| {
+                        self.line_lower
+                            .split_whitespace()
+                            .map(|word| name_lower.contains(word))
+                            .all(|x| x)
+                    })
                     .map(|(ndx, _)| ndx),
             );
 
