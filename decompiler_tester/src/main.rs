@@ -68,6 +68,8 @@ struct StageExe {
 struct StageFunc {
     df: decompiler::DecompiledFunction,
     error_panel_visible: bool,
+    title: String,
+    error_label: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug)]
@@ -303,8 +305,17 @@ impl StageExe {
 
 impl StageFunc {
     fn new(df: decompiler::DecompiledFunction) -> Self {
+        let title = format!(
+            "{}{} warnings",
+            if df.error().is_some() { "ERROR!, " } else { "" },
+            df.warnings().len(),
+        );
+        let error_label = df.error().map(|err| err.to_string());
+
         StageFunc {
             df,
+            title,
+            error_label,
             error_panel_visible: false,
         }
     }
@@ -323,32 +334,31 @@ impl StageFunc {
                 .resizable(true)
                 .default_height(ui.text_style_height(&egui::TextStyle::Body) * 10.0)
                 .show_inside(ui, |ui| {
-                    // TODO cache
-                    ui.heading(format!("{} warnings", self.df.warnings().len()));
+                    egui::ScrollArea::vertical()
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            // TODO cache
+                            ui.heading(&self.title);
 
-                    for warn in self.df.warnings() {
-                        // TODO cache
-                        ui.label(warn.to_string());
-                    }
+                            if let Some(error_label) = &self.error_label {
+                                ui.label(
+                                    egui::RichText::new(error_label).color(egui::Color32::DARK_RED),
+                                );
+                            }
 
-                    ui.add_space(50.0);
+                            for warn in self.df.warnings() {
+                                // TODO cache
+                                ui.label(warn.to_string());
+                            }
+
+                            ui.add_space(50.0);
+                        });
                 });
         }
     }
 
     fn show_status(&mut self, ui: &mut egui::Ui) {
-        // TODO cache
-        let btn_label = format!(
-            "{}{} warnings",
-            if self.df.error().is_some() {
-                "ERROR!, "
-            } else {
-                ""
-            },
-            self.df.warnings().len(),
-        );
-
-        ui.toggle_value(&mut self.error_panel_visible, btn_label);
+        ui.toggle_value(&mut self.error_panel_visible, &self.title);
     }
 }
 
