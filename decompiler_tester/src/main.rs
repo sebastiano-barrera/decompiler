@@ -59,8 +59,8 @@ struct StageExe {
     stage_func: Option<Result<StageFunc, decompiler::Error>>,
 }
 struct StageFunc {
-    function_name: String,
     df: decompiler::DecompiledFunction,
+    error_panel_visible: bool,
 }
 
 #[derive(serde::Serialize, Default, Clone, Debug)]
@@ -140,6 +140,9 @@ impl eframe::App for App {
             .resizable(false)
             .show_separator_line(false)
             .show(ctx, |ui| {
+                if let Some(stage_exe) = &mut self.stage_exe {
+                    stage_exe.show_status(ui);
+                }
                 self.status.show(ui);
             });
     }
@@ -151,7 +154,7 @@ impl eframe::App for App {
             function_name: stage_exe
                 .and_then(|st| st.stage_func.as_ref())
                 .and_then(|st_res| st_res.as_ref().ok())
-                .map(|st| st.function_name.clone()),
+                .map(|st| st.df.name().to_string()),
         };
 
         match ron::to_string(&restore_file) {
@@ -207,7 +210,7 @@ impl StageExe {
             }
             Some(Err(err)) => {
                 egui::Frame::new().show(ui, |ui| {
-                    ui.label("Error");
+                    ui.label("Error while loading executable");
                     // TODO cache instead of alloc'ing and deallocing every frame
                     ui.label(err.to_string());
                 });
@@ -234,18 +237,27 @@ impl StageExe {
             eprintln!("unable to load function: no exe loaded");
             return;
         };
-        self.stage_func = Some(exe.with_exe_mut(|exe| {
-            exe.decompile_function(function_name).map(|df| StageFunc {
-                function_name: function_name.to_string(),
-                df,
-            })
-        }));
+        self.stage_func =
+            Some(exe.with_exe_mut(|exe| exe.decompile_function(function_name).map(StageFunc::new)));
+    }
+
+    fn show_status(&mut self, ui: &mut egui::Ui) {
+        if let Some(Ok(stage_func)) = &mut self.stage_func {
+            stage_func.show_status(ui);
+        }
     }
 }
 
 impl StageFunc {
+    fn new(df: decompiler::DecompiledFunction) -> Self {
+        StageFunc {
+            df,
+            error_panel_visible: false,
+        }
+    }
+
     fn show_topbar(&self, ui: &mut egui::Ui) {
-        ui.label(&self.function_name);
+        ui.label(self.df.name());
         let _ = ui.button("MIL");
         let _ = ui.button("SSA");
         let _ = ui.button("SSA pre-xform");
@@ -253,8 +265,35 @@ impl StageFunc {
     }
 
     fn show_central(&self, ui: &mut egui::Ui) {
-        // egui::ScrollArea::vertical().show(ui, |ui| {
-        // });
+        if self.error_panel_visible {
+            egui::TopBottomPanel::bottom("func_errors")
+                .resizable(true)
+                .default_height(ui.text_style_height(&egui::TextStyle::Body) * 10.0)
+                .show_inside(ui, |ui| {
+                    // TODO cache
+                    ui.heading(format!("{} warnings", self.df.warnings().len()));
+
+                    for warn in self.df.warnings() {
+                        // TODO cache
+                        ui.label(warn.to_string());
+                    }
+                });
+        }
+    }
+
+    fn show_status(&mut self, ui: &mut egui::Ui) {
+        // TODO cache
+        let btn_label = format!(
+            "{}{} warnings",
+            if self.df.error().is_some() {
+                "ERROR!, "
+            } else {
+                ""
+            },
+            self.df.warnings().len(),
+        );
+
+        ui.toggle_value(&mut self.error_panel_visible, btn_label);
     }
 }
 
