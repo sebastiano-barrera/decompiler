@@ -23,10 +23,17 @@ fn main() {
     let res = eframe::run_native(
         "decompiler test app",
         eframe::NativeOptions::default(),
-        Box::new(|_cctx| {
+        Box::new(|cctx| {
             let mut app = Box::new(App::new());
-            _cctx.egui_ctx.set_theme(app.theme_preference);
+
+            // TODO: remove, take this from the app state, allow picking exe from gui
             app.open_executable(&exe_filename);
+
+            if let Some(storage) = cctx.storage {
+                app.load(storage);
+            }
+            cctx.egui_ctx.set_theme(app.theme_preference);
+
             Ok(app)
         }),
     );
@@ -63,7 +70,7 @@ struct StageFunc {
     error_panel_visible: bool,
 }
 
-#[derive(serde::Serialize, Default, Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug)]
 struct RestoreFile {
     exe_filename: Option<PathBuf>,
     function_name: Option<String>,
@@ -75,6 +82,45 @@ impl App {
             theme_preference: egui::ThemePreference::Light,
             status: StatusView::default(),
             stage_exe: None,
+        }
+    }
+
+    const SK_STATE: &'static str = "state";
+
+    fn load(&mut self, storage: &dyn eframe::Storage) {
+        let Some(serial) = storage.get_string(Self::SK_STATE) else {
+            return;
+        };
+
+        let restore_file = match ron::from_str::<RestoreFile>(&serial) {
+            Ok(rf) => rf,
+            Err(err) => {
+                let text = format!("unable to parse application state file: {:?}", err).into();
+                self.status.push(StatusMessage {
+                    text,
+                    category: StatusCategory::Error,
+                    ..Default::default()
+                });
+                return;
+            }
+        };
+
+        let RestoreFile {
+            exe_filename,
+            function_name,
+        } = restore_file;
+
+        // TODO: enable after exe filename is no longer taken from CLI
+        if false {
+            if let Some(exe_filename) = exe_filename {
+                self.open_executable(&exe_filename);
+            }
+        }
+
+        if let Some(function_name) = function_name {
+            if let Some(stage_exe) = self.stage_exe.as_mut() {
+                stage_exe.load_function(&function_name);
+            }
         }
     }
 
@@ -159,7 +205,7 @@ impl eframe::App for App {
 
         match ron::to_string(&restore_file) {
             Ok(payload) => {
-                storage.set_string("state", payload);
+                storage.set_string(Self::SK_STATE, payload);
                 self.status.push(StatusMessage {
                     text: "State saved successfully.".into(),
                     ..Default::default()
