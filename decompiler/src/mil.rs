@@ -245,12 +245,28 @@ pub enum CmpOp {
     EQ,
     LT,
 }
+impl CmpOp {
+    pub fn symbol(&self) -> &'static str {
+        match self {
+            CmpOp::EQ => "==",
+            CmpOp::LT => "<",
+        }
+    }
+}
 
 /// Binary boolean operators. Inputs and outputs are booleans.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum BoolOp {
     Or,
     And,
+}
+impl BoolOp {
+    pub fn symbol(&self) -> &'static str {
+        match self {
+            BoolOp::Or => "||",
+            BoolOp::And => "&&",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
@@ -263,6 +279,21 @@ pub enum ArithOp {
     BitXor,
     BitAnd,
     BitOr,
+}
+
+impl ArithOp {
+    pub fn symbol(&self) -> &'static str {
+        match self {
+            ArithOp::Add => "+",
+            ArithOp::Sub => "-",
+            ArithOp::Mul => "*",
+            ArithOp::Shl => "<<",
+            ArithOp::Shr => ">>",
+            ArithOp::BitXor => "^",
+            ArithOp::BitAnd => "&",
+            ArithOp::BitOr => "|",
+        }
+    }
 }
 
 /// The "name" (identifier) of an "ancestral" value, i.e. a value in MIL code
