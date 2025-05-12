@@ -783,7 +783,13 @@ mod ast_view {
         }
 
         pub fn from_ssa(ssa: &decompiler::SSAProgram) -> Self {
-            Builder::new(ssa).build()
+            let ast = Builder::new(ssa).build();
+
+            for (ndx, node) in ast.nodes.iter().enumerate() {
+                eprintln!("{:4} {:?}", ndx, node);
+            }
+
+            ast
         }
 
         pub fn show(&self, ui: &mut egui::Ui) {
@@ -802,11 +808,11 @@ mod ast_view {
             match &self.nodes[ndx] {
                 Node::Open(seq_kind) => {
                     let start_ndx = ndx + 1;
-                    let end_ndx = self.end_of[ndx].unwrap().0 + 1;
+                    let end_ndx = self.end_of[ndx].unwrap().0;
                     return self.show_block(ui, start_ndx..end_ndx, *seq_kind);
                 }
                 Node::Close => {
-                    panic!("unexpected Close node @ {ndx}");
+                    ui.label("(!!! close node)");
                 }
                 Node::Error(err_msg) => {
                     egui::Frame::new()
