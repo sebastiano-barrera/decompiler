@@ -84,6 +84,17 @@ impl Program {
         &self.bbs[bid].effects
     }
 
+    pub fn find_last_effect<P, R>(&self, bid: cfg::BlockID, pred: P) -> Option<R>
+    where
+        P: Fn(mil::Insn) -> Option<R>,
+    {
+        self.block_effects(bid)
+            .iter()
+            .rev()
+            .map(|reg| self[*reg].get())
+            .find_map(pred)
+    }
+
     pub fn push_pure(&mut self, insn: mil::Insn) -> mil::Reg {
         // side-effecting instructions need to be added to a specific position
         // in the basic block.

@@ -49,3 +49,13 @@ impl<T> ToWarnings for std::result::Result<T, anyhow::Error> {
         }
     }
 }
+
+#[macro_export]
+macro_rules! match_get {
+    ($expr:expr, $pat:pat, $extract:expr) => {
+        match $expr {
+            $pat => Some($extract),
+            _ => None,
+        }
+    };
+}

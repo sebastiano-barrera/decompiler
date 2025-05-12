@@ -5,6 +5,10 @@ use thiserror::Error;
 
 use crate::{ast, mil, pp, ssa, ty, x86_to_mil, xform};
 
+pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
+pub use crate::mil::{Insn, Reg};
+pub use crate::ssa::{count_readers, RegMap};
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("unsupported executable format: {0}")]

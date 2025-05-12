@@ -75,6 +75,7 @@ struct StageFunc {
 
     assembly: Assembly,
     mil_lines: Vec<String>,
+    ast: ast_view::Ast,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -367,6 +368,11 @@ impl StageFunc {
             lines
         };
 
+        let ast = match df.ssa() {
+            Some(ssa) => ast_view::Ast::from_ssa(ssa),
+            None => ast_view::Ast::empty(),
+        };
+
         StageFunc {
             df,
             problems_title: title,
@@ -374,6 +380,7 @@ impl StageFunc {
             problems_is_visible: false,
             assembly,
             mil_lines,
+            ast,
         }
     }
 
@@ -499,15 +506,11 @@ impl StageFunc {
     }
 
     fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {
-        let ssa = match self.df.ssa() {
-            Some(ssa) => ssa,
-            None => {
-                ui.label("No SSA generated");
-                return;
-            }
-        };
-
-        ast_view::show(ui, ssa);
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                self.ast.show(ui);
+            });
     }
 }
 
@@ -729,7 +732,302 @@ impl Assembly {
 }
 
 mod ast_view {
-    pub fn show(ui: &mut egui::Ui, ssa: &decompiler::SSAProgram) {
-        ui.label("--ast goes here--");
+    // target features for the ast view:
+    //
+    // - structured ("indented")
+    // - highlight def/use
+    // - folding (hide/show subtrees)
+    // - highlight indirect def/use chains
+    // - fast rendering
+    //
+    // I'm skeptic that we can just walk through the SSAProgram's def/use chains
+    // and get everything we want without a slow (allocation heavy) algorithm.
+    // better to just do a single transformation at the beginning and pick a
+    // representation that suits the rendering.
+
+    use std::{fmt::Debug, ops::Range};
+
+    pub struct Ast {
+        // the tree is represented as a flat Vec of Nodes.
+        // the last element is the root node
+        nodes: Vec<Node>,
+        end_of: Vec<Option<NodeID>>,
+    }
+
+    #[derive(Debug)]
+    enum Node {
+        Open(SeqKind),
+        Close,
+        Error(String),
+        Ref(decompiler::Reg),
+        LitNum(u64),
+        Generic(String),
+        Kw(&'static str),
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum SeqKind {
+        Vertical,
+        Flow,
+    }
+
+    #[derive(Clone, Copy)]
+    pub struct NodeID(usize);
+
+    impl Ast {
+        pub fn empty() -> Self {
+            Ast {
+                nodes: Vec::new(),
+                end_of: Vec::new(),
+            }
+        }
+
+        pub fn from_ssa(ssa: &decompiler::SSAProgram) -> Self {
+            Builder::new(ssa).build()
+        }
+
+        pub fn show(&self, ui: &mut egui::Ui) {
+            self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical);
+        }
+
+        fn show_block(&self, ui: &mut egui::Ui, ndx_range: Range<usize>, kind: SeqKind) -> usize {
+            let mut ndx = ndx_range.start;
+            while ndx < ndx_range.end {
+                ndx = self.show_node(ui, ndx);
+            }
+            ndx
+        }
+
+        fn show_node(&self, ui: &mut egui::Ui, ndx: usize) -> usize {
+            match &self.nodes[ndx] {
+                Node::Open(seq_kind) => {
+                    let start_ndx = ndx + 1;
+                    let end_ndx = self.end_of[ndx].unwrap().0 + 1;
+                    return self.show_block(ui, start_ndx..end_ndx, *seq_kind);
+                }
+                Node::Close => {
+                    panic!("unexpected Close node @ {ndx}");
+                }
+                Node::Error(err_msg) => {
+                    egui::Frame::new()
+                        .stroke(egui::Stroke::new(1.0, egui::Color32::DARK_RED))
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label("Internal error:");
+                                ui.label(err_msg);
+                            });
+                        });
+                }
+
+                // TODO define specific styles
+                Node::Ref(reg) => {
+                    // TODO avoid alloc
+                    ui.label(format!("{:?}", reg));
+                }
+                Node::LitNum(num) => {
+                    // TODO avoid alloc
+                    ui.label(format!("{:?}", num));
+                }
+                Node::Generic(text) => {
+                    ui.label(text);
+                }
+                Node::Kw(kw) => {
+                    ui.label(*kw);
+                }
+            }
+
+            ndx + 1
+        }
+    }
+
+    struct Builder<'a> {
+        nodes: Vec<Node>,
+        ssa: &'a decompiler::SSAProgram,
+        rdr_count: decompiler::RegMap<usize>,
+        was_block_visited: decompiler::BlockMap<bool>,
+    }
+    impl<'a> Builder<'a> {
+        fn new(ssa: &'a decompiler::SSAProgram) -> Self {
+            let rdr_count = decompiler::count_readers(ssa);
+            let was_block_visited = decompiler::BlockMap::new(ssa.cfg(), false);
+            Builder {
+                nodes: Vec::new(),
+                ssa,
+                rdr_count,
+                was_block_visited,
+            }
+        }
+
+        fn build(mut self) -> Ast {
+            self.transform_block(self.ssa.cfg().entry_block_id());
+            let end_of = self.link_ends();
+            Ast {
+                nodes: self.nodes,
+                end_of,
+            }
+        }
+
+        fn is_named(&self, reg: decompiler::Reg) -> bool {
+            self.rdr_count[reg] > 1
+        }
+
+        fn transform_block(&mut self, bid: decompiler::BlockID) {
+            self.was_block_visited[bid] = true;
+
+            self.emit(Node::Open(SeqKind::Vertical));
+            self.transform_block_streak(bid);
+            self.emit(Node::Close);
+        }
+
+        fn transform_block_streak(&mut self, bid: decompiler::BlockID) {
+            let block_effects = self.ssa.block_effects(bid);
+            for &reg in block_effects {
+                self.transform_value(reg);
+            }
+
+            let cont = self.ssa.cfg().block_cont(bid);
+            match cont {
+                decompiler::BlockCont::Always(dest) => {
+                    self.transform_dest(bid, &dest);
+                }
+                decompiler::BlockCont::Conditional { pos, neg } => {
+                    let cond = self.ssa.find_last_effect(bid, |insn| {
+                        decompiler::match_get!(insn, decompiler::Insn::SetJumpCondition(cond), cond)
+                    });
+
+                    if let Some(cond) = cond {
+                        self.collect_named_inputs(cond);
+
+                        self.emit(Node::Open(SeqKind::Flow));
+                        self.emit(Node::Kw("if"));
+                        self.transform_value(cond);
+                        self.transform_dest(bid, &pos);
+                        self.transform_dest(bid, &neg);
+                        self.emit(Node::Close);
+                    } else {
+                        self.emit(Node::Error(format!("bug: no condition!")));
+                    }
+                }
+            }
+
+            // process other blocks dominated by this one,
+            let dom_tree = self.ssa.cfg().dom_tree();
+            for &child_bid in dom_tree.children_of(bid) {
+                if !self.was_block_visited[child_bid] {
+                    self.transform_block(child_bid);
+                }
+            }
+        }
+
+        fn transform_value(&mut self, reg: decompiler::Reg) {
+            // TODO! specific representation of operands
+            if self.is_named(reg) {
+                self.emit(Node::Ref(reg));
+            } else {
+                self.transform_def(reg);
+            }
+        }
+
+        fn transform_def(&mut self, reg: decompiler::Reg) {
+            let mut insn = self.ssa[reg].get();
+            let tag = format!("{:?}", insn);
+            self.emit(Node::Open(SeqKind::Flow));
+            self.emit(Node::Generic(tag));
+            for input in insn.input_regs() {
+                self.transform_value(*input);
+            }
+            self.emit(Node::Close);
+        }
+
+        fn emit(&mut self, init: Node) -> NodeID {
+            let nid = NodeID(self.nodes.len());
+            self.nodes.push(init);
+            nid
+        }
+
+        fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
+            match dest {
+                decompiler::Dest::Ext(addr) => {
+                    self.emit(Node::Open(SeqKind::Flow));
+                    self.emit(Node::Kw("goto"));
+                    self.emit(Node::LitNum(*addr));
+                    self.emit(Node::Close);
+                }
+                decompiler::Dest::Block(bid) => {
+                    self.transform_block(*bid);
+                }
+                decompiler::Dest::Indirect => {
+                    let tgt = self.ssa.find_last_effect(src_bid, |insn| {
+                        decompiler::match_get!(insn, decompiler::Insn::SetJumpTarget(tgt), tgt)
+                    });
+
+                    if let Some(tgt) = tgt {
+                        self.collect_named_inputs(tgt);
+
+                        self.emit(Node::Open(SeqKind::Flow));
+                        self.emit(Node::Kw("goto"));
+                        self.emit(Node::Open(SeqKind::Flow));
+                        self.emit(Node::Kw("*"));
+                        self.transform_value(tgt);
+                        self.emit(Node::Close);
+                        self.emit(Node::Close);
+                    } else {
+                        self.emit(Node::Error(format!("bug: no jump target!")));
+                    }
+                }
+                decompiler::Dest::Return => {
+                    let ret = self.ssa.find_last_effect(src_bid, |insn| {
+                        decompiler::match_get!(insn, decompiler::Insn::SetReturnValue(val), val)
+                    });
+
+                    if let Some(ret) = ret {
+                        self.emit(Node::Open(SeqKind::Flow));
+                        self.emit(Node::Kw("return"));
+                        self.transform_value(ret);
+                        self.emit(Node::Close);
+                    } else {
+                        self.emit(Node::Error(format!("bug: no return value!")));
+                    }
+                }
+                decompiler::Dest::Undefined => {
+                    self.emit(Node::Kw("goto undefined"));
+                }
+            }
+        }
+
+        fn collect_named_inputs(&mut self, cond: decompiler::Reg) {
+            for input in self.ssa[cond].get().input_regs_iter() {
+                let input = *input;
+                if self.is_named(input) {
+                    self.emit(Node::Open(SeqKind::Flow));
+                    self.emit(Node::Kw("let"));
+                    // TODO make the name editable
+                    self.emit(Node::Generic(format!("{:?}", input)));
+                    self.emit(Node::Kw("="));
+                    self.transform_def(input);
+                    self.emit(Node::Close);
+                }
+            }
+        }
+
+        fn link_ends(&self) -> Vec<Option<NodeID>> {
+            let mut end_of = vec![None; self.nodes.len()];
+            let mut stack = Vec::new();
+
+            for (ndx, node) in self.nodes.iter().enumerate() {
+                match node {
+                    Node::Open(_) => {
+                        stack.push(ndx);
+                    }
+                    Node::Close => {
+                        let start_ndx = stack.pop().unwrap();
+                        end_of[start_ndx] = Some(NodeID(ndx));
+                    }
+                    _ => {}
+                }
+            }
+
+            end_of
+        }
     }
 }
