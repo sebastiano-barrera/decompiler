@@ -918,7 +918,7 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
 pub struct RegMap<T>(Vec<T>);
 
 impl<T: Clone> RegMap<T> {
-    pub(crate) fn for_program(prog: &Program, init: T) -> Self {
+    pub fn for_program(prog: &Program, init: T) -> Self {
         let inner = vec![init; prog.reg_count() as usize];
         RegMap(inner)
     }

@@ -931,9 +931,10 @@ mod ast_view {
         schedule: decompiler::SSASchedule,
         rdr_count: decompiler::RegMap<usize>,
 
-        // just to check that the algoritm is proceeding correctly:
+        // just to check that the algo is correct:
         block_status: decompiler::BlockMap<BlockStatus>,
         open_stack: Vec<decompiler::BlockID>,
+        let_was_printed: decompiler::RegMap<bool>,
     }
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     enum BlockStatus {
@@ -945,14 +946,16 @@ mod ast_view {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
             let schedule = decompiler::SSASchedule::schedule(ssa);
             let rdr_count = decompiler::count_readers(ssa);
-            let was_block_visited = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
+            let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
+            let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
                 nodes: Vec::new(),
                 ssa,
                 schedule,
                 rdr_count,
-                block_status: was_block_visited,
+                block_status,
                 open_stack: Vec::new(),
+                let_was_printed,
             }
         }
 
@@ -1017,8 +1020,6 @@ mod ast_view {
                     });
 
                     if let Some(cond) = cond {
-                        self.collect_named_inputs(cond);
-
                         self.seq(SeqKind::Flow, |s| {
                             s.emit(Node::Kw("if"));
                             s.transform_value(cond);
@@ -1053,7 +1054,14 @@ mod ast_view {
         fn transform_value(&mut self, reg: decompiler::Reg) {
             // TODO! specific representation of operands
             if self.is_named(reg) {
-                self.emit(Node::Ref(reg));
+                if self.let_was_printed[reg] {
+                    self.emit(Node::Ref(reg));
+                } else {
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Kw("<bug:let!>"));
+                        s.emit(Node::Ref(reg));
+                    });
+                }
             } else {
                 self.transform_def(reg);
             }
@@ -1336,8 +1344,6 @@ mod ast_view {
                     });
 
                     if let Some(tgt) = tgt {
-                        self.collect_named_inputs(tgt);
-
                         self.seq(SeqKind::Flow, |s| {
                             s.emit(Node::Kw("goto"));
                             s.seq(SeqKind::Flow, |s| {
@@ -1369,23 +1375,20 @@ mod ast_view {
             }
         }
 
-        fn collect_named_inputs(&mut self, cond: decompiler::Reg) {
-            for input in self.ssa[cond].get().input_regs_iter() {
-                let input = *input;
-                if self.is_named(input) {
-                    self.emit_let_def(input);
-                }
-            }
-        }
-
         fn emit_let_def(&mut self, reg: decompiler::Reg) {
             self.seq(SeqKind::Flow, |s| {
+                if s.let_was_printed[reg] {
+                    s.emit(Node::Kw("<bug:dupe let>"));
+                }
+
                 s.emit(Node::Kw("let"));
                 // TODO make the name editable
                 s.emit(Node::Generic(format!("{:?}", reg)));
                 s.emit(Node::Kw("="));
                 s.transform_def(reg);
             });
+
+            self.let_was_printed[reg] = true;
         }
 
         fn emit_binop<F, G>(&mut self, op_s: &'static str, a: F, b: G)
