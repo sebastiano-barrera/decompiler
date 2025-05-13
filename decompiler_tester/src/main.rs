@@ -773,7 +773,7 @@ mod ast_view {
         is_node_shown: RefCell<Vec<bool>>,
     }
 
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, Clone)]
     enum Node {
         Open { kind: SeqKind, count: usize },
         Error(String),
@@ -871,6 +871,11 @@ mod ast_view {
 
             match &self.nodes[ndx] {
                 Node::Open { kind, count } => {
+                    // ndx      Open { count: 3 }
+                    // ndx + 1  A
+                    // ndx + 2  B
+                    // ndx + 3  C
+                    // ndx + 4  TheNextThing
                     let start_ndx = ndx + 1; // skip the Open node
                     let end_ndx = start_ndx + count;
                     let check_end_ndx = self.show_block(ui, start_ndx..end_ndx, *kind);
