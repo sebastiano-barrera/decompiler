@@ -765,20 +765,17 @@ mod ast_view {
     use std::{cell::RefCell, fmt::Debug, ops::Range};
 
     use decompiler::Insn;
-    use egui::Widget;
 
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
         // the last element is the root node
         nodes: Vec<Node>,
-        end_of: Vec<Option<NodeID>>,
         is_node_shown: RefCell<Vec<bool>>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq, Eq)]
     enum Node {
-        Open(SeqKind),
-        Close,
+        Open { kind: SeqKind, count: usize },
         Error(String),
         Ref(decompiler::Reg),
         LitNum(i64),
@@ -786,7 +783,7 @@ mod ast_view {
         Kw(&'static str),
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum SeqKind {
         Vertical,
         Flow,
@@ -799,7 +796,6 @@ mod ast_view {
         pub fn empty() -> Self {
             Ast {
                 nodes: Vec::new(),
-                end_of: Vec::new(),
                 is_node_shown: RefCell::new(Vec::new()),
             }
         }
@@ -808,12 +804,7 @@ mod ast_view {
             let ast = Builder::new(ssa).build();
 
             for (ndx, node) in ast.nodes.iter().enumerate() {
-                eprint!("{:4} ", ndx);
-                if let Some(NodeID(end)) = ast.end_of[ndx] {
-                    eprint!("[v {:4}] ", end);
-                }
-                eprint!("- {:?}", node);
-                eprintln!();
+                eprintln!("{:4} - {:?}", ndx, node);
             }
 
             ast
@@ -831,35 +822,42 @@ mod ast_view {
         fn show_block(&self, ui: &mut egui::Ui, ndx_range: Range<usize>, kind: SeqKind) -> usize {
             match kind {
                 SeqKind::Vertical => {
-                    ui.indent(ndx_range.start, |ui| {
-                        let layout = egui::Layout::top_down(egui::Align::Min);
-                        self.show_block_content(ui, ndx_range, layout)
-                    })
-                    .inner
+                    let mut child_rect = ui.available_rect_before_wrap();
+
+                    let line_x = child_rect.min.x;
+                    child_rect.min.x += 30.0;
+
+                    let res = ui.scope_builder(egui::UiBuilder::new().max_rect(child_rect), |ui| {
+                        self.show_block_content(ui, ndx_range)
+                    });
+
+                    let y_min = res.response.rect.min.y;
+                    let y_max = res.response.rect.max.y;
+                    ui.painter().line_segment(
+                        [
+                            egui::Pos2::new(line_x, y_min),
+                            egui::Pos2::new(line_x, y_max),
+                        ],
+                        ui.visuals().window_stroke(),
+                    );
+
+                    res.inner
                 }
                 SeqKind::Flow => {
-                    let layout = egui::Layout::left_to_right(egui::Align::Max);
-                    self.show_block_content(ui, ndx_range, layout)
+                    ui.horizontal(|ui| self.show_block_content(ui, ndx_range))
+                        .inner
                 }
             }
         }
 
-        fn show_block_content(
-            &self,
-            ui: &mut egui::Ui,
-            ndx_range: Range<usize>,
-            layout: egui::Layout,
-        ) -> usize {
+        fn show_block_content(&self, ui: &mut egui::Ui, ndx_range: Range<usize>) -> usize {
             let mut ndx = ndx_range.start;
-            egui::Frame::new().show(ui, |ui| {
-                ui.with_layout(layout, |ui| {
-                    while ndx < ndx_range.end {
-                        let new_ndx = self.show_node(ui, ndx);
-                        assert!(new_ndx > ndx);
-                        ndx = new_ndx;
-                    }
-                });
-            });
+            while ndx < ndx_range.end {
+                let new_ndx = self.show_node(ui, ndx);
+                assert!(new_ndx > ndx);
+                ndx = new_ndx;
+            }
+            assert_eq!(ndx, ndx_range.end);
             ndx
         }
 
@@ -871,15 +869,18 @@ mod ast_view {
             assert!(!already_visited);
 
             match &self.nodes[ndx] {
-                Node::Open(seq_kind) => {
-                    // skip the Open node
-                    let start_ndx = ndx + 1;
-                    let end_ndx = self.end_of[ndx].unwrap().0;
-                    // skip the Close node
-                    return 1 + self.show_block(ui, start_ndx..end_ndx, *seq_kind);
-                }
-                Node::Close => {
-                    ui.label("(!!! close node)");
+                Node::Open { kind, count } => {
+                    let start_ndx = ndx + 1; // skip the Open node
+                    let end_ndx = start_ndx + count;
+                    let check_end_ndx = self.show_block(ui, start_ndx..end_ndx, *kind);
+                    if check_end_ndx != end_ndx {
+                        eprintln!(
+                            "warning: @ {}: skipped {} nodes",
+                            ndx,
+                            end_ndx as isize - check_end_ndx as isize
+                        )
+                    }
+                    return end_ndx;
                 }
                 Node::Error(err_msg) => {
                     egui::Frame::new()
@@ -916,9 +917,12 @@ mod ast_view {
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
+        schedule: decompiler::SSASchedule,
         rdr_count: decompiler::RegMap<usize>,
-        open_stack: Vec<decompiler::BlockID>,
+
+        // just to check that the algoritm is proceeding correctly:
         block_status: decompiler::BlockMap<BlockStatus>,
+        open_stack: Vec<decompiler::BlockID>,
     }
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     enum BlockStatus {
@@ -928,11 +932,13 @@ mod ast_view {
     }
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
+            let schedule = decompiler::SSASchedule::schedule(ssa);
             let rdr_count = decompiler::count_readers(ssa);
             let was_block_visited = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             Builder {
                 nodes: Vec::new(),
                 ssa,
+                schedule,
                 rdr_count,
                 block_status: was_block_visited,
                 open_stack: Vec::new(),
@@ -941,11 +947,9 @@ mod ast_view {
 
         fn build(mut self) -> Ast {
             self.transform_block(self.ssa.cfg().entry_block_id());
-            let end_of = self.link_ends();
             let is_node_shown = vec![false; self.nodes.len()];
             Ast {
                 nodes: self.nodes,
-                end_of,
                 is_node_shown: RefCell::new(is_node_shown),
             }
         }
@@ -954,32 +958,51 @@ mod ast_view {
             self.rdr_count[reg] > 1
         }
 
+        fn seq<R>(&mut self, kind: SeqKind, add_contents: impl FnOnce(&mut Self) -> R) -> R {
+            const REF_NODE: Node = Node::Kw("<bug:seq!>");
+
+            let ndx = self.nodes.len();
+            self.nodes.push(REF_NODE);
+
+            let ret = add_contents(self);
+
+            assert_eq!(self.nodes[ndx], REF_NODE);
+            let count = self.nodes.len() - ndx - 1;
+            self.nodes[ndx] = Node::Open { kind, count };
+
+            ret
+        }
         fn transform_block(&mut self, bid: decompiler::BlockID) {
             // TODO block label?
 
-            self.block_started(bid);
-            self.emit(Node::Open(SeqKind::Vertical));
-            self.transform_block_streak(bid);
-            self.emit(Node::Close);
-            self.block_ended();
-        }
+            {
+                self.open_stack.push(bid);
+                assert_eq!(self.block_status[bid], BlockStatus::Pending);
+                self.block_status[bid] = BlockStatus::Started;
+            }
 
-        fn block_started(&mut self, bid: decompiler::BlockID) {
-            self.open_stack.push(bid);
-            let prev = std::mem::replace(&mut self.block_status[bid], BlockStatus::Started);
-            assert_eq!(prev, BlockStatus::Pending);
-        }
+            self.seq(SeqKind::Vertical, |s| {
+                s.transform_block_streak(bid);
+            });
 
-        fn block_ended(&mut self) {
-            let bid = self.open_stack.pop().unwrap();
-            let prev = std::mem::replace(&mut self.block_status[bid], BlockStatus::Finished);
-            assert_eq!(prev, BlockStatus::Started);
+            {
+                let check_bid = self.open_stack.pop().unwrap();
+                assert_eq!(bid, check_bid);
+                assert_eq!(self.block_status[bid], BlockStatus::Started);
+                self.block_status[bid] = BlockStatus::Finished;
+            }
         }
 
         fn transform_block_streak(&mut self, bid: decompiler::BlockID) {
-            let block_effects = self.ssa.block_effects(bid);
-            for &reg in block_effects {
-                self.transform_value(reg);
+            // TODO fix: remove .to_vec(). split builder core from visitors (then we can
+            // borrow &self.scheduler and &mut self.nodes)
+            let block_sched = self.schedule.for_block(bid).to_vec();
+            for reg in block_sched {
+                if self.ssa[reg].get().has_side_effects() {
+                    self.transform_def(reg);
+                } else if self.rdr_count[reg] > 1 {
+                    self.emit_let_def(reg);
+                }
             }
 
             let cont = self.ssa.cfg().block_cont(bid);
@@ -995,10 +1018,10 @@ mod ast_view {
                     if let Some(cond) = cond {
                         self.collect_named_inputs(cond);
 
-                        self.emit(Node::Open(SeqKind::Flow));
-                        self.emit(Node::Kw("if"));
-                        self.transform_value(cond);
-                        self.emit(Node::Close);
+                        self.seq(SeqKind::Flow, |s| {
+                            s.emit(Node::Kw("if"));
+                            s.transform_value(cond);
+                        });
                         self.transform_dest(bid, &pos);
                         self.emit(Node::Kw("else"));
                         self.transform_dest(bid, &neg);
@@ -1057,40 +1080,40 @@ mod ast_view {
                     addr,
                     value,
                 } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Ref(addr));
-                    self.emit(Node::Kw(".@"));
-                    self.emit(Node::Kw(":="));
-                    self.transform_value(value);
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Ref(addr));
+                        s.emit(Node::Kw(".@"));
+                        s.emit(Node::Kw(":="));
+                        s.transform_value(value);
+                    });
                 }
                 Insn::LoadMem {
                     mem: _,
                     addr,
                     size: _,
                 } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Ref(addr));
-                    self.emit(Node::Kw(".@"));
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Ref(addr));
+                        s.emit(Node::Kw(".@"));
+                    });
                 }
 
                 Insn::Part { src, offset, size } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.transform_value(src);
-                    self.emit(Node::Kw("["));
-                    self.emit(Node::LitNum(offset as i64));
-                    self.emit(Node::Kw(".."));
-                    self.emit(Node::LitNum((offset + size) as i64));
-                    self.emit(Node::Kw("]"));
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.transform_value(src);
+                        s.emit(Node::Kw("["));
+                        s.emit(Node::LitNum(offset as i64));
+                        s.emit(Node::Kw(".."));
+                        s.emit(Node::LitNum((offset + size) as i64));
+                        s.emit(Node::Kw("]"));
+                    });
                 }
                 Insn::Concat { lo, hi } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.transform_value(hi);
-                    self.emit(Node::Kw("++"));
-                    self.transform_value(lo);
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.transform_value(hi);
+                        s.emit(Node::Kw("++"));
+                        s.transform_value(lo);
+                    });
                 }
 
                 Insn::StructGetMember {
@@ -1098,23 +1121,23 @@ mod ast_view {
                     name,
                     size: _,
                 } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.transform_value(struct_value);
-                    self.emit(Node::Kw("."));
-                    self.emit(Node::Kw(name));
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.transform_value(struct_value);
+                        s.emit(Node::Kw("."));
+                        s.emit(Node::Kw(name));
+                    });
                 }
 
                 Insn::Widen {
                     reg,
                     target_size,
-                    sign,
+                    sign: _,
                 } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.transform_value(reg);
-                    self.emit(Node::Kw("as"));
-                    self.emit(Node::Generic(format!("{}b", target_size * 8)));
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.transform_value(reg);
+                        s.emit(Node::Kw("as"));
+                        s.emit(Node::Generic(format!("i{}", target_size * 8)));
+                    });
                 }
 
                 Insn::Arith(op, a, b) => {
@@ -1149,17 +1172,17 @@ mod ast_view {
                 }
 
                 Insn::Not(arg) => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Kw("!"));
-                    self.transform_value(arg);
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Kw("!"));
+                        s.transform_value(arg);
+                    });
                 }
 
                 Insn::NotYetImplemented(msg) => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Kw("NYI:"));
-                    self.emit(Node::Generic(msg.to_string()));
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Kw("NYI:"));
+                        s.emit(Node::Generic(msg.to_string()));
+                    });
                 }
 
                 Insn::SetReturnValue(_) | Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) => {
@@ -1167,19 +1190,19 @@ mod ast_view {
                 }
 
                 Insn::Call { callee, first_arg } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.transform_value(callee);
-                    self.emit(Node::Kw("("));
+                    self.seq(SeqKind::Flow, |s| {
+                        s.transform_value(callee);
+                        s.emit(Node::Kw("("));
 
-                    for (ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
-                        if ndx > 0 {
-                            self.emit(Node::Kw(","));
+                        for (ndx, arg) in s.ssa.get_call_args(first_arg).enumerate() {
+                            if ndx > 0 {
+                                s.emit(Node::Kw(","));
+                            }
+                            s.transform_value(arg);
                         }
-                        self.transform_value(arg);
-                    }
 
-                    self.emit(Node::Kw(")"));
-                    self.emit(Node::Close);
+                        s.emit(Node::Kw(")"));
+                    });
                 }
 
                 Insn::CArg { .. } => {
@@ -1190,11 +1213,11 @@ mod ast_view {
                 }
 
                 Insn::Upsilon { value, phi_ref } => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Ref(phi_ref));
-                    self.emit(Node::Kw(":="));
-                    self.transform_value(value);
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Ref(phi_ref));
+                        s.emit(Node::Kw(":="));
+                        s.transform_value(value);
+                    });
                 }
 
                 Insn::Get(_)
@@ -1253,17 +1276,17 @@ mod ast_view {
             opcode: &'static str,
             inputs: impl IntoIterator<Item = decompiler::Reg>,
         ) {
-            self.emit(Node::Open(SeqKind::Flow));
-            self.emit(Node::Generic(opcode.to_string()));
-            self.emit(Node::Kw("("));
-            for (ndx, input) in inputs.into_iter().enumerate() {
-                if ndx > 0 {
-                    self.emit(Node::Kw(","));
+            self.seq(SeqKind::Flow, |s| {
+                s.emit(Node::Generic(opcode.to_string()));
+                s.emit(Node::Kw("("));
+                for (ndx, input) in inputs.into_iter().enumerate() {
+                    if ndx > 0 {
+                        s.emit(Node::Kw(","));
+                    }
+                    s.transform_value(input);
                 }
-                self.transform_value(input);
-            }
-            self.emit(Node::Kw(")"));
-            self.emit(Node::Close);
+                s.emit(Node::Kw(")"));
+            });
         }
 
         fn emit(&mut self, init: Node) -> NodeID {
@@ -1275,10 +1298,10 @@ mod ast_view {
         fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
             match dest {
                 decompiler::Dest::Ext(addr) => {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Kw("goto"));
-                    self.emit(Node::LitNum(*addr as i64));
-                    self.emit(Node::Close);
+                    self.seq(SeqKind::Flow, |s| {
+                        s.emit(Node::Kw("goto"));
+                        s.emit(Node::LitNum(*addr as i64));
+                    });
                 }
                 decompiler::Dest::Block(bid) => {
                     let block_preds = self.ssa.cfg().block_preds(*bid);
@@ -1290,11 +1313,11 @@ mod ast_view {
                         // just print the block inline, no "goto"s
                         self.transform_block(*bid);
                     } else {
-                        self.emit(Node::Open(SeqKind::Flow));
-                        self.emit(Node::Kw("goto"));
-                        // TODO specific node type
-                        self.emit(Node::Generic(format!("{:?}", *bid)));
-                        self.emit(Node::Close);
+                        self.seq(SeqKind::Flow, |s| {
+                            s.emit(Node::Kw("goto"));
+                            // TODO specific node type
+                            s.emit(Node::Generic(format!("{:?}", *bid)));
+                        });
                     }
                 }
                 decompiler::Dest::Indirect => {
@@ -1305,13 +1328,13 @@ mod ast_view {
                     if let Some(tgt) = tgt {
                         self.collect_named_inputs(tgt);
 
-                        self.emit(Node::Open(SeqKind::Flow));
-                        self.emit(Node::Kw("goto"));
-                        self.emit(Node::Open(SeqKind::Flow));
-                        self.emit(Node::Kw("*"));
-                        self.transform_value(tgt);
-                        self.emit(Node::Close);
-                        self.emit(Node::Close);
+                        self.seq(SeqKind::Flow, |s| {
+                            s.emit(Node::Kw("goto"));
+                            s.seq(SeqKind::Flow, |s| {
+                                s.emit(Node::Kw("*"));
+                                s.transform_value(tgt);
+                            });
+                        });
                     } else {
                         self.emit(Node::Error(format!("bug: no jump target!")));
                     }
@@ -1322,10 +1345,10 @@ mod ast_view {
                     });
 
                     if let Some(ret) = ret {
-                        self.emit(Node::Open(SeqKind::Flow));
-                        self.emit(Node::Kw("return"));
-                        self.transform_value(ret);
-                        self.emit(Node::Close);
+                        self.seq(SeqKind::Flow, |s| {
+                            s.emit(Node::Kw("return"));
+                            s.transform_value(ret);
+                        });
                     } else {
                         self.emit(Node::Error(format!("bug: no return value!")));
                     }
@@ -1340,35 +1363,19 @@ mod ast_view {
             for input in self.ssa[cond].get().input_regs_iter() {
                 let input = *input;
                 if self.is_named(input) {
-                    self.emit(Node::Open(SeqKind::Flow));
-                    self.emit(Node::Kw("let"));
-                    // TODO make the name editable
-                    self.emit(Node::Generic(format!("{:?}", input)));
-                    self.emit(Node::Kw("="));
-                    self.transform_def(input);
-                    self.emit(Node::Close);
+                    self.emit_let_def(input);
                 }
             }
         }
 
-        fn link_ends(&self) -> Vec<Option<NodeID>> {
-            let mut end_of = vec![None; self.nodes.len()];
-            let mut stack = Vec::new();
-
-            for (ndx, node) in self.nodes.iter().enumerate() {
-                match node {
-                    Node::Open(_) => {
-                        stack.push(ndx);
-                    }
-                    Node::Close => {
-                        let start_ndx = stack.pop().unwrap();
-                        end_of[start_ndx] = Some(NodeID(ndx));
-                    }
-                    _ => {}
-                }
-            }
-
-            end_of
+        fn emit_let_def(&mut self, reg: decompiler::Reg) {
+            self.seq(SeqKind::Flow, |s| {
+                s.emit(Node::Kw("let"));
+                // TODO make the name editable
+                s.emit(Node::Generic(format!("{:?}", reg)));
+                s.emit(Node::Kw("="));
+                s.transform_def(reg);
+            });
         }
 
         fn emit_binop<F, G>(&mut self, op_s: &'static str, a: F, b: G)
@@ -1376,11 +1383,11 @@ mod ast_view {
             F: FnOnce(&mut Self),
             G: FnOnce(&mut Self),
         {
-            self.emit(Node::Open(SeqKind::Flow));
-            a(self);
-            self.emit(Node::Kw(op_s));
-            b(self);
-            self.emit(Node::Close);
+            self.seq(SeqKind::Flow, |s| {
+                a(s);
+                s.emit(Node::Kw(op_s));
+                b(s);
+            });
         }
     }
 }

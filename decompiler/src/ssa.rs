@@ -459,6 +459,40 @@ impl std::fmt::Debug for Program {
     }
 }
 
+/// Store references to instructions (Reg) in reverse postorder, in a form that
+/// allows lookup by BlockID.
+pub struct Schedule {
+    insns: Vec<mil::Reg>,
+    bounds: Vec<usize>,
+}
+
+impl Schedule {
+    pub fn schedule(ssa: &Program) -> Self {
+        let mut bounds = Vec::with_capacity(ssa.cfg().block_count() as usize + 1);
+        let mut insns = Vec::new();
+
+        let mut last_block = None;
+        for (bid, reg) in ssa.insns_rpo() {
+            if last_block != Some(bid) {
+                bounds.push(insns.len());
+                last_block = Some(bid);
+            }
+            insns.push(reg);
+        }
+
+        bounds.push(insns.len());
+
+        Schedule { insns, bounds }
+    }
+
+    pub fn for_block(&self, bid: cfg::BlockID) -> &[mil::Reg] {
+        let ndx = bid.as_usize();
+        let lo = self.bounds[ndx];
+        let hi = self.bounds[ndx + 1];
+        &self.insns[lo..hi]
+    }
+}
+
 // TODO Remove this. No longer needed in the current design. Already cut down to nothing.
 pub struct ConversionParams {
     pub program: mil::Program,

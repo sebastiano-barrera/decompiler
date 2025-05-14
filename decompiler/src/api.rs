@@ -7,7 +7,7 @@ use crate::{ast, mil, pp, ssa, ty, x86_to_mil, xform};
 
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
 pub use crate::mil::{Insn, Reg};
-pub use crate::ssa::{count_readers, RegMap};
+pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap, Schedule as SSASchedule};
 
 #[derive(Debug, Error)]
 pub enum Error {
