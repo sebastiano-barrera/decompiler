@@ -1,4 +1,4 @@
-use std::{cell::Cell, io::Write};
+use std::{cell::Cell, io::Write, ops::Range};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -463,33 +463,41 @@ impl std::fmt::Debug for Program {
 /// allows lookup by BlockID.
 pub struct Schedule {
     insns: Vec<mil::Reg>,
-    bounds: Vec<usize>,
+    bounds: cfg::BlockMap<Range<usize>>,
 }
 
 impl Schedule {
     pub fn schedule(ssa: &Program) -> Self {
-        let mut bounds = Vec::with_capacity(ssa.cfg().block_count() as usize + 1);
         let mut insns = Vec::new();
+        // Initialize bounds with default Range<usize> (0..0) for all blocks.
+        // Blocks with no instructions will retain this default range.
+        let mut bounds: cfg::BlockMap<Range<usize>> = cfg::BlockMap::new(ssa.cfg(), 0..0);
+        let mut current_block_start = 0;
+        let mut last_block: Option<cfg::BlockID> = None;
 
-        let mut last_block = None;
         for (bid, reg) in ssa.insns_rpo() {
             if last_block != Some(bid) {
-                bounds.push(insns.len());
+                // Block changed. If it's not the first block, finalize the range for the previous block.
+                if let Some(prev_bid) = last_block {
+                    // The range for prev_bid is from current_block_start to insns.len()
+                    bounds[prev_bid] = current_block_start..insns.len();
+                }
+                // Start collecting instructions for the new block
+                current_block_start = insns.len();
                 last_block = Some(bid);
             }
             insns.push(reg);
         }
 
-        bounds.push(insns.len());
+        if let Some(final_bid) = last_block {
+            bounds[final_bid] = current_block_start..insns.len();
+        }
 
         Schedule { insns, bounds }
     }
 
     pub fn for_block(&self, bid: cfg::BlockID) -> &[mil::Reg] {
-        let ndx = bid.as_usize();
-        let lo = self.bounds[ndx];
-        let hi = self.bounds[ndx + 1];
-        &self.insns[lo..hi]
+        &self.insns[self.bounds[bid].clone()]
     }
 }
 
