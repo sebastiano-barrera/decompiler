@@ -87,6 +87,8 @@ tests_in_binary!(
     listNext,
     listTypePush,
     geoArrayCreate,
+    // regression: infinite loop
+    processAnnotations,
 );
 
 tests_in_binary!(

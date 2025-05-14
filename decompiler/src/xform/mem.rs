@@ -181,6 +181,7 @@ fn find_dominating_conflicting_store(
         return None;
     }
 
+    let mut visited = ssa::RegMap::for_program(prog, false);
     let mut mem = load.mem;
 
     while let Insn::StoreMem {
@@ -189,14 +190,17 @@ fn find_dominating_conflicting_store(
         value: value_s,
     } = prog[mem].get()
     {
+        assert!(!visited[mem]);
+        visited[mem] = true;
+
         let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) = prog[addr_s].get() else {
             // not in register-relative form; we can't work with this
-            continue;
+            break;
         };
 
         if offset_reg != ref_reg {
             // wrong reference register; we can't work with this
-            continue;
+            break;
         }
 
         let size_s = prog

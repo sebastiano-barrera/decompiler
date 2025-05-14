@@ -910,19 +910,19 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
 pub struct RegMap<T>(Vec<T>);
 
 impl<T: Clone> RegMap<T> {
-    fn for_program(prog: &Program, init: T) -> Self {
+    pub(crate) fn for_program(prog: &Program, init: T) -> Self {
         let inner = vec![init; prog.reg_count() as usize];
         RegMap(inner)
     }
 
-    fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
+    pub(crate) fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
         self.0
             .iter()
             .enumerate()
             .map(|(ndx, item)| (mil::Reg(ndx.try_into().unwrap()), item))
     }
 
-    pub fn map<F, R>(&self, mut f: F) -> RegMap<R>
+    pub(crate) fn map<F, R>(&self, mut f: F) -> RegMap<R>
     where
         F: FnMut(mil::Reg, &T) -> R,
         R: Clone,
