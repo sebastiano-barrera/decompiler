@@ -1283,7 +1283,7 @@ mod ast_view {
                 decompiler::Dest::Block(bid) => {
                     let block_preds = self.ssa.cfg().block_preds(*bid);
                     if block_preds.len() == 1 {
-                        if block_preds[0] == src_bid {
+                        if block_preds[0] != src_bid {
                             // TODO emit a warning (not our fault, but a bug in the cfg)
                         }
 
