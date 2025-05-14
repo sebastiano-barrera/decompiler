@@ -781,6 +781,7 @@ mod ast_view {
         LitNum(i64),
         Generic(String),
         Kw(&'static str),
+        BlockHeader(decompiler::BlockID),
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -908,6 +909,11 @@ mod ast_view {
                 Node::Kw(kw) => {
                     ui.label(*kw);
                 }
+                Node::BlockHeader(bid) => {
+                    // TODO avoid alloc
+                    ui.add_space(12.0);
+                    ui.label(format!("{:?}:", bid));
+                }
             }
 
             ndx + 1
@@ -946,7 +952,7 @@ mod ast_view {
         }
 
         fn build(mut self) -> Ast {
-            self.transform_block(self.ssa.cfg().entry_block_id());
+            self.transform_block_labeled(self.ssa.cfg().entry_block_id());
             let is_node_shown = vec![false; self.nodes.len()];
             Ast {
                 nodes: self.nodes,
@@ -972,28 +978,18 @@ mod ast_view {
 
             ret
         }
-        fn transform_block(&mut self, bid: decompiler::BlockID) {
-            // TODO block label?
+        fn transform_block_labeled(&mut self, bid: decompiler::BlockID) {
+            self.emit(Node::BlockHeader(bid));
+            self.transform_block_unlabeled(bid);
+        }
 
+        fn transform_block_unlabeled(&mut self, bid: decompiler::BlockID) {
             {
                 self.open_stack.push(bid);
                 assert_eq!(self.block_status[bid], BlockStatus::Pending);
                 self.block_status[bid] = BlockStatus::Started;
             }
 
-            self.seq(SeqKind::Vertical, |s| {
-                s.transform_block_streak(bid);
-            });
-
-            {
-                let check_bid = self.open_stack.pop().unwrap();
-                assert_eq!(bid, check_bid);
-                assert_eq!(self.block_status[bid], BlockStatus::Started);
-                self.block_status[bid] = BlockStatus::Finished;
-            }
-        }
-
-        fn transform_block_streak(&mut self, bid: decompiler::BlockID) {
             // TODO fix: remove .to_vec(). split builder core from visitors (then we can
             // borrow &self.scheduler and &mut self.nodes)
             let block_sched = self.schedule.for_block(bid).to_vec();
@@ -1022,7 +1018,9 @@ mod ast_view {
                             s.emit(Node::Kw("if"));
                             s.transform_value(cond);
                         });
-                        self.transform_dest(bid, &pos);
+                        self.seq(SeqKind::Vertical, |s| {
+                            s.transform_dest(bid, &pos);
+                        });
                         self.emit(Node::Kw("else"));
                         self.transform_dest(bid, &neg);
                     } else {
@@ -1035,8 +1033,15 @@ mod ast_view {
             let dom_tree = self.ssa.cfg().dom_tree();
             for &child_bid in dom_tree.children_of(bid) {
                 if self.block_status[child_bid] == BlockStatus::Pending {
-                    self.transform_block(child_bid);
+                    self.transform_block_labeled(child_bid);
                 }
+            }
+
+            {
+                let check_bid = self.open_stack.pop().unwrap();
+                assert_eq!(bid, check_bid);
+                assert_eq!(self.block_status[bid], BlockStatus::Started);
+                self.block_status[bid] = BlockStatus::Finished;
             }
         }
 
@@ -1081,7 +1086,7 @@ mod ast_view {
                     value,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Ref(addr));
+                        s.transform_value(addr);
                         s.emit(Node::Kw(".@"));
                         s.emit(Node::Kw(":="));
                         s.transform_value(value);
@@ -1093,7 +1098,7 @@ mod ast_view {
                     size: _,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Ref(addr));
+                        s.transform_value(addr);
                         s.emit(Node::Kw(".@"));
                     });
                 }
@@ -1311,7 +1316,7 @@ mod ast_view {
                         }
 
                         // just print the block inline, no "goto"s
-                        self.transform_block(*bid);
+                        self.transform_block_unlabeled(*bid);
                     } else {
                         self.seq(SeqKind::Flow, |s| {
                             s.emit(Node::Kw("goto"));
