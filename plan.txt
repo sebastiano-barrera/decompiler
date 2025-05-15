@@ -1,0 +1,18 @@
+- [ ] fix <bug:let!>
+- [ ] fix: Phi's should always be named (probably with a special syntax)
+- [ ] fix: StoreMem's results should probably always be hidden. Why are they even in the SSA?
+    - vestige from the sea-of-nodes experiment?
+
+- [ ] add scrollarea in SSA view
+
+- [ ] remove horizontal padding/margin in ast's Flow seqs
+
+- [ ] better syntax for deref
+
+- [ ] cross-view highlighting
+    - when hovering a register/block, highlight every corresponding item in every view (both same view and the others)
+
+- [ ] highlight full blocks, too
+
+- [ ] arbitrary block ordering for AST
+    - eventually going to become user-editable
