@@ -1,4 +1,7 @@
+- [ ] gui: ssa: show block continuations
+
 - [ ] fix <bug:let!>
+- [ ] fix: if syntax with "pending else"
 - [ ] fix: Phi's should always be named (probably with a special syntax)
 - [ ] fix: StoreMem's results should probably always be hidden. Why are they even in the SSA?
     - vestige from the sea-of-nodes experiment?
