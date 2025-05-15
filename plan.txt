@@ -1,4 +1,24 @@
-- [ ] gui: ssa: show block continuations
+- [x] gui: ssa: show block continuations
+- [x] gui: ssa: add scrollarea
+
+- [ ] ssa: find a way to attach instructions to blocks!
+    - right now, only effectful instructions are attached to blocks in a
+    specific order, while pure instructions are scheduled only if and when it's
+    strictly necessary, by ordering them in RPO.
+
+    however, there is a bug:
+        - if insn rX is used (directly or indirectly) by two effects located in
+        two distinct blocks, then the scheduling algorithm will NOT place them
+        in a common ancestor.
+
+        the easy way out: modify the scheduling algorithm so that this is there
+        is probably an easy solution to this with use lists, but we don't have
+        them and don't want them.
+
+        - switching to an IR design where every instruction is attached to a block creates
+        a challenge around adding new instruction: we need to make space for them!
+
+- [ ] auto add parentheses based on operator precedence
 
 - [ ] fix <bug:let!>
 - [ ] fix: if syntax with "pending else"
@@ -6,7 +26,6 @@
 - [ ] fix: StoreMem's results should probably always be hidden. Why are they even in the SSA?
     - vestige from the sea-of-nodes experiment?
 
-- [ ] add scrollarea in SSA view
 
 - [ ] remove horizontal padding/margin in ast's Flow seqs
 

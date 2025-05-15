@@ -503,22 +503,74 @@ impl StageFunc {
             }
         };
 
-        // TODO too slow?
-        let mut cur_bid = None;
-        for (bid, reg) in ssa.insns_rpo() {
-            if cur_bid != Some(bid) {
-                ui.separator();
-                ui.label(format!("block {}", bid.as_number()));
-                cur_bid = Some(bid);
+        use decompiler::{BlockCont, Dest};
+        fn show_dest(ui: &mut egui::Ui, dest: &Dest) {
+            match dest {
+                Dest::Block(bid) => {
+                    label_block(ui, *bid);
+                }
+                Dest::Ext(addr) => {
+                    ui.label(format!("ext @ 0x{:x}", addr));
+                }
+                Dest::Indirect => {
+                    ui.label("<at runtime>");
+                }
+                Dest::Return => {
+                    ui.label("<return>");
+                }
+                Dest::Undefined => {
+                    ui.label("<undefined>");
+                }
             }
-
-            let iv = ssa.get(reg).unwrap();
-            // TODO show type information
-            ui.label(format!("{:?} <- {:?}", reg, iv.insn.get()));
+        }
+        fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont) {
+            ui.horizontal(|ui| {
+                ui.label("⮩");
+                match cont {
+                    BlockCont::Always(dest) => show_dest(ui, dest),
+                    BlockCont::Conditional { pos, neg } => {
+                        ui.label("if ... then");
+                        show_dest(ui, pos);
+                        ui.label("else");
+                        show_dest(ui, neg);
+                    }
+                }
+            });
         }
 
-        ui.separator();
-        ui.label(format!("{} instructions/registers", ssa.reg_count()));
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                // TODO too slow?
+                let mut cur_bid = None;
+                for (bid, reg) in ssa.insns_rpo() {
+                    if cur_bid != Some(bid) {
+                        if let Some(cur_bid) = cur_bid {
+                            show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
+                        }
+                        ui.separator();
+
+                        cur_bid = Some(bid);
+                        ui.label(format!("block {}", bid.as_number()));
+                        ui.horizontal(|ui| {
+                            ui.label("from:");
+                            for &pred in ssa.cfg().block_preds(bid) {
+                                label_block(ui, pred);
+                            }
+                        });
+                    }
+
+                    let iv = ssa.get(reg).unwrap();
+                    // TODO show type information
+                    ui.label(format!("{:?} <- {:?}", reg, iv.insn.get()));
+                }
+                if let Some(cur_bid) = cur_bid {
+                    show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
+                }
+
+                ui.separator();
+                ui.label(format!("{} instructions/registers", ssa.reg_count()));
+            });
     }
 
     fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {
@@ -528,6 +580,10 @@ impl StageFunc {
                 self.ast.show(ui);
             });
     }
+}
+
+fn label_block(ui: &mut egui::Ui, bid: decompiler::BlockID) {
+    ui.label(format!("block {}", bid.as_usize()));
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
