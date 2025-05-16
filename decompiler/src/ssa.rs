@@ -468,32 +468,31 @@ pub struct Schedule {
 
 impl Schedule {
     pub fn schedule(ssa: &Program) -> Self {
-        let mut insns = Vec::new();
-        // Initialize bounds with default Range<usize> (0..0) for all blocks.
-        // Blocks with no instructions will retain this default range.
-        let mut bounds: cfg::BlockMap<Range<usize>> = cfg::BlockMap::new(ssa.cfg(), 0..0);
-        let mut current_block_start = 0;
-        let mut last_block: Option<cfg::BlockID> = None;
-
-        for (bid, reg) in ssa.insns_rpo() {
-            if last_block != Some(bid) {
-                // Block changed. If it's not the first block, finalize the range for the previous block.
-                if let Some(prev_bid) = last_block {
-                    // The range for prev_bid is from current_block_start to insns.len()
-                    bounds[prev_bid] = current_block_start..insns.len();
-                }
-                // Start collecting instructions for the new block
-                current_block_start = insns.len();
-                last_block = Some(bid);
-            }
-            insns.push(reg);
-        }
-
-        if let Some(final_bid) = last_block {
-            bounds[final_bid] = current_block_start..insns.len();
-        }
-
-        Schedule { insns, bounds }
+        // for each insn i:
+        //   schedule(
+        //     insn: i,
+        //     block: common_ancestor(
+        //       tree: dom_tree,
+        //       nodes: users[i]
+        //     ),
+        //   )
+        //
+        // # assert: all i are associated to block
+        //
+        // same_block_users = {
+        //   i => users[i].filter{|u| u.block == i.block}
+        // }
+        //
+        // for each block b:
+        //   for each block effect e:
+        //     order.append: e.indirect_dependencies.RPO
+        //
+        //   append any block insns that ins
+        //   block_insns = insns_scheduled_in(b)
+        //   # topological sorting within block
+        //
+        //
+        //
     }
 
     pub fn for_block(&self, bid: cfg::BlockID) -> &[mil::Reg] {
