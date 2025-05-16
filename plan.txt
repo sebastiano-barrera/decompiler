@@ -1,6 +1,17 @@
 - [x] gui: ssa: show block continuations
 - [x] gui: ssa: add scrollarea
 
+- [ ] ssa: switch to a fully scheduled IR
+    - [ ] disable xform
+    - [ ] replace Schedule with a dummy
+    - [ ] refactor
+        - remove Schedule
+    - [ ] restore eliminate_dead_code
+    - [ ] feature: add instructions
+        - [ ] cfg: add new block
+            - this probably requires a slightly less efficient representation where blocks are easy to cut and stitch
+    - [ ] re-enable xform
+
 - [ ] ssa: find a way to attach instructions to blocks!
     - right now, only effectful instructions are attached to blocks in a
     specific order, while pure instructions are scheduled only if and when it's
@@ -11,9 +22,15 @@
         two distinct blocks, then the scheduling algorithm will NOT place them
         in a common ancestor.
 
-        the easy way out: modify the scheduling algorithm so that this is there
-        is probably an easy solution to this with use lists, but we don't have
-        them and don't want them.
+        the easy way out: fix the scheduling algorithm.
+
+            - use lists:
+                - probably necessary
+                - we don't want them in general
+                - ... i guess we could make a temporary one just for scheduling
+
+            - basically S-o-N's Global Code Motion
+                - or is it?
 
         - switching to an IR design where every instruction is attached to a block creates
         a challenge around adding new instruction: we need to make space for them!
