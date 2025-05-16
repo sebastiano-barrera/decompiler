@@ -12,6 +12,7 @@ use arrayvec::ArrayVec;
 use crate::{
     mil,
     pp::{self, PP},
+    util,
 };
 
 /// A graph where nodes are blocks, and edges are successors/predecessors relationships.
@@ -756,35 +757,32 @@ fn compute_dom_tree(
 fn common_ancestor<LT>(
     parent_of: &BlockMap<Option<BlockID>>,
     is_lt: LT,
-    mut ndx_a: BlockID,
-    mut ndx_b: BlockID,
+    ndx_a: BlockID,
+    ndx_b: BlockID,
 ) -> Option<BlockID>
 where
     LT: Fn(BlockID, BlockID) -> bool,
 {
-    // This func is called with a graph encoded with such that each entry point
-    // `e` will have parent_of[e] == Some(e). If there are multiple entry
-    // points, we will never have ndx_a == ndx_b. Rather, we would walk through
-    // parent_of infinitely, so we have to add specific termination conditions
-    // for those.
-    while ndx_a != ndx_b {
-        while parent_of[ndx_b] != Some(ndx_b) && is_lt(ndx_a, ndx_b) {
-            ndx_b = parent_of[ndx_b].unwrap();
-        }
-        while parent_of[ndx_a] != Some(ndx_a) && is_lt(ndx_b, ndx_a) {
-            ndx_a = parent_of[ndx_a].unwrap();
+    struct AdHocTree<'a, LT> {
+        parent_of: &'a BlockMap<Option<BlockID>>,
+        is_lt: LT,
+    }
+    impl<'a, LT> util::NumberedTree for AdHocTree<'a, LT>
+    where
+        LT: Fn(BlockID, BlockID) -> bool,
+    {
+        type Key = BlockID;
+
+        fn parent_of(&self, k: &BlockID) -> Option<BlockID> {
+            self.parent_of[*k]
         }
 
-        // When the graph has multiple entry nodes, each `e` of them has
-        // parent_of[e] == Some(e). If ndx_a and ndx_b represent two such nodes,
-        // we're never going to find a common ancestor, and we must stop (or we
-        // go into an infinite loop).
-        if ndx_a != ndx_b && parent_of[ndx_a] == Some(ndx_a) && parent_of[ndx_b] == Some(ndx_b) {
-            return None;
+        fn key_lt(&self, a: BlockID, b: BlockID) -> bool {
+            (self.is_lt)(a, b)
         }
     }
 
-    Some(ndx_a)
+    util::common_ancestor(&AdHocTree { parent_of, is_lt }, ndx_a, ndx_b)
 }
 
 /// Visit the blocks in the given graph in reverse postorder, and a return the
