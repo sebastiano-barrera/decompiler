@@ -2,8 +2,8 @@
 - [x] gui: ssa: add scrollarea
 
 - [ ] ssa: switch to a fully scheduled IR
-    - [ ] disable xform
-    - [ ] replace Schedule with a dummy
+    - [x] disable xform
+    - [--] replace Schedule with a dummy
     - [ ] refactor
         - remove Schedule
     - [ ] restore eliminate_dead_code
