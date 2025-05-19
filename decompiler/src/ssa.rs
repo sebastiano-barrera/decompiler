@@ -17,21 +17,22 @@ pub struct Program {
     //   (directly) to the program sequence (they're only referred-to by other in-sequence
     //   instruction)
     //
-    // - registers are numerically equal to the index of the defining instruction.
-    //   mil::Index values are just as good as mil::Reg for identifying both insns and
-    //   values.
+    // - SSA registers are numerically equal to the index of the defining
+    //   instruction in `inner`. mil::Index values are just as good as mil::Reg
+    //   for identifying both insns and values. This allows for fast lookups.
+    //
+    // - the logical order of the program (i.e. the order in which insns would
+    //   be executed if this was a real vm) is entirely independent of the
+    //   indices in `inner`. the logical order is stored here, with covering
+    //   spans associated to each block.
+    //
     inner: mil::Program,
 
+    schedule: cfg::Schedule,
     cfg: cfg::Graph,
-    bbs: cfg::BlockMap<BasicBlock>,
 }
 
 slotmap::new_key_type! { pub struct TypeID; }
-
-#[derive(Clone, Default)]
-pub struct BasicBlock {
-    effects: Vec<mil::Reg>,
-}
 
 impl Program {
     pub fn cfg(&self) -> &cfg::Graph {
@@ -76,22 +77,26 @@ impl Program {
         .map_while(|x| x)
     }
 
-    pub fn insns_rpo(&self) -> InsnRPOIter {
-        InsnRPOIter::new(self)
+    pub fn insns_rpo(&self) -> impl '_ + DoubleEndedIterator<Item = (cfg::BlockID, mil::Reg)> {
+        self.cfg
+            .block_ids_rpo()
+            .flat_map(|bid| self.block_regs(bid).map(move |reg| (bid, reg)))
     }
 
-    pub fn block_effects(&self, bid: cfg::BlockID) -> &[mil::Reg] {
-        &self.bbs[bid].effects
+    pub fn block_regs(&self, bid: cfg::BlockID) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
+        self.schedule
+            .of_block(bid)
+            .into_iter()
+            .map(|&ndx| mil::Reg(ndx))
     }
 
-    pub fn find_last_effect<P, R>(&self, bid: cfg::BlockID, pred: P) -> Option<R>
+    pub fn find_last_matching<P, R>(&self, bid: cfg::BlockID, pred: P) -> Option<R>
     where
         P: Fn(mil::Insn) -> Option<R>,
     {
-        self.block_effects(bid)
-            .iter()
+        self.block_regs(bid)
             .rev()
-            .map(|reg| self[*reg].get())
+            .map(|reg| self[reg].get())
             .find_map(pred)
     }
 
@@ -183,34 +188,95 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
+        eprintln!("---- checking");
+        eprintln!("{:?}", self);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
-        self.assert_inputs_reachable();
-        self.assert_effectful_partitioned();
+        self.assert_inputs_visible();
         self.assert_consistent_phis();
         self.assert_carg_chain();
     }
 
     fn assert_dest_reg_is_index(&self) {
-        for iv in self.inner.iter() {
-            assert_eq!(iv.index, iv.dest.get().reg_index());
+        // only scheduled instructions are subject to the "law" of SSA
+        for bid in self.cfg().block_ids_rpo() {
+            for &ndx in self.schedule.of_block(bid) {
+                let iv = self.inner.get(ndx).unwrap();
+                assert_eq!(ndx, iv.dest.get().reg_index());
+            }
         }
     }
 
-    fn assert_inputs_reachable(&self) {
-        for iv in self.inner.iter() {
-            for &mut input in iv.insn.get().input_regs() {
-                assert!(
-                    self.get(input).is_some(),
-                    "#{} has unreachable input {:?}",
-                    iv.index,
-                    input,
-                );
+    fn assert_inputs_visible(&self) {
+        enum Cmd {
+            Start(cfg::BlockID),
+            End(cfg::BlockID),
+        }
+        let entry_bid = self.cfg().entry_block_id();
+        let mut queue = vec![Cmd::End(entry_bid), Cmd::Start(entry_bid)];
+
+        let dom_tree = self.cfg().dom_tree();
+
+        // walk the dom tree depth-first
+
+        // def_block[reg] = Some(bid) iff
+        //
+        // register <reg> is defined in block <bid>, which is a dominator of the
+        // currently-visited block.
+        // (as the depth-first search leaves a block, the corresponding
+        // registers are cleared from this map)
+        let mut def_block = RegMap::for_program(self, None);
+        let mut block_visited = cfg::BlockMap::new(self.cfg(), false);
+
+        while let Some(cmd) = queue.pop() {
+            match cmd {
+                Cmd::Start(bid) => {
+                    eprintln!("start {:?}", bid);
+                    assert!(!block_visited[bid]);
+                    block_visited[bid] = true;
+
+                    for &ndx in self.schedule.of_block(bid) {
+                        let reg = mil::Reg(ndx);
+
+                        let mut insn = self.get(reg).unwrap().insn.get();
+                        eprintln!("   {:?} {:?}", reg, insn);
+                        for &mut input in insn.input_regs_iter() {
+                            eprintln!("     input {:?}", input);
+                            let Some(def_block_input) = def_block[input] else {
+                                panic!("input {input:?} of {reg:?} is not defined");
+                            };
+                            assert!(
+                                def_block_input == bid
+                                    || dom_tree
+                                        .imm_doms(bid)
+                                        .find(|&b| b == def_block_input)
+                                        .is_some()
+                            );
+                        }
+
+                        // otherwise it's a bug in this function:
+                        assert!(def_block[reg].is_none());
+                        def_block[reg] = Some(bid);
+                    }
+
+                    for &dominated in dom_tree.children_of(bid) {
+                        queue.push(Cmd::End(dominated));
+                        queue.push(Cmd::Start(dominated));
+                    }
+                }
+                Cmd::End(bid) => {
+                    eprintln!("end {:?}", bid);
+                    for &ndx in self.schedule.of_block(bid) {
+                        let reg = mil::Reg(ndx);
+                        def_block[reg] = None;
+                    }
+                }
             }
         }
     }
 
     fn assert_consistent_phis(&self) {
+        // all Upsilons linked to the same Phi have the same regtype
         let mut phi_type = RegMap::for_program(self, None);
         let rdr_count = count_readers(self);
 
@@ -260,25 +326,9 @@ impl Program {
         assert!(rdr_count.items().all(|(_, count)| *count == 0));
     }
 
-    fn assert_effectful_partitioned(&self) {
-        // effectful insns are all in blocks; pure instructions are all outside of blocks
-        let mut in_block = RegMap::for_program(self, false);
-        for (_, bb) in self.bbs.items() {
-            for reg in &bb.effects {
-                in_block[*reg] = true;
-            }
-        }
-
-        for reg in 0..self.reg_count() {
-            let reg = mil::Reg(reg);
-            let Some(iv) = self.get(reg) else { continue };
-            assert_eq!(in_block[reg], iv.insn.get().has_side_effects());
-        }
-    }
-
     fn assert_carg_chain(&self) {
-        for iv in self.inner.iter() {
-            let insn = iv.insn.get();
+        for (_, reg) in self.insns_rpo() {
+            let insn = self[reg].get();
             let arg = match insn {
                 mil::Insn::Call {
                     callee: _,
@@ -295,7 +345,7 @@ impl Program {
             assert!(
                 matches!(arg_def, mil::Insn::CArg { .. }),
                 "reg {:?} does not point to a CArg, but to {:?}",
-                iv.dest.get(),
+                reg,
                 arg_def
             );
         }
@@ -306,77 +356,6 @@ impl std::ops::Index<mil::Reg> for Program {
     type Output = Cell<mil::Insn>;
     fn index(&self, reg: mil::Reg) -> &Cell<mil::Insn> {
         self.get(reg).unwrap().insn
-    }
-}
-
-/// An iterator that walks through the instructions of a whole program in
-/// reverse post order.
-///
-/// Reverse postorder means that an instruction is always returned after all of
-/// its dependencies (both control and data).
-///
-/// The item is (BlockID, mil::Reg), so the block ID is explicitly given.
-pub struct InsnRPOIter<'a> {
-    queue: Vec<IterCmd>,
-    prog: &'a Program,
-    was_yielded: Vec<bool>,
-}
-enum IterCmd {
-    Block(cfg::BlockID),
-    StartInsn((cfg::BlockID, mil::Reg)),
-    EndInsn((cfg::BlockID, mil::Reg)),
-}
-impl<'a> InsnRPOIter<'a> {
-    fn new(prog: &'a Program) -> Self {
-        let queue = prog.cfg.block_ids_rpo().rev().map(IterCmd::Block).collect();
-        InsnRPOIter {
-            queue,
-            prog,
-            was_yielded: vec![false; prog.reg_count() as usize],
-        }
-    }
-}
-impl Iterator for InsnRPOIter<'_> {
-    type Item = (cfg::BlockID, mil::Reg);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let cmd = self.queue.pop()?;
-
-            match cmd {
-                IterCmd::Block(bid) => {
-                    self.queue.extend(
-                        self.prog.bbs[bid]
-                            .effects
-                            .iter()
-                            .rev()
-                            .copied()
-                            .map(|reg| IterCmd::StartInsn((bid, reg))),
-                    );
-                }
-                IterCmd::StartInsn((bid, reg)) => {
-                    if !self.was_yielded[reg.reg_index() as usize] {
-                        self.queue.push(IterCmd::EndInsn((bid, reg)));
-                        self.queue.extend(
-                            self.prog
-                                .get(reg)
-                                .unwrap()
-                                .insn
-                                .get()
-                                .input_regs_iter()
-                                .map(|input| IterCmd::StartInsn((bid, *input))),
-                        );
-                    }
-                }
-                IterCmd::EndInsn((bid, reg)) => {
-                    let was_yielded =
-                        std::mem::replace(&mut self.was_yielded[reg.reg_index() as usize], true);
-                    if !was_yielded {
-                        return Some((bid, reg));
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -459,48 +438,6 @@ impl std::fmt::Debug for Program {
     }
 }
 
-/// Store references to instructions (Reg) in reverse postorder, in a form that
-/// allows lookup by BlockID.
-pub struct Schedule {
-    insns: Vec<mil::Reg>,
-    bounds: cfg::BlockMap<Range<usize>>,
-}
-
-impl Schedule {
-    pub fn schedule(ssa: &Program) -> Self {
-        let mut insns = Vec::new();
-        // Initialize bounds with default Range<usize> (0..0) for all blocks.
-        // Blocks with no instructions will retain this default range.
-        let mut bounds: cfg::BlockMap<Range<usize>> = cfg::BlockMap::new(ssa.cfg(), 0..0);
-        let mut current_block_start = 0;
-        let mut last_block: Option<cfg::BlockID> = None;
-
-        for (bid, reg) in ssa.insns_rpo() {
-            if last_block != Some(bid) {
-                // Block changed. If it's not the first block, finalize the range for the previous block.
-                if let Some(prev_bid) = last_block {
-                    // The range for prev_bid is from current_block_start to insns.len()
-                    bounds[prev_bid] = current_block_start..insns.len();
-                }
-                // Start collecting instructions for the new block
-                current_block_start = insns.len();
-                last_block = Some(bid);
-            }
-            insns.push(reg);
-        }
-
-        if let Some(final_bid) = last_block {
-            bounds[final_bid] = current_block_start..insns.len();
-        }
-
-        Schedule { insns, bounds }
-    }
-
-    pub fn for_block(&self, bid: cfg::BlockID) -> &[mil::Reg] {
-        &self.insns[self.bounds[bid].clone()]
-    }
-}
-
 // TODO Remove this. No longer needed in the current design. Already cut down to nothing.
 pub struct ConversionParams {
     pub program: mil::Program,
@@ -518,20 +455,13 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let var_count = program.reg_count();
     let vars = move || (0..var_count).map(mil::Reg);
 
-    let cfg = cfg::analyze_mil(&program);
+    let (cfg, mut schedule) = cfg::analyze_mil(&program);
+    assert_eq!(cfg.block_count(), schedule.block_count());
+
     let dom_tree = cfg.dom_tree();
-    let is_phi_needed = compute_phis_set(&program, &cfg, dom_tree);
+    let is_phi_needed = compute_phis_set(&program, &cfg, &schedule, dom_tree);
 
-    {
-        let mut mask = vec![false; program.len() as usize];
-        for bid in cfg.block_ids_rpo() {
-            for ndx in cfg.insns_ndx_range(bid) {
-                mask[ndx as usize] = true;
-            }
-        }
-
-        program.set_enabled_mask(mask);
-    }
+    program.set_enabled_mask(vec![true; program.len() as usize]);
 
     // create all required phi nodes, and link them to basic blocks and
     // variables, to be "wired" later to the data flow graph
@@ -540,9 +470,13 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         for bid in cfg.block_ids() {
             for var in vars() {
                 if *is_phi_needed.get(bid, var) {
-                    let ndx = program.push_new(mil::Insn::Phi);
-                    let phi = mil::Reg(ndx);
-                    phis.set(bid, var, Some(phi));
+                    // just set `var` as the dest; the regular renaming process
+                    // will process this insn just like the others
+                    let ndx = program.push(var, mil::Insn::Phi);
+                    // in `phis`, we need a stable ID for this insn (which
+                    // survives the renaming)
+                    phis.set(bid, var, Some(ndx));
+                    schedule.insert(ndx, bid, 0);
                 }
             }
         }
@@ -634,55 +568,22 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     }
     let mut queue = vec![Cmd::Finish, Cmd::Start(cfg.entry_block_id())];
 
-    let mut bbs = cfg::BlockMap::new_sized(BasicBlock::default(), cfg.block_count());
-
     while let Some(cmd) = queue.pop() {
         match cmd {
             Cmd::Start(bid) => {
                 var_map.push();
 
-                let bb = &mut bbs[bid];
-
                 // -- patch current block
-
-                // phi nodes have already been added; we only "take in" the ones
-                // belonging to this block (associate them to the mil variable
-                // they represent)
                 //
-                // we're doing the "pizlo special" [^1], so arguments are going
-                // to be "set" via Upsilon instructions
-                //
-                // [^1] https://gist.github.com/pizlonator/cf1e72b8600b1437dda8153ea3fdb963
-                for var in vars() {
-                    // var is still pre-SSA/renaming
-                    if let Some(phi_reg) = phis.get(bid, var) {
-                        var_map.set(var, *phi_reg);
-                    }
-                }
-
-                for insn_ndx in cfg.insns_ndx_range(bid) {
+                // insns are treated as if already renamed so that their dest
+                // becomes mil::Reg(index) (this replacement will physically
+                // happen later on).
+                for &insn_ndx in schedule.of_block(bid) {
                     let iv = program.get(insn_ndx).unwrap();
-
-                    // TODO Re-establish this invariant
-                    //  this will only make sense after I add abstract values representing initial
-                    //  conditions to each function... (probably coming from the calling
-                    //  convention)
-                    //
-                    // > if bid == cfg::ENTRY_BID && insn_ndx ==  {
-                    // >     assert_eq!(inputs, [None, None]);
-                    // > }
 
                     let mut insn = iv.insn.get();
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
-                    }
-                    if let mil::Insn::Control(_) = insn {
-                        let insn_ndx_last = cfg.insns_ndx_range(bid).last().unwrap();
-                        assert_eq!(insn_ndx, insn_ndx_last);
-                        // patch it out, otherwise we violate the effectful/pure partitionng
-                        insn = mil::Insn::Void;
-                        // ... and do not add it to bb.effects (the
-                        // BlockCont is deemed sufficient)
                     }
                     iv.insn.set(insn);
 
@@ -690,7 +591,9 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     // index. this way, the numeric value of a register can also be used as
                     // instruction ID, to locate a register/variable's defining instruction.
                     let new_dest = mil::Reg(insn_ndx);
-                    let old_name = iv.dest.replace(new_dest);
+                    // iv.dest is rewritten later (always mil::Reg(index))
+                    // we only update `var_map`
+                    let old_name = iv.dest.get();
 
                     let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
@@ -700,10 +603,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                         new_dest
                     };
                     var_map.set(old_name, new_name);
-
-                    if insn.has_side_effects() {
-                        bb.effects.push(new_name);
-                    }
                 }
 
                 // -- patch successor's phi nodes
@@ -712,22 +611,23 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // >    for p in s's ϕ-nodes:
                 // >      Assuming p is for a variable v, make it read from stack[v].
                 //
-                // ... in order to patch the correct operand in each phi instruction, we have
-                // to use its "predecessor position", i.e. whether the current block is the
-                // successor's 1st, 2nd, 3rd predecessor.
+                // Thanks to the Upsilon formulation of phi nodes, it's
+                // sufficient to add one such insn to obtain the final correct
+                // representation. Algorithms that want to know the operands of
+                // the phi node will iterate in reverse through the
+                // predecessor's instructions.
 
-                let block_cont = cfg.block_cont(bid);
-                for succ in block_cont.block_dests() {
+                for succ in cfg.block_cont(bid).block_dests() {
                     for var in vars() {
-                        if let Some(phi_reg) = phis.get(succ, var) {
+                        if let &Some(phi_ndx) = phis.get(succ, var) {
                             let value = var_map
                                 .get(var)
                                 .expect("value not initialized in pre-ssa (phi)");
                             let ups = program.push_new(mil::Insn::Upsilon {
                                 value,
-                                phi_ref: *phi_reg,
+                                phi_ref: mil::Reg(phi_ndx),
                             });
-                            bb.effects.push(mil::Reg(ups));
+                            schedule.append(ups, bid);
                         }
                     }
                 }
@@ -749,18 +649,24 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
+    // replace all dest with mil::Reg(index), regardless of whether or not the
+    // insn is scheduled. not strictly required, but simplifies a bunch of other
+    // algorithms later on
+    for (ndx, iv) in program.iter().enumerate() {
+        iv.dest.set(mil::Reg(ndx.try_into().unwrap()));
+    }
+
     let ssa = Program {
         inner: program,
+        schedule,
         cfg,
-        bbs,
     };
     // no need for dead code elimination
     //
-    // in the current representation, effectful instructions that aren't
-    // referenced by a basic block and pure instructions that are not referenced
-    // (even indirectly) by any effectul instructions are effectively dead (not
-    // reachable via insns_rpo or similar iterators). No need to eliminate them
-    // from the data structures (other than maybe space savings)
+    // in the current representation, instructions that aren't referenced by a
+    // basic block are effectively dead (iterators won't yield their ID, for
+    // example). No need to physically eliminate them from the data structures
+    // (other than maybe space savings, but then we'd need a rewriting pass)
     ssa.assert_invariants();
     ssa
 }
@@ -768,12 +674,13 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 fn compute_phis_set(
     program: &mil::Program,
     cfg: &cfg::Graph,
+    block_spans: &cfg::Schedule,
     dom_tree: &cfg::DomTree,
 ) -> RegMat<bool> {
     // matrix [B * B] where B = #blocks
     // matrix[i, j] = true iff block j is in block i's dominance frontier
     let is_dom_front = compute_dominance_frontier(cfg, dom_tree);
-    let block_uses_var = find_received_vars(program, cfg);
+    let block_uses_var = find_received_vars(program, block_spans, cfg);
     let mut phis_set = RegMat::for_program(program, cfg, false);
 
     // the rule is:
@@ -781,9 +688,8 @@ fn compute_phis_set(
     //   then we have to add `v <- phi v, v, ...` on each block in b's dominance frontier
     // (phis_set is to avoid having multiple phis for the same var)
     for bid in cfg.block_ids() {
-        let slice = program.slice(cfg.insns_ndx_range(bid)).unwrap();
-        for dest in slice.dests.iter() {
-            let dest = dest.get();
+        for &ndx in block_spans.of_block(bid) {
+            let dest = program.get(ndx).unwrap().dest.get();
             for target_bid in cfg.block_ids() {
                 if cfg.block_preds(target_bid).len() < 2 {
                     continue;
@@ -807,15 +713,18 @@ fn compute_phis_set(
 /// This is the set of variables which are read before any write in the block.
 /// In other words, for these are the variables, the block observes the values
 /// left there by other blocks.
-fn find_received_vars(prog: &mil::Program, graph: &cfg::Graph) -> RegMat<bool> {
+fn find_received_vars(
+    prog: &mil::Program,
+    block_spans: &cfg::Schedule,
+    graph: &cfg::Graph,
+) -> RegMat<bool> {
     let mut is_received = RegMat::for_program(prog, graph, false);
     for bid in graph.block_ids_postorder() {
-        for (dest, mut insn) in prog
-            .slice(graph.insns_ndx_range(bid))
-            .unwrap()
-            .iter_copied()
-            .rev()
-        {
+        for &ndx in block_spans.of_block(bid).into_iter().rev() {
+            let iv = prog.get(ndx).unwrap();
+            let dest = iv.dest.get();
+            let mut insn = iv.insn.get();
+
             is_received.set(bid, dest, false);
             for &mut input in insn.input_regs_iter() {
                 is_received.set(bid, input, true);

@@ -18,7 +18,6 @@ use crate::{
 /// A graph where nodes are blocks, and edges are successors/predecessors relationships.
 #[derive(Clone)]
 pub struct Graph {
-    bounds: Vec<mil::Index>,
     // successors[bndx] = successors to block #bndx
     direct: Edges,
     predecessors: BlockMultiMap<BlockID>,
@@ -173,6 +172,65 @@ impl BlockCont {
     }
 }
 
+#[derive(Clone)]
+pub struct Schedule(BlockMap<Vec<mil::Index>>);
+
+impl Schedule {
+    /// Construct a BlockSpans from the an array representation of the block's spans.
+    ///
+    /// bounds[i] == start of block for BlockID(i) == end of block BlockID(i-1)
+    fn from_bounds(bounds: &[mil::Index]) -> Self {
+        let block_count = (bounds.len() - 1).try_into().unwrap();
+        let mut bmap = BlockMap::new_sized(Vec::new(), block_count);
+
+        for (bndx, (&start, &end)) in bounds.iter().zip(bounds[1..].iter()).enumerate() {
+            assert!(end >= start);
+            let bid = BlockID(bndx.try_into().unwrap());
+            bmap[bid].extend(start..end);
+        }
+
+        assert_eq!(bmap.block_count(), block_count);
+
+        let bs = Schedule(bmap);
+        bs.assert_invariants();
+        bs
+    }
+
+    pub fn block_count(&self) -> u16 {
+        self.0.block_count()
+    }
+
+    pub fn of_block(&self, bid: BlockID) -> &[mil::Index] {
+        &self.0[bid]
+    }
+
+    pub fn insert(&mut self, ndx: mil::Index, bid: BlockID, ndx_in_block: u16) {
+        self.0[bid].insert(ndx_in_block as usize, ndx);
+    }
+    pub fn append(&mut self, ndx: mil::Index, bid: BlockID) {
+        self.0[bid].push(ndx);
+    }
+
+    fn assert_invariants(&self) {
+        // check: no duplicates
+        let mut is_insn_scheduled = Vec::new();
+
+        for (bid, ndxs) in self.0.items() {
+            for &ndx in ndxs {
+                let ndx = ndx as usize;
+                if ndx >= is_insn_scheduled.len() {
+                    is_insn_scheduled.resize(ndx + 1, false);
+                }
+
+                assert!(!is_insn_scheduled[ndx]);
+                is_insn_scheduled[ndx] = true;
+            }
+
+            assert!(ndxs.len() > 0, "block is empty: {:?}", bid);
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Copy, Clone, Hash)]
 pub struct BlockID(u16);
 
@@ -191,7 +249,7 @@ impl BlockID {
 impl Graph {
     #[inline(always)]
     pub fn block_count(&self) -> u16 {
-        (self.bounds.len() - 1).try_into().unwrap()
+        self.direct.block_count()
     }
 
     pub fn block_ids(&self) -> impl Iterator<Item = BlockID> {
@@ -204,22 +262,6 @@ impl Graph {
 
     pub fn block_cont(&self, bid: BlockID) -> BlockCont {
         self.direct.successors[bid]
-    }
-
-    /// Get the range of instructions covered by this basic block.
-    ///
-    /// The range for any given basic block is guaranteed not to intersect with
-    /// the range of any other basic block.
-    ///
-    /// NOTE: the returned indices ONLY make sense in the context of the MIL
-    /// program that this CFG was originally built on. It has NO meaning in any
-    /// other program and most importantly on SSA, where instructions are wired
-    /// in a graph and not collected in compact sequences.
-    pub fn insns_ndx_range(&self, bid: BlockID) -> Range<mil::Index> {
-        let ndx = bid.as_usize();
-        let start = self.bounds[ndx];
-        let end = self.bounds[ndx + 1];
-        start..end
     }
 
     pub fn dom_tree(&self) -> &DomTree {
@@ -251,7 +293,7 @@ impl Graph {
     }
 }
 
-pub fn analyze_mil(program: &mil::Program) -> Graph {
+pub fn analyze_mil(program: &mil::Program) -> (Graph, Schedule) {
     // if bounds == [b0, b1, b2, b3, ...]
     // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
     // in general, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
@@ -361,14 +403,17 @@ pub fn analyze_mil(program: &mil::Program) -> Graph {
     let dom_tree = compute_dom_tree(&direct, &reverse_postorder, &predecessors);
 
     let graph = Graph {
-        bounds,
         direct,
         predecessors,
         dom_tree,
         reverse_postorder,
     };
     graph.assert_invariants();
-    graph
+
+    let block_spans = Schedule::from_bounds(&bounds);
+
+    assert_eq!(graph.block_count(), block_spans.block_count());
+    (graph, block_spans)
 }
 
 fn compute_predecessors(successors: &BlockMap<BlockCont>) -> BlockMultiMap<BlockID> {
@@ -389,6 +434,18 @@ struct BlockMultiMap<T> {
 impl<T> BlockMultiMap<T> {
     fn block_count(&self) -> u16 {
         self.ndx_range.block_count()
+    }
+
+    fn items(&self) -> impl Iterator<Item = (BlockID, &[T])> {
+        self.ndx_range
+            .items()
+            .map(|(bid, ndx_range)| (bid, &self.items[ndx_range.clone()]))
+    }
+
+    fn assert_invariants(&self) {
+        for (_, range) in self.ndx_range.items() {
+            assert!(range.end <= self.items.len());
+        }
     }
 }
 impl<T> std::ops::Index<BlockID> for BlockMultiMap<T> {
@@ -447,53 +504,7 @@ impl<T> BlockMultiMapSorter<T> {
 
 impl Graph {
     fn assert_invariants(&self) {
-        self.assert_full_mil_covered();
-        self.assert_bounds_valid();
-
-        // no duplicates (<=> no 0-length blocks)
-        let (_, starts) = self.bounds.split_last().unwrap();
-        for (i, &start) in starts.iter().enumerate() {
-            let end = (&self.bounds)[i + 1];
-            assert_ne!(end, start);
-        }
-
         self.direct.assert_invariants();
-    }
-
-    fn assert_bounds_valid(&self) {
-        let program_len = *self.bounds.last().unwrap();
-        let invalid: Vec<_> = self
-            .bounds
-            .iter()
-            .copied()
-            .filter(|&i| i > program_len)
-            .collect();
-        assert_eq!(&invalid, &[]);
-    }
-
-    fn assert_full_mil_covered(&self) {
-        let program_len = *self.bounds.last().unwrap();
-        let is_covered = {
-            let mut is = vec![false; program_len as usize];
-            for (&start_ndx, &end_ndx) in self.bounds.iter().zip(self.bounds[1..].iter()) {
-                let start_ndx = start_ndx as usize;
-                let end_ndx = end_ndx as usize;
-                for item in &mut is[start_ndx..end_ndx] {
-                    *item = true;
-                }
-            }
-            is
-        };
-
-        let uncovered: Vec<_> = is_covered
-            .into_iter()
-            .enumerate()
-            .filter(|(_, is)| !*is)
-            .map(|(ndx, _)| ndx)
-            .collect();
-
-        // this way if the assertion fails we can see which indices are uncovered
-        assert_eq!(&uncovered, &[]);
     }
 
     pub fn dump_graphviz<W: PP + ?Sized>(
@@ -506,14 +517,7 @@ impl Graph {
         writeln!(out, "  // {} blocks", count)?;
 
         for bid in self.block_ids() {
-            let Range { start, end } = self.insns_ndx_range(bid);
-
-            writeln!(out, "  // {:4} - {:4} ({}) ", start, end, end - start,)?;
-            writeln!(
-                out,
-                "  block{} [label=\"{}\\n{}..{}\"];",
-                bid.0, bid.0, start, end,
-            )?;
+            writeln!(out, "  block{};", bid.0)?;
 
             match self.direct.successors(bid).as_slice() {
                 [] => writeln!(out, "  block{} -> end", bid.0)?,

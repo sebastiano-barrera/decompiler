@@ -70,28 +70,24 @@ impl<'a> Ast<'a> {
         assert!(!self.block_printed[bid]);
         self.block_printed[bid] = true;
 
-        let cfg = self.ssa.cfg();
-        let block_cont = cfg.block_cont(bid);
-        let block_effects = self.ssa.block_effects(bid);
+        for reg in self.ssa.block_regs(bid) {
+            if self.is_named(reg) || self.ssa[reg].get().has_side_effects() {
+                self.pp_stmt(pp, reg)?;
+            }
+        }
 
-        self.pp_effects(pp, block_effects)?;
-
-        match block_cont {
+        match self.ssa.cfg().block_cont(bid) {
             cfg::BlockCont::Always(tgt) => {
                 self.pp_continuation(pp, bid, tgt)?;
             }
             cfg::BlockCont::Conditional { pos, neg } => {
-                let cond = block_effects
-                    .iter()
-                    .rev()
-                    .find_map(|&reg| match self.ssa[reg].get() {
-                        Insn::SetJumpCondition(value) => Some(value),
-                        _ => None,
-                    });
+                let cond = self.ssa.find_last_matching(bid, |insn| match insn {
+                    Insn::SetJumpCondition(value) => Some(value),
+                    _ => None,
+                });
 
                 match cond {
                     Some(cond) => {
-                        self.pp_input_let_stmts(pp, cond)?;
                         write!(pp, "if ")?;
                         self.pp_ref(pp, cond, 0)?;
                     }
@@ -110,23 +106,10 @@ impl<'a> Ast<'a> {
             }
         }
 
-        for &child in cfg.dom_tree().children_of(bid) {
-            if cfg.block_preds(child).len() > 1 {
+        for &child in self.ssa.cfg().dom_tree().children_of(bid) {
+            if self.ssa.cfg().block_preds(child).len() > 1 {
                 self.pp_block_labeled(pp, child)?;
             }
-        }
-
-        Ok(())
-    }
-
-    fn pp_effects<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        block_effects: &[Reg],
-    ) -> std::io::Result<()> {
-        for reg in block_effects.iter() {
-            self.pp_input_let_stmts(pp, *reg)?;
-            self.pp_stmt(pp, *reg)?;
         }
 
         Ok(())
@@ -154,19 +137,13 @@ impl<'a> Ast<'a> {
                 }
             }
             cfg::Dest::Indirect => {
-                let target =
-                    self.ssa
-                        .block_effects(src_bid)
-                        .iter()
-                        .rev()
-                        .find_map(|&reg| match self.ssa[reg].get() {
-                            Insn::SetJumpTarget(value) => Some(value),
-                            _ => None,
-                        });
+                let target = self.ssa.find_last_matching(src_bid, |insn| match insn {
+                    Insn::SetJumpTarget(value) => Some(value),
+                    _ => None,
+                });
 
                 match target {
                     Some(target) => {
-                        self.pp_input_let_stmts(pp, target)?;
                         write!(pp, "goto (")?;
                         self.pp_ref(pp, target, 0)?;
                         write!(pp, ").*")?;
@@ -180,19 +157,13 @@ impl<'a> Ast<'a> {
                 }
             }
             cfg::Dest::Return => {
-                let ret_val = self
-                    .ssa
-                    .block_effects(src_bid)
-                    .iter()
-                    .rev()
-                    .find_map(|&reg| match self.ssa[reg].get() {
-                        Insn::SetReturnValue(value) => Some(value),
-                        _ => None,
-                    });
+                let ret_val = self.ssa.find_last_matching(src_bid, |insn| match insn {
+                    Insn::SetReturnValue(value) => Some(value),
+                    _ => None,
+                });
 
                 match ret_val {
                     Some(ret_val) => {
-                        self.pp_input_let_stmts(pp, ret_val)?;
                         write!(pp, "return ")?;
                         self.pp_ref(pp, ret_val, 0)?;
                     }
@@ -209,29 +180,6 @@ impl<'a> Ast<'a> {
                     pp,
                     "goto undefined /* warning: due to decompiler bug or limitation */"
                 )?;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Results in a series of `let x = ...` expressions being printed.
-    ///
-    /// This function ensures that all named inputs to the given instruction
-    /// have been printed exactly once. Values that require `let` expressions
-    /// that were already printed in the past are not printed again.
-    ///
-    /// This function does NOT print reg or the instruction defining reg.
-    fn pp_input_let_stmts<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
-        let mut insn = self.ssa[reg].get();
-
-        for &mut input in insn.input_regs_iter() {
-            self.pp_input_let_stmts(pp, input)?;
-            if self.is_named(input) {
-                // named inputs get their name assigned to a `let x = ...`
-                self.pp_stmt(pp, input)?;
-            } else {
-                // unnamed inputs will be printed inline in their only user's definition
             }
         }
 

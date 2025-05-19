@@ -984,7 +984,6 @@ mod ast_view {
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
-        schedule: decompiler::SSASchedule,
         rdr_count: decompiler::RegMap<usize>,
 
         // just to check that the algo is correct:
@@ -1000,14 +999,12 @@ mod ast_view {
     }
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
-            let schedule = decompiler::SSASchedule::schedule(ssa);
             let rdr_count = decompiler::count_readers(ssa);
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
                 nodes: Vec::new(),
                 ssa,
-                schedule,
                 rdr_count,
                 block_status,
                 open_stack: Vec::new(),
@@ -1056,7 +1053,7 @@ mod ast_view {
 
             // TODO fix: remove .to_vec(). split builder core from visitors (then we can
             // borrow &self.scheduler and &mut self.nodes)
-            let block_sched = self.schedule.for_block(bid).to_vec();
+            let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
             for reg in block_sched {
                 if self.ssa[reg].get().has_side_effects() {
                     self.transform_def(reg);
@@ -1071,7 +1068,7 @@ mod ast_view {
                     self.transform_dest(bid, &dest);
                 }
                 decompiler::BlockCont::Conditional { pos, neg } => {
-                    let cond = self.ssa.find_last_effect(bid, |insn| {
+                    let cond = self.ssa.find_last_matching(bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetJumpCondition(cond), cond)
                     });
 
@@ -1395,7 +1392,7 @@ mod ast_view {
                     }
                 }
                 decompiler::Dest::Indirect => {
-                    let tgt = self.ssa.find_last_effect(src_bid, |insn| {
+                    let tgt = self.ssa.find_last_matching(src_bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetJumpTarget(tgt), tgt)
                     });
 
@@ -1412,7 +1409,7 @@ mod ast_view {
                     }
                 }
                 decompiler::Dest::Return => {
-                    let ret = self.ssa.find_last_effect(src_bid, |insn| {
+                    let ret = self.ssa.find_last_matching(src_bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetReturnValue(val), val)
                     });
 

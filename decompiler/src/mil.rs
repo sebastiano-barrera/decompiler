@@ -24,6 +24,7 @@ pub struct Program {
     // disabled and inaccessible. for all intents and purposes, it's deleted.
     // its index never yielded by iterators, and accesses to it result in
     // a panic.
+    // TODO delete this!
     is_enabled: Vec<bool>,
     reg_count: Index,
 
@@ -385,15 +386,6 @@ impl Program {
         }
     }
 
-    pub fn slice(&self, ndxr: Range<Index>) -> Option<InsnSlice> {
-        let insn = self.insns.get(range_conv(ndxr.clone()))?;
-        let dest = &self.dests[range_conv(ndxr)];
-        Some(InsnSlice {
-            insns: insn,
-            dests: dest,
-        })
-    }
-
     #[inline(always)]
     pub fn reg_count(&self) -> Index {
         self.reg_count
@@ -440,6 +432,7 @@ impl Program {
     /// is true iff the i-th instruction is enabled. Otherwise, index `i` is
     /// disabled (accesses to it via .get() result in a panic) and it is never
     /// yielded from iterators.
+    // TODO delete this!
     pub fn set_enabled_mask(&mut self, mask: Vec<bool>) {
         assert_eq!(mask.len(), self.len() as usize);
         self.is_enabled = mask;
@@ -460,22 +453,6 @@ pub struct InsnView<'a> {
     pub index: Index,
     // no use for this right now
     // pub addr: u64,
-}
-
-#[derive(Clone, Copy)]
-pub struct InsnSlice<'a> {
-    pub insns: &'a [Cell<Insn>],
-    pub dests: &'a [Cell<Reg>],
-}
-impl<'a> InsnSlice<'a> {
-    pub fn iter<'s>(
-        &'s self,
-    ) -> impl 's + DoubleEndedIterator<Item = (&'a Cell<Reg>, &'a Cell<Insn>)> {
-        self.dests.iter().zip(self.insns.iter())
-    }
-    pub fn iter_copied(&self) -> impl '_ + DoubleEndedIterator<Item = (Reg, Insn)> {
-        self.iter().map(|(d, r)| (d.get(), r.get()))
-    }
 }
 
 // will be mostly useful to keep origin info later
