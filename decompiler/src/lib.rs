@@ -7,7 +7,16 @@ mod ssa;
 mod tests;
 mod ty;
 mod x86_to_mil;
+
+// temporarily disabled
+#[cfg(any())]
 mod xform;
+mod xform {
+    use crate::ssa;
+    pub fn canonical(prog: &mut ssa::Program) {
+        // do nothing!
+    }
+}
 
 mod util;
 

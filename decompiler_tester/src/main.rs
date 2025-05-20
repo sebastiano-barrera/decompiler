@@ -76,6 +76,16 @@ struct StageFunc {
     assembly: Assembly,
     mil_lines: Vec<String>,
     ast: ast_view::Ast,
+
+    hl: Highlight,
+}
+
+#[non_exhaustive]
+#[derive(PartialEq, Eq, Default)]
+enum Highlight {
+    #[default]
+    None,
+    Reg(decompiler::Reg),
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -397,6 +407,7 @@ impl StageFunc {
             assembly,
             mil_lines,
             ast,
+            hl: Highlight::None,
         }
     }
 
@@ -560,9 +571,13 @@ impl StageFunc {
                         });
                     }
 
-                    let iv = ssa.get(reg).unwrap();
-                    // TODO show type information
-                    ui.label(format!("{:?} <- {:?}", reg, iv.insn.get()));
+                    ui.horizontal(|ui| {
+                        label_reg(ui, reg, &mut self.hl);
+                        let iv = ssa.get(reg).unwrap();
+                        // TODO show type information
+                        // TODO use label_reg for parts of the instruction as well
+                        ui.label(format!(" <- {:?}", iv.insn.get()));
+                    });
                 }
                 if let Some(cur_bid) = cur_bid {
                     show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
@@ -577,8 +592,22 @@ impl StageFunc {
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                self.ast.show(ui);
+                self.ast.show(ui, &mut self.hl);
             });
+    }
+}
+
+fn label_reg(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
+    // TODO avoid alloc
+    let rt = egui::RichText::new(format!("{:?}", reg));
+    let rt = if *hl == Highlight::Reg(reg) {
+        rt.background_color(egui::Color32::DARK_RED)
+    } else {
+        rt
+    };
+    let res = ui.label(rt);
+    if res.hovered() {
+        *hl = Highlight::Reg(reg);
     }
 }
 
@@ -822,6 +851,9 @@ mod ast_view {
 
     use decompiler::Insn;
 
+    use super::Highlight;
+    use crate::label_reg;
+
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
         // the last element is the root node
@@ -867,16 +899,22 @@ mod ast_view {
             ast
         }
 
-        pub fn show(&self, ui: &mut egui::Ui) {
+        pub fn show(&self, ui: &mut egui::Ui, hl: &mut Highlight) {
             {
                 let mut mask = self.is_node_shown.borrow_mut();
                 mask.fill(false);
             }
 
-            self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical);
+            self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical, hl);
         }
 
-        fn show_block(&self, ui: &mut egui::Ui, ndx_range: Range<usize>, kind: SeqKind) -> usize {
+        fn show_block(
+            &self,
+            ui: &mut egui::Ui,
+            ndx_range: Range<usize>,
+            kind: SeqKind,
+            hl: &mut Highlight,
+        ) -> usize {
             match kind {
                 SeqKind::Vertical => {
                     let mut child_rect = ui.available_rect_before_wrap();
@@ -885,7 +923,7 @@ mod ast_view {
                     child_rect.min.x += 30.0;
 
                     let res = ui.scope_builder(egui::UiBuilder::new().max_rect(child_rect), |ui| {
-                        self.show_block_content(ui, ndx_range)
+                        self.show_block_content(ui, ndx_range, hl)
                     });
 
                     let y_min = res.response.rect.min.y;
@@ -901,16 +939,21 @@ mod ast_view {
                     res.inner
                 }
                 SeqKind::Flow => {
-                    ui.horizontal(|ui| self.show_block_content(ui, ndx_range))
+                    ui.horizontal(|ui| self.show_block_content(ui, ndx_range, hl))
                         .inner
                 }
             }
         }
 
-        fn show_block_content(&self, ui: &mut egui::Ui, ndx_range: Range<usize>) -> usize {
+        fn show_block_content(
+            &self,
+            ui: &mut egui::Ui,
+            ndx_range: Range<usize>,
+            hl: &mut Highlight,
+        ) -> usize {
             let mut ndx = ndx_range.start;
             while ndx < ndx_range.end {
-                let new_ndx = self.show_node(ui, ndx);
+                let new_ndx = self.show_node(ui, ndx, hl);
                 assert!(new_ndx > ndx);
                 ndx = new_ndx;
             }
@@ -918,7 +961,7 @@ mod ast_view {
             ndx
         }
 
-        fn show_node(&self, ui: &mut egui::Ui, ndx: usize) -> usize {
+        fn show_node(&self, ui: &mut egui::Ui, ndx: usize, hl: &mut Highlight) -> usize {
             let already_visited = {
                 let mut mask = self.is_node_shown.borrow_mut();
                 std::mem::replace(&mut mask[ndx], true)
@@ -934,7 +977,7 @@ mod ast_view {
                     // ndx + 4  TheNextThing
                     let start_ndx = ndx + 1; // skip the Open node
                     let end_ndx = start_ndx + count;
-                    let check_end_ndx = self.show_block(ui, start_ndx..end_ndx, *kind);
+                    let check_end_ndx = self.show_block(ui, start_ndx..end_ndx, *kind, hl);
                     if check_end_ndx != end_ndx {
                         eprintln!(
                             "warning: @ {}: skipped {} nodes",
@@ -957,8 +1000,7 @@ mod ast_view {
 
                 // TODO define specific styles
                 Node::Ref(reg) => {
-                    // TODO avoid alloc
-                    ui.label(format!("{:?}", reg));
+                    label_reg(ui, *reg, hl);
                 }
                 Node::LitNum(num) => {
                     // TODO avoid alloc
@@ -984,7 +1026,6 @@ mod ast_view {
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
-        schedule: decompiler::SSASchedule,
         rdr_count: decompiler::RegMap<usize>,
 
         // just to check that the algo is correct:
@@ -1000,14 +1041,12 @@ mod ast_view {
     }
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
-            let schedule = decompiler::SSASchedule::schedule(ssa);
             let rdr_count = decompiler::count_readers(ssa);
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
                 nodes: Vec::new(),
                 ssa,
-                schedule,
                 rdr_count,
                 block_status,
                 open_stack: Vec::new(),
@@ -1056,7 +1095,7 @@ mod ast_view {
 
             // TODO fix: remove .to_vec(). split builder core from visitors (then we can
             // borrow &self.scheduler and &mut self.nodes)
-            let block_sched = self.schedule.for_block(bid).to_vec();
+            let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
             for reg in block_sched {
                 if self.ssa[reg].get().has_side_effects() {
                     self.transform_def(reg);
@@ -1071,7 +1110,7 @@ mod ast_view {
                     self.transform_dest(bid, &dest);
                 }
                 decompiler::BlockCont::Conditional { pos, neg } => {
-                    let cond = self.ssa.find_last_effect(bid, |insn| {
+                    let cond = self.ssa.find_last_matching(bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetJumpCondition(cond), cond)
                     });
 
@@ -1395,7 +1434,7 @@ mod ast_view {
                     }
                 }
                 decompiler::Dest::Indirect => {
-                    let tgt = self.ssa.find_last_effect(src_bid, |insn| {
+                    let tgt = self.ssa.find_last_matching(src_bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetJumpTarget(tgt), tgt)
                     });
 
@@ -1412,7 +1451,7 @@ mod ast_view {
                     }
                 }
                 decompiler::Dest::Return => {
-                    let ret = self.ssa.find_last_effect(src_bid, |insn| {
+                    let ret = self.ssa.find_last_matching(src_bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetReturnValue(val), val)
                     });
 
@@ -1439,7 +1478,7 @@ mod ast_view {
 
                 s.emit(Node::Kw("let"));
                 // TODO make the name editable
-                s.emit(Node::Generic(format!("{:?}", reg)));
+                s.emit(Node::Ref(reg));
                 s.emit(Node::Kw("="));
                 s.transform_def(reg);
             });

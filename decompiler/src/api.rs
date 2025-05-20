@@ -7,7 +7,7 @@ use crate::{ast, mil, pp, ssa, ty, x86_to_mil, xform};
 
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
 pub use crate::mil::{Insn, Reg};
-pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap, Schedule as SSASchedule};
+pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -227,15 +227,8 @@ impl<'a> Executable<'a> {
         let cfg = prog.cfg();
         writeln!(out, "  entry: {:?}", cfg.direct().entry_bid())?;
         for bid in cfg.block_ids() {
-            let range = cfg.insns_ndx_range(bid);
-            writeln!(
-                out,
-                "  {:?} [{}:{}] -> {:?}",
-                bid,
-                range.start,
-                range.end,
-                cfg.block_cont(bid)
-            )?;
+            let regs: Vec<_> = prog.block_regs(bid).collect();
+            writeln!(out, "  {:?} -> {:?} {:?}", bid, cfg.block_cont(bid), regs)?;
         }
         write!(out, "  domtree:\n    ")?;
         out.open_box();

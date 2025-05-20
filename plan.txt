@@ -1,6 +1,47 @@
 - [x] gui: ssa: show block continuations
 - [x] gui: ssa: add scrollarea
 
+- [ ] ssa: switch to a fully scheduled IR
+    - [x] disable xform
+    - [--] replace Schedule with a dummy
+    - [x] refactor
+        - too complicated to add instructions in the middle. attempt: only
+        append + modify the cfg consequently
+        - remove Schedule
+    - [ ] restore eliminate_dead_code
+    - [ ] feature: add instructions
+        - [ ] cfg: add new block
+            - this probably requires a slightly less efficient representation where blocks are easy to cut and stitch
+    - [ ] re-enable xform
+
+    - notes
+        Fully scheduled instructions
+        Can be put in any order, we then parse/check that the ordering is compatible with def/use chains.
+
+        - Stable IDs used as references in user instructions
+        - Order index for easy reordering
+            - "deferred ordering"
+                - we don't need to keep the program actually ordered in memory at all times; just keep a representation of the order around that's easy to change during the course of compilation, and *then* it can be transformed into a concrete ordering when strictly needed.
+
+            - logical order:
+                = the order in which the instructions follow each other in the context of a specific block
+                - block local!
+                - logical index collisions are possible; ordering solved by considering storage index, too
+
+                - sparse:
+                    - the only point of logical indices is to order them later, so they only need to be Ord.
+                    - they can be sparse: (120000, 23000, 40000, ...)
+                    - we can "allocate" a certain number (say, 1024) logical index slots for each storage index during initial construction, then we have plenty of space for deferred additions
+
+                - how do we associate blocks to the instructions that belong to them?
+                    - each block *must* cover a range of logical indices
+                    - storage indices may be all over the place, no problem
+
+            - storage order:
+                = the order in which instructions appear conretely in some hidden Vec<_>.
+                - mostly useful for fast lookup.
+                - stable: new instructions are always appended at the end of the hidden Vec<_>, without changing the storage index of existing insns
+                - compact: they're literally index in a Vec<_>, so they form a compact domain (0, 1, 2, 3...)
 - [ ] ssa: find a way to attach instructions to blocks!
     - right now, only effectful instructions are attached to blocks in a
     specific order, while pure instructions are scheduled only if and when it's
@@ -11,9 +52,15 @@
         two distinct blocks, then the scheduling algorithm will NOT place them
         in a common ancestor.
 
-        the easy way out: modify the scheduling algorithm so that this is there
-        is probably an easy solution to this with use lists, but we don't have
-        them and don't want them.
+        the easy way out: fix the scheduling algorithm.
+
+            - use lists:
+                - probably necessary
+                - we don't want them in general
+                - ... i guess we could make a temporary one just for scheduling
+
+            - basically S-o-N's Global Code Motion
+                - or is it?
 
         - switching to an IR design where every instruction is attached to a block creates
         a challenge around adding new instruction: we need to make space for them!
