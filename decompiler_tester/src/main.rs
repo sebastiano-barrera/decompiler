@@ -585,7 +585,7 @@ impl StageFunc {
                     }
 
                     ui.horizontal(|ui| {
-                        label_reg(ui, reg, &mut self.hl);
+                        label_reg_ref(ui, reg, &mut self.hl);
 
                         // TODO show type information
                         // TODO use label_reg for parts of the instruction as well
@@ -601,7 +601,7 @@ impl StageFunc {
                             ui.label(":");
                             match value {
                                 decompiler::ExpandedValue::Reg(reg) => {
-                                    label_reg(ui, *reg, &mut self.hl);
+                                    label_reg_ref(ui, *reg, &mut self.hl);
                                 }
                                 decompiler::ExpandedValue::Generic(debug_str) => {
                                     ui.label(debug_str);
@@ -629,18 +629,39 @@ impl StageFunc {
     }
 }
 
-fn label_reg(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
-    // TODO avoid alloc
+fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
+    let color = egui::Color32::from_rgb(238, 155, 0);
+    let background_color = egui::Color32::from_rgb(187, 62, 3);
+    if hl_label(ui, reg, hl, background_color, color) {
+        *hl = Highlight::Reg(reg);
+    }
+}
+
+fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
+    let background_color = egui::Color32::from_rgb(0, 127, 115);
+    let color = egui::Color32::from_rgb(76, 205, 153);
+    if hl_label(ui, reg, hl, background_color, color) {
+        *hl = Highlight::Reg(reg);
+    }
+}
+
+fn hl_label(
+    ui: &mut egui::Ui,
+    reg: decompiler::Reg,
+    hl: &mut Highlight,
+    background_color: egui::Color32,
+    color: egui::Color32,
+) -> bool {
+    // TODO avoid alloc?
     let rt = egui::RichText::new(format!("{:?}", reg));
     let rt = if *hl == Highlight::Reg(reg) {
-        rt.background_color(egui::Color32::DARK_RED)
+        rt.background_color(background_color).color(color)
     } else {
         rt
     };
     let res = ui.label(rt);
-    if res.hovered() {
-        *hl = Highlight::Reg(reg);
-    }
+    let hovered = res.hovered();
+    hovered
 }
 
 fn label_block(ui: &mut egui::Ui, bid: decompiler::BlockID) {
@@ -884,7 +905,7 @@ mod ast_view {
     use decompiler::Insn;
 
     use super::Highlight;
-    use crate::label_reg;
+    use crate::{label_reg_def, label_reg_ref};
 
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
@@ -902,6 +923,7 @@ mod ast_view {
         Generic(String),
         Kw(&'static str),
         BlockHeader(decompiler::BlockID),
+        RegDef(decompiler::Reg),
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1032,7 +1054,10 @@ mod ast_view {
 
                 // TODO define specific styles
                 Node::Ref(reg) => {
-                    label_reg(ui, *reg, hl);
+                    label_reg_ref(ui, *reg, hl);
+                }
+                Node::RegDef(reg) => {
+                    label_reg_def(ui, *reg, hl);
                 }
                 Node::LitNum(num) => {
                     // TODO avoid alloc
@@ -1182,7 +1207,7 @@ mod ast_view {
             // TODO! specific representation of operands
             if self.is_named(reg) {
                 if self.let_was_printed[reg] {
-                    self.emit(Node::Ref(reg));
+                    self.emit(Node::RegDef(reg));
                 } else {
                     self.seq(SeqKind::Flow, |s| {
                         s.emit(Node::Kw("<bug:let!>"));
