@@ -786,6 +786,7 @@ dependencies = [
  "enum-assoc",
  "facet",
  "facet-derive",
+ "facet-reflect",
  "gimli",
  "goblin",
  "iced-x86",
@@ -1201,6 +1202,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "478bd6b6d22cd3b533a0b19a8cc117ad7942a26e8419592a4562237927504f1c"
 dependencies = [
  "unsynn",
+]
+
+[[package]]
+name = "facet-reflect"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd08c5342e04f627447597e0052ed776b6c55f40af8cd33cbddfde09af5b54a7"
+dependencies = [
+ "bitflags 2.9.0",
+ "facet-core",
+ "owo-colors",
 ]
 
 [[package]]
@@ -2479,6 +2491,12 @@ checksum = "22ec719bbf3b2a81c109a4e20b1f129b5566b7dce654bc3872f6a05abf82b2c4"
 dependencies = [
  "ttf-parser",
 ]
+
+[[package]]
+name = "owo-colors"
+version = "4.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26995317201fa17f3656c36716aed4a7c81743a9634ac4c99c0eeda495db0cec"
 
 [[package]]
 name = "parking"

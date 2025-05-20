@@ -20,6 +20,7 @@ arrayvec = "0.7.6"
 # must be exactly 0.27.0, as following versions have MSRV 1.87.0, and we're on 1.86
 facet = "=0.27.0"
 facet-derive = "=0.27.0"
+facet-reflect = "=0.27.0"
 
 [dependencies.iced-x86]
 version = "1.21.0"
