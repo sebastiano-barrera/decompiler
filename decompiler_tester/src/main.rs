@@ -630,8 +630,17 @@ impl StageFunc {
 }
 
 fn label_reg(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
-    // TODO avoid alloc
-    let rt = egui::RichText::new(format!("{:?}", reg));
+    use arrayvec::ArrayVec;
+    use std::io::Write;
+
+    let mut buf: ArrayVec<u8, 20> = arrayvec::ArrayVec::new();
+    let text = {
+        buf.push(b'r');
+        write!(buf, "{}", reg.reg_index()).unwrap();
+        std::str::from_utf8(&buf).unwrap()
+    };
+
+    let rt = egui::RichText::new(text);
     let rt = if *hl == Highlight::Reg(reg) {
         rt.background_color(egui::Color32::DARK_RED)
     } else {
