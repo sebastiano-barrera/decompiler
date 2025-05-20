@@ -566,53 +566,48 @@ impl StageFunc {
             .auto_shrink([false, false])
             .show_viewport(ui, |ui, viewport_rect| {
                 // TODO too slow?
-                let mut cur_bid = None;
-                for (ndx, (bid, reg)) in ssa.insns_rpo().enumerate() {
-                    if cur_bid != Some(bid) {
-                        if let Some(cur_bid) = cur_bid {
-                            show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
-                        }
-                        ui.separator();
+                for bid in ssa.cfg().block_ids_rpo() {
+                    ui.separator();
 
-                        cur_bid = Some(bid);
-                        ui.label(format!("block {}", bid.as_number()));
+                    ui.label(format!("block {}", bid.as_number()));
+                    ui.horizontal(|ui| {
+                        ui.label("from:");
+                        for &pred in ssa.cfg().block_preds(bid) {
+                            label_block(ui, pred);
+                        }
+                    });
+
+                    for reg in ssa.block_regs(bid) {
                         ui.horizontal(|ui| {
-                            ui.label("from:");
-                            for &pred in ssa.cfg().block_preds(bid) {
-                                label_block(ui, pred);
+                            label_reg_def(ui, reg, &mut self.hl);
+
+                            // TODO show type information
+                            // TODO use label_reg for parts of the instruction as well
+                            ui.label(" <- ");
+
+                            // NOTE: ssa_expanded is produced by mapping
+                            // ssa.insns_rpo(), so its order matches this for loop
+                            let ndx = reg.reg_index() as usize;
+                            let insnx = &self.ssa_expanded[ndx];
+                            ui.label(insnx.variant_name);
+                            ui.label("(");
+                            for (name, value) in insnx.fields.iter() {
+                                ui.label(*name);
+                                ui.label(":");
+                                match value {
+                                    decompiler::ExpandedValue::Reg(reg) => {
+                                        label_reg_ref(ui, *reg, &mut self.hl);
+                                    }
+                                    decompiler::ExpandedValue::Generic(debug_str) => {
+                                        ui.label(debug_str);
+                                    }
+                                }
                             }
+                            ui.label(")");
                         });
                     }
 
-                    ui.horizontal(|ui| {
-                        label_reg_ref(ui, reg, &mut self.hl);
-
-                        // TODO show type information
-                        // TODO use label_reg for parts of the instruction as well
-                        ui.label(" <- ");
-
-                        // NOTE: ssa_expanded is produced by mapping
-                        // ssa.insns_rpo(), so its order matches this for loop
-                        let insnx = &self.ssa_expanded[ndx];
-                        ui.label(insnx.variant_name);
-                        ui.label("(");
-                        for (name, value) in insnx.fields.iter() {
-                            ui.label(*name);
-                            ui.label(":");
-                            match value {
-                                decompiler::ExpandedValue::Reg(reg) => {
-                                    label_reg_ref(ui, *reg, &mut self.hl);
-                                }
-                                decompiler::ExpandedValue::Generic(debug_str) => {
-                                    ui.label(debug_str);
-                                }
-                            }
-                        }
-                        ui.label(")");
-                    });
-                }
-                if let Some(cur_bid) = cur_bid {
-                    show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
+                    show_continuation(ui, &ssa.cfg().block_cont(bid));
                 }
 
                 ui.separator();
