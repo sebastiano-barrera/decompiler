@@ -1,4 +1,5 @@
 use enum_assoc::Assoc;
+use facet_reflect::HasFields;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
@@ -45,7 +46,7 @@ pub struct Program {
 ///
 /// The language admits as many registers as a u16 can represent (2**16). They're
 /// abstract, so we don't pay for them!
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, facet::Facet)]
 pub struct Reg(pub u16);
 
 impl Reg {
@@ -87,7 +88,8 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
     items.into_iter().collect()
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet)]
+#[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
 #[func(pub fn input_regs(&mut self) -> ArgsMut { ArgsMut::new() })]
@@ -211,7 +213,8 @@ pub enum Insn {
 }
 
 // TODO Match/unify Control and cfg::BlockCont?
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+#[repr(u8)]
 pub enum Control {
     /// Return to the calling function.
     ///
@@ -240,8 +243,8 @@ pub enum Control {
 }
 
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
-#[allow(dead_code)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+#[repr(u8)]
 pub enum CmpOp {
     EQ,
     LT,
@@ -256,7 +259,8 @@ impl CmpOp {
 }
 
 /// Binary boolean operators. Inputs and outputs are booleans.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+#[repr(u8)]
 pub enum BoolOp {
     Or,
     And,
@@ -270,7 +274,8 @@ impl BoolOp {
     }
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+#[repr(u8)]
 pub enum ArithOp {
     Add,
     Sub,
@@ -301,7 +306,7 @@ impl ArithOp {
 /// that represents the pre-existing value of a machine register at the time
 /// the function started execution.  Mostly useful to allow the decompilation to
 /// proceed forward even when somehting is out of place.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
 pub struct AncestralName(&'static str);
 
 impl AncestralName {
@@ -598,6 +603,51 @@ impl ProgramBuilder {
             mil_of_input_addr,
             anc_types: self.anc_types,
         }
+    }
+}
+
+pub struct ExpandedInsn {
+    pub variant_name: &'static str,
+    pub fields: arrayvec::ArrayVec<(&'static str, ExpandedValue), 5>,
+}
+pub enum ExpandedValue {
+    Reg(Reg),
+    Generic(String),
+}
+
+pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
+    let peek = facet_reflect::Peek::new(insn).into_enum().unwrap();
+
+    let variant_index = peek.variant_index().unwrap();
+    let variant_name = peek.variant_name(variant_index).unwrap();
+
+    let fields = peek
+        .fields()
+        .map(|(field, peek)| {
+            // fields of type Reg and Option<Reg> are translated explicitly;
+            // everything else is translated to Generic with the debug string
+
+            let ev = if let Ok(reg) = peek.get::<Reg>() {
+                ExpandedValue::Reg(reg.clone())
+            } else if let Some(reg) = peek
+                .into_option()
+                .ok()
+                .and_then(|peek| peek.value())
+                .as_ref()
+                .and_then(|peek| peek.get::<Reg>().ok())
+            {
+                ExpandedValue::Reg(reg.clone())
+            } else {
+                ExpandedValue::Generic(peek.to_string())
+            };
+
+            (field.name, ev)
+        })
+        .collect();
+
+    ExpandedInsn {
+        variant_name,
+        fields,
     }
 }
 

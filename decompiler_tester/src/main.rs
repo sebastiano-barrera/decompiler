@@ -75,6 +75,7 @@ struct StageFunc {
 
     assembly: Assembly,
     mil_lines: Vec<String>,
+    ssa_expanded: Vec<decompiler::ExpandedInsn>,
     ast: ast_view::Ast,
 
     hl: Highlight,
@@ -394,6 +395,17 @@ impl StageFunc {
             lines
         };
 
+        let ssa_expanded = match df.ssa() {
+            Some(ssa) => ssa
+                .insns_rpo()
+                .map(|(_, reg)| {
+                    let insn = ssa[reg].get();
+                    decompiler::to_expanded(&insn)
+                })
+                .collect(),
+            None => Vec::new(),
+        };
+
         let ast = match df.ssa() {
             Some(ssa) => ast_view::Ast::from_ssa(ssa),
             None => ast_view::Ast::empty(),
@@ -401,11 +413,12 @@ impl StageFunc {
 
         StageFunc {
             df,
+            problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
-            problems_is_visible: false,
             assembly,
             mil_lines,
+            ssa_expanded,
             ast,
             hl: Highlight::None,
         }
@@ -551,10 +564,10 @@ impl StageFunc {
 
         egui::ScrollArea::both()
             .auto_shrink([false, false])
-            .show(ui, |ui| {
+            .show_viewport(ui, |ui, viewport_rect| {
                 // TODO too slow?
                 let mut cur_bid = None;
-                for (bid, reg) in ssa.insns_rpo() {
+                for (ndx, (bid, reg)) in ssa.insns_rpo().enumerate() {
                     if cur_bid != Some(bid) {
                         if let Some(cur_bid) = cur_bid {
                             show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
@@ -573,10 +586,29 @@ impl StageFunc {
 
                     ui.horizontal(|ui| {
                         label_reg(ui, reg, &mut self.hl);
-                        let iv = ssa.get(reg).unwrap();
+
                         // TODO show type information
                         // TODO use label_reg for parts of the instruction as well
-                        ui.label(format!(" <- {:?}", iv.insn.get()));
+                        ui.label(" <- ");
+
+                        // NOTE: ssa_expanded is produced by mapping
+                        // ssa.insns_rpo(), so its order matches this for loop
+                        let insnx = &self.ssa_expanded[ndx];
+                        ui.label(insnx.variant_name);
+                        ui.label("(");
+                        for (name, value) in insnx.fields.iter() {
+                            ui.label(*name);
+                            ui.label(":");
+                            match value {
+                                decompiler::ExpandedValue::Reg(reg) => {
+                                    label_reg(ui, *reg, &mut self.hl);
+                                }
+                                decompiler::ExpandedValue::Generic(debug_str) => {
+                                    ui.label(debug_str);
+                                }
+                            }
+                        }
+                        ui.label(")");
                     });
                 }
                 if let Some(cur_bid) = cur_bid {

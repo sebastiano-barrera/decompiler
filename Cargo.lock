@@ -803,6 +803,7 @@ name = "decompiler_tester"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "arrayvec",
  "decompiler",
  "eframe",
  "egui",
