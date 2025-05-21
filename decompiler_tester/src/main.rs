@@ -76,6 +76,7 @@ struct StageFunc {
     assembly: Assembly,
     mil_lines: Vec<String>,
     ssa_expanded: Vec<decompiler::ExpandedInsn>,
+    ssa_px_expanded: Vec<decompiler::ExpandedInsn>,
     ast: ast_view::Ast,
 
     hl: Highlight,
@@ -395,15 +396,8 @@ impl StageFunc {
             lines
         };
 
-        let ssa_expanded = match df.ssa() {
-            Some(ssa) => (0..ssa.reg_count())
-                .map(|ndx| {
-                    let insn = ssa[decompiler::Reg(ndx)].get();
-                    decompiler::to_expanded(&insn)
-                })
-                .collect(),
-            None => Vec::new(),
-        };
+        let ssa_expanded = df.ssa().map(ssa_to_expanded).unwrap_or(Vec::new());
+        let ssa_px_expanded = df.ssa_pre_xform().map(ssa_to_expanded).unwrap_or(Vec::new());
 
         let ast = match df.ssa() {
             Some(ssa) => ast_view::Ast::from_ssa(ssa),
@@ -418,6 +412,7 @@ impl StageFunc {
             assembly,
             mil_lines,
             ssa_expanded,
+            ssa_px_expanded,
             ast,
             hl: Highlight::None,
         }
@@ -518,104 +513,27 @@ impl StageFunc {
     }
 
     fn ui_tab_ssa(&mut self, ui: &mut egui::Ui) {
-        let ssa = match self.df.ssa() {
-            Some(ssa) => ssa,
+        match self.df.ssa() {
+            Some(ssa) => {
+                show_ssa(ui, ssa, &self.ssa_expanded, &mut self.hl);
+            }
             None => {
                 ui.label("No SSA generated");
                 return;
             }
         };
+    }
 
-        use decompiler::{BlockCont, Dest};
-        fn show_dest(ui: &mut egui::Ui, dest: &Dest) {
-            match dest {
-                Dest::Block(bid) => {
-                    label_block(ui, *bid);
-                }
-                Dest::Ext(addr) => {
-                    ui.label(format!("ext @ 0x{:x}", addr));
-                }
-                Dest::Indirect => {
-                    ui.label("<at runtime>");
-                }
-                Dest::Return => {
-                    ui.label("<return>");
-                }
-                Dest::Undefined => {
-                    ui.label("<undefined>");
-                }
+    fn ui_tab_ssa_px(&mut self, ui: &mut egui::Ui) {
+        match self.df.ssa_pre_xform() {
+            Some(ssa) => {
+                show_ssa(ui, ssa, &self.ssa_px_expanded, &mut self.hl);
             }
-        }
-        fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont) {
-            ui.horizontal(|ui| {
-                ui.label("⮩");
-                match cont {
-                    BlockCont::Always(dest) => show_dest(ui, dest),
-                    BlockCont::Conditional { pos, neg } => {
-                        ui.label("if ... then");
-                        show_dest(ui, pos);
-                        ui.label("else");
-                        show_dest(ui, neg);
-                    }
-                }
-            });
-        }
-
-        egui::ScrollArea::both()
-            .auto_shrink([false, false])
-            .show_viewport(ui, |ui, viewport_rect| {
-                // TODO too slow?
-                for bid in ssa.cfg().block_ids_rpo() {
-                    ui.separator();
-
-                    ui.label(format!("block {}", bid.as_number()));
-                    ui.horizontal(|ui| {
-                        ui.label("from:");
-                        for &pred in ssa.cfg().block_preds(bid) {
-                            label_block(ui, pred);
-                        }
-                    });
-
-                    for reg in ssa.block_regs(bid) {
-                        if ssa[reg].get() == decompiler::Insn::Void {
-                            continue;
-                        }
-
-                        ui.horizontal(|ui| {
-                            label_reg_def(ui, reg, &mut self.hl);
-
-                            // TODO show type information
-                            // TODO use label_reg for parts of the instruction as well
-                            ui.label(" <- ");
-
-                            // NOTE: ssa_expanded is produced by mapping
-                            // ssa.insns_rpo(), so its order matches this for loop
-                            let ndx = reg.reg_index() as usize;
-                            let insnx = &self.ssa_expanded[ndx];
-                            ui.label(insnx.variant_name);
-                            ui.label("(");
-                            for (name, value) in insnx.fields.iter() {
-                                ui.label(*name);
-                                ui.label(":");
-                                match value {
-                                    decompiler::ExpandedValue::Reg(reg) => {
-                                        label_reg_ref(ui, *reg, &mut self.hl);
-                                    }
-                                    decompiler::ExpandedValue::Generic(debug_str) => {
-                                        ui.label(debug_str);
-                                    }
-                                }
-                            }
-                            ui.label(")");
-                        });
-                    }
-
-                    show_continuation(ui, &ssa.cfg().block_cont(bid));
-                }
-
-                ui.separator();
-                ui.label(format!("{} instructions/registers", ssa.reg_count()));
-            });
+            None => {
+                ui.label("No SSA generated");
+                return;
+            }
+        };
     }
 
     fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {
@@ -625,6 +543,113 @@ impl StageFunc {
                 self.ast.show(ui, &mut self.hl);
             });
     }
+}
+
+fn ssa_to_expanded(ssa: &decompiler::SSAProgram) -> Vec<decompiler::ExpandedInsn> {
+    (0..ssa.reg_count())
+        .map(|ndx| {
+            let insn = ssa[decompiler::Reg(ndx)].get();
+            decompiler::to_expanded(&insn)
+        })
+        .collect()
+}
+
+fn show_ssa(
+    ui: &mut egui::Ui,
+    ssa: &decompiler::SSAProgram,
+    expanded_insns: &Vec<decompiler::ExpandedInsn>,
+    hl: &mut Highlight,
+) {
+    use decompiler::{BlockCont, Dest};
+    fn show_dest(ui: &mut egui::Ui, dest: &Dest) {
+        match dest {
+            Dest::Block(bid) => {
+                label_block(ui, *bid);
+            }
+            Dest::Ext(addr) => {
+                ui.label(format!("ext @ 0x{:x}", addr));
+            }
+            Dest::Indirect => {
+                ui.label("<at runtime>");
+            }
+            Dest::Return => {
+                ui.label("<return>");
+            }
+            Dest::Undefined => {
+                ui.label("<undefined>");
+            }
+        }
+    }
+    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont) {
+        ui.horizontal(|ui| {
+            ui.label("⮩");
+            match cont {
+                BlockCont::Always(dest) => show_dest(ui, dest),
+                BlockCont::Conditional { pos, neg } => {
+                    ui.label("if ... then");
+                    show_dest(ui, pos);
+                    ui.label("else");
+                    show_dest(ui, neg);
+                }
+            }
+        });
+    }
+
+    egui::ScrollArea::both()
+        .auto_shrink([false, false])
+        .show_viewport(ui, |ui, viewport_rect| {
+            // TODO too slow?
+            for bid in ssa.cfg().block_ids_rpo() {
+                ui.separator();
+
+                ui.label(format!("block {}", bid.as_number()));
+                ui.horizontal(|ui| {
+                    ui.label("from:");
+                    for &pred in ssa.cfg().block_preds(bid) {
+                        label_block(ui, pred);
+                    }
+                });
+
+                for reg in ssa.block_regs(bid) {
+                    if ssa[reg].get() == decompiler::Insn::Void {
+                        continue;
+                    }
+
+                    ui.horizontal(|ui| {
+                        label_reg_def(ui, reg, hl);
+
+                        // TODO show type information
+                        // TODO use label_reg for parts of the instruction as well
+                        ui.label(" <- ");
+
+                        // NOTE: ssa_expanded is produced by mapping
+                        // ssa.insns_rpo(), so its order matches this for loop
+                        let ndx = reg.reg_index() as usize;
+                        let insnx = &expanded_insns[ndx];
+                        ui.label(insnx.variant_name);
+                        ui.label("(");
+                        for (name, value) in insnx.fields.iter() {
+                            ui.label(*name);
+                            ui.label(":");
+                            match value {
+                                decompiler::ExpandedValue::Reg(reg) => {
+                                    label_reg_ref(ui, *reg, hl);
+                                }
+                                decompiler::ExpandedValue::Generic(debug_str) => {
+                                    ui.label(debug_str);
+                                }
+                            }
+                        }
+                        ui.label(")");
+                    });
+                }
+
+                show_continuation(ui, &ssa.cfg().block_cont(bid));
+            }
+
+            ui.separator();
+            ui.label(format!("{} instructions/registers", ssa.reg_count()));
+        });
 }
 
 fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
@@ -677,10 +702,8 @@ impl egui_tiles::Behavior<Pane> for StageFunc {
             Pane::Assembly => self.ui_tab_assembly(ui),
             Pane::Mil => self.ui_tab_mil(ui),
             Pane::Ssa => self.ui_tab_ssa(ui),
+            Pane::SsaPreXform => self.ui_tab_ssa_px(ui),
             Pane::Ast => self.ui_tab_ast(ui),
-            _ => {
-                ui.label(format!("{:?}", pane));
-            }
         }
 
         egui_tiles::UiResponse::None
