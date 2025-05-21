@@ -414,14 +414,17 @@ impl std::fmt::Debug for Program {
                 cur_bid = Some(bid);
             }
 
+            let iv = self.get(reg).unwrap();
+            if iv.insn.get() == mil::Insn::Void {
+                continue;
+            }
+
             let rdr_count = rdr_count[reg];
             if rdr_count > 1 {
                 write!(f, "  ({:3})  ", rdr_count)?;
             } else {
                 write!(f, "         ")?;
             }
-
-            let iv = self.get(reg).unwrap();
 
             type_s.clear();
             if let Some(tyid) = iv.tyid.get() {
