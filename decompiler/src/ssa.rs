@@ -188,8 +188,6 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
-        eprintln!("---- checking");
-        eprintln!("{:?}", self);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
         self.assert_inputs_visible();
@@ -231,7 +229,6 @@ impl Program {
         while let Some(cmd) = queue.pop() {
             match cmd {
                 Cmd::Start(bid) => {
-                    eprintln!("start {:?}", bid);
                     assert!(!block_visited[bid]);
                     block_visited[bid] = true;
 
@@ -239,9 +236,7 @@ impl Program {
                         let reg = mil::Reg(ndx);
 
                         let mut insn = self.get(reg).unwrap().insn.get();
-                        eprintln!("   {:?} {:?}", reg, insn);
                         for &mut input in insn.input_regs_iter() {
-                            eprintln!("     input {:?}", input);
                             let Some(def_block_input) = def_block[input] else {
                                 panic!("input {input:?} of {reg:?} is not defined");
                             };
@@ -265,7 +260,6 @@ impl Program {
                     }
                 }
                 Cmd::End(bid) => {
-                    eprintln!("end {:?}", bid);
                     for &ndx in self.schedule.of_block(bid) {
                         let reg = mil::Reg(ndx);
                         def_block[reg] = None;
