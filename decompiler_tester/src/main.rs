@@ -1081,7 +1081,7 @@ mod ast_view {
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
-        is_named: decompiler::RegMap<bool>,
+        rdr_count: decompiler::RegMap<usize>,
 
         // just to check that the algo is correct:
         block_status: decompiler::BlockMap<BlockStatus>,
@@ -1096,15 +1096,13 @@ mod ast_view {
     }
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
-            let is_named = decompiler::count_readers(ssa)
-                .map(|reg, &rdr_count| rdr_count > 1 || ssa[reg].get().has_side_effects());
-
+            let rdr_count = decompiler::count_readers(ssa);
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
                 nodes: Vec::new(),
                 ssa,
-                is_named,
+                rdr_count,
                 block_status,
                 open_stack: Vec::new(),
                 let_was_printed,
@@ -1150,8 +1148,12 @@ mod ast_view {
             // borrow &self.scheduler and &mut self.nodes)
             let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
             for reg in block_sched {
-                if self.is_named[reg] {
+                if self.rdr_count[reg] > 1 {
                     self.emit_let_def(reg);
+                } else if self.ssa[reg].get().has_side_effects()
+                    && self.ssa.reg_type(reg) != decompiler::RegType::Control
+                {
+                    self.transform_def(reg);
                 }
             }
 
@@ -1199,7 +1201,7 @@ mod ast_view {
 
         fn transform_value(&mut self, reg: decompiler::Reg) {
             // TODO! specific representation of operands
-            if self.is_named[reg] {
+            if self.rdr_count[reg] > 1 {
                 if self.let_was_printed[reg] {
                     self.emit(Node::RegDef(reg));
                 } else {

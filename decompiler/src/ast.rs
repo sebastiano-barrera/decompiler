@@ -409,7 +409,7 @@ impl<'a> Ast<'a> {
                 // `value` doesn't need to be printed here, as it's already been
                 // printed (has side effect) and the target phi register's value
                 // is not significant
-                mil::RegType::MemoryEffect | mil::RegType::Unit => {}
+                mil::RegType::MemoryEffect | mil::RegType::Unit | mil::RegType::Control => {}
             },
             Insn::CArg { .. } => {
                 unreachable!("CArg should be handled via the Call it belongs to!")

@@ -155,7 +155,7 @@ impl Program {
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
             | Insn::SetJumpCondition(_)
-            | Insn::Control(_) => RegType::Unit,
+            | Insn::Control(_) => RegType::Control,
 
             Insn::NotYetImplemented(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),

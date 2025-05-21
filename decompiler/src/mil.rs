@@ -69,6 +69,7 @@ pub enum RegType {
     MemoryEffect,
     Undefined,
     Unit,
+    Control,
 }
 impl RegType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
@@ -78,6 +79,7 @@ impl RegType {
             RegType::MemoryEffect => None,
             RegType::Undefined => None,
             RegType::Unit => None,
+            RegType::Control => None,
         }
     }
 }
