@@ -661,12 +661,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         schedule,
         cfg,
     };
-    // no need for dead code elimination
-    //
-    // in the current representation, instructions that aren't referenced by a
-    // basic block are effectively dead (iterators won't yield their ID, for
-    // example). No need to physically eliminate them from the data structures
-    // (other than maybe space savings, but then we'd need a rewriting pass)
     ssa.assert_invariants();
     ssa
 }

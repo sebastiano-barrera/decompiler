@@ -303,6 +303,7 @@ impl<'a> Executable<'a> {
                     return Ok(df);
                 }
             };
+        xform::eliminate_dead_code(&mut ssa);
         df.ssa_pre_xform = Some(ssa.clone());
 
         let xform_res = std::panic::catch_unwind(move || {
