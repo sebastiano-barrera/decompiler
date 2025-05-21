@@ -826,14 +826,14 @@ impl<T: Clone> RegMap<T> {
         RegMap(inner)
     }
 
-    pub(crate) fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
+    pub fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
         self.0
             .iter()
             .enumerate()
             .map(|(ndx, item)| (mil::Reg(ndx.try_into().unwrap()), item))
     }
 
-    pub(crate) fn map<F, R>(&self, mut f: F) -> RegMap<R>
+    pub fn map<F, R>(&self, mut f: F) -> RegMap<R>
     where
         F: FnMut(mil::Reg, &T) -> R,
         R: Clone,
