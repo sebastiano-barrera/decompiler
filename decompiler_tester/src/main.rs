@@ -396,10 +396,9 @@ impl StageFunc {
         };
 
         let ssa_expanded = match df.ssa() {
-            Some(ssa) => ssa
-                .insns_rpo()
-                .map(|(_, reg)| {
-                    let insn = ssa[reg].get();
+            Some(ssa) => (0..ssa.reg_count())
+                .map(|ndx| {
+                    let insn = ssa[decompiler::Reg(ndx)].get();
                     decompiler::to_expanded(&insn)
                 })
                 .collect(),
@@ -578,6 +577,10 @@ impl StageFunc {
                     });
 
                     for reg in ssa.block_regs(bid) {
+                        if ssa[reg].get() == decompiler::Insn::Void {
+                            continue;
+                        }
+
                         ui.horizontal(|ui| {
                             label_reg_def(ui, reg, &mut self.hl);
 
