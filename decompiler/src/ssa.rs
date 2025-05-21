@@ -100,13 +100,10 @@ impl Program {
             .find_map(pred)
     }
 
-    pub fn push_pure(&mut self, insn: mil::Insn) -> mil::Reg {
-        // side-effecting instructions need to be added to a specific position
-        // in the basic block.
-        // pure instructions, instead, aren't really attached to anywhere in
-        // particular.
-        assert!(!insn.has_side_effects());
-        mil::Reg(self.inner.push_new(insn))
+    pub fn insert(&mut self, bid: cfg::BlockID, ndx_in_block: u16, insn: mil::Insn) -> mil::Reg {
+        let ndx = self.inner.push_new(insn);
+        self.schedule.insert(ndx, bid, ndx_in_block);
+        mil::Reg(ndx)
     }
 
     pub fn upsilons_of_phi(&self, phi_reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
@@ -350,6 +347,52 @@ impl std::ops::Index<mil::Reg> for Program {
     type Output = Cell<mil::Insn>;
     fn index(&self, reg: mil::Reg) -> &Cell<mil::Insn> {
         self.get(reg).unwrap().insn
+    }
+}
+
+pub struct OpenProgram<'a> {
+    program: &'a mut Program,
+    inserts: Vec<mil::Reg>,
+    insert_bid: cfg::BlockID,
+    insert_ndx_inb: u16,
+}
+impl<'a> OpenProgram<'a> {
+    pub fn wrap(program: &'a mut Program, bid: cfg::BlockID, ndx_inb: u16) -> Self {
+        OpenProgram {
+            program,
+            inserts: Vec::new(),
+            insert_bid: bid,
+            insert_ndx_inb: ndx_inb,
+        }
+    }
+    pub fn insert_later(&mut self, insn: mil::Insn) -> mil::Reg {
+        let ndx = self.program.inner.push_new(insn);
+        let reg = mil::Reg(ndx);
+        self.inserts.push(reg);
+        reg
+    }
+    pub fn execute(self) {
+        // why rev:
+        // if multiple inserts are deferred to the same position in the schedule, they
+        // should appear in the program in the order in which they were inserted.
+        // if we don't use rev, then after a reg is inserted at position ndx_in_block,
+        // OTHER regs inserted at the same index will appear before it.
+        for reg in self.inserts.into_iter().rev() {
+            self.program
+                .schedule
+                .insert(reg.reg_index(), self.insert_bid, self.insert_ndx_inb);
+        }
+    }
+}
+impl<'a> std::ops::Deref for OpenProgram<'a> {
+    type Target = Program;
+    fn deref(&self) -> &Self::Target {
+        self.program
+    }
+}
+impl<'a> std::ops::DerefMut for OpenProgram<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.program
     }
 }
 

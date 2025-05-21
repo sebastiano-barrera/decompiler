@@ -79,7 +79,11 @@ use crate::{
     ssa,
 };
 
-pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil::Reg) -> bool {
+pub fn fold_load_store(
+    prog: &mut ssa::OpenProgram,
+    ref_reg: mil::Reg,
+    load_reg: mil::Reg,
+) -> bool {
     //
     // check if we're looking at a Load that we know how to transform
     // Load(ArithK(Add, ref_reg, offset), size)
@@ -117,7 +121,7 @@ pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil
     let end_i = load.end.min(store.end);
 
     let left_size = (start_i - load.start).try_into().unwrap();
-    let left = prog.push_pure(load_or_void(
+    let left = prog.insert_later(load_or_void(
         // same as load.start; but we can reuse the same ArithK as in the original load
         mem_l,     // mem
         addr_l,    // addr
@@ -126,21 +130,21 @@ pub fn fold_load_store(prog: &mut ssa::Program, ref_reg: mil::Reg, load_reg: mil
 
     let mid_size = (end_i - start_i).try_into().unwrap();
     let mid_offset = (start_i - store.start).try_into().unwrap();
-    let mid = prog.push_pure(Insn::Part {
+    let mid = prog.insert_later(Insn::Part {
         src: store.value,
         offset: mid_offset,
         size: mid_size,
     });
 
-    let right_addr = prog.push_pure(Insn::ArithK(mil::ArithOp::Add, ref_reg, end_i));
+    let right_addr = prog.insert_later(Insn::ArithK(mil::ArithOp::Add, ref_reg, end_i));
     let right_size = (load.end - end_i).try_into().unwrap();
-    let right = prog.push_pure(load_or_void(
+    let right = prog.insert_later(load_or_void(
         mem_l,      // mem
         right_addr, // addr
         right_size, // size
     ));
 
-    let mid_left = prog.push_pure(Insn::Concat { lo: mid, hi: left });
+    let mid_left = prog.insert_later(Insn::Concat { lo: mid, hi: left });
 
     // replace the load with the final replacement value (the outermost Concat)
     prog[load_reg].set(Insn::Concat {
