@@ -203,6 +203,9 @@ impl Program {
     }
 
     fn assert_inputs_visible(&self) {
+        eprintln!("---- checking");
+        eprintln!("{:?}", self);
+
         enum Cmd {
             Start(cfg::BlockID),
             End(cfg::BlockID),
@@ -394,6 +397,30 @@ impl<'a> std::ops::DerefMut for OpenProgram<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.program
     }
+}
+
+pub fn eliminate_dead_code(prog: &mut Program) {
+    let mut is_read = RegMap::for_program(prog, false);
+
+    for bid in prog.cfg().block_ids_postorder() {
+        for reg in prog.block_regs(bid).rev() {
+            let mut insn = prog[reg].get();
+
+            if insn.has_side_effects() {
+                is_read[reg] = true;
+            }
+
+            if is_read[reg] {
+                for &mut input in insn.input_regs() {
+                    is_read[input] = true;
+                }
+            }
+        }
+    }
+    
+    prog.schedule.retain(|_, ndx| {
+        is_read[mil::Reg(ndx)]
+    });
 }
 
 #[cfg(test)]

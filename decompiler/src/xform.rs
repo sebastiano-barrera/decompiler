@@ -483,33 +483,6 @@ pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
 }
 
-pub fn eliminate_dead_code(prog: &mut ssa::Program) {
-    let mut is_read = ssa::RegMap::for_program(prog, false);
-
-    for bid in prog.cfg().block_ids_postorder() {
-        for reg in prog.block_regs(bid).rev() {
-            let mut insn = prog[reg].get();
-
-            if insn.has_side_effects() {
-                is_read[reg] = true;
-            }
-
-            if is_read[reg] {
-                for &mut input in insn.input_regs() {
-                    is_read[input] = true;
-                }
-            }
-        }
-    }
-
-    for (reg, &is_read) in is_read.items() {
-        use crate::mil;
-        if !is_read {
-            prog[reg].set(mil::Insn::Void);
-        }
-    }
-}
-
 struct Deduper {
     rev_lookup: HashMap<Insn, mil::Reg>,
 }
@@ -630,7 +603,7 @@ mod tests {
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             eprintln!("ssa pre-xform:\n{prog:?}");
             xform::canonical(&mut prog);
-            xform::eliminate_dead_code(&mut prog);
+            ssa::eliminate_dead_code(&mut prog);
             eprintln!("ssa post-xform:\n{prog:?}");
 
             assert_eq!(prog.insns_rpo().count(), 7);
