@@ -75,6 +75,8 @@ struct StageFunc {
 
     assembly: Assembly,
     mil_lines: Vec<String>,
+    ssa_expanded: Vec<decompiler::ExpandedInsn>,
+    ssa_px_expanded: Vec<decompiler::ExpandedInsn>,
     ast: ast_view::Ast,
 
     hl: Highlight,
@@ -394,6 +396,9 @@ impl StageFunc {
             lines
         };
 
+        let ssa_expanded = df.ssa().map(ssa_to_expanded).unwrap_or(Vec::new());
+        let ssa_px_expanded = df.ssa_pre_xform().map(ssa_to_expanded).unwrap_or(Vec::new());
+
         let ast = match df.ssa() {
             Some(ssa) => ast_view::Ast::from_ssa(ssa),
             None => ast_view::Ast::empty(),
@@ -401,11 +406,13 @@ impl StageFunc {
 
         StageFunc {
             df,
+            problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
-            problems_is_visible: false,
             assembly,
             mil_lines,
+            ssa_expanded,
+            ssa_px_expanded,
             ast,
             hl: Highlight::None,
         }
@@ -506,86 +513,27 @@ impl StageFunc {
     }
 
     fn ui_tab_ssa(&mut self, ui: &mut egui::Ui) {
-        let ssa = match self.df.ssa() {
-            Some(ssa) => ssa,
+        match self.df.ssa() {
+            Some(ssa) => {
+                show_ssa(ui, ssa, &self.ssa_expanded, &mut self.hl);
+            }
             None => {
                 ui.label("No SSA generated");
                 return;
             }
         };
+    }
 
-        use decompiler::{BlockCont, Dest};
-        fn show_dest(ui: &mut egui::Ui, dest: &Dest) {
-            match dest {
-                Dest::Block(bid) => {
-                    label_block(ui, *bid);
-                }
-                Dest::Ext(addr) => {
-                    ui.label(format!("ext @ 0x{:x}", addr));
-                }
-                Dest::Indirect => {
-                    ui.label("<at runtime>");
-                }
-                Dest::Return => {
-                    ui.label("<return>");
-                }
-                Dest::Undefined => {
-                    ui.label("<undefined>");
-                }
+    fn ui_tab_ssa_px(&mut self, ui: &mut egui::Ui) {
+        match self.df.ssa_pre_xform() {
+            Some(ssa) => {
+                show_ssa(ui, ssa, &self.ssa_px_expanded, &mut self.hl);
             }
-        }
-        fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont) {
-            ui.horizontal(|ui| {
-                ui.label("⮩");
-                match cont {
-                    BlockCont::Always(dest) => show_dest(ui, dest),
-                    BlockCont::Conditional { pos, neg } => {
-                        ui.label("if ... then");
-                        show_dest(ui, pos);
-                        ui.label("else");
-                        show_dest(ui, neg);
-                    }
-                }
-            });
-        }
-
-        egui::ScrollArea::both()
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                // TODO too slow?
-                let mut cur_bid = None;
-                for (bid, reg) in ssa.insns_rpo() {
-                    if cur_bid != Some(bid) {
-                        if let Some(cur_bid) = cur_bid {
-                            show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
-                        }
-                        ui.separator();
-
-                        cur_bid = Some(bid);
-                        ui.label(format!("block {}", bid.as_number()));
-                        ui.horizontal(|ui| {
-                            ui.label("from:");
-                            for &pred in ssa.cfg().block_preds(bid) {
-                                label_block(ui, pred);
-                            }
-                        });
-                    }
-
-                    ui.horizontal(|ui| {
-                        label_reg(ui, reg, &mut self.hl);
-                        let iv = ssa.get(reg).unwrap();
-                        // TODO show type information
-                        // TODO use label_reg for parts of the instruction as well
-                        ui.label(format!(" <- {:?}", iv.insn.get()));
-                    });
-                }
-                if let Some(cur_bid) = cur_bid {
-                    show_continuation(ui, &ssa.cfg().block_cont(cur_bid));
-                }
-
-                ui.separator();
-                ui.label(format!("{} instructions/registers", ssa.reg_count()));
-            });
+            None => {
+                ui.label("No SSA generated");
+                return;
+            }
+        };
     }
 
     fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {
@@ -597,18 +545,146 @@ impl StageFunc {
     }
 }
 
-fn label_reg(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
-    // TODO avoid alloc
+fn ssa_to_expanded(ssa: &decompiler::SSAProgram) -> Vec<decompiler::ExpandedInsn> {
+    (0..ssa.reg_count())
+        .map(|ndx| {
+            let insn = ssa[decompiler::Reg(ndx)].get();
+            decompiler::to_expanded(&insn)
+        })
+        .collect()
+}
+
+fn show_ssa(
+    ui: &mut egui::Ui,
+    ssa: &decompiler::SSAProgram,
+    expanded_insns: &Vec<decompiler::ExpandedInsn>,
+    hl: &mut Highlight,
+) {
+    use decompiler::{BlockCont, Dest};
+    fn show_dest(ui: &mut egui::Ui, dest: &Dest) {
+        match dest {
+            Dest::Block(bid) => {
+                label_block(ui, *bid);
+            }
+            Dest::Ext(addr) => {
+                ui.label(format!("ext @ 0x{:x}", addr));
+            }
+            Dest::Indirect => {
+                ui.label("<at runtime>");
+            }
+            Dest::Return => {
+                ui.label("<return>");
+            }
+            Dest::Undefined => {
+                ui.label("<undefined>");
+            }
+        }
+    }
+    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont) {
+        ui.horizontal(|ui| {
+            ui.label("⮩");
+            match cont {
+                BlockCont::Always(dest) => show_dest(ui, dest),
+                BlockCont::Conditional { pos, neg } => {
+                    ui.label("if ... then");
+                    show_dest(ui, pos);
+                    ui.label("else");
+                    show_dest(ui, neg);
+                }
+            }
+        });
+    }
+
+    egui::ScrollArea::both()
+        .auto_shrink([false, false])
+        .show_viewport(ui, |ui, viewport_rect| {
+            // TODO too slow?
+            for bid in ssa.cfg().block_ids_rpo() {
+                ui.separator();
+
+                ui.label(format!("block {}", bid.as_number()));
+                ui.horizontal(|ui| {
+                    ui.label("from:");
+                    for &pred in ssa.cfg().block_preds(bid) {
+                        label_block(ui, pred);
+                    }
+                });
+
+                for reg in ssa.block_regs(bid) {
+                    if ssa[reg].get() == decompiler::Insn::Void {
+                        continue;
+                    }
+
+                    ui.horizontal(|ui| {
+                        label_reg_def(ui, reg, hl);
+
+                        // TODO show type information
+                        // TODO use label_reg for parts of the instruction as well
+                        ui.label(" <- ");
+
+                        // NOTE: ssa_expanded is produced by mapping
+                        // ssa.insns_rpo(), so its order matches this for loop
+                        let ndx = reg.reg_index() as usize;
+                        let insnx = &expanded_insns[ndx];
+                        ui.label(insnx.variant_name);
+                        ui.label("(");
+                        for (name, value) in insnx.fields.iter() {
+                            ui.label(*name);
+                            ui.label(":");
+                            match value {
+                                decompiler::ExpandedValue::Reg(reg) => {
+                                    label_reg_ref(ui, *reg, hl);
+                                }
+                                decompiler::ExpandedValue::Generic(debug_str) => {
+                                    ui.label(debug_str);
+                                }
+                            }
+                        }
+                        ui.label(")");
+                    });
+                }
+
+                show_continuation(ui, &ssa.cfg().block_cont(bid));
+            }
+
+            ui.separator();
+            ui.label(format!("{} instructions/registers", ssa.reg_count()));
+        });
+}
+
+fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
+    let color = egui::Color32::from_rgb(238, 155, 0);
+    let background_color = egui::Color32::from_rgb(187, 62, 3);
+    if hl_label(ui, reg, hl, background_color, color) {
+        *hl = Highlight::Reg(reg);
+    }
+}
+
+fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
+    let background_color = egui::Color32::from_rgb(0, 127, 115);
+    let color = egui::Color32::from_rgb(76, 205, 153);
+    if hl_label(ui, reg, hl, background_color, color) {
+        *hl = Highlight::Reg(reg);
+    }
+}
+
+fn hl_label(
+    ui: &mut egui::Ui,
+    reg: decompiler::Reg,
+    hl: &mut Highlight,
+    background_color: egui::Color32,
+    color: egui::Color32,
+) -> bool {
+    // TODO avoid alloc?
     let rt = egui::RichText::new(format!("{:?}", reg));
     let rt = if *hl == Highlight::Reg(reg) {
-        rt.background_color(egui::Color32::DARK_RED)
+        rt.background_color(background_color).color(color)
     } else {
         rt
     };
     let res = ui.label(rt);
-    if res.hovered() {
-        *hl = Highlight::Reg(reg);
-    }
+    let hovered = res.hovered();
+    hovered
 }
 
 fn label_block(ui: &mut egui::Ui, bid: decompiler::BlockID) {
@@ -626,10 +702,8 @@ impl egui_tiles::Behavior<Pane> for StageFunc {
             Pane::Assembly => self.ui_tab_assembly(ui),
             Pane::Mil => self.ui_tab_mil(ui),
             Pane::Ssa => self.ui_tab_ssa(ui),
+            Pane::SsaPreXform => self.ui_tab_ssa_px(ui),
             Pane::Ast => self.ui_tab_ast(ui),
-            _ => {
-                ui.label(format!("{:?}", pane));
-            }
         }
 
         egui_tiles::UiResponse::None
@@ -852,7 +926,7 @@ mod ast_view {
     use decompiler::Insn;
 
     use super::Highlight;
-    use crate::label_reg;
+    use crate::{label_reg_def, label_reg_ref};
 
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
@@ -870,6 +944,7 @@ mod ast_view {
         Generic(String),
         Kw(&'static str),
         BlockHeader(decompiler::BlockID),
+        RegDef(decompiler::Reg),
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1000,7 +1075,10 @@ mod ast_view {
 
                 // TODO define specific styles
                 Node::Ref(reg) => {
-                    label_reg(ui, *reg, hl);
+                    label_reg_ref(ui, *reg, hl);
+                }
+                Node::RegDef(reg) => {
+                    label_reg_def(ui, *reg, hl);
                 }
                 Node::LitNum(num) => {
                     // TODO avoid alloc
@@ -1063,10 +1141,6 @@ mod ast_view {
             }
         }
 
-        fn is_named(&self, reg: decompiler::Reg) -> bool {
-            self.rdr_count[reg] > 1
-        }
-
         fn seq<R>(&mut self, kind: SeqKind, add_contents: impl FnOnce(&mut Self) -> R) -> R {
             const REF_NODE: Node = Node::Kw("<bug:seq!>");
 
@@ -1097,10 +1171,12 @@ mod ast_view {
             // borrow &self.scheduler and &mut self.nodes)
             let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
             for reg in block_sched {
-                if self.ssa[reg].get().has_side_effects() {
-                    self.transform_def(reg);
-                } else if self.rdr_count[reg] > 1 {
+                if self.rdr_count[reg] > 1 {
                     self.emit_let_def(reg);
+                } else if self.ssa[reg].get().has_side_effects()
+                    && self.ssa.reg_type(reg) != decompiler::RegType::Control
+                {
+                    self.transform_def(reg);
                 }
             }
 
@@ -1148,9 +1224,9 @@ mod ast_view {
 
         fn transform_value(&mut self, reg: decompiler::Reg) {
             // TODO! specific representation of operands
-            if self.is_named(reg) {
+            if self.rdr_count[reg] > 1 {
                 if self.let_was_printed[reg] {
-                    self.emit(Node::Ref(reg));
+                    self.emit(Node::RegDef(reg));
                 } else {
                     self.seq(SeqKind::Flow, |s| {
                         s.emit(Node::Kw("<bug:let!>"));

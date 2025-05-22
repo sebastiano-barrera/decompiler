@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func035 0x4011a6+4 (file 0x11a6)
@@ -107,19 +107,18 @@ ssa pre-xform:
 ssa program  86 instrs
 .B0:    ;;  → Always(Return).
          r27 <- Ancestral(AncestralName("ZMM0"))
-         r72 <- Part { src: r27, offset: 8, size: 56 }
+         r28 <- Ancestral(AncestralName("ZMM1"))
   (  2)  r70 <- Ancestral(AncestralName("arg1"))
          r71 <- Part { src: r70, offset: 0, size: 8 }
+         r72 <- Part { src: r27, offset: 8, size: 56 }
          r73 <- Concat { lo: r71, hi: r72 }
-         r78 <- Part { src: r73, offset: 16, size: 48 }
-         r28 <- Ancestral(AncestralName("ZMM1"))
-         r75 <- Part { src: r28, offset: 8, size: 56 }
          r74 <- Part { src: r70, offset: 8, size: 8 }
+         r75 <- Part { src: r28, offset: 8, size: 56 }
          r76 <- Concat { lo: r74, hi: r75 }
          r77 <- Part { src: r76, offset: 0, size: 16 }
+         r78 <- Part { src: r73, offset: 16, size: 48 }
          r79 <- Concat { lo: r77, hi: r78 }
          r81 <- Part { src: r79, offset: 0, size: 8 }
-         r80 <- Void
          r82 <- Concat { lo: r80, hi: r81 }
          r83 <- Part { src: r82, offset: 0, size: 8 }
          r84 <- SetReturnValue(r83)
@@ -127,20 +126,34 @@ ssa program  86 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:86] -> Always(Return)
+  BlockID(0) -> Always(Return) [r27, r28, r70, r71, r72, r73, r74, r75, r76, r77, r78, r79, r80, r81, r82, r83, r84]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  86 instrs
 .B0:    ;;  → Always(Return).
-         r70 <- Ancestral(AncestralName("arg1"))
+  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
+         r28 <- Ancestral(AncestralName("ZMM1"))
+  (  3)  r70 <- Ancestral(AncestralName("arg1"))
+         r71 <- Part { src: r70, offset: 0, size: 8 }
+         r72 <- Part { src: r27, offset: 8, size: 56 }
+         r73 <- Concat { lo: r71, hi: r72 }
+  (  3)  r74 <- Part { src: r70, offset: 8, size: 8 }
+         r75 <- Part { src: r28, offset: 8, size: 56 }
+         r76 <- Concat { lo: r74, hi: r75 }
+         r77 <- Part { src: r76, offset: 0, size: 16 }
+         r78 <- Part { src: r27, offset: 16, size: 48 }
+         r79 <- Concat { lo: r77, hi: r78 }
+         r81 <- Get(r74)
+         r82 <- Get(r74)
          r83 <- Part { src: r70, offset: 8, size: 8 }
          r84 <- SetReturnValue(r83)
 
 
 
 T0: {
+  let r74: Bytes(8) = pre:arg1[16 .. 8];
   ;
   return pre:arg1[16 .. 8]
 }

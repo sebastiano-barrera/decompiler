@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func025 0x401182+4 (file 0x1182)
@@ -99,7 +99,6 @@ ssa pre-xform:
 ssa program  78 instrs
 .B0:    ;;  → Always(Return).
          r70 <- Ancestral(AncestralName("arg1"))
-         r73 <- Void
          r74 <- Concat { lo: r73, hi: r70 }
          r75 <- Part { src: r74, offset: 0, size: 8 }
          r76 <- SetReturnValue(r75)
@@ -107,14 +106,16 @@ ssa program  78 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:78] -> Always(Return)
+  BlockID(0) -> Always(Return) [r70, r73, r74, r75, r76]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  78 instrs
 .B0:    ;;  → Always(Return).
-         r70 <- Ancestral(AncestralName("arg1"))
+  (  3)  r70 <- Ancestral(AncestralName("arg1"))
+         r74 <- Get(r70)
+         r75 <- Get(r70)
          r76 <- SetReturnValue(r70)
 
 

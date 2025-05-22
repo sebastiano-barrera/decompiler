@@ -7,7 +7,7 @@ use crate::{
 
 mod mem;
 
-fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
+fn fold_constants(insn: mil::Insn, prog: &mut ssa::OpenProgram) -> Insn {
     use mil::{ArithOp, Insn};
 
     /// Evaluate expression (ak (op) bk)
@@ -90,7 +90,7 @@ fn fold_constants(insn: mil::Insn, prog: &mut ssa::Program) -> Insn {
         {
             if let Some(k) = assoc_const(op, lk, rk) {
                 li = fold_constants(Insn::Arith(op, llr, rlr), prog);
-                lr = prog.push_pure(li);
+                lr = prog.insert_later(li);
                 ri = Insn::Const { value: k, size: 8 };
             }
         }
@@ -429,44 +429,53 @@ pub fn canonical(prog: &mut ssa::Program) {
     while any_change {
         any_change = false;
 
-        let work: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
-        for reg in work {
-            let orig_insn = prog[reg].get();
-            let orig_has_fx = orig_insn.has_side_effects();
+        let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
+        for bid in bids {
+            let block_seq: Vec<_> = prog.block_regs(bid).collect();
+            for (ndx_in_block, reg) in block_seq.into_iter().enumerate() {
+                let ndx_in_block = ndx_in_block.try_into().unwrap();
 
-            let mut insn = orig_insn;
-            insn = fold_get(insn, prog);
-            insn = fold_subregs(insn, prog);
-            insn = fold_concat_void(insn, prog);
-            insn = fold_part_part(insn, prog);
-            insn = fold_part_widen(insn, prog);
-            insn = fold_part_concat(insn, prog);
-            insn = fold_part_null(insn, prog);
-            insn = fold_part_void(insn);
-            insn = fold_widen_null(insn, prog);
-            insn = fold_widen_const(insn, prog);
-            insn = fold_bitops(insn, prog);
-            insn = fold_constants(insn, prog);
-            if !insn.is_replaceable_with_get() {
-                // replacing a side-effecting instruction with a non-side-effecting
-                // Insn::Get is currently wrong (would be quite complicated to handle)
-                insn = deduper.try_dedup(reg, insn);
-            }
-            prog[reg].set(insn);
+                let orig_insn = prog[reg].get();
+                let orig_has_fx = orig_insn.has_side_effects();
 
-            let final_has_fx = insn.has_side_effects();
-            if final_has_fx != orig_has_fx {
-                eprintln!(" --- bug:");
-                eprintln!("  orig: side fx: {:?} insn: {:?}", orig_has_fx, orig_insn);
-                eprintln!(" final: side fx: {:?} insn: {:?}", final_has_fx, insn);
-                panic!();
-            }
+                let mut prog = ssa::OpenProgram::wrap(prog, bid, ndx_in_block);
 
-            any_change = any_change || (insn != orig_insn);
+                let mut insn = orig_insn;
+                insn = fold_get(insn, &mut prog);
+                insn = fold_subregs(insn, &mut prog);
+                insn = fold_concat_void(insn, &mut prog);
+                insn = fold_part_part(insn, &mut prog);
+                insn = fold_part_widen(insn, &mut prog);
+                insn = fold_part_concat(insn, &mut prog);
+                insn = fold_part_null(insn, &mut prog);
+                insn = fold_part_void(insn);
+                insn = fold_widen_null(insn, &mut prog);
+                insn = fold_widen_const(insn, &mut prog);
+                insn = fold_bitops(insn, &mut prog);
+                insn = fold_constants(insn, &mut prog);
+                if !insn.is_replaceable_with_get() {
+                    // replacing a side-effecting instruction with a non-side-effecting
+                    // Insn::Get is currently wrong (would be quite complicated to handle)
+                    insn = deduper.try_dedup(reg, insn);
+                }
+                prog[reg].set(insn);
 
-            if let Some(mem_ref_reg) = mem_ref_reg {
-                let did_something = mem::fold_load_store(prog, mem_ref_reg, reg);
-                any_change = any_change || did_something;
+                let final_has_fx = insn.has_side_effects();
+                if final_has_fx != orig_has_fx {
+                    eprintln!(" --- bug:");
+                    eprintln!("  orig: side fx: {:?} insn: {:?}", orig_has_fx, orig_insn);
+                    eprintln!(" final: side fx: {:?} insn: {:?}", final_has_fx, insn);
+                    panic!();
+                }
+
+                any_change = any_change || (insn != orig_insn);
+
+                if let Some(mem_ref_reg) = mem_ref_reg {
+                    let did_something = mem::fold_load_store(&mut prog, mem_ref_reg, reg);
+                    any_change = any_change || did_something;
+                }
+
+                prog.execute();
             }
         }
     }
@@ -594,6 +603,7 @@ mod tests {
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             eprintln!("ssa pre-xform:\n{prog:?}");
             xform::canonical(&mut prog);
+            ssa::eliminate_dead_code(&mut prog);
             eprintln!("ssa post-xform:\n{prog:?}");
 
             assert_eq!(prog.insns_rpo().count(), 7);
@@ -846,6 +856,7 @@ mod tests {
         };
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         super::canonical(&mut prog);
+        ssa::eliminate_dead_code(&mut prog);
         eprintln!("ssa post-xform:\n{prog:?}");
 
         assert_eq!(prog.insns_rpo().count(), 2);

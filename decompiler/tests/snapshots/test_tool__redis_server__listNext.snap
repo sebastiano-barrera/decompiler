@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 listNext 0x4110b0+39 (file 0x110b0)
@@ -161,23 +161,23 @@ program  121 instrs
 ssa pre-xform:
 ssa program  121 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
+         r18 <- Ancestral(AncestralName("RDX"))
+  (  6)  r43 <- Ancestral(AncestralName("memory"))
   (  4)  r65 <- Ancestral(AncestralName("arg0"))
          r67 <- Const { value: 0, size: 8 }
          r68 <- Arith(Add, r67, r65)
-  (  6)  r43 <- Ancestral(AncestralName("memory"))
   (  2)  r69 <- LoadMem { mem: r43, addr: r68, size: 8 }
   (  5)  r71 <- Arith(BitAnd, r69, r69)
          r73 <- IsZero(r71)
          r78 <- SetJumpCondition(r73)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
-         r18 <- Ancestral(AncestralName("RDX"))
-         r83 <- Part { src: r18, offset: 4, size: 4 }
          r80 <- Const { value: 8, size: 8 }
          r81 <- Arith(Add, r80, r65)
          r82 <- LoadMem { mem: r43, addr: r81, size: 4 }
+         r83 <- Part { src: r18, offset: 4, size: 4 }
   (  2)  r84 <- Concat { lo: r82, hi: r83 }
-         r86 <- Part { src: r84, offset: 0, size: 4 }
          r85 <- Part { src: r84, offset: 0, size: 4 }
+         r86 <- Part { src: r84, offset: 0, size: 4 }
          r87 <- Arith(BitAnd, r85, r86)
          r89 <- IsZero(r87)
          r94 <- Not(r89)
@@ -189,7 +189,6 @@ ssa program  121 instrs
          r101 <- Const { value: 0, size: 8 }
          r102 <- Arith(Add, r101, r65)
          r103 <- StoreMem { mem: r43, addr: r102, value: r99 }
-         r104 <- Void
          r105 <- Concat { lo: r104, hi: r71 }
          r106 <- Part { src: r105, offset: 0, size: 8 }
          r107 <- SetReturnValue(r106)
@@ -201,7 +200,6 @@ ssa program  121 instrs
          r114 <- Arith(Add, r113, r65)
          r115 <- StoreMem { mem: r43, addr: r114, value: r111 }
 .B4:    ;; preds:B0,B3  → Always(Return).
-         r116 <- Void
          r117 <- Concat { lo: r116, hi: r71 }
          r118 <- Part { src: r117, offset: 0, size: 8 }
          r119 <- SetReturnValue(r118)
@@ -209,11 +207,11 @@ ssa program  121 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:80] -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }
-  BlockID(1) [80:97] -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }
-  BlockID(2) [97:109] -> Always(Return)
-  BlockID(3) [109:116] -> Always(Block(BlockID(4)))
-  BlockID(4) [116:121] -> Always(Return)
+  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r18, r43, r65, r67, r68, r69, r71, r73, r78]
+  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r80, r81, r82, r83, r84, r85, r86, r87, r89, r94, r95]
+  BlockID(2) -> Always(Return) [r97, r98, r99, r101, r102, r103, r104, r105, r106, r107]
+  BlockID(3) -> Always(Block(BlockID(4))) [r109, r110, r111, r113, r114, r115]
+  BlockID(4) -> Always(Return) [r116, r117, r118, r119]
   domtree:
     BlockID(0)
     |  BlockID(1)
@@ -224,26 +222,47 @@ cfg:
 ssa post-xform:
 ssa program  121 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
-  (  4)  r65 <- Ancestral(AncestralName("arg0"))
+         r18 <- Ancestral(AncestralName("RDX"))
   (  6)  r43 <- Ancestral(AncestralName("memory"))
-  (  5)  r69 <- LoadMem { mem: r43, addr: r65, size: 8 }
+  (  7)  r65 <- Ancestral(AncestralName("arg0"))
+         r67 <- Const { value: 0, size: 8 }
+         r68 <- Get(r65)
+  ( 11)  r69 <- LoadMem { mem: r43, addr: r65, size: 8 }
+         r71 <- Get(r69)
          r73 <- IsZero(r69)
          r78 <- SetJumpCondition(r73)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
+         r80 <- Const { value: 8, size: 8 }
          r81 <- ArithK(Add, r65, 8)
-         r82 <- LoadMem { mem: r43, addr: r81, size: 4 }
+  (  5)  r82 <- LoadMem { mem: r43, addr: r81, size: 4 }
+         r83 <- Part { src: r18, offset: 4, size: 4 }
+         r84 <- Concat { lo: r82, hi: r83 }
+         r85 <- Get(r82)
+         r86 <- Get(r82)
+         r87 <- Get(r82)
          r89 <- IsZero(r82)
          r94 <- Not(r89)
          r95 <- SetJumpCondition(r94)
 .B2:    ;; preds:B1  → Always(Return).
+         r97 <- Const { value: 8, size: 8 }
          r98 <- ArithK(Add, r69, 8)
          r99 <- LoadMem { mem: r43, addr: r98, size: 8 }
+         r101 <- Const { value: 0, size: 8 }
+         r102 <- Get(r65)
          r103 <- StoreMem { mem: r43, addr: r65, value: r99 }
+         r105 <- Get(r69)
+         r106 <- Get(r69)
          r107 <- SetReturnValue(r69)
 .B3:    ;; preds:B1  → Always(Block(BlockID(4))).
+         r109 <- Const { value: 0, size: 8 }
+         r110 <- Get(r69)
          r111 <- LoadMem { mem: r43, addr: r69, size: 8 }
+         r113 <- Const { value: 0, size: 8 }
+         r114 <- Get(r65)
          r115 <- StoreMem { mem: r43, addr: r65, value: r111 }
 .B4:    ;; preds:B0,B3  → Always(Return).
+         r117 <- Get(r69)
+         r118 <- Get(r69)
          r119 <- SetReturnValue(r69)
 
 
@@ -254,8 +273,9 @@ T0: {
   if IsZero (r69) {
     goto T4
   }
+  let r82: Bytes(4) = [pre:arg0 + 8]:4;
   ;
-  if ! IsZero ([pre:arg0 + 8]:4) {
+  if ! IsZero (r82) {
     [pre:arg0]:* := [r69]:8;
     goto T4
   }

@@ -211,6 +211,12 @@ impl Schedule {
         self.0[bid].push(ndx);
     }
 
+    pub fn retain(&mut self, mut pred: impl FnMut(BlockID, u16) -> bool) {
+        for (bid, ndxs) in self.0.items_mut() {
+            ndxs.retain(|&ndx| pred(bid, ndx));
+        }
+    }
+
     fn assert_invariants(&self) {
         // check: no duplicates
         let mut is_insn_scheduled = Vec::new();

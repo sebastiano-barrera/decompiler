@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func076 0x40127d+8 (file 0x127d)
@@ -117,12 +117,11 @@ program  93 instrs
 ssa pre-xform:
 ssa program  93 instrs
 .B0:    ;;  → Always(Return).
-         r80 <- Const { value: 32, size: 1 }
-         r81 <- Widen { reg: r80, target_size: 8, sign: false }
          r74 <- Ancestral(AncestralName("arg3"))
          r77 <- Part { src: r74, offset: 8, size: 8 }
+         r80 <- Const { value: 32, size: 1 }
+         r81 <- Widen { reg: r80, target_size: 8, sign: false }
          r82 <- Arith(Shr, r77, r81)
-         r88 <- Void
          r89 <- Concat { lo: r88, hi: r82 }
          r90 <- Part { src: r89, offset: 0, size: 1 }
          r91 <- SetReturnValue(r90)
@@ -130,24 +129,26 @@ ssa program  93 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:93] -> Always(Return)
+  BlockID(0) -> Always(Return) [r74, r77, r80, r81, r82, r88, r89, r90, r91]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  93 instrs
 .B0:    ;;  → Always(Return).
-         r80 <- Const { value: 32, size: 1 }
-         r81 <- Widen { reg: r80, target_size: 8, sign: false }
          r74 <- Ancestral(AncestralName("arg3"))
          r77 <- Part { src: r74, offset: 8, size: 8 }
-         r82 <- Arith(Shr, r77, r81)
+         r80 <- Const { value: 32, size: 1 }
+         r81 <- Widen { reg: r80, target_size: 8, sign: false }
+  (  2)  r82 <- Arith(Shr, r77, r81)
+         r89 <- Get(r82)
          r90 <- Part { src: r82, offset: 0, size: 1 }
          r91 <- SetReturnValue(r90)
 
 
 
 T0: {
+  let r82: Bytes(8) = pre:arg3[16 .. 8] >> 32 as u64;
   ;
-  return (pre:arg3[16 .. 8] >> 32 as u64)[1 .. 0]
+  return r82[1 .. 0]
 }

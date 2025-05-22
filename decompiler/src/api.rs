@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::{ast, mil, pp, ssa, ty, x86_to_mil, xform};
 
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
-pub use crate::mil::{Insn, Reg};
+pub use crate::mil::{to_expanded, ExpandedInsn, ExpandedValue, Insn, Reg, RegType};
 pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap};
 
 #[derive(Debug, Error)]
@@ -220,6 +220,7 @@ impl<'a> Executable<'a> {
         writeln!(out)?;
         writeln!(out, "ssa pre-xform:")?;
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        ssa::eliminate_dead_code(&mut prog);
         writeln!(out, "{:?}", prog)?;
 
         writeln!(out)?;
@@ -303,6 +304,7 @@ impl<'a> Executable<'a> {
                     return Ok(df);
                 }
             };
+        ssa::eliminate_dead_code(&mut ssa);
         df.ssa_pre_xform = Some(ssa.clone());
 
         let xform_res = std::panic::catch_unwind(move || {

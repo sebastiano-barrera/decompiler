@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func007 0x40111e+7 (file 0x111e)
@@ -100,9 +100,8 @@ ssa pre-xform:
 ssa program  78 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r65 <- Ancestral(AncestralName("arg0"))
-         r68 <- Part { src: r65, offset: 8, size: 8 }
          r66 <- Part { src: r65, offset: 0, size: 8 }
-         r72 <- Void
+         r68 <- Part { src: r65, offset: 8, size: 8 }
          r73 <- Concat { lo: r72, hi: r66 }
          r74 <- Concat { lo: r73, hi: r68 }
          r75 <- Part { src: r74, offset: 0, size: 16 }
@@ -111,7 +110,7 @@ ssa program  78 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:78] -> Always(Return)
+  BlockID(0) -> Always(Return) [r65, r66, r68, r72, r73, r74, r75, r76]
   domtree:
     BlockID(0)
 
@@ -119,14 +118,18 @@ ssa post-xform:
 ssa program  78 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r65 <- Ancestral(AncestralName("arg0"))
+  (  2)  r66 <- Part { src: r65, offset: 0, size: 8 }
          r68 <- Part { src: r65, offset: 8, size: 8 }
-         r66 <- Part { src: r65, offset: 0, size: 8 }
-         r74 <- Concat { lo: r66, hi: r68 }
+         r73 <- Get(r66)
+  (  2)  r74 <- Concat { lo: r66, hi: r68 }
+         r75 <- Get(r74)
          r76 <- SetReturnValue(r74)
 
 
 
 T0: {
+  let r66: Bytes(8) = pre:arg0[8 .. 0];
+  let r74: Bytes(16) = pre:arg0[16 .. 8] ++ r66;
   ;
-  return pre:arg0[16 .. 8] ++ pre:arg0[8 .. 0]
+  return r74
 }

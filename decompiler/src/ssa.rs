@@ -100,13 +100,10 @@ impl Program {
             .find_map(pred)
     }
 
-    pub fn push_pure(&mut self, insn: mil::Insn) -> mil::Reg {
-        // side-effecting instructions need to be added to a specific position
-        // in the basic block.
-        // pure instructions, instead, aren't really attached to anywhere in
-        // particular.
-        assert!(!insn.has_side_effects());
-        mil::Reg(self.inner.push_new(insn))
+    pub fn insert(&mut self, bid: cfg::BlockID, ndx_in_block: u16, insn: mil::Insn) -> mil::Reg {
+        let ndx = self.inner.push_new(insn);
+        self.schedule.insert(ndx, bid, ndx_in_block);
+        mil::Reg(ndx)
     }
 
     pub fn upsilons_of_phi(&self, phi_reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
@@ -155,7 +152,7 @@ impl Program {
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
             | Insn::SetJumpCondition(_)
-            | Insn::Control(_) => RegType::Unit,
+            | Insn::Control(_) => RegType::Control,
 
             Insn::NotYetImplemented(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
@@ -188,8 +185,6 @@ impl Program {
     }
 
     pub fn assert_invariants(&self) {
-        eprintln!("---- checking");
-        eprintln!("{:?}", self);
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
         self.assert_inputs_visible();
@@ -208,6 +203,9 @@ impl Program {
     }
 
     fn assert_inputs_visible(&self) {
+        eprintln!("---- checking");
+        eprintln!("{:?}", self);
+
         enum Cmd {
             Start(cfg::BlockID),
             End(cfg::BlockID),
@@ -231,7 +229,6 @@ impl Program {
         while let Some(cmd) = queue.pop() {
             match cmd {
                 Cmd::Start(bid) => {
-                    eprintln!("start {:?}", bid);
                     assert!(!block_visited[bid]);
                     block_visited[bid] = true;
 
@@ -239,9 +236,7 @@ impl Program {
                         let reg = mil::Reg(ndx);
 
                         let mut insn = self.get(reg).unwrap().insn.get();
-                        eprintln!("   {:?} {:?}", reg, insn);
                         for &mut input in insn.input_regs_iter() {
-                            eprintln!("     input {:?}", input);
                             let Some(def_block_input) = def_block[input] else {
                                 panic!("input {input:?} of {reg:?} is not defined");
                             };
@@ -265,7 +260,6 @@ impl Program {
                     }
                 }
                 Cmd::End(bid) => {
-                    eprintln!("end {:?}", bid);
                     for &ndx in self.schedule.of_block(bid) {
                         let reg = mil::Reg(ndx);
                         def_block[reg] = None;
@@ -359,6 +353,76 @@ impl std::ops::Index<mil::Reg> for Program {
     }
 }
 
+pub struct OpenProgram<'a> {
+    program: &'a mut Program,
+    inserts: Vec<mil::Reg>,
+    insert_bid: cfg::BlockID,
+    insert_ndx_inb: u16,
+}
+impl<'a> OpenProgram<'a> {
+    pub fn wrap(program: &'a mut Program, bid: cfg::BlockID, ndx_inb: u16) -> Self {
+        OpenProgram {
+            program,
+            inserts: Vec::new(),
+            insert_bid: bid,
+            insert_ndx_inb: ndx_inb,
+        }
+    }
+    pub fn insert_later(&mut self, insn: mil::Insn) -> mil::Reg {
+        let ndx = self.program.inner.push_new(insn);
+        let reg = mil::Reg(ndx);
+        self.inserts.push(reg);
+        reg
+    }
+    pub fn execute(self) {
+        // why rev:
+        // if multiple inserts are deferred to the same position in the schedule, they
+        // should appear in the program in the order in which they were inserted.
+        // if we don't use rev, then after a reg is inserted at position ndx_in_block,
+        // OTHER regs inserted at the same index will appear before it.
+        for reg in self.inserts.into_iter().rev() {
+            self.program
+                .schedule
+                .insert(reg.reg_index(), self.insert_bid, self.insert_ndx_inb);
+        }
+    }
+}
+impl<'a> std::ops::Deref for OpenProgram<'a> {
+    type Target = Program;
+    fn deref(&self) -> &Self::Target {
+        self.program
+    }
+}
+impl<'a> std::ops::DerefMut for OpenProgram<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.program
+    }
+}
+
+pub fn eliminate_dead_code(prog: &mut Program) {
+    let mut is_read = RegMap::for_program(prog, false);
+
+    for bid in prog.cfg().block_ids_postorder() {
+        for reg in prog.block_regs(bid).rev() {
+            let mut insn = prog[reg].get();
+
+            if insn.has_side_effects() {
+                is_read[reg] = true;
+            }
+
+            if is_read[reg] {
+                for &mut input in insn.input_regs() {
+                    is_read[input] = true;
+                }
+            }
+        }
+    }
+    
+    prog.schedule.retain(|_, ndx| {
+        is_read[mil::Reg(ndx)]
+    });
+}
+
 #[cfg(test)]
 #[test]
 #[should_panic]
@@ -414,14 +478,17 @@ impl std::fmt::Debug for Program {
                 cur_bid = Some(bid);
             }
 
+            let iv = self.get(reg).unwrap();
+            if iv.insn.get() == mil::Insn::Void {
+                continue;
+            }
+
             let rdr_count = rdr_count[reg];
             if rdr_count > 1 {
                 write!(f, "  ({:3})  ", rdr_count)?;
             } else {
                 write!(f, "         ")?;
             }
-
-            let iv = self.get(reg).unwrap();
 
             type_s.clear();
             if let Some(tyid) = iv.tyid.get() {
@@ -661,12 +728,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         schedule,
         cfg,
     };
-    // no need for dead code elimination
-    //
-    // in the current representation, instructions that aren't referenced by a
-    // basic block are effectively dead (iterators won't yield their ID, for
-    // example). No need to physically eliminate them from the data structures
-    // (other than maybe space savings, but then we'd need a rewriting pass)
     ssa.assert_invariants();
     ssa
 }
@@ -832,14 +893,14 @@ impl<T: Clone> RegMap<T> {
         RegMap(inner)
     }
 
-    pub(crate) fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
+    pub fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
         self.0
             .iter()
             .enumerate()
             .map(|(ndx, item)| (mil::Reg(ndx.try_into().unwrap()), item))
     }
 
-    pub(crate) fn map<F, R>(&self, mut f: F) -> RegMap<R>
+    pub fn map<F, R>(&self, mut f: F) -> RegMap<R>
     where
         F: FnMut(mil::Reg, &T) -> R,
         R: Clone,

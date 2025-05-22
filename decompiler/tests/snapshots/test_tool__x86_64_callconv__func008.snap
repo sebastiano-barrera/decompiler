@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func008 0x401125+4 (file 0x1125)
@@ -97,7 +97,6 @@ ssa program  76 instrs
 .B0:    ;;  → Always(Return).
          r65 <- Ancestral(AncestralName("arg0"))
          r66 <- Part { src: r65, offset: 0, size: 8 }
-         r71 <- Void
          r72 <- Concat { lo: r71, hi: r66 }
          r73 <- Part { src: r72, offset: 0, size: 8 }
          r74 <- SetReturnValue(r73)
@@ -105,14 +104,16 @@ ssa program  76 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:76] -> Always(Return)
+  BlockID(0) -> Always(Return) [r65, r66, r71, r72, r73, r74]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  76 instrs
 .B0:    ;;  → Always(Return).
-         r65 <- Ancestral(AncestralName("arg0"))
+  (  2)  r65 <- Ancestral(AncestralName("arg0"))
+         r66 <- Part { src: r65, offset: 0, size: 8 }
+         r72 <- Get(r66)
          r73 <- Part { src: r65, offset: 0, size: 8 }
          r74 <- SetReturnValue(r73)
 
