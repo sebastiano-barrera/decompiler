@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func034 0x4011a5+1 (file 0x11a5)
@@ -102,12 +102,11 @@ ssa pre-xform:
 ssa program  83 instrs
 .B0:    ;;  → Always(Return).
          r27 <- Ancestral(AncestralName("ZMM0"))
-         r72 <- Part { src: r27, offset: 8, size: 56 }
          r70 <- Ancestral(AncestralName("arg1"))
          r71 <- Part { src: r70, offset: 0, size: 8 }
+         r72 <- Part { src: r27, offset: 8, size: 56 }
          r73 <- Concat { lo: r71, hi: r72 }
          r78 <- Part { src: r73, offset: 0, size: 8 }
-         r77 <- Void
          r79 <- Concat { lo: r77, hi: r78 }
          r80 <- Part { src: r79, offset: 0, size: 4 }
          r81 <- SetReturnValue(r80)
@@ -115,14 +114,20 @@ ssa program  83 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:83] -> Always(Return)
+  BlockID(0) -> Always(Return) [r27, r70, r71, r72, r73, r77, r78, r79, r80, r81]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  83 instrs
 .B0:    ;;  → Always(Return).
-         r70 <- Ancestral(AncestralName("arg1"))
+         r27 <- Ancestral(AncestralName("ZMM0"))
+  (  3)  r70 <- Ancestral(AncestralName("arg1"))
+         r71 <- Part { src: r70, offset: 0, size: 8 }
+         r72 <- Part { src: r27, offset: 8, size: 56 }
+         r73 <- Concat { lo: r71, hi: r72 }
+         r78 <- Part { src: r70, offset: 0, size: 8 }
+         r79 <- Get(r78)
          r80 <- Part { src: r70, offset: 0, size: 4 }
          r81 <- SetReturnValue(r80)
 

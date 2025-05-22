@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func104 0x40131d+7 (file 0x131d)
@@ -111,17 +111,16 @@ program  88 instrs
 ssa pre-xform:
 ssa program  88 instrs
 .B0:    ;;  → Always(Return).
-         r27 <- Ancestral(AncestralName("ZMM0"))
-         r80 <- Part { src: r27, offset: 8, size: 56 }
          r11 <- Ancestral(AncestralName("RSP"))
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r43 <- Ancestral(AncestralName("memory"))
          r76 <- Const { value: 16, size: 8 }
          r77 <- Arith(Add, r76, r11)
-         r43 <- Ancestral(AncestralName("memory"))
          r78 <- LoadMem { mem: r43, addr: r77, size: 8 }
          r79 <- Widen { reg: r78, target_size: 16, sign: false }
+         r80 <- Part { src: r27, offset: 8, size: 56 }
          r81 <- Concat { lo: r79, hi: r80 }
          r83 <- Part { src: r81, offset: 0, size: 8 }
-         r82 <- Void
          r84 <- Concat { lo: r82, hi: r83 }
          r85 <- Part { src: r84, offset: 0, size: 8 }
          r86 <- SetReturnValue(r85)
@@ -129,7 +128,7 @@ ssa program  88 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:88] -> Always(Return)
+  BlockID(0) -> Always(Return) [r11, r27, r43, r76, r77, r78, r79, r80, r81, r82, r83, r84, r85, r86]
   domtree:
     BlockID(0)
 
@@ -137,14 +136,23 @@ ssa post-xform:
 ssa program  88 instrs
 .B0:    ;;  → Always(Return).
          r11 <- Ancestral(AncestralName("RSP"))
-         r77 <- ArithK(Add, r11, 16)
+         r27 <- Ancestral(AncestralName("ZMM0"))
          r43 <- Ancestral(AncestralName("memory"))
-         r78 <- LoadMem { mem: r43, addr: r77, size: 8 }
+         r76 <- Const { value: 16, size: 8 }
+         r77 <- ArithK(Add, r11, 16)
+  (  5)  r78 <- LoadMem { mem: r43, addr: r77, size: 8 }
+         r79 <- Widen { reg: r78, target_size: 16, sign: false }
+         r80 <- Part { src: r27, offset: 8, size: 56 }
+         r81 <- Concat { lo: r79, hi: r80 }
+         r83 <- Get(r78)
+         r84 <- Get(r78)
+         r85 <- Get(r78)
          r86 <- SetReturnValue(r78)
 
 
 
 T0: {
+  let r78: Bytes(8) = [pre:RSP + 16]:8;
   ;
-  return [pre:RSP + 16]:8
+  return r78
 }

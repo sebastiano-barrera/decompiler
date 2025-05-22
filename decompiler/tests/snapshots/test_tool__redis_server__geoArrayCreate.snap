@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 geoArrayCreate 0x50c4d0+31 (file 0x10c4d0)
@@ -149,29 +149,28 @@ ssa program  114 instrs
 .B0:    ;;  → Always(Return).
          r10 <- Ancestral(AncestralName("RBP"))
          r11 <- Ancestral(AncestralName("RSP"))
-         r65 <- ArithK(Add, r11, -8)
+  (  3)  r27 <- Ancestral(AncestralName("ZMM0"))
          r43 <- Ancestral(AncestralName("memory"))
+         r65 <- ArithK(Add, r11, -8)
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
          r67 <- Const { value: 24, size: 4 }
          r74 <- CArg { value: r67, next_arg: None }
          r75: zmalloc <TypeID(173060v1)> <- Const { value: 4433936, size: 8 }
          r76 <- Call { callee: r75, first_arg: Some(r74) }
-         r98 <- Const { value: 0, size: 8 }
   (  3)  r86 <- Part { src: r76, offset: 0, size: 8 }
+         r87 <- Part { src: r27, offset: 0, size: 16 }
+         r88 <- Part { src: r27, offset: 0, size: 16 }
+         r89 <- Arith(BitXor, r87, r88)
+         r90 <- Part { src: r27, offset: 16, size: 48 }
+         r91 <- Concat { lo: r89, hi: r90 }
+         r98 <- Const { value: 0, size: 8 }
          r99 <- Const { value: 0, size: 8 }
          r100 <- Arith(Add, r99, r86)
          r101 <- StoreMem { mem: r66, addr: r100, value: r98 }
-  (  3)  r27 <- Ancestral(AncestralName("ZMM0"))
-         r90 <- Part { src: r27, offset: 16, size: 48 }
-         r88 <- Part { src: r27, offset: 0, size: 16 }
-         r87 <- Part { src: r27, offset: 0, size: 16 }
-         r89 <- Arith(BitXor, r87, r88)
-         r91 <- Concat { lo: r89, hi: r90 }
          r102 <- Part { src: r91, offset: 0, size: 16 }
          r103 <- Const { value: 8, size: 8 }
          r104 <- Arith(Add, r103, r86)
          r105 <- StoreMem { mem: r101, addr: r104, value: r102 }
-         r109 <- Void
          r110 <- Concat { lo: r109, hi: r86 }
          r111 <- Part { src: r110, offset: 0, size: 8 }
          r112 <- SetReturnValue(r111)
@@ -179,7 +178,7 @@ ssa program  114 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:114] -> Always(Return)
+  BlockID(0) -> Always(Return) [r10, r11, r27, r43, r65, r66, r67, r74, r75, r76, r86, r87, r88, r89, r90, r91, r98, r99, r100, r101, r102, r103, r104, r105, r109, r110, r111, r112]
   domtree:
     BlockID(0)
 
@@ -188,21 +187,30 @@ ssa program  114 instrs
 .B0:    ;;  → Always(Return).
          r10 <- Ancestral(AncestralName("RBP"))
          r11 <- Ancestral(AncestralName("RSP"))
-         r65 <- ArithK(Add, r11, -8)
+  (  3)  r27 <- Ancestral(AncestralName("ZMM0"))
          r43 <- Ancestral(AncestralName("memory"))
+         r65 <- ArithK(Add, r11, -8)
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
          r67 <- Const { value: 24, size: 4 }
          r74 <- CArg { value: r67, next_arg: None }
          r75: zmalloc <TypeID(173060v1)> <- Const { value: 4433936, size: 8 }
-  (  3)  r76 <- Call { callee: r75, first_arg: Some(r74) }
-         r98 <- Const { value: 0, size: 8 }
-         r101 <- StoreMem { mem: r66, addr: r76, value: r98 }
-  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
-         r88 <- Part { src: r27, offset: 0, size: 16 }
+  (  7)  r76 <- Call { callee: r75, first_arg: Some(r74) }
+         r86 <- Get(r76)
          r87 <- Part { src: r27, offset: 0, size: 16 }
-         r89 <- Arith(BitXor, r87, r88)
+         r88 <- Part { src: r27, offset: 0, size: 16 }
+  (  3)  r89 <- Arith(BitXor, r87, r88)
+         r90 <- Part { src: r27, offset: 16, size: 48 }
+         r91 <- Concat { lo: r89, hi: r90 }
+         r98 <- Const { value: 0, size: 8 }
+         r99 <- Const { value: 0, size: 8 }
+         r100 <- Get(r76)
+         r101 <- StoreMem { mem: r66, addr: r76, value: r98 }
+         r102 <- Get(r89)
+         r103 <- Const { value: 8, size: 8 }
          r104 <- ArithK(Add, r76, 8)
          r105 <- StoreMem { mem: r101, addr: r104, value: r89 }
+         r110 <- Get(r76)
+         r111 <- Get(r76)
          r112 <- SetReturnValue(r76)
 
 
@@ -210,8 +218,9 @@ ssa program  114 instrs
 T0: {
   [pre:RSP - 8]:* := pre:RBP;
   let r76: Bytes(8) = zmalloc(24);
+  let r89: Bytes(16) = pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
   [r76]:* := 0;
-  [r76 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
+  [r76 + 8]:* := r89;
   ;
   return r76
 }

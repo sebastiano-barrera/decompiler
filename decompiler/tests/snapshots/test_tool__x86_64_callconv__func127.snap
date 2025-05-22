@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func127 0x4013a2+6 (file 0x13a2)
@@ -112,11 +112,10 @@ ssa pre-xform:
 ssa program  87 instrs
 .B0:    ;;  → Always(Return).
          r11 <- Ancestral(AncestralName("RSP"))
+         r43 <- Ancestral(AncestralName("memory"))
          r78 <- Const { value: 24, size: 8 }
          r79 <- Arith(Add, r78, r11)
-         r43 <- Ancestral(AncestralName("memory"))
          r80 <- LoadMem { mem: r43, addr: r79, size: 8 }
-         r82 <- Void
          r83 <- Concat { lo: r82, hi: r80 }
          r84 <- Part { src: r83, offset: 0, size: 8 }
          r85 <- SetReturnValue(r84)
@@ -124,7 +123,7 @@ ssa program  87 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:87] -> Always(Return)
+  BlockID(0) -> Always(Return) [r11, r43, r78, r79, r80, r82, r83, r84, r85]
   domtree:
     BlockID(0)
 
@@ -132,14 +131,18 @@ ssa post-xform:
 ssa program  87 instrs
 .B0:    ;;  → Always(Return).
          r11 <- Ancestral(AncestralName("RSP"))
-         r79 <- ArithK(Add, r11, 24)
          r43 <- Ancestral(AncestralName("memory"))
-         r80 <- LoadMem { mem: r43, addr: r79, size: 8 }
+         r78 <- Const { value: 24, size: 8 }
+         r79 <- ArithK(Add, r11, 24)
+  (  3)  r80 <- LoadMem { mem: r43, addr: r79, size: 8 }
+         r83 <- Get(r80)
+         r84 <- Get(r80)
          r85 <- SetReturnValue(r80)
 
 
 
 T0: {
+  let r80: Bytes(8) = [pre:RSP + 24]:8;
   ;
-  return [pre:RSP + 24]:8
+  return r80
 }

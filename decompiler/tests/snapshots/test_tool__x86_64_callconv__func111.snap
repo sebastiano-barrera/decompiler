@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func111 0x401343+6 (file 0x1343)
@@ -112,15 +112,14 @@ program  88 instrs
 ssa pre-xform:
 ssa program  88 instrs
 .B0:    ;;  → Always(Return).
+         r11 <- Ancestral(AncestralName("RSP"))
+         r15 <- Ancestral(AncestralName("RAX"))
+         r43 <- Ancestral(AncestralName("memory"))
          r78 <- Ancestral(AncestralName("arg5"))
          r79 <- Part { src: r78, offset: 0, size: 2 }
-         r11 <- Ancestral(AncestralName("RSP"))
          r80 <- ArithK(Add, r11, 8)
-         r43 <- Ancestral(AncestralName("memory"))
          r81 <- StoreMem { mem: r43, addr: r80, value: r79 }
          r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
-         r15 <- Ancestral(AncestralName("RAX"))
-         r83 <- Void
          r84 <- Concat { lo: r83, hi: r15 }
          r85 <- Part { src: r84, offset: 0, size: 2 }
          r86 <- SetReturnValue(r85)
@@ -128,20 +127,22 @@ ssa program  88 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:88] -> Always(Return)
+  BlockID(0) -> Always(Return) [r11, r15, r43, r78, r79, r80, r81, r82, r83, r84, r85, r86]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  88 instrs
 .B0:    ;;  → Always(Return).
-         r78 <- Ancestral(AncestralName("arg5"))
          r11 <- Ancestral(AncestralName("RSP"))
-         r80 <- ArithK(Add, r11, 8)
+  (  2)  r15 <- Ancestral(AncestralName("RAX"))
          r43 <- Ancestral(AncestralName("memory"))
+  (  2)  r78 <- Ancestral(AncestralName("arg5"))
+         r79 <- Get(r78)
+         r80 <- ArithK(Add, r11, 8)
          r81 <- StoreMem { mem: r43, addr: r80, value: r78 }
          r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
-         r15 <- Ancestral(AncestralName("RAX"))
+         r84 <- Get(r15)
          r85 <- Part { src: r15, offset: 0, size: 2 }
          r86 <- SetReturnValue(r85)
 

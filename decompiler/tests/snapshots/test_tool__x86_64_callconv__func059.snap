@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func059 0x40122e+7 (file 0x122e)
@@ -100,10 +100,9 @@ program  79 instrs
 ssa pre-xform:
 ssa program  79 instrs
 .B0:    ;;  → Always(Return).
-         r72 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
          r27 <- Ancestral(AncestralName("ZMM0"))
+         r72 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
          r74 <- Part { src: r27, offset: 0, size: 8 }
-         r73 <- Void
          r75 <- Concat { lo: r73, hi: r74 }
          r76 <- Part { src: r75, offset: 0, size: 4 }
          r77 <- SetReturnValue(r76)
@@ -111,15 +110,17 @@ ssa program  79 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:79] -> Always(Return)
+  BlockID(0) -> Always(Return) [r27, r72, r73, r74, r75, r76, r77]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  79 instrs
 .B0:    ;;  → Always(Return).
+  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
          r72 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
-         r27 <- Ancestral(AncestralName("ZMM0"))
+         r74 <- Part { src: r27, offset: 0, size: 8 }
+         r75 <- Get(r74)
          r76 <- Part { src: r27, offset: 0, size: 4 }
          r77 <- SetReturnValue(r76)
 

@@ -856,6 +856,7 @@ mod tests {
         };
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         super::canonical(&mut prog);
+        ssa::eliminate_dead_code(&mut prog);
         eprintln!("ssa post-xform:\n{prog:?}");
 
         assert_eq!(prog.insns_rpo().count(), 2);

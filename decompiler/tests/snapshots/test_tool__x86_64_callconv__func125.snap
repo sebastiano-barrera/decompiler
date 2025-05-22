@@ -1,5 +1,5 @@
 ---
-source: tests/test_tool.rs
+source: decompiler/tests/test_tool.rs
 expression: out
 ---
 func125 0x401394+7 (file 0x1394)
@@ -111,19 +111,18 @@ program  87 instrs
 ssa pre-xform:
 ssa program  87 instrs
 .B0:    ;;  → Always(Return).
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+         r27 <- Ancestral(AncestralName("ZMM0"))
+         r43 <- Ancestral(AncestralName("memory"))
   (  2)  r73 <- Ancestral(AncestralName("arg4"))
          r74 <- Part { src: r73, offset: 0, size: 8 }
-  (  2)  r11 <- Ancestral(AncestralName("RSP"))
          r75 <- ArithK(Add, r11, 8)
-         r43 <- Ancestral(AncestralName("memory"))
          r76 <- StoreMem { mem: r43, addr: r75, value: r74 }
          r77 <- Part { src: r73, offset: 8, size: 8 }
          r78 <- ArithK(Add, r11, 16)
          r79 <- StoreMem { mem: r76, addr: r78, value: r77 }
          r80 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
-         r27 <- Ancestral(AncestralName("ZMM0"))
          r82 <- Part { src: r27, offset: 0, size: 8 }
-         r81 <- Void
          r83 <- Concat { lo: r81, hi: r82 }
          r84 <- Part { src: r83, offset: 0, size: 4 }
          r85 <- SetReturnValue(r84)
@@ -131,24 +130,26 @@ ssa program  87 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) [0:87] -> Always(Return)
+  BlockID(0) -> Always(Return) [r11, r27, r43, r73, r74, r75, r76, r77, r78, r79, r80, r81, r82, r83, r84, r85]
   domtree:
     BlockID(0)
 
 ssa post-xform:
 ssa program  87 instrs
 .B0:    ;;  → Always(Return).
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
+  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
+         r43 <- Ancestral(AncestralName("memory"))
   (  2)  r73 <- Ancestral(AncestralName("arg4"))
          r74 <- Part { src: r73, offset: 0, size: 8 }
-  (  2)  r11 <- Ancestral(AncestralName("RSP"))
          r75 <- ArithK(Add, r11, 8)
-         r43 <- Ancestral(AncestralName("memory"))
          r76 <- StoreMem { mem: r43, addr: r75, value: r74 }
          r77 <- Part { src: r73, offset: 8, size: 8 }
          r78 <- ArithK(Add, r11, 16)
          r79 <- StoreMem { mem: r76, addr: r78, value: r77 }
          r80 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
-         r27 <- Ancestral(AncestralName("ZMM0"))
+         r82 <- Part { src: r27, offset: 0, size: 8 }
+         r83 <- Get(r82)
          r84 <- Part { src: r27, offset: 0, size: 4 }
          r85 <- SetReturnValue(r84)
 
