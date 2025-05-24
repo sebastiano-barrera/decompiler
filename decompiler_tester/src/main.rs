@@ -106,12 +106,14 @@ impl SSAViewCache {
     }
 }
 
-#[non_exhaustive]
+#[derive(Default)]
+struct Highlight {
+    pinned: HighlightItems,
+    hovered: HighlightItems,
+}
 #[derive(PartialEq, Eq, Default)]
-enum Highlight {
-    #[default]
-    None,
-    Reg(decompiler::Reg),
+struct HighlightItems {
+    reg: Option<decompiler::Reg>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -438,7 +440,7 @@ impl StageFunc {
             ssa_vcache,
             ssa_px_vcache,
             ast,
-            hl: Highlight::None,
+            hl: Highlight::default(),
         }
     }
 
@@ -698,7 +700,7 @@ fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let color = egui::Color32::from_rgb(238, 155, 0);
     let background_color = egui::Color32::from_rgb(187, 62, 3);
     if hl_label(ui, reg, hl, background_color, color) {
-        *hl = Highlight::Reg(reg);
+        hl.pinned.reg = Some(reg);
     }
 }
 
@@ -706,7 +708,7 @@ fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let background_color = egui::Color32::from_rgb(0, 127, 115);
     let color = egui::Color32::from_rgb(76, 205, 153);
     if hl_label(ui, reg, hl, background_color, color) {
-        *hl = Highlight::Reg(reg);
+        hl.pinned.reg = Some(reg);
     }
 }
 
@@ -719,7 +721,7 @@ fn hl_label(
 ) -> bool {
     // TODO avoid alloc?
     let rt = egui::RichText::new(format!("{:?}", reg));
-    let rt = if *hl == Highlight::Reg(reg) {
+    let rt = if hl.pinned.reg == Some(reg) {
         rt.background_color(background_color).color(color)
     } else {
         rt
