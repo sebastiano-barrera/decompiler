@@ -16,7 +16,7 @@
     - actually, we just keep around a pre-xform copy of the ssa, so you can just view both
 
 - [x] fix: call results are not named?
-- [ ] selection: pin on click, only preview on hover
+- [x] selection: pin on click, only preview on hover
 - [ ] selection: blocks
     - [ ] full highlight in ssa
     - [ ] references in ssa, ast

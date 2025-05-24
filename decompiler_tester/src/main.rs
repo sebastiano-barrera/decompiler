@@ -699,17 +699,13 @@ fn show_ssa(
 fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let color = egui::Color32::from_rgb(238, 155, 0);
     let background_color = egui::Color32::from_rgb(187, 62, 3);
-    if hl_label(ui, reg, hl, background_color, color) {
-        hl.pinned.reg = Some(reg);
-    }
+    hl_label(ui, reg, hl, background_color, color);
 }
 
 fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let background_color = egui::Color32::from_rgb(0, 127, 115);
     let color = egui::Color32::from_rgb(76, 205, 153);
-    if hl_label(ui, reg, hl, background_color, color) {
-        hl.pinned.reg = Some(reg);
-    }
+    hl_label(ui, reg, hl, background_color, color);
 }
 
 fn hl_label(
@@ -718,17 +714,31 @@ fn hl_label(
     hl: &mut Highlight,
     background_color: egui::Color32,
     color: egui::Color32,
-) -> bool {
+) {
     // TODO avoid alloc?
-    let rt = egui::RichText::new(format!("{:?}", reg));
-    let rt = if hl.pinned.reg == Some(reg) {
-        rt.background_color(background_color).color(color)
-    } else {
-        rt
+    let mut rt = egui::RichText::new(format!("{:?}", reg));
+    let mut stroke = egui::Stroke {
+        width: 1.0,
+        color: egui::Color32::TRANSPARENT,
     };
-    let res = ui.label(rt);
-    let hovered = res.hovered();
-    hovered
+
+    if hl.pinned.reg == Some(reg) {
+        rt = rt.background_color(background_color).color(color);
+    } else if hl.hovered.reg == Some(reg) {
+        stroke.color = background_color;
+    };
+
+    let res = egui::Frame::new()
+        .stroke(stroke)
+        .show(ui, |ui| ui.label(rt))
+        .inner;
+    if res.clicked() {
+        hl.pinned.reg = Some(reg);
+    }
+    if res.hovered() {
+        hl.hovered.reg = Some(reg);
+        ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
+    }
 }
 
 fn label_block(ui: &mut egui::Ui, bid: decompiler::BlockID) {
