@@ -19,7 +19,7 @@
 - [x] selection: pin on click, only preview on hover
 - [ ] selection: blocks
     - [ ] full highlight in ssa
-    - [ ] references in ssa, ast
+    - [x] references in ssa, ast
 - [ ] highlight MIL instruction
 - [ ] ast: precedence + grouping
 - [ ] ast: better syntax for deref
