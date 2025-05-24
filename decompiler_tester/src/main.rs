@@ -554,7 +554,6 @@ impl StageFunc {
             }
             None => {
                 ui.label("No SSA generated");
-                return;
             }
         };
     }
@@ -566,7 +565,6 @@ impl StageFunc {
             }
             None => {
                 ui.label("No SSA generated");
-                return;
             }
         };
     }
@@ -647,55 +645,78 @@ fn show_ssa(
                     }
                 }
 
-                let block_res = ui.vertical(|ui| {
-                    ui.separator();
+                const HL_BORDER_SIZE: f32 = 3.0;
 
-                    label_block_def(ui, bid, hl);
-                    ui.horizontal(|ui| {
-                        ui.label("from:");
-                        for &pred in ssa.cfg().block_preds(bid) {
-                            label_block_ref(ui, pred, hl);
-                        }
-                    });
+                let block_res = ui.horizontal(|ui| {
+                    ui.add_space(HL_BORDER_SIZE + 2.0);
+                    ui.vertical(|ui| {
+                        ui.separator();
 
-                    for reg in ssa.block_regs(bid) {
-                        if ssa[reg].get() == decompiler::Insn::Void {
-                            continue;
-                        }
-
+                        label_block_def(ui, bid, hl);
                         ui.horizontal(|ui| {
-                            label_reg_def(ui, reg, hl);
+                            ui.label("from:");
+                            for &pred in ssa.cfg().block_preds(bid) {
+                                label_block_ref(ui, pred, hl);
+                            }
+                        });
 
-                            // TODO show type information
-                            // TODO use label_reg for parts of the instruction as well
-                            ui.label(" <- ");
+                        for reg in ssa.block_regs(bid) {
+                            if ssa[reg].get() == decompiler::Insn::Void {
+                                continue;
+                            }
 
-                            // NOTE: ssa_vcache is produced by mapping
-                            // ssa.insns_rpo(), so its order matches this for loop
-                            let ndx = reg.reg_index() as usize;
-                            let insnx = &vcache.expanded[ndx];
-                            ui.label(insnx.variant_name);
-                            ui.label("(");
-                            for (name, value) in insnx.fields.iter() {
-                                ui.label(*name);
-                                ui.label(":");
-                                match value {
-                                    decompiler::ExpandedValue::Reg(reg) => {
-                                        label_reg_ref(ui, *reg, hl);
-                                    }
-                                    decompiler::ExpandedValue::Generic(debug_str) => {
-                                        ui.label(debug_str);
+                            ui.horizontal(|ui| {
+                                label_reg_def(ui, reg, hl);
+
+                                // TODO show type information
+                                // TODO use label_reg for parts of the instruction as well
+                                ui.label(" <- ");
+
+                                // NOTE: ssa_vcache is produced by mapping
+                                // ssa.insns_rpo(), so its order matches this for loop
+                                let ndx = reg.reg_index() as usize;
+                                let insnx = &vcache.expanded[ndx];
+                                ui.label(insnx.variant_name);
+                                ui.label("(");
+                                for (name, value) in insnx.fields.iter() {
+                                    ui.label(*name);
+                                    ui.label(":");
+                                    match value {
+                                        decompiler::ExpandedValue::Reg(reg) => {
+                                            label_reg_ref(ui, *reg, hl);
+                                        }
+                                        decompiler::ExpandedValue::Generic(debug_str) => {
+                                            ui.label(debug_str);
+                                        }
                                     }
                                 }
-                            }
-                            ui.label(")");
-                        });
-                    }
+                                ui.label(")");
+                            });
+                        }
 
-                    show_continuation(ui, &ssa.cfg().block_cont(bid), hl);
+                        show_continuation(ui, &ssa.cfg().block_cont(bid), hl);
+                    })
                 });
 
-                let height = block_res.response.rect.height();
+                let block_rect = block_res.response.rect;
+                let mut hl_rect = block_rect.clone();
+                hl_rect.set_width(HL_BORDER_SIZE);
+
+                if hl.block.pinned == Some(bid) {
+                    ui.painter().rect_filled(hl_rect, 0.0, COLOR_GREEN_DARK);
+                } else if hl.block.hovered == Some(bid) {
+                    ui.painter().rect_stroke(
+                        hl_rect,
+                        0.0,
+                        egui::Stroke {
+                            color: COLOR_GREEN_DARK,
+                            width: 1.0,
+                        },
+                        egui::StrokeKind::Inside,
+                    );
+                }
+
+                let height = block_rect.height();
                 vcache.height_of_block[bid] = Some(height);
                 cur_y += height;
             }

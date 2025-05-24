@@ -18,7 +18,7 @@
 - [x] fix: call results are not named?
 - [x] selection: pin on click, only preview on hover
 - [ ] selection: blocks
-    - [ ] full highlight in ssa
+    - [x] full highlight in ssa
     - [x] references in ssa, ast
 - [ ] highlight MIL instruction
 - [ ] ast: precedence + grouping
