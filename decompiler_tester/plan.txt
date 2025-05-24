@@ -1,0 +1,41 @@
+- [x] API for exposing every chunk of the decompiler's results
+
+- [ ] dedicated views for:
+    - [x] assembly (input)
+    - [ ] function type
+    - [x] mil
+    - [ ] cfg
+    - [x] ssa
+    - [x] decompiled ast
+
+    - [x] dwarf parsing details (warnings)
+        - details about parsed types?
+        - search?
+
+- [--] allow disabling/enabling xforms
+    - actually, we just keep around a pre-xform copy of the ssa, so you can just view both
+
+- [x] fix: call results are not named?
+- [ ] selection: pin on click, only preview on hover
+- [ ] selection: blocks
+    - [ ] full highlight in ssa
+    - [ ] references in ssa, ast
+- [ ] highlight MIL instruction
+- [ ] ast: precedence + grouping
+- [ ] ast: better syntax for deref
+    - [ ] remove padding?
+- [ ] ast: ancestral always inline
+- [ ] xform: eliminate upsilons referencing dead phis
+- [ ] ssa: fix: show value not data type name! (misunderstood how facet's to_string works)
+- [ ] show type info
+    - [ ] function prototype
+    - [ ] ssa: value types
+    - [ ] ast: value types
+- [ ] ast: show function names (should be correctly identifier by decompiler core)
+
+- [ ] open executable from GUI
+- [ ] show progress when parsing executable
+
+- [ ] robust against panics in the decompiler
+    - we mostly got it; there might be a hole or two somewhere
+- [ ] multiple functions (tabs?)
