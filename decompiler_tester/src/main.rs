@@ -108,12 +108,21 @@ impl SSAViewCache {
 
 #[derive(Default)]
 struct Highlight {
-    pinned: HighlightItems,
-    hovered: HighlightItems,
+    reg: HighlightItem<decompiler::Reg>,
+    block: HighlightItem<decompiler::BlockID>,
 }
-#[derive(PartialEq, Eq, Default)]
-struct HighlightItems {
-    reg: Option<decompiler::Reg>,
+#[derive(PartialEq, Eq)]
+struct HighlightItem<T> {
+    pinned: Option<T>,
+    hovered: Option<T>,
+}
+impl<T> Default for HighlightItem<T> {
+    fn default() -> Self {
+        HighlightItem {
+            pinned: None,
+            hovered: None,
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -587,10 +596,10 @@ fn show_ssa(
     hl: &mut Highlight,
 ) {
     use decompiler::{BlockCont, Dest};
-    fn show_dest(ui: &mut egui::Ui, dest: &Dest) {
+    fn show_dest(ui: &mut egui::Ui, dest: &Dest, hl: &mut Highlight) {
         match dest {
             Dest::Block(bid) => {
-                label_block(ui, *bid);
+                label_block_ref(ui, *bid, hl);
             }
             Dest::Ext(addr) => {
                 ui.label(format!("ext @ 0x{:x}", addr));
@@ -606,16 +615,16 @@ fn show_ssa(
             }
         }
     }
-    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont) {
+    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont, hl: &mut Highlight) {
         ui.horizontal(|ui| {
             ui.label("⮩");
             match cont {
-                BlockCont::Always(dest) => show_dest(ui, dest),
+                BlockCont::Always(dest) => show_dest(ui, dest, hl),
                 BlockCont::Conditional { pos, neg } => {
                     ui.label("if ... then");
-                    show_dest(ui, pos);
+                    show_dest(ui, pos, hl);
                     ui.label("else");
-                    show_dest(ui, neg);
+                    show_dest(ui, neg, hl);
                 }
             }
         });
@@ -641,11 +650,11 @@ fn show_ssa(
                 let block_res = ui.vertical(|ui| {
                     ui.separator();
 
-                    ui.label(format!("block {}", bid.as_number()));
+                    label_block_def(ui, bid, hl);
                     ui.horizontal(|ui| {
                         ui.label("from:");
                         for &pred in ssa.cfg().block_preds(bid) {
-                            label_block(ui, pred);
+                            label_block_ref(ui, pred, hl);
                         }
                     });
 
@@ -683,7 +692,7 @@ fn show_ssa(
                         });
                     }
 
-                    show_continuation(ui, &ssa.cfg().block_cont(bid));
+                    show_continuation(ui, &ssa.cfg().block_cont(bid), hl);
                 });
 
                 let height = block_res.response.rect.height();
@@ -696,35 +705,70 @@ fn show_ssa(
         });
 }
 
+const COLOR_BLUE_LIGHT: egui::Color32 = egui::Color32::from_rgb(166, 206, 227);
+const COLOR_BLUE_DARK: egui::Color32 = egui::Color32::from_rgb(31, 120, 180);
+const COLOR_GREEN_LIGHT: egui::Color32 = egui::Color32::from_rgb(178, 223, 138);
+const COLOR_GREEN_DARK: egui::Color32 = egui::Color32::from_rgb(51, 160, 44);
+const COLOR_RED_LIGHT: egui::Color32 = egui::Color32::from_rgb(251, 154, 153);
+const COLOR_RED_DARK: egui::Color32 = egui::Color32::from_rgb(227, 26, 28);
+const COLOR_ORANGE_LIGHT: egui::Color32 = egui::Color32::from_rgb(253, 191, 111);
+const COLOR_ORANGE_DARK: egui::Color32 = egui::Color32::from_rgb(255, 127, 0);
+const COLOR_PURPLE_LIGHT: egui::Color32 = egui::Color32::from_rgb(202, 178, 214);
+const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
+const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
+const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
+
 fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
-    let color = egui::Color32::from_rgb(238, 155, 0);
-    let background_color = egui::Color32::from_rgb(187, 62, 3);
-    hl_label(ui, reg, hl, background_color, color);
+    let fg = egui::Color32::WHITE;
+    let bg = COLOR_BLUE_DARK;
+    // TODO avoid alloc?
+    let text = format!("{:?}", reg);
+    hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
 }
 
 fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
-    let background_color = egui::Color32::from_rgb(0, 127, 115);
-    let color = egui::Color32::from_rgb(76, 205, 153);
-    hl_label(ui, reg, hl, background_color, color);
+    let fg = egui::Color32::BLACK;
+    let bg = COLOR_BLUE_LIGHT;
+    // TODO avoid alloc?
+    let text = format!("{:?}", reg);
+    hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
 }
 
-fn hl_label(
+fn label_block_def(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
+    let fg = egui::Color32::WHITE;
+    let bg = COLOR_GREEN_DARK;
+    // TODO avoid alloc?
+    let text = format!("{:?}", bid);
+    hl_label(ui, text, &bid, &mut hl.block, bg, fg);
+}
+
+fn label_block_ref(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
+    let fg = egui::Color32::BLACK;
+    let bg = COLOR_GREEN_LIGHT;
+    // TODO avoid alloc?
+    let text = format!("{:?}", bid);
+    hl_label(ui, text, &bid, &mut hl.block, bg, fg);
+}
+
+fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
-    reg: decompiler::Reg,
-    hl: &mut Highlight,
+    text: String,
+    item: &T,
+    hli: &mut HighlightItem<T>,
     background_color: egui::Color32,
     color: egui::Color32,
 ) {
-    // TODO avoid alloc?
-    let mut rt = egui::RichText::new(format!("{:?}", reg));
+    let mut rt = egui::RichText::new(text);
     let mut stroke = egui::Stroke {
         width: 1.0,
         color: egui::Color32::TRANSPARENT,
     };
 
-    if hl.pinned.reg == Some(reg) {
+    let is_pinned = hli.pinned.as_ref() == Some(item);
+    let is_hovered = hli.hovered.as_ref() == Some(item);
+    if is_pinned {
         rt = rt.background_color(background_color).color(color);
-    } else if hl.hovered.reg == Some(reg) {
+    } else if is_hovered {
         stroke.color = background_color;
     };
 
@@ -732,17 +776,16 @@ fn hl_label(
         .stroke(stroke)
         .show(ui, |ui| ui.label(rt))
         .inner;
+
     if res.clicked() {
-        hl.pinned.reg = Some(reg);
+        // toggle selection
+        hli.pinned = if is_pinned { None } else { Some(item.clone()) };
     }
     if res.hovered() {
-        hl.hovered.reg = Some(reg);
+        // toggle selection
+        hli.hovered = Some(item.clone());
         ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
     }
-}
-
-fn label_block(ui: &mut egui::Ui, bid: decompiler::BlockID) {
-    ui.label(format!("block {}", bid.as_usize()));
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
@@ -980,7 +1023,7 @@ mod ast_view {
     use decompiler::Insn;
 
     use super::Highlight;
-    use crate::{label_reg_def, label_reg_ref};
+    use crate::{label_block_def, label_block_ref, label_reg_def, label_reg_ref};
 
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
@@ -998,6 +1041,7 @@ mod ast_view {
         Generic(String),
         Kw(&'static str),
         BlockHeader(decompiler::BlockID),
+        BlockRef(decompiler::BlockID),
         RegDef(decompiler::Reg),
     }
 
@@ -1147,7 +1191,10 @@ mod ast_view {
                 Node::BlockHeader(bid) => {
                     // TODO avoid alloc
                     ui.add_space(12.0);
-                    ui.label(format!("{:?}:", bid));
+                    label_block_def(ui, *bid, hl);
+                }
+                Node::BlockRef(bid) => {
+                    label_block_ref(ui, *bid, hl);
                 }
             }
 
@@ -1280,7 +1327,7 @@ mod ast_view {
             // TODO! specific representation of operands
             if self.rdr_count[reg] > 1 {
                 if self.let_was_printed[reg] {
-                    self.emit(Node::RegDef(reg));
+                    self.emit(Node::Ref(reg));
                 } else {
                     self.seq(SeqKind::Flow, |s| {
                         s.emit(Node::Kw("<bug:let!>"));
@@ -1559,7 +1606,7 @@ mod ast_view {
                         self.seq(SeqKind::Flow, |s| {
                             s.emit(Node::Kw("goto"));
                             // TODO specific node type
-                            s.emit(Node::Generic(format!("{:?}", *bid)));
+                            s.emit(Node::BlockRef(*bid));
                         });
                     }
                 }
@@ -1608,7 +1655,7 @@ mod ast_view {
 
                 s.emit(Node::Kw("let"));
                 // TODO make the name editable
-                s.emit(Node::Ref(reg));
+                s.emit(Node::RegDef(reg));
                 s.emit(Node::Kw("="));
                 s.transform_def(reg);
             });
