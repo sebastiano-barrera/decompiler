@@ -949,6 +949,9 @@ impl<T: Clone> BlockMap<T> {
     pub fn new(cfg: &Graph, init: T) -> Self {
         Self::new_sized(init, cfg.block_count())
     }
+    pub fn empty() -> Self {
+        BlockMap(Vec::new())
+    }
 
     pub fn new_with<F>(cfg: &Graph, init_item: F) -> Self
     where

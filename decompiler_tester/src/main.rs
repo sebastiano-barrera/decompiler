@@ -75,11 +75,35 @@ struct StageFunc {
 
     assembly: Assembly,
     mil_lines: Vec<String>,
-    ssa_expanded: Vec<decompiler::ExpandedInsn>,
-    ssa_px_expanded: Vec<decompiler::ExpandedInsn>,
+    ssa_vcache: SSAViewCache,
+    ssa_px_vcache: SSAViewCache,
     ast: ast_view::Ast,
 
     hl: Highlight,
+}
+
+struct SSAViewCache {
+    expanded: Vec<decompiler::ExpandedInsn>,
+    height_of_block: decompiler::BlockMap<Option<f32>>,
+}
+impl SSAViewCache {
+    fn new(ssa: &decompiler::SSAProgram) -> Self {
+        let expanded = ssa_to_expanded(ssa);
+        let height_of_block = decompiler::BlockMap::new(ssa.cfg(), None);
+        SSAViewCache {
+            expanded,
+            height_of_block,
+        }
+    }
+    fn new_from_option(ssa: Option<&decompiler::SSAProgram>) -> Self {
+        match ssa {
+            Some(ssa) => Self::new(ssa),
+            None => SSAViewCache {
+                expanded: Vec::new(),
+                height_of_block: decompiler::BlockMap::empty(),
+            },
+        }
+    }
 }
 
 #[non_exhaustive]
@@ -396,8 +420,8 @@ impl StageFunc {
             lines
         };
 
-        let ssa_expanded = df.ssa().map(ssa_to_expanded).unwrap_or(Vec::new());
-        let ssa_px_expanded = df.ssa_pre_xform().map(ssa_to_expanded).unwrap_or(Vec::new());
+        let ssa_vcache = SSAViewCache::new_from_option(df.ssa());
+        let ssa_px_vcache = SSAViewCache::new_from_option(df.ssa_pre_xform());
 
         let ast = match df.ssa() {
             Some(ssa) => ast_view::Ast::from_ssa(ssa),
@@ -411,8 +435,8 @@ impl StageFunc {
             problems_error: error_label,
             assembly,
             mil_lines,
-            ssa_expanded,
-            ssa_px_expanded,
+            ssa_vcache,
+            ssa_px_vcache,
             ast,
             hl: Highlight::None,
         }
@@ -515,7 +539,7 @@ impl StageFunc {
     fn ui_tab_ssa(&mut self, ui: &mut egui::Ui) {
         match self.df.ssa() {
             Some(ssa) => {
-                show_ssa(ui, ssa, &self.ssa_expanded, &mut self.hl);
+                show_ssa(ui, ssa, &mut self.ssa_vcache, &mut self.hl);
             }
             None => {
                 ui.label("No SSA generated");
@@ -527,7 +551,7 @@ impl StageFunc {
     fn ui_tab_ssa_px(&mut self, ui: &mut egui::Ui) {
         match self.df.ssa_pre_xform() {
             Some(ssa) => {
-                show_ssa(ui, ssa, &self.ssa_px_expanded, &mut self.hl);
+                show_ssa(ui, ssa, &mut self.ssa_px_vcache, &mut self.hl);
             }
             None => {
                 ui.label("No SSA generated");
@@ -557,7 +581,7 @@ fn ssa_to_expanded(ssa: &decompiler::SSAProgram) -> Vec<decompiler::ExpandedInsn
 fn show_ssa(
     ui: &mut egui::Ui,
     ssa: &decompiler::SSAProgram,
-    expanded_insns: &Vec<decompiler::ExpandedInsn>,
+    vcache: &mut SSAViewCache,
     hl: &mut Highlight,
 ) {
     use decompiler::{BlockCont, Dest};
@@ -598,53 +622,71 @@ fn show_ssa(
     egui::ScrollArea::both()
         .auto_shrink([false, false])
         .show_viewport(ui, |ui, viewport_rect| {
-            // TODO too slow?
+            let mut cur_y = 0.0;
             for bid in ssa.cfg().block_ids_rpo() {
-                ui.separator();
-
-                ui.label(format!("block {}", bid.as_number()));
-                ui.horizontal(|ui| {
-                    ui.label("from:");
-                    for &pred in ssa.cfg().block_preds(bid) {
-                        label_block(ui, pred);
-                    }
-                });
-
-                for reg in ssa.block_regs(bid) {
-                    if ssa[reg].get() == decompiler::Insn::Void {
+                if let &Some(height) = &vcache.height_of_block[bid] {
+                    if viewport_rect.min.y > cur_y + height || viewport_rect.max.y < cur_y {
+                        let size = egui::Vec2 {
+                            x: viewport_rect.width(),
+                            y: height,
+                        };
+                        ui.allocate_exact_size(size, egui::Sense::empty());
+                        cur_y += height;
                         continue;
                     }
-
-                    ui.horizontal(|ui| {
-                        label_reg_def(ui, reg, hl);
-
-                        // TODO show type information
-                        // TODO use label_reg for parts of the instruction as well
-                        ui.label(" <- ");
-
-                        // NOTE: ssa_expanded is produced by mapping
-                        // ssa.insns_rpo(), so its order matches this for loop
-                        let ndx = reg.reg_index() as usize;
-                        let insnx = &expanded_insns[ndx];
-                        ui.label(insnx.variant_name);
-                        ui.label("(");
-                        for (name, value) in insnx.fields.iter() {
-                            ui.label(*name);
-                            ui.label(":");
-                            match value {
-                                decompiler::ExpandedValue::Reg(reg) => {
-                                    label_reg_ref(ui, *reg, hl);
-                                }
-                                decompiler::ExpandedValue::Generic(debug_str) => {
-                                    ui.label(debug_str);
-                                }
-                            }
-                        }
-                        ui.label(")");
-                    });
                 }
 
-                show_continuation(ui, &ssa.cfg().block_cont(bid));
+                let block_res = ui.vertical(|ui| {
+                    ui.separator();
+
+                    ui.label(format!("block {}", bid.as_number()));
+                    ui.horizontal(|ui| {
+                        ui.label("from:");
+                        for &pred in ssa.cfg().block_preds(bid) {
+                            label_block(ui, pred);
+                        }
+                    });
+
+                    for reg in ssa.block_regs(bid) {
+                        if ssa[reg].get() == decompiler::Insn::Void {
+                            continue;
+                        }
+
+                        ui.horizontal(|ui| {
+                            label_reg_def(ui, reg, hl);
+
+                            // TODO show type information
+                            // TODO use label_reg for parts of the instruction as well
+                            ui.label(" <- ");
+
+                            // NOTE: ssa_vcache is produced by mapping
+                            // ssa.insns_rpo(), so its order matches this for loop
+                            let ndx = reg.reg_index() as usize;
+                            let insnx = &vcache.expanded[ndx];
+                            ui.label(insnx.variant_name);
+                            ui.label("(");
+                            for (name, value) in insnx.fields.iter() {
+                                ui.label(*name);
+                                ui.label(":");
+                                match value {
+                                    decompiler::ExpandedValue::Reg(reg) => {
+                                        label_reg_ref(ui, *reg, hl);
+                                    }
+                                    decompiler::ExpandedValue::Generic(debug_str) => {
+                                        ui.label(debug_str);
+                                    }
+                                }
+                            }
+                            ui.label(")");
+                        });
+                    }
+
+                    show_continuation(ui, &ssa.cfg().block_cont(bid));
+                });
+
+                let height = block_res.response.rect.height();
+                vcache.height_of_block[bid] = Some(height);
+                cur_y += height;
             }
 
             ui.separator();
