@@ -526,22 +526,18 @@ impl StageFunc {
         self.hl.asm_lines.resize(self.assembly.lines.len(), false);
         self.hl.asm_lines.fill(false);
 
-        let Some(reg) = self.hl.reg.pinned else {
-            return;
-        };
-
         let Some(ssa) = self.df.ssa() else {
             return;
         };
-        let Some(iv) = ssa.get(reg) else {
-            return;
-        };
-        let addr = iv.addr;
-        let Some(&ndx) = self.assembly.ndx_of_addr.get(&addr) else {
-            return;
-        };
 
-        self.hl.asm_lines[ndx] = true;
+        // TODO anything better than this cascade of if-let's?
+        if let Some(reg) = self.hl.reg.pinned {
+            if let Some(iv) = ssa.get(reg) {
+                if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
+                    self.hl.asm_lines[ndx] = true;
+                }
+            }
+        }
     }
 
     fn show_status(&mut self, ui: &mut egui::Ui) {
