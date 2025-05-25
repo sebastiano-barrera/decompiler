@@ -112,8 +112,10 @@ struct Highlight {
     // Highlight::clear_dirty_bit
     reg: HighlightItem<decompiler::Reg>,
     block: HighlightItem<decompiler::BlockID>,
+    asm_line: HighlightItem<usize>,
     // same length as Assembly::lines
-    asm_lines: Vec<AsmLineHighlight>,
+    related_asm: Vec<AsmLineHighlight>,
+    related_ssa: Option<decompiler::RegMap<bool>>,
     dirty_linked: bool,
 }
 #[derive(PartialEq, Eq)]
@@ -135,7 +137,7 @@ enum AsmLineHighlight {
     None,
     /// The asm instruction in this line corresponds directly with the highlighted SSA
     /// instruction. (Multiple SSA instructions may correspond to the same asm line.)
-    Insn,
+    RelatedInsn,
     /// The asm instruction in this line is in the same control-flow graph block as the
     /// selected block.
     Block,
@@ -535,9 +537,9 @@ impl StageFunc {
         self.hl.dirty_linked = false;
 
         self.hl
-            .asm_lines
+            .related_asm
             .resize(self.assembly.lines.len(), AsmLineHighlight::None);
-        self.hl.asm_lines.fill(AsmLineHighlight::None);
+        self.hl.related_asm.fill(AsmLineHighlight::None);
 
         let Some(ssa) = self.df.ssa() else {
             return;
@@ -549,7 +551,7 @@ impl StageFunc {
             for reg in ssa.block_regs(bid) {
                 if let Some(iv) = ssa.get(reg) {
                     if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
-                        self.hl.asm_lines[ndx] = AsmLineHighlight::Block;
+                        self.hl.related_asm[ndx] = AsmLineHighlight::Block;
                     }
                 }
             }
@@ -558,10 +560,30 @@ impl StageFunc {
         if let Some(reg) = self.hl.reg.pinned {
             if let Some(iv) = ssa.get(reg) {
                 if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
-                    self.hl.asm_lines[ndx] = AsmLineHighlight::Insn;
+                    self.hl.related_asm[ndx] = AsmLineHighlight::RelatedInsn;
                 }
             }
         }
+
+        let mut related_ssa = self
+            .hl
+            .related_ssa
+            .take()
+            .unwrap_or_else(|| decompiler::RegMap::for_program(ssa, false));
+        assert_eq!(related_ssa.reg_count(), ssa.reg_count());
+        related_ssa.fill(false);
+
+        if let Some(asm_line_ndx) = self.hl.asm_line.pinned {
+            let addr = self.assembly.lines[asm_line_ndx].addr;
+            for reg in ssa.registers() {
+                let iv = ssa.get(reg).unwrap();
+                if iv.addr == addr {
+                    related_ssa[reg] = true;
+                }
+            }
+        }
+
+        self.hl.related_ssa = Some(related_ssa);
     }
 
     fn show_status(&mut self, ui: &mut egui::Ui) {
@@ -569,7 +591,7 @@ impl StageFunc {
     }
 
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
-        let hl = &self.hl.asm_lines;
+        let hl = &self.hl.related_asm;
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
 
         egui::ScrollArea::both()
@@ -588,22 +610,51 @@ impl StageFunc {
                             } else {
                                 AsmLineHighlight::None
                             };
-                            let (bg, fg) = match line_hl {
-                                AsmLineHighlight::None => {
+                            let is_pinned = self.hl.asm_line.pinned == Some(ndx);
+                            let (bg, fg) = match (is_pinned, line_hl) {
+                                (true, _) => (COLOR_RED_DARK, egui::Color32::WHITE),
+                                (_, AsmLineHighlight::None) => {
                                     (egui::Color32::TRANSPARENT, ui.visuals().text_color())
                                 }
-                                AsmLineHighlight::Insn => (COLOR_RED_LIGHT, egui::Color32::BLACK),
-                                AsmLineHighlight::Block => {
+                                (_, AsmLineHighlight::RelatedInsn) => {
+                                    (COLOR_RED_LIGHT, egui::Color32::BLACK)
+                                }
+                                (_, AsmLineHighlight::Block) => {
                                     (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
                                 }
                             };
+                            let stroke = if self.hl.asm_line.hovered == Some(ndx) {
+                                COLOR_RED_LIGHT
+                            } else {
+                                egui::Color32::TRANSPARENT
+                            };
 
-                            ui.label(
-                                egui::RichText::new(text)
-                                    .monospace()
-                                    .background_color(bg)
-                                    .color(fg),
-                            );
+                            let res = egui::Frame::new()
+                                .stroke(egui::Stroke {
+                                    width: 1.0,
+                                    color: stroke,
+                                })
+                                .show(ui, |ui| {
+                                    ui.label(
+                                        egui::RichText::new(text)
+                                            .monospace()
+                                            .background_color(bg)
+                                            .color(fg),
+                                    )
+                                })
+                                .inner;
+
+                            if res.hovered() {
+                                self.hl.asm_line.hovered = Some(ndx);
+                                self.hl.dirty_linked = true;
+                            }
+                            if res.clicked() {
+                                self.hl.asm_line.pinned = match self.hl.asm_line.pinned {
+                                    Some(pinned_ndx) if pinned_ndx == ndx => None,
+                                    _ => Some(ndx),
+                                };
+                                self.hl.dirty_linked = true;
+                            }
                         });
                         ui.add(
                             egui::Label::new(egui::RichText::new(&asm_line.text).monospace())
@@ -825,7 +876,31 @@ fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let bg = COLOR_BLUE_DARK;
     // TODO avoid alloc?
     let text = format!("{:?}", reg);
-    hl.dirty_linked |= hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
+    let is_asm_related = match &hl.related_ssa {
+        Some(m) => m[reg],
+        _ => false,
+    };
+    hl.dirty_linked |= hl_label(
+        ui,
+        text,
+        &reg,
+        &mut hl.reg,
+        HlLabelColors {
+            background: if is_asm_related {
+                COLOR_RED_LIGHT
+            } else {
+                egui::Color32::TRANSPARENT
+            },
+            background_pinned: bg,
+            text: if is_asm_related {
+                egui::Color32::BLACK
+            } else {
+                ui.visuals().text_color()
+            },
+            text_pinned: fg,
+            border_hovered: bg,
+        },
+    );
 }
 
 fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
@@ -833,7 +908,19 @@ fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let bg = COLOR_BLUE_LIGHT;
     // TODO avoid alloc?
     let text = format!("{:?}", reg);
-    hl.dirty_linked |= hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
+    hl.dirty_linked |= hl_label(
+        ui,
+        text,
+        &reg,
+        &mut hl.reg,
+        HlLabelColors {
+            background: egui::Color32::TRANSPARENT,
+            background_pinned: bg,
+            text: ui.visuals().text_color(),
+            text_pinned: fg,
+            border_hovered: bg,
+        },
+    );
 }
 
 fn label_block_def(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
@@ -841,7 +928,19 @@ fn label_block_def(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlig
     let bg = COLOR_GREEN_DARK;
     // TODO avoid alloc?
     let text = format!("{:?}", bid);
-    hl.dirty_linked |= hl_label(ui, text, &bid, &mut hl.block, bg, fg);
+    hl.dirty_linked |= hl_label(
+        ui,
+        text,
+        &bid,
+        &mut hl.block,
+        HlLabelColors {
+            background: egui::Color32::TRANSPARENT,
+            background_pinned: bg,
+            text: ui.visuals().text_color(),
+            text_pinned: fg,
+            border_hovered: bg,
+        },
+    );
 }
 
 fn label_block_ref(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
@@ -849,33 +948,60 @@ fn label_block_ref(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlig
     let bg = COLOR_GREEN_LIGHT;
     // TODO avoid alloc?
     let text = format!("{:?}", bid);
-    hl.dirty_linked |= hl_label(ui, text, &bid, &mut hl.block, bg, fg);
+    hl.dirty_linked |= hl_label(
+        ui,
+        text,
+        &bid,
+        &mut hl.block,
+        HlLabelColors {
+            background: egui::Color32::TRANSPARENT,
+            background_pinned: bg,
+            text: ui.visuals().text_color(),
+            text_pinned: fg,
+            border_hovered: bg,
+        },
+    );
 }
 
+struct HlLabelColors {
+    background: egui::Color32,
+    background_pinned: egui::Color32,
+    text: egui::Color32,
+    text_pinned: egui::Color32,
+    border_hovered: egui::Color32,
+}
 fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
     text: String,
     item: &T,
     hli: &mut HighlightItem<T>,
-    background_color: egui::Color32,
-    color: egui::Color32,
+    colors: HlLabelColors,
 ) -> bool {
-    let mut rt = egui::RichText::new(text);
-    let mut stroke = egui::Stroke {
-        width: 1.0,
-        color: egui::Color32::TRANSPARENT,
-    };
-
     let is_pinned = hli.pinned.as_ref() == Some(item);
     let is_hovered = hli.hovered.as_ref() == Some(item);
-    if is_pinned {
-        rt = rt.background_color(background_color).color(color);
-    } else if is_hovered {
-        stroke.color = background_color;
+
+    let bg = if is_pinned {
+        colors.background_pinned
+    } else {
+        colors.background
+    };
+    let fg = if is_pinned {
+        colors.text_pinned
+    } else {
+        colors.text
+    };
+    let stroke = if is_hovered {
+        colors.border_hovered
+    } else {
+        egui::Color32::TRANSPARENT
     };
 
+    let rt = egui::RichText::new(text).background_color(bg).color(fg);
     let res = egui::Frame::new()
-        .stroke(stroke)
+        .stroke(egui::Stroke {
+            width: 1.0,
+            color: stroke,
+        })
         .show(ui, |ui| ui.label(rt))
         .inner;
 

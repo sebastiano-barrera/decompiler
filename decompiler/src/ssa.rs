@@ -417,10 +417,8 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             }
         }
     }
-    
-    prog.schedule.retain(|_, ndx| {
-        is_read[mil::Reg(ndx)]
-    });
+
+    prog.schedule.retain(|_, ndx| is_read[mil::Reg(ndx)]);
 }
 
 #[cfg(test)]
@@ -891,6 +889,14 @@ impl<T: Clone> RegMap<T> {
     pub fn for_program(prog: &Program, init: T) -> Self {
         let inner = vec![init; prog.reg_count() as usize];
         RegMap(inner)
+    }
+
+    pub fn reg_count(&self) -> u16 {
+        self.0.len().try_into().unwrap()
+    }
+
+    pub fn fill(&mut self, value: T) {
+        self.0.fill(value);
     }
 
     pub fn items(&self) -> impl '_ + ExactSizeIterator<Item = (mil::Reg, &'_ T)> {
