@@ -17,10 +17,11 @@
 
 - [x] fix: call results are not named?
 - [x] selection: pin on click, only preview on hover
-- [ ] selection: blocks
+- [x] selection: blocks
     - [x] full highlight in ssa
     - [x] references in ssa, ast
-- [ ] highlight MIL instruction
+    - [x] full highlight on MIL
+- [x] highlight MIL instruction
 - [ ] ast: precedence + grouping
 - [ ] ast: better syntax for deref
     - [ ] remove padding?
