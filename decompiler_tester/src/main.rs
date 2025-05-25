@@ -544,6 +544,17 @@ impl StageFunc {
         };
 
         // TODO anything better than this cascade of if-let's?
+
+        if let Some(bid) = self.hl.block.pinned {
+            for reg in ssa.block_regs(bid) {
+                if let Some(iv) = ssa.get(reg) {
+                    if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
+                        self.hl.asm_lines[ndx] = AsmLineHighlight::Block;
+                    }
+                }
+            }
+        }
+
         if let Some(reg) = self.hl.reg.pinned {
             if let Some(iv) = ssa.get(reg) {
                 if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
