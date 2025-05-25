@@ -380,13 +380,13 @@ impl Program {
             let insn = &self.insns[ndx];
             let dest = &self.dests[ndx];
             let dest_tyid = &self.dest_tyids[ndx];
-            // will be re-enabled one day
-            // let addr = self.addrs[ndx];
+            let addr = self.addrs[ndx];
             Some(InsnView {
                 insn,
                 dest,
                 tyid: dest_tyid,
                 index,
+                addr,
             })
         } else {
             None
@@ -458,8 +458,7 @@ pub struct InsnView<'a> {
     pub tyid: &'a Cell<Option<ty::TypeID>>,
     pub dest: &'a Cell<Reg>,
     pub index: Index,
-    // no use for this right now
-    // pub addr: u64,
+    pub addr: u64,
 }
 
 // will be mostly useful to keep origin info later

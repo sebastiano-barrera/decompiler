@@ -108,8 +108,13 @@ impl SSAViewCache {
 
 #[derive(Default)]
 struct Highlight {
+    // NOTE changing the set of HighlightItem<_> members requires also changing
+    // Highlight::clear_dirty_bit
     reg: HighlightItem<decompiler::Reg>,
     block: HighlightItem<decompiler::BlockID>,
+    // same length as Assembly::lines
+    asm_lines: Vec<bool>,
+    dirty_linked: bool,
 }
 #[derive(PartialEq, Eq)]
 struct HighlightItem<T> {
@@ -481,6 +486,8 @@ impl StageFunc {
     }
 
     fn show_panels(&mut self, ui: &mut egui::Ui) {
+        self.refresh_hl_links();
+
         if self.problems_is_visible {
             egui::TopBottomPanel::bottom("func_errors")
                 .resizable(true)
@@ -509,20 +516,65 @@ impl StageFunc {
         }
     }
 
+    fn refresh_hl_links(&mut self) {
+        if !self.hl.dirty_linked {
+            return;
+        }
+
+        self.hl.dirty_linked = false;
+
+        self.hl.asm_lines.resize(self.assembly.lines.len(), false);
+        self.hl.asm_lines.fill(false);
+
+        let Some(reg) = self.hl.reg.pinned else {
+            return;
+        };
+
+        let Some(ssa) = self.df.ssa() else {
+            return;
+        };
+        let Some(iv) = ssa.get(reg) else {
+            return;
+        };
+        let addr = iv.addr;
+        let Some(&ndx) = self.assembly.ndx_of_addr.get(&addr) else {
+            return;
+        };
+
+        self.hl.asm_lines[ndx] = true;
+    }
+
     fn show_status(&mut self, ui: &mut egui::Ui) {
         ui.toggle_value(&mut self.problems_is_visible, &self.problems_title);
     }
 
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
+        let hl = &self.hl.asm_lines;
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
+
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show_rows(ui, height, self.assembly.lines.len(), |ui, ndxs| {
+                let is_hl_valid = hl.len() == self.assembly.lines.len();
+
                 for ndx in ndxs {
                     let asm_line = &self.assembly.lines[ndx];
                     ui.horizontal_top(|ui| {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
-                            ui.monospace(format!("0x{:x}", asm_line.addr));
+                            let text = format!("0x{:x}", asm_line.addr);
+
+                            let (bg, fg) = if is_hl_valid && hl[ndx] {
+                                (COLOR_RED_LIGHT, egui::Color32::BLACK)
+                            } else {
+                                (egui::Color32::TRANSPARENT, ui.visuals().text_color())
+                            };
+
+                            ui.label(
+                                egui::RichText::new(text)
+                                    .monospace()
+                                    .background_color(bg)
+                                    .color(fg),
+                            );
                         });
                         ui.add(
                             egui::Label::new(egui::RichText::new(&asm_line.text).monospace())
@@ -744,7 +796,7 @@ fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let bg = COLOR_BLUE_DARK;
     // TODO avoid alloc?
     let text = format!("{:?}", reg);
-    hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
+    hl.dirty_linked |= hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
 }
 
 fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
@@ -752,7 +804,7 @@ fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
     let bg = COLOR_BLUE_LIGHT;
     // TODO avoid alloc?
     let text = format!("{:?}", reg);
-    hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
+    hl.dirty_linked |= hl_label(ui, text, &reg, &mut hl.reg, bg, fg);
 }
 
 fn label_block_def(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
@@ -760,7 +812,7 @@ fn label_block_def(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlig
     let bg = COLOR_GREEN_DARK;
     // TODO avoid alloc?
     let text = format!("{:?}", bid);
-    hl_label(ui, text, &bid, &mut hl.block, bg, fg);
+    hl.dirty_linked |= hl_label(ui, text, &bid, &mut hl.block, bg, fg);
 }
 
 fn label_block_ref(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
@@ -768,7 +820,7 @@ fn label_block_ref(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlig
     let bg = COLOR_GREEN_LIGHT;
     // TODO avoid alloc?
     let text = format!("{:?}", bid);
-    hl_label(ui, text, &bid, &mut hl.block, bg, fg);
+    hl.dirty_linked |= hl_label(ui, text, &bid, &mut hl.block, bg, fg);
 }
 
 fn hl_label<T: PartialEq + Eq + Clone>(
@@ -778,7 +830,7 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     hli: &mut HighlightItem<T>,
     background_color: egui::Color32,
     color: egui::Color32,
-) {
+) -> bool {
     let mut rt = egui::RichText::new(text);
     let mut stroke = egui::Stroke {
         width: 1.0,
@@ -801,12 +853,16 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     if res.clicked() {
         // toggle selection
         hli.pinned = if is_pinned { None } else { Some(item.clone()) };
+        return true;
     }
     if res.hovered() {
         // toggle selection
         hli.hovered = Some(item.clone());
         ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
+        return true;
     }
+
+    return false;
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
