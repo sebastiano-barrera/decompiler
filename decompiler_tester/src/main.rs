@@ -113,7 +113,7 @@ struct Highlight {
     reg: HighlightItem<decompiler::Reg>,
     block: HighlightItem<decompiler::BlockID>,
     // same length as Assembly::lines
-    asm_lines: Vec<bool>,
+    asm_lines: Vec<AsmLineHighlight>,
     dirty_linked: bool,
 }
 #[derive(PartialEq, Eq)]
@@ -128,6 +128,17 @@ impl<T> Default for HighlightItem<T> {
             hovered: None,
         }
     }
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum AsmLineHighlight {
+    /// The asm line is not highlighted.
+    None,
+    /// The asm instruction in this line corresponds directly with the highlighted SSA
+    /// instruction. (Multiple SSA instructions may correspond to the same asm line.)
+    Insn,
+    /// The asm instruction in this line is in the same control-flow graph block as the
+    /// selected block.
+    Block,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -523,8 +534,10 @@ impl StageFunc {
 
         self.hl.dirty_linked = false;
 
-        self.hl.asm_lines.resize(self.assembly.lines.len(), false);
-        self.hl.asm_lines.fill(false);
+        self.hl
+            .asm_lines
+            .resize(self.assembly.lines.len(), AsmLineHighlight::None);
+        self.hl.asm_lines.fill(AsmLineHighlight::None);
 
         let Some(ssa) = self.df.ssa() else {
             return;
@@ -534,7 +547,7 @@ impl StageFunc {
         if let Some(reg) = self.hl.reg.pinned {
             if let Some(iv) = ssa.get(reg) {
                 if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
-                    self.hl.asm_lines[ndx] = true;
+                    self.hl.asm_lines[ndx] = AsmLineHighlight::Insn;
                 }
             }
         }
@@ -559,10 +572,19 @@ impl StageFunc {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             let text = format!("0x{:x}", asm_line.addr);
 
-                            let (bg, fg) = if is_hl_valid && hl[ndx] {
-                                (COLOR_RED_LIGHT, egui::Color32::BLACK)
+                            let line_hl = if is_hl_valid {
+                                hl[ndx]
                             } else {
-                                (egui::Color32::TRANSPARENT, ui.visuals().text_color())
+                                AsmLineHighlight::None
+                            };
+                            let (bg, fg) = match line_hl {
+                                AsmLineHighlight::None => {
+                                    (egui::Color32::TRANSPARENT, ui.visuals().text_color())
+                                }
+                                AsmLineHighlight::Insn => (COLOR_RED_LIGHT, egui::Color32::BLACK),
+                                AsmLineHighlight::Block => {
+                                    (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
+                                }
                             };
 
                             ui.label(
