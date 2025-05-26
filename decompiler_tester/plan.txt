@@ -27,7 +27,8 @@
 - [x] ast: ancestral always inline
 - [ ] ast: allow any node to be linked to highlighting
 - [ ] ast: link other bits of syntax to ssa (e.g., bin ops)
-- [ ] xform: eliminate upsilons referencing dead phis
+- [?] xform: eliminate upsilons referencing dead phis
+    - actually not sure that this is needed at all
 - [ ] ssa: fix: show value not data type name! (misunderstood how facet's to_string works)
 - [ ] show type info
     - [ ] function prototype
