@@ -22,6 +22,10 @@
     - [x] references in ssa, ast
     - [x] full highlight on MIL
 - [x] highlight MIL instruction
+
+- [ ] fix: make the `facet` dependency (&co.) be the correct one for the Rust
+compiler version
+
 - [x] ast: precedence + grouping
 - [x] ast: better syntax for deref
 - [x] ast: ancestral always inline
