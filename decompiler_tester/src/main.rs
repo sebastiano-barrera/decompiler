@@ -1615,8 +1615,8 @@ mod ast_view {
                     value,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(addr, prec);
-                        s.emit(Node::Kw(".@"));
+                        s.transform_value(addr, 255);
+                        s.emit(Node::Kw(".*"));
                         s.emit(Node::Kw(":="));
                         s.transform_value(value, prec);
                     });
@@ -1628,7 +1628,7 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, prec);
-                        s.emit(Node::Kw(".@"));
+                        s.emit(Node::Kw(".*"));
                     });
                 }
 
