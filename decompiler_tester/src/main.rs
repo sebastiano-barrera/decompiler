@@ -1435,7 +1435,7 @@ mod ast_view {
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
-        rdr_count: decompiler::RegMap<usize>,
+        is_named: decompiler::RegMap<bool>,
 
         // just to check that the algo is correct:
         block_status: decompiler::BlockMap<BlockStatus>,
@@ -1451,12 +1451,16 @@ mod ast_view {
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
             let rdr_count = decompiler::count_readers(ssa);
+            let is_named = rdr_count.map(|reg, rdr_count| {
+                let insn = ssa[reg].get();
+                *rdr_count > 1 && !matches!(insn, Insn::Ancestral(_))
+            });
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
                 nodes: Vec::new(),
                 ssa,
-                rdr_count,
+                is_named,
                 block_status,
                 open_stack: Vec::new(),
                 let_was_printed,
@@ -1502,7 +1506,7 @@ mod ast_view {
             // borrow &self.scheduler and &mut self.nodes)
             let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
             for reg in block_sched {
-                if self.rdr_count[reg] > 1 {
+                if self.is_named[reg] {
                     self.emit_let_def(reg);
                 } else if self.ssa[reg].get().has_side_effects()
                     && self.ssa.reg_type(reg) != decompiler::RegType::Control
@@ -1559,7 +1563,7 @@ mod ast_view {
             parent_prec: decompiler::PrecedenceLevel,
         ) {
             // TODO! specific representation of operands
-            if self.rdr_count[reg] > 1 {
+            if self.is_named[reg]{
                 if self.let_was_printed[reg] {
                     self.emit(Node::Ref(reg));
                 } else {
@@ -1605,7 +1609,6 @@ mod ast_view {
                 }
 
                 Insn::Ancestral(aname) => {
-                    self.emit(Node::Kw("ancestral"));
                     self.emit(Node::Kw(aname.name()));
                 }
 

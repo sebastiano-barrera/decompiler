@@ -24,7 +24,8 @@
 - [x] highlight MIL instruction
 - [x] ast: precedence + grouping
 - [x] ast: better syntax for deref
-- [ ] ast: ancestral always inline
+- [x] ast: ancestral always inline
+- [ ] ast: allow any node to be linked to highlighting
 - [ ] ast: link other bits of syntax to ssa (e.g., bin ops)
 - [ ] xform: eliminate upsilons referencing dead phis
 - [ ] ssa: fix: show value not data type name! (misunderstood how facet's to_string works)
