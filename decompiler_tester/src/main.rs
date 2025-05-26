@@ -108,8 +108,6 @@ impl SSAViewCache {
 
 #[derive(Default)]
 struct Highlight {
-    // NOTE changing the set of HighlightItem<_> members requires also changing
-    // Highlight::clear_dirty_bit
     reg: HighlightItem<decompiler::Reg>,
     block: HighlightItem<decompiler::BlockID>,
     asm_line: HighlightItem<usize>,
@@ -1509,7 +1507,7 @@ mod ast_view {
                 } else if self.ssa[reg].get().has_side_effects()
                     && self.ssa.reg_type(reg) != decompiler::RegType::Control
                 {
-                    self.transform_def(reg);
+                    self.transform_def(reg, 0);
                 }
             }
 
@@ -1526,7 +1524,7 @@ mod ast_view {
                     if let Some(cond) = cond {
                         self.seq(SeqKind::Flow, |s| {
                             s.emit(Node::Kw("if"));
-                            s.transform_value(cond);
+                            s.transform_value(cond, 0);
                         });
                         self.seq(SeqKind::Vertical, |s| {
                             s.transform_dest(bid, &pos);
@@ -1555,7 +1553,11 @@ mod ast_view {
             }
         }
 
-        fn transform_value(&mut self, reg: decompiler::Reg) {
+        fn transform_value(
+            &mut self,
+            reg: decompiler::Reg,
+            parent_prec: decompiler::PrecedenceLevel,
+        ) {
             // TODO! specific representation of operands
             if self.rdr_count[reg] > 1 {
                 if self.let_was_printed[reg] {
@@ -1567,12 +1569,22 @@ mod ast_view {
                     });
                 }
             } else {
-                self.transform_def(reg);
+                self.transform_def(reg, parent_prec);
             }
         }
 
-        fn transform_def(&mut self, reg: decompiler::Reg) {
+        fn transform_def(
+            &mut self,
+            reg: decompiler::Reg,
+            parent_prec: decompiler::PrecedenceLevel,
+        ) {
             let mut insn = self.ssa[reg].get();
+            let prec = decompiler::precedence(&insn);
+
+            if prec < parent_prec {
+                self.emit(Node::Kw("("));
+            }
+
             match insn {
                 Insn::Void => {
                     self.emit(Node::Kw("void"));
@@ -1603,10 +1615,10 @@ mod ast_view {
                     value,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(addr);
+                        s.transform_value(addr, prec);
                         s.emit(Node::Kw(".@"));
                         s.emit(Node::Kw(":="));
-                        s.transform_value(value);
+                        s.transform_value(value, prec);
                     });
                 }
                 Insn::LoadMem {
@@ -1615,14 +1627,14 @@ mod ast_view {
                     size: _,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(addr);
+                        s.transform_value(addr, prec);
                         s.emit(Node::Kw(".@"));
                     });
                 }
 
                 Insn::Part { src, offset, size } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(src);
+                        s.transform_value(src, prec);
                         s.emit(Node::Kw("["));
                         s.emit(Node::LitNum(offset as i64));
                         s.emit(Node::Kw(".."));
@@ -1632,9 +1644,9 @@ mod ast_view {
                 }
                 Insn::Concat { lo, hi } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(hi);
+                        s.transform_value(hi, prec);
                         s.emit(Node::Kw("++"));
-                        s.transform_value(lo);
+                        s.transform_value(lo, prec);
                     });
                 }
 
@@ -1644,7 +1656,7 @@ mod ast_view {
                     size: _,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(struct_value);
+                        s.transform_value(struct_value, prec);
                         s.emit(Node::Kw("."));
                         s.emit(Node::Kw(name));
                     });
@@ -1656,7 +1668,7 @@ mod ast_view {
                     sign: _,
                 } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(reg);
+                        s.transform_value(reg, prec);
                         s.emit(Node::Kw("as"));
                         s.emit(Node::Generic(format!("i{}", target_size * 8)));
                     });
@@ -1665,14 +1677,14 @@ mod ast_view {
                 Insn::Arith(op, a, b) => {
                     self.emit_binop(
                         op.symbol(),
-                        |s| s.transform_value(a),
-                        |s| s.transform_value(b),
+                        |s| s.transform_value(a, prec),
+                        |s| s.transform_value(b, prec),
                     );
                 }
                 Insn::ArithK(op, a, bk) => {
                     self.emit_binop(
                         op.symbol(),
-                        |s| s.transform_value(a),
+                        |s| s.transform_value(a, prec),
                         |s| {
                             s.emit(Node::LitNum(bk));
                         },
@@ -1681,22 +1693,22 @@ mod ast_view {
                 Insn::Cmp(op, a, b) => {
                     self.emit_binop(
                         op.symbol(),
-                        |s| s.transform_value(a),
-                        |s| s.transform_value(b),
+                        |s| s.transform_value(a, prec),
+                        |s| s.transform_value(b, prec),
                     );
                 }
                 Insn::Bool(op, a, b) => {
                     self.emit_binop(
                         op.symbol(),
-                        |s| s.transform_value(a),
-                        |s| s.transform_value(b),
+                        |s| s.transform_value(a, prec),
+                        |s| s.transform_value(b, prec),
                     );
                 }
 
                 Insn::Not(arg) => {
                     self.seq(SeqKind::Flow, |s| {
                         s.emit(Node::Kw("!"));
-                        s.transform_value(arg);
+                        s.transform_value(arg, prec);
                     });
                 }
 
@@ -1713,14 +1725,14 @@ mod ast_view {
 
                 Insn::Call { callee, first_arg } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(callee);
+                        s.transform_value(callee, prec);
                         s.emit(Node::Kw("("));
 
                         for (ndx, arg) in s.ssa.get_call_args(first_arg).enumerate() {
                             if ndx > 0 {
                                 s.emit(Node::Kw(","));
                             }
-                            s.transform_value(arg);
+                            s.transform_value(arg, prec);
                         }
 
                         s.emit(Node::Kw(")"));
@@ -1738,7 +1750,7 @@ mod ast_view {
                     self.seq(SeqKind::Flow, |s| {
                         s.emit(Node::Ref(phi_ref));
                         s.emit(Node::Kw(":="));
-                        s.transform_value(value);
+                        s.transform_value(value, prec);
                     });
                 }
 
@@ -1753,6 +1765,10 @@ mod ast_view {
                         insn.input_regs_iter().map(|x| *x),
                     );
                 }
+            }
+
+            if prec < parent_prec {
+                self.emit(Node::Kw(")"));
             }
         }
 
@@ -1805,7 +1821,7 @@ mod ast_view {
                     if ndx > 0 {
                         s.emit(Node::Kw(","));
                     }
-                    s.transform_value(input);
+                    s.transform_value(input, 0);
                 }
                 s.emit(Node::Kw(")"));
             });
@@ -1852,7 +1868,7 @@ mod ast_view {
                             s.emit(Node::Kw("goto"));
                             s.seq(SeqKind::Flow, |s| {
                                 s.emit(Node::Kw("*"));
-                                s.transform_value(tgt);
+                                s.transform_value(tgt, 0);
                             });
                         });
                     } else {
@@ -1867,7 +1883,7 @@ mod ast_view {
                     if let Some(ret) = ret {
                         self.seq(SeqKind::Flow, |s| {
                             s.emit(Node::Kw("return"));
-                            s.transform_value(ret);
+                            s.transform_value(ret, 0);
                         });
                     } else {
                         self.emit(Node::Error(format!("bug: no return value!")));
@@ -1889,7 +1905,7 @@ mod ast_view {
                 // TODO make the name editable
                 s.emit(Node::RegDef(reg));
                 s.emit(Node::Kw("="));
-                s.transform_def(reg);
+                s.transform_def(reg, 0);
             });
 
             self.let_was_printed[reg] = true;

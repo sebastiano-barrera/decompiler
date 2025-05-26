@@ -529,12 +529,15 @@ fn arith_op_str(arith_op: ArithOp) -> &'static str {
     }
 }
 
-fn precedence(insn: &Insn) -> u8 {
+pub type PrecedenceLevel = u8;
+
+pub fn precedence(insn: &Insn) -> PrecedenceLevel {
     // higher value == higher precedence == evaluated first unless parenthesized
     match insn {
-        Insn::Get(_) => panic!("Get must be resolved prior to calling precedence"),
-
-        Insn::Void
+        // actually, Insn::Get is supposed to already be "resolved" to its argument 
+        // prior to calling this function, but better to return something "safe"
+        Insn::Get(_)
+        | Insn::Void
         | Insn::True
         | Insn::False
         | Insn::Const { .. }

@@ -22,7 +22,7 @@
     - [x] references in ssa, ast
     - [x] full highlight on MIL
 - [x] highlight MIL instruction
-- [ ] ast: precedence + grouping
+- [x] ast: precedence + grouping
 - [ ] ast: better syntax for deref
     - [ ] remove padding?
 - [ ] ast: ancestral always inline
