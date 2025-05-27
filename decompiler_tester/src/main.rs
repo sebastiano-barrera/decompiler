@@ -858,17 +858,17 @@ const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
 const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
 const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
 
-fn label_reg_def(
+fn label_reg_def<R>(
     ui: &mut egui::Ui,
     reg: decompiler::Reg,
     hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
     let is_asm_related = match &hl.related_ssa {
         Some(m) => m[reg],
         _ => false,
     };
-    hl.dirty_linked |= hl_label(
+    let res = hl_label(
         ui,
         &reg,
         &mut hl.reg,
@@ -889,40 +889,40 @@ fn label_reg_def(
         },
         add_contents,
     );
+    hl.dirty_linked |= res.link_state_changed;
+    res.inner
 }
 
-fn label_reg_ref(
+fn label_reg_ref<R>(
     ui: &mut egui::Ui,
     reg: decompiler::Reg,
     hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    let fg = egui::Color32::BLACK;
-    let bg = COLOR_BLUE_LIGHT;
-    // TODO avoid alloc?
-    let text = format!("{:?}", reg);
-    hl.dirty_linked |= hl_label(
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
+    let res = hl_label(
         ui,
         &reg,
         &mut hl.reg,
         &HlLabelColors {
             background: egui::Color32::TRANSPARENT,
-            background_pinned: bg,
+            background_pinned: COLOR_BLUE_LIGHT,
             text: None,
-            text_pinned: fg,
-            border_hovered: bg,
+            text_pinned: egui::Color32::BLACK,
+            border_hovered: COLOR_BLUE_LIGHT,
         },
-        |ui| ui.label(text),
+        add_contents,
     );
+    hl.dirty_linked |= res.link_state_changed;
+    res.inner
 }
 
-fn label_block_def(
+fn label_block_def<R>(
     ui: &mut egui::Ui,
     bid: decompiler::BlockID,
     hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    hl.dirty_linked |= hl_label(
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
+    let res = hl_label(
         ui,
         &bid,
         &mut hl.block,
@@ -935,15 +935,17 @@ fn label_block_def(
         },
         add_contents,
     );
+    hl.dirty_linked |= res.link_state_changed;
+    res.inner
 }
 
-fn label_block_ref(
+fn label_block_ref<R>(
     ui: &mut egui::Ui,
     bid: decompiler::BlockID,
     hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    hl.dirty_linked |= hl_label(
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
+    let res = hl_label(
         ui,
         &bid,
         &mut hl.block,
@@ -956,6 +958,8 @@ fn label_block_ref(
         },
         add_contents,
     );
+    hl.dirty_linked |= res.link_state_changed;
+    res.inner
 }
 
 struct HlLabelColors {
@@ -966,13 +970,25 @@ struct HlLabelColors {
     text_pinned: egui::Color32,
     border_hovered: egui::Color32,
 }
-fn hl_label<T: PartialEq + Eq + Clone>(
+
+struct HlResponse<R> {
+    link_state_changed: bool,
+    inner: R,
+}
+impl<R> std::ops::Deref for HlResponse<R> {
+    type Target = R;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+fn hl_label<T: PartialEq + Eq + Clone, R>(
     ui: &mut egui::Ui,
     item: &T,
     hli: &mut HighlightItem<T>,
     colors: &HlLabelColors,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) -> bool {
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> HlResponse<R> {
     let is_pinned = hli.pinned.as_ref() == Some(item);
     let is_hovered = hli.hovered.as_ref() == Some(item);
 
@@ -1001,22 +1017,25 @@ fn hl_label<T: PartialEq + Eq + Clone>(
         .show(ui, |ui| {
             ui.visuals_mut().override_text_color = fg;
             add_contents(ui)
-        })
-        .inner;
+        });
 
-    if res.clicked() {
+    let mut link_state_changed = false;
+    if res.response.clicked() {
         // toggle selection
         hli.pinned = if is_pinned { None } else { Some(item.clone()) };
-        return true;
+        link_state_changed = true;
     }
-    if res.hovered() {
+    if res.response.hovered() {
         // toggle selection
         hli.hovered = Some(item.clone());
         ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
-        return true;
+        link_state_changed = true;
     }
 
-    return false;
+    HlResponse {
+        link_state_changed,
+        inner: res.inner,
+    }
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
@@ -1290,8 +1309,10 @@ mod ast_view {
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Link {
-        Reg(decompiler::Reg),
-        Block(decompiler::BlockID),
+        RegRef(decompiler::Reg),
+        RegDef(decompiler::Reg),
+        BlockRef(decompiler::BlockID),
+        BlockDef(decompiler::BlockID),
     }
 
     #[derive(Clone, Copy)]
@@ -1441,10 +1462,16 @@ mod ast_view {
                 Node::BlockRef(bid) => {
                     label_block_ref(ui, *bid, hl, |ui| ui.label(format!("B{}", bid.as_number())));
                 }
-                Node::Link(link) => match link {
-                    Link::Reg(reg) => {}
-                    Link::Block(block_id) => todo!(),
-                },
+                Node::Link(link) => {
+                    let add_contents =
+                        |ui: &mut egui::Ui| self.show_node(ui, ndx + 1, &mut Highlight::default());
+                    let res = match link {
+                        &Link::RegRef(reg) => label_reg_ref(ui, reg, hl, add_contents),
+                        &Link::RegDef(reg) => label_reg_def(ui, reg, hl, add_contents),
+                        &Link::BlockRef(bid) => label_block_ref(ui, bid, hl, add_contents),
+                        &Link::BlockDef(bid) => label_block_def(ui, bid, hl, add_contents),
+                    };
+                }
             }
 
             ndx + 1
