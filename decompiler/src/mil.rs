@@ -609,7 +609,7 @@ impl ProgramBuilder {
 
 pub struct ExpandedInsn {
     pub variant_name: &'static str,
-    pub fields: arrayvec::ArrayVec<(&'static str, ExpandedValue), 5>,
+    pub fields: arrayvec::ArrayVec<(&'static str, ExpandedValue), 3>,
 }
 pub enum ExpandedValue {
     Reg(Reg),
