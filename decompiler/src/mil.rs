@@ -3,7 +3,7 @@ use facet_reflect::HasFields;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{cell::Cell, collections::HashMap, ops::Range, sync::Arc};
+use std::{any::Any, cell::Cell, collections::HashMap, ops::Range, sync::Arc};
 
 use crate::ty;
 
@@ -639,7 +639,7 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
             {
                 ExpandedValue::Reg(reg.clone())
             } else {
-                ExpandedValue::Generic(peek.to_string())
+                ExpandedValue::Generic(format!("{:?}", peek))
             };
 
             (field.name, ev)
