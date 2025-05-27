@@ -712,7 +712,7 @@ fn show_ssa(
     fn show_dest(ui: &mut egui::Ui, dest: &Dest, hl: &mut Highlight) {
         match dest {
             Dest::Block(bid) => {
-                label_block_ref(ui, *bid, hl);
+                label_block_ref(ui, *bid, hl, |ui| ui.label(format!("{:?}", *bid)));
             }
             Dest::Ext(addr) => {
                 ui.label(format!("ext @ 0x{:x}", addr));
@@ -767,11 +767,15 @@ fn show_ssa(
                     ui.vertical(|ui| {
                         ui.separator();
 
-                        label_block_def(ui, bid, hl);
+                        label_block_def(ui, bid, hl, |ui| {
+                            ui.label(format!(" -- block B{}", bid.as_number()))
+                        });
                         ui.horizontal(|ui| {
                             ui.label("from:");
                             for &pred in ssa.cfg().block_preds(bid) {
-                                label_block_ref(ui, pred, hl);
+                                label_block_ref(ui, pred, hl, |ui| {
+                                    ui.label(format!("B{}", pred.as_number()))
+                                });
                             }
                         });
 
@@ -783,7 +787,7 @@ fn show_ssa(
 
                             let insnx = decompiler::to_expanded(&insn);
                             ui.horizontal(|ui| {
-                                label_reg_def(ui, reg, hl);
+                                label_reg_def(ui, reg, hl, |ui| ui.label(format!("{:?}", reg)));
 
                                 // TODO show type information
                                 // TODO use label_reg for parts of the instruction as well
@@ -796,7 +800,9 @@ fn show_ssa(
                                     ui.label(":");
                                     match value {
                                         decompiler::ExpandedValue::Reg(reg) => {
-                                            label_reg_ref(ui, *reg, hl);
+                                            label_reg_ref(ui, *reg, hl, |ui| {
+                                                ui.label(format!("{:?}", *reg))
+                                            });
                                         }
                                         decompiler::ExpandedValue::Generic(debug_str) => {
                                             ui.label(debug_str);
@@ -852,111 +858,120 @@ const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
 const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
 const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
 
-fn label_reg_def(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
-    let fg = egui::Color32::WHITE;
-    let bg = COLOR_BLUE_DARK;
-    // TODO avoid alloc?
-    let text = format!("{:?}", reg);
+fn label_reg_def(
+    ui: &mut egui::Ui,
+    reg: decompiler::Reg,
+    hl: &mut Highlight,
+    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
+) {
     let is_asm_related = match &hl.related_ssa {
         Some(m) => m[reg],
         _ => false,
     };
     hl.dirty_linked |= hl_label(
         ui,
-        text,
         &reg,
         &mut hl.reg,
-        HlLabelColors {
+        &HlLabelColors {
             background: if is_asm_related {
                 COLOR_RED_LIGHT
             } else {
                 egui::Color32::TRANSPARENT
             },
-            background_pinned: bg,
+            background_pinned: COLOR_BLUE_DARK,
             text: if is_asm_related {
-                egui::Color32::BLACK
+                Some(egui::Color32::BLACK)
             } else {
-                ui.visuals().text_color()
+                None
             },
-            text_pinned: fg,
-            border_hovered: bg,
+            text_pinned: egui::Color32::WHITE,
+            border_hovered: COLOR_BLUE_DARK,
         },
+        add_contents,
     );
 }
 
-fn label_reg_ref(ui: &mut egui::Ui, reg: decompiler::Reg, hl: &mut Highlight) {
+fn label_reg_ref(
+    ui: &mut egui::Ui,
+    reg: decompiler::Reg,
+    hl: &mut Highlight,
+    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
+) {
     let fg = egui::Color32::BLACK;
     let bg = COLOR_BLUE_LIGHT;
     // TODO avoid alloc?
     let text = format!("{:?}", reg);
     hl.dirty_linked |= hl_label(
         ui,
-        text,
         &reg,
         &mut hl.reg,
-        HlLabelColors {
+        &HlLabelColors {
             background: egui::Color32::TRANSPARENT,
             background_pinned: bg,
-            text: ui.visuals().text_color(),
+            text: None,
             text_pinned: fg,
             border_hovered: bg,
         },
+        |ui| ui.label(text),
     );
 }
 
-fn label_block_def(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
-    let fg = egui::Color32::WHITE;
-    let bg = COLOR_GREEN_DARK;
-    // TODO avoid alloc?
-    let text = format!("{:?}", bid);
+fn label_block_def(
+    ui: &mut egui::Ui,
+    bid: decompiler::BlockID,
+    hl: &mut Highlight,
+    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
+) {
     hl.dirty_linked |= hl_label(
         ui,
-        text,
         &bid,
         &mut hl.block,
-        HlLabelColors {
+        &HlLabelColors {
             background: egui::Color32::TRANSPARENT,
-            background_pinned: bg,
-            text: ui.visuals().text_color(),
-            text_pinned: fg,
-            border_hovered: bg,
+            background_pinned: COLOR_GREEN_DARK,
+            text: None,
+            text_pinned: egui::Color32::WHITE,
+            border_hovered: COLOR_GREEN_DARK,
         },
+        add_contents,
     );
 }
 
-fn label_block_ref(ui: &mut egui::Ui, bid: decompiler::BlockID, hl: &mut Highlight) {
-    let fg = egui::Color32::BLACK;
-    let bg = COLOR_GREEN_LIGHT;
-    // TODO avoid alloc?
-    let text = format!("{:?}", bid);
+fn label_block_ref(
+    ui: &mut egui::Ui,
+    bid: decompiler::BlockID,
+    hl: &mut Highlight,
+    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
+) {
     hl.dirty_linked |= hl_label(
         ui,
-        text,
         &bid,
         &mut hl.block,
-        HlLabelColors {
+        &HlLabelColors {
             background: egui::Color32::TRANSPARENT,
-            background_pinned: bg,
-            text: ui.visuals().text_color(),
-            text_pinned: fg,
-            border_hovered: bg,
+            background_pinned: COLOR_GREEN_LIGHT,
+            text: None,
+            text_pinned: egui::Color32::BLACK,
+            border_hovered: COLOR_GREEN_LIGHT,
         },
+        add_contents,
     );
 }
 
 struct HlLabelColors {
     background: egui::Color32,
     background_pinned: egui::Color32,
-    text: egui::Color32,
+    /// Text color. Set to `None` to keep the default text color.
+    text: Option<egui::Color32>,
     text_pinned: egui::Color32,
     border_hovered: egui::Color32,
 }
 fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
-    text: String,
     item: &T,
     hli: &mut HighlightItem<T>,
-    colors: HlLabelColors,
+    colors: &HlLabelColors,
+    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
 ) -> bool {
     let is_pinned = hli.pinned.as_ref() == Some(item);
     let is_hovered = hli.hovered.as_ref() == Some(item);
@@ -967,7 +982,7 @@ fn hl_label<T: PartialEq + Eq + Clone>(
         colors.background
     };
     let fg = if is_pinned {
-        colors.text_pinned
+        Some(colors.text_pinned)
     } else {
         colors.text
     };
@@ -977,13 +992,16 @@ fn hl_label<T: PartialEq + Eq + Clone>(
         egui::Color32::TRANSPARENT
     };
 
-    let rt = egui::RichText::new(text).background_color(bg).color(fg);
     let res = egui::Frame::new()
         .stroke(egui::Stroke {
             width: 1.0,
             color: stroke,
         })
-        .show(ui, |ui| ui.label(rt))
+        .fill(bg)
+        .show(ui, |ui| {
+            ui.visuals_mut().override_text_color = fg;
+            add_contents(ui)
+        })
         .inner;
 
     if res.clicked() {
@@ -1247,7 +1265,13 @@ mod ast_view {
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Node {
-        Open { kind: SeqKind, count: usize },
+        /// Signifies that the next node (can be interpreted as a container like
+        /// Open, but with size always 1) is a link
+        Link(Link),
+        Open {
+            kind: SeqKind,
+            count: usize,
+        },
         Error(String),
         Ref(decompiler::Reg),
         LitNum(i64),
@@ -1262,6 +1286,12 @@ mod ast_view {
     enum SeqKind {
         Vertical,
         Flow,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    enum Link {
+        Reg(decompiler::Reg),
+        Block(decompiler::BlockID),
     }
 
     #[derive(Clone, Copy)]
@@ -1386,10 +1416,10 @@ mod ast_view {
 
                 // TODO define specific styles
                 Node::Ref(reg) => {
-                    label_reg_ref(ui, *reg, hl);
+                    label_reg_ref(ui, *reg, hl, |ui| ui.label(format!("{:?}", *reg)));
                 }
                 Node::RegDef(reg) => {
-                    label_reg_def(ui, *reg, hl);
+                    label_reg_def(ui, *reg, hl, |ui| ui.label(format!("{:?}", *reg)));
                 }
                 Node::LitNum(num) => {
                     // TODO avoid alloc
@@ -1404,11 +1434,17 @@ mod ast_view {
                 Node::BlockHeader(bid) => {
                     // TODO avoid alloc
                     ui.add_space(12.0);
-                    label_block_def(ui, *bid, hl);
+                    label_block_def(ui, *bid, hl, |ui| {
+                        ui.label(format!("-- block B{}", bid.as_number()))
+                    });
                 }
                 Node::BlockRef(bid) => {
-                    label_block_ref(ui, *bid, hl);
+                    label_block_ref(ui, *bid, hl, |ui| ui.label(format!("B{}", bid.as_number())));
                 }
+                Node::Link(link) => match link {
+                    Link::Reg(reg) => {}
+                    Link::Block(block_id) => todo!(),
+                },
             }
 
             ndx + 1
