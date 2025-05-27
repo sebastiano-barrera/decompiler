@@ -83,23 +83,17 @@ struct StageFunc {
 }
 
 struct SSAViewCache {
-    expanded: Vec<decompiler::ExpandedInsn>,
     height_of_block: decompiler::BlockMap<Option<f32>>,
 }
 impl SSAViewCache {
     fn new(ssa: &decompiler::SSAProgram) -> Self {
-        let expanded = ssa_to_expanded(ssa);
         let height_of_block = decompiler::BlockMap::new(ssa.cfg(), None);
-        SSAViewCache {
-            expanded,
-            height_of_block,
-        }
+        SSAViewCache { height_of_block }
     }
     fn new_from_option(ssa: Option<&decompiler::SSAProgram>) -> Self {
         match ssa {
             Some(ssa) => Self::new(ssa),
             None => SSAViewCache {
-                expanded: Vec::new(),
                 height_of_block: decompiler::BlockMap::empty(),
             },
         }
@@ -708,15 +702,6 @@ impl StageFunc {
     }
 }
 
-fn ssa_to_expanded(ssa: &decompiler::SSAProgram) -> Vec<decompiler::ExpandedInsn> {
-    (0..ssa.reg_count())
-        .map(|ndx| {
-            let insn = ssa[decompiler::Reg(ndx)].get();
-            decompiler::to_expanded(&insn)
-        })
-        .collect()
-}
-
 fn show_ssa(
     ui: &mut egui::Ui,
     ssa: &decompiler::SSAProgram,
@@ -791,10 +776,12 @@ fn show_ssa(
                         });
 
                         for reg in ssa.block_regs(bid) {
-                            if ssa[reg].get() == decompiler::Insn::Void {
+                            let insn = ssa[reg].get();
+                            if insn == decompiler::Insn::Void {
                                 continue;
                             }
 
+                            let insnx = decompiler::to_expanded(&insn);
                             ui.horizontal(|ui| {
                                 label_reg_def(ui, reg, hl);
 
@@ -802,10 +789,6 @@ fn show_ssa(
                                 // TODO use label_reg for parts of the instruction as well
                                 ui.label(" <- ");
 
-                                // NOTE: ssa_vcache is produced by mapping
-                                // ssa.insns_rpo(), so its order matches this for loop
-                                let ndx = reg.reg_index() as usize;
-                                let insnx = &vcache.expanded[ndx];
                                 ui.label(insnx.variant_name);
                                 ui.label("(");
                                 for (name, value) in insnx.fields.iter() {
@@ -1563,7 +1546,7 @@ mod ast_view {
             parent_prec: decompiler::PrecedenceLevel,
         ) {
             // TODO! specific representation of operands
-            if self.is_named[reg]{
+            if self.is_named[reg] {
                 if self.let_was_printed[reg] {
                     self.emit(Node::Ref(reg));
                 } else {
