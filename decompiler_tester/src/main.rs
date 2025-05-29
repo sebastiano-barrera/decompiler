@@ -110,21 +110,20 @@ mod hl {
 
         // derived from the above:
         // same length as Assembly::lines
-        related_asm: Vec<AsmLineHighlight>,
+        related_asm: Vec<AsmLineRelation>,
         related_ssa: Option<decompiler::RegMap<bool>>,
     }
 
     impl Highlight {
         pub(super) fn set_asm_line_count(&mut self, count: usize) {
-            self.related_asm.resize(count, AsmLineHighlight::None);
-            self.related_asm.fill(AsmLineHighlight::None);
+            self.related_asm.resize(count, AsmLineRelation::default());
         }
 
-        pub(super) fn asm_line(&self, ndx: usize) -> Option<&AsmLineHighlight> {
+        pub(super) fn asm_line_rel(&self, ndx: usize) -> Option<&AsmLineRelation> {
             self.related_asm.get(ndx)
         }
 
-        pub(super) fn is_asm_ssa_related(&self, reg: decompiler::Reg) -> bool {
+        pub(super) fn is_ssa_asm_related(&self, reg: decompiler::Reg) -> bool {
             self.related_ssa.as_ref().map(|m| m[reg]).unwrap_or(false)
         }
 
@@ -137,7 +136,7 @@ mod hl {
                 return;
             }
 
-            self.related_asm.fill(AsmLineHighlight::None);
+            self.related_asm.fill(AsmLineRelation::default());
 
             // TODO anything better than this cascade of if-let's?
 
@@ -145,7 +144,7 @@ mod hl {
                 for reg in ssa.block_regs(bid) {
                     if let Some(iv) = ssa.get(reg) {
                         if let Some(&ndx) = asm.ndx_of_addr.get(&iv.addr) {
-                            self.related_asm[ndx] = AsmLineHighlight::Block;
+                            self.related_asm[ndx].block = true;
                         }
                     }
                 }
@@ -153,7 +152,7 @@ mod hl {
             if let Some(reg) = self.reg.pinned {
                 if let Some(iv) = ssa.get(reg) {
                     if let Some(&ndx) = asm.ndx_of_addr.get(&iv.addr) {
-                        self.related_asm[ndx] = AsmLineHighlight::RelatedInsn;
+                        self.related_asm[ndx].ssa = true;
                     }
                 }
             }
@@ -186,13 +185,16 @@ mod hl {
     #[derive(PartialEq, Eq)]
     pub(crate) struct Item<T> {
         pinned: Option<T>,
+        is_pinned_dirty: bool,
         // `get` reads `hovered`, while `set` writes to `hovered_next_frame`
         // This allows to easily detect:
         //
         // 1. whether the hovered selection has changed (and update dependent
         // data as a consequence);
         //
-        // 2. whether the mouse is currently not hovering anything
+        // 2. whether the mouse is currently not hovering anything (because
+        // that's on the *absence* of mousehover events, but we still need to
+        // know what happened on the last frame!)
         hovered: Option<T>,
         hovered_next_frame: Option<T>,
     }
@@ -200,6 +202,7 @@ mod hl {
         fn default() -> Self {
             Item {
                 pinned: None,
+                is_pinned_dirty: false,
                 hovered: None,
                 hovered_next_frame: None,
             }
@@ -209,8 +212,9 @@ mod hl {
         pub(super) fn pinned(&self) -> Option<&T> {
             self.pinned.as_ref()
         }
-        pub(super) fn pinned_mut(&mut self) -> &mut Option<T> {
-            &mut self.pinned
+        pub(super) fn set_pinned(&mut self, value: Option<T>) {
+            self.pinned = value;
+            self.is_pinned_dirty = true;
         }
         pub(super) fn hovered(&self) -> Option<&T> {
             self.hovered.as_ref()
@@ -219,26 +223,25 @@ mod hl {
             self.hovered_next_frame = value;
         }
         fn tick_frame(&mut self) -> bool {
+            let is_pinned_dirty = self.is_pinned_dirty;
+            self.is_pinned_dirty = false;
+
             let next_value = self.hovered_next_frame.take();
-            if self.hovered == next_value {
-                false
-            } else {
-                self.hovered = next_value;
-                true
-            }
+            let is_hovered_dirty = self.hovered != next_value;
+            self.hovered = next_value;
+
+            is_pinned_dirty || is_hovered_dirty
         }
     }
 
-    #[derive(Clone, Copy, PartialEq, Eq)]
-    pub(crate) enum AsmLineHighlight {
-        /// The asm line is not highlighted.
-        None,
-        /// The asm instruction in this line corresponds directly with the highlighted SSA
-        /// instruction. (Multiple SSA instructions may correspond to the same asm line.)
-        RelatedInsn,
-        /// The asm instruction in this line is in the same control-flow graph block as the
-        /// selected block.
-        Block,
+    #[derive(Default, Clone, Copy, PartialEq, Eq)]
+    pub struct AsmLineRelation {
+        /// True iff the assembly insn in this line is related to the selected
+        /// (pinned) SSA instruction.
+        pub ssa: bool,
+        /// True iff the assembly insn in this line is in the same control-flow
+        /// graph block as the selected (pinned) block.
+        pub block: bool,
     }
 }
 
@@ -647,20 +650,18 @@ impl StageFunc {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             let text = format!("0x{:x}", asm_line.addr);
 
-                            let line_hl = self.hl.asm_line(ndx).unwrap();
+                            let line_hl = self.hl.asm_line_rel(ndx).unwrap();
                             let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
-                            let (bg, fg) = match (is_pinned, line_hl) {
-                                (true, _) => (COLOR_RED_DARK, egui::Color32::WHITE),
-                                (_, hl::AsmLineHighlight::None) => {
-                                    (egui::Color32::TRANSPARENT, ui.visuals().text_color())
-                                }
-                                (_, hl::AsmLineHighlight::RelatedInsn) => {
-                                    (COLOR_RED_LIGHT, egui::Color32::BLACK)
-                                }
-                                (_, hl::AsmLineHighlight::Block) => {
-                                    (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
-                                }
+                            let (bg, fg) = if is_pinned {
+                                (COLOR_RED_DARK, egui::Color32::WHITE)
+                            } else if line_hl.block {
+                                (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
+                            } else if line_hl.ssa {
+                                (COLOR_RED_LIGHT, egui::Color32::BLACK)
+                            } else {
+                                (egui::Color32::TRANSPARENT, ui.visuals().text_color())
                             };
+
                             let stroke = if self.hl.asm_line_ndx.hovered() == Some(&ndx) {
                                 COLOR_RED_LIGHT
                             } else {
@@ -687,11 +688,12 @@ impl StageFunc {
                             }
                             if res.clicked() {
                                 // TODO refactor this into a "toggle" method
-                                *self.hl.asm_line_ndx.pinned_mut() =
+                                self.hl.asm_line_ndx.set_pinned(
                                     match self.hl.asm_line_ndx.pinned() {
                                         Some(&pinned_ndx) if pinned_ndx == ndx => None,
                                         _ => Some(ndx),
-                                    };
+                                    },
+                                );
                             }
                         });
                         ui.add(
@@ -919,7 +921,7 @@ fn label_reg_def(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    let is_asm_related = hl.is_asm_ssa_related(reg);
+    let is_asm_related = hl.is_ssa_asm_related(reg);
     hl_label(
         ui,
         &reg,
@@ -1015,17 +1017,6 @@ struct HlLabelColors {
     border_hovered: egui::Color32,
 }
 
-struct HlResponse<R> {
-    link_state_changed: bool,
-    inner: R,
-}
-impl<R> std::ops::Deref for HlResponse<R> {
-    type Target = R;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
 fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
     item: &T,
@@ -1065,8 +1056,8 @@ fn hl_label<T: PartialEq + Eq + Clone>(
         .inner;
 
     if res.clicked() {
-        // toggle selection
-        *hli.pinned_mut() = if is_pinned { None } else { Some(item.clone()) };
+        // toggle selection (TODO refactor into 'toggle' method)
+        hli.set_pinned(if is_pinned { None } else { Some(item.clone()) });
     }
     if res.hovered() {
         // toggle selection
