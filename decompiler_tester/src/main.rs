@@ -186,6 +186,8 @@ mod hl {
     pub(crate) struct Item<T> {
         pinned: Option<T>,
         is_pinned_dirty: bool,
+        // used for "scroll to"
+        was_pinned_just_cleared: bool,
         // `get` reads `hovered`, while `set` writes to `hovered_next_frame`
         // This allows to easily detect:
         //
@@ -203,6 +205,7 @@ mod hl {
             Item {
                 pinned: None,
                 is_pinned_dirty: false,
+                was_pinned_just_cleared: false,
                 hovered: None,
                 hovered_next_frame: None,
             }
@@ -211,6 +214,9 @@ mod hl {
     impl<T: PartialEq + Eq> Item<T> {
         pub(super) fn pinned(&self) -> Option<&T> {
             self.pinned.as_ref()
+        }
+        pub(super) fn did_pinned_just_change(&self) -> bool {
+            self.was_pinned_just_cleared
         }
         pub(super) fn set_pinned(&mut self, value: Option<T>) {
             self.pinned = value;
@@ -225,6 +231,7 @@ mod hl {
         fn tick_frame(&mut self) -> bool {
             let is_pinned_dirty = self.is_pinned_dirty;
             self.is_pinned_dirty = false;
+            self.was_pinned_just_cleared = is_pinned_dirty;
 
             let next_value = self.hovered_next_frame.take();
             let is_hovered_dirty = self.hovered != next_value;
@@ -841,7 +848,12 @@ fn show_ssa(
 
                             let insnx = decompiler::to_expanded(&insn);
                             ui.horizontal(|ui| {
-                                label_reg_def(ui, reg, hl, format!("{:?}", reg).into());
+                                let label_res =
+                                    label_reg_def(ui, reg, hl, format!("{:?}", reg).into());
+                                if hl.reg.pinned() == Some(&reg) && hl.reg.did_pinned_just_change()
+                                {
+                                    label_res.scroll_to_me(Some(egui::Align::Center));
+                                }
 
                                 // TODO show type information
                                 // TODO use label_reg for parts of the instruction as well
