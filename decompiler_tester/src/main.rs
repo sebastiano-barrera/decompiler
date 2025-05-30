@@ -1017,6 +1017,18 @@ struct HlLabelColors {
     border_hovered: egui::Color32,
 }
 
+impl Default for HlLabelColors {
+    fn default() -> Self {
+        HlLabelColors {
+            background: egui::Color32::TRANSPARENT,
+            background_pinned: egui::Color32::BLACK,
+            text: None,
+            text_pinned: egui::Color32::WHITE,
+            border_hovered: egui::Color32::TRANSPARENT,
+        }
+    }
+}
+
 fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
     item: &T,
@@ -1305,7 +1317,7 @@ mod ast_view {
     use decompiler::Insn;
 
     use super::hl::Highlight;
-    use crate::{label_block_def, label_block_ref, label_reg_def, label_reg_ref};
+    use crate::hl_label;
 
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
@@ -1316,21 +1328,62 @@ mod ast_view {
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Node {
-        /// Signifies that the next node (can be interpreted as a container like
-        /// Open, but with size always 1) is a link
-        Link(Link),
-        Open {
-            kind: SeqKind,
-            count: usize,
-        },
-        Error(String),
-        Ref(decompiler::Reg),
-        LitNum(i64),
-        Generic(String),
-        Kw(&'static str),
-        BlockHeader(decompiler::BlockID),
-        BlockRef(decompiler::BlockID),
-        RegDef(decompiler::Reg),
+        Seq { kind: SeqKind, count: usize },
+        Element(Element),
+    }
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    struct Element {
+        text: String,
+        anchor: Option<Anchor>,
+        role: TextRole,
+    }
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    enum TextRole {
+        Generic,
+        RegRef, // TODO Rename to 'RegRef'
+        RegDef,
+        BlockHeader,
+        BlockRef,
+        Literal, // TODO Rename to 'Literal'
+        Kw,      // TODO Rename to 'keyword'
+        Error,
+    }
+    impl TextRole {
+        fn colors(&self) -> crate::HlLabelColors {
+            match self {
+                TextRole::Generic => crate::HlLabelColors::default(),
+                TextRole::RegRef => crate::HlLabelColors {
+                    background_pinned: crate::COLOR_BLUE_LIGHT,
+                    border_hovered: crate::COLOR_BLUE_LIGHT,
+                    ..Default::default()
+                },
+                TextRole::RegDef => crate::HlLabelColors {
+                    background_pinned: crate::COLOR_BLUE_DARK,
+                    border_hovered: crate::COLOR_BLUE_DARK,
+                    ..Default::default()
+                },
+                TextRole::BlockHeader => crate::HlLabelColors {
+                    background_pinned: crate::COLOR_GREEN_LIGHT,
+                    border_hovered: crate::COLOR_GREEN_LIGHT,
+                    ..Default::default()
+                },
+                TextRole::BlockRef => crate::HlLabelColors {
+                    background_pinned: crate::COLOR_GREEN_DARK,
+                    border_hovered: crate::COLOR_GREEN_DARK,
+                    ..Default::default()
+                },
+                TextRole::Literal => crate::HlLabelColors {
+                    text: Some(crate::COLOR_GREEN_DARK),
+                    ..Default::default()
+                },
+                TextRole::Kw => crate::HlLabelColors::default(),
+                TextRole::Error => crate::HlLabelColors {
+                    background: crate::COLOR_RED_DARK,
+                    text: Some(egui::Color32::WHITE),
+                    ..Default::default()
+                },
+            }
+        }
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1340,15 +1393,10 @@ mod ast_view {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    enum Link {
-        RegRef(decompiler::Reg),
-        RegDef(decompiler::Reg),
-        BlockRef(decompiler::BlockID),
-        BlockDef(decompiler::BlockID),
+    enum Anchor {
+        Reg(decompiler::Reg),
+        Block(decompiler::BlockID),
     }
-
-    #[derive(Clone, Copy)]
-    pub struct NodeID(usize);
 
     impl Ast {
         pub fn empty() -> Self {
@@ -1438,7 +1486,7 @@ mod ast_view {
             assert!(!already_visited);
 
             match &self.nodes[ndx] {
-                Node::Open { kind, count } => {
+                Node::Seq { kind, count } => {
                     // ndx      Open { count: 3 }
                     // ndx + 1  A
                     // ndx + 2  B
@@ -1456,56 +1504,18 @@ mod ast_view {
                     }
                     return end_ndx;
                 }
-                Node::Error(err_msg) => {
-                    egui::Frame::new()
-                        .stroke(egui::Stroke::new(1.0, egui::Color32::DARK_RED))
-                        .show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                ui.label("Internal error:");
-                                ui.label(err_msg);
-                            });
-                        });
-                }
-
-                // TODO define specific styles
-                Node::Ref(reg) => {
-                    label_reg_ref(ui, *reg, hl, format!("{:?}", *reg).into());
-                }
-                Node::RegDef(reg) => {
-                    label_reg_def(ui, *reg, hl, format!("{:?}", *reg).into());
-                }
-                Node::LitNum(num) => {
-                    // TODO avoid alloc
-                    ui.label(format!("{:?}", num));
-                }
-                Node::Generic(text) => {
-                    ui.label(text);
-                }
-                Node::Kw(kw) => {
-                    ui.label(*kw);
-                }
-                Node::BlockHeader(bid) => {
-                    // TODO avoid alloc
-                    ui.add_space(12.0);
-                    label_block_def(
-                        ui,
-                        *bid,
-                        hl,
-                        format!("-- block B{}", bid.as_number()).into(),
-                    );
-                }
-                Node::BlockRef(bid) => {
-                    label_block_ref(ui, *bid, hl, format!("B{}", bid.as_number()).into());
-                }
-                Node::Link(link) => {
-                    // let add_contents =
-                    //     |ui: &mut egui::Ui| self.show_node(ui, ndx + 1, &mut Highlight::default());
-                    // match link {
-                    //     &Link::RegRef(reg) => label_reg_ref(ui, reg, hl, add_contents),
-                    //     &Link::RegDef(reg) => label_reg_def(ui, reg, hl, add_contents),
-                    //     &Link::BlockRef(bid) => label_block_ref(ui, bid, hl, add_contents),
-                    //     &Link::BlockDef(bid) => label_block_def(ui, bid, hl, add_contents),
-                    // };
+                Node::Element(Element { text, anchor, role }) => {
+                    match anchor {
+                        Some(Anchor::Reg(reg)) => {
+                            hl_label(ui, reg, &mut hl.reg, &role.colors(), text.into());
+                        }
+                        Some(Anchor::Block(block_id)) => {
+                            hl_label(ui, block_id, &mut hl.block, &role.colors(), text.into());
+                        }
+                        None => {
+                            ui.label(text);
+                        }
+                    };
                 }
             }
 
@@ -1558,21 +1568,23 @@ mod ast_view {
         }
 
         fn seq<R>(&mut self, kind: SeqKind, add_contents: impl FnOnce(&mut Self) -> R) -> R {
-            const REF_NODE: Node = Node::Kw("<bug:seq!>");
-
-            let ndx = self.nodes.len();
-            self.nodes.push(REF_NODE);
-
+            self.emit(Node::Seq { kind, count: 0 });
+            let len_pre = self.nodes.len();
             let ret = add_contents(self);
+            let count = self.nodes.len() - len_pre;
 
-            assert_eq!(self.nodes[ndx], REF_NODE);
-            let count = self.nodes.len() - ndx - 1;
-            self.nodes[ndx] = Node::Open { kind, count };
+            let seq_head = &mut self.nodes[len_pre - 1];
+            assert!(matches!(seq_head, Node::Seq { count: 0, .. }));
+            *seq_head = Node::Seq { kind, count };
 
             ret
         }
         fn transform_block_labeled(&mut self, bid: decompiler::BlockID) {
-            self.emit(Node::BlockHeader(bid));
+            self.emit(Node::Element(Element {
+                text: format!(" -- block B{}", bid.as_number()),
+                anchor: Some(Anchor::Block(bid)),
+                role: TextRole::BlockHeader,
+            }));
             self.transform_block_unlabeled(bid);
         }
 
@@ -1608,16 +1620,28 @@ mod ast_view {
 
                     if let Some(cond) = cond {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("if"));
+                            s.emit(Node::Element(Element {
+                                text: "if".to_string(),
+                                anchor: None,
+                                role: TextRole::Kw,
+                            }));
                             s.transform_value(cond, 0);
                         });
                         self.seq(SeqKind::Vertical, |s| {
                             s.transform_dest(bid, &pos);
                         });
-                        self.emit(Node::Kw("else"));
+                        self.emit(Node::Element(Element {
+                            text: "else".to_string(),
+                            anchor: None,
+                            role: TextRole::Kw,
+                        }));
                         self.transform_dest(bid, &neg);
                     } else {
-                        self.emit(Node::Error(format!("bug: no condition!")));
+                        self.emit(Node::Element(Element {
+                            text: "bug: no condition!".to_string(),
+                            anchor: None,
+                            role: TextRole::Error,
+                        }));
                     }
                 }
             }
@@ -1646,16 +1670,28 @@ mod ast_view {
             // TODO! specific representation of operands
             if self.is_named[reg] {
                 if self.let_was_printed[reg] {
-                    self.emit(Node::Ref(reg));
+                    self.emit_reg_ref(reg);
                 } else {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("<bug:let!>"));
-                        s.emit(Node::Ref(reg));
+                        s.emit(Node::Element(Element {
+                            text: "<bug:let!>".to_string(),
+                            anchor: None,
+                            role: TextRole::Error,
+                        }));
+                        s.emit_reg_ref(reg);
                     });
                 }
             } else {
                 self.transform_def(reg, parent_prec);
             }
+        }
+
+        fn emit_reg_ref(&mut self, reg: decompiler::Reg) {
+            self.emit(Node::Element(Element {
+                text: format!("{:?}", reg),
+                anchor: Some(Anchor::Reg(reg)),
+                role: TextRole::RegRef,
+            }))
         }
 
         fn transform_def(
@@ -1667,30 +1703,32 @@ mod ast_view {
             let prec = decompiler::precedence(&insn);
 
             if prec < parent_prec {
-                self.emit(Node::Kw("("));
+                self.emit_simple(TextRole::Kw, "(".to_string());
             }
 
             match insn {
                 Insn::Void => {
-                    self.emit(Node::Kw("void"));
+                    self.emit_simple(TextRole::Kw, "void".to_string());
                 }
                 Insn::True => {
-                    self.emit(Node::Kw("true"));
+                    self.emit_simple(TextRole::Kw, "true".to_string());
                 }
                 Insn::False => {
-                    self.emit(Node::Kw("false"));
+                    self.emit_simple(TextRole::Kw, "false".to_string());
                 }
                 Insn::Undefined => {
-                    self.emit(Node::Kw("undefined"));
+                    self.emit_simple(TextRole::Kw, "undefined".to_string());
                 }
 
                 Insn::Phi => self.transform_regular_insn("Phi", std::iter::empty()),
                 Insn::Const { value, size: _ } => {
-                    self.emit(Node::LitNum(value));
+                    let text = format!("{}", value);
+                    self.emit_literal(text);
                 }
 
                 Insn::Ancestral(aname) => {
-                    self.emit(Node::Kw(aname.name()));
+                    let kw: &str = aname.name();
+                    self.emit_simple(TextRole::Kw, kw.to_string());
                 }
 
                 Insn::StoreMem {
@@ -1700,8 +1738,10 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, 255);
-                        s.emit(Node::Kw(".*"));
-                        s.emit(Node::Kw(":="));
+
+                        s.emit_simple(TextRole::Kw, ".*".to_string());
+
+                        s.emit_simple(TextRole::Kw, ":=".to_string());
                         s.transform_value(value, prec);
                     });
                 }
@@ -1712,24 +1752,29 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, prec);
-                        s.emit(Node::Kw(".*"));
+
+                        s.emit_simple(TextRole::Kw, ".*".to_string());
                     });
                 }
 
                 Insn::Part { src, offset, size } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(src, prec);
-                        s.emit(Node::Kw("["));
-                        s.emit(Node::LitNum(offset as i64));
-                        s.emit(Node::Kw(".."));
-                        s.emit(Node::LitNum((offset + size) as i64));
-                        s.emit(Node::Kw("]"));
+
+                        s.emit_simple(TextRole::Kw, "[".to_string());
+                        s.emit_literal(format!("{}", offset));
+
+                        s.emit_simple(TextRole::Kw, "..".to_string());
+                        s.emit_literal(format!("{}", offset + size));
+
+                        s.emit_simple(TextRole::Kw, "]".to_string());
                     });
                 }
                 Insn::Concat { lo, hi } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(hi, prec);
-                        s.emit(Node::Kw("++"));
+
+                        s.emit_simple(TextRole::Kw, "++".to_string());
                         s.transform_value(lo, prec);
                     });
                 }
@@ -1741,8 +1786,10 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(struct_value, prec);
-                        s.emit(Node::Kw("."));
-                        s.emit(Node::Kw(name));
+
+                        s.emit_simple(TextRole::Kw, ".".to_string());
+
+                        s.emit_simple(TextRole::Kw, name.to_string());
                     });
                 }
 
@@ -1753,8 +1800,9 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(reg, prec);
-                        s.emit(Node::Kw("as"));
-                        s.emit(Node::Generic(format!("i{}", target_size * 8)));
+
+                        s.emit_simple(TextRole::Kw, "as".to_string());
+                        s.emit_simple(TextRole::Generic, format!("i{}", target_size * 8));
                     });
                 }
 
@@ -1770,7 +1818,7 @@ mod ast_view {
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| {
-                            s.emit(Node::LitNum(bk));
+                            s.emit_simple(TextRole::Literal, format!("{}", bk));
                         },
                     );
                 }
@@ -1791,15 +1839,15 @@ mod ast_view {
 
                 Insn::Not(arg) => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("!"));
+                        s.emit_simple(TextRole::Kw, "!".to_string());
                         s.transform_value(arg, prec);
                     });
                 }
 
                 Insn::NotYetImplemented(msg) => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("NYI:"));
-                        s.emit(Node::Generic(msg.to_string()));
+                        s.emit_simple(TextRole::Kw, "NYI:".to_string());
+                        s.emit_simple(TextRole::Generic, msg.to_string());
                     });
                 }
 
@@ -1810,30 +1858,31 @@ mod ast_view {
                 Insn::Call { callee, first_arg } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(callee, prec);
-                        s.emit(Node::Kw("("));
+
+                        s.emit_simple(TextRole::Kw, "(".to_string());
 
                         for (ndx, arg) in s.ssa.get_call_args(first_arg).enumerate() {
                             if ndx > 0 {
-                                s.emit(Node::Kw(","));
+                                s.emit_simple(TextRole::Kw, ",".to_string());
                             }
                             s.transform_value(arg, prec);
                         }
 
-                        s.emit(Node::Kw(")"));
+                        s.emit_simple(TextRole::Kw, ")".to_string());
                     });
                 }
 
                 Insn::CArg { .. } => {
-                    self.emit(Node::Kw("<bug:CArg>"));
+                    self.emit_simple(TextRole::Kw, "<bug:CArg>".to_string());
                 }
                 Insn::Control(_) => {
-                    self.emit(Node::Kw("<bug:Control>"));
+                    self.emit_simple(TextRole::Kw, "<bug:Control>".to_string());
                 }
 
                 Insn::Upsilon { value, phi_ref } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Ref(phi_ref));
-                        s.emit(Node::Kw(":="));
+                        s.emit_reg_ref(phi_ref);
+                        s.emit_simple(TextRole::Kw, ":=".to_string());
                         s.transform_value(value, prec);
                     });
                 }
@@ -1852,7 +1901,7 @@ mod ast_view {
             }
 
             if prec < parent_prec {
-                self.emit(Node::Kw(")"));
+                self.emit_simple(TextRole::Kw, ")".to_string());
             }
         }
 
@@ -1899,30 +1948,40 @@ mod ast_view {
             inputs: impl IntoIterator<Item = decompiler::Reg>,
         ) {
             self.seq(SeqKind::Flow, |s| {
-                s.emit(Node::Generic(opcode.to_string()));
-                s.emit(Node::Kw("("));
+                s.emit_simple(TextRole::Generic, opcode.to_string());
+                s.emit_simple(TextRole::Kw, "(".to_string());
                 for (ndx, input) in inputs.into_iter().enumerate() {
                     if ndx > 0 {
-                        s.emit(Node::Kw(","));
+                        s.emit_simple(TextRole::Kw, ",".to_string());
                     }
                     s.transform_value(input, 0);
                 }
-                s.emit(Node::Kw(")"));
+                s.emit_simple(TextRole::Kw, ")".to_string());
             });
         }
 
-        fn emit(&mut self, init: Node) -> NodeID {
-            let nid = NodeID(self.nodes.len());
+        fn emit(&mut self, init: Node) {
             self.nodes.push(init);
-            nid
+        }
+
+        fn emit_literal(&mut self, text: String) {
+            self.emit_simple(TextRole::Literal, text);
+        }
+
+        fn emit_simple(&mut self, role: TextRole, text: String) {
+            self.emit(Node::Element(Element {
+                text,
+                anchor: None,
+                role,
+            }));
         }
 
         fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
             match dest {
                 decompiler::Dest::Ext(addr) => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("goto"));
-                        s.emit(Node::LitNum(*addr as i64));
+                        s.emit_simple(TextRole::Kw, "goto".to_string());
+                        s.emit_simple(TextRole::Literal, format!("{}", *addr));
                     });
                 }
                 decompiler::Dest::Block(bid) => {
@@ -1936,9 +1995,9 @@ mod ast_view {
                         self.transform_block_unlabeled(*bid);
                     } else {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("goto"));
+                            s.emit_simple(TextRole::Kw, "goto".to_string());
                             // TODO specific node type
-                            s.emit(Node::BlockRef(*bid));
+                            s.emit_simple(TextRole::BlockRef, format!("B{}", bid.as_number()));
                         });
                     }
                 }
@@ -1949,14 +2008,14 @@ mod ast_view {
 
                     if let Some(tgt) = tgt {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("goto"));
+                            s.emit_simple(TextRole::Kw, "goto".to_string());
                             s.seq(SeqKind::Flow, |s| {
-                                s.emit(Node::Kw("*"));
+                                s.emit_simple(TextRole::Kw, "*".to_string());
                                 s.transform_value(tgt, 0);
                             });
                         });
                     } else {
-                        self.emit(Node::Error(format!("bug: no jump target!")));
+                        self.emit_simple(TextRole::Error, "bug: no jump target!".to_string());
                     }
                 }
                 decompiler::Dest::Return => {
@@ -1966,15 +2025,15 @@ mod ast_view {
 
                     if let Some(ret) = ret {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("return"));
+                            s.emit_simple(TextRole::Kw, "return".to_string());
                             s.transform_value(ret, 0);
                         });
                     } else {
-                        self.emit(Node::Error(format!("bug: no return value!")));
+                        self.emit_simple(TextRole::Error, "bug: no return value!".to_string());
                     }
                 }
                 decompiler::Dest::Undefined => {
-                    self.emit(Node::Kw("goto undefined"));
+                    self.emit_simple(TextRole::Kw, "goto undefined".to_string());
                 }
             }
         }
@@ -1982,13 +2041,18 @@ mod ast_view {
         fn emit_let_def(&mut self, reg: decompiler::Reg) {
             self.seq(SeqKind::Flow, |s| {
                 if s.let_was_printed[reg] {
-                    s.emit(Node::Kw("<bug:dupe let>"));
+                    s.emit_simple(TextRole::Kw, "<bug:dupe let>".to_string());
                 }
 
-                s.emit(Node::Kw("let"));
+                s.emit_simple(TextRole::Kw, "let".to_string());
                 // TODO make the name editable
-                s.emit(Node::RegDef(reg));
-                s.emit(Node::Kw("="));
+
+                s.emit(Node::Element(Element {
+                    text: format!("{:?}", reg),
+                    anchor: Some(Anchor::Reg(reg)),
+                    role: TextRole::RegDef,
+                }));
+                s.emit_simple(TextRole::Kw, "=".to_string());
                 s.transform_def(reg, 0);
             });
 
@@ -2002,7 +2066,7 @@ mod ast_view {
         {
             self.seq(SeqKind::Flow, |s| {
                 a(s);
-                s.emit(Node::Kw(op_s));
+                s.emit_simple(TextRole::Kw, op_s.to_string());
                 b(s);
             });
         }
