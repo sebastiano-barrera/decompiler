@@ -43,7 +43,7 @@ compiler version
 - [ ] ast: scroll-to when selecting something
 - [?] xform: eliminate upsilons referencing dead phis
     - actually not sure that this is needed at all
-- [ ] merge selection colors mgmt in ast and ssa
+- [x] merge selection colors mgmt in ast and ssa
 - [ ] show type info
     - [ ] function prototype
     - [ ] ssa: value types

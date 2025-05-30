@@ -915,6 +915,8 @@ const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
 const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
 const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
 
+// TODO Move these to an `ssa` module (when the refactoring happens)
+
 fn label_reg_def(
     ui: &mut egui::Ui,
     reg: decompiler::Reg,
@@ -922,27 +924,12 @@ fn label_reg_def(
     text: egui::WidgetText,
 ) -> egui::Response {
     let is_asm_related = hl.is_ssa_asm_related(reg);
-    hl_label(
-        ui,
-        &reg,
-        &mut hl.reg,
-        &HlLabelColors {
-            background: if is_asm_related {
-                COLOR_RED_LIGHT
-            } else {
-                egui::Color32::TRANSPARENT
-            },
-            background_pinned: COLOR_BLUE_DARK,
-            text: if is_asm_related {
-                Some(egui::Color32::BLACK)
-            } else {
-                None
-            },
-            text_pinned: egui::Color32::WHITE,
-            border_hovered: COLOR_BLUE_DARK,
-        },
-        text,
-    )
+    let mut colors = TextRole::RegDef.colors();
+    if is_asm_related {
+        colors.background = COLOR_RED_LIGHT;
+        colors.text = Some(egui::Color32::BLACK);
+    }
+    hl_label(ui, &reg, &mut hl.reg, &colors, text)
 }
 
 fn label_reg_ref(
@@ -951,19 +938,7 @@ fn label_reg_ref(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    hl_label(
-        ui,
-        &reg,
-        &mut hl.reg,
-        &HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: COLOR_BLUE_LIGHT,
-            text: None,
-            text_pinned: egui::Color32::BLACK,
-            border_hovered: COLOR_BLUE_LIGHT,
-        },
-        text,
-    )
+    hl_label(ui, &reg, &mut hl.reg, &TextRole::RegRef.colors(), text)
 }
 
 fn label_block_def(
@@ -972,19 +947,7 @@ fn label_block_def(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    hl_label(
-        ui,
-        &bid,
-        &mut hl.block,
-        &HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: COLOR_GREEN_DARK,
-            text: None,
-            text_pinned: egui::Color32::WHITE,
-            border_hovered: COLOR_GREEN_DARK,
-        },
-        text,
-    )
+    hl_label(ui, &bid, &mut hl.block, &TextRole::BlockDef.colors(), text)
 }
 
 fn label_block_ref(
@@ -993,19 +956,7 @@ fn label_block_ref(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    hl_label(
-        ui,
-        &bid,
-        &mut hl.block,
-        &HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: COLOR_GREEN_LIGHT,
-            text: None,
-            text_pinned: egui::Color32::BLACK,
-            border_hovered: COLOR_GREEN_LIGHT,
-        },
-        text,
-    )
+    hl_label(ui, &bid, &mut hl.block, &TextRole::BlockRef.colors(), text)
 }
 
 struct HlLabelColors {
@@ -1015,6 +966,7 @@ struct HlLabelColors {
     text: Option<egui::Color32>,
     text_pinned: egui::Color32,
     border_hovered: egui::Color32,
+    border_pinned: egui::Color32,
 }
 
 impl Default for HlLabelColors {
@@ -1025,6 +977,7 @@ impl Default for HlLabelColors {
             text: None,
             text_pinned: egui::Color32::WHITE,
             border_hovered: egui::Color32::TRANSPARENT,
+            border_pinned: egui::Color32::TRANSPARENT,
         }
     }
 }
@@ -1051,6 +1004,8 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     };
     let stroke = if is_hovered {
         colors.border_hovered
+    } else if is_pinned {
+        colors.border_pinned
     } else {
         egui::Color32::TRANSPARENT
     };
@@ -1297,6 +1252,63 @@ impl Assembly {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+enum TextRole {
+    Generic,
+    RegRef, // TODO Rename to 'RegRef'
+    RegDef,
+    BlockDef,
+    BlockRef,
+    Literal, // TODO Rename to 'Literal'
+    Kw,      // TODO Rename to 'keyword'
+    Error,
+}
+impl TextRole {
+    fn colors(&self) -> crate::HlLabelColors {
+        match self {
+            TextRole::Generic => crate::HlLabelColors::default(),
+            TextRole::RegRef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_BLUE_LIGHT,
+                text_pinned: egui::Color32::BLACK,
+                border_hovered: crate::COLOR_BLUE_LIGHT,
+                ..Default::default()
+            },
+            TextRole::RegDef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_BLUE_DARK,
+                border_hovered: crate::COLOR_BLUE_DARK,
+                ..Default::default()
+            },
+            TextRole::BlockRef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_GREEN_LIGHT,
+                text_pinned: egui::Color32::BLACK,
+                border_hovered: crate::COLOR_GREEN_LIGHT,
+                ..Default::default()
+            },
+            TextRole::BlockDef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_GREEN_DARK,
+                border_hovered: crate::COLOR_GREEN_DARK,
+                ..Default::default()
+            },
+            TextRole::Literal => crate::HlLabelColors {
+                text: Some(crate::COLOR_GREEN_DARK),
+                ..Default::default()
+            },
+            TextRole::Kw => crate::HlLabelColors {
+                background_pinned: egui::Color32::WHITE,
+                text_pinned: egui::Color32::BLACK,
+                border_hovered: egui::Color32::BLACK,
+                border_pinned: egui::Color32::BLACK,
+                ..Default::default()
+            },
+            TextRole::Error => crate::HlLabelColors {
+                background: crate::COLOR_RED_DARK,
+                text: Some(egui::Color32::WHITE),
+                ..Default::default()
+            },
+        }
+    }
+}
+
 mod ast_view {
     // target features for the ast view:
     //
@@ -1338,56 +1350,8 @@ mod ast_view {
         anchor: Option<Anchor>,
         role: TextRole,
     }
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    enum TextRole {
-        Generic,
-        RegRef, // TODO Rename to 'RegRef'
-        RegDef,
-        BlockHeader,
-        BlockRef,
-        Literal, // TODO Rename to 'Literal'
-        Kw,      // TODO Rename to 'keyword'
-        Error,
-    }
-    impl TextRole {
-        fn colors(&self) -> crate::HlLabelColors {
-            match self {
-                TextRole::Generic => crate::HlLabelColors::default(),
-                TextRole::RegRef => crate::HlLabelColors {
-                    background_pinned: crate::COLOR_BLUE_LIGHT,
-                    text_pinned: egui::Color32::BLACK,
-                    border_hovered: crate::COLOR_BLUE_LIGHT,
-                    ..Default::default()
-                },
-                TextRole::RegDef => crate::HlLabelColors {
-                    background_pinned: crate::COLOR_BLUE_DARK,
-                    border_hovered: crate::COLOR_BLUE_DARK,
-                    ..Default::default()
-                },
-                TextRole::BlockRef => crate::HlLabelColors {
-                    background_pinned: crate::COLOR_GREEN_LIGHT,
-                    text_pinned: egui::Color32::BLACK,
-                    border_hovered: crate::COLOR_GREEN_LIGHT,
-                    ..Default::default()
-                },
-                TextRole::BlockHeader => crate::HlLabelColors {
-                    background_pinned: crate::COLOR_GREEN_DARK,
-                    border_hovered: crate::COLOR_GREEN_DARK,
-                    ..Default::default()
-                },
-                TextRole::Literal => crate::HlLabelColors {
-                    text: Some(crate::COLOR_GREEN_DARK),
-                    ..Default::default()
-                },
-                TextRole::Kw => crate::HlLabelColors::default(),
-                TextRole::Error => crate::HlLabelColors {
-                    background: crate::COLOR_RED_DARK,
-                    text: Some(egui::Color32::WHITE),
-                    ..Default::default()
-                },
-            }
-        }
-    }
+
+    use super::TextRole;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum SeqKind {
@@ -1586,7 +1550,7 @@ mod ast_view {
             self.emit(Node::Element(Element {
                 text: format!(" -- block B{}", bid.as_number()),
                 anchor: Some(Anchor::Block(bid)),
-                role: TextRole::BlockHeader,
+                role: TextRole::BlockDef,
             }));
             self.transform_block_unlabeled(bid);
         }
