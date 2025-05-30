@@ -1333,6 +1333,7 @@ mod ast_view {
     }
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct Element {
+        // TODO this could use some string interning
         text: String,
         anchor: Option<Anchor>,
         role: TextRole,
@@ -1708,27 +1709,45 @@ mod ast_view {
 
             match insn {
                 Insn::Void => {
-                    self.emit_simple(TextRole::Kw, "void".to_string());
+                    self.emit(Node::Element(Element {
+                        text: "void".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::True => {
-                    self.emit_simple(TextRole::Kw, "true".to_string());
+                    self.emit(Node::Element(Element {
+                        text: "true".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::False => {
-                    self.emit_simple(TextRole::Kw, "false".to_string());
+                    self.emit(Node::Element(Element {
+                        text: "false".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::Undefined => {
-                    self.emit_simple(TextRole::Kw, "undefined".to_string());
+                    self.emit(Node::Element(Element {
+                        text: "undefined".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
 
                 Insn::Phi => self.transform_regular_insn("Phi", std::iter::empty()),
                 Insn::Const { value, size: _ } => {
-                    let text = format!("{}", value);
-                    self.emit_literal(text);
+                    self.emit_simple(TextRole::Literal, format!("{}", value));
                 }
 
                 Insn::Ancestral(aname) => {
-                    let kw: &str = aname.name();
-                    self.emit_simple(TextRole::Kw, kw.to_string());
+                    self.emit(Node::Element(Element {
+                        text: aname.name().to_string(),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::RegRef,
+                    }));
                 }
 
                 Insn::StoreMem {
@@ -1738,10 +1757,16 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, 255);
-
-                        s.emit_simple(TextRole::Kw, ".*".to_string());
-
-                        s.emit_simple(TextRole::Kw, ":=".to_string());
+                        s.emit(Node::Element(Element {
+                            text: ".*".to_string(),
+                            anchor: Some(Anchor::Reg(addr)),
+                            role: TextRole::Kw,
+                        }));
+                        s.emit(Node::Element(Element {
+                            text: ":=".to_string(),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::RegDef,
+                        }));
                         s.transform_value(value, prec);
                     });
                 }
@@ -1760,21 +1785,21 @@ mod ast_view {
                 Insn::Part { src, offset, size } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(src, prec);
-
-                        s.emit_simple(TextRole::Kw, "[".to_string());
-                        s.emit_literal(format!("{}", offset));
-
-                        s.emit_simple(TextRole::Kw, "..".to_string());
-                        s.emit_literal(format!("{}", offset + size));
-
-                        s.emit_simple(TextRole::Kw, "]".to_string());
+                        s.emit(Node::Element(Element {
+                            text: format!("[{} .. {}]", offset, offset + size),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                     });
                 }
                 Insn::Concat { lo, hi } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(hi, prec);
-
-                        s.emit_simple(TextRole::Kw, "++".to_string());
+                        s.emit(Node::Element(Element {
+                            text: "++".to_string(),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                         s.transform_value(lo, prec);
                     });
                 }
@@ -1786,10 +1811,11 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(struct_value, prec);
-
-                        s.emit_simple(TextRole::Kw, ".".to_string());
-
-                        s.emit_simple(TextRole::Kw, name.to_string());
+                        s.emit(Node::Element(Element {
+                            text: format!(".{}", name),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                     });
                 }
 
@@ -1800,14 +1826,17 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(reg, prec);
-
-                        s.emit_simple(TextRole::Kw, "as".to_string());
-                        s.emit_simple(TextRole::Generic, format!("i{}", target_size * 8));
+                        s.emit(Node::Element(Element {
+                            text: format!("as i{}", target_size * 8),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                     });
                 }
 
                 Insn::Arith(op, a, b) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| s.transform_value(b, prec),
@@ -1815,6 +1844,7 @@ mod ast_view {
                 }
                 Insn::ArithK(op, a, bk) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| {
@@ -1824,6 +1854,7 @@ mod ast_view {
                 }
                 Insn::Cmp(op, a, b) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| s.transform_value(b, prec),
@@ -1831,6 +1862,7 @@ mod ast_view {
                 }
                 Insn::Bool(op, a, b) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| s.transform_value(b, prec),
@@ -1845,10 +1877,7 @@ mod ast_view {
                 }
 
                 Insn::NotYetImplemented(msg) => {
-                    self.seq(SeqKind::Flow, |s| {
-                        s.emit_simple(TextRole::Kw, "NYI:".to_string());
-                        s.emit_simple(TextRole::Generic, msg.to_string());
-                    });
+                    self.emit_simple(TextRole::Kw, format!("NYI:{}", msg));
                 }
 
                 Insn::SetReturnValue(_) | Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) => {
@@ -1873,16 +1902,28 @@ mod ast_view {
                 }
 
                 Insn::CArg { .. } => {
-                    self.emit_simple(TextRole::Kw, "<bug:CArg>".to_string());
+                    self.emit(Node::Element(Element {
+                        text: format!("<bug:CArg:{:?}>", reg),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::Control(_) => {
-                    self.emit_simple(TextRole::Kw, "<bug:Control>".to_string());
+                    self.emit(Node::Element(Element {
+                        text: format!("<bug:Control:{:?}>", reg),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }));
                 }
 
                 Insn::Upsilon { value, phi_ref } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.emit_reg_ref(phi_ref);
-                        s.emit_simple(TextRole::Kw, ":=".to_string());
+                        s.emit(Node::Element(Element {
+                            text: ":=".to_string(),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                         s.transform_value(value, prec);
                     });
                 }
@@ -1962,10 +2003,6 @@ mod ast_view {
 
         fn emit(&mut self, init: Node) {
             self.nodes.push(init);
-        }
-
-        fn emit_literal(&mut self, text: String) {
-            self.emit_simple(TextRole::Literal, text);
         }
 
         fn emit_simple(&mut self, role: TextRole, text: String) {
@@ -2059,14 +2096,18 @@ mod ast_view {
             self.let_was_printed[reg] = true;
         }
 
-        fn emit_binop<F, G>(&mut self, op_s: &'static str, a: F, b: G)
+        fn emit_binop<F, G>(&mut self, result: decompiler::Reg, op_s: &'static str, a: F, b: G)
         where
             F: FnOnce(&mut Self),
             G: FnOnce(&mut Self),
         {
             self.seq(SeqKind::Flow, |s| {
                 a(s);
-                s.emit_simple(TextRole::Kw, op_s.to_string());
+                s.emit(Node::Element(Element {
+                    text: op_s.to_string(),
+                    anchor: Some(Anchor::Reg(result)),
+                    role: TextRole::Kw,
+                }));
                 b(s);
             });
         }
