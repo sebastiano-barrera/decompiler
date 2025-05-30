@@ -1355,6 +1355,7 @@ mod ast_view {
                 TextRole::Generic => crate::HlLabelColors::default(),
                 TextRole::RegRef => crate::HlLabelColors {
                     background_pinned: crate::COLOR_BLUE_LIGHT,
+                    text_pinned: egui::Color32::BLACK,
                     border_hovered: crate::COLOR_BLUE_LIGHT,
                     ..Default::default()
                 },
@@ -1363,12 +1364,13 @@ mod ast_view {
                     border_hovered: crate::COLOR_BLUE_DARK,
                     ..Default::default()
                 },
-                TextRole::BlockHeader => crate::HlLabelColors {
+                TextRole::BlockRef => crate::HlLabelColors {
                     background_pinned: crate::COLOR_GREEN_LIGHT,
+                    text_pinned: egui::Color32::BLACK,
                     border_hovered: crate::COLOR_GREEN_LIGHT,
                     ..Default::default()
                 },
-                TextRole::BlockRef => crate::HlLabelColors {
+                TextRole::BlockHeader => crate::HlLabelColors {
                     background_pinned: crate::COLOR_GREEN_DARK,
                     border_hovered: crate::COLOR_GREEN_DARK,
                     ..Default::default()
@@ -2033,8 +2035,11 @@ mod ast_view {
                     } else {
                         self.seq(SeqKind::Flow, |s| {
                             s.emit_simple(TextRole::Kw, "goto".to_string());
-                            // TODO specific node type
-                            s.emit_simple(TextRole::BlockRef, format!("B{}", bid.as_number()));
+                            s.emit(Node::Element(Element {
+                                text: format!("B{}", bid.as_number()),
+                                anchor: Some(Anchor::Block(*bid)),
+                                role: TextRole::BlockRef,
+                            }));
                         });
                     }
                 }

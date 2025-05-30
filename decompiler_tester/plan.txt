@@ -39,10 +39,11 @@ compiler version
         - also, it's kinda complex (but workable)
         - and I don't really need it anyway
 - [x] ast: link other bits of syntax to ssa (e.g., bin ops)
-- [ ] ast: fix colors
+- [x] ast: fix colors
 - [ ] ast: scroll-to when selecting something
 - [?] xform: eliminate upsilons referencing dead phis
     - actually not sure that this is needed at all
+- [ ] merge selection colors mgmt in ast and ssa
 - [ ] show type info
     - [ ] function prototype
     - [ ] ssa: value types
