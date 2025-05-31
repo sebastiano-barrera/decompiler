@@ -1268,11 +1268,16 @@ enum TextRole {
     Literal, // TODO Rename to 'Literal'
     Kw,      // TODO Rename to 'keyword'
     Error,
+    Ident,
 }
 impl TextRole {
     fn colors(&self) -> crate::HlLabelColors {
         match self {
             TextRole::Generic => crate::HlLabelColors::default(),
+            TextRole::Ident => crate::HlLabelColors {
+                text: Some(crate::COLOR_ORANGE_DARK),
+                ..Default::default()
+            },
             TextRole::RegRef => crate::HlLabelColors {
                 background_pinned: crate::COLOR_BLUE_LIGHT,
                 text_pinned: egui::Color32::BLACK,
@@ -1859,8 +1864,29 @@ mod ast_view {
                 }
 
                 Insn::Call { callee, first_arg } => {
+                    // Not quite correct (why would we print the type name?) but
+                    // happens to be always correct for well formed programs
+                    let callee_type_name =
+                        self.ssa
+                            .get(callee)
+                            .and_then(|iv| iv.tyid.get())
+                            .map(|tyid| {
+                                // TODO This name should not be copied; rather, it
+                                // should be shared (in order to be editable)
+                                self.ssa
+                                    .types()
+                                    .get_through_alias(tyid)
+                                    .unwrap()
+                                    .name
+                                    .to_string()
+                            });
+
                     self.seq(SeqKind::Flow, |s| {
-                        s.transform_value(callee, prec);
+                        if let Some(name) = callee_type_name {
+                            s.emit_simple(TextRole::Ident, name);
+                        } else {
+                            s.transform_value(callee, prec);
+                        }
 
                         s.emit_simple(TextRole::Kw, "(".to_string());
 
