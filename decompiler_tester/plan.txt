@@ -44,11 +44,12 @@ compiler version
 - [x] xform: eliminate upsilons referencing dead phis
     - actually not sure that this is needed at all
 - [x] merge selection colors mgmt in ast and ssa
+- [ ] always inline consts
+- [ ] ast: show function names (should be correctly identifier by decompiler core)
 - [ ] show type info
     - [ ] function prototype
     - [ ] ssa: value types
     - [ ] ast: value types
-- [ ] ast: show function names (should be correctly identifier by decompiler core)
 - [ ] ast: remove some horizontal padding
 - [ ] ast: do not show StoreMem effect
     (actually, probably better to just handle effects differently in general)
