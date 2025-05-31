@@ -168,20 +168,24 @@ ssa program  124 instrs
          r79 <- Concat { lo: r77, hi: r78 }
          r86 <- Const { value: 8, size: 8 }
          r87 <- Arith(Add, r86, r11)
+         r120 <- Upsilon { value: r79, phi_ref: r118 }
+         r121 <- Upsilon { value: r87, phi_ref: r119 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
          r119 <- Phi
   (  2)  r118 <- Phi
          r89 <- Part { src: r118, offset: 0, size: 4 }
          r90 <- ArithK(Add, r89, 1)
          r91 <- Part { src: r118, offset: 4, size: 4 }
-         r92 <- Concat { lo: r90, hi: r91 }
+  (  2)  r92 <- Concat { lo: r90, hi: r91 }
          r99 <- Const { value: 16, size: 8 }
          r100 <- Arith(Add, r99, r119)
   (  2)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
-         r103 <- Arith(BitAnd, r101, r101)
+  (  2)  r103 <- Arith(BitAnd, r101, r101)
          r105 <- IsZero(r103)
          r110 <- Not(r105)
          r111 <- SetJumpCondition(r110)
+         r122 <- Upsilon { value: r92, phi_ref: r118 }
+         r123 <- Upsilon { value: r103, phi_ref: r119 }
 .B2:    ;; preds:B1  → Always(Return).
          r114 <- Concat { lo: r113, hi: r92 }
          r115 <- Part { src: r114, offset: 0, size: 4 }
@@ -190,8 +194,8 @@ ssa program  124 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(1))) [r11, r15, r43, r65, r66, r67, r68, r69, r70, r71, r72, r73, r74, r75, r76, r77, r78, r79, r86, r87]
-  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r119, r118, r89, r90, r91, r92, r99, r100, r101, r103, r105, r110, r111]
+  BlockID(0) -> Always(Block(BlockID(1))) [r11, r15, r43, r65, r66, r67, r68, r69, r70, r71, r72, r73, r74, r75, r76, r77, r78, r79, r86, r87, r120, r121]
+  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r119, r118, r89, r90, r91, r92, r99, r100, r101, r103, r105, r110, r111, r122, r123]
   BlockID(2) -> Always(Return) [r113, r114, r115, r116]
   domtree:
     BlockID(0)
@@ -221,20 +225,24 @@ ssa program  124 instrs
          r79 <- Concat { lo: r77, hi: r78 }
          r86 <- Const { value: 8, size: 8 }
          r87 <- ArithK(Add, r11, 8)
+         r120 <- Upsilon { value: r79, phi_ref: r118 }
+         r121 <- Upsilon { value: r87, phi_ref: r119 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
          r119 <- Phi
   (  2)  r118 <- Phi
          r89 <- Part { src: r118, offset: 0, size: 4 }
   (  3)  r90 <- ArithK(Add, r89, 1)
          r91 <- Part { src: r118, offset: 4, size: 4 }
-         r92 <- Concat { lo: r90, hi: r91 }
+  (  2)  r92 <- Concat { lo: r90, hi: r91 }
          r99 <- Const { value: 16, size: 8 }
          r100 <- ArithK(Add, r119, 16)
-  (  2)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
+  (  3)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
          r103 <- Get(r101)
          r105 <- IsZero(r101)
          r110 <- Not(r105)
          r111 <- SetJumpCondition(r110)
+         r122 <- Upsilon { value: r92, phi_ref: r118 }
+         r123 <- Upsilon { value: r101, phi_ref: r119 }
 .B2:    ;; preds:B1  → Always(Return).
          r114 <- Get(r92)
          r115 <- Get(r90)
@@ -246,13 +254,18 @@ T0: {
   [pre:RSP + 8]:* := pre:arg0[8 .. 0];
   [pre:RSP + 16]:* := pre:arg0[16 .. 8];
   [pre:RSP + 24]:* := pre:arg0[24 .. 16];
+  r118 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
+  r119 := pre:RSP + 8;
   goto T1
   T1: {
     let mut r119: Bytes(8);
     let mut r118: Bytes(8);
     let r90: Bytes(4) = r118[4 .. 0] + 1;
+    let r92: Bytes(8) = r118[8 .. 4] ++ r90;
     let r101: Bytes(8) = [r119 + 16]:8;
     ;
+    r118 := r118[8 .. 4] ++ r90;
+    r119 := [r119 + 16]:8;
     if ! IsZero (r101) {
       goto T1
     }

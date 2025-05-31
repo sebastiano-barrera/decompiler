@@ -930,8 +930,6 @@ ssa program  650 instrs
   (  5)  r18 <- Ancestral(AncestralName("RDX"))
          r23 <- Ancestral(AncestralName("R12"))
          r43 <- Ancestral(AncestralName("memory"))
-         r51 <- Undefined
-         r52 <- Undefined
   (  4)  r65 <- ArithK(Add, r11, -8)
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
   (  2)  r68 <- ArithK(Add, r65, -8)
@@ -1029,17 +1027,21 @@ ssa program  650 instrs
          r215: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
          r216 <- Call { callee: r215, first_arg: Some(r214) }
          r226 <- Part { src: r216, offset: 0, size: 8 }
+         r649 <- Upsilon { value: r226, phi_ref: r641 }
 .B15:    ;; preds:B6  → Always(Block(BlockID(8))).
          r340 <- CArg { value: r198, next_arg: None }
          r341 <- CArg { value: r206, next_arg: Some(r340) }
          r342: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
          r343 <- Call { callee: r342, first_arg: Some(r341) }
          r353 <- Part { src: r343, offset: 0, size: 8 }
+         r646 <- Upsilon { value: r353, phi_ref: r641 }
 .B8:    ;; preds:B7,B15  → Always(Block(BlockID(9))).
-         r641 <- Phi
+  (  2)  r641 <- Phi
          r227 <- Const { value: 8, size: 8 }
          r228 <- Arith(Add, r227, r13)
          r229 <- StoreMem { mem: r71, addr: r228, value: r641 }
+         r647 <- Upsilon { value: r641, phi_ref: r642 }
+         r648 <- Upsilon { value: r229, phi_ref: r643 }
 .B35:    ;; preds:B1  → Always(Undefined).
          r603 <- Const { value: 6982459, size: 4 }
          r606 <- Part { src: r87, offset: 0, size: 4 }
@@ -1094,7 +1096,7 @@ ssa program  650 instrs
   (  2)  r362 <- Part { src: r17, offset: 0, size: 4 }
          r363 <- Const { value: -52, size: 8 }
   (  2)  r364 <- Arith(Add, r363, r65)
-         r365 <- StoreMem { mem: r71, addr: r364, value: r362 }
+  (  2)  r365 <- StoreMem { mem: r71, addr: r364, value: r362 }
          r376 <- CArg { value: r364, next_arg: None }
          r377 <- CArg { value: r362, next_arg: Some(r376) }
          r378 <- CArg { value: r359, next_arg: Some(r377) }
@@ -1114,6 +1116,8 @@ ssa program  650 instrs
          r428 <- CArg { value: r414, next_arg: Some(r427) }
          r429: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
          r430 <- Call { callee: r429, first_arg: Some(r428) }
+         r644 <- Upsilon { value: r407, phi_ref: r642 }
+         r645 <- Upsilon { value: r365, phi_ref: r643 }
 .B9:    ;; preds:B8,B16  → Always(Return).
          r642 <- Phi
          r248 <- SetReturnValue(r642)
@@ -1121,39 +1125,39 @@ ssa program  650 instrs
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(10)), neg: Block(BlockID(1)) } [r10, r11, r13, r14, r15, r16, r17, r18, r23, r43, r51, r52, r65, r66, r68, r69, r70, r71, r82, r83, r84, r85, r86, r87, r94, r95, r96, r100, r103]
+  BlockID(0) -> Conditional { pos: Block(BlockID(10)), neg: Block(BlockID(1)) } [r10, r11, r13, r14, r15, r16, r17, r18, r23, r43, r65, r66, r68, r69, r70, r71, r82, r83, r84, r85, r86, r87, r94, r95, r96, r100, r103]
   BlockID(1) -> Conditional { pos: Block(BlockID(35)), neg: Block(BlockID(2)) } [r105, r106, r107, r111, r114, r115]
   BlockID(2) -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(3)) } [r117, r126, r127, r128, r129, r130, r137, r138, r139, r143, r146]
   BlockID(3) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(4)) } [r148, r149, r150, r151, r152, r153, r154, r155, r156, r163, r164, r165, r167, r172, r173]
   BlockID(4) -> Conditional { pos: Ext(4203597), neg: Block(BlockID(5)) } [r175, r176, r177, r180, r181, r184, r185, r186, r187]
   BlockID(5) -> Always(Indirect) [r189, r190, r191, r192, r193]
   BlockID(6) -> Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(7)) } [r196, r197, r198, r200, r205, r206]
-  BlockID(7) -> Always(Block(BlockID(8))) [r213, r214, r215, r216, r226]
-  BlockID(8) -> Always(Block(BlockID(9))) [r641, r227, r228, r229]
+  BlockID(7) -> Always(Block(BlockID(8))) [r213, r214, r215, r216, r226, r649]
+  BlockID(8) -> Always(Block(BlockID(9))) [r641, r227, r228, r229, r647, r648]
   BlockID(9) -> Always(Return) [r642, r248]
   BlockID(10) -> Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(11)) } [r250, r251, r256, r257, r258, r259, r260, r261, r268, r269, r270, r274, r277]
   BlockID(11) -> Conditional { pos: Ext(4203590), neg: Block(BlockID(12)) } [r279, r280, r281, r282, r283, r284, r285, r286, r287, r294, r295, r296, r299, r300, r303, r304, r305, r306]
   BlockID(12) -> Always(Indirect) [r308, r309, r310, r311, r312]
   BlockID(13) -> Conditional { pos: Ext(4203604), neg: Block(BlockID(14)) } [r314, r315, r316, r319, r320, r323, r324, r325, r326]
   BlockID(14) -> Always(Indirect) [r328, r329, r330, r331, r332]
-  BlockID(15) -> Always(Block(BlockID(8))) [r340, r341, r342, r343, r353]
-  BlockID(16) -> Always(Block(BlockID(9))) [r359, r362, r363, r364, r365, r376, r377, r378, r379, r380, r395, r396, r397, r407, r412, r413, r414, r415, r425, r426, r427, r428, r429, r430]
+  BlockID(15) -> Always(Block(BlockID(8))) [r340, r341, r342, r343, r353, r646]
+  BlockID(16) -> Always(Block(BlockID(9))) [r359, r362, r363, r364, r365, r376, r377, r378, r379, r380, r395, r396, r397, r407, r412, r413, r414, r415, r425, r426, r427, r428, r429, r430, r644, r645]
   BlockID(17) -> Always(Undefined) []
   BlockID(18) -> Always(Undefined) []
   BlockID(19) -> Always(Undefined) []
-  BlockID(20) -> Always(Undefined) [r485]
-  BlockID(21) -> Always(Undefined) [r487]
-  BlockID(22) -> Always(Undefined) [r489]
-  BlockID(23) -> Always(Undefined) [r500]
-  BlockID(24) -> Always(Undefined) [r516]
-  BlockID(25) -> Always(Undefined) [r528]
-  BlockID(26) -> Always(Undefined) [r530]
+  BlockID(20) -> Always(Undefined) []
+  BlockID(21) -> Always(Undefined) []
+  BlockID(22) -> Always(Undefined) []
+  BlockID(23) -> Always(Undefined) []
+  BlockID(24) -> Always(Undefined) []
+  BlockID(25) -> Always(Undefined) []
+  BlockID(26) -> Always(Undefined) []
   BlockID(27) -> Always(Undefined) []
   BlockID(28) -> Always(Undefined) []
-  BlockID(29) -> Always(Undefined) [r558]
-  BlockID(30) -> Always(Undefined) [r579]
-  BlockID(31) -> Always(Undefined) [r581]
-  BlockID(32) -> Always(Undefined) [r583]
+  BlockID(29) -> Always(Undefined) []
+  BlockID(30) -> Always(Undefined) []
+  BlockID(31) -> Always(Undefined) []
+  BlockID(32) -> Always(Undefined) []
   BlockID(33) -> Always(Undefined) []
   BlockID(34) -> Always(Undefined) []
   BlockID(35) -> Always(Undefined) [r603, r606, r607, r608, r627, r628, r629, r630, r631]
@@ -1208,8 +1212,6 @@ ssa program  655 instrs
   (  6)  r18 <- Ancestral(AncestralName("RDX"))
          r23 <- Ancestral(AncestralName("R12"))
          r43 <- Ancestral(AncestralName("memory"))
-         r51 <- Undefined
-         r52 <- Undefined
          r65 <- ArithK(Add, r11, -8)
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
          r68 <- ArithK(Add, r11, -16)
@@ -1305,19 +1307,23 @@ ssa program  655 instrs
          r213 <- CArg { value: r198, next_arg: None }
          r214 <- CArg { value: r206, next_arg: Some(r213) }
          r215: lpAppendInteger <TypeID(266438v1)> <- Const { value: 5627056, size: 8 }
-         r216 <- Call { callee: r215, first_arg: Some(r214) }
+  (  2)  r216 <- Call { callee: r215, first_arg: Some(r214) }
          r226 <- Get(r216)
+         r649 <- Upsilon { value: r216, phi_ref: r641 }
 .B15:    ;; preds:B6  → Always(Block(BlockID(8))).
          r340 <- CArg { value: r198, next_arg: None }
          r341 <- CArg { value: r206, next_arg: Some(r340) }
          r342: lpPrependInteger <TypeID(266449v1)> <- Const { value: 5627360, size: 8 }
-         r343 <- Call { callee: r342, first_arg: Some(r341) }
+  (  2)  r343 <- Call { callee: r342, first_arg: Some(r341) }
          r353 <- Get(r343)
+         r646 <- Upsilon { value: r343, phi_ref: r641 }
 .B8:    ;; preds:B7,B15  → Always(Block(BlockID(9))).
-         r641 <- Phi
+  (  2)  r641 <- Phi
          r227 <- Const { value: 8, size: 8 }
          r228 <- ArithK(Add, r13, 8)
          r229 <- StoreMem { mem: r71, addr: r228, value: r641 }
+         r647 <- Upsilon { value: r641, phi_ref: r642 }
+         r648 <- Upsilon { value: r229, phi_ref: r643 }
 .B35:    ;; preds:B1  → Always(Undefined).
          r603 <- Const { value: 6982459, size: 4 }
          r606 <- Get(r85)
@@ -1380,7 +1386,7 @@ ssa program  655 instrs
          r380 <- Call { callee: r379, first_arg: Some(r378) }
          r395 <- CArg { value: r359, next_arg: None }
   (  2)  r396: strlen <TypeID(164962v1)> <- Const { value: 4199136, size: 8 }
-         r397 <- Call { callee: r396, first_arg: Some(r395) }
+  (  2)  r397 <- Call { callee: r396, first_arg: Some(r395) }
          r407 <- Get(r397)
          r412 <- Const { value: -52, size: 8 }
          r413 <- ArithK(Add, r11, -60)
@@ -1395,6 +1401,8 @@ ssa program  655 instrs
          r428 <- CArg { value: r651, next_arg: Some(r427) }
          r429: quicklistPush <TypeID(164114v1)> <- Const { value: 4293744, size: 8 }
          r430 <- Call { callee: r429, first_arg: Some(r428) }
+         r644 <- Upsilon { value: r397, phi_ref: r642 }
+         r645 <- Upsilon { value: r365, phi_ref: r643 }
 .B9:    ;; preds:B8,B16  → Always(Return).
          r642 <- Phi
          r248 <- SetReturnValue(r642)
@@ -1421,12 +1429,14 @@ T0: {
       ll2string(32,
                 r362,
                 r364);
-      strlen(32);
+      let r397: Bytes(8) = strlen(32);
       let r651: Bytes(4) = pre:RCX[4 .. 0];
       quicklistPush(r651,
                     (pre:RSP - 60),
                     pre:RCX[8 .. 4],
                     4199136);
+      r642 := strlen(32);
+      ;
       goto T9
     }
     TODO /* unsupported: movzx edx,byte ptr [rdi-1] */;
@@ -1455,16 +1465,22 @@ T0: {
     ;
     let r206: Control = /* warning: unexpected Control */ JmpIf(334);
     if IsZero (r198) {
-      lpPrependInteger(r206,
-                       r198);
+      let r343: Bytes(8) = lpPrependInteger(r206,
+                                            r198);
+      r641 := lpPrependInteger(r206,
+                               r198);
       goto T8
     }
-    lpAppendInteger(r206,
-                    r198);
+    let r216: Bytes(8) = lpAppendInteger(r206,
+                                         r198);
+    r641 := lpAppendInteger(r206,
+                            r198);
     goto T8
     T8: {
       let mut r641: Bytes(8);
       [pre:RDI + 8]:* := r641;
+      r642 := phi ();
+      ;
       goto T9
     }
   

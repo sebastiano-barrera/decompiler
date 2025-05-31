@@ -395,32 +395,19 @@ impl std::ops::DerefMut for OpenProgram<'_> {
 
 pub fn eliminate_dead_code(prog: &mut Program) {
     let mut is_read = RegMap::for_program(prog, false);
-    let mut work = Vec::new();
 
-    // initialize worklist with effectful instructions, purposefully skipping
-    // Upsilons (only processed as a consequence of processing the corresponding
-    // phi)
-    for reg in prog.registers() {
-        let insn = prog[reg].get();
-        if insn.has_side_effects() && !matches!(insn, mil::Insn::Upsilon { .. }) {
-            work.push(reg);
-        }
-    }
+    for bid in prog.cfg().block_ids_postorder() {
+        for reg in prog.block_regs(bid).rev() {
+            let mut insn = prog[reg].get();
 
-    while let Some(reg) = work.pop() {
-        if is_read[reg] {
-            continue;
-        }
+            if insn.has_side_effects() {
+                is_read[reg] = true;
+            }
 
-        is_read[reg] = true;
-
-        let mut insn = prog[reg].get();
-        for &mut input in insn.input_regs() {
-            work.push(input);
-        }
-        if matches!(insn, mil::Insn::Phi) {
-            for ups in prog.upsilons_of_phi(reg) {
-                work.push(ups);
+            if is_read[reg] {
+                for &mut input in insn.input_regs() {
+                    is_read[input] = true;
+                }
             }
         }
     }
@@ -889,7 +876,7 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     mat
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct RegMap<T>(Vec<T>);
 
 impl<T: Clone> RegMap<T> {
