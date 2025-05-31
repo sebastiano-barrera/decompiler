@@ -1522,9 +1522,10 @@ mod ast_view {
             let rdr_count = decompiler::count_readers(ssa);
             let is_named = rdr_count.map(|reg, rdr_count| {
                 let insn = ssa[reg].get();
-                *rdr_count > 1
-                    && !matches!(insn, Insn::Ancestral(_))
-                    && !matches!(insn, Insn::Const { .. })
+                matches!(insn, Insn::Phi)
+                    || (*rdr_count > 1
+                        && !matches!(insn, Insn::Ancestral(_))
+                        && !matches!(insn, Insn::Const { .. }))
             });
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
