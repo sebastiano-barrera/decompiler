@@ -41,7 +41,7 @@ compiler version
 - [x] ast: link other bits of syntax to ssa (e.g., bin ops)
 - [x] ast: fix colors
 - [x] ast: scroll-to when selecting something
-- [?] xform: eliminate upsilons referencing dead phis
+- [x] xform: eliminate upsilons referencing dead phis
     - actually not sure that this is needed at all
 - [x] merge selection colors mgmt in ast and ssa
 - [ ] show type info
