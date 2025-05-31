@@ -89,6 +89,7 @@ tests_in_binary!(
     geoArrayCreate,
     // regression: infinite loop
     processAnnotations,
+    redisReconnect,
 );
 
 tests_in_binary!(
