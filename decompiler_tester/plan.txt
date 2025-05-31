@@ -44,7 +44,7 @@ compiler version
 - [x] xform: eliminate upsilons referencing dead phis
     - actually not sure that this is needed at all
 - [x] merge selection colors mgmt in ast and ssa
-- [ ] always inline consts
+- [x] always inline consts
 - [ ] ast: show function names (should be correctly identifier by decompiler core)
 - [ ] show type info
     - [ ] function prototype
