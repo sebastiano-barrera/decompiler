@@ -84,10 +84,7 @@ impl Program {
     }
 
     pub fn block_regs(&self, bid: cfg::BlockID) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
-        self.schedule
-            .of_block(bid)
-            .iter()
-            .map(|&ndx| mil::Reg(ndx))
+        self.schedule.of_block(bid).iter().map(|&ndx| mil::Reg(ndx))
     }
 
     pub fn find_last_matching<P, R>(&self, bid: cfg::BlockID, pred: P) -> Option<R>
@@ -242,9 +239,7 @@ impl Program {
                             };
                             assert!(
                                 def_block_input == bid
-                                    || dom_tree
-                                        .imm_doms(bid)
-                                        .any(|b| b == def_block_input)
+                                    || dom_tree.imm_doms(bid).any(|b| b == def_block_input)
                             );
                         }
 

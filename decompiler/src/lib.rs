@@ -6,9 +6,9 @@ mod mil;
 mod ssa;
 mod tests;
 mod ty;
+mod util;
 mod x86_to_mil;
 mod xform;
-mod util;
 
 pub mod api;
 pub mod pp;

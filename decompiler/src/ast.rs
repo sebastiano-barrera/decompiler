@@ -534,7 +534,7 @@ pub type PrecedenceLevel = u8;
 pub fn precedence(insn: &Insn) -> PrecedenceLevel {
     // higher value == higher precedence == evaluated first unless parenthesized
     match insn {
-        // actually, Insn::Get is supposed to already be "resolved" to its argument 
+        // actually, Insn::Get is supposed to already be "resolved" to its argument
         // prior to calling this function, but better to return something "safe"
         Insn::Get(_)
         | Insn::Void
