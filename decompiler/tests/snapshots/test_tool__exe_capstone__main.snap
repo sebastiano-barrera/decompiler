@@ -577,8 +577,8 @@ ssa program  411 instrs
          r166 <- CArg { value: r140, next_arg: Some(r165) }
          r167: cs_disasm <TypeID(3329v1)> <- Const { value: 4198496, size: 8 }
          r168 <- Call { callee: r167, first_arg: Some(r166) }
-  (  2)  r178 <- Part { src: r168, offset: 0, size: 8 }
-         r180 <- Arith(BitAnd, r178, r178)
+  (  3)  r178 <- Part { src: r168, offset: 0, size: 8 }
+  (  2)  r180 <- Arith(BitAnd, r178, r178)
          r182 <- IsZero(r180)
          r187 <- SetJumpCondition(r182)
 .B2:    ;; preds:B1  → Always(Block(BlockID(3))).
@@ -587,6 +587,8 @@ ssa program  411 instrs
          r191 <- Arith(BitXor, r189, r190)
          r192 <- Part { src: r16, offset: 4, size: 4 }
          r193 <- Concat { lo: r191, hi: r192 }
+         r401 <- Upsilon { value: r178, phi_ref: r387 }
+         r403 <- Upsilon { value: r193, phi_ref: r389 }
 .B3:    ;; preds:B2,B3  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) }.
   (  3)  r389 <- Phi
          r387 <- Phi
@@ -598,7 +600,7 @@ ssa program  411 instrs
          r210 <- Arith(Shl, r389, r209)
          r216 <- Arith(Sub, r210, r389)
          r224 <- Const { value: 1, size: 8 }
-         r225 <- Arith(Add, r389, r224)
+  (  2)  r225 <- Arith(Add, r389, r224)
          r233 <- Const { value: 0, size: 8 }
          r234 <- Arith(Add, r233, r203)
          r235 <- ArithK(Mul, r216, 8)
@@ -606,15 +608,17 @@ ssa program  411 instrs
          r242 <- Const { value: 74, size: 8 }
          r243 <- Arith(Add, r242, r236)
          r245 <- Const { value: 42, size: 8 }
-         r246 <- Arith(Add, r245, r236)
+  (  2)  r246 <- Arith(Add, r245, r236)
          r262 <- CArg { value: r246, next_arg: None }
          r263: printf <TypeID(3326v1)> <- Const { value: 4198480, size: 8 }
          r264 <- Call { callee: r263, first_arg: Some(r262) }
          r274 <- Part { src: r264, offset: 0, size: 8 }
-         r275 <- Arith(Sub, r387, r225)
+  (  3)  r275 <- Arith(Sub, r387, r225)
          r279 <- IsZero(r275)
          r282 <- Not(r279)
          r283 <- SetJumpCondition(r282)
+         r404 <- Upsilon { value: r275, phi_ref: r387 }
+         r406 <- Upsilon { value: r225, phi_ref: r389 }
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
          r285 <- Const { value: 8, size: 8 }
   (  2)  r286 <- Arith(Add, r285, r78)
@@ -623,9 +627,17 @@ ssa program  411 instrs
          r297 <- CArg { value: r287, next_arg: Some(r296) }
          r298: cs_free <TypeID(3322v1)> <- Const { value: 4198464, size: 8 }
          r299 <- Call { callee: r298, first_arg: Some(r297) }
+         r407 <- Upsilon { value: r275, phi_ref: r390 }
+         r408 <- Upsilon { value: r274, phi_ref: r391 }
+         r409 <- Upsilon { value: r243, phi_ref: r392 }
+         r410 <- Upsilon { value: r246, phi_ref: r393 }
 .B7:    ;; preds:B1  → Always(Block(BlockID(5))).
          r363: __builtin_puts <TypeID(3365v1)> <- Const { value: 4198448, size: 8 }
          r364 <- Call { callee: r363, first_arg: None }
+         r396 <- Upsilon { value: r142, phi_ref: r390 }
+         r397 <- Upsilon { value: r180, phi_ref: r391 }
+         r398 <- Upsilon { value: r136, phi_ref: r392 }
+         r399 <- Upsilon { value: r139, phi_ref: r393 }
 .B5:    ;; preds:B4,B7  → Always(Block(BlockID(6))).
          r393 <- Phi
          r392 <- Phi
@@ -642,12 +654,14 @@ ssa program  411 instrs
          r328 <- Arith(BitXor, r326, r327)
          r329 <- Part { src: r391, offset: 4, size: 4 }
          r330 <- Concat { lo: r328, hi: r329 }
+         r400 <- Upsilon { value: r330, phi_ref: r394 }
 .B8:    ;; preds:B0  → Always(Block(BlockID(6))).
          r375 <- Part { src: r15, offset: 0, size: 4 }
          r376 <- Const { value: -1, size: 4 }
          r377 <- Arith(BitOr, r375, r376)
          r378 <- Part { src: r15, offset: 4, size: 4 }
          r379 <- Concat { lo: r377, hi: r378 }
+         r395 <- Upsilon { value: r379, phi_ref: r394 }
 .B6:    ;; preds:B5,B8  → Always(Return).
          r394 <- Phi
          r356 <- Concat { lo: r355, hi: r394 }
@@ -659,13 +673,13 @@ cfg:
   entry: BlockID(0)
   BlockID(0) -> Conditional { pos: Block(BlockID(8)), neg: Block(BlockID(1)) } [r10, r11, r13, r14, r15, r16, r17, r19, r23, r43, r65, r66, r67, r68, r69, r70, r71, r72, r73, r74, r75, r76, r77, r78, r84, r87, r88, r89, r90, r91, r92, r103, r104, r105, r107, r112, r113]
   BlockID(1) -> Conditional { pos: Block(BlockID(7)), neg: Block(BlockID(2)) } [r122, r123, r124, r125, r131, r134, r135, r136, r137, r138, r139, r140, r141, r142, r161, r162, r163, r164, r165, r166, r167, r168, r178, r180, r182, r187]
-  BlockID(2) -> Always(Block(BlockID(3))) [r189, r190, r191, r192, r193]
-  BlockID(3) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) } [r389, r387, r201, r202, r203, r208, r209, r210, r216, r224, r225, r233, r234, r235, r236, r242, r243, r245, r246, r262, r263, r264, r274, r275, r279, r282, r283]
-  BlockID(4) -> Always(Block(BlockID(5))) [r285, r286, r287, r296, r297, r298, r299]
-  BlockID(5) -> Always(Block(BlockID(6))) [r393, r392, r391, r390, r310, r311, r312, r313, r314, r315, r326, r327, r328, r329, r330]
+  BlockID(2) -> Always(Block(BlockID(3))) [r189, r190, r191, r192, r193, r401, r403]
+  BlockID(3) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) } [r389, r387, r201, r202, r203, r208, r209, r210, r216, r224, r225, r233, r234, r235, r236, r242, r243, r245, r246, r262, r263, r264, r274, r275, r279, r282, r283, r404, r406]
+  BlockID(4) -> Always(Block(BlockID(5))) [r285, r286, r287, r296, r297, r298, r299, r407, r408, r409, r410]
+  BlockID(5) -> Always(Block(BlockID(6))) [r393, r392, r391, r390, r310, r311, r312, r313, r314, r315, r326, r327, r328, r329, r330, r400]
   BlockID(6) -> Always(Return) [r394, r355, r356, r357, r358]
-  BlockID(7) -> Always(Block(BlockID(5))) [r363, r364]
-  BlockID(8) -> Always(Block(BlockID(6))) [r375, r376, r377, r378, r379]
+  BlockID(7) -> Always(Block(BlockID(5))) [r363, r364, r396, r397, r398, r399]
+  BlockID(8) -> Always(Block(BlockID(6))) [r375, r376, r377, r378, r379, r395]
   domtree:
     BlockID(0)
     |  BlockID(1)
@@ -739,7 +753,7 @@ ssa program  411 instrs
          r165 <- CArg { value: r141, next_arg: Some(r164) }
          r166 <- CArg { value: r140, next_arg: Some(r165) }
          r167: cs_disasm <TypeID(3329v1)> <- Const { value: 4198496, size: 8 }
-  (  3)  r168 <- Call { callee: r167, first_arg: Some(r166) }
+  (  5)  r168 <- Call { callee: r167, first_arg: Some(r166) }
          r178 <- Get(r168)
          r180 <- Get(r168)
          r182 <- IsZero(r168)
@@ -750,6 +764,8 @@ ssa program  411 instrs
          r191 <- Arith(BitXor, r189, r190)
          r192 <- Part { src: r16, offset: 4, size: 4 }
          r193 <- Concat { lo: r191, hi: r192 }
+         r401 <- Upsilon { value: r168, phi_ref: r387 }
+         r403 <- Upsilon { value: r193, phi_ref: r389 }
 .B3:    ;; preds:B2,B3  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) }.
   (  3)  r389 <- Phi
          r387 <- Phi
@@ -761,7 +777,7 @@ ssa program  411 instrs
          r210 <- Arith(Shl, r389, r209)
          r216 <- Arith(Sub, r210, r389)
          r224 <- Const { value: 1, size: 8 }
-         r225 <- ArithK(Add, r389, 1)
+  (  2)  r225 <- ArithK(Add, r389, 1)
          r233 <- Const { value: 0, size: 8 }
          r234 <- Get(r203)
          r235 <- ArithK(Mul, r216, 8)
@@ -769,15 +785,17 @@ ssa program  411 instrs
          r242 <- Const { value: 74, size: 8 }
          r243 <- ArithK(Add, r236, 74)
          r245 <- Const { value: 42, size: 8 }
-         r246 <- ArithK(Add, r236, 42)
+  (  2)  r246 <- ArithK(Add, r236, 42)
          r262 <- CArg { value: r246, next_arg: None }
          r263: printf <TypeID(3326v1)> <- Const { value: 4198480, size: 8 }
-         r264 <- Call { callee: r263, first_arg: Some(r262) }
+  (  2)  r264 <- Call { callee: r263, first_arg: Some(r262) }
          r274 <- Get(r264)
-         r275 <- Arith(Sub, r387, r225)
+  (  3)  r275 <- Arith(Sub, r387, r225)
          r279 <- IsZero(r275)
          r282 <- Not(r279)
          r283 <- SetJumpCondition(r282)
+         r404 <- Upsilon { value: r275, phi_ref: r387 }
+         r406 <- Upsilon { value: r225, phi_ref: r389 }
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
          r285 <- Const { value: 8, size: 8 }
   (  2)  r286 <- ArithK(Add, r11, -32)
@@ -786,9 +804,17 @@ ssa program  411 instrs
          r297 <- CArg { value: r287, next_arg: Some(r296) }
          r298: cs_free <TypeID(3322v1)> <- Const { value: 4198464, size: 8 }
          r299 <- Call { callee: r298, first_arg: Some(r297) }
+         r407 <- Upsilon { value: r275, phi_ref: r390 }
+         r408 <- Upsilon { value: r264, phi_ref: r391 }
+         r409 <- Upsilon { value: r243, phi_ref: r392 }
+         r410 <- Upsilon { value: r246, phi_ref: r393 }
 .B7:    ;; preds:B1  → Always(Block(BlockID(5))).
          r363: __builtin_puts <TypeID(3365v1)> <- Const { value: 4198448, size: 8 }
          r364 <- Call { callee: r363, first_arg: None }
+         r396 <- Upsilon { value: r142, phi_ref: r390 }
+         r397 <- Upsilon { value: r168, phi_ref: r391 }
+         r398 <- Upsilon { value: r136, phi_ref: r392 }
+         r399 <- Upsilon { value: r139, phi_ref: r393 }
 .B5:    ;; preds:B4,B7  → Always(Block(BlockID(6))).
          r393 <- Phi
          r392 <- Phi
@@ -805,12 +831,14 @@ ssa program  411 instrs
          r328 <- Arith(BitXor, r326, r327)
          r329 <- Part { src: r391, offset: 4, size: 4 }
          r330 <- Concat { lo: r328, hi: r329 }
+         r400 <- Upsilon { value: r330, phi_ref: r394 }
 .B8:    ;; preds:B0  → Always(Block(BlockID(6))).
          r375 <- Part { src: r15, offset: 0, size: 4 }
          r376 <- Const { value: -1, size: 4 }
          r377 <- ArithK(BitOr, r375, -1)
          r378 <- Part { src: r15, offset: 4, size: 4 }
          r379 <- Concat { lo: r377, hi: r378 }
+         r395 <- Upsilon { value: r379, phi_ref: r394 }
 .B6:    ;; preds:B5,B8  → Always(Return).
   (  2)  r394 <- Phi
          r356 <- Get(r394)
@@ -830,6 +858,7 @@ T0: {
           pre:RCX);
   ;
   if ! IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0]) {
+    r394 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] | -1);
     goto T6
   }
   let r123: Bytes(4) = pre:R8[4 .. 0];
@@ -843,22 +872,47 @@ T0: {
   ;
   if IsZero (r168) {
     __builtin_puts();
+    r390 := r141 ++ 4203184;
+    r391 := cs_disasm(4203184,
+                      r141,
+                      r78[1 .. 0],
+                      r123,
+                      pre:R8[8 .. 4],
+                      (pre:R8[4 .. 0] ^ r123)[1 .. 0]);
+    r392 := pre:RCX[8 .. 4] ++ 4096;
+    r393 := r78[8 .. 4] ++ 8;
     goto T5
   }
+  r387 := cs_disasm(4203184,
+                    r141,
+                    r78[1 .. 0],
+                    r123,
+                    pre:R8[8 .. 4],
+                    (pre:R8[4 .. 0] ^ r123)[1 .. 0]);
+  r389 := pre:RBX[8 .. 4] ++ (pre:RBX[4 .. 0] ^ pre:RBX[4 .. 0]);
   goto T3
   T3: {
     let mut r389: Bytes(8);
     let mut r387: Bytes(8);
     let r203: Bytes(8) = [pre:RSP - 32]:8;
+    let r225: Bytes(8) = r389 + 1;
     let r236: Bytes(8) = r203 + (r389 << 5 as u64 - r389) * 8;
-    printf((r236 + 42));
+    let r246: Bytes(8) = r236 + 42;
+    let r264: Bytes(8) = printf(r246);
+    let r275: Bytes(8) = r387 - r225;
     ;
-    if ! IsZero (r387 - r389 + 1) {
+    r387 := r387 - r225;
+    r389 := r389 + 1;
+    if ! IsZero (r275) {
       goto T3
     }
     let r286: Bytes(8) = pre:RSP - 32;
     cs_free([r286]:8,
             r286);
+    r390 := r387 - r225;
+    r391 := printf(r246);
+    r392 := r236 + 74;
+    r393 := r236 + 42;
     goto T5
   }
   
@@ -871,6 +925,7 @@ T0: {
              r390,
              r393,
              r392);
+    r394 := r391[8 .. 4] ++ (r391[4 .. 0] ^ r391[4 .. 0]);
     goto T6
   }
   

@@ -103,13 +103,17 @@ impl Program {
         mil::Reg(ndx)
     }
 
-    pub fn upsilons_of_phi(&self, phi_reg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
+    pub fn upsilons_of_phi(&self, phi_reg: mil::Reg) -> impl '_ + Iterator<Item = UpsilonDesc> {
         assert!(matches!(self[phi_reg].get(), mil::Insn::Phi));
 
-        self.inner.iter().filter_map(move |iv| match iv.insn.get() {
-            mil::Insn::Upsilon { value, phi_ref } if phi_ref == phi_reg => Some(value),
-            _ => None,
-        })
+        self.registers()
+            .filter_map(move |reg| match self[reg].get() {
+                mil::Insn::Upsilon { value, phi_ref } if phi_ref == phi_reg => Some(UpsilonDesc {
+                    upsilon_reg: reg,
+                    input_reg: value,
+                }),
+                _ => None,
+            })
     }
 
     pub fn reg_type(&self, reg: mil::Reg) -> mil::RegType {
@@ -166,7 +170,7 @@ impl Program {
                     panic!("no upsilons for this phi? {:?}", reg)
                 };
                 // assuming that all types are the same, as per assert_phis_consistent
-                self.reg_type(y)
+                self.reg_type(y.input_reg)
             }
             Insn::Ancestral(anc_name) => self
                 .inner
@@ -347,6 +351,11 @@ impl std::ops::Index<mil::Reg> for Program {
     }
 }
 
+pub struct UpsilonDesc {
+    upsilon_reg: mil::Reg,
+    input_reg: mil::Reg,
+}
+
 pub struct OpenProgram<'a> {
     program: &'a mut Program,
     inserts: Vec<mil::Reg>,
@@ -419,8 +428,8 @@ pub fn eliminate_dead_code(prog: &mut Program) {
             work.push(input);
         }
         if matches!(insn, mil::Insn::Phi) {
-            for ups in prog.upsilons_of_phi(reg) {
-                work.push(ups);
+            for UpsilonDesc { upsilon_reg, .. } in prog.upsilons_of_phi(reg) {
+                work.push(upsilon_reg);
             }
         }
     }
