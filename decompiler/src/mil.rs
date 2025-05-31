@@ -3,7 +3,7 @@ use facet_reflect::HasFields;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{any::Any, cell::Cell, collections::HashMap, ops::Range, sync::Arc};
+use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::ty;
 
@@ -363,13 +363,6 @@ impl std::fmt::Debug for Program {
     }
 }
 
-fn range_conv<T, U: From<T>>(range: Range<T>) -> Range<U> {
-    Range {
-        start: range.start.into(),
-        end: range.end.into(),
-    }
-}
-
 impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
@@ -629,7 +622,7 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
             // everything else is translated to Generic with the debug string
 
             let ev = if let Ok(reg) = peek.get::<Reg>() {
-                ExpandedValue::Reg(reg.clone())
+                ExpandedValue::Reg(*reg)
             } else if let Some(reg) = peek
                 .into_option()
                 .ok()
@@ -637,7 +630,7 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
                 .as_ref()
                 .and_then(|peek| peek.get::<Reg>().ok())
             {
-                ExpandedValue::Reg(reg.clone())
+                ExpandedValue::Reg(*reg)
             } else {
                 ExpandedValue::Generic(format!("{:?}", peek))
             };

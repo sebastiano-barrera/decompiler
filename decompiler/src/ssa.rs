@@ -1,4 +1,4 @@
-use std::{cell::Cell, io::Write, ops::Range};
+use std::{cell::Cell, io::Write};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -86,7 +86,7 @@ impl Program {
     pub fn block_regs(&self, bid: cfg::BlockID) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
         self.schedule
             .of_block(bid)
-            .into_iter()
+            .iter()
             .map(|&ndx| mil::Reg(ndx))
     }
 
@@ -244,8 +244,7 @@ impl Program {
                                 def_block_input == bid
                                     || dom_tree
                                         .imm_doms(bid)
-                                        .find(|&b| b == def_block_input)
-                                        .is_some()
+                                        .any(|b| b == def_block_input)
                             );
                         }
 
@@ -387,13 +386,13 @@ impl<'a> OpenProgram<'a> {
         }
     }
 }
-impl<'a> std::ops::Deref for OpenProgram<'a> {
+impl std::ops::Deref for OpenProgram<'_> {
     type Target = Program;
     fn deref(&self) -> &Self::Target {
         self.program
     }
 }
-impl<'a> std::ops::DerefMut for OpenProgram<'a> {
+impl std::ops::DerefMut for OpenProgram<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.program
     }
@@ -792,7 +791,7 @@ fn find_received_vars(
 ) -> RegMat<bool> {
     let mut is_received = RegMat::for_program(prog, graph, false);
     for bid in graph.block_ids_postorder() {
-        for &ndx in block_spans.of_block(bid).into_iter().rev() {
+        for &ndx in block_spans.of_block(bid).iter().rev() {
             let iv = prog.get(ndx).unwrap();
             let dest = iv.dest.get();
             let mut insn = iv.insn.get();

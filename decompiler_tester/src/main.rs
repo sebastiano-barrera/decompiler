@@ -887,7 +887,7 @@ fn show_ssa(
                 });
 
                 let block_rect = block_res.response.rect;
-                let mut hl_rect = block_rect.clone();
+                let mut hl_rect = block_rect;
                 hl_rect.set_width(HL_BORDER_SIZE);
 
                 if hl.block.pinned() == Some(&bid) {
@@ -1001,8 +1001,8 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     colors: &HlLabelColors,
     text: egui::WidgetText,
 ) -> egui::Response {
-    let is_pinned = hli.pinned() == Some(&item);
-    let is_hovered = hli.hovered() == Some(&item);
+    let is_pinned = hli.pinned() == Some(item);
+    let is_hovered = hli.hovered() == Some(item);
 
     let bg = if is_pinned {
         colors.background_pinned
@@ -1096,12 +1096,12 @@ fn load_executable(path: &Path) -> Result<Exe> {
     use std::io::Read as _;
 
     let mut exe_bytes = Vec::new();
-    let mut elf = File::open(&path).context("opening file")?;
+    let mut elf = File::open(path).context("opening file")?;
     elf.read_to_end(&mut exe_bytes).context("reading file")?;
 
     ExeTryBuilder {
         exe_bytes,
-        exe_builder: |exe_bytes| Executable::parse(&exe_bytes).context("parsing executable"),
+        exe_builder: |exe_bytes| Executable::parse(exe_bytes).context("parsing executable"),
     }
     .try_build()
 }
@@ -1153,8 +1153,7 @@ impl FunctionSelector {
                     .filter(|(_, name_lower)| {
                         self.line_lower
                             .split_whitespace()
-                            .map(|word| name_lower.contains(word))
-                            .all(|x| x)
+                            .all(|word| name_lower.contains(word))
                     })
                     .map(|(ndx, _)| ndx),
             );
@@ -1178,6 +1177,7 @@ impl FunctionSelector {
     }
 }
 
+#[derive(Default)]
 struct StatusView {
     cur_msg: Option<StatusMessage>,
 }
@@ -1195,12 +1195,6 @@ impl StatusView {
                 ui.label(msg.text.as_str());
             });
         }
-    }
-}
-
-impl Default for StatusView {
-    fn default() -> Self {
-        StatusView { cur_msg: None }
     }
 }
 

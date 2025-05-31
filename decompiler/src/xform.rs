@@ -441,17 +441,17 @@ pub fn canonical(prog: &mut ssa::Program) {
                 let mut prog = ssa::OpenProgram::wrap(prog, bid, ndx_in_block);
 
                 let mut insn = orig_insn;
-                insn = fold_get(insn, &mut prog);
-                insn = fold_subregs(insn, &mut prog);
-                insn = fold_concat_void(insn, &mut prog);
-                insn = fold_part_part(insn, &mut prog);
-                insn = fold_part_widen(insn, &mut prog);
-                insn = fold_part_concat(insn, &mut prog);
-                insn = fold_part_null(insn, &mut prog);
+                insn = fold_get(insn, &prog);
+                insn = fold_subregs(insn, &prog);
+                insn = fold_concat_void(insn, &prog);
+                insn = fold_part_part(insn, &prog);
+                insn = fold_part_widen(insn, &prog);
+                insn = fold_part_concat(insn, &prog);
+                insn = fold_part_null(insn, &prog);
                 insn = fold_part_void(insn);
-                insn = fold_widen_null(insn, &mut prog);
-                insn = fold_widen_const(insn, &mut prog);
-                insn = fold_bitops(insn, &mut prog);
+                insn = fold_widen_null(insn, &prog);
+                insn = fold_widen_const(insn, &prog);
+                insn = fold_bitops(insn, &prog);
                 insn = fold_constants(insn, &mut prog);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
