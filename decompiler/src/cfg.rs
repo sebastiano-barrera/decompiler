@@ -232,7 +232,7 @@ impl Schedule {
                 is_insn_scheduled[ndx] = true;
             }
 
-            assert!(ndxs.len() > 0, "block is empty: {:?}", bid);
+            assert!(!ndxs.is_empty(), "block is empty: {:?}", bid);
         }
     }
 }
@@ -442,12 +442,6 @@ impl<T> BlockMultiMap<T> {
         self.ndx_range.block_count()
     }
 
-    fn items(&self) -> impl Iterator<Item = (BlockID, &[T])> {
-        self.ndx_range
-            .items()
-            .map(|(bid, ndx_range)| (bid, &self.items[ndx_range.clone()]))
-    }
-
     fn assert_invariants(&self) {
         for (_, range) in self.ndx_range.items() {
             assert!(range.end <= self.items.len());
@@ -504,6 +498,7 @@ impl<T> BlockMultiMapSorter<T> {
             mm.ndx_range[cur_bid] = ndx_start..ndx_end;
         }
 
+        mm.assert_invariants();
         mm
     }
 }
@@ -777,7 +772,7 @@ where
         parent_of: &'a BlockMap<Option<BlockID>>,
         is_lt: LT,
     }
-    impl<'a, LT> util::NumberedTree for AdHocTree<'a, LT>
+    impl<LT> util::NumberedTree for AdHocTree<'_, LT>
     where
         LT: Fn(BlockID, BlockID) -> bool,
     {

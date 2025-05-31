@@ -79,7 +79,7 @@ struct StageFunc {
     ssa_px_vcache: SSAViewCache,
     ast: ast_view::Ast,
 
-    hl: Highlight,
+    hl: hl::Highlight,
 }
 
 struct SSAViewCache {
@@ -100,39 +100,156 @@ impl SSAViewCache {
     }
 }
 
-#[derive(Default)]
-struct Highlight {
-    reg: HighlightItem<decompiler::Reg>,
-    block: HighlightItem<decompiler::BlockID>,
-    asm_line: HighlightItem<usize>,
-    // same length as Assembly::lines
-    related_asm: Vec<AsmLineHighlight>,
-    related_ssa: Option<decompiler::RegMap<bool>>,
-    dirty_linked: bool,
-}
-#[derive(PartialEq, Eq)]
-struct HighlightItem<T> {
-    pinned: Option<T>,
-    hovered: Option<T>,
-}
-impl<T> Default for HighlightItem<T> {
-    fn default() -> Self {
-        HighlightItem {
-            pinned: None,
-            hovered: None,
+mod hl {
+    #[derive(Default)]
+    pub(crate) struct Highlight {
+        // directly tracking user input (mouse hover, clicks)
+        pub(super) reg: Item<decompiler::Reg>,
+        pub(super) block: Item<decompiler::BlockID>,
+        pub(super) asm_line_ndx: Item<usize>,
+
+        // derived from the above:
+        // same length as Assembly::lines
+        related_asm: Vec<AsmLineRelation>,
+        related_ssa: Option<decompiler::RegMap<bool>>,
+    }
+
+    impl Highlight {
+        pub(super) fn set_asm_line_count(&mut self, count: usize) {
+            self.related_asm.resize(count, AsmLineRelation::default());
+        }
+
+        pub(super) fn asm_line_rel(&self, ndx: usize) -> Option<&AsmLineRelation> {
+            self.related_asm.get(ndx)
+        }
+
+        pub(super) fn is_ssa_asm_related(&self, reg: decompiler::Reg) -> bool {
+            self.related_ssa.as_ref().map(|m| m[reg]).unwrap_or(false)
+        }
+
+        pub(super) fn update(&mut self, ssa: &decompiler::SSAProgram, asm: &super::Assembly) {
+            // TODO update dependent values from user-tracking stuff
+            // NOTE not short-circuiting!
+            let is_dirty =
+                self.reg.tick_frame() | self.block.tick_frame() | self.asm_line_ndx.tick_frame();
+            if !is_dirty {
+                return;
+            }
+
+            self.related_asm.fill(AsmLineRelation::default());
+
+            // TODO anything better than this cascade of if-let's?
+
+            if let Some(bid) = self.block.pinned {
+                for reg in ssa.block_regs(bid) {
+                    if let Some(iv) = ssa.get(reg) {
+                        if let Some(&ndx) = asm.ndx_of_addr.get(&iv.addr) {
+                            self.related_asm[ndx].block = true;
+                        }
+                    }
+                }
+            }
+            if let Some(reg) = self.reg.pinned {
+                if let Some(iv) = ssa.get(reg) {
+                    if let Some(&ndx) = asm.ndx_of_addr.get(&iv.addr) {
+                        self.related_asm[ndx].ssa = true;
+                    }
+                }
+            }
+
+            if let Some(rel_ssa) = &mut self.related_ssa {
+                if rel_ssa.reg_count() != ssa.reg_count() {
+                    *rel_ssa = decompiler::RegMap::for_program(ssa, false);
+                }
+            }
+
+            let related_ssa = self
+                .related_ssa
+                .get_or_insert_with(|| decompiler::RegMap::for_program(ssa, false));
+            assert_eq!(related_ssa.reg_count(), ssa.reg_count());
+
+            related_ssa.fill(false);
+            if let Some(asm_line_ndx) = self.asm_line_ndx.pinned {
+                if let Some(asm_line) = asm.lines.get(asm_line_ndx) {
+                    for reg in ssa.registers() {
+                        let iv = ssa.get(reg).unwrap();
+                        if iv.addr == asm_line.addr {
+                            related_ssa[reg] = true;
+                        }
+                    }
+                }
+            }
         }
     }
-}
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum AsmLineHighlight {
-    /// The asm line is not highlighted.
-    None,
-    /// The asm instruction in this line corresponds directly with the highlighted SSA
-    /// instruction. (Multiple SSA instructions may correspond to the same asm line.)
-    RelatedInsn,
-    /// The asm instruction in this line is in the same control-flow graph block as the
-    /// selected block.
-    Block,
+
+    #[derive(PartialEq, Eq)]
+    pub(crate) struct Item<T> {
+        pinned: Option<T>,
+        is_pinned_dirty: bool,
+        // used for "scroll to"
+        was_pinned_just_cleared: bool,
+        // `get` reads `hovered`, while `set` writes to `hovered_next_frame`
+        // This allows to easily detect:
+        //
+        // 1. whether the hovered selection has changed (and update dependent
+        // data as a consequence);
+        //
+        // 2. whether the mouse is currently not hovering anything (because
+        // that's on the *absence* of mousehover events, but we still need to
+        // know what happened on the last frame!)
+        hovered: Option<T>,
+        hovered_next_frame: Option<T>,
+    }
+    impl<T> Default for Item<T> {
+        fn default() -> Self {
+            Item {
+                pinned: None,
+                is_pinned_dirty: false,
+                was_pinned_just_cleared: false,
+                hovered: None,
+                hovered_next_frame: None,
+            }
+        }
+    }
+    impl<T: PartialEq + Eq> Item<T> {
+        pub(super) fn pinned(&self) -> Option<&T> {
+            self.pinned.as_ref()
+        }
+        pub(super) fn did_pinned_just_change(&self) -> bool {
+            self.was_pinned_just_cleared
+        }
+        pub(super) fn set_pinned(&mut self, value: Option<T>) {
+            self.pinned = value;
+            self.is_pinned_dirty = true;
+        }
+        pub(super) fn hovered(&self) -> Option<&T> {
+            self.hovered.as_ref()
+        }
+        pub(super) fn set_hovered(&mut self, value: Option<T>) {
+            self.hovered_next_frame = value;
+        }
+        fn tick_frame(&mut self) -> bool {
+            let is_pinned_dirty = self.is_pinned_dirty;
+            self.is_pinned_dirty = false;
+            self.was_pinned_just_cleared = is_pinned_dirty;
+
+            let next_value = self.hovered_next_frame.take();
+            let is_hovered_dirty = self.hovered != next_value;
+            self.hovered = next_value;
+
+            is_pinned_dirty || is_hovered_dirty
+        }
+    }
+
+    #[derive(Default, Clone, Copy, PartialEq, Eq)]
+    pub struct AsmLineRelation {
+        /// True iff the assembly insn in this line is related to the selected
+        /// (pinned) SSA instruction.
+        pub ssa: bool,
+        /// True iff the assembly insn in this line is in the same control-flow
+        /// graph block as the selected (pinned) block.
+        pub block: bool,
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -459,7 +576,7 @@ impl StageFunc {
             ssa_vcache,
             ssa_px_vcache,
             ast,
-            hl: Highlight::default(),
+            hl: hl::Highlight::default(),
         }
     }
 
@@ -491,7 +608,9 @@ impl StageFunc {
     }
 
     fn show_panels(&mut self, ui: &mut egui::Ui) {
-        self.refresh_hl_links();
+        if let Some(ssa) = self.df.ssa() {
+            self.hl.update(ssa, &self.assembly);
+        }
 
         if self.problems_is_visible {
             egui::TopBottomPanel::bottom("func_errors")
@@ -521,101 +640,36 @@ impl StageFunc {
         }
     }
 
-    fn refresh_hl_links(&mut self) {
-        if !self.hl.dirty_linked {
-            return;
-        }
-
-        self.hl.dirty_linked = false;
-
-        self.hl
-            .related_asm
-            .resize(self.assembly.lines.len(), AsmLineHighlight::None);
-        self.hl.related_asm.fill(AsmLineHighlight::None);
-
-        let Some(ssa) = self.df.ssa() else {
-            return;
-        };
-
-        // TODO anything better than this cascade of if-let's?
-
-        if let Some(bid) = self.hl.block.pinned {
-            for reg in ssa.block_regs(bid) {
-                if let Some(iv) = ssa.get(reg) {
-                    if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
-                        self.hl.related_asm[ndx] = AsmLineHighlight::Block;
-                    }
-                }
-            }
-        }
-
-        if let Some(reg) = self.hl.reg.pinned {
-            if let Some(iv) = ssa.get(reg) {
-                if let Some(&ndx) = self.assembly.ndx_of_addr.get(&iv.addr) {
-                    self.hl.related_asm[ndx] = AsmLineHighlight::RelatedInsn;
-                }
-            }
-        }
-
-        let mut related_ssa = self
-            .hl
-            .related_ssa
-            .take()
-            .unwrap_or_else(|| decompiler::RegMap::for_program(ssa, false));
-        assert_eq!(related_ssa.reg_count(), ssa.reg_count());
-        related_ssa.fill(false);
-
-        if let Some(asm_line_ndx) = self.hl.asm_line.pinned {
-            let addr = self.assembly.lines[asm_line_ndx].addr;
-            for reg in ssa.registers() {
-                let iv = ssa.get(reg).unwrap();
-                if iv.addr == addr {
-                    related_ssa[reg] = true;
-                }
-            }
-        }
-
-        self.hl.related_ssa = Some(related_ssa);
-    }
-
     fn show_status(&mut self, ui: &mut egui::Ui) {
         ui.toggle_value(&mut self.problems_is_visible, &self.problems_title);
     }
 
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
-        let hl = &self.hl.related_asm;
-        let height = ui.text_style_height(&egui::TextStyle::Monospace);
+        self.hl.set_asm_line_count(self.assembly.lines.len());
 
+        let height = ui.text_style_height(&egui::TextStyle::Monospace);
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show_rows(ui, height, self.assembly.lines.len(), |ui, ndxs| {
-                let is_hl_valid = hl.len() == self.assembly.lines.len();
-
                 for ndx in ndxs {
                     let asm_line = &self.assembly.lines[ndx];
                     ui.horizontal_top(|ui| {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             let text = format!("0x{:x}", asm_line.addr);
 
-                            let line_hl = if is_hl_valid {
-                                hl[ndx]
+                            let line_hl = self.hl.asm_line_rel(ndx).unwrap();
+                            let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
+                            let (bg, fg) = if is_pinned {
+                                (COLOR_RED_DARK, egui::Color32::WHITE)
+                            } else if line_hl.block {
+                                (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
+                            } else if line_hl.ssa {
+                                (COLOR_RED_LIGHT, egui::Color32::BLACK)
                             } else {
-                                AsmLineHighlight::None
+                                (egui::Color32::TRANSPARENT, ui.visuals().text_color())
                             };
-                            let is_pinned = self.hl.asm_line.pinned == Some(ndx);
-                            let (bg, fg) = match (is_pinned, line_hl) {
-                                (true, _) => (COLOR_RED_DARK, egui::Color32::WHITE),
-                                (_, AsmLineHighlight::None) => {
-                                    (egui::Color32::TRANSPARENT, ui.visuals().text_color())
-                                }
-                                (_, AsmLineHighlight::RelatedInsn) => {
-                                    (COLOR_RED_LIGHT, egui::Color32::BLACK)
-                                }
-                                (_, AsmLineHighlight::Block) => {
-                                    (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
-                                }
-                            };
-                            let stroke = if self.hl.asm_line.hovered == Some(ndx) {
+
+                            let stroke = if self.hl.asm_line_ndx.hovered() == Some(&ndx) {
                                 COLOR_RED_LIGHT
                             } else {
                                 egui::Color32::TRANSPARENT
@@ -637,15 +691,16 @@ impl StageFunc {
                                 .inner;
 
                             if res.hovered() {
-                                self.hl.asm_line.hovered = Some(ndx);
-                                self.hl.dirty_linked = true;
+                                self.hl.asm_line_ndx.set_hovered(Some(ndx));
                             }
                             if res.clicked() {
-                                self.hl.asm_line.pinned = match self.hl.asm_line.pinned {
-                                    Some(pinned_ndx) if pinned_ndx == ndx => None,
-                                    _ => Some(ndx),
-                                };
-                                self.hl.dirty_linked = true;
+                                // TODO refactor this into a "toggle" method
+                                self.hl.asm_line_ndx.set_pinned(
+                                    match self.hl.asm_line_ndx.pinned() {
+                                        Some(&pinned_ndx) if pinned_ndx == ndx => None,
+                                        _ => Some(ndx),
+                                    },
+                                );
                             }
                         });
                         ui.add(
@@ -706,13 +761,13 @@ fn show_ssa(
     ui: &mut egui::Ui,
     ssa: &decompiler::SSAProgram,
     vcache: &mut SSAViewCache,
-    hl: &mut Highlight,
+    hl: &mut hl::Highlight,
 ) {
     use decompiler::{BlockCont, Dest};
-    fn show_dest(ui: &mut egui::Ui, dest: &Dest, hl: &mut Highlight) {
+    fn show_dest(ui: &mut egui::Ui, dest: &Dest, hl: &mut hl::Highlight) {
         match dest {
             Dest::Block(bid) => {
-                label_block_ref(ui, *bid, hl, |ui| ui.label(format!("{:?}", *bid)));
+                label_block_ref(ui, *bid, hl, format!("{:?}", *bid).into());
             }
             Dest::Ext(addr) => {
                 ui.label(format!("ext @ 0x{:x}", addr));
@@ -728,7 +783,7 @@ fn show_ssa(
             }
         }
     }
-    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont, hl: &mut Highlight) {
+    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont, hl: &mut hl::Highlight) {
         ui.horizontal(|ui| {
             ui.label("⮩");
             match cont {
@@ -767,15 +822,21 @@ fn show_ssa(
                     ui.vertical(|ui| {
                         ui.separator();
 
-                        label_block_def(ui, bid, hl, |ui| {
-                            ui.label(format!(" -- block B{}", bid.as_number()))
-                        });
+                        label_block_def(
+                            ui,
+                            bid,
+                            hl,
+                            format!(" -- block B{}", bid.as_number()).into(),
+                        );
                         ui.horizontal(|ui| {
                             ui.label("from:");
                             for &pred in ssa.cfg().block_preds(bid) {
-                                label_block_ref(ui, pred, hl, |ui| {
-                                    ui.label(format!("B{}", pred.as_number()))
-                                });
+                                label_block_ref(
+                                    ui,
+                                    pred,
+                                    hl,
+                                    format!("B{}", pred.as_number()).into(),
+                                );
                             }
                         });
 
@@ -787,7 +848,12 @@ fn show_ssa(
 
                             let insnx = decompiler::to_expanded(&insn);
                             ui.horizontal(|ui| {
-                                label_reg_def(ui, reg, hl, |ui| ui.label(format!("{:?}", reg)));
+                                let label_res =
+                                    label_reg_def(ui, reg, hl, format!("{:?}", reg).into());
+                                if hl.reg.pinned() == Some(&reg) && hl.reg.did_pinned_just_change()
+                                {
+                                    label_res.scroll_to_me(Some(egui::Align::Center));
+                                }
 
                                 // TODO show type information
                                 // TODO use label_reg for parts of the instruction as well
@@ -800,9 +866,12 @@ fn show_ssa(
                                     ui.label(":");
                                     match value {
                                         decompiler::ExpandedValue::Reg(reg) => {
-                                            label_reg_ref(ui, *reg, hl, |ui| {
-                                                ui.label(format!("{:?}", *reg))
-                                            });
+                                            label_reg_ref(
+                                                ui,
+                                                *reg,
+                                                hl,
+                                                format!("{:?}", *reg).into(),
+                                            );
                                         }
                                         decompiler::ExpandedValue::Generic(debug_str) => {
                                             ui.label(debug_str);
@@ -818,12 +887,12 @@ fn show_ssa(
                 });
 
                 let block_rect = block_res.response.rect;
-                let mut hl_rect = block_rect.clone();
+                let mut hl_rect = block_rect;
                 hl_rect.set_width(HL_BORDER_SIZE);
 
-                if hl.block.pinned == Some(bid) {
+                if hl.block.pinned() == Some(&bid) {
                     ui.painter().rect_filled(hl_rect, 0.0, COLOR_GREEN_DARK);
-                } else if hl.block.hovered == Some(bid) {
+                } else if hl.block.hovered() == Some(&bid) {
                     ui.painter().rect_stroke(
                         hl_rect,
                         0.0,
@@ -858,104 +927,48 @@ const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
 const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
 const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
 
+// TODO Move these to an `ssa` module (when the refactoring happens)
+
 fn label_reg_def(
     ui: &mut egui::Ui,
     reg: decompiler::Reg,
-    hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    let is_asm_related = match &hl.related_ssa {
-        Some(m) => m[reg],
-        _ => false,
-    };
-    hl.dirty_linked |= hl_label(
-        ui,
-        &reg,
-        &mut hl.reg,
-        &HlLabelColors {
-            background: if is_asm_related {
-                COLOR_RED_LIGHT
-            } else {
-                egui::Color32::TRANSPARENT
-            },
-            background_pinned: COLOR_BLUE_DARK,
-            text: if is_asm_related {
-                Some(egui::Color32::BLACK)
-            } else {
-                None
-            },
-            text_pinned: egui::Color32::WHITE,
-            border_hovered: COLOR_BLUE_DARK,
-        },
-        add_contents,
-    );
+    hl: &mut hl::Highlight,
+    text: egui::WidgetText,
+) -> egui::Response {
+    let is_asm_related = hl.is_ssa_asm_related(reg);
+    let mut colors = TextRole::RegDef.colors();
+    if is_asm_related {
+        colors.background = COLOR_RED_LIGHT;
+        colors.text = Some(egui::Color32::BLACK);
+    }
+    hl_label(ui, &reg, &mut hl.reg, &colors, text)
 }
 
 fn label_reg_ref(
     ui: &mut egui::Ui,
     reg: decompiler::Reg,
-    hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    let fg = egui::Color32::BLACK;
-    let bg = COLOR_BLUE_LIGHT;
-    // TODO avoid alloc?
-    let text = format!("{:?}", reg);
-    hl.dirty_linked |= hl_label(
-        ui,
-        &reg,
-        &mut hl.reg,
-        &HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: bg,
-            text: None,
-            text_pinned: fg,
-            border_hovered: bg,
-        },
-        |ui| ui.label(text),
-    );
+    hl: &mut hl::Highlight,
+    text: egui::WidgetText,
+) -> egui::Response {
+    hl_label(ui, &reg, &mut hl.reg, &TextRole::RegRef.colors(), text)
 }
 
 fn label_block_def(
     ui: &mut egui::Ui,
     bid: decompiler::BlockID,
-    hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    hl.dirty_linked |= hl_label(
-        ui,
-        &bid,
-        &mut hl.block,
-        &HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: COLOR_GREEN_DARK,
-            text: None,
-            text_pinned: egui::Color32::WHITE,
-            border_hovered: COLOR_GREEN_DARK,
-        },
-        add_contents,
-    );
+    hl: &mut hl::Highlight,
+    text: egui::WidgetText,
+) -> egui::Response {
+    hl_label(ui, &bid, &mut hl.block, &TextRole::BlockDef.colors(), text)
 }
 
 fn label_block_ref(
     ui: &mut egui::Ui,
     bid: decompiler::BlockID,
-    hl: &mut Highlight,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) {
-    hl.dirty_linked |= hl_label(
-        ui,
-        &bid,
-        &mut hl.block,
-        &HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: COLOR_GREEN_LIGHT,
-            text: None,
-            text_pinned: egui::Color32::BLACK,
-            border_hovered: COLOR_GREEN_LIGHT,
-        },
-        add_contents,
-    );
+    hl: &mut hl::Highlight,
+    text: egui::WidgetText,
+) -> egui::Response {
+    hl_label(ui, &bid, &mut hl.block, &TextRole::BlockRef.colors(), text)
 }
 
 struct HlLabelColors {
@@ -965,16 +978,31 @@ struct HlLabelColors {
     text: Option<egui::Color32>,
     text_pinned: egui::Color32,
     border_hovered: egui::Color32,
+    border_pinned: egui::Color32,
 }
+
+impl Default for HlLabelColors {
+    fn default() -> Self {
+        HlLabelColors {
+            background: egui::Color32::TRANSPARENT,
+            background_pinned: egui::Color32::BLACK,
+            text: None,
+            text_pinned: egui::Color32::WHITE,
+            border_hovered: egui::Color32::TRANSPARENT,
+            border_pinned: egui::Color32::TRANSPARENT,
+        }
+    }
+}
+
 fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
     item: &T,
-    hli: &mut HighlightItem<T>,
+    hli: &mut hl::Item<T>,
     colors: &HlLabelColors,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) -> bool {
-    let is_pinned = hli.pinned.as_ref() == Some(item);
-    let is_hovered = hli.hovered.as_ref() == Some(item);
+    text: egui::WidgetText,
+) -> egui::Response {
+    let is_pinned = hli.pinned() == Some(item);
+    let is_hovered = hli.hovered() == Some(item);
 
     let bg = if is_pinned {
         colors.background_pinned
@@ -988,35 +1016,35 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     };
     let stroke = if is_hovered {
         colors.border_hovered
+    } else if is_pinned {
+        colors.border_pinned
     } else {
         egui::Color32::TRANSPARENT
     };
 
     let res = egui::Frame::new()
+        .fill(bg)
         .stroke(egui::Stroke {
             width: 1.0,
             color: stroke,
         })
-        .fill(bg)
         .show(ui, |ui| {
             ui.visuals_mut().override_text_color = fg;
-            add_contents(ui)
+            ui.label(text)
         })
         .inner;
 
     if res.clicked() {
-        // toggle selection
-        hli.pinned = if is_pinned { None } else { Some(item.clone()) };
-        return true;
+        // toggle selection (TODO refactor into 'toggle' method)
+        hli.set_pinned(if is_pinned { None } else { Some(item.clone()) });
     }
     if res.hovered() {
         // toggle selection
-        hli.hovered = Some(item.clone());
+        hli.set_hovered(Some(item.clone()));
         ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
-        return true;
     }
 
-    return false;
+    res
 }
 
 impl egui_tiles::Behavior<Pane> for StageFunc {
@@ -1068,12 +1096,12 @@ fn load_executable(path: &Path) -> Result<Exe> {
     use std::io::Read as _;
 
     let mut exe_bytes = Vec::new();
-    let mut elf = File::open(&path).context("opening file")?;
+    let mut elf = File::open(path).context("opening file")?;
     elf.read_to_end(&mut exe_bytes).context("reading file")?;
 
     ExeTryBuilder {
         exe_bytes,
-        exe_builder: |exe_bytes| Executable::parse(&exe_bytes).context("parsing executable"),
+        exe_builder: |exe_bytes| Executable::parse(exe_bytes).context("parsing executable"),
     }
     .try_build()
 }
@@ -1125,8 +1153,7 @@ impl FunctionSelector {
                     .filter(|(_, name_lower)| {
                         self.line_lower
                             .split_whitespace()
-                            .map(|word| name_lower.contains(word))
-                            .all(|x| x)
+                            .all(|word| name_lower.contains(word))
                     })
                     .map(|(ndx, _)| ndx),
             );
@@ -1150,6 +1177,7 @@ impl FunctionSelector {
     }
 }
 
+#[derive(Default)]
 struct StatusView {
     cur_msg: Option<StatusMessage>,
 }
@@ -1167,12 +1195,6 @@ impl StatusView {
                 ui.label(msg.text.as_str());
             });
         }
-    }
-}
-
-impl Default for StatusView {
-    fn default() -> Self {
-        StatusView { cur_msg: None }
     }
 }
 
@@ -1197,6 +1219,8 @@ impl Default for StatusMessage {
     }
 }
 
+/// Preprocessed version of the original assembly program, geared towards being
+/// showed on screen.
 struct Assembly {
     lines: Vec<AssemblyLine>,
     ndx_of_addr: BTreeMap<u64, usize>,
@@ -1234,6 +1258,63 @@ impl Assembly {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+enum TextRole {
+    Generic,
+    RegRef, // TODO Rename to 'RegRef'
+    RegDef,
+    BlockDef,
+    BlockRef,
+    Literal, // TODO Rename to 'Literal'
+    Kw,      // TODO Rename to 'keyword'
+    Error,
+}
+impl TextRole {
+    fn colors(&self) -> crate::HlLabelColors {
+        match self {
+            TextRole::Generic => crate::HlLabelColors::default(),
+            TextRole::RegRef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_BLUE_LIGHT,
+                text_pinned: egui::Color32::BLACK,
+                border_hovered: crate::COLOR_BLUE_LIGHT,
+                ..Default::default()
+            },
+            TextRole::RegDef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_BLUE_DARK,
+                border_hovered: crate::COLOR_BLUE_DARK,
+                ..Default::default()
+            },
+            TextRole::BlockRef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_GREEN_LIGHT,
+                text_pinned: egui::Color32::BLACK,
+                border_hovered: crate::COLOR_GREEN_LIGHT,
+                ..Default::default()
+            },
+            TextRole::BlockDef => crate::HlLabelColors {
+                background_pinned: crate::COLOR_GREEN_DARK,
+                border_hovered: crate::COLOR_GREEN_DARK,
+                ..Default::default()
+            },
+            TextRole::Literal => crate::HlLabelColors {
+                text: Some(crate::COLOR_GREEN_DARK),
+                ..Default::default()
+            },
+            TextRole::Kw => crate::HlLabelColors {
+                background_pinned: egui::Color32::WHITE,
+                text_pinned: egui::Color32::BLACK,
+                border_hovered: egui::Color32::BLACK,
+                border_pinned: egui::Color32::BLACK,
+                ..Default::default()
+            },
+            TextRole::Error => crate::HlLabelColors {
+                background: crate::COLOR_RED_DARK,
+                text: Some(egui::Color32::WHITE),
+                ..Default::default()
+            },
+        }
+    }
+}
+
 mod ast_view {
     // target features for the ast view:
     //
@@ -1253,8 +1334,8 @@ mod ast_view {
 
     use decompiler::Insn;
 
-    use super::Highlight;
-    use crate::{label_block_def, label_block_ref, label_reg_def, label_reg_ref};
+    use super::hl::Highlight;
+    use crate::hl_label;
 
     pub struct Ast {
         // the tree is represented as a flat Vec of Nodes.
@@ -1265,22 +1346,18 @@ mod ast_view {
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Node {
-        /// Signifies that the next node (can be interpreted as a container like
-        /// Open, but with size always 1) is a link
-        Link(Link),
-        Open {
-            kind: SeqKind,
-            count: usize,
-        },
-        Error(String),
-        Ref(decompiler::Reg),
-        LitNum(i64),
-        Generic(String),
-        Kw(&'static str),
-        BlockHeader(decompiler::BlockID),
-        BlockRef(decompiler::BlockID),
-        RegDef(decompiler::Reg),
+        Seq { kind: SeqKind, count: usize },
+        Element(Element),
     }
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    struct Element {
+        // TODO this could use some string interning
+        text: String,
+        anchor: Option<Anchor>,
+        role: TextRole,
+    }
+
+    use super::TextRole;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum SeqKind {
@@ -1289,13 +1366,10 @@ mod ast_view {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    enum Link {
+    enum Anchor {
         Reg(decompiler::Reg),
         Block(decompiler::BlockID),
     }
-
-    #[derive(Clone, Copy)]
-    pub struct NodeID(usize);
 
     impl Ast {
         pub fn empty() -> Self {
@@ -1385,7 +1459,7 @@ mod ast_view {
             assert!(!already_visited);
 
             match &self.nodes[ndx] {
-                Node::Open { kind, count } => {
+                Node::Seq { kind, count } => {
                     // ndx      Open { count: 3 }
                     // ndx + 1  A
                     // ndx + 2  B
@@ -1403,48 +1477,19 @@ mod ast_view {
                     }
                     return end_ndx;
                 }
-                Node::Error(err_msg) => {
-                    egui::Frame::new()
-                        .stroke(egui::Stroke::new(1.0, egui::Color32::DARK_RED))
-                        .show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                ui.label("Internal error:");
-                                ui.label(err_msg);
-                            });
-                        });
+                Node::Element(Element { text, anchor, role }) => {
+                    match anchor {
+                        Some(Anchor::Reg(reg)) => {
+                            hl_label(ui, reg, &mut hl.reg, &role.colors(), text.into());
+                        }
+                        Some(Anchor::Block(block_id)) => {
+                            hl_label(ui, block_id, &mut hl.block, &role.colors(), text.into());
+                        }
+                        None => {
+                            ui.label(text);
+                        }
+                    };
                 }
-
-                // TODO define specific styles
-                Node::Ref(reg) => {
-                    label_reg_ref(ui, *reg, hl, |ui| ui.label(format!("{:?}", *reg)));
-                }
-                Node::RegDef(reg) => {
-                    label_reg_def(ui, *reg, hl, |ui| ui.label(format!("{:?}", *reg)));
-                }
-                Node::LitNum(num) => {
-                    // TODO avoid alloc
-                    ui.label(format!("{:?}", num));
-                }
-                Node::Generic(text) => {
-                    ui.label(text);
-                }
-                Node::Kw(kw) => {
-                    ui.label(*kw);
-                }
-                Node::BlockHeader(bid) => {
-                    // TODO avoid alloc
-                    ui.add_space(12.0);
-                    label_block_def(ui, *bid, hl, |ui| {
-                        ui.label(format!("-- block B{}", bid.as_number()))
-                    });
-                }
-                Node::BlockRef(bid) => {
-                    label_block_ref(ui, *bid, hl, |ui| ui.label(format!("B{}", bid.as_number())));
-                }
-                Node::Link(link) => match link {
-                    Link::Reg(reg) => {}
-                    Link::Block(block_id) => todo!(),
-                },
             }
 
             ndx + 1
@@ -1496,21 +1541,23 @@ mod ast_view {
         }
 
         fn seq<R>(&mut self, kind: SeqKind, add_contents: impl FnOnce(&mut Self) -> R) -> R {
-            const REF_NODE: Node = Node::Kw("<bug:seq!>");
-
-            let ndx = self.nodes.len();
-            self.nodes.push(REF_NODE);
-
+            self.emit(Node::Seq { kind, count: 0 });
+            let len_pre = self.nodes.len();
             let ret = add_contents(self);
+            let count = self.nodes.len() - len_pre;
 
-            assert_eq!(self.nodes[ndx], REF_NODE);
-            let count = self.nodes.len() - ndx - 1;
-            self.nodes[ndx] = Node::Open { kind, count };
+            let seq_head = &mut self.nodes[len_pre - 1];
+            assert!(matches!(seq_head, Node::Seq { count: 0, .. }));
+            *seq_head = Node::Seq { kind, count };
 
             ret
         }
         fn transform_block_labeled(&mut self, bid: decompiler::BlockID) {
-            self.emit(Node::BlockHeader(bid));
+            self.emit(Node::Element(Element {
+                text: format!(" -- block B{}", bid.as_number()),
+                anchor: Some(Anchor::Block(bid)),
+                role: TextRole::BlockDef,
+            }));
             self.transform_block_unlabeled(bid);
         }
 
@@ -1546,16 +1593,28 @@ mod ast_view {
 
                     if let Some(cond) = cond {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("if"));
+                            s.emit(Node::Element(Element {
+                                text: "if".to_string(),
+                                anchor: None,
+                                role: TextRole::Kw,
+                            }));
                             s.transform_value(cond, 0);
                         });
                         self.seq(SeqKind::Vertical, |s| {
                             s.transform_dest(bid, &pos);
                         });
-                        self.emit(Node::Kw("else"));
+                        self.emit(Node::Element(Element {
+                            text: "else".to_string(),
+                            anchor: None,
+                            role: TextRole::Kw,
+                        }));
                         self.transform_dest(bid, &neg);
                     } else {
-                        self.emit(Node::Error(format!("bug: no condition!")));
+                        self.emit(Node::Element(Element {
+                            text: "bug: no condition!".to_string(),
+                            anchor: None,
+                            role: TextRole::Error,
+                        }));
                     }
                 }
             }
@@ -1584,16 +1643,28 @@ mod ast_view {
             // TODO! specific representation of operands
             if self.is_named[reg] {
                 if self.let_was_printed[reg] {
-                    self.emit(Node::Ref(reg));
+                    self.emit_reg_ref(reg);
                 } else {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("<bug:let!>"));
-                        s.emit(Node::Ref(reg));
+                        s.emit(Node::Element(Element {
+                            text: "<bug:let!>".to_string(),
+                            anchor: None,
+                            role: TextRole::Error,
+                        }));
+                        s.emit_reg_ref(reg);
                     });
                 }
             } else {
                 self.transform_def(reg, parent_prec);
             }
+        }
+
+        fn emit_reg_ref(&mut self, reg: decompiler::Reg) {
+            self.emit(Node::Element(Element {
+                text: format!("{:?}", reg),
+                anchor: Some(Anchor::Reg(reg)),
+                role: TextRole::RegRef,
+            }))
         }
 
         fn transform_def(
@@ -1605,30 +1676,50 @@ mod ast_view {
             let prec = decompiler::precedence(&insn);
 
             if prec < parent_prec {
-                self.emit(Node::Kw("("));
+                self.emit_simple(TextRole::Kw, "(".to_string());
             }
 
             match insn {
                 Insn::Void => {
-                    self.emit(Node::Kw("void"));
+                    self.emit(Node::Element(Element {
+                        text: "void".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::True => {
-                    self.emit(Node::Kw("true"));
+                    self.emit(Node::Element(Element {
+                        text: "true".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::False => {
-                    self.emit(Node::Kw("false"));
+                    self.emit(Node::Element(Element {
+                        text: "false".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::Undefined => {
-                    self.emit(Node::Kw("undefined"));
+                    self.emit(Node::Element(Element {
+                        text: "undefined".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }));
                 }
 
                 Insn::Phi => self.transform_regular_insn("Phi", std::iter::empty()),
                 Insn::Const { value, size: _ } => {
-                    self.emit(Node::LitNum(value));
+                    self.emit_simple(TextRole::Literal, format!("{}", value));
                 }
 
                 Insn::Ancestral(aname) => {
-                    self.emit(Node::Kw(aname.name()));
+                    self.emit(Node::Element(Element {
+                        text: aname.name().to_string(),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::RegRef,
+                    }));
                 }
 
                 Insn::StoreMem {
@@ -1638,8 +1729,16 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, 255);
-                        s.emit(Node::Kw(".*"));
-                        s.emit(Node::Kw(":="));
+                        s.emit(Node::Element(Element {
+                            text: ".*".to_string(),
+                            anchor: Some(Anchor::Reg(addr)),
+                            role: TextRole::Kw,
+                        }));
+                        s.emit(Node::Element(Element {
+                            text: ":=".to_string(),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::RegDef,
+                        }));
                         s.transform_value(value, prec);
                     });
                 }
@@ -1650,24 +1749,29 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, prec);
-                        s.emit(Node::Kw(".*"));
+
+                        s.emit_simple(TextRole::Kw, ".*".to_string());
                     });
                 }
 
                 Insn::Part { src, offset, size } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(src, prec);
-                        s.emit(Node::Kw("["));
-                        s.emit(Node::LitNum(offset as i64));
-                        s.emit(Node::Kw(".."));
-                        s.emit(Node::LitNum((offset + size) as i64));
-                        s.emit(Node::Kw("]"));
+                        s.emit(Node::Element(Element {
+                            text: format!("[{} .. {}]", offset, offset + size),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                     });
                 }
                 Insn::Concat { lo, hi } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(hi, prec);
-                        s.emit(Node::Kw("++"));
+                        s.emit(Node::Element(Element {
+                            text: "++".to_string(),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                         s.transform_value(lo, prec);
                     });
                 }
@@ -1679,8 +1783,11 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(struct_value, prec);
-                        s.emit(Node::Kw("."));
-                        s.emit(Node::Kw(name));
+                        s.emit(Node::Element(Element {
+                            text: format!(".{}", name),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                     });
                 }
 
@@ -1691,13 +1798,17 @@ mod ast_view {
                 } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(reg, prec);
-                        s.emit(Node::Kw("as"));
-                        s.emit(Node::Generic(format!("i{}", target_size * 8)));
+                        s.emit(Node::Element(Element {
+                            text: format!("as i{}", target_size * 8),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                     });
                 }
 
                 Insn::Arith(op, a, b) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| s.transform_value(b, prec),
@@ -1705,15 +1816,17 @@ mod ast_view {
                 }
                 Insn::ArithK(op, a, bk) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| {
-                            s.emit(Node::LitNum(bk));
+                            s.emit_simple(TextRole::Literal, format!("{}", bk));
                         },
                     );
                 }
                 Insn::Cmp(op, a, b) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| s.transform_value(b, prec),
@@ -1721,6 +1834,7 @@ mod ast_view {
                 }
                 Insn::Bool(op, a, b) => {
                     self.emit_binop(
+                        reg,
                         op.symbol(),
                         |s| s.transform_value(a, prec),
                         |s| s.transform_value(b, prec),
@@ -1729,16 +1843,13 @@ mod ast_view {
 
                 Insn::Not(arg) => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("!"));
+                        s.emit_simple(TextRole::Kw, "!".to_string());
                         s.transform_value(arg, prec);
                     });
                 }
 
                 Insn::NotYetImplemented(msg) => {
-                    self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("NYI:"));
-                        s.emit(Node::Generic(msg.to_string()));
-                    });
+                    self.emit_simple(TextRole::Kw, format!("NYI:{}", msg));
                 }
 
                 Insn::SetReturnValue(_) | Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) => {
@@ -1748,30 +1859,43 @@ mod ast_view {
                 Insn::Call { callee, first_arg } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(callee, prec);
-                        s.emit(Node::Kw("("));
+
+                        s.emit_simple(TextRole::Kw, "(".to_string());
 
                         for (ndx, arg) in s.ssa.get_call_args(first_arg).enumerate() {
                             if ndx > 0 {
-                                s.emit(Node::Kw(","));
+                                s.emit_simple(TextRole::Kw, ",".to_string());
                             }
                             s.transform_value(arg, prec);
                         }
 
-                        s.emit(Node::Kw(")"));
+                        s.emit_simple(TextRole::Kw, ")".to_string());
                     });
                 }
 
                 Insn::CArg { .. } => {
-                    self.emit(Node::Kw("<bug:CArg>"));
+                    self.emit(Node::Element(Element {
+                        text: format!("<bug:CArg:{:?}>", reg),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }));
                 }
                 Insn::Control(_) => {
-                    self.emit(Node::Kw("<bug:Control>"));
+                    self.emit(Node::Element(Element {
+                        text: format!("<bug:Control:{:?}>", reg),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }));
                 }
 
                 Insn::Upsilon { value, phi_ref } => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Ref(phi_ref));
-                        s.emit(Node::Kw(":="));
+                        s.emit_reg_ref(phi_ref);
+                        s.emit(Node::Element(Element {
+                            text: ":=".to_string(),
+                            anchor: Some(Anchor::Reg(reg)),
+                            role: TextRole::Kw,
+                        }));
                         s.transform_value(value, prec);
                     });
                 }
@@ -1790,7 +1914,7 @@ mod ast_view {
             }
 
             if prec < parent_prec {
-                self.emit(Node::Kw(")"));
+                self.emit_simple(TextRole::Kw, ")".to_string());
             }
         }
 
@@ -1837,30 +1961,36 @@ mod ast_view {
             inputs: impl IntoIterator<Item = decompiler::Reg>,
         ) {
             self.seq(SeqKind::Flow, |s| {
-                s.emit(Node::Generic(opcode.to_string()));
-                s.emit(Node::Kw("("));
+                s.emit_simple(TextRole::Generic, opcode.to_string());
+                s.emit_simple(TextRole::Kw, "(".to_string());
                 for (ndx, input) in inputs.into_iter().enumerate() {
                     if ndx > 0 {
-                        s.emit(Node::Kw(","));
+                        s.emit_simple(TextRole::Kw, ",".to_string());
                     }
                     s.transform_value(input, 0);
                 }
-                s.emit(Node::Kw(")"));
+                s.emit_simple(TextRole::Kw, ")".to_string());
             });
         }
 
-        fn emit(&mut self, init: Node) -> NodeID {
-            let nid = NodeID(self.nodes.len());
+        fn emit(&mut self, init: Node) {
             self.nodes.push(init);
-            nid
+        }
+
+        fn emit_simple(&mut self, role: TextRole, text: String) {
+            self.emit(Node::Element(Element {
+                text,
+                anchor: None,
+                role,
+            }));
         }
 
         fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
             match dest {
                 decompiler::Dest::Ext(addr) => {
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Kw("goto"));
-                        s.emit(Node::LitNum(*addr as i64));
+                        s.emit_simple(TextRole::Kw, "goto".to_string());
+                        s.emit_simple(TextRole::Literal, format!("{}", *addr));
                     });
                 }
                 decompiler::Dest::Block(bid) => {
@@ -1874,9 +2004,12 @@ mod ast_view {
                         self.transform_block_unlabeled(*bid);
                     } else {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("goto"));
-                            // TODO specific node type
-                            s.emit(Node::BlockRef(*bid));
+                            s.emit_simple(TextRole::Kw, "goto".to_string());
+                            s.emit(Node::Element(Element {
+                                text: format!("B{}", bid.as_number()),
+                                anchor: Some(Anchor::Block(*bid)),
+                                role: TextRole::BlockRef,
+                            }));
                         });
                     }
                 }
@@ -1887,14 +2020,14 @@ mod ast_view {
 
                     if let Some(tgt) = tgt {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("goto"));
+                            s.emit_simple(TextRole::Kw, "goto".to_string());
                             s.seq(SeqKind::Flow, |s| {
-                                s.emit(Node::Kw("*"));
+                                s.emit_simple(TextRole::Kw, "*".to_string());
                                 s.transform_value(tgt, 0);
                             });
                         });
                     } else {
-                        self.emit(Node::Error(format!("bug: no jump target!")));
+                        self.emit_simple(TextRole::Error, "bug: no jump target!".to_string());
                     }
                 }
                 decompiler::Dest::Return => {
@@ -1904,15 +2037,15 @@ mod ast_view {
 
                     if let Some(ret) = ret {
                         self.seq(SeqKind::Flow, |s| {
-                            s.emit(Node::Kw("return"));
+                            s.emit_simple(TextRole::Kw, "return".to_string());
                             s.transform_value(ret, 0);
                         });
                     } else {
-                        self.emit(Node::Error(format!("bug: no return value!")));
+                        self.emit_simple(TextRole::Error, "bug: no return value!".to_string());
                     }
                 }
                 decompiler::Dest::Undefined => {
-                    self.emit(Node::Kw("goto undefined"));
+                    self.emit_simple(TextRole::Kw, "goto undefined".to_string());
                 }
             }
         }
@@ -1920,27 +2053,36 @@ mod ast_view {
         fn emit_let_def(&mut self, reg: decompiler::Reg) {
             self.seq(SeqKind::Flow, |s| {
                 if s.let_was_printed[reg] {
-                    s.emit(Node::Kw("<bug:dupe let>"));
+                    s.emit_simple(TextRole::Kw, "<bug:dupe let>".to_string());
                 }
 
-                s.emit(Node::Kw("let"));
+                s.emit_simple(TextRole::Kw, "let".to_string());
                 // TODO make the name editable
-                s.emit(Node::RegDef(reg));
-                s.emit(Node::Kw("="));
+
+                s.emit(Node::Element(Element {
+                    text: format!("{:?}", reg),
+                    anchor: Some(Anchor::Reg(reg)),
+                    role: TextRole::RegDef,
+                }));
+                s.emit_simple(TextRole::Kw, "=".to_string());
                 s.transform_def(reg, 0);
             });
 
             self.let_was_printed[reg] = true;
         }
 
-        fn emit_binop<F, G>(&mut self, op_s: &'static str, a: F, b: G)
+        fn emit_binop<F, G>(&mut self, result: decompiler::Reg, op_s: &'static str, a: F, b: G)
         where
             F: FnOnce(&mut Self),
             G: FnOnce(&mut Self),
         {
             self.seq(SeqKind::Flow, |s| {
                 a(s);
-                s.emit(Node::Kw(op_s));
+                s.emit(Node::Element(Element {
+                    text: op_s.to_string(),
+                    anchor: Some(Anchor::Reg(result)),
+                    role: TextRole::Kw,
+                }));
                 b(s);
             });
         }

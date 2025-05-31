@@ -1,4 +1,4 @@
-use std::{cell::Cell, io::Write, ops::Range};
+use std::{cell::Cell, io::Write};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -86,7 +86,7 @@ impl Program {
     pub fn block_regs(&self, bid: cfg::BlockID) -> impl '_ + DoubleEndedIterator<Item = mil::Reg> {
         self.schedule
             .of_block(bid)
-            .into_iter()
+            .iter()
             .map(|&ndx| mil::Reg(ndx))
     }
 
@@ -244,8 +244,7 @@ impl Program {
                                 def_block_input == bid
                                     || dom_tree
                                         .imm_doms(bid)
-                                        .find(|&b| b == def_block_input)
-                                        .is_some()
+                                        .any(|b| b == def_block_input)
                             );
                         }
 
@@ -387,13 +386,13 @@ impl<'a> OpenProgram<'a> {
         }
     }
 }
-impl<'a> std::ops::Deref for OpenProgram<'a> {
+impl std::ops::Deref for OpenProgram<'_> {
     type Target = Program;
     fn deref(&self) -> &Self::Target {
         self.program
     }
 }
-impl<'a> std::ops::DerefMut for OpenProgram<'a> {
+impl std::ops::DerefMut for OpenProgram<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.program
     }
@@ -401,19 +400,32 @@ impl<'a> std::ops::DerefMut for OpenProgram<'a> {
 
 pub fn eliminate_dead_code(prog: &mut Program) {
     let mut is_read = RegMap::for_program(prog, false);
+    let mut work = Vec::new();
 
-    for bid in prog.cfg().block_ids_postorder() {
-        for reg in prog.block_regs(bid).rev() {
-            let mut insn = prog[reg].get();
+    // initialize worklist with effectful instructions, purposefully skipping
+    // Upsilons (only processed as a consequence of processing the corresponding
+    // phi)
+    for reg in prog.registers() {
+        let insn = prog[reg].get();
+        if insn.has_side_effects() && !matches!(insn, mil::Insn::Upsilon { .. }) {
+            work.push(reg);
+        }
+    }
 
-            if insn.has_side_effects() {
-                is_read[reg] = true;
-            }
+    while let Some(reg) = work.pop() {
+        if is_read[reg] {
+            continue;
+        }
 
-            if is_read[reg] {
-                for &mut input in insn.input_regs() {
-                    is_read[input] = true;
-                }
+        is_read[reg] = true;
+
+        let mut insn = prog[reg].get();
+        for &mut input in insn.input_regs() {
+            work.push(input);
+        }
+        if matches!(insn, mil::Insn::Phi) {
+            for ups in prog.upsilons_of_phi(reg) {
+                work.push(ups);
             }
         }
     }
@@ -779,7 +791,7 @@ fn find_received_vars(
 ) -> RegMat<bool> {
     let mut is_received = RegMat::for_program(prog, graph, false);
     for bid in graph.block_ids_postorder() {
-        for &ndx in block_spans.of_block(bid).into_iter().rev() {
+        for &ndx in block_spans.of_block(bid).iter().rev() {
             let iv = prog.get(ndx).unwrap();
             let dest = iv.dest.get();
             let mut insn = iv.insn.get();
@@ -882,7 +894,7 @@ fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Ma
     mat
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RegMap<T>(Vec<T>);
 
 impl<T: Clone> RegMap<T> {

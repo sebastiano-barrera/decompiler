@@ -68,7 +68,7 @@ macro_rules! match_get {
 /// - a "less than" relationship is defined between keys;
 ///
 /// - every node has a number strictly less than the number of all of
-/// its children.
+///   its children.
 ///
 /// Maintaining the above laws/invariants is the impls' responsibility.
 pub trait NumberedTree {
