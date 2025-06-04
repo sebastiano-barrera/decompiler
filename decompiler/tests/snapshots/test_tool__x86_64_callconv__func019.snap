@@ -117,21 +117,14 @@ ssa post-xform:
 ssa program  75 instrs
 .B0:    ;;  → Always(Return).
          r11 <- Ancestral(AncestralName("RSP"))
-         r15 <- Ancestral(AncestralName("RAX"))
          r43 <- Ancestral(AncestralName("memory"))
-         r65 <- Const { value: 33, size: 8 }
          r66 <- ArithK(Add, r11, 33)
-  (  3)  r67 <- LoadMem { mem: r43, addr: r66, size: 1 }
-         r68 <- Part { src: r15, offset: 1, size: 7 }
-         r69 <- Concat { lo: r67, hi: r68 }
-         r71 <- Get(r69)
-         r72 <- Get(r67)
+         r67 <- LoadMem { mem: r43, addr: r66, size: 1 }
          r73 <- SetReturnValue(r67)
 
 
 
 T0: {
-  let r67: Bytes(1) = [pre:RSP + 33]:1;
   ;
-  return r67
+  return [pre:RSP + 33]:1
 }

@@ -480,6 +480,7 @@ pub fn canonical(prog: &mut ssa::Program) {
         }
     }
 
+    ssa::eliminate_dead_code(prog);
     prog.assert_invariants();
 }
 

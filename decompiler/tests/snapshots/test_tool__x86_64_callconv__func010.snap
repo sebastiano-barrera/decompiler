@@ -128,15 +128,13 @@ ssa program  84 instrs
          r68 <- Part { src: r65, offset: 8, size: 8 }
          r71 <- Const { value: 32, size: 1 }
          r72 <- Widen { reg: r71, target_size: 8, sign: false }
-  (  2)  r73 <- Arith(Shr, r68, r72)
-         r80 <- Get(r73)
+         r73 <- Arith(Shr, r68, r72)
          r81 <- Part { src: r73, offset: 0, size: 1 }
          r82 <- SetReturnValue(r81)
 
 
 
 T0: {
-  let r73: Bytes(8) = pre:arg0[16 .. 8] >> 32 as u64;
   ;
-  return r73[1 .. 0]
+  return (pre:arg0[16 .. 8] >> 32 as u64)[1 .. 0]
 }

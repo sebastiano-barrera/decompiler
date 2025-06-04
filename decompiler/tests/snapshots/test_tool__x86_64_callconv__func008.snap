@@ -111,9 +111,7 @@ cfg:
 ssa post-xform:
 ssa program  76 instrs
 .B0:    ;;  → Always(Return).
-  (  2)  r65 <- Ancestral(AncestralName("arg0"))
-         r66 <- Part { src: r65, offset: 0, size: 8 }
-         r72 <- Get(r66)
+         r65 <- Ancestral(AncestralName("arg0"))
          r73 <- Part { src: r65, offset: 0, size: 8 }
          r74 <- SetReturnValue(r73)
 

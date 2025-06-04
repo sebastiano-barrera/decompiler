@@ -46,7 +46,7 @@ compiler version
 - [x] merge selection colors mgmt in ast and ssa
 - [x] always inline consts
 - [x] never inline phis
-- [ ] fix: DCE gets phi/upsilon elimination wrong sometimes
+- [x] fix: DCE gets phi/upsilon elimination wrong sometimes
     - testcase: redisReconnect, near `ret` at 0x595118
 - [ ] ast: show function names (should be correctly identifier by decompiler core)
 - [ ] show type info

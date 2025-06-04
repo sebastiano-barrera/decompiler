@@ -108,10 +108,8 @@ cfg:
 ssa post-xform:
 ssa program  72 instrs
 .B0:    ;;  → Always(Return).
-  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
+         r27 <- Ancestral(AncestralName("ZMM0"))
          r65 <- NotYetImplemented("unsupported: movss xmm0,[rsp+8]")
-         r67 <- Part { src: r27, offset: 0, size: 8 }
-         r68 <- Get(r67)
          r69 <- Part { src: r27, offset: 0, size: 4 }
          r70 <- SetReturnValue(r69)
 

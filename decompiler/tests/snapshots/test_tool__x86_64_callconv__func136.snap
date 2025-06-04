@@ -148,9 +148,7 @@ ssa program  90 instrs
          r79 <- Part { src: r75, offset: 8, size: 8 }
          r80 <- ArithK(Add, r11, 16)
          r81 <- StoreMem { mem: r78, addr: r80, value: r79 }
-  (  3)  r82 <- Ancestral(AncestralName("arg6"))
-         r86 <- Get(r82)
-         r87 <- Get(r82)
+         r82 <- Ancestral(AncestralName("arg6"))
          r88 <- SetReturnValue(r82)
 
 

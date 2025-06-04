@@ -187,30 +187,21 @@ ssa program  114 instrs
 .B0:    ;;  → Always(Return).
          r10 <- Ancestral(AncestralName("RBP"))
          r11 <- Ancestral(AncestralName("RSP"))
-  (  3)  r27 <- Ancestral(AncestralName("ZMM0"))
+  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
          r43 <- Ancestral(AncestralName("memory"))
          r65 <- ArithK(Add, r11, -8)
          r66 <- StoreMem { mem: r43, addr: r65, value: r10 }
          r67 <- Const { value: 24, size: 4 }
          r74 <- CArg { value: r67, next_arg: None }
          r75: zmalloc <TypeID(173060v1)> <- Const { value: 4433936, size: 8 }
-  (  7)  r76 <- Call { callee: r75, first_arg: Some(r74) }
-         r86 <- Get(r76)
+  (  3)  r76 <- Call { callee: r75, first_arg: Some(r74) }
          r87 <- Part { src: r27, offset: 0, size: 16 }
          r88 <- Part { src: r27, offset: 0, size: 16 }
-  (  3)  r89 <- Arith(BitXor, r87, r88)
-         r90 <- Part { src: r27, offset: 16, size: 48 }
-         r91 <- Concat { lo: r89, hi: r90 }
+         r89 <- Arith(BitXor, r87, r88)
          r98 <- Const { value: 0, size: 8 }
-         r99 <- Const { value: 0, size: 8 }
-         r100 <- Get(r76)
          r101 <- StoreMem { mem: r66, addr: r76, value: r98 }
-         r102 <- Get(r89)
-         r103 <- Const { value: 8, size: 8 }
          r104 <- ArithK(Add, r76, 8)
          r105 <- StoreMem { mem: r101, addr: r104, value: r89 }
-         r110 <- Get(r76)
-         r111 <- Get(r76)
          r112 <- SetReturnValue(r76)
 
 
@@ -218,9 +209,8 @@ ssa program  114 instrs
 T0: {
   [pre:RSP - 8]:* := pre:RBP;
   let r76: Bytes(8) = zmalloc(24);
-  let r89: Bytes(16) = pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
   [r76]:* := 0;
-  [r76 + 8]:* := r89;
+  [r76 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
   ;
   return r76
 }

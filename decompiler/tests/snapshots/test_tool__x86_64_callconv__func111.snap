@@ -135,14 +135,12 @@ ssa post-xform:
 ssa program  88 instrs
 .B0:    ;;  → Always(Return).
          r11 <- Ancestral(AncestralName("RSP"))
-  (  2)  r15 <- Ancestral(AncestralName("RAX"))
+         r15 <- Ancestral(AncestralName("RAX"))
          r43 <- Ancestral(AncestralName("memory"))
-  (  2)  r78 <- Ancestral(AncestralName("arg5"))
-         r79 <- Get(r78)
+         r78 <- Ancestral(AncestralName("arg5"))
          r80 <- ArithK(Add, r11, 8)
          r81 <- StoreMem { mem: r43, addr: r80, value: r78 }
          r82 <- NotYetImplemented("unsupported: movzx eax,word ptr [rsp+8]")
-         r84 <- Get(r15)
          r85 <- Part { src: r15, offset: 0, size: 2 }
          r86 <- SetReturnValue(r85)
 

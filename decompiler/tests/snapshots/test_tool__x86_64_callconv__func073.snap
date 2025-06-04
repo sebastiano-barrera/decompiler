@@ -130,18 +130,14 @@ ssa post-xform:
 ssa program  87 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r74 <- Ancestral(AncestralName("arg3"))
-  (  2)  r75 <- Part { src: r74, offset: 0, size: 8 }
+         r75 <- Part { src: r74, offset: 0, size: 8 }
          r77 <- Part { src: r74, offset: 8, size: 8 }
-         r82 <- Get(r75)
-  (  2)  r83 <- Concat { lo: r75, hi: r77 }
-         r84 <- Get(r83)
+         r83 <- Concat { lo: r75, hi: r77 }
          r85 <- SetReturnValue(r83)
 
 
 
 T0: {
-  let r75: Bytes(8) = pre:arg3[8 .. 0];
-  let r83: Bytes(16) = pre:arg3[16 .. 8] ++ r75;
   ;
-  return r83
+  return pre:arg3[16 .. 8] ++ pre:arg3[8 .. 0]
 }
