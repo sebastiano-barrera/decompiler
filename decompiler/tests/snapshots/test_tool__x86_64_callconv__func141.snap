@@ -155,7 +155,7 @@ ssa post-xform:
 ssa program  96 instrs
 .B0:    ;;  → Always(Return).
   (  4)  r11 <- Ancestral(AncestralName("RSP"))
-  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
+         r27 <- Ancestral(AncestralName("ZMM0"))
          r43 <- Ancestral(AncestralName("memory"))
   (  2)  r75 <- Ancestral(AncestralName("arg5"))
          r76 <- Part { src: r75, offset: 0, size: 8 }
@@ -172,8 +172,6 @@ ssa program  96 instrs
          r87 <- ArithK(Add, r11, 32)
          r88 <- StoreMem { mem: r85, addr: r87, value: r86 }
          r89 <- NotYetImplemented("unsupported: movss xmm0,[rsp+20h]")
-         r91 <- Part { src: r27, offset: 0, size: 8 }
-         r92 <- Get(r91)
          r93 <- Part { src: r27, offset: 0, size: 4 }
          r94 <- SetReturnValue(r93)
 

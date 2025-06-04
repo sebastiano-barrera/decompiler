@@ -222,47 +222,26 @@ cfg:
 ssa post-xform:
 ssa program  121 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
-         r18 <- Ancestral(AncestralName("RDX"))
   (  6)  r43 <- Ancestral(AncestralName("memory"))
-  (  7)  r65 <- Ancestral(AncestralName("arg0"))
-         r67 <- Const { value: 0, size: 8 }
-         r68 <- Get(r65)
-  ( 11)  r69 <- LoadMem { mem: r43, addr: r65, size: 8 }
-         r71 <- Get(r69)
+  (  4)  r65 <- Ancestral(AncestralName("arg0"))
+  (  5)  r69 <- LoadMem { mem: r43, addr: r65, size: 8 }
          r73 <- IsZero(r69)
          r78 <- SetJumpCondition(r73)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
-         r80 <- Const { value: 8, size: 8 }
          r81 <- ArithK(Add, r65, 8)
-  (  5)  r82 <- LoadMem { mem: r43, addr: r81, size: 4 }
-         r83 <- Part { src: r18, offset: 4, size: 4 }
-         r84 <- Concat { lo: r82, hi: r83 }
-         r85 <- Get(r82)
-         r86 <- Get(r82)
-         r87 <- Get(r82)
+         r82 <- LoadMem { mem: r43, addr: r81, size: 4 }
          r89 <- IsZero(r82)
          r94 <- Not(r89)
          r95 <- SetJumpCondition(r94)
 .B2:    ;; preds:B1  → Always(Return).
-         r97 <- Const { value: 8, size: 8 }
          r98 <- ArithK(Add, r69, 8)
          r99 <- LoadMem { mem: r43, addr: r98, size: 8 }
-         r101 <- Const { value: 0, size: 8 }
-         r102 <- Get(r65)
          r103 <- StoreMem { mem: r43, addr: r65, value: r99 }
-         r105 <- Get(r69)
-         r106 <- Get(r69)
          r107 <- SetReturnValue(r69)
 .B3:    ;; preds:B1  → Always(Block(BlockID(4))).
-         r109 <- Const { value: 0, size: 8 }
-         r110 <- Get(r69)
          r111 <- LoadMem { mem: r43, addr: r69, size: 8 }
-         r113 <- Const { value: 0, size: 8 }
-         r114 <- Get(r65)
          r115 <- StoreMem { mem: r43, addr: r65, value: r111 }
 .B4:    ;; preds:B0,B3  → Always(Return).
-         r117 <- Get(r69)
-         r118 <- Get(r69)
          r119 <- SetReturnValue(r69)
 
 
@@ -273,9 +252,8 @@ T0: {
   if IsZero (r69) {
     goto T4
   }
-  let r82: Bytes(4) = [pre:arg0 + 8]:4;
   ;
-  if ! IsZero (r82) {
+  if ! IsZero ([pre:arg0 + 8]:4) {
     [pre:arg0]:* := [r69]:8;
     goto T4
   }

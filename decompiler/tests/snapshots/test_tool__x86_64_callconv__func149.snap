@@ -151,11 +151,8 @@ ssa program  91 instrs
          r79 <- Part { src: r75, offset: 8, size: 8 }
          r80 <- ArithK(Add, r11, 16)
          r81 <- StoreMem { mem: r78, addr: r80, value: r79 }
-         r82 <- Const { value: 40, size: 8 }
          r83 <- ArithK(Add, r11, 40)
-  (  3)  r84 <- LoadMem { mem: r81, addr: r83, size: 8 }
-         r87 <- Get(r84)
-         r88 <- Get(r84)
+         r84 <- LoadMem { mem: r81, addr: r83, size: 8 }
          r89 <- SetReturnValue(r84)
 
 
@@ -163,7 +160,6 @@ ssa program  91 instrs
 T0: {
   [pre:RSP + 8]:* := pre:arg5[8 .. 0];
   [pre:RSP + 16]:* := pre:arg5[16 .. 8];
-  let r84: Bytes(8) = [pre:RSP + 40]:8;
   ;
-  return r84
+  return [pre:RSP + 40]:8
 }

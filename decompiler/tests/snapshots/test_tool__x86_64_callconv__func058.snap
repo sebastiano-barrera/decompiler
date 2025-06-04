@@ -155,37 +155,22 @@ ssa post-xform:
 ssa program  86 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11 <- Ancestral(AncestralName("RSP"))
-  (  4)  r13 <- Ancestral(AncestralName("RDI"))
-         r27 <- Ancestral(AncestralName("ZMM0"))
-         r28 <- Ancestral(AncestralName("ZMM1"))
+  (  3)  r13 <- Ancestral(AncestralName("RDI"))
   (  3)  r43 <- Ancestral(AncestralName("memory"))
-         r66 <- Const { value: 8, size: 8 }
          r67 <- ArithK(Add, r11, 8)
-  (  3)  r68 <- LoadMem { mem: r43, addr: r67, size: 16 }
-         r69 <- Part { src: r27, offset: 16, size: 48 }
-         r70 <- Concat { lo: r68, hi: r69 }
-         r71 <- Const { value: 24, size: 8 }
+         r68 <- LoadMem { mem: r43, addr: r67, size: 16 }
          r72 <- ArithK(Add, r11, 24)
-  (  3)  r73 <- LoadMem { mem: r43, addr: r72, size: 16 }
-         r74 <- Part { src: r28, offset: 16, size: 48 }
-         r75 <- Concat { lo: r73, hi: r74 }
-         r76 <- Get(r73)
-         r77 <- Const { value: 16, size: 8 }
+         r73 <- LoadMem { mem: r43, addr: r72, size: 16 }
          r78 <- ArithK(Add, r13, 16)
          r79 <- StoreMem { mem: r43, addr: r78, value: r73 }
-         r80 <- Get(r68)
-         r81 <- Const { value: 0, size: 8 }
-         r82 <- Get(r13)
          r83 <- StoreMem { mem: r79, addr: r13, value: r68 }
          r84 <- SetReturnValue(r13)
 
 
 
 T0: {
-  let r68: Bytes(16) = [pre:RSP + 8]:16;
-  let r73: Bytes(16) = [pre:RSP + 24]:16;
-  [pre:RDI + 16]:* := r73;
-  [pre:RDI]:* := r68;
+  [pre:RDI + 16]:* := [pre:RSP + 24]:16;
+  [pre:RDI]:* := [pre:RSP + 8]:16;
   ;
   return pre:RDI
 }

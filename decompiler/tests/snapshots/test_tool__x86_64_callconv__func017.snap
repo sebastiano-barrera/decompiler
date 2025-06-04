@@ -114,17 +114,13 @@ ssa program  74 instrs
 .B0:    ;;  → Always(Return).
          r11 <- Ancestral(AncestralName("RSP"))
          r43 <- Ancestral(AncestralName("memory"))
-         r65 <- Const { value: 24, size: 8 }
          r66 <- ArithK(Add, r11, 24)
-  (  3)  r67 <- LoadMem { mem: r43, addr: r66, size: 8 }
-         r70 <- Get(r67)
-         r71 <- Get(r67)
+         r67 <- LoadMem { mem: r43, addr: r66, size: 8 }
          r72 <- SetReturnValue(r67)
 
 
 
 T0: {
-  let r67: Bytes(8) = [pre:RSP + 24]:8;
   ;
-  return r67
+  return [pre:RSP + 24]:8
 }

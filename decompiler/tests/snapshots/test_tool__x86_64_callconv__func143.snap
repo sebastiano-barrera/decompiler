@@ -156,8 +156,6 @@ ssa post-xform:
 ssa program  97 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11 <- Ancestral(AncestralName("RSP"))
-         r27 <- Ancestral(AncestralName("ZMM0"))
-         r28 <- Ancestral(AncestralName("ZMM1"))
          r43 <- Ancestral(AncestralName("memory"))
   (  2)  r75 <- Ancestral(AncestralName("arg5"))
          r76 <- Part { src: r75, offset: 0, size: 8 }
@@ -166,18 +164,10 @@ ssa program  97 instrs
          r79 <- Part { src: r75, offset: 8, size: 8 }
          r80 <- ArithK(Add, r11, 16)
          r81 <- StoreMem { mem: r78, addr: r80, value: r79 }
-  (  4)  r82 <- Ancestral(AncestralName("arg6"))
-         r83 <- Part { src: r82, offset: 0, size: 8 }
-         r84 <- Part { src: r27, offset: 8, size: 56 }
-         r85 <- Concat { lo: r83, hi: r84 }
-         r86 <- Part { src: r82, offset: 8, size: 8 }
-         r87 <- Part { src: r28, offset: 8, size: 56 }
-         r88 <- Concat { lo: r86, hi: r87 }
-  (  2)  r90 <- Part { src: r82, offset: 0, size: 8 }
-         r91 <- Get(r90)
+  (  2)  r82 <- Ancestral(AncestralName("arg6"))
+         r90 <- Part { src: r82, offset: 0, size: 8 }
          r92 <- Part { src: r82, offset: 8, size: 8 }
-  (  2)  r93 <- Concat { lo: r90, hi: r92 }
-         r94 <- Get(r93)
+         r93 <- Concat { lo: r90, hi: r92 }
          r95 <- SetReturnValue(r93)
 
 
@@ -185,8 +175,6 @@ ssa program  97 instrs
 T0: {
   [pre:RSP + 8]:* := pre:arg5[8 .. 0];
   [pre:RSP + 16]:* := pre:arg5[16 .. 8];
-  let r90: Bytes(8) = pre:arg6[8 .. 0];
-  let r93: Bytes(16) = pre:arg6[16 .. 8] ++ r90;
   ;
-  return r93
+  return pre:arg6[16 .. 8] ++ pre:arg6[8 .. 0]
 }

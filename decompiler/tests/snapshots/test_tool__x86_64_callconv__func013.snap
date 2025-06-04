@@ -127,27 +127,13 @@ cfg:
 ssa post-xform:
 ssa program  81 instrs
 .B0:    ;;  → Always(Return).
-  (  2)  r27 <- Ancestral(AncestralName("ZMM0"))
-         r28 <- Ancestral(AncestralName("ZMM1"))
-  (  3)  r65 <- Ancestral(AncestralName("arg0"))
-         r66 <- Part { src: r65, offset: 0, size: 8 }
-         r67 <- Part { src: r27, offset: 8, size: 56 }
-         r68 <- Concat { lo: r66, hi: r67 }
-  (  3)  r69 <- Part { src: r65, offset: 8, size: 8 }
-         r70 <- Part { src: r28, offset: 8, size: 56 }
-         r71 <- Concat { lo: r69, hi: r70 }
-         r72 <- Part { src: r71, offset: 0, size: 16 }
-         r73 <- Part { src: r27, offset: 16, size: 48 }
-         r74 <- Concat { lo: r72, hi: r73 }
-         r76 <- Get(r69)
-         r77 <- Get(r69)
+         r65 <- Ancestral(AncestralName("arg0"))
          r78 <- Part { src: r65, offset: 8, size: 8 }
          r79 <- SetReturnValue(r78)
 
 
 
 T0: {
-  let r69: Bytes(8) = pre:arg0[16 .. 8];
   ;
   return pre:arg0[16 .. 8]
 }

@@ -517,39 +517,28 @@ ssa program  271 instrs
          r10 <- Ancestral(AncestralName("RBP"))
   ( 21)  r11 <- Ancestral(AncestralName("RSP"))
          r43 <- Ancestral(AncestralName("memory"))
-  (  3)  r65 <- Ancestral(AncestralName("arg0"))
-  (  2)  r66 <- Part { src: r65, offset: 0, size: 8 }
+  (  2)  r65 <- Ancestral(AncestralName("arg0"))
+         r66 <- Part { src: r65, offset: 0, size: 8 }
          r68 <- Part { src: r65, offset: 8, size: 8 }
          r70 <- ArithK(Add, r11, -8)
          r71 <- StoreMem { mem: r43, addr: r70, value: r10 }
-         r80 <- Const { value: -32, size: 8 }
          r81 <- ArithK(Add, r11, -40)
          r82 <- StoreMem { mem: r71, addr: r81, value: r66 }
-         r83 <- Const { value: -24, size: 8 }
          r84 <- ArithK(Add, r11, -32)
          r85 <- StoreMem { mem: r82, addr: r84, value: r68 }
          r86 <- Const { value: 0, size: 4 }
-         r87 <- Const { value: -4, size: 8 }
          r88 <- ArithK(Add, r11, -12)
          r89 <- StoreMem { mem: r85, addr: r88, value: r86 }
          r90 <- Const { value: 0, size: 4 }
-         r91 <- Const { value: -8, size: 8 }
          r92 <- ArithK(Add, r11, -16)
          r93 <- StoreMem { mem: r89, addr: r92, value: r90 }
-         r263 <- Upsilon { value: r66, phi_ref: r261 }
          r264 <- Upsilon { value: r93, phi_ref: r262 }
 .B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
   (  4)  r262 <- Phi
-  (  2)  r261 <- Phi
-         r226 <- Const { value: -24, size: 8 }
          r227 <- ArithK(Add, r11, -32)
-  (  3)  r228 <- LoadMem { mem: r262, addr: r227, size: 4 }
-         r229 <- Part { src: r261, offset: 4, size: 4 }
-         r230 <- Concat { lo: r228, hi: r229 }
-         r231 <- Const { value: -8, size: 8 }
+         r228 <- LoadMem { mem: r262, addr: r227, size: 4 }
          r232 <- ArithK(Add, r11, -16)
          r233 <- LoadMem { mem: r262, addr: r232, size: 4 }
-         r234 <- Get(r228)
   (  2)  r235 <- Arith(Sub, r233, r228)
          r236 <- OverflowOf(r235)
          r238 <- SignOf(r235)
@@ -557,33 +546,20 @@ ssa program  271 instrs
          r243 <- Not(r242)
          r244 <- SetJumpCondition(r243)
 .B6:    ;; preds:B5  → Always(Return).
-         r246 <- Const { value: -4, size: 8 }
          r247 <- ArithK(Add, r11, -12)
-  (  3)  r248 <- LoadMem { mem: r262, addr: r247, size: 4 }
-         r249 <- Part { src: r261, offset: 4, size: 4 }
-         r250 <- Concat { lo: r248, hi: r249 }
-         r255 <- Get(r250)
-         r256 <- Get(r248)
+         r248 <- LoadMem { mem: r262, addr: r247, size: 4 }
          r257 <- SetReturnValue(r248)
 .B1:    ;; preds:B5  → Always(Block(BlockID(3))).
          r95 <- Const { value: 0, size: 4 }
-         r96 <- Const { value: -12, size: 8 }
          r97 <- ArithK(Add, r11, -20)
          r98 <- StoreMem { mem: r262, addr: r97, value: r95 }
-         r265 <- Upsilon { value: r230, phi_ref: r259 }
          r266 <- Upsilon { value: r98, phi_ref: r260 }
 .B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
   ( 11)  r260 <- Phi
-  (  5)  r259 <- Phi
-         r192 <- Const { value: -20, size: 8 }
          r193 <- ArithK(Add, r11, -28)
-  (  3)  r194 <- LoadMem { mem: r260, addr: r193, size: 4 }
-         r195 <- Part { src: r259, offset: 4, size: 4 }
-         r196 <- Concat { lo: r194, hi: r195 }
-         r197 <- Const { value: -12, size: 8 }
+         r194 <- LoadMem { mem: r260, addr: r193, size: 4 }
          r198 <- ArithK(Add, r11, -20)
          r199 <- LoadMem { mem: r260, addr: r198, size: 4 }
-         r200 <- Get(r194)
   (  2)  r201 <- Arith(Sub, r199, r194)
          r202 <- OverflowOf(r201)
          r204 <- SignOf(r201)
@@ -591,127 +567,77 @@ ssa program  271 instrs
          r209 <- Not(r208)
          r210 <- SetJumpCondition(r209)
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
-         r212 <- Const { value: -8, size: 8 }
          r213 <- ArithK(Add, r11, -16)
          r214 <- LoadMem { mem: r260, addr: r213, size: 4 }
-         r215 <- Const { value: 1, size: 4 }
          r216 <- ArithK(Add, r214, 1)
-         r217 <- Const { value: -8, size: 8 }
          r218 <- ArithK(Add, r11, -16)
          r219 <- StoreMem { mem: r260, addr: r218, value: r216 }
-         r267 <- Upsilon { value: r196, phi_ref: r261 }
          r268 <- Upsilon { value: r219, phi_ref: r262 }
 .B2:    ;; preds:B3  → Always(Block(BlockID(3))).
-         r100 <- Const { value: -32, size: 8 }
          r101 <- ArithK(Add, r11, -40)
          r102 <- LoadMem { mem: r260, addr: r101, size: 8 }
-         r104 <- Const { value: -20, size: 8 }
          r105 <- ArithK(Add, r11, -28)
-  (  3)  r106 <- LoadMem { mem: r260, addr: r105, size: 4 }
-         r107 <- Part { src: r259, offset: 4, size: 4 }
-         r108 <- Concat { lo: r106, hi: r107 }
-         r109 <- Get(r106)
-         r110 <- Const { value: -8, size: 8 }
+         r106 <- LoadMem { mem: r260, addr: r105, size: 4 }
          r111 <- ArithK(Add, r11, -16)
          r112 <- LoadMem { mem: r260, addr: r111, size: 4 }
-  (  5)  r113 <- Arith(Mul, r106, r112)
-         r114 <- Part { src: r259, offset: 4, size: 4 }
-         r115 <- Concat { lo: r113, hi: r114 }
-         r122 <- Get(r113)
-         r123 <- Part { src: r65, offset: 12, size: 4 }
-         r124 <- Concat { lo: r113, hi: r123 }
-         r125 <- Const { value: -12, size: 8 }
+         r113 <- Arith(Mul, r106, r112)
          r126 <- ArithK(Add, r11, -20)
-  (  3)  r127 <- LoadMem { mem: r260, addr: r126, size: 4 }
-         r128 <- Part { src: r259, offset: 4, size: 4 }
-         r129 <- Concat { lo: r127, hi: r128 }
-         r130 <- Get(r127)
-         r131 <- Get(r113)
-  (  3)  r132 <- Arith(Add, r127, r113)
-         r133 <- Part { src: r259, offset: 4, size: 4 }
-         r134 <- Concat { lo: r132, hi: r133 }
-         r141 <- Get(r132)
+         r127 <- LoadMem { mem: r260, addr: r126, size: 4 }
+         r132 <- Arith(Add, r127, r113)
          r142 <- Widen { reg: r132, target_size: 8, sign: true }
          r143 <- Const { value: 2, size: 1 }
          r144 <- Widen { reg: r143, target_size: 8, sign: false }
          r145 <- Arith(Shl, r142, r144)
-  (  3)  r151 <- Arith(Add, r145, r102)
-         r159 <- Const { value: 0, size: 8 }
-         r160 <- Get(r151)
-  (  3)  r161 <- LoadMem { mem: r260, addr: r151, size: 4 }
-         r162 <- Part { src: r151, offset: 4, size: 4 }
-         r163 <- Concat { lo: r161, hi: r162 }
-         r164 <- Const { value: -4, size: 8 }
+         r151 <- Arith(Add, r145, r102)
+         r161 <- LoadMem { mem: r260, addr: r151, size: 4 }
          r165 <- ArithK(Add, r11, -12)
          r166 <- LoadMem { mem: r260, addr: r165, size: 4 }
-         r167 <- Get(r161)
          r168 <- Arith(Add, r166, r161)
-         r169 <- Const { value: -4, size: 8 }
          r170 <- ArithK(Add, r11, -12)
   (  2)  r171 <- StoreMem { mem: r260, addr: r170, value: r168 }
-         r178 <- Const { value: -12, size: 8 }
          r179 <- ArithK(Add, r11, -20)
          r180 <- LoadMem { mem: r171, addr: r179, size: 4 }
-         r181 <- Const { value: 1, size: 4 }
          r182 <- ArithK(Add, r180, 1)
-         r183 <- Const { value: -12, size: 8 }
          r184 <- ArithK(Add, r11, -20)
          r185 <- StoreMem { mem: r171, addr: r184, value: r182 }
-         r269 <- Upsilon { value: r163, phi_ref: r259 }
          r270 <- Upsilon { value: r185, phi_ref: r260 }
 
 
 
 T0: {
-  let r66: Bytes(8) = pre:arg0[8 .. 0];
   [pre:RSP - 8]:* := pre:RBP;
-  [pre:RSP - 40]:* := r66;
+  [pre:RSP - 40]:* := pre:arg0[8 .. 0];
   [pre:RSP - 32]:* := pre:arg0[16 .. 8];
   [pre:RSP - 12]:* := 0;
   [pre:RSP - 16]:* := 0;
-  r261 := pre:arg0[8 .. 0];
   ;
   goto T5
   T5: {
     let mut r262: MemoryEffect;
-    let mut r261: Bytes(8);
-    let r228: Bytes(4) = [pre:RSP - 32]:4;
-    let r235: Bytes(4) = [pre:RSP - 16]:4 - r228;
+    let r235: Bytes(4) = [pre:RSP - 16]:4 - [pre:RSP - 32]:4;
     ;
     if ! (SignOf (r235) EQ OverflowOf (r235)) {
       [pre:RSP - 20]:* := 0;
-      r259 := r261[8 .. 4] ++ r228;
       ;
       goto T3
       T3: {
         let mut r260: MemoryEffect;
-        let mut r259: Bytes(8);
-        let r194: Bytes(4) = [pre:RSP - 28]:4;
-        let r201: Bytes(4) = [pre:RSP - 20]:4 - r194;
+        let r201: Bytes(4) = [pre:RSP - 20]:4 - [pre:RSP - 28]:4;
         ;
         if ! (SignOf (r201) EQ OverflowOf (r201)) {
-          let r106: Bytes(4) = [pre:RSP - 28]:4;
-          let r113: Bytes(4) = r106 * [pre:RSP - 16]:4;
-          let r127: Bytes(4) = [pre:RSP - 20]:4;
-          let r132: Bytes(4) = r127 + r113;
-          let r151: Bytes(8) = r132 as i64 << 2 as u64 + [pre:RSP - 40]:8;
-          let r161: Bytes(4) = [r151]:4;
-          [pre:RSP - 12]:* := [pre:RSP - 12]:4 + r161;
+          [pre:RSP - 12]:* := [pre:RSP - 12]:4 + [([pre:RSP - 20]:4 + [pre:RSP - 28]:4 * [pre:RSP - 16]:4) as i64 << 2 as u64 + [pre:RSP - 40]:8]:4;
           [pre:RSP - 20]:* := [pre:RSP - 20]:4 + 1;
-          r259 := r151[8 .. 4] ++ r161;
           ;
           loop T3
         }
         [pre:RSP - 16]:* := [pre:RSP - 16]:4 + 1;
-        r261 := r259[8 .. 4] ++ r194;
         ;
         loop T5
       }
     
     }
-    let r248: Bytes(4) = [pre:RSP - 12]:4;
     ;
-    return r248
+    return [pre:RSP - 12]:4
   }
 
 }

@@ -223,7 +223,6 @@ ssa program  124 instrs
          r77 <- Arith(BitXor, r75, r76)
          r78 <- Part { src: r15, offset: 4, size: 4 }
          r79 <- Concat { lo: r77, hi: r78 }
-         r86 <- Const { value: 8, size: 8 }
          r87 <- ArithK(Add, r11, 8)
          r120 <- Upsilon { value: r79, phi_ref: r118 }
          r121 <- Upsilon { value: r87, phi_ref: r119 }
@@ -231,21 +230,17 @@ ssa program  124 instrs
          r119 <- Phi
   (  2)  r118 <- Phi
          r89 <- Part { src: r118, offset: 0, size: 4 }
-  (  3)  r90 <- ArithK(Add, r89, 1)
+  (  2)  r90 <- ArithK(Add, r89, 1)
          r91 <- Part { src: r118, offset: 4, size: 4 }
-  (  2)  r92 <- Concat { lo: r90, hi: r91 }
-         r99 <- Const { value: 16, size: 8 }
+         r92 <- Concat { lo: r90, hi: r91 }
          r100 <- ArithK(Add, r119, 16)
-  (  3)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
-         r103 <- Get(r101)
+  (  2)  r101 <- LoadMem { mem: r74, addr: r100, size: 8 }
          r105 <- IsZero(r101)
          r110 <- Not(r105)
          r111 <- SetJumpCondition(r110)
          r122 <- Upsilon { value: r92, phi_ref: r118 }
          r123 <- Upsilon { value: r101, phi_ref: r119 }
 .B2:    ;; preds:B1  → Always(Return).
-         r114 <- Get(r92)
-         r115 <- Get(r90)
          r116 <- SetReturnValue(r90)
 
 
@@ -261,7 +256,6 @@ T0: {
     let mut r119: Bytes(8);
     let mut r118: Bytes(8);
     let r90: Bytes(4) = r118[4 .. 0] + 1;
-    let r92: Bytes(8) = r118[8 .. 4] ++ r90;
     let r101: Bytes(8) = [r119 + 16]:8;
     ;
     r118 := r118[8 .. 4] ++ r90;

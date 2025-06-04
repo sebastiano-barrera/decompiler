@@ -3020,14 +3020,14 @@ ssa post-xform:
 ssa program  1698 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(53)), neg: Block(BlockID(1)) }.
          r10 <- Ancestral(AncestralName("RBP"))
-  ( 75)  r11 <- Ancestral(AncestralName("RSP"))
+  ( 50)  r11 <- Ancestral(AncestralName("RSP"))
          r13 <- Ancestral(AncestralName("RDI"))
   (  3)  r14 <- Ancestral(AncestralName("RSI"))
          r16 <- Ancestral(AncestralName("RBX"))
-  ( 13)  r17 <- Ancestral(AncestralName("RCX"))
-  ( 22)  r18 <- Ancestral(AncestralName("RDX"))
+  (  7)  r17 <- Ancestral(AncestralName("RCX"))
+  ( 15)  r18 <- Ancestral(AncestralName("RDX"))
          r19 <- Ancestral(AncestralName("R8"))
-  ( 21)  r20 <- Ancestral(AncestralName("R9"))
+  (  5)  r20 <- Ancestral(AncestralName("R9"))
          r23 <- Ancestral(AncestralName("R12"))
   (  5)  r24 <- Ancestral(AncestralName("R13"))
          r25 <- Ancestral(AncestralName("R14"))
@@ -3046,86 +3046,48 @@ ssa program  1698 instrs
          r78 <- StoreMem { mem: r76, addr: r77, value: r10 }
          r79 <- ArithK(Add, r11, -48)
          r80 <- StoreMem { mem: r78, addr: r79, value: r16 }
-         r82 <- Const { value: 88, size: 8 }
-         r83 <- ArithK(Add, r11, -136)
-         r91 <- Const { value: 64, size: 8 }
          r92 <- ArithK(Add, r11, -72)
          r93 <- StoreMem { mem: r80, addr: r92, value: r13 }
-         r95 <- Const { value: 32, size: 8 }
          r96 <- ArithK(Add, r11, -104)
          r97 <- StoreMem { mem: r93, addr: r96, value: r19 }
-         r98 <- Const { value: 0, size: 8 }
          r99 <- ArithK(Add, r11, -136)
          r100 <- StoreMem { mem: r97, addr: r99, value: r18 }
-         r101 <- Const { value: 24, size: 8 }
   (  2)  r102 <- ArithK(Add, r11, -112)
   (  4)  r103 <- StoreMem { mem: r100, addr: r102, value: r20 }
          r111 <- CArg { value: r102, next_arg: None }
          r112 <- CArg { value: r70, next_arg: Some(r111) }
          r113: strchr <TypeID(340441v1)> <- Const { value: 4199040, size: 8 }
-  (  6)  r114 <- Call { callee: r113, first_arg: Some(r112) }
-         r124 <- Get(r114)
-         r126 <- Get(r114)
+  (  3)  r114 <- Call { callee: r113, first_arg: Some(r112) }
          r128 <- IsZero(r114)
          r133 <- SetJumpCondition(r128)
          r1530 <- Upsilon { value: r114, phi_ref: r1491 }
 .B53:    ;; preds:B0  → Always(Block(BlockID(1))).
-         r1462 <- Const { value: 0, size: 8 }
-         r1463 <- ArithK(Add, r11, -136)
-         r1639 <- Get(r18)
-         r1640 <- ArithK(Add, r11, -128)
-         r1642 <- Get(r18)
-         r1464 <- Get(r18)
          r1467: __builtin_strlen <TypeID(358626v1)> <- Const { value: 4199136, size: 8 }
          r1468 <- Call { callee: r1467, first_arg: None }
-         r1478 <- Const { value: 0, size: 8 }
-         r1479 <- Get(r18)
-         r1480 <- Get(r114)
          r1481 <- Arith(Add, r18, r114)
          r1531 <- Upsilon { value: r1481, phi_ref: r1491 }
 .B1:    ;; preds:B0,B53  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(2)) }.
-  ( 12)  r1491 <- Phi
-         r135 <- Const { value: 0, size: 8 }
-         r136 <- ArithK(Add, r11, -136)
-         r1644 <- Get(r18)
-         r1645 <- ArithK(Add, r11, -128)
-         r1647 <- Get(r18)
-         r137 <- Get(r18)
+  (  9)  r1491 <- Phi
   (  8)  r140 <- Arith(Sub, r1491, r18)
          r145 <- IsZero(r140)
          r148 <- SetJumpCondition(r145)
          r1532 <- Upsilon { value: r18, phi_ref: r1525 }
 .B2:    ;; preds:B1  → Conditional { pos: Block(BlockID(55)), neg: Block(BlockID(3)) }.
-         r150 <- Const { value: 24, size: 8 }
-         r151 <- ArithK(Add, r11, -112)
-         r1649 <- Get(r20)
-         r1650 <- ArithK(Add, r11, -104)
-         r1652 <- Get(r20)
-         r152 <- Get(r20)
-         r154 <- Const { value: 0, size: 8 }
-         r155 <- Get(r20)
-  (  2)  r156 <- LoadMem { mem: r103, addr: r20, size: 8 }
-         r157 <- Const { value: 0, size: 8 }
-         r158 <- Get(r156)
+         r156 <- LoadMem { mem: r103, addr: r20, size: 8 }
          r162 <- IsZero(r156)
          r165 <- SetJumpCondition(r162)
 .B3:    ;; preds:B2  → Conditional { pos: Block(BlockID(30)), neg: Block(BlockID(4)) }.
-         r167 <- Const { value: 24, size: 8 }
          r168 <- ArithK(Add, r14, 24)
-  ( 11)  r169 <- LoadMem { mem: r103, addr: r168, size: 8 }
+  ( 10)  r169 <- LoadMem { mem: r103, addr: r168, size: 8 }
          r171 <- Part { src: r26, offset: 0, size: 4 }
          r172 <- Part { src: r26, offset: 0, size: 4 }
          r173 <- Arith(BitXor, r171, r172)
          r174 <- Part { src: r26, offset: 4, size: 4 }
   (  8)  r175 <- Concat { lo: r173, hi: r174 }
-         r182 <- Const { value: 72, size: 8 }
          r183 <- ArithK(Add, r11, -64)
   (  5)  r184 <- StoreMem { mem: r103, addr: r183, value: r17 }
-         r185 <- Const { value: 0, size: 8 }
-         r186 <- Get(r169)
-  (  2)  r187 <- LoadMem { mem: r184, addr: r169, size: 1 }
+         r187 <- LoadMem { mem: r184, addr: r169, size: 1 }
          r188 <- Const { value: 0, size: 1 }
-         r189 <- Get(r187)
          r193 <- IsZero(r187)
          r196 <- SetJumpCondition(r193)
          r1542 <- Upsilon { value: r1491, phi_ref: r1517 }
@@ -3136,13 +3098,10 @@ ssa program  1698 instrs
 .B4:    ;; preds:B3,B29  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(5)) }.
   (  2)  r1493 <- Phi
   (  5)  r1492 <- Phi
-         r198 <- Const { value: 16, size: 8 }
          r199 <- ArithK(Add, r1492, 16)
-  (  5)  r200 <- LoadMem { mem: r1493, addr: r199, size: 8 }
-         r202 <- Const { value: 16, size: 8 }
+  (  4)  r200 <- LoadMem { mem: r1493, addr: r199, size: 8 }
          r203 <- ArithK(Add, r11, -120)
   (  5)  r204 <- StoreMem { mem: r1493, addr: r203, value: r200 }
-         r205 <- Get(r200)
          r207 <- IsZero(r200)
          r212 <- SetJumpCondition(r207)
          r1567 <- Upsilon { value: r18, phi_ref: r1525 }
@@ -3153,7 +3112,6 @@ ssa program  1698 instrs
          r218 <- Part { src: r17, offset: 4, size: 4 }
   (  9)  r219 <- Concat { lo: r217, hi: r218 }
          r226 <- Part { src: r200, offset: 0, size: 4 }
-         r227 <- Const { value: 3, size: 4 }
   (  2)  r228 <- ArithK(BitAnd, r226, 3)
          r229 <- Part { src: r200, offset: 4, size: 4 }
   (  2)  r230 <- Concat { lo: r228, hi: r229 }
@@ -3163,7 +3121,6 @@ ssa program  1698 instrs
          r1570 <- Upsilon { value: r169, phi_ref: r1503 }
          r1571 <- Upsilon { value: r204, phi_ref: r1504 }
 .B6:    ;; preds:B5  → Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(7)) }.
-         r239 <- Const { value: 1, size: 8 }
          r240 <- ArithK(Add, r230, -1)
          r244 <- IsZero(r240)
          r247 <- SetJumpCondition(r244)
@@ -3171,7 +3128,6 @@ ssa program  1698 instrs
          r1603 <- Upsilon { value: r169, phi_ref: r1499 }
          r1604 <- Upsilon { value: r204, phi_ref: r1500 }
 .B7:    ;; preds:B6  → Conditional { pos: Block(BlockID(10)), neg: Block(BlockID(8)) }.
-         r249 <- Const { value: 2, size: 8 }
          r250 <- ArithK(Add, r230, -3)
          r254 <- IsZero(r250)
          r257 <- SetJumpCondition(r254)
@@ -3179,49 +3135,34 @@ ssa program  1698 instrs
          r1618 <- Upsilon { value: r169, phi_ref: r1496 }
          r1619 <- Upsilon { value: r204, phi_ref: r1497 }
 .B8:    ;; preds:B7  → Conditional { pos: Block(BlockID(51)), neg: Block(BlockID(9)) }.
-         r259 <- Const { value: 8, size: 8 }
          r260 <- ArithK(Add, r169, 8)
   (  2)  r261 <- LoadMem { mem: r204, addr: r260, size: 8 }
-         r263 <- Const { value: 48, size: 8 }
          r264 <- ArithK(Add, r11, -88)
          r265 <- StoreMem { mem: r204, addr: r264, value: r1491 }
-         r267 <- Const { value: 40, size: 8 }
          r268 <- ArithK(Add, r11, -96)
          r269 <- StoreMem { mem: r265, addr: r268, value: r169 }
-         r271 <- Const { value: 8, size: 8 }
          r272 <- ArithK(Add, r11, -128)
   (  3)  r273 <- StoreMem { mem: r269, addr: r272, value: r261 }
          r277 <- CArg { value: r261, next_arg: None }
          r278: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r279 <- Call { callee: r278, first_arg: Some(r277) }
-         r289 <- Get(r279)
-         r294 <- Const { value: 48, size: 8 }
-         r295 <- ArithK(Add, r11, -88)
-         r1654 <- Get(r1491)
-         r1655 <- ArithK(Add, r11, -80)
-         r1657 <- Get(r1491)
-         r296 <- Get(r1491)
+         r279 <- Call { callee: r278, first_arg: Some(r277) }
   (  2)  r299 <- Arith(Sub, r279, r140)
          r303 <- IsZero(r299)
          r304 <- Part { src: r299, offset: 0, size: 1 }
          r306 <- SetJumpCondition(r303)
          r1628 <- Upsilon { value: r169, phi_ref: r1494 }
 .B51:    ;; preds:B8  → Conditional { pos: Block(BlockID(9)), neg: Block(BlockID(52)) }.
-         r1409 <- Const { value: 0, size: 8 }
          r1410 <- ArithK(Add, r11, -136)
          r1411 <- LoadMem { mem: r273, addr: r1410, size: 8 }
-         r1414 <- Const { value: 40, size: 8 }
          r1415 <- ArithK(Add, r11, -96)
          r1416 <- StoreMem { mem: r273, addr: r1415, value: r1491 }
-         r1417 <- Const { value: 8, size: 8 }
   (  2)  r1418 <- ArithK(Add, r11, -128)
          r1419 <- StoreMem { mem: r1416, addr: r1418, value: r169 }
          r1429 <- CArg { value: r304, next_arg: None }
          r1430 <- CArg { value: r1418, next_arg: Some(r1429) }
          r1431 <- CArg { value: r1411, next_arg: Some(r1430) }
          r1432: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r1433 <- Call { callee: r1432, first_arg: Some(r1431) }
-         r1443 <- Get(r1433)
+  (  2)  r1433 <- Call { callee: r1432, first_arg: Some(r1431) }
          r1449 <- Part { src: r1433, offset: 0, size: 4 }
          r1450 <- Part { src: r1433, offset: 0, size: 4 }
          r1451 <- Arith(BitAnd, r1449, r1450)
@@ -3237,7 +3178,6 @@ ssa program  1698 instrs
          r1634 <- Upsilon { value: r1419, phi_ref: r1514 }
 .B9:    ;; preds:B8,B51  → Always(Block(BlockID(10))).
          r1494 <- Phi
-         r311 <- Const { value: 40, size: 8 }
          r312 <- ArithK(Add, r1494, 40)
          r1635 <- Upsilon { value: r1491, phi_ref: r1495 }
          r1636 <- Upsilon { value: r312, phi_ref: r1496 }
@@ -3245,43 +3185,30 @@ ssa program  1698 instrs
 .B10:    ;; preds:B7,B9  → Conditional { pos: Block(BlockID(49)), neg: Block(BlockID(11)) }.
   (  2)  r1497 <- Phi
   (  3)  r1496 <- Phi
-  (  6)  r1495 <- Phi
-         r314 <- Const { value: 8, size: 8 }
+  (  3)  r1495 <- Phi
          r315 <- ArithK(Add, r1496, 8)
   (  2)  r316 <- LoadMem { mem: r1497, addr: r315, size: 8 }
-         r318 <- Const { value: 40, size: 8 }
          r319 <- ArithK(Add, r11, -96)
          r320 <- StoreMem { mem: r1497, addr: r319, value: r1495 }
-         r323 <- Const { value: 8, size: 8 }
          r324 <- ArithK(Add, r11, -128)
   (  3)  r325 <- StoreMem { mem: r320, addr: r324, value: r316 }
          r329 <- CArg { value: r316, next_arg: None }
          r330: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r331 <- Call { callee: r330, first_arg: Some(r329) }
-         r341 <- Get(r331)
-         r346 <- Const { value: 40, size: 8 }
-         r347 <- ArithK(Add, r11, -96)
-         r1659 <- Get(r1495)
-         r1660 <- ArithK(Add, r11, -88)
-         r1662 <- Get(r1495)
-         r348 <- Get(r1495)
+         r331 <- Call { callee: r330, first_arg: Some(r329) }
   (  2)  r350 <- Arith(Sub, r331, r140)
          r354 <- IsZero(r350)
          r355 <- Part { src: r350, offset: 0, size: 1 }
          r357 <- SetJumpCondition(r354)
 .B49:    ;; preds:B10  → Conditional { pos: Block(BlockID(11)), neg: Block(BlockID(50)) }.
-         r1360 <- Const { value: 0, size: 8 }
          r1361 <- ArithK(Add, r11, -136)
          r1362 <- LoadMem { mem: r325, addr: r1361, size: 8 }
-         r1365 <- Const { value: 8, size: 8 }
   (  2)  r1366 <- ArithK(Add, r11, -128)
          r1367 <- StoreMem { mem: r325, addr: r1366, value: r1495 }
          r1377 <- CArg { value: r355, next_arg: None }
          r1378 <- CArg { value: r1366, next_arg: Some(r1377) }
          r1379 <- CArg { value: r1362, next_arg: Some(r1378) }
          r1380: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r1381 <- Call { callee: r1380, first_arg: Some(r1379) }
-         r1391 <- Get(r1381)
+  (  2)  r1381 <- Call { callee: r1380, first_arg: Some(r1379) }
          r1396 <- Part { src: r1381, offset: 0, size: 4 }
          r1397 <- Part { src: r1381, offset: 0, size: 4 }
          r1398 <- Arith(BitAnd, r1396, r1397)
@@ -3295,7 +3222,6 @@ ssa program  1698 instrs
          r1623 <- Upsilon { value: r175, phi_ref: r1513 }
          r1624 <- Upsilon { value: r1367, phi_ref: r1514 }
 .B11:    ;; preds:B10,B49  → Always(Block(BlockID(12))).
-         r368 <- Const { value: 40, size: 8 }
          r369 <- ArithK(Add, r1496, 40)
          r1625 <- Upsilon { value: r1495, phi_ref: r1498 }
          r1626 <- Upsilon { value: r369, phi_ref: r1499 }
@@ -3303,44 +3229,31 @@ ssa program  1698 instrs
 .B12:    ;; preds:B6,B11  → Conditional { pos: Block(BlockID(47)), neg: Block(BlockID(13)) }.
   (  2)  r1500 <- Phi
   (  3)  r1499 <- Phi
-  (  6)  r1498 <- Phi
-         r377 <- Const { value: 8, size: 8 }
+  (  3)  r1498 <- Phi
          r378 <- ArithK(Add, r1499, 8)
   (  2)  r379 <- LoadMem { mem: r1500, addr: r378, size: 8 }
-         r381 <- Const { value: 40, size: 8 }
          r382 <- ArithK(Add, r11, -96)
          r383 <- StoreMem { mem: r1500, addr: r382, value: r1498 }
-         r386 <- Const { value: 8, size: 8 }
          r387 <- ArithK(Add, r11, -128)
   (  3)  r388 <- StoreMem { mem: r383, addr: r387, value: r379 }
          r392 <- CArg { value: r379, next_arg: None }
          r393: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r394 <- Call { callee: r393, first_arg: Some(r392) }
-         r404 <- Get(r394)
-         r409 <- Const { value: 40, size: 8 }
-         r410 <- ArithK(Add, r11, -96)
-         r1664 <- Get(r1498)
-         r1665 <- ArithK(Add, r11, -88)
-         r1667 <- Get(r1498)
-         r411 <- Get(r1498)
+         r394 <- Call { callee: r393, first_arg: Some(r392) }
   (  3)  r413 <- Arith(Sub, r394, r140)
          r417 <- IsZero(r413)
          r418 <- Part { src: r413, offset: 0, size: 1 }
          r420 <- SetJumpCondition(r417)
          r1605 <- Upsilon { value: r388, phi_ref: r1501 }
 .B47:    ;; preds:B12  → Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(48)) }.
-         r1311 <- Const { value: 0, size: 8 }
          r1312 <- ArithK(Add, r11, -136)
          r1313 <- LoadMem { mem: r388, addr: r1312, size: 8 }
-         r1316 <- Const { value: 8, size: 8 }
   (  2)  r1317 <- ArithK(Add, r11, -128)
   (  2)  r1318 <- StoreMem { mem: r388, addr: r1317, value: r1498 }
          r1328 <- CArg { value: r418, next_arg: None }
          r1329 <- CArg { value: r1317, next_arg: Some(r1328) }
          r1330 <- CArg { value: r1313, next_arg: Some(r1329) }
          r1331: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r1332 <- Call { callee: r1331, first_arg: Some(r1330) }
-         r1342 <- Get(r1332)
+  (  2)  r1332 <- Call { callee: r1331, first_arg: Some(r1330) }
          r1347 <- Part { src: r1332, offset: 0, size: 4 }
          r1348 <- Part { src: r1332, offset: 0, size: 4 }
          r1349 <- Arith(BitAnd, r1347, r1348)
@@ -3356,12 +3269,9 @@ ssa program  1698 instrs
          r1611 <- Upsilon { value: r1318, phi_ref: r1514 }
 .B13:    ;; preds:B12,B47  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(14)) }.
   (  2)  r1501 <- Phi
-         r422 <- Const { value: 16, size: 8 }
          r423 <- ArithK(Add, r11, -120)
          r424 <- LoadMem { mem: r1501, addr: r423, size: 8 }
-         r426 <- Const { value: 1, size: 8 }
          r427 <- ArithK(Add, r219, 1)
-         r435 <- Const { value: 40, size: 8 }
          r436 <- ArithK(Add, r1499, 40)
          r444 <- Arith(Sub, r427, r424)
          r448 <- IsZero(r444)
@@ -3374,13 +3284,10 @@ ssa program  1698 instrs
          r1504 <- Phi
          r1503 <- Phi
          r1502 <- Phi
-         r453 <- Const { value: 56, size: 8 }
          r454 <- ArithK(Add, r11, -80)
          r455 <- StoreMem { mem: r1504, addr: r454, value: r1492 }
-         r457 <- Const { value: 40, size: 8 }
          r458 <- ArithK(Add, r11, -96)
          r459 <- StoreMem { mem: r455, addr: r458, value: r175 }
-         r460 <- Const { value: 48, size: 8 }
          r461 <- ArithK(Add, r11, -88)
          r462 <- StoreMem { mem: r459, addr: r461, value: r1502 }
          r1577 <- Upsilon { value: r1503, phi_ref: r1505 }
@@ -3388,28 +3295,24 @@ ssa program  1698 instrs
 .B19:    ;; preds:B14,B18  → Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(20)) }.
   (  7)  r1506 <- Phi
   (  9)  r1505 <- Phi
-         r617 <- Const { value: 8, size: 8 }
          r618 <- ArithK(Add, r1505, 8)
          r619 <- LoadMem { mem: r1506, addr: r618, size: 8 }
          r626 <- CArg { value: r619, next_arg: None }
          r627: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r628 <- Call { callee: r627, first_arg: Some(r626) }
-         r638 <- Get(r628)
+         r628 <- Call { callee: r627, first_arg: Some(r626) }
   (  2)  r639 <- Arith(Sub, r628, r140)
          r643 <- IsZero(r639)
          r644 <- Part { src: r639, offset: 0, size: 1 }
          r646 <- Not(r643)
          r647 <- SetJumpCondition(r646)
 .B20:    ;; preds:B19  → Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(21)) }.
-         r649 <- Const { value: 0, size: 8 }
   (  2)  r650 <- ArithK(Add, r11, -136)
          r651 <- LoadMem { mem: r1506, addr: r650, size: 8 }
          r664 <- CArg { value: r644, next_arg: None }
          r665 <- CArg { value: r650, next_arg: Some(r664) }
          r666 <- CArg { value: r651, next_arg: Some(r665) }
          r667: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r668 <- Call { callee: r667, first_arg: Some(r666) }
-         r678 <- Get(r668)
+  (  2)  r668 <- Call { callee: r667, first_arg: Some(r666) }
          r679 <- Part { src: r668, offset: 0, size: 4 }
          r680 <- Part { src: r668, offset: 0, size: 4 }
          r681 <- Arith(BitAnd, r679, r680)
@@ -3417,10 +3320,8 @@ ssa program  1698 instrs
          r688 <- Not(r683)
          r689 <- SetJumpCondition(r688)
 .B21:    ;; preds:B20  → Always(Block(BlockID(24))).
-         r692 <- Const { value: 40, size: 8 }
          r693 <- ArithK(Add, r11, -96)
          r694 <- LoadMem { mem: r1506, addr: r693, size: 8 }
-         r700 <- Const { value: 56, size: 8 }
          r701 <- ArithK(Add, r11, -80)
          r702 <- LoadMem { mem: r1506, addr: r701, size: 8 }
          r1579 <- Upsilon { value: r219, phi_ref: r1510 }
@@ -3429,34 +3330,27 @@ ssa program  1698 instrs
          r1582 <- Upsilon { value: r694, phi_ref: r1513 }
          r1583 <- Upsilon { value: r1506, phi_ref: r1514 }
 .B15:    ;; preds:B19,B20  → Conditional { pos: Block(BlockID(22)), neg: Block(BlockID(16)) }.
-         r464 <- Const { value: 48, size: 8 }
          r465 <- ArithK(Add, r1505, 48)
          r466 <- LoadMem { mem: r1506, addr: r465, size: 8 }
-         r468 <- Const { value: 40, size: 8 }
          r469 <- ArithK(Add, r1505, 40)
-         r471 <- Const { value: 1, size: 8 }
   (  2)  r472 <- ArithK(Add, r219, 1)
-         r478 <- Const { value: 8, size: 8 }
          r479 <- ArithK(Add, r11, -128)
   (  4)  r480 <- StoreMem { mem: r1506, addr: r479, value: r466 }
          r484 <- CArg { value: r472, next_arg: None }
          r485: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r486 <- Call { callee: r485, first_arg: Some(r484) }
-         r496 <- Get(r486)
+         r486 <- Call { callee: r485, first_arg: Some(r484) }
   (  2)  r501 <- Arith(Sub, r486, r140)
          r505 <- IsZero(r501)
          r506 <- Part { src: r501, offset: 0, size: 1 }
          r508 <- SetJumpCondition(r505)
 .B22:    ;; preds:B15  → Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(23)) }.
-         r705 <- Const { value: 0, size: 8 }
   (  2)  r706 <- ArithK(Add, r11, -136)
          r707 <- LoadMem { mem: r480, addr: r706, size: 8 }
          r719 <- CArg { value: r506, next_arg: None }
          r720 <- CArg { value: r706, next_arg: Some(r719) }
          r721 <- CArg { value: r707, next_arg: Some(r720) }
          r722: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r723 <- Call { callee: r722, first_arg: Some(r721) }
-         r733 <- Get(r723)
+  (  2)  r723 <- Call { callee: r722, first_arg: Some(r721) }
          r734 <- Part { src: r723, offset: 0, size: 4 }
          r735 <- Part { src: r723, offset: 0, size: 4 }
          r736 <- Arith(BitAnd, r734, r735)
@@ -3466,34 +3360,27 @@ ssa program  1698 instrs
          r1590 <- Upsilon { value: r469, phi_ref: r1508 }
          r1591 <- Upsilon { value: r480, phi_ref: r1509 }
 .B16:    ;; preds:B15,B22  → Conditional { pos: Block(BlockID(38)), neg: Block(BlockID(17)) }.
-         r510 <- Const { value: 48, size: 8 }
          r511 <- ArithK(Add, r1505, 88)
          r512 <- LoadMem { mem: r480, addr: r511, size: 8 }
-         r514 <- Const { value: 40, size: 8 }
          r515 <- ArithK(Add, r1505, 80)
-         r517 <- Const { value: 1, size: 8 }
          r518 <- ArithK(Add, r219, 2)
-         r522 <- Const { value: 8, size: 8 }
          r523 <- ArithK(Add, r11, -128)
   (  4)  r524 <- StoreMem { mem: r480, addr: r523, value: r512 }
          r528 <- CArg { value: r518, next_arg: None }
          r529: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r530 <- Call { callee: r529, first_arg: Some(r528) }
-         r540 <- Get(r530)
+         r530 <- Call { callee: r529, first_arg: Some(r528) }
   (  2)  r545 <- Arith(Sub, r530, r140)
          r549 <- IsZero(r545)
          r550 <- Part { src: r545, offset: 0, size: 1 }
          r552 <- SetJumpCondition(r549)
 .B38:    ;; preds:B16  → Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(39)) }.
-         r1120 <- Const { value: 0, size: 8 }
   (  2)  r1121 <- ArithK(Add, r11, -136)
          r1122 <- LoadMem { mem: r524, addr: r1121, size: 8 }
          r1134 <- CArg { value: r550, next_arg: None }
          r1135 <- CArg { value: r1121, next_arg: Some(r1134) }
          r1136 <- CArg { value: r1122, next_arg: Some(r1135) }
          r1137: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r1138 <- Call { callee: r1137, first_arg: Some(r1136) }
-         r1148 <- Get(r1138)
+  (  2)  r1138 <- Call { callee: r1137, first_arg: Some(r1136) }
          r1149 <- Part { src: r1138, offset: 0, size: 4 }
          r1150 <- Part { src: r1138, offset: 0, size: 4 }
          r1151 <- Arith(BitAnd, r1149, r1150)
@@ -3504,34 +3391,27 @@ ssa program  1698 instrs
          r1593 <- Upsilon { value: r515, phi_ref: r1508 }
          r1594 <- Upsilon { value: r524, phi_ref: r1509 }
 .B17:    ;; preds:B16,B38  → Conditional { pos: Block(BlockID(40)), neg: Block(BlockID(18)) }.
-         r554 <- Const { value: 88, size: 8 }
          r555 <- ArithK(Add, r1505, 128)
          r556 <- LoadMem { mem: r524, addr: r555, size: 8 }
-         r558 <- Const { value: 80, size: 8 }
          r559 <- ArithK(Add, r1505, 120)
-         r561 <- Const { value: 2, size: 8 }
          r562 <- ArithK(Add, r219, 3)
-         r566 <- Const { value: 8, size: 8 }
          r567 <- ArithK(Add, r11, -128)
   (  4)  r568 <- StoreMem { mem: r524, addr: r567, value: r556 }
          r572 <- CArg { value: r562, next_arg: None }
          r573: strlen <TypeID(340439v1)> <- Const { value: 4199136, size: 8 }
-  (  2)  r574 <- Call { callee: r573, first_arg: Some(r572) }
-         r584 <- Get(r574)
+         r574 <- Call { callee: r573, first_arg: Some(r572) }
   (  3)  r589 <- Arith(Sub, r574, r140)
          r593 <- IsZero(r589)
          r594 <- Part { src: r589, offset: 0, size: 1 }
          r596 <- SetJumpCondition(r593)
 .B40:    ;; preds:B17  → Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(41)) }.
-         r1162 <- Const { value: 0, size: 8 }
   (  2)  r1163 <- ArithK(Add, r11, -136)
          r1164 <- LoadMem { mem: r568, addr: r1163, size: 8 }
          r1176 <- CArg { value: r594, next_arg: None }
          r1177 <- CArg { value: r1163, next_arg: Some(r1176) }
          r1178 <- CArg { value: r1164, next_arg: Some(r1177) }
          r1179: strncmp <TypeID(340435v1)> <- Const { value: 4199232, size: 8 }
-  (  3)  r1180 <- Call { callee: r1179, first_arg: Some(r1178) }
-         r1190 <- Get(r1180)
+  (  2)  r1180 <- Call { callee: r1179, first_arg: Some(r1178) }
          r1191 <- Part { src: r1180, offset: 0, size: 4 }
          r1192 <- Part { src: r1180, offset: 0, size: 4 }
          r1193 <- Arith(BitAnd, r1191, r1192)
@@ -3544,10 +3424,8 @@ ssa program  1698 instrs
 .B23:    ;; preds:B22,B39,B41  → Always(Block(BlockID(24))).
   (  3)  r1509 <- Phi
          r1508 <- Phi
-         r747 <- Const { value: 40, size: 8 }
          r748 <- ArithK(Add, r11, -96)
          r749 <- LoadMem { mem: r1509, addr: r748, size: 8 }
-         r756 <- Const { value: 56, size: 8 }
          r757 <- ArithK(Add, r11, -80)
          r758 <- LoadMem { mem: r1509, addr: r757, size: 8 }
          r1584 <- Upsilon { value: r472, phi_ref: r1510 }
@@ -3561,11 +3439,8 @@ ssa program  1698 instrs
          r1512 <- Phi
          r1511 <- Phi
          r1510 <- Phi
-         r760 <- Const { value: 32, size: 8 }
          r761 <- ArithK(Add, r11, -104)
-  (  2)  r762 <- LoadMem { mem: r1514, addr: r761, size: 8 }
-         r764 <- Const { value: 0, size: 8 }
-         r765 <- Get(r762)
+         r762 <- LoadMem { mem: r1514, addr: r761, size: 8 }
          r766 <- ArithK(Mul, r1513, 8)
          r767 <- Arith(Add, r762, r766)
   (  2)  r768 <- StoreMem { mem: r1514, addr: r767, value: r1510 }
@@ -3574,11 +3449,8 @@ ssa program  1698 instrs
          r776 <- SetJumpCondition(r773)
          r1572 <- Upsilon { value: r18, phi_ref: r1525 }
 .B25:    ;; preds:B24  → Conditional { pos: Block(BlockID(34)), neg: Block(BlockID(26)) }.
-         r778 <- Const { value: 32, size: 8 }
          r779 <- ArithK(Add, r24, 32)
-  (  2)  r780 <- LoadMem { mem: r768, addr: r779, size: 8 }
-         r781 <- Const { value: 0, size: 8 }
-         r782 <- Get(r780)
+         r780 <- LoadMem { mem: r768, addr: r779, size: 8 }
          r786 <- IsZero(r780)
          r789 <- NotYetImplemented("unsupported: movzx edi,byte ptr [r8]")
          r790 <- Not(r786)
@@ -3594,70 +3466,38 @@ ssa program  1698 instrs
          r797 <- IsZero(r795)
          r802 <- SetJumpCondition(r797)
 .B27:    ;; preds:B26  → Conditional { pos: Block(BlockID(43)), neg: Block(BlockID(28)) }.
-         r804 <- Const { value: 1, size: 8 }
          r805 <- ArithK(Add, r1491, 1)
          r807 <- Const { value: 46, size: 4 }
-         r810 <- Const { value: 0, size: 8 }
   (  2)  r811 <- ArithK(Add, r11, -136)
   (  6)  r812 <- StoreMem { mem: r184, addr: r811, value: r805 }
          r820 <- CArg { value: r811, next_arg: None }
          r821 <- CArg { value: r807, next_arg: Some(r820) }
          r822: strchr <TypeID(340441v1)> <- Const { value: 4199040, size: 8 }
-  (  4)  r823 <- Call { callee: r822, first_arg: Some(r821) }
-         r833 <- Get(r823)
-         r835 <- Get(r823)
+  (  2)  r823 <- Call { callee: r822, first_arg: Some(r821) }
          r837 <- IsZero(r823)
          r842 <- SetJumpCondition(r837)
 .B28:    ;; preds:B27  → Conditional { pos: Block(BlockID(44)), neg: Block(BlockID(29)) }.
-         r849 <- Const { value: 24, size: 8 }
-         r850 <- ArithK(Add, r11, -112)
-         r1669 <- Get(r20)
-         r1670 <- ArithK(Add, r11, -104)
-         r1672 <- Get(r20)
-         r851 <- Get(r20)
-         r853 <- Const { value: 1, size: 8 }
          r854 <- ArithK(Add, r175, 1)
-         r870 <- Const { value: 0, size: 8 }
-         r871 <- Get(r20)
          r872 <- LoadMem { mem: r812, addr: r20, size: 8 }
          r873 <- Arith(Sub, r854, r872)
          r875 <- CarryOf(r873)
          r880 <- Not(r875)
          r881 <- SetJumpCondition(r880)
 .B43:    ;; preds:B27  → Conditional { pos: Block(BlockID(29)), neg: Block(BlockID(44)) }.
-         r1240 <- Const { value: 1, size: 8 }
          r1241 <- ArithK(Add, r175, 1)
          r1250: __builtin_strlen <TypeID(358626v1)> <- Const { value: 4199136, size: 8 }
          r1251 <- Call { callee: r1250, first_arg: None }
-         r1261 <- Const { value: 24, size: 8 }
-         r1262 <- ArithK(Add, r11, -112)
-         r1674 <- Get(r20)
-         r1675 <- ArithK(Add, r11, -104)
-         r1677 <- Get(r20)
-         r1263 <- Get(r20)
-         r1271 <- Const { value: 0, size: 8 }
-         r1272 <- Get(r20)
          r1273 <- LoadMem { mem: r812, addr: r20, size: 8 }
          r1274 <- Arith(Sub, r1241, r1273)
          r1276 <- CarryOf(r1274)
          r1281 <- SetJumpCondition(r1276)
 .B44:    ;; preds:B28,B43  → Always(Block(BlockID(45))).
-         r1283 <- Const { value: 72, size: 8 }
-         r1284 <- ArithK(Add, r11, -64)
-         r1679 <- Get(r17)
-         r1680 <- ArithK(Add, r11, -56)
-         r1682 <- Get(r17)
-         r1285 <- Get(r17)
          r1560 <- Upsilon { value: r17, phi_ref: r1527 }
 .B29:    ;; preds:B28,B43  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(30)) }.
-         r884 <- Const { value: 24, size: 8 }
          r885 <- ArithK(Add, r24, 24)
-  (  2)  r886 <- LoadMem { mem: r812, addr: r885, size: 8 }
-         r888 <- Const { value: 0, size: 8 }
-         r889 <- Get(r886)
-  (  2)  r890 <- LoadMem { mem: r812, addr: r886, size: 1 }
+         r886 <- LoadMem { mem: r812, addr: r885, size: 8 }
+         r890 <- LoadMem { mem: r812, addr: r886, size: 1 }
          r891 <- Const { value: 0, size: 1 }
-         r892 <- Get(r890)
          r896 <- IsZero(r890)
          r899 <- Not(r896)
          r900 <- SetJumpCondition(r899)
@@ -3667,20 +3507,11 @@ ssa program  1698 instrs
          r1565 <- Upsilon { value: r812, phi_ref: r1518 }
          r1566 <- Upsilon { value: r891, phi_ref: r1519 }
 .B54:    ;; preds:B26  → Always(Block(BlockID(35))).
-         r1484 <- Const { value: 72, size: 8 }
-         r1485 <- ArithK(Add, r11, -64)
-         r1684 <- Get(r17)
-         r1685 <- ArithK(Add, r11, -56)
-         r1687 <- Get(r17)
-         r1486 <- Get(r17)
          r1559 <- Upsilon { value: r17, phi_ref: r1522 }
 .B18:    ;; preds:B17,B40  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(19)) }.
-         r598 <- Const { value: 16, size: 8 }
          r599 <- ArithK(Add, r11, -120)
          r600 <- LoadMem { mem: r568, addr: r599, size: 8 }
-         r602 <- Const { value: 3, size: 8 }
          r603 <- ArithK(Add, r219, 4)
-         r605 <- Const { value: 120, size: 8 }
          r606 <- ArithK(Add, r1505, 160)
          r608 <- Arith(Sub, r603, r600)
          r612 <- IsZero(r608)
@@ -3691,78 +3522,51 @@ ssa program  1698 instrs
 .B30:    ;; preds:B3,B29  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(31)) }.
          r1519 <- Phi
          r1518 <- Phi
-  (  5)  r1517 <- Phi
+  (  2)  r1517 <- Phi
          r917 <- Const { value: 10, size: 4 }
-         r920 <- Const { value: 8, size: 8 }
   (  2)  r921 <- ArithK(Add, r11, -128)
   (  2)  r922 <- StoreMem { mem: r1518, addr: r921, value: r1517 }
          r923 <- CArg { value: r1519, next_arg: None }
          r924 <- CArg { value: r921, next_arg: Some(r923) }
          r925 <- CArg { value: r917, next_arg: Some(r924) }
          r926: je_malloc_strtoumax <TypeID(340431v1)> <- Const { value: 6451424, size: 8 }
-  (  3)  r927 <- Call { callee: r926, first_arg: Some(r925) }
-         r937 <- Get(r927)
-         r938 <- Const { value: 8, size: 8 }
-         r939 <- ArithK(Add, r11, -128)
-         r1689 <- Get(r1517)
-         r1690 <- ArithK(Add, r11, -120)
-         r1692 <- Get(r1517)
-         r940 <- Get(r1517)
-         r942 <- Const { value: -1, size: 8 }
-  (  7)  r943 <- ArithK(Add, r927, 1)
+  (  2)  r927 <- Call { callee: r926, first_arg: Some(r925) }
+  (  6)  r943 <- ArithK(Add, r927, 1)
          r947 <- IsZero(r943)
          r951 <- SetJumpCondition(r947)
          r1552 <- Upsilon { value: r943, phi_ref: r1525 }
 .B31:    ;; preds:B30  → Conditional { pos: Ext(4206915), neg: Block(BlockID(32)) }.
-         r953 <- Const { value: 24, size: 8 }
          r954 <- ArithK(Add, r14, 24)
-  (  3)  r955 <- LoadMem { mem: r922, addr: r954, size: 8 }
-         r957 <- Const { value: 0, size: 8 }
+  (  2)  r955 <- LoadMem { mem: r922, addr: r954, size: 8 }
          r958 <- ArithK(Add, r11, -136)
   (  9)  r959 <- StoreMem { mem: r922, addr: r958, value: r1517 }
-         r960 <- Const { value: 0, size: 8 }
-         r961 <- Get(r955)
-  (  2)  r962 <- LoadMem { mem: r959, addr: r955, size: 1 }
-         r963 <- Const { value: 0, size: 1 }
-         r964 <- Get(r962)
+         r962 <- LoadMem { mem: r959, addr: r955, size: 1 }
          r968 <- IsZero(r962)
          r971 <- Not(r968)
          r972 <- SetJumpCondition(r971)
 .B32:    ;; preds:B31  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(33)) }.
-         r974 <- Const { value: 24, size: 8 }
          r975 <- ArithK(Add, r11, -112)
-  (  2)  r976 <- LoadMem { mem: r959, addr: r975, size: 8 }
-         r978 <- Const { value: 32, size: 8 }
+         r976 <- LoadMem { mem: r959, addr: r975, size: 8 }
          r979 <- ArithK(Add, r11, -104)
-  (  3)  r980 <- LoadMem { mem: r959, addr: r979, size: 8 }
-         r982 <- Const { value: 64, size: 8 }
+  (  2)  r980 <- LoadMem { mem: r959, addr: r979, size: 8 }
          r983 <- ArithK(Add, r11, -72)
   (  3)  r984 <- LoadMem { mem: r959, addr: r983, size: 8 }
-         r986 <- Const { value: 0, size: 8 }
-         r987 <- Get(r976)
          r988 <- LoadMem { mem: r959, addr: r976, size: 8 }
          r992 <- CArg { value: r943, next_arg: None }
          r993 <- CArg { value: r988, next_arg: Some(r992) }
          r994 <- CArg { value: r980, next_arg: Some(r993) }
          r995 <- CArg { value: r984, next_arg: Some(r994) }
-         r996 <- Const { value: 8, size: 8 }
          r997 <- ArithK(Add, r955, 8)
          r998 <- LoadMem { mem: r959, addr: r997, size: 8 }
          r999 <- LoadMem { mem: r959, addr: r998, size: 8 }
          r1000 <- Call { callee: r999, first_arg: Some(r995) }
-         r1012 <- Get(r943)
          r1014 <- IsZero(r943)
          r1019 <- SetJumpCondition(r1014)
          r1554 <- Upsilon { value: r943, phi_ref: r1525 }
 .B33:    ;; preds:B32  → Conditional { pos: Block(BlockID(26)), neg: Block(BlockID(34)) }.
-         r1025 <- Const { value: 32, size: 8 }
          r1026 <- ArithK(Add, r927, 33)
-  (  2)  r1027 <- LoadMem { mem: r959, addr: r1026, size: 8 }
-         r1028 <- Const { value: 0, size: 8 }
-         r1029 <- Get(r1027)
+         r1027 <- LoadMem { mem: r959, addr: r1026, size: 8 }
          r1033 <- IsZero(r1027)
-         r1036 <- Const { value: 0, size: 8 }
-         r1037 <- Get(r980)
          r1038 <- ArithK(Mul, r175, 8)
          r1039 <- Arith(Add, r980, r1038)
          r1040 <- StoreMem { mem: r959, addr: r1039, value: r943 }
@@ -3774,7 +3578,6 @@ ssa program  1698 instrs
 .B34:    ;; preds:B25,B33  → Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(35)) }.
          r1521 <- Phi
   (  2)  r1520 <- Phi
-         r1044 <- Const { value: 72, size: 8 }
          r1045 <- ArithK(Add, r11, -64)
          r1046 <- LoadMem { mem: r1521, addr: r1045, size: 8 }
          r1048 <- Part { src: r1520, offset: 0, size: 1 }
@@ -3786,19 +3589,9 @@ ssa program  1698 instrs
          r1549 <- Upsilon { value: r18, phi_ref: r1525 }
          r1551 <- Upsilon { value: r1046, phi_ref: r1522 }
 .B35:    ;; preds:B34,B54  → Conditional { pos: Block(BlockID(46)), neg: Block(BlockID(36)) }.
-  (  3)  r1522 <- Phi
-         r1060 <- Const { value: 1, size: 8 }
+  (  2)  r1522 <- Phi
          r1061 <- ArithK(Add, r175, 1)
-         r1063 <- Const { value: 24, size: 8 }
-         r1064 <- ArithK(Add, r11, -112)
-         r1694 <- Get(r20)
-         r1695 <- ArithK(Add, r11, -104)
-         r1697 <- Get(r20)
-         r1065 <- Get(r20)
-         r1067 <- Const { value: 0, size: 8 }
-         r1068 <- Get(r20)
          r1069 <- StoreMem { mem: r184, addr: r20, value: r1061 }
-         r1070 <- Get(r1522)
          r1072 <- IsZero(r1522)
          r1077 <- Not(r1072)
          r1078 <- SetJumpCondition(r1077)
@@ -3807,17 +3600,14 @@ ssa program  1698 instrs
 .B55:    ;; preds:B2  → Always(Block(BlockID(45))).
          r1534 <- Upsilon { value: r17, phi_ref: r1527 }
 .B45:    ;; preds:B44,B55  → Conditional { pos: Block(BlockID(36)), neg: Block(BlockID(46)) }.
-  (  3)  r1527 <- Phi
-         r1287 <- Get(r1527)
+  (  2)  r1527 <- Phi
          r1289 <- IsZero(r1527)
          r1294 <- SetJumpCondition(r1289)
          r1537 <- Upsilon { value: r1527, phi_ref: r1528 }
          r1538 <- Upsilon { value: r103, phi_ref: r1529 }
 .B46:    ;; preds:B35,B45  → Always(Block(BlockID(37))).
          r1529 <- Phi
-  (  2)  r1528 <- Phi
-         r1296 <- Const { value: 0, size: 8 }
-         r1297 <- Get(r1528)
+         r1528 <- Phi
          r1298 <- StoreMem { mem: r1529, addr: r1528, value: r24 }
          r1299 <- Part { src: r18, offset: 0, size: 4 }
          r1300 <- Part { src: r18, offset: 0, size: 4 }
@@ -3875,23 +3665,21 @@ T0: {
     if IsZero (r140) {
       goto T42
     }
-    let r156: Bytes(8) = [pre:R9]:8;
     ;
-    if IsZero (r156) {
+    if IsZero ([pre:R9]:8) {
       r1527 := pre:RCX;
       goto T45
     }
     let r169: Bytes(8) = [pre:RSI + 24]:8;
     let r175: Bytes(8) = pre:R15[8 .. 4] ++ (pre:R15[4 .. 0] ^ pre:R15[4 .. 0]);
     [pre:RSP - 64]:* := pre:RCX;
-    let r187: Bytes(1) = [r169]:1;
     ;
     r1517 := phi ();
     ;
     r1519 := 0;
     r1492 := pre:RSI;
     ;
-    if IsZero (r187) {
+    if IsZero ([r169]:1) {
       goto T30
     }
     goto T4
@@ -3933,8 +3721,8 @@ T0: {
       [pre:RSP - 88]:* := r1491;
       [pre:RSP - 96]:* := r169;
       [pre:RSP - 128]:* := r261;
-      let r279: Bytes(8) = strlen(r261);
-      let r299: Bytes(8) = r279 - r140;
+      strlen(r261);
+      let r299: Bytes(8) = strlen(r261) - r140;
       ;
       r1494 := [pre:RSI + 24]:8;
       if IsZero (r299) {
@@ -3972,8 +3760,8 @@ T0: {
         let r316: Bytes(8) = [r1496 + 8]:8;
         [pre:RSP - 96]:* := r1495;
         [pre:RSP - 128]:* := r316;
-        let r331: Bytes(8) = strlen(r316);
-        let r350: Bytes(8) = r331 - r140;
+        strlen(r316);
+        let r350: Bytes(8) = strlen(r316) - r140;
         ;
         if IsZero (r350) {
           let r1366: Bytes(8) = pre:RSP - 128;
@@ -4009,8 +3797,8 @@ T0: {
         let r379: Bytes(8) = [r1499 + 8]:8;
         [pre:RSP - 96]:* := r1498;
         [pre:RSP - 128]:* := r379;
-        let r394: Bytes(8) = strlen(r379);
-        let r413: Bytes(8) = r394 - r140;
+        strlen(r379);
+        let r413: Bytes(8) = strlen(r379) - r140;
         ;
         ;
         if IsZero (r413) {
@@ -4035,7 +3823,7 @@ T0: {
         T13: {
           let mut r1501: MemoryEffect;
           ;
-          r1525 := r394 - r140;
+          r1525 := strlen(r379) - r140;
           r1502 := phi ();
           r1503 := r1499 + 40;
           ;
@@ -4060,8 +3848,8 @@ T0: {
         T19: {
           let mut r1506: MemoryEffect;
           let mut r1505: Bytes(8);
-          let r628: Bytes(8) = strlen([r1505 + 8]:8);
-          let r639: Bytes(8) = r628 - r140;
+          strlen([r1505 + 8]:8);
+          let r639: Bytes(8) = strlen([r1505 + 8]:8) - r140;
           ;
           if ! IsZero (r639) {
             goto T15
@@ -4083,8 +3871,8 @@ T0: {
           T15: {
             let r472: Bytes(8) = r219 + 1;
             [pre:RSP - 128]:* := [r1505 + 48]:8;
-            let r486: Bytes(8) = strlen(r472);
-            let r501: Bytes(8) = r486 - r140;
+            strlen(r472);
+            let r501: Bytes(8) = strlen(r472) - r140;
             ;
             if IsZero (r501) {
               let r706: Bytes(8) = pre:RSP - 136;
@@ -4102,8 +3890,8 @@ T0: {
             goto T16
             T16: {
               [pre:RSP - 128]:* := [r1505 + 88]:8;
-              let r530: Bytes(8) = strlen((r219 + 2));
-              let r545: Bytes(8) = r530 - r140;
+              strlen((r219 + 2));
+              let r545: Bytes(8) = strlen((r219 + 2)) - r140;
               ;
               if IsZero (r545) {
                 let r1121: Bytes(8) = pre:RSP - 136;
@@ -4121,8 +3909,8 @@ T0: {
               goto T17
               T17: {
                 [pre:RSP - 128]:* := [r1505 + 128]:8;
-                let r574: Bytes(8) = strlen((r219 + 3));
-                let r589: Bytes(8) = r574 - r140;
+                strlen((r219 + 3));
+                let r589: Bytes(8) = strlen((r219 + 3)) - r140;
                 ;
                 if IsZero (r589) {
                   let r1163: Bytes(8) = pre:RSP - 136;
@@ -4140,7 +3928,7 @@ T0: {
                 goto T18
                 T18: {
                   ;
-                  r1525 := r574 - r140;
+                  r1525 := strlen((r219 + 3)) - r140;
                   r1505 := r1505 + 160;
                   ;
                   if IsZero (r219 + 4 - [pre:RSP - 120]:8) {
@@ -4176,20 +3964,18 @@ T0: {
         let mut r1512: Bytes(8);
         let mut r1511: Bytes(8);
         let mut r1510: Bytes(8);
-        let r762: Bytes(8) = [pre:RSP - 104]:8;
-        [r762 + r1513 * 8]:* := r1510;
+        [[pre:RSP - 104]:8 + r1513 * 8]:* := r1510;
         ;
         r1525 := pre:RDX;
         if IsZero (r1511 - r1512) {
           goto T42
         }
-        let r780: Bytes(8) = [pre:R13 + 32]:8;
         TODO /* unsupported: movzx edi,byte ptr [r8] */;
         ;
         r1520 := pre:RDX;
         ;
         r1515 := pre:RDX;
-        if ! IsZero (r780) {
+        if ! IsZero ([pre:R13 + 32]:8) {
           goto T34
         }
         goto T26
@@ -4223,8 +4009,6 @@ T0: {
       }
       goto T29
       T29: {
-        let r886: Bytes(8) = [pre:R13 + 24]:8;
-        let r890: Bytes(1) = [r886]:1;
         ;
         r1492 := pre:R13;
         ;
@@ -4232,7 +4016,7 @@ T0: {
                         r811);
         ;
         r1519 := 0;
-        if ! IsZero (r890) {
+        if ! IsZero ([[pre:R13 + 24]:8]:1) {
           goto T4
         }
         goto T30
@@ -4262,31 +4046,28 @@ T0: {
       }
       let r955: Bytes(8) = [pre:RSI + 24]:8;
       [pre:RSP - 136]:* := r1517;
-      let r962: Bytes(1) = [r955]:1;
       ;
-      if ! IsZero (r962) {
+      if ! IsZero ([r955]:1) {
         goto ext 0x403143
       }
-      let r976: Bytes(8) = [pre:RSP - 112]:8;
       let r980: Bytes(8) = [pre:RSP - 104]:8;
       let r984: Bytes(8) = [pre:RSP - 72]:8;
       [[r955 + 8]:8]:8(r984,
                        r980,
-                       [r976]:8,
+                       [[pre:RSP - 112]:8]:8,
                        r943);
       ;
       r1525 := r927 + 1;
       if IsZero (r943) {
         goto T42
       }
-      let r1027: Bytes(8) = [r927 + 33]:8;
       [r980 + r175 * 8]:* := r943;
       TODO /* unsupported: movzx edi,byte ptr [r8] */;
       ;
       r1515 := [pre:RSP - 72]:8;
       r1520 := [pre:RSP - 72]:8;
       ;
-      if IsZero (r1027) {
+      if IsZero ([r927 + 33]:8) {
         goto T26
       }
       goto T34

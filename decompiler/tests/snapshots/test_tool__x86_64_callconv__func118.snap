@@ -144,7 +144,7 @@ cfg:
 ssa post-xform:
 ssa program  99 instrs
 .B0:    ;;  → Always(Return).
-  (  4)  r11 <- Ancestral(AncestralName("RSP"))
+  (  2)  r11 <- Ancestral(AncestralName("RSP"))
          r43 <- Ancestral(AncestralName("memory"))
   (  3)  r78 <- Ancestral(AncestralName("arg5"))
          r79 <- Part { src: r78, offset: 0, size: 8 }
@@ -153,14 +153,7 @@ ssa program  99 instrs
          r82 <- Part { src: r78, offset: 8, size: 8 }
          r83 <- ArithK(Add, r11, 16)
          r84 <- StoreMem { mem: r81, addr: r83, value: r82 }
-         r85 <- Const { value: 8, size: 8 }
-         r86 <- ArithK(Add, r11, 8)
-  (  5)  r95 <- Part { src: r78, offset: 0, size: 8 }
-         r96 <- ArithK(Add, r11, 16)
-         r98 <- Get(r95)
-         r87 <- Get(r95)
-         r90 <- Get(r95)
-         r91 <- Get(r95)
+         r95 <- Part { src: r78, offset: 0, size: 8 }
          r92 <- SetReturnValue(r95)
 
 
@@ -168,7 +161,6 @@ ssa program  99 instrs
 T0: {
   [pre:RSP + 8]:* := pre:arg5[8 .. 0];
   [pre:RSP + 16]:* := pre:arg5[16 .. 8];
-  let r95: Bytes(8) = pre:arg5[8 .. 0];
   ;
-  return r95
+  return pre:arg5[8 .. 0]
 }
