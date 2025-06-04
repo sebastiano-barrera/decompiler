@@ -1884,7 +1884,12 @@ mod ast_view {
 
                     self.seq(SeqKind::Flow, |s| {
                         if let Some(name) = callee_type_name {
-                            s.emit_simple(TextRole::Ident, name);
+                            let role = TextRole::Ident;
+                            s.emit(Node::Element(Element {
+                                text: name,
+                                anchor: Some(Anchor::Reg(callee)),
+                                role,
+                            }));
                         } else {
                             s.transform_value(callee, prec);
                         }
