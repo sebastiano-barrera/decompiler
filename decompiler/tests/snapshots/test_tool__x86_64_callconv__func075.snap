@@ -14,7 +14,7 @@ function type: "func075" func (arg0 *void <TypeID(1v1)>,
 
 
 mil program = 
-program  88 instrs
+program  87 instrs
                  0 r12 <- Ancestral(AncestralName("stack_bottom"))
                  1 r2 <- Ancestral(AncestralName("CF"))
                  2 r3 <- Ancestral(AncestralName("PF"))
@@ -58,97 +58,94 @@ program  88 instrs
                 40 r41 <- Ancestral(AncestralName("ZMM13"))
                 41 r42 <- Ancestral(AncestralName("ZMM14"))
                 42 r43 <- Ancestral(AncestralName("ZMM15"))
-                43 r44 <- Ancestral(AncestralName("memory"))
-                44 r45 <- Undefined
-                45 r46 <- Undefined
-                46 r47 <- Undefined
-                47 r48 <- Undefined
-                48 r49 <- Undefined
-                49 r50 <- Undefined
-                50 r51 <- Undefined
-                51 r52 <- Undefined
-                52 r53 <- Undefined
-                53 r54 <- Undefined
-                54 r55 <- Undefined
-                55 r56 <- Undefined
-                56 r57 <- Undefined
-                57 r58 <- Undefined
-                58 r59 <- Undefined
-                59 r60 <- Undefined
-                60 r61 <- Undefined
-                61 r62 <- Undefined
-                62 r63 <- Undefined
-                63 r64 <- Undefined
-                64 r65 <- Undefined
-                65 r45 <- Ancestral(AncestralName("arg0"))
-                66 r15 <- Get(r45)
-                67 r46 <- Ancestral(AncestralName("arg1"))
-                68 r19 <- Get(r46)
-                69 r47 <- Ancestral(AncestralName("arg2"))
-                70 r48 <- Part { src: r47, offset: 0, size: 8 }
-                71 r18 <- Get(r48)
-                72 r49 <- Part { src: r47, offset: 8, size: 8 }
-                73 r20 <- Get(r49)
-                74 r50 <- Ancestral(AncestralName("arg3"))
-                75 r52 <- Part { src: r50, offset: 0, size: 8 }
-                76 r51 <- ArithK(Add, r12, 8)
-                77 r44 <- StoreMem { mem: r44, addr: r51, value: r52 }
-                78 r52 <- Part { src: r50, offset: 8, size: 8 }
-                79 r51 <- ArithK(Add, r12, 16)
-                80 r44 <- StoreMem { mem: r44, addr: r51, value: r52 }
+                43 r45 <- Undefined
+                44 r46 <- Undefined
+                45 r47 <- Undefined
+                46 r48 <- Undefined
+                47 r49 <- Undefined
+                48 r50 <- Undefined
+                49 r51 <- Undefined
+                50 r52 <- Undefined
+                51 r53 <- Undefined
+                52 r54 <- Undefined
+                53 r55 <- Undefined
+                54 r56 <- Undefined
+                55 r57 <- Undefined
+                56 r58 <- Undefined
+                57 r59 <- Undefined
+                58 r60 <- Undefined
+                59 r61 <- Undefined
+                60 r62 <- Undefined
+                61 r63 <- Undefined
+                62 r64 <- Undefined
+                63 r65 <- Undefined
+                64 r45 <- Ancestral(AncestralName("arg0"))
+                65 r15 <- Get(r45)
+                66 r46 <- Ancestral(AncestralName("arg1"))
+                67 r19 <- Get(r46)
+                68 r47 <- Ancestral(AncestralName("arg2"))
+                69 r48 <- Part { src: r47, offset: 0, size: 8 }
+                70 r18 <- Get(r48)
+                71 r49 <- Part { src: r47, offset: 8, size: 8 }
+                72 r20 <- Get(r49)
+                73 r50 <- Ancestral(AncestralName("arg3"))
+                74 r52 <- Part { src: r50, offset: 0, size: 8 }
+                75 r51 <- ArithK(Add, r12, 8)
+                76 r51 <- StoreMem { addr: r51, value: r52 }
+                77 r52 <- Part { src: r50, offset: 8, size: 8 }
+                78 r51 <- ArithK(Add, r12, 16)
+                79 r51 <- StoreMem { addr: r51, value: r52 }
 0x401277:
-                81 r45 <- NotYetImplemented("unsupported: movd xmm0,r9d")
+                80 r45 <- NotYetImplemented("unsupported: movd xmm0,r9d")
 0x40127c:
-                82 r45 <- Void
-                83 r46 <- Part { src: r28, offset: 0, size: 8 }
-                84 r45 <- Concat { lo: r45, hi: r46 }
-                85 r45 <- Part { src: r45, offset: 0, size: 4 }
-                86 r47 <- SetReturnValue(r45)
-                87 r47 <- Control(Ret)
+                81 r45 <- Void
+                82 r46 <- Part { src: r28, offset: 0, size: 8 }
+                83 r45 <- Concat { lo: r45, hi: r46 }
+                84 r45 <- Part { src: r45, offset: 0, size: 4 }
+                85 r47 <- SetReturnValue(r45)
+                86 r47 <- Control(Ret)
 
 
 ssa pre-xform:
-ssa program  88 instrs
+ssa program  87 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11 <- Ancestral(AncestralName("RSP"))
          r27 <- Ancestral(AncestralName("ZMM0"))
-         r43 <- Ancestral(AncestralName("memory"))
-  (  2)  r74 <- Ancestral(AncestralName("arg3"))
-         r75 <- Part { src: r74, offset: 0, size: 8 }
-         r76 <- ArithK(Add, r11, 8)
-         r77 <- StoreMem { mem: r43, addr: r76, value: r75 }
-         r78 <- Part { src: r74, offset: 8, size: 8 }
-         r79 <- ArithK(Add, r11, 16)
-         r80 <- StoreMem { mem: r77, addr: r79, value: r78 }
-         r81 <- NotYetImplemented("unsupported: movd xmm0,r9d")
-         r83 <- Part { src: r27, offset: 0, size: 8 }
-         r84 <- Concat { lo: r82, hi: r83 }
-         r85 <- Part { src: r84, offset: 0, size: 4 }
-         r86 <- SetReturnValue(r85)
+  (  2)  r73 <- Ancestral(AncestralName("arg3"))
+         r74 <- Part { src: r73, offset: 0, size: 8 }
+         r75 <- ArithK(Add, r11, 8)
+         r76 <- StoreMem { addr: r75, value: r74 }
+         r77 <- Part { src: r73, offset: 8, size: 8 }
+         r78 <- ArithK(Add, r11, 16)
+         r79 <- StoreMem { addr: r78, value: r77 }
+         r80 <- NotYetImplemented("unsupported: movd xmm0,r9d")
+         r82 <- Part { src: r27, offset: 0, size: 8 }
+         r83 <- Concat { lo: r81, hi: r82 }
+         r84 <- Part { src: r83, offset: 0, size: 4 }
+         r85 <- SetReturnValue(r84)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r27, r43, r74, r75, r76, r77, r78, r79, r80, r81, r82, r83, r84, r85, r86]
+  BlockID(0) -> Always(Return) [r11, r27, r73, r74, r75, r76, r77, r78, r79, r80, r81, r82, r83, r84, r85]
   domtree:
     BlockID(0)
 
 ssa post-xform:
-ssa program  88 instrs
+ssa program  87 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11 <- Ancestral(AncestralName("RSP"))
          r27 <- Ancestral(AncestralName("ZMM0"))
-         r43 <- Ancestral(AncestralName("memory"))
-  (  2)  r74 <- Ancestral(AncestralName("arg3"))
-         r75 <- Part { src: r74, offset: 0, size: 8 }
-         r76 <- ArithK(Add, r11, 8)
-         r77 <- StoreMem { mem: r43, addr: r76, value: r75 }
-         r78 <- Part { src: r74, offset: 8, size: 8 }
-         r79 <- ArithK(Add, r11, 16)
-         r80 <- StoreMem { mem: r77, addr: r79, value: r78 }
-         r81 <- NotYetImplemented("unsupported: movd xmm0,r9d")
-         r85 <- Part { src: r27, offset: 0, size: 4 }
-         r86 <- SetReturnValue(r85)
+  (  2)  r73 <- Ancestral(AncestralName("arg3"))
+         r74 <- Part { src: r73, offset: 0, size: 8 }
+         r75 <- ArithK(Add, r11, 8)
+         r76 <- StoreMem { addr: r75, value: r74 }
+         r77 <- Part { src: r73, offset: 8, size: 8 }
+         r78 <- ArithK(Add, r11, 16)
+         r79 <- StoreMem { addr: r78, value: r77 }
+         r80 <- NotYetImplemented("unsupported: movd xmm0,r9d")
+         r84 <- Part { src: r27, offset: 0, size: 4 }
+         r85 <- SetReturnValue(r84)
 
 
 

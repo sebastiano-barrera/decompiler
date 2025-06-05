@@ -188,14 +188,7 @@ fn unpack_param(
                     },
                 );
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
-                bld.emit(
-                    Builder::MEM,
-                    Insn::StoreMem {
-                        mem: Builder::MEM,
-                        addr,
-                        value: eb,
-                    },
-                );
+                bld.emit(addr, Insn::StoreMem { addr, value: eb });
             }
         }
     }
@@ -301,14 +294,7 @@ pub fn pack_return_value(
                         let eb_offset = (8 * eb_ndx).into();
                         bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
                         let eb = bld.reg_gen.next();
-                        bld.emit(
-                            eb,
-                            Insn::LoadMem {
-                                mem: Builder::MEM,
-                                addr,
-                                size: 8,
-                            },
-                        );
+                        bld.emit(eb, Insn::LoadMem { addr, size: 8 });
                         bld.emit(
                             ret_val,
                             Insn::Concat {
@@ -478,7 +464,6 @@ fn pack_param(
             bld.emit(
                 arg_value,
                 Insn::LoadMem {
-                    mem: Builder::MEM,
                     addr,
                     size: 8 * eb_count,
                 },
@@ -605,7 +590,6 @@ pub fn unpack_return_value(
                     bld.emit(
                         tmp,
                         Insn::StoreMem {
-                            mem: Builder::MEM,
                             addr: Builder::RAX,
                             value: ret_val,
                         },

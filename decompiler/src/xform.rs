@@ -471,7 +471,7 @@ pub fn canonical(prog: &mut ssa::Program) {
                 any_change = any_change || (insn != orig_insn);
 
                 if let Some(mem_ref_reg) = mem_ref_reg {
-                    let did_something = mem::fold_load_store(&mut prog, mem_ref_reg, reg);
+                    let did_something = mem::fold_load_store(&mut prog, mem_ref_reg, reg, bid);
                     any_change = any_change || did_something;
                 }
 
@@ -536,14 +536,11 @@ mod tests {
         };
         use mil::{ArithOp, Insn, Reg};
 
-        define_ancestral_name!(ANC_MEM, "memory");
-
         #[test]
         fn addk() {
             let prog = {
                 let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(20), Insn::Ancestral(ANC_MEM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
                 b.push(Reg(0), Insn::Arith(ArithOp::Add, Reg(1), Reg(0)));
@@ -552,7 +549,6 @@ mod tests {
                 b.push(
                     Reg(0),
                     Insn::StoreMem {
-                        mem: Reg(20),
                         addr: Reg(4),
                         value: Reg(3),
                     },
@@ -569,10 +565,10 @@ mod tests {
             eprintln!("ssa post xform:\n\n{:?}", prog);
 
             assert_eq!(prog.cfg().block_count(), 1);
-            assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
-            assert_eq!(prog[Reg(6)].get(), Insn::Const { value: 49, size: 8 });
-            assert_eq!(prog[Reg(9)].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-            assert_eq!(prog[Reg(11)].get(), Insn::SetReturnValue(Reg(9)));
+            assert_eq!(prog[Reg(4)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
+            assert_eq!(prog[Reg(5)].get(), Insn::Const { value: 49, size: 8 });
+            assert_eq!(prog[Reg(8)].get(), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            assert_eq!(prog[Reg(10)].get(), Insn::SetReturnValue(Reg(8)));
         }
 
         #[test]
@@ -580,7 +576,6 @@ mod tests {
             let prog = {
                 let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
-                b.push(Reg(20), Insn::Ancestral(ANC_MEM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
                 b.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(0)));
@@ -590,7 +585,6 @@ mod tests {
                 b.push(
                     Reg(0),
                     Insn::StoreMem {
-                        mem: Reg(20),
                         addr: Reg(3),
                         value: Reg(4),
                     },
@@ -607,9 +601,9 @@ mod tests {
             ssa::eliminate_dead_code(&mut prog);
             eprintln!("ssa post-xform:\n{prog:?}");
 
-            assert_eq!(prog.insns_rpo().count(), 7);
-            assert_eq!(prog[Reg(6)].get(), Insn::ArithK(ArithOp::Mul, Reg(0), 1100));
-            assert_eq!(prog[Reg(11)].get(), Insn::SetReturnValue(Reg(9)));
+            assert_eq!(prog.insns_rpo().count(), 6);
+            assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Mul, Reg(0), 1100));
+            assert_eq!(prog[Reg(10)].get(), Insn::SetReturnValue(Reg(8)));
         }
     }
 

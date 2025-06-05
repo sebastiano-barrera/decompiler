@@ -356,15 +356,11 @@ impl<'a> Ast<'a> {
             Insn::NotYetImplemented(msg) => {
                 write!(pp, "TODO /* {} */", msg)?;
             }
-            Insn::LoadMem { mem: _, addr, size } => {
+            Insn::LoadMem { addr, size } => {
                 let sz = size.try_into().unwrap();
                 self.pp_load_mem(pp, addr, sz)?;
             }
-            Insn::StoreMem {
-                mem: _,
-                addr,
-                value,
-            } => {
+            Insn::StoreMem { addr, value } => {
                 write!(pp, "[")?;
                 pp.open_box();
                 self.pp_ref(pp, addr, self_prec)?;

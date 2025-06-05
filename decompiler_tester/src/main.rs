@@ -1730,11 +1730,7 @@ mod ast_view {
                     }));
                 }
 
-                Insn::StoreMem {
-                    mem: _,
-                    addr,
-                    value,
-                } => {
+                Insn::StoreMem { addr, value } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, 255);
                         s.emit(Node::Element(Element {
@@ -1750,11 +1746,7 @@ mod ast_view {
                         s.transform_value(value, prec);
                     });
                 }
-                Insn::LoadMem {
-                    mem: _,
-                    addr,
-                    size: _,
-                } => {
+                Insn::LoadMem { addr, size: _ } => {
                     self.seq(SeqKind::Flow, |s| {
                         s.transform_value(addr, prec);
 

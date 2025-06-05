@@ -175,16 +175,14 @@ pub enum Insn {
     #[assoc(has_side_effects = true)]
     NotYetImplemented(&'static str),
 
-    #[assoc(input_regs = array([_mem, _addr]))]
+    #[assoc(input_regs = array([_addr]))]
     LoadMem {
-        mem: Reg,
         addr: Reg,
         size: u32,
     },
     #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = array([_mem, _addr, _value]))]
+    #[assoc(input_regs = array([_addr, _value]))]
     StoreMem {
-        mem: Reg,
         addr: Reg,
         value: Reg,
     },

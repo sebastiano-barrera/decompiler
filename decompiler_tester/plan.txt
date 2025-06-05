@@ -49,12 +49,9 @@ compiler version
 - [x] fix: DCE gets phi/upsilon elimination wrong sometimes
     - testcase: redisReconnect, near `ret` at 0x595118
 - [x] ast: show function names (should be correctly identifier by decompiler core)
-- [ ] show type info
-    - [ ] function prototype
-    - [ ] ssa: value types
-    - [ ] ast: value types
-- [ ] ast: remove some horizontal padding
-- [ ] ast: do not show StoreMem effect
+- [-] ast: remove some horizontal padding
+    - nah, I don't mind it right now
+- [x] ast: do not show StoreMem effect
     (actually, probably better to just handle effects differently in general)
 
 - [ ] open executable from GUI
@@ -62,4 +59,23 @@ compiler version
 
 - [ ] robust against panics in the decompiler
     - we mostly got it; there might be a hole or two somewhere
+
+# Next up:
+
+- [ ] show type info
+    - [ ] function prototype
+    - [ ] ssa: value types
+    - [ ] ast: value types
+
+- [ ] struct member accesses
+
+- [ ] string literals
+
+- [ ] user-editable block order
+
+- [ ] enum values
+    - initialize with DWARF, allow user edits
+
+- [ ] user-editable identifiers/names
+
 - [ ] multiple functions (tabs?)

@@ -75,17 +75,22 @@ or logically)
 */
 
 use crate::{
+    cfg,
     mil::{self, Insn, Reg},
     ssa,
 };
 
-pub fn fold_load_store(prog: &mut ssa::OpenProgram, ref_reg: mil::Reg, load_reg: mil::Reg) -> bool {
+pub fn fold_load_store(
+    prog: &mut ssa::OpenProgram,
+    ref_reg: mil::Reg,
+    load_reg: mil::Reg,
+    load_bid: cfg::BlockID,
+) -> bool {
     //
     // check if we're looking at a Load that we know how to transform
     // Load(ArithK(Add, ref_reg, offset), size)
     //
     let Insn::LoadMem {
-        mem: mem_l,
         addr: addr_l,
         size: size_l,
     } = prog[load_reg].get()
@@ -104,11 +109,11 @@ pub fn fold_load_store(prog: &mut ssa::OpenProgram, ref_reg: mil::Reg, load_reg:
         }
 
         let end = start + size_l as i64;
-        let mem = mem_l;
-        LoadInt { mem, start, end }
+        LoadInt { start, end }
     };
 
-    let Some(store) = find_dominating_conflicting_store(prog, ref_reg, &load) else {
+    let Some(store) = find_dominating_conflicting_store(prog, ref_reg, &load, load_reg, load_bid)
+    else {
         return false;
     };
 
@@ -119,7 +124,6 @@ pub fn fold_load_store(prog: &mut ssa::OpenProgram, ref_reg: mil::Reg, load_reg:
     let left_size = (start_i - load.start).try_into().unwrap();
     let left = prog.insert_later(load_or_void(
         // same as load.start; but we can reuse the same ArithK as in the original load
-        mem_l,     // mem
         addr_l,    // addr
         left_size, // size
     ));
@@ -135,7 +139,6 @@ pub fn fold_load_store(prog: &mut ssa::OpenProgram, ref_reg: mil::Reg, load_reg:
     let right_addr = prog.insert_later(Insn::ArithK(mil::ArithOp::Add, ref_reg, end_i));
     let right_size = (load.end - end_i).try_into().unwrap();
     let right = prog.insert_later(load_or_void(
-        mem_l,      // mem
         right_addr, // addr
         right_size, // size
     ));
@@ -152,7 +155,6 @@ pub fn fold_load_store(prog: &mut ssa::OpenProgram, ref_reg: mil::Reg, load_reg:
 }
 
 struct LoadInt {
-    mem: mil::Reg,
     start: i64,
     end: i64,
 }
@@ -162,11 +164,11 @@ struct StoreInt {
     value: mil::Reg,
 }
 
-fn load_or_void(mem: Reg, addr: Reg, size: u32) -> Insn {
+fn load_or_void(addr: Reg, size: u32) -> Insn {
     if size == 0 {
         Insn::Void
     } else {
-        Insn::LoadMem { mem, addr, size }
+        Insn::LoadMem { addr, size }
     }
 }
 
@@ -175,32 +177,31 @@ fn find_dominating_conflicting_store(
     prog: &ssa::Program,
     ref_reg: mil::Reg,
     load: &LoadInt,
+    load_reg: mil::Reg,
+    load_bid: cfg::BlockID,
 ) -> Option<StoreInt> {
     assert!(load.start <= load.end);
     if load.end == load.start {
         return None;
     }
 
-    let mut visited = ssa::RegMap::for_program(prog, false);
-    let mut mem = load.mem;
-
-    while let Insn::StoreMem {
-        mem: mem_s,
-        addr: addr_s,
-        value: value_s,
-    } = prog[mem].get()
-    {
-        assert!(!visited[mem]);
-        visited[mem] = true;
+    let select_store = |insn: &mil::Insn| {
+        let &Insn::StoreMem {
+            addr: addr_s,
+            value: value_s,
+        } = insn
+        else {
+            return None;
+        };
 
         let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) = prog[addr_s].get() else {
             // not in register-relative form; we can't work with this
-            break;
+            return None;
         };
 
         if offset_reg != ref_reg {
             // wrong reference register; we can't work with this
-            break;
+            return None;
         }
 
         let size_s = prog
@@ -218,10 +219,29 @@ fn find_dominating_conflicting_store(
             });
         }
 
-        mem = mem_s;
+        None
+    };
+
+    if let Some(store) = prog
+        .block_regs(load_bid)
+        .rev()
+        .skip_while(|&r| r != load_reg)
+        .find_map(|r| select_store(&prog[r].get()))
+    {
+        return Some(store);
     }
 
-    None
+    for bid in prog.cfg().dom_tree().imm_doms(load_bid) {
+        if let Some(store) = prog
+            .block_regs(bid)
+            .rev()
+            .find_map(|r| select_store(&prog[r].get()))
+        {
+            return Some(store);
+        }
+    }
+
+    return None;
 }
 
 #[cfg(test)]
@@ -246,7 +266,6 @@ mod tests {
             bld.push(
                 Reg(4),
                 Insn::StoreMem {
-                    mem: Reg(0),
                     addr: Reg(3),
                     value: Reg(1),
                 },
@@ -254,7 +273,6 @@ mod tests {
             bld.push(
                 Reg(5),
                 Insn::LoadMem {
-                    mem: Reg(4),
                     addr: Reg(3),
                     size: size.try_into().unwrap(),
                 },
@@ -289,7 +307,6 @@ mod tests {
         bld.push(
             Reg(4),
             Insn::StoreMem {
-                mem: Reg(0),
                 addr: Reg(3),
                 value: Reg(1),
             },
@@ -298,7 +315,6 @@ mod tests {
         bld.push(
             Reg(6),
             Insn::LoadMem {
-                mem: Reg(4),
                 addr: Reg(5),
                 size: 3,
             },
@@ -343,7 +359,6 @@ mod tests {
         bld.push(
             Reg(4),
             Insn::StoreMem {
-                mem: Reg(0),
                 addr: Reg(3),
                 value: Reg(1),
             },
@@ -352,7 +367,6 @@ mod tests {
         bld.push(
             Reg(6),
             Insn::LoadMem {
-                mem: Reg(4),
                 addr: Reg(5),
                 size: 23,
             },
@@ -381,12 +395,7 @@ mod tests {
             program[hi].get()
         );
 
-        let Insn::LoadMem {
-            mem: Reg(4),
-            addr,
-            size: 17,
-        } = program[lo].get()
-        else {
+        let Insn::LoadMem { addr, size: 17 } = program[lo].get() else {
             panic!()
         };
 
