@@ -710,7 +710,10 @@ impl StageFunc {
                 ast,
                 hl: hl::Highlight::default(),
             },
-            tree: egui_tiles::Tree::new_tabs(TREE_ID_STAGE_FUNC, vec![]),
+            tree: egui_tiles::Tree::new_horizontal(
+                TREE_ID_STAGE_FUNC,
+                vec![Pane::Assembly, Pane::Ast],
+            ),
         }
     }
 
