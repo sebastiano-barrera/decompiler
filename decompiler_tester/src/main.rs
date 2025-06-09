@@ -27,12 +27,15 @@ fn main() {
         Box::new(|cctx| {
             let mut app = Box::new(App::new());
 
-            // TODO: remove, take this from the app state, allow picking exe from gui
-            app.open_executable(&exe_filename);
-
             if let Some(storage) = cctx.storage {
                 app.load(storage);
             }
+
+            if !app.is_exe_loaded(&exe_filename) {
+                // TODO: remove, take this from the app state, allow picking exe from gui
+                app.open_executable(&exe_filename);
+            }
+
             cctx.egui_ctx.set_theme(app.theme_preference);
 
             Ok(app)
@@ -55,6 +58,7 @@ struct Exe {
 }
 
 const TREE_ID_STAGES_EXE: &'static str = "tree_id_stages_exe";
+const TREE_ID_STAGE_FUNC: &'static str = "tree_id_stage_func";
 
 struct App {
     theme_preference: egui::ThemePreference,
@@ -77,12 +81,14 @@ struct StageExe {
     stages_func: Vec<Result<StageFunc, decompiler::Error>>,
 }
 struct StageFunc {
+    df: DecompiledFunction,
+    tree: egui_tiles::Tree<Pane>,
+}
+struct DecompiledFunction {
     df: decompiler::DecompiledFunction,
     problems_is_visible: bool,
     problems_title: String,
     problems_error: Option<String>,
-
-    tree: egui_tiles::Tree<Pane>,
 
     assembly: Assembly,
     mil_lines: Vec<String>,
@@ -367,6 +373,12 @@ impl App {
         self.theme_preference = restore_file.theme_preference;
     }
 
+    fn is_exe_loaded(&self, path: &Path) -> bool {
+        self.stages_exe
+            .values()
+            .any(|stage_exe_flbl| stage_exe_flbl.path == path)
+    }
+
     fn open_executable(&mut self, path: &Path) {
         let exe_res = load_executable(path);
         let stage_exe = exe_res.map(|exe| StageExe {
@@ -385,59 +397,44 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::bottom("statusbar")
+            .exact_height(20.)
+            .resizable(false)
+            .show_separator_line(false)
+            .show(ctx, |ui| {
+                let stage_exe_flbl = self
+                    .stages_exe_tree
+                    .active_tiles()
+                    .first()
+                    .and_then(|tile_id| self.stages_exe_tree.tiles.get_pane(tile_id))
+                    .and_then(|exe_id| self.stages_exe.get_mut(*exe_id));
+                if let Some(StageExeFallible {
+                    stage_exe: Ok(stage_exe),
+                    ..
+                }) = stage_exe_flbl
+                {
+                    stage_exe.show_status(ui);
+                }
+
+                self.status.show(ui);
+            });
+
         if self.stages_exe_tree.is_empty() {
             egui::CentralPanel::default().show(ctx, |ui| {
                 ui.label("No executable loaded. Load one using File > Open.")
             });
         } else {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                let stages_exe = &mut self.stages_exe;
-                let mut beh = ExeTabsBehavior(stages_exe);
-                self.stages_exe_tree.ui(&mut beh, ui);
-            });
+            egui::CentralPanel::default()
+                .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0))
+                .show(ctx, |ui| {
+                    let stages_exe = &mut self.stages_exe;
+                    let mut beh = ExeTabsBehavior {
+                        exes: stages_exe,
+                        theme_preference: &mut self.theme_preference,
+                    };
+                    self.stages_exe_tree.ui(&mut beh, ui);
+                });
         }
-
-        // egui::TopBottomPanel::top("top_bar")
-        //     .resizable(false)
-        //     .show_separator_line(false)
-        //     .exact_height(25.)
-        //     .show(ctx, |ui| {
-        //         ui.horizontal(|ui| {
-        //             stage_exe.show_topbar(ui);
-
-        //             ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-        //                 if ui.button("Quit").clicked() {
-        //                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-        //                 }
-
-        //                 let (label, value) = match self.theme_preference {
-        //                     // not super correct, but whatever
-        //                     egui::ThemePreference::System | egui::ThemePreference::Dark => {
-        //                         ("Light mode", egui::ThemePreference::Light)
-        //                     }
-        //                     egui::ThemePreference::Light => {
-        //                         ("Dark mode", egui::ThemePreference::Dark)
-        //                     }
-        //                 };
-
-        //                 if ui.button(label).clicked() {
-        //                     self.theme_preference = value;
-        //                     ctx.set_theme(value);
-        //                 }
-        //             });
-        //         });
-        //     });
-
-        // egui::TopBottomPanel::bottom("statusbar")
-        //     .exact_height(20.)
-        //     .resizable(false)
-        //     .show_separator_line(false)
-        //     .show(ctx, |ui| {
-        //         // The stage_exe variable is available in this scope because the function
-        //         // returns early if the vector is empty.
-        //         stage_exe.show_status(ui);
-        //         self.status.show(ui);
-        //     });
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         let restore_file = persistence::File {
@@ -456,7 +453,7 @@ impl eframe::App for App {
                                     // Only save successfully loaded functions
                                     stage_func_res.as_ref().ok().map(|stage_func| {
                                         persistence::Func {
-                                            name: stage_func.df.name().to_string(),
+                                            name: stage_func.df.df.name().to_string(),
                                             tree: stage_func.tree.clone(),
                                         }
                                     })
@@ -503,7 +500,10 @@ impl ExeGetter for slotmap::SlotMap<ExeID, StageExeFallible> {
     }
 }
 
-struct ExeTabsBehavior<'a, G: ExeGetter>(&'a mut G);
+struct ExeTabsBehavior<'a, G: ExeGetter> {
+    exes: &'a mut G,
+    theme_preference: &'a mut egui::ThemePreference,
+}
 
 impl<G: ExeGetter> egui_tiles::Behavior<ExeID> for ExeTabsBehavior<'_, G> {
     fn pane_ui(
@@ -512,7 +512,7 @@ impl<G: ExeGetter> egui_tiles::Behavior<ExeID> for ExeTabsBehavior<'_, G> {
         _tile_id: egui_tiles::TileId,
         key: &mut ExeID,
     ) -> egui_tiles::UiResponse {
-        let Some(stage_exe_fallible) = self.0.exe_mut(*key) else {
+        let Some(stage_exe_fallible) = self.exes.exe_mut(*key) else {
             ui.label("BUG: invalid ExeID");
             return egui_tiles::UiResponse::None;
         };
@@ -535,9 +535,44 @@ impl<G: ExeGetter> egui_tiles::Behavior<ExeID> for ExeTabsBehavior<'_, G> {
 
     fn tab_title_for_pane(&mut self, key: &ExeID) -> egui::WidgetText {
         // TODO shorten tab filenames
-        match self.0.exe_mut(*key) {
+        match self.exes.exe_mut(*key) {
             Some(StageExeFallible { path, stage_exe: _ }) => path.to_string_lossy().into(),
             None => "???".into(),
+        }
+    }
+
+    fn top_bar_right_ui(
+        &mut self,
+        _tiles: &egui_tiles::Tiles<ExeID>,
+        ui: &mut egui::Ui,
+        _tile_id: egui_tiles::TileId,
+        _tabs: &egui_tiles::Tabs,
+        _scroll_offset: &mut f32,
+    ) {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+            if ui.button("Quit").clicked() {
+                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+
+            let (label, value) = match self.theme_preference {
+                // not super correct, but whatever
+                egui::ThemePreference::System | egui::ThemePreference::Dark => {
+                    ("Light mode", egui::ThemePreference::Light)
+                }
+                egui::ThemePreference::Light => ("Dark mode", egui::ThemePreference::Dark),
+            };
+
+            if ui.button(label).clicked() {
+                *self.theme_preference = value;
+                ui.ctx().set_theme(value);
+            }
+        });
+    }
+
+    fn simplification_options(&self) -> egui_tiles::SimplificationOptions {
+        egui_tiles::SimplificationOptions {
+            all_panes_must_have_tabs: true,
+            ..Default::default()
         }
     }
 }
@@ -572,7 +607,7 @@ impl StageExe {
         match self.stages_func.last_mut() {
             Some(Ok(stage_func)) => {
                 stage_func.show_panels(ui);
-                stage_func.tree.ui(stage_func, ui);
+                stage_func.tree.ui(&mut stage_func.df, ui);
             }
             Some(Err(err)) => {
                 egui::Frame::new().show(ui, |ui| {
@@ -605,8 +640,8 @@ impl StageExe {
         });
 
         if let Ok(stage_func) = &mut stage_func {
-            stage_func.problems_is_visible =
-                stage_func.df.error().is_some() || !stage_func.df.warnings().is_empty();
+            stage_func.df.problems_is_visible =
+                stage_func.df.df.error().is_some() || !stage_func.df.df.warnings().is_empty();
         }
 
         stage_func
@@ -663,21 +698,24 @@ impl StageFunc {
         };
 
         StageFunc {
-            df,
-            problems_is_visible: false,
-            problems_title: title,
-            problems_error: error_label,
-            assembly,
-            mil_lines,
-            ssa_vcache,
-            ssa_px_vcache,
-            ast,
-            hl: hl::Highlight::default(),
+            df: DecompiledFunction {
+                df,
+                problems_is_visible: false,
+                problems_title: title,
+                problems_error: error_label,
+                assembly,
+                mil_lines,
+                ssa_vcache,
+                ssa_px_vcache,
+                ast,
+                hl: hl::Highlight::default(),
+            },
+            tree: egui_tiles::Tree::new_tabs(TREE_ID_STAGE_FUNC, vec![]),
         }
     }
 
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
-        ui.label(self.df.name());
+        ui.label(self.df.df.name());
 
         ui.menu_button("Add view", |ui| {
             for (pane, label) in [
@@ -706,11 +744,11 @@ impl StageFunc {
     }
 
     fn show_panels(&mut self, ui: &mut egui::Ui) {
-        if let Some(ssa) = self.df.ssa() {
-            self.hl.update(ssa, &self.assembly);
+        if let Some(ssa) = self.df.df.ssa() {
+            self.df.hl.update(ssa, &self.df.assembly);
         }
 
-        if self.problems_is_visible {
+        if self.df.problems_is_visible {
             egui::TopBottomPanel::bottom("func_errors")
                 .resizable(true)
                 .default_height(ui.text_style_height(&egui::TextStyle::Body) * 10.0)
@@ -719,15 +757,15 @@ impl StageFunc {
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             // TODO cache
-                            ui.heading(&self.problems_title);
+                            ui.heading(&self.df.problems_title);
 
-                            if let Some(error_label) = &self.problems_error {
+                            if let Some(error_label) = &self.df.problems_error {
                                 ui.label(
                                     egui::RichText::new(error_label).color(egui::Color32::DARK_RED),
                                 );
                             }
 
-                            for warn in self.df.warnings() {
+                            for warn in self.df.df.warnings() {
                                 // TODO cache
                                 ui.label(warn.to_string());
                             }
@@ -739,9 +777,11 @@ impl StageFunc {
     }
 
     fn show_status(&mut self, ui: &mut egui::Ui) {
-        ui.toggle_value(&mut self.problems_is_visible, &self.problems_title);
+        ui.toggle_value(&mut self.df.problems_is_visible, &self.df.problems_title);
     }
+}
 
+impl DecompiledFunction {
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
         self.hl.set_asm_line_count(self.assembly.lines.len());
 
@@ -1145,7 +1185,7 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     res
 }
 
-impl egui_tiles::Behavior<Pane> for StageFunc {
+impl egui_tiles::Behavior<Pane> for DecompiledFunction {
     fn pane_ui(
         &mut self,
         ui: &mut egui::Ui,
