@@ -326,7 +326,7 @@ impl App {
             return;
         };
 
-        let restore_file = match ron::from_str::<persistence::File>(&serial) {
+        let restore_file: persistence::File = match ron::from_str(&serial) {
             Ok(rf) => rf,
             Err(err) => {
                 let text = format!("unable to parse application state file: {:?}", err).into();
@@ -343,21 +343,24 @@ impl App {
 
         for restore_exe in restore_file.exes {
             let exe_res = load_executable(&restore_exe.filename);
-            let stage_exe = exe_res.map(|exe| {
-                let mut stage_exe = StageExe {
+            let stage_exe = exe_res.map(|mut exe| {
+                let stages_func = restore_exe
+                    .funcs
+                    .into_iter()
+                    .map(|restore_func| {
+                        let mut stage_func_or_err = load_function(&mut exe, &restore_func.name);
+                        if let Ok(stage_func) = &mut stage_func_or_err {
+                            stage_func.tree = restore_func.tree;
+                        }
+                        stage_func_or_err
+                    })
+                    .collect();
+
+                StageExe {
                     exe,
                     function_selector: None,
-                    stages_func: Vec::new(),
-                };
-
-                for restore_func in restore_exe.funcs {
-                    let mut stage_func_or_err = stage_exe.load_function(&restore_func.name);
-                    if let Ok(stage_func) = &mut stage_func_or_err {
-                        stage_func.tree = restore_func.tree;
-                    }
+                    stages_func,
                 }
-
-                stage_exe
             });
             // We "hope" that the keys here resemble the
             let stage_exe_fallible = StageExeFallible {
@@ -442,21 +445,18 @@ impl eframe::App for App {
             exes: self
                 .stages_exe
                 .iter()
-                .map(|(_exe_id, stage_exe_fallible)| {
+                .map(|(_, stage_exe_fallible)| {
                     let funcs = match &stage_exe_fallible.stage_exe {
                         // If the executable loaded successfully, collect its functions
                         Ok(stage_exe) => {
                             stage_exe
                                 .stages_func
                                 .iter()
-                                .filter_map(|stage_func_res| {
-                                    // Only save successfully loaded functions
-                                    stage_func_res.as_ref().ok().map(|stage_func| {
-                                        persistence::Func {
-                                            name: stage_func.df.df.name().to_string(),
-                                            tree: stage_func.tree.clone(),
-                                        }
-                                    })
+                                // Only save successfully loaded functions
+                                .filter_map(|stage_func_res| stage_func_res.as_ref().ok())
+                                .map(|stage_func| persistence::Func {
+                                    name: stage_func.df.df.name().to_string(),
+                                    tree: stage_func.tree.clone(),
                                 })
                                 .collect()
                         }
@@ -489,6 +489,20 @@ impl eframe::App for App {
             }
         }
     }
+}
+
+fn load_function(exe: &mut Exe, function_name: &str) -> Result<StageFunc, decompiler::Error> {
+    let mut stage_func = exe.with_exe_mut(|exe| {
+        let df = exe.decompile_function(function_name)?;
+        Ok(StageFunc::new(df, exe))
+    });
+
+    if let Ok(stage_func) = &mut stage_func {
+        stage_func.df.problems_is_visible =
+            stage_func.df.df.error().is_some() || !stage_func.df.df.warnings().is_empty();
+    }
+
+    stage_func
 }
 
 trait ExeGetter {
@@ -624,27 +638,13 @@ impl StageExe {
         if let Some(function_selector) = &mut self.function_selector {
             let res = function_selector.show(ui.ctx());
             if let Some(function_name) = res.inner.cloned() {
-                let stage_func_or_err = self.load_function(&function_name);
+                let stage_func_or_err = load_function(&mut self.exe, &function_name);
                 self.add_function(stage_func_or_err);
                 self.function_selector = None;
             } else if res.should_close() {
                 self.function_selector = None;
             }
         }
-    }
-
-    fn load_function(&mut self, function_name: &str) -> Result<StageFunc, decompiler::Error> {
-        let mut stage_func = self.exe.with_exe_mut(|exe| {
-            let df = exe.decompile_function(function_name)?;
-            Ok(StageFunc::new(df, exe))
-        });
-
-        if let Ok(stage_func) = &mut stage_func {
-            stage_func.df.problems_is_visible =
-                stage_func.df.df.error().is_some() || !stage_func.df.df.warnings().is_empty();
-        }
-
-        stage_func
     }
 
     fn add_function(&mut self, stage_func_or_err: Result<StageFunc, decompiler::Error>) {
@@ -1523,13 +1523,7 @@ mod ast_view {
         }
 
         pub fn from_ssa(ssa: &decompiler::SSAProgram) -> Self {
-            let ast = Builder::new(ssa).build();
-
-            for (ndx, node) in ast.nodes.iter().enumerate() {
-                eprintln!("{:4} - {:?}", ndx, node);
-            }
-
-            ast
+            Builder::new(ssa).build()
         }
 
         pub fn show(&self, ui: &mut egui::Ui, hl: &mut Highlight) {
