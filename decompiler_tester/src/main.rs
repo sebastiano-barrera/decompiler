@@ -1494,6 +1494,7 @@ mod ast_view {
     enum Node {
         Seq { kind: SeqKind, count: usize },
         Element(Element),
+        Space(u16),
     }
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct Element {
@@ -1630,6 +1631,9 @@ mod ast_view {
                         }
                     };
                 }
+                &Node::Space(amount) => {
+                    ui.add_space(amount as f32);
+                }
             }
 
             ndx + 1
@@ -1696,6 +1700,7 @@ mod ast_view {
             ret
         }
         fn transform_block_labeled(&mut self, bid: decompiler::BlockID) {
+            self.emit(Node::Space(20));
             self.emit(Node::Element(Element {
                 text: format!(" -- block B{}", bid.as_number()),
                 anchor: Some(Anchor::Block(bid)),
