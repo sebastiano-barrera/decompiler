@@ -59,10 +59,8 @@ impl Program {
         self.inner.len()
     }
 
-    pub fn registers(&self) -> impl '_ + Iterator<Item = mil::Reg> {
-        (0..self.reg_count())
-            .filter(|&reg_ndx| self.inner.is_enabled(reg_ndx))
-            .map(mil::Reg)
+    pub fn registers(&self) -> impl Iterator<Item = mil::Reg> {
+        (0..self.reg_count()).map(mil::Reg)
     }
 
     pub fn get_call_args(&self, mut arg: Option<mil::Reg>) -> impl '_ + Iterator<Item = mil::Reg> {
@@ -307,10 +305,6 @@ impl Program {
         while let Some(reg) = queue.pop() {
             assert_eq!(rdr_count[reg], 0);
 
-            if !self.inner.is_enabled(reg.reg_index()) {
-                continue;
-            }
-
             for &mut input in self[reg].get().input_regs_iter() {
                 rdr_count[input] -= 1;
                 if rdr_count[input] == 0 {
@@ -544,8 +538,6 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 
     let dom_tree = cfg.dom_tree();
     let is_phi_needed = compute_phis_set(&program, &cfg, &schedule, dom_tree);
-
-    program.set_enabled_mask(vec![true; program.len() as usize]);
 
     // create all required phi nodes, and link them to basic blocks and
     // variables, to be "wired" later to the data flow graph

@@ -21,12 +21,6 @@ pub struct Program {
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
     dest_tyids: Vec<Cell<ty::TypeID>>,
-    // aligned to insns. when false, the corresponding instruction is entirely
-    // disabled and inaccessible. for all intents and purposes, it's deleted.
-    // its index never yielded by iterators, and accesses to it result in
-    // a panic.
-    // TODO delete this!
-    is_enabled: Vec<bool>,
     reg_count: Index,
 
     // Not sure about the Arc here.  Very likely that it's going to have to
@@ -340,7 +334,6 @@ impl std::fmt::Debug for Program {
         let mut last_addr = 0;
         let len = self.dests.len();
         for ndx in 0..len {
-            let is_enabled = self.is_enabled[ndx];
             let insn = self.insns[ndx].get();
             let dest = self.dests[ndx].get();
             let dest_tyid = self.dest_tyids[ndx].get();
@@ -350,7 +343,6 @@ impl std::fmt::Debug for Program {
                 writeln!(f, "0x{:x}:", addr)?;
                 last_addr = addr;
             }
-            write!(f, "   {:10}", if is_enabled { "" } else { "|DISABLED|" })?;
             write!(f, "{:5} {:?}", ndx, dest,)?;
             write!(f, ": {:?}", dest_tyid)?;
             writeln!(f, " <- {:?}", insn)?;
@@ -362,24 +354,20 @@ impl std::fmt::Debug for Program {
 impl Program {
     #[inline(always)]
     pub fn get(&self, ndx: Index) -> Option<InsnView> {
-        if self.is_enabled(ndx) {
-            let index = ndx;
-            let ndx = ndx as usize;
-            // if this  slot is enabled as per the mask, then every Vec access must succeed
-            let insn = &self.insns[ndx];
-            let dest = &self.dests[ndx];
-            let dest_tyid = &self.dest_tyids[ndx];
-            let addr = self.addrs[ndx];
-            Some(InsnView {
-                insn,
-                dest,
-                tyid: dest_tyid,
-                index,
-                addr,
-            })
-        } else {
-            None
-        }
+        let index = ndx;
+        let ndx = ndx as usize;
+        // if this  slot is enabled as per the mask, then every Vec access must succeed
+        let insn = &self.insns[ndx];
+        let dest = &self.dests[ndx];
+        let dest_tyid = &self.dest_tyids[ndx];
+        let addr = self.addrs[ndx];
+        Some(InsnView {
+            insn,
+            dest,
+            tyid: dest_tyid,
+            index,
+            addr,
+        })
     }
 
     #[inline(always)]
@@ -403,7 +391,6 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.dest_tyids.push(Cell::new(self.types.tyid_unknown()));
         self.addrs.push(u64::MAX);
-        self.is_enabled.push(true);
         index
     }
 
@@ -420,25 +407,6 @@ impl Program {
 
     pub fn types(&self) -> &ty::TypeSet {
         &self.types
-    }
-
-    /// Replace the "enabled" mask.
-    ///
-    /// `mask` MUST be a Vec with length equal to `self.len()`. `mask[i]`
-    /// is true iff the i-th instruction is enabled. Otherwise, index `i` is
-    /// disabled (accesses to it via .get() result in a panic) and it is never
-    /// yielded from iterators.
-    // TODO delete this!
-    pub fn set_enabled_mask(&mut self, mask: Vec<bool>) {
-        assert_eq!(mask.len(), self.len() as usize);
-        self.is_enabled = mask;
-    }
-
-    /// Return true iff the instruction at the given Index is enabled, as per the mask (see [`set_enabled_mask`]).
-    ///
-    /// Panics if `ndx` is invalid (out of the Program's range, i.e. `>= self.len()`)
-    pub(crate) fn is_enabled(&self, ndx: Index) -> bool {
-        self.is_enabled[ndx as usize]
     }
 }
 
@@ -580,14 +548,11 @@ impl ProgramBuilder {
             1 + max_dest.max(max_input)
         };
 
-        let is_enabled = vec![true; insns.len()];
-
         Program {
             insns,
             dests,
             addrs,
             dest_tyids: dest_ty,
-            is_enabled,
             types,
             reg_count,
             mil_of_input_addr,
@@ -638,38 +603,5 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
     ExpandedInsn {
         variant_name,
         fields,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mask() {
-        let mut bld = ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
-        bld.push(Reg(10), Insn::True);
-        bld.push(
-            Reg(20),
-            Insn::Const {
-                value: 874,
-                size: 4,
-            },
-        );
-        bld.push(Reg(15), Insn::Arith(ArithOp::Add, Reg(10), Reg(10)));
-        let mut prog = bld.build();
-        let mask = vec![true, false, true];
-        prog.set_enabled_mask(mask.clone());
-
-        // the register count stays the same (nicer to let every downstream user
-        // reserve space for insn slots that may be made active later)
-        assert_eq!(prog.reg_count(), 21);
-
-        let dests: Vec<_> = prog.iter().map(|iv| iv.dest.get()).collect();
-        assert_eq!(&dests, &[Reg(10), Reg(15)]);
-
-        // the point is these won't panic
-        let mask_check: Vec<_> = (0..3).map(|ndx| prog.get(ndx).is_some()).collect();
-        assert_eq!(mask_check, mask);
     }
 }
