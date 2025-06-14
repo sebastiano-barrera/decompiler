@@ -51,6 +51,11 @@ impl TypeSet {
         self.tyid_void
     }
 
+    /// Add a type to the set.
+    ///
+    /// Returns a TypeID corresponding to it. The TypeID will remain valid and
+    /// corresponding to this exact type (`get` will return a Type that is equal
+    /// to it) for the remainder of the lifetime of this TypeSet.
     pub fn add(&mut self, typ: Type) -> TypeID {
         self.types.insert(typ)
     }
