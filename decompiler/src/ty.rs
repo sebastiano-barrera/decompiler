@@ -375,6 +375,14 @@ pub struct Type {
     pub name: Arc<String>,
     pub ty: Ty,
 }
+impl Type {
+    fn anon_unknown(bytes_size: u32) -> Self {
+        Type {
+            name: Arc::new(String::new()),
+            ty: Ty::Unknown(Unknown { size: bytes_size }),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Ty {

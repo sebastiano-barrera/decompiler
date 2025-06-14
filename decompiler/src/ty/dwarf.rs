@@ -68,10 +68,7 @@ pub fn load_dwarf_types(
     // an effort is only made to support DWARF5, not DWARF4
     let mut errors = Vec::new();
 
-    let default_type = ty::Type {
-        name: Arc::new("$unprocessed$".to_string()),
-        ty: ty::Ty::Unknown(ty::Unknown { size: 0 }),
-    };
+    let default_type = ty::Type::anon_unknown(0);
     let tyid_of_node = allocate_tyids(&dwarf, types, &default_type)?;
 
     let mut units = dwarf.debug_info.units();
