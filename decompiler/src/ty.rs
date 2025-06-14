@@ -27,6 +27,7 @@ pub struct TypeSet {
     call_sites: CallSites,
 
     tyid_void: TypeID,
+    tyid_unknown: TypeID,
 }
 
 pub type Addr = u64;
@@ -38,17 +39,22 @@ impl TypeSet {
             name: Arc::new("void".to_string()),
             ty: Ty::Void,
         });
+        let tyid_unknown = types.insert(Type::anon_unknown(0));
 
         TypeSet {
             types,
             known_objects: HashMap::new(),
             call_sites: CallSites::new(),
             tyid_void,
+            tyid_unknown,
         }
     }
 
     pub fn tyid_void(&self) -> TypeID {
         self.tyid_void
+    }
+    pub fn tyid_unknown(&self) -> TypeID {
+        self.tyid_unknown
     }
 
     /// Add a type to the set.

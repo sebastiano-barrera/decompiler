@@ -4,7 +4,7 @@ use crate::{
     cfg,
     mil::{self, ArithOp, BoolOp, CmpOp, Insn, Reg},
     pp::PP,
-    ssa,
+    ssa, ty,
 };
 
 #[derive(Debug)]
@@ -333,14 +333,18 @@ impl<'a> Ast<'a> {
             }
             Insn::Call { callee, first_arg } => {
                 let callee_iv = self.ssa.get(callee).unwrap();
-                if let Some(tyid) = callee_iv.tyid.get() {
+                let typ = self
+                    .ssa
+                    .types()
+                    .get_through_alias(callee_iv.tyid.get())
+                    .unwrap();
+                if let ty::Ty::Unknown(_) = &typ.ty {
+                    self.pp_ref(pp, callee, self_prec)?;
+                } else {
                     // Not quite correct (why would we print the type name?) but
                     // happens to be always correct for well formed programs
-                    let typ = self.ssa.types().get_through_alias(tyid).unwrap();
                     write!(pp, "{}", typ.name)?;
-                } else {
-                    self.pp_ref(pp, callee, self_prec)?;
-                }
+                };
 
                 write!(pp, "(")?;
                 pp.open_box();

@@ -185,6 +185,10 @@ impl Program {
         self.inner.types()
     }
 
+    pub fn value_type(&self, reg: mil::Reg) -> ty::TypeID {
+        self.inner.get(reg.reg_index()).unwrap().tyid.get()
+    }
+
     pub fn assert_invariants(&self) {
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
@@ -505,11 +509,10 @@ impl std::fmt::Debug for Program {
             }
 
             type_s.clear();
-            if let Some(tyid) = iv.tyid.get() {
-                let mut pp = pp::PrettyPrinter::start(&mut type_s);
-                write!(pp, ": ").unwrap();
-                self.inner.types().dump_type_ref(&mut pp, tyid).unwrap();
-            }
+            let tyid = iv.tyid.get();
+            let mut pp = pp::PrettyPrinter::start(&mut type_s);
+            write!(pp, ": ").unwrap();
+            self.inner.types().dump_type_ref(&mut pp, tyid).unwrap();
 
             let type_s = std::str::from_utf8(&type_s).unwrap();
             writeln!(f, "{:?}{} <- {:?}", reg, type_s, iv.insn.get())?;

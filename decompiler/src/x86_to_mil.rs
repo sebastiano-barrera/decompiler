@@ -489,7 +489,8 @@ impl Builder {
                         "invalid call instruction: operand must be 8 bytes, not {}",
                         sz
                     );
-                    self.pb.set_type(callee, target_tyid);
+                    self.pb
+                        .set_type(callee, target_tyid.unwrap_or(types.tyid_unknown()));
                     self.emit(v1, mil::Insn::Call { callee, first_arg });
                     self.reset_all_flags();
 

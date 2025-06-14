@@ -4,18 +4,18 @@ expression: prog
 ---
 ssa program  12 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(1)) }.
-         r0 <- Const { value: 123, size: 8 }
-         r1 <- SetJumpCondition(r0)
-         r2 <- Control(JmpIf(5))
+         r0: ? <- Const { value: 123, size: 8 }
+         r1: ? <- SetJumpCondition(r0)
+         r2: ? <- Control(JmpIf(5))
 .B1:    ;; preds:B0  → Always(Block(BlockID(3))).
-         r3 <- Const { value: 4, size: 1 }
-         r4 <- Control(Jmp(6))
-         r11 <- Upsilon { value: r3, phi_ref: r9 }
+         r3: ? <- Const { value: 4, size: 1 }
+         r4: ? <- Control(Jmp(6))
+         r11: ? <- Upsilon { value: r3, phi_ref: r9 }
 .B2:    ;; preds:B0  → Always(Block(BlockID(3))).
-         r5 <- Const { value: 8, size: 1 }
-         r10 <- Upsilon { value: r5, phi_ref: r9 }
+         r5: ? <- Const { value: 8, size: 1 }
+         r10: ? <- Upsilon { value: r5, phi_ref: r9 }
 .B3:    ;; preds:B1,B2  → Always(Return).
-         r9 <- Phi
-         r6 <- ArithK(Add, r9, 456)
-         r7 <- SetReturnValue(r6)
-         r8 <- Control(Ret)
+         r9: ? <- Phi
+         r6: ? <- ArithK(Add, r9, 456)
+         r7: ? <- SetReturnValue(r6)
+         r8: ? <- Control(Ret)

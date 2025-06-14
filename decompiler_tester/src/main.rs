@@ -1999,20 +1999,16 @@ mod ast_view {
                 Insn::Call { callee, first_arg } => {
                     // Not quite correct (why would we print the type name?) but
                     // happens to be always correct for well formed programs
-                    let callee_type_name =
+                    let callee_type_name = self.ssa.get(callee).map(|iv| {
+                        // TODO This name should not be copied; rather, it
+                        // should be shared (in order to be editable)
                         self.ssa
-                            .get(callee)
-                            .and_then(|iv| iv.tyid.get())
-                            .map(|tyid| {
-                                // TODO This name should not be copied; rather, it
-                                // should be shared (in order to be editable)
-                                self.ssa
-                                    .types()
-                                    .get_through_alias(tyid)
-                                    .unwrap()
-                                    .name
-                                    .to_string()
-                            });
+                            .types()
+                            .get_through_alias(iv.tyid.get())
+                            .unwrap()
+                            .name
+                            .to_string()
+                    });
 
                     self.seq(SeqKind::Flow, |s| {
                         if let Some(name) = callee_type_name {

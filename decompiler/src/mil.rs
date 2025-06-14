@@ -20,7 +20,7 @@ pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    dest_tyids: Vec<Cell<Option<ty::TypeID>>>,
+    dest_tyids: Vec<Cell<ty::TypeID>>,
     // aligned to insns. when false, the corresponding instruction is entirely
     // disabled and inaccessible. for all intents and purposes, it's deleted.
     // its index never yielded by iterators, and accesses to it result in
@@ -352,9 +352,7 @@ impl std::fmt::Debug for Program {
             }
             write!(f, "   {:10}", if is_enabled { "" } else { "|DISABLED|" })?;
             write!(f, "{:5} {:?}", ndx, dest,)?;
-            if let Some(dest_tyid) = dest_tyid {
-                write!(f, ": {:?}", dest_tyid)?;
-            }
+            write!(f, ": {:?}", dest_tyid)?;
             writeln!(f, " <- {:?}", insn)?;
         }
         Ok(())
@@ -403,7 +401,7 @@ impl Program {
         let index = self.insns.len().try_into().unwrap();
         self.insns.push(Cell::new(insn));
         self.dests.push(Cell::new(dest));
-        self.dest_tyids.push(Cell::new(None));
+        self.dest_tyids.push(Cell::new(self.types.tyid_unknown()));
         self.addrs.push(u64::MAX);
         self.is_enabled.push(true);
         index
@@ -446,7 +444,7 @@ impl Program {
 
 pub struct InsnView<'a> {
     pub insn: &'a Cell<Insn>,
-    pub tyid: &'a Cell<Option<ty::TypeID>>,
+    pub tyid: &'a Cell<ty::TypeID>,
     pub dest: &'a Cell<Reg>,
     pub index: Index,
     pub addr: u64,
@@ -457,7 +455,7 @@ pub struct ProgramBuilder {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    dest_ty: Vec<Cell<Option<ty::TypeID>>>,
+    dest_ty: Vec<Cell<ty::TypeID>>,
     cur_input_addr: u64,
     anc_types: HashMap<AncestralName, RegType>,
     types: Arc<ty::TypeSet>,
@@ -485,7 +483,7 @@ impl ProgramBuilder {
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
-        self.dest_ty.push(Cell::new(None));
+        self.dest_ty.push(Cell::new(self.types.tyid_unknown()));
         dest
     }
 
@@ -506,7 +504,7 @@ impl ProgramBuilder {
     ///
     /// The type ID is associated to the last instruction that assigned the
     /// register. Panics if this instruction can't be located (it's a user bug)
-    pub fn set_type(&mut self, reg: Reg, tyid: Option<ty::TypeID>) {
+    pub fn set_type(&mut self, reg: Reg, tyid: ty::TypeID) {
         let (ndx, _) = self
             .dests
             .iter()

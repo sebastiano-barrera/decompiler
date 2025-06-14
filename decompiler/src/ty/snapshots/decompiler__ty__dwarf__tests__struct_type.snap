@@ -1,44 +1,45 @@
 ---
-source: src/ty/dwarf.rs
+source: decompiler/src/ty/dwarf.rs
 expression: buf
 ---
-TypeSet (28 types) = {
+TypeSet (29 types) = {
   <TypeID(1v1)> = "void" void
-  <TypeID(2v1)> = "$unprocessed$" ?
-  <TypeID(3v1)> = "point_init" func (p *point <TypeID(17v1)>) void <TypeID(1v1)>
-  <TypeID(4v1)> = "$unprocessed$" ?
-  <TypeID(5v1)> = "join" func (a *point <TypeID(17v1)>,
-                               b *point <TypeID(17v1)>) void <TypeID(1v1)>
-  <TypeID(6v1)> = "$unprocessed$" ?
-  <TypeID(7v1)> = "$unprocessed$" ?
-  <TypeID(8v1)> = "list_len" func (p point <TypeID(17v1)>) int <TypeID(15v1)>
-  <TypeID(9v1)> = "$unprocessed$" ?
-  <TypeID(10v1)> = "$unprocessed$" ?
-  <TypeID(11v1)> = "$unprocessed$" ?
-  <TypeID(12v1)> = "name_list_len" func (cur name_item <TypeID(23v1)>) int <TypeID(15v1)>
-  <TypeID(13v1)> = "$unprocessed$" ?
-  <TypeID(14v1)> = "$unprocessed$" ?
-  <TypeID(15v1)> = "int" i32
-  <TypeID(16v1)> = *point <TypeID(17v1)>
-  <TypeID(17v1)> = "point" struct {
-                       @  0 x float <TypeID(22v1)>
-                       @  4 y float <TypeID(22v1)>
-                       @  8 prev *point <TypeID(17v1)>
-                       @ 16 next *point <TypeID(17v1)>
+  <TypeID(2v1)> = ?
+  <TypeID(3v1)> = ?
+  <TypeID(4v1)> = "point_init" func (p *point <TypeID(18v1)>) void <TypeID(1v1)>
+  <TypeID(5v1)> = ?
+  <TypeID(6v1)> = "join" func (a *point <TypeID(18v1)>,
+                               b *point <TypeID(18v1)>) void <TypeID(1v1)>
+  <TypeID(7v1)> = ?
+  <TypeID(8v1)> = ?
+  <TypeID(9v1)> = "list_len" func (p point <TypeID(18v1)>) int <TypeID(16v1)>
+  <TypeID(10v1)> = ?
+  <TypeID(11v1)> = ?
+  <TypeID(12v1)> = ?
+  <TypeID(13v1)> = "name_list_len" func (cur name_item <TypeID(24v1)>) int <TypeID(16v1)>
+  <TypeID(14v1)> = ?
+  <TypeID(15v1)> = ?
+  <TypeID(16v1)> = "int" i32
+  <TypeID(17v1)> = *point <TypeID(18v1)>
+  <TypeID(18v1)> = "point" struct {
+                       @  0 x float <TypeID(23v1)>
+                       @  4 y float <TypeID(23v1)>
+                       @  8 prev *point <TypeID(18v1)>
+                       @ 16 next *point <TypeID(18v1)>
                    }
-  <TypeID(18v1)> = "$unprocessed$" ?
-  <TypeID(19v1)> = "$unprocessed$" ?
-  <TypeID(20v1)> = "$unprocessed$" ?
-  <TypeID(21v1)> = "$unprocessed$" ?
-  <TypeID(22v1)> = "float" float32
-  <TypeID(23v1)> = "name_item" struct {
-                       @  0 name *char <TypeID(27v1)>
-                       @  8 next *name_item <TypeID(23v1)>
+  <TypeID(19v1)> = ?
+  <TypeID(20v1)> = ?
+  <TypeID(21v1)> = ?
+  <TypeID(22v1)> = ?
+  <TypeID(23v1)> = "float" float32
+  <TypeID(24v1)> = "name_item" struct {
+                       @  0 name *char <TypeID(28v1)>
+                       @  8 next *name_item <TypeID(24v1)>
                    }
-  <TypeID(24v1)> = "$unprocessed$" ?
-  <TypeID(25v1)> = "$unprocessed$" ?
-  <TypeID(26v1)> = *char <TypeID(27v1)>
-  <TypeID(27v1)> = "char" i8
-  <TypeID(28v1)> = *name_item <TypeID(23v1)>
+  <TypeID(25v1)> = ?
+  <TypeID(26v1)> = ?
+  <TypeID(27v1)> = *char <TypeID(28v1)>
+  <TypeID(28v1)> = "char" i8
+  <TypeID(29v1)> = *name_item <TypeID(24v1)>
 }
 0 non-fatal errors:
