@@ -431,7 +431,7 @@ impl<'a> TypeParser<'a> {
 
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_call_site);
 
-        let Some(attr_value) = entry.attr_value(gimli::constants::DW_AT_call_origin)? else {
+        let Some(call_origin) = entry.attr_value(gimli::constants::DW_AT_call_origin)? else {
             return Ok(());
         };
         let Some(return_pc) = entry.attr_value(gimli::constants::DW_AT_call_return_pc)? else {
@@ -445,7 +445,7 @@ impl<'a> TypeParser<'a> {
             ));
         };
 
-        let tyid = self.resolve_reference(attr_value, diofs)?;
+        let tyid = self.resolve_reference(call_origin, diofs)?;
 
         types.add_call_site_by_return_pc(return_pc, tyid);
         Ok(())

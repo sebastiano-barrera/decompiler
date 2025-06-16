@@ -506,7 +506,7 @@ impl std::fmt::Debug for Program {
             let tyid = iv.tyid.get();
             let mut pp = pp::PrettyPrinter::start(&mut type_s);
             write!(pp, ": ").unwrap();
-            self.inner.types().dump_type_ref(&mut pp, tyid).unwrap();
+            self.types().dump_type_ref(&mut pp, tyid).unwrap();
 
             let type_s = std::str::from_utf8(&type_s).unwrap();
             writeln!(f, "{:?}{} <- {:?}", reg, type_s, iv.insn.get())?;
