@@ -484,7 +484,27 @@ impl ProgramBuilder {
 
                 // in the preceding part of the program (since the last check/reset),
                 // at least one instruction writes `input`
-                assert!((ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner].get() == input));
+                let is_initialized =
+                    (ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner].get() == input);
+                if !is_initialized {
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("-- in mil block:");
+                        for ndx in ndx_start..ndx_end {
+                            let insn = self.insns[ndx].get();
+                            let dest = self.dests[ndx].get();
+                            eprintln!("{:5} {:?} <- {:?}", ndx, dest, insn);
+                        }
+                        panic!(
+                            "Temporary register {:?} used at instruction {} without prior initialization in this block.",
+                            input,
+                            ndx,
+                        );
+                    }
+
+                    #[cfg(not(debug_assertions))]
+                    panic!("assertion failed: mil tmp reg used before initialization");
+                }
             }
         }
 
