@@ -427,10 +427,15 @@ pub struct ProgramBuilder {
     cur_input_addr: u64,
     anc_types: HashMap<AncestralName, RegType>,
     types: Arc<ty::TypeSet>,
+
+    reg_gen: RegGen,
+    // Number of instructions that have already been checked for correct
+    // use-after-init. See `check_use_after_init`.
+    init_checked_count: usize,
 }
 
 impl ProgramBuilder {
-    pub fn new(types: Arc<ty::TypeSet>) -> Self {
+    pub fn new(lowest_tmp: Reg, types: Arc<ty::TypeSet>) -> Self {
         Self {
             insns: Vec::new(),
             dests: Vec::new(),
@@ -439,11 +444,51 @@ impl ProgramBuilder {
             cur_input_addr: 0,
             anc_types: HashMap::new(),
             types,
+
+            reg_gen: RegGen::new(lowest_tmp),
+            init_checked_count: 0,
         }
     }
 
     pub fn types(&self) -> &Arc<ty::TypeSet> {
         &self.types
+    }
+
+    pub fn tmp_gen(&mut self) -> Reg {
+        self.reg_gen.next()
+    }
+    pub fn tmp_reset(&mut self) {
+        self.reg_gen.reset();
+        self.check_use_after_init();
+    }
+    /// Check that all used temporary registers have been initialized (written)
+    /// before use.
+    ///
+    /// This is a necessary condition for phi nodes to always have a valid input
+    /// value for all predecessors.
+    ///
+    /// At every call to this function, only the instructions inserted since the
+    /// last call (or since the construction of this ProgramBuilder) are
+    /// checked. For all used tmeporary MIL registers, initialization must *in
+    /// this range* happen before each use.
+    fn check_use_after_init(&mut self) {
+        let ndx_start = self.init_checked_count;
+        let ndx_end = self.dests.len();
+
+        for ndx in ndx_start..ndx_end {
+            for &mut input in self.insns[ndx].get().input_regs() {
+                let is_temporary = input.0 >= self.reg_gen.first.0;
+                if !is_temporary {
+                    continue;
+                }
+
+                // in the preceding part of the program (since the last check/reset),
+                // at least one instruction writes `input`
+                assert!((ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner].get() == input));
+            }
+        }
+
+        self.init_checked_count = ndx_end;
     }
 
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
@@ -484,7 +529,10 @@ impl ProgramBuilder {
         self.dest_ty[ndx].set(tyid);
     }
 
-    pub fn build(self) -> Program {
+    pub fn build(mut self) -> Program {
+        self.check_use_after_init();
+        assert_eq!(self.init_checked_count, self.dests.len());
+
         let Self {
             insns,
             dests,
@@ -603,5 +651,25 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
     ExpandedInsn {
         variant_name,
         fields,
+    }
+}
+
+struct RegGen {
+    first: Reg,
+    next: Reg,
+}
+impl RegGen {
+    fn new(first: Reg) -> Self {
+        RegGen { first, next: first }
+    }
+
+    fn next(&mut self) -> Reg {
+        let ret = self.next;
+        self.next.0 += 1;
+        ret
+    }
+
+    fn reset(&mut self) {
+        self.next = self.first;
     }
 }

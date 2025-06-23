@@ -11,7 +11,7 @@ function type: "func001" func (arg0 short <TypeID(780v1)>) short <TypeID(780v1)>
 
 
 mil program = 
-program  75 instrs
+program  54 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
     2 r3: TypeID(2v1) <- Ancestral(AncestralName("PF"))
@@ -55,67 +55,46 @@ program  75 instrs
    40 r41: TypeID(2v1) <- Ancestral(AncestralName("ZMM13"))
    41 r42: TypeID(2v1) <- Ancestral(AncestralName("ZMM14"))
    42 r43: TypeID(2v1) <- Ancestral(AncestralName("ZMM15"))
-   43 r45: TypeID(2v1) <- Undefined
-   44 r46: TypeID(2v1) <- Undefined
-   45 r47: TypeID(2v1) <- Undefined
-   46 r48: TypeID(2v1) <- Undefined
-   47 r49: TypeID(2v1) <- Undefined
-   48 r50: TypeID(2v1) <- Undefined
-   49 r51: TypeID(2v1) <- Undefined
-   50 r52: TypeID(2v1) <- Undefined
-   51 r53: TypeID(2v1) <- Undefined
-   52 r54: TypeID(2v1) <- Undefined
-   53 r55: TypeID(2v1) <- Undefined
-   54 r56: TypeID(2v1) <- Undefined
-   55 r57: TypeID(2v1) <- Undefined
-   56 r58: TypeID(2v1) <- Undefined
-   57 r59: TypeID(2v1) <- Undefined
-   58 r60: TypeID(2v1) <- Undefined
-   59 r61: TypeID(2v1) <- Undefined
-   60 r62: TypeID(2v1) <- Undefined
-   61 r63: TypeID(2v1) <- Undefined
-   62 r64: TypeID(2v1) <- Undefined
-   63 r65: TypeID(2v1) <- Undefined
-   64 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
-   65 r46: TypeID(2v1) <- Widen { reg: r45, target_size: 8, sign: false }
-   66 r14: TypeID(2v1) <- Get(r46)
+   43 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
+   44 r46: TypeID(2v1) <- Widen { reg: r45, target_size: 8, sign: false }
+   45 r14: TypeID(2v1) <- Get(r46)
 0x40110e:
-   67 r46: TypeID(2v1) <- Part { src: r14, offset: 0, size: 4 }
-   68 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
-   69 r16: TypeID(2v1) <- Concat { lo: r46, hi: r47 }
+   46 r46: TypeID(2v1) <- Part { src: r14, offset: 0, size: 4 }
+   47 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+   48 r16: TypeID(2v1) <- Concat { lo: r46, hi: r47 }
 0x401110:
-   70 r45: TypeID(2v1) <- Void
-   71 r45: TypeID(2v1) <- Concat { lo: r45, hi: r16 }
-   72 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 2 }
-   73 r47: TypeID(2v1) <- SetReturnValue(r45)
-   74 r47: TypeID(2v1) <- Control(Ret)
+   49 r45: TypeID(2v1) <- Void
+   50 r45: TypeID(2v1) <- Concat { lo: r45, hi: r16 }
+   51 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 2 }
+   52 r47: TypeID(2v1) <- SetReturnValue(r45)
+   53 r47: TypeID(2v1) <- Control(Ret)
 
 
 ssa pre-xform:
-ssa program  75 instrs
+ssa program  54 instrs
 .B0:    ;;  → Always(Return).
          r15: ? <- Ancestral(AncestralName("RAX"))
-         r64: ? <- Ancestral(AncestralName("arg0"))
-         r65: ? <- Widen { reg: r64, target_size: 8, sign: false }
-         r67: ? <- Part { src: r65, offset: 0, size: 4 }
-         r68: ? <- Part { src: r15, offset: 4, size: 4 }
-         r69: ? <- Concat { lo: r67, hi: r68 }
-         r71: ? <- Concat { lo: r70, hi: r69 }
-         r72: ? <- Part { src: r71, offset: 0, size: 2 }
-         r73: ? <- SetReturnValue(r72)
+         r43: ? <- Ancestral(AncestralName("arg0"))
+         r44: ? <- Widen { reg: r43, target_size: 8, sign: false }
+         r46: ? <- Part { src: r44, offset: 0, size: 4 }
+         r47: ? <- Part { src: r15, offset: 4, size: 4 }
+         r48: ? <- Concat { lo: r46, hi: r47 }
+         r50: ? <- Concat { lo: r49, hi: r48 }
+         r51: ? <- Part { src: r50, offset: 0, size: 2 }
+         r52: ? <- SetReturnValue(r51)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r15, r64, r65, r67, r68, r69, r70, r71, r72, r73]
+  BlockID(0) -> Always(Return) [r15, r43, r44, r46, r47, r48, r49, r50, r51, r52]
   domtree:
     BlockID(0)
 
 ssa post-xform:
-ssa program  75 instrs
+ssa program  54 instrs
 .B0:    ;;  → Always(Return).
-         r64: ? <- Ancestral(AncestralName("arg0"))
-         r73: ? <- SetReturnValue(r64)
+         r43: ? <- Ancestral(AncestralName("arg0"))
+         r52: ? <- SetReturnValue(r43)
 
 
 

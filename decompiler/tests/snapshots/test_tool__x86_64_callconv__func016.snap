@@ -11,7 +11,7 @@ function type: "func016" func (arg0 big <TypeID(795v1)>) double <TypeID(784v1)>
 
 
 mil program = 
-program  76 instrs
+program  55 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
     2 r3: TypeID(2v1) <- Ancestral(AncestralName("PF"))
@@ -55,73 +55,52 @@ program  76 instrs
    40 r41: TypeID(2v1) <- Ancestral(AncestralName("ZMM13"))
    41 r42: TypeID(2v1) <- Ancestral(AncestralName("ZMM14"))
    42 r43: TypeID(2v1) <- Ancestral(AncestralName("ZMM15"))
-   43 r45: TypeID(2v1) <- Undefined
-   44 r46: TypeID(2v1) <- Undefined
-   45 r47: TypeID(2v1) <- Undefined
-   46 r48: TypeID(2v1) <- Undefined
-   47 r49: TypeID(2v1) <- Undefined
-   48 r50: TypeID(2v1) <- Undefined
-   49 r51: TypeID(2v1) <- Undefined
-   50 r52: TypeID(2v1) <- Undefined
-   51 r53: TypeID(2v1) <- Undefined
-   52 r54: TypeID(2v1) <- Undefined
-   53 r55: TypeID(2v1) <- Undefined
-   54 r56: TypeID(2v1) <- Undefined
-   55 r57: TypeID(2v1) <- Undefined
-   56 r58: TypeID(2v1) <- Undefined
-   57 r59: TypeID(2v1) <- Undefined
-   58 r60: TypeID(2v1) <- Undefined
-   59 r61: TypeID(2v1) <- Undefined
-   60 r62: TypeID(2v1) <- Undefined
-   61 r63: TypeID(2v1) <- Undefined
-   62 r64: TypeID(2v1) <- Undefined
-   63 r65: TypeID(2v1) <- Undefined
 0x401158:
-   64 r46: TypeID(2v1) <- Const { value: 16, size: 8 }
-   65 r46: TypeID(2v1) <- Arith(Add, r46, r12)
-   66 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 8 }
-   67 r45: TypeID(2v1) <- Widen { reg: r45, target_size: 16, sign: false }
-   68 r47: TypeID(2v1) <- Part { src: r28, offset: 8, size: 56 }
-   69 r28: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+   43 r46: TypeID(2v1) <- Const { value: 16, size: 8 }
+   44 r46: TypeID(2v1) <- Arith(Add, r46, r12)
+   45 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 8 }
+   46 r45: TypeID(2v1) <- Widen { reg: r45, target_size: 16, sign: false }
+   47 r47: TypeID(2v1) <- Part { src: r28, offset: 8, size: 56 }
+   48 r28: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
 0x40115e:
-   70 r45: TypeID(2v1) <- Void
-   71 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 8 }
-   72 r45: TypeID(2v1) <- Concat { lo: r45, hi: r46 }
-   73 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
-   74 r47: TypeID(2v1) <- SetReturnValue(r45)
-   75 r47: TypeID(2v1) <- Control(Ret)
+   49 r45: TypeID(2v1) <- Void
+   50 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 8 }
+   51 r45: TypeID(2v1) <- Concat { lo: r45, hi: r46 }
+   52 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
+   53 r47: TypeID(2v1) <- SetReturnValue(r45)
+   54 r47: TypeID(2v1) <- Control(Ret)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  55 instrs
 .B0:    ;;  → Always(Return).
          r11: ? <- Ancestral(AncestralName("RSP"))
          r27: ? <- Ancestral(AncestralName("ZMM0"))
-         r64: ? <- Const { value: 16, size: 8 }
-         r65: ? <- Arith(Add, r64, r11)
-         r66: ? <- LoadMem { addr: r65, size: 8 }
-         r67: ? <- Widen { reg: r66, target_size: 16, sign: false }
-         r68: ? <- Part { src: r27, offset: 8, size: 56 }
-         r69: ? <- Concat { lo: r67, hi: r68 }
-         r71: ? <- Part { src: r69, offset: 0, size: 8 }
-         r72: ? <- Concat { lo: r70, hi: r71 }
-         r73: ? <- Part { src: r72, offset: 0, size: 8 }
-         r74: ? <- SetReturnValue(r73)
+         r43: ? <- Const { value: 16, size: 8 }
+         r44: ? <- Arith(Add, r43, r11)
+         r45: ? <- LoadMem { addr: r44, size: 8 }
+         r46: ? <- Widen { reg: r45, target_size: 16, sign: false }
+         r47: ? <- Part { src: r27, offset: 8, size: 56 }
+         r48: ? <- Concat { lo: r46, hi: r47 }
+         r50: ? <- Part { src: r48, offset: 0, size: 8 }
+         r51: ? <- Concat { lo: r49, hi: r50 }
+         r52: ? <- Part { src: r51, offset: 0, size: 8 }
+         r53: ? <- SetReturnValue(r52)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r27, r64, r65, r66, r67, r68, r69, r70, r71, r72, r73, r74]
+  BlockID(0) -> Always(Return) [r11, r27, r43, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53]
   domtree:
     BlockID(0)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  55 instrs
 .B0:    ;;  → Always(Return).
          r11: ? <- Ancestral(AncestralName("RSP"))
-         r65: ? <- ArithK(Add, r11, 16)
-         r66: ? <- LoadMem { addr: r65, size: 8 }
-         r74: ? <- SetReturnValue(r66)
+         r44: ? <- ArithK(Add, r11, 16)
+         r45: ? <- LoadMem { addr: r44, size: 8 }
+         r53: ? <- SetReturnValue(r45)
 
 
 

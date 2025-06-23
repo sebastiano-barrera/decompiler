@@ -92,7 +92,7 @@ pub fn unpack_params(
         let param_anc = state
             .pull_arg()
             .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
-        let param_src = bld.reg_gen.next();
+        let param_src = bld.tmp_gen();
         bld.init_ancestral(param_src, param_anc, mil::RegType::Bytes(sz as usize));
 
         unpack_param(bld, &mut state, types, param_tyid, param_src, pass_mode);
@@ -129,7 +129,7 @@ fn unpack_param(
                 let arg_value = match sz.cmp(&8) {
                     Ordering::Equal => arg_value,
                     Ordering::Less => {
-                        let v0 = bld.reg_gen.next();
+                        let v0 = bld.tmp_gen();
                         bld.emit(
                             v0,
                             mil::Insn::Widen {
@@ -141,7 +141,7 @@ fn unpack_param(
                         v0
                     }
                     Ordering::Greater => {
-                        let v0 = bld.reg_gen.next();
+                        let v0 = bld.tmp_gen();
                         bld.emit(
                             v0,
                             mil::Insn::Part {
@@ -172,8 +172,8 @@ fn unpack_param(
             let eb_count = sz.div_ceil(8);
             let sz: u16 = sz.try_into().unwrap();
 
-            let addr = bld.reg_gen.next();
-            let eb = bld.reg_gen.next();
+            let addr = bld.tmp_gen();
+            let eb = bld.tmp_gen();
 
             for eb_ndx in 0..eb_count {
                 // relies on RSP never being assigned by any instruction emitted in this module
@@ -201,14 +201,14 @@ pub fn pack_return_value(
 ) -> anyhow::Result<mil::Reg> {
     let ret_ty = &types.get(ret_tyid).unwrap().ty;
 
-    let ret_val = bld.reg_gen.next();
+    let ret_val = bld.tmp_gen();
     match ret_ty {
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
         }
         ty::Ty::Unknown(_) => {
             // nothing better to do in this case...
-            let ret_val = bld.reg_gen.next();
+            let ret_val = bld.tmp_gen();
             bld.emit(ret_val, Insn::Undefined);
         }
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
@@ -225,7 +225,7 @@ pub fn pack_return_value(
             assert!(sz > 0);
 
             bld.emit(ret_val, Insn::Void);
-            let tmp = bld.reg_gen.next();
+            let tmp = bld.tmp_gen();
 
             match eb_set {
                 EightbytesSet::Regs { clss } => {
@@ -289,11 +289,11 @@ pub fn pack_return_value(
 
                     let eb_count = sz.div_ceil(8);
 
-                    let addr = bld.reg_gen.next();
+                    let addr = bld.tmp_gen();
                     for eb_ndx in 0..eb_count {
                         let eb_offset = (8 * eb_ndx).into();
                         bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
-                        let eb = bld.reg_gen.next();
+                        let eb = bld.tmp_gen();
                         bld.emit(eb, Insn::LoadMem { addr, size: 8 });
                         bld.emit(
                             ret_val,
@@ -394,7 +394,7 @@ pub fn pack_params(
         let param_anc = state
             .pull_arg()
             .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
-        let param_dest = bld.reg_gen.next();
+        let param_dest = bld.tmp_gen();
         bld.init_ancestral(param_dest, param_anc, mil::RegType::Bytes(sz as usize));
 
         pack_param(bld, &mut state, types, param_tyid, param_dest, pass_mode);
@@ -458,7 +458,7 @@ fn pack_param(
             assert!(sz > 0);
 
             // read all eightbytes in a single 'operation'
-            let addr = bld.reg_gen.next();
+            let addr = bld.tmp_gen();
             let eb_offset = state.pull_stack_eightbyte() as i64;
             bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
             bld.emit(
@@ -572,7 +572,7 @@ pub fn unpack_return_value(
                     // > by the caller in %rdi.
 
                     let eb_count = sz.div_ceil(8);
-                    let tmp = bld.reg_gen.next();
+                    let tmp = bld.tmp_gen();
                     let ret_val = if sz < eb_count * 8 {
                         bld.emit(
                             tmp,
@@ -912,7 +912,7 @@ mod tests {
         let mut bld = Builder::new(Arc::new(ty::TypeSet::new()));
         unpack_params(&mut bld, &types.types, param_types, types.tyid_void).unwrap();
 
-        let v0 = bld.reg_gen.next();
+        let v0 = bld.tmp_gen();
         bld.emit(v0, Insn::SetReturnValue(Builder::RDI));
         bld.emit(v0, Insn::Control(Control::Ret));
 

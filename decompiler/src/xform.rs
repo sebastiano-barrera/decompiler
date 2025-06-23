@@ -539,7 +539,7 @@ mod tests {
         #[test]
         fn addk() {
             let prog = {
-                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+                let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
@@ -574,7 +574,7 @@ mod tests {
         #[test]
         fn mulk() {
             let prog = {
-                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+                let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
                 b.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
                 b.push(Reg(1), Insn::Const { value: 5, size: 8 });
                 b.push(Reg(2), Insn::Const { value: 44, size: 8 });
@@ -630,7 +630,7 @@ mod tests {
                 size: u16,
             }
             fn gen_prog(vp: VariantParams) -> mil::Program {
-                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+                let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
                 b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.anc_a_sz as usize));
                 b.set_ancestral_type(ANC_B, mil::RegType::Bytes(vp.anc_b_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
@@ -754,7 +754,7 @@ mod tests {
             }
 
             fn gen_prog(vp: VariantParams) -> mil::Program {
-                let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+                let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
                 b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.src_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
                 b.push(
@@ -834,7 +834,7 @@ mod tests {
         // earlier transform
 
         let prog = {
-            let mut b = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+            let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
             b.push(Reg(1), Insn::Const { value: 5, size: 8 });
             b.push(Reg(2), Insn::Const { value: 44, size: 8 });
 

@@ -12,7 +12,6 @@ pub mod callconv;
 
 pub struct Builder {
     pb: mil::ProgramBuilder,
-    reg_gen: RegGen,
 }
 
 impl Builder {
@@ -22,8 +21,7 @@ impl Builder {
         types: Arc<ty::TypeSet>,
     ) -> Self {
         let mut bld = Builder {
-            pb: mil::ProgramBuilder::new(types),
-            reg_gen: Self::reset_reg_gen(),
+            pb: mil::ProgramBuilder::new(Self::R_TMP_FIRST, types),
         };
 
         bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes(8));
@@ -81,42 +79,16 @@ impl Builder {
     }
 
     pub fn build(self) -> mil::Program {
-        let mil = self.pb.build();
-
-        // check: in each mil block corresponding to a single asm instruction,
-        // each temporary register must be written before it's read.
-        {
-            let mut ivs = mil.iter().peekable();
-            // TODO bitvec?
-            let mut is_initialized = vec![false; mil.reg_count() as usize];
-            while let Some(addr) = ivs.peek().map(|iv| iv.addr) {
-                is_initialized.fill(false);
-
-                while let Some(iv) = ivs.next_if(|iv| iv.addr == addr) {
-                    for &mut input in iv.insn.get().input_regs_iter() {
-                        if Self::R_TMP_FIRST.0 <= input.0 && input.0 <= Self::R_TMP_LAST.0 {
-                            if !is_initialized[input.0 as usize] {
-                                eprintln!("--- in this mil program:");
-                                eprintln!("{:?}", mil);
-                                panic!(
-                                    "index {}: temporary input {:?} is not initialized",
-                                    iv.index, input,
-                                );
-                            }
-                        }
-                    }
-
-                    is_initialized[iv.dest.get().0 as usize] = true;
-                }
-            }
-        }
-
-        mil
+        self.pb.build()
     }
 
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
         self.emit(reg, mil::Insn::Ancestral(anc_name));
         self.pb.set_ancestral_type(anc_name, rt);
+    }
+
+    pub fn tmp_gen(&mut self) -> mil::Reg {
+        self.pb.tmp_gen()
     }
 
     pub fn translate(
@@ -127,19 +99,7 @@ impl Builder {
         use iced_x86::{OpKind, Register};
 
         let types = Arc::clone(self.pb.types());
-
         let mut formatter = IntelFormatter::new();
-
-        // ensure that all possible temporary registers are initialized at least
-        // once. this in turn ensures that all phi nodes always have a valid
-        // input value for all predecessors. this is useful because a variable
-        // (register) may only be initialized in one path, while the program
-        // relies on an ancestral value in the other path.
-        for reg_ndx in Self::R_TMP_FIRST.0..=Self::R_TMP_LAST.0 {
-            let reg = mil::Reg(reg_ndx);
-            self.emit(reg, mil::Insn::Undefined);
-        }
-
         let mut warnings = Warnings::default();
 
         if let Some(func_ty) = func_ty {
@@ -172,8 +132,8 @@ impl Builder {
             // Temporary abstract registers
             //    These are used in the mil program to compute 'small stuff' (memory
             //    offsets, some arithmetic).  Never reused across different
-            //    instructions.  "Generated" via self.reg_gen (RegGen)
-            self.reg_gen = Self::reset_reg_gen();
+            //    instructions.  "Generated" via self.pb (tmp_gen, tmp_reset)
+            self.pb.tmp_reset();
             self.pb.set_input_addr(insn.ip());
 
             let mut output = String::new();
@@ -201,7 +161,7 @@ impl Builder {
                         Self::RSP,
                         mil::Insn::ArithK(mil::ArithOp::Add, Self::RSP, -(sz as i64)),
                     );
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
                     self.emit(
                         v0,
                         mil::Insn::StoreMem {
@@ -213,7 +173,7 @@ impl Builder {
                 M::Pop => {
                     assert_eq!(insn.op_count(), 1);
 
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
 
                     let sz = Self::op_size(&insn, 0);
                     if sz != 8 && sz != 2 {
@@ -257,7 +217,7 @@ impl Builder {
                         .or_warn(&mut warnings)
                         .unwrap_or(Self::RAX);
 
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
                     self.emit(v0, mil::Insn::SetReturnValue(ret_val));
                     self.emit(v0, mil::Insn::Control(Control::Ret));
                 }
@@ -311,7 +271,7 @@ impl Builder {
                     // TODO implement: AF
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
                     self.emit(
                         v0,
                         mil::Insn::Part {
@@ -326,7 +286,7 @@ impl Builder {
                 M::Test => {
                     let (a, a_sz) = self.emit_read(&insn, 0);
                     let (b, b_sz) = self.emit_read(&insn, 1);
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
                     self.emit_arith(a, a_sz, b, b_sz, mil::ArithOp::BitAnd);
                     self.emit(Self::SF, mil::Insn::SignOf(a));
                     self.emit(Self::ZF, mil::Insn::IsZero(a));
@@ -355,7 +315,7 @@ impl Builder {
 
                 M::Lea => match insn.op1_kind() {
                     OpKind::Memory => {
-                        let v0 = self.reg_gen.next();
+                        let v0 = self.pb.tmp_gen();
                         self.emit_compute_address_into(&insn, v0);
                         assert_eq!(insn.op0_kind(), OpKind::Register);
                         let value_size = insn.op0_register().size().try_into().unwrap();
@@ -411,7 +371,7 @@ impl Builder {
                             self.emit(Self::PF, mil::Insn::Undefined);
 
                             let a_size = a_size.try_into().unwrap();
-                            let result_hi = self.reg_gen.next();
+                            let result_hi = self.pb.tmp_gen();
                             self.emit(
                                 result_hi,
                                 mil::Insn::Part {
@@ -441,7 +401,7 @@ impl Builder {
                                 .try_into()
                                 .unwrap();
                             let b = self.emit_read_value(&insn, 1);
-                            let result = self.reg_gen.next();
+                            let result = self.pb.tmp_gen();
                             self.emit(result, mil::Insn::Arith(mil::ArithOp::Mul, a, b));
 
                             if op_count == 3 {
@@ -452,7 +412,7 @@ impl Builder {
                                     OpKind::Immediate64 => insn.immediate64() as i64,
                                     other => panic!("imul: invalid 3rd operand: {other:?}"),
                                 };
-                                let k = self.reg_gen.next();
+                                let k = self.pb.tmp_gen();
                                 self.emit(
                                     k,
                                     mil::Insn::Const {
@@ -498,7 +458,7 @@ impl Builder {
                         })
                         .unwrap_or_else(|| vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]);
 
-                    let v1 = self.reg_gen.next();
+                    let v1 = self.pb.tmp_gen();
                     let first_arg = if param_values.is_empty() {
                         None
                     } else {
@@ -548,7 +508,7 @@ impl Builder {
                 //
                 M::Jmp => {
                     // refactor with emit_jmpif?
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
                     match insn.op0_kind() {
                         OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                             let target = insn.near_branch_target();
@@ -700,7 +660,7 @@ impl Builder {
                 }
 
                 M::Cbw => {
-                    let al = self.reg_gen.next();
+                    let al = self.pb.tmp_gen();
                     self.emit(
                         al,
                         mil::Insn::Part {
@@ -719,7 +679,7 @@ impl Builder {
                     );
                 }
                 M::Cwde => {
-                    let ax = self.reg_gen.next();
+                    let ax = self.pb.tmp_gen();
                     self.emit(
                         ax,
                         mil::Insn::Part {
@@ -738,7 +698,7 @@ impl Builder {
                     );
                 }
                 M::Cdqe => {
-                    let eax = self.reg_gen.next();
+                    let eax = self.pb.tmp_gen();
                     self.emit(
                         eax,
                         mil::Insn::Part {
@@ -761,7 +721,7 @@ impl Builder {
                     let mut output = String::new();
                     formatter.format(&insn, &mut output);
                     let description = format!("unsupported: {}", output);
-                    let v0 = self.reg_gen.next();
+                    let v0 = self.pb.tmp_gen();
                     self.emit(v0, mil::Insn::NotYetImplemented(description.leak()));
                 }
             }
@@ -791,7 +751,7 @@ impl Builder {
     ) -> Result<Vec<mil::Reg>> {
         let param_count = subr_ty.param_tyids.len();
         // TODO smallvec?
-        let param_values: Vec<_> = (0..param_count).map(|_| self.reg_gen.next()).collect();
+        let param_values: Vec<_> = (0..param_count).map(|_| self.pb.tmp_gen()).collect();
 
         let report = callconv::pack_params(
             self,
@@ -833,7 +793,7 @@ impl Builder {
         // TODO implement: AF
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(
             v0,
             mil::Insn::Part {
@@ -866,7 +826,7 @@ impl Builder {
         // of the bit count)
         self.emit(Self::SF, mil::Insn::SignOf(value));
         self.emit(Self::ZF, mil::Insn::IsZero(value));
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(
             v0,
             mil::Insn::Part {
@@ -883,7 +843,7 @@ impl Builder {
         match insn.op_kind(op_ndx) {
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                 let target = insn.near_branch_target();
-                let v0 = self.reg_gen.next();
+                let v0 = self.pb.tmp_gen();
                 self.emit(v0, mil::Insn::SetJumpCondition(cond));
                 self.emit(v0, mil::Insn::Control(Control::JmpExtIf(target)));
             }
@@ -904,7 +864,7 @@ impl Builder {
         // TODO implement: AF
         self.emit(Self::SF, mil::Insn::SignOf(a));
         self.emit(Self::ZF, mil::Insn::IsZero(a));
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(
             v0,
             mil::Insn::Part {
@@ -957,7 +917,7 @@ impl Builder {
     /// Return value: the register that stores the read value (in the MIL text), and the
     /// value's size in bytes (either 1, 2, 4, or 8).
     fn emit_read_value(&mut self, insn: &iced_x86::Instruction, op_ndx: u32) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
 
         match insn.op_kind(op_ndx) {
             OpKind::Register => {
@@ -1092,7 +1052,7 @@ impl Builder {
         if reg == full_reg {
             value
         } else {
-            let dest = self.reg_gen.next();
+            let dest = self.pb.tmp_gen();
             self.emit(
                 dest,
                 mil::Insn::Part {
@@ -1161,7 +1121,7 @@ impl Builder {
                     "destination memory operand is not the same size as the value"
                 );
 
-                let addr = self.reg_gen.next();
+                let addr = self.pb.tmp_gen();
                 self.emit_compute_address_into(insn, addr);
                 assert_ne!(value, addr);
 
@@ -1198,7 +1158,7 @@ impl Builder {
         }
 
         assert!(value_size < full_size);
-        let unchanged_part = self.reg_gen.next();
+        let unchanged_part = self.pb.tmp_gen();
         self.emit(
             unchanged_part,
             mil::Insn::Part {
@@ -1217,7 +1177,7 @@ impl Builder {
     }
 
     fn emit_compute_address(&mut self, insn: &iced_x86::Instruction) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit_compute_address_into(insn, v0);
         v0
     }
@@ -1251,7 +1211,7 @@ impl Builder {
         match insn.memory_index() {
             Register::None => {}
             index_reg => {
-                let v1 = self.reg_gen.next();
+                let v1 = self.pb.tmp_gen();
                 let scale = insn.memory_index_scale() as i64;
                 let reg = Self::xlat_reg(index_reg);
                 // addresses are 64-bit in this architecture, so instructions are all with 8 bytes results
@@ -1265,8 +1225,8 @@ impl Builder {
 
     fn emit_cmp_a(&mut self) -> mil::Reg {
         // jmp if !SF && !ZF (also jnbe)
-        let v0 = self.reg_gen.next();
-        let v1 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
+        let v1 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::SF));
         self.emit(v1, mil::Insn::Not(Self::ZF));
         self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
@@ -1278,7 +1238,7 @@ impl Builder {
     }
 
     fn emit_cmp_ne(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::ZF));
         v0
     }
@@ -1290,7 +1250,7 @@ impl Builder {
 
     fn emit_cmp_l(&mut self) -> mil::Reg {
         // jmp if SF != OF
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
         self.emit(v0, mil::Insn::Not(v0));
         v0
@@ -1298,7 +1258,7 @@ impl Builder {
 
     fn emit_cmp_le(&mut self) -> mil::Reg {
         // jmp if ZF=1 or SF != OF
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
         self.emit(v0, mil::Insn::Not(v0));
         self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, v0, Self::ZF));
@@ -1307,33 +1267,33 @@ impl Builder {
 
     fn emit_cmp_ae(&mut self) -> mil::Reg {
         // also jnb, jnc
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::CF));
         v0
     }
 
     fn emit_cmp_be(&mut self) -> mil::Reg {
         // also jna
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Bool(mil::BoolOp::Or, Self::CF, Self::ZF));
         v0
     }
 
     fn emit_cmp_cxz(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::IsZero(Self::RCX));
         v0
     }
 
     fn emit_cmp_ecxz(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::IsZero(Self::RCX));
         v0
     }
 
     fn emit_cmp_g(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
-        let v1 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
+        let v1 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::ZF));
         self.emit(v1, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
         self.emit(v0, mil::Insn::Bool(mil::BoolOp::And, v0, v1));
@@ -1341,25 +1301,25 @@ impl Builder {
     }
 
     fn emit_cmp_ge(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Cmp(mil::CmpOp::EQ, Self::SF, Self::OF));
         v0
     }
 
     fn emit_cmp_no(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::OF));
         v0
     }
 
     fn emit_cmp_np(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::PF));
         v0
     }
 
     fn emit_cmp_ns(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::Not(Self::SF));
         v0
     }
@@ -1373,7 +1333,7 @@ impl Builder {
     }
 
     fn emit_cmp_rcxz(&mut self) -> mil::Reg {
-        let v0 = self.reg_gen.next();
+        let v0 = self.pb.tmp_gen();
         self.emit(v0, mil::Insn::IsZero(Self::RCX));
         v0
     }
@@ -1442,11 +1402,6 @@ impl Builder {
     const ZMM15: mil::Reg = mil::Reg(43);
 
     const R_TMP_FIRST: mil::Reg = mil::Reg(45);
-    const R_TMP_LAST: mil::Reg = mil::Reg(65);
-
-    fn reset_reg_gen() -> RegGen {
-        RegGen::new(Self::R_TMP_FIRST, Self::R_TMP_LAST)
-    }
 
     /// Translate a *full* register name
     fn xlat_reg(reg: iced_x86::Register) -> mil::Reg {
@@ -1504,25 +1459,6 @@ pub fn check_subroutine_type(types: &ty::TypeSet, tyid: ty::TypeID) -> Result<&t
     match &types.get_through_alias(tyid).expect("invalid type ID").ty {
         ty::Ty::Subroutine(subr_ty) => Ok(subr_ty),
         _ => anyhow::bail!("not a subroutine type (ID: {:?})", tyid),
-    }
-}
-
-struct RegGen {
-    next: mil::Reg,
-    last: mil::Reg,
-}
-impl RegGen {
-    fn new(first: mil::Reg, last: mil::Reg) -> Self {
-        assert!(first.0 <= last.0);
-        RegGen { next: first, last }
-    }
-
-    fn next(&mut self) -> mil::Reg {
-        let ret = self.next;
-        self.next.0 += 1;
-
-        assert!(ret.0 <= self.last.0, "not enough tmp regs");
-        ret
     }
 }
 

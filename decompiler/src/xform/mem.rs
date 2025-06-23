@@ -258,7 +258,7 @@ mod tests {
     #[test]
     fn single_bb_direct() {
         for size in [1, 2, 4, 5, 8] {
-            let mut bld = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+            let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
             bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
             bld.push(Reg(1), Insn::Const { size, value: -123 });
             bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn single_bb_part() {
-        let mut bld = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+        let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
         bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
         bld.push(
             Reg(1),
@@ -345,7 +345,7 @@ mod tests {
 
     #[test]
     fn single_bb_concat() {
-        let mut bld = mil::ProgramBuilder::new(Arc::new(ty::TypeSet::new()));
+        let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
         bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
         bld.push(
             Reg(1),

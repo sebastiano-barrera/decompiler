@@ -11,7 +11,7 @@ function type: "func009" func (arg0 small <TypeID(785v1)>) float <TypeID(783v1)>
 
 
 mil program = 
-program  76 instrs
+program  55 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
     2 r3: TypeID(2v1) <- Ancestral(AncestralName("PF"))
@@ -55,67 +55,46 @@ program  76 instrs
    40 r41: TypeID(2v1) <- Ancestral(AncestralName("ZMM13"))
    41 r42: TypeID(2v1) <- Ancestral(AncestralName("ZMM14"))
    42 r43: TypeID(2v1) <- Ancestral(AncestralName("ZMM15"))
-   43 r45: TypeID(2v1) <- Undefined
-   44 r46: TypeID(2v1) <- Undefined
-   45 r47: TypeID(2v1) <- Undefined
-   46 r48: TypeID(2v1) <- Undefined
-   47 r49: TypeID(2v1) <- Undefined
-   48 r50: TypeID(2v1) <- Undefined
-   49 r51: TypeID(2v1) <- Undefined
-   50 r52: TypeID(2v1) <- Undefined
-   51 r53: TypeID(2v1) <- Undefined
-   52 r54: TypeID(2v1) <- Undefined
-   53 r55: TypeID(2v1) <- Undefined
-   54 r56: TypeID(2v1) <- Undefined
-   55 r57: TypeID(2v1) <- Undefined
-   56 r58: TypeID(2v1) <- Undefined
-   57 r59: TypeID(2v1) <- Undefined
-   58 r60: TypeID(2v1) <- Undefined
-   59 r61: TypeID(2v1) <- Undefined
-   60 r62: TypeID(2v1) <- Undefined
-   61 r63: TypeID(2v1) <- Undefined
-   62 r64: TypeID(2v1) <- Undefined
-   63 r65: TypeID(2v1) <- Undefined
-   64 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
-   65 r46: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
-   66 r15: TypeID(2v1) <- Get(r46)
-   67 r47: TypeID(2v1) <- Part { src: r45, offset: 8, size: 8 }
-   68 r19: TypeID(2v1) <- Get(r47)
+   43 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
+   44 r46: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
+   45 r15: TypeID(2v1) <- Get(r46)
+   46 r47: TypeID(2v1) <- Part { src: r45, offset: 8, size: 8 }
+   47 r19: TypeID(2v1) <- Get(r47)
 0x401129:
-   69 r45: TypeID(2v1) <- NotYetImplemented("unsupported: movd xmm0,esi")
+   48 r45: TypeID(2v1) <- NotYetImplemented("unsupported: movd xmm0,esi")
 0x40112d:
-   70 r45: TypeID(2v1) <- Void
-   71 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 8 }
-   72 r45: TypeID(2v1) <- Concat { lo: r45, hi: r46 }
-   73 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 4 }
-   74 r47: TypeID(2v1) <- SetReturnValue(r45)
-   75 r47: TypeID(2v1) <- Control(Ret)
+   49 r45: TypeID(2v1) <- Void
+   50 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 8 }
+   51 r45: TypeID(2v1) <- Concat { lo: r45, hi: r46 }
+   52 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 4 }
+   53 r47: TypeID(2v1) <- SetReturnValue(r45)
+   54 r47: TypeID(2v1) <- Control(Ret)
 
 
 ssa pre-xform:
-ssa program  76 instrs
+ssa program  55 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
-         r69: ? <- NotYetImplemented("unsupported: movd xmm0,esi")
-         r71: ? <- Part { src: r27, offset: 0, size: 8 }
-         r72: ? <- Concat { lo: r70, hi: r71 }
-         r73: ? <- Part { src: r72, offset: 0, size: 4 }
-         r74: ? <- SetReturnValue(r73)
+         r48: ? <- NotYetImplemented("unsupported: movd xmm0,esi")
+         r50: ? <- Part { src: r27, offset: 0, size: 8 }
+         r51: ? <- Concat { lo: r49, hi: r50 }
+         r52: ? <- Part { src: r51, offset: 0, size: 4 }
+         r53: ? <- SetReturnValue(r52)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r27, r69, r70, r71, r72, r73, r74]
+  BlockID(0) -> Always(Return) [r27, r48, r49, r50, r51, r52, r53]
   domtree:
     BlockID(0)
 
 ssa post-xform:
-ssa program  76 instrs
+ssa program  55 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
-         r69: ? <- NotYetImplemented("unsupported: movd xmm0,esi")
-         r73: ? <- Part { src: r27, offset: 0, size: 4 }
-         r74: ? <- SetReturnValue(r73)
+         r48: ? <- NotYetImplemented("unsupported: movd xmm0,esi")
+         r52: ? <- Part { src: r27, offset: 0, size: 4 }
+         r53: ? <- SetReturnValue(r52)
 
 
 
