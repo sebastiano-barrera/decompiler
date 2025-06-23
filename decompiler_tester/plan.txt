@@ -54,24 +54,31 @@ compiler version
 - [x] ast: do not show StoreMem effect
     (actually, probably better to just handle effects differently in general)
 
-- [ ] open executable from GUI
-- [ ] show progress when parsing executable
+- [ ] bug: "<bug:Control:" (in redisConnectWithOptions)
+    - [ ] introduce check in asm->mil: within each mil block corresponding to a single asm instruction, temporary registers must be written before being read
+- [ ] bug: hidden callee name (in redisConnectWithOptions)
+- [ ] bug: ast syntax for LoadMem (not even a .* is shown)
+- [ ] duplicate calls (in redisConnectWithOptions)
+- [ ] ast: clickable marker for inline values
 
-- [ ] robust against panics in the decompiler
-    - we mostly got it; there might be a hole or two somewhere
+- [ ] custom block ordering
 
-# Next up:
-
-- [ ] show type info
+- [ ] use type info
+    - [ ] show in ast
+    - [ ] struct member accesses
     - [ ] function prototype
     - [ ] ssa: value types
     - [ ] ast: value types
 
-- [ ] struct member accesses
-
 - [ ] string literals
 
-- [ ] user-editable block order
+- [ ] attach errors/warnings to ssa instructions wherever applicable
+
+- [ ] robust against panics in the decompiler
+    - we mostly got it; there might be a hole or two somewhere
+
+- [ ] open executable from GUI
+- [ ] show progress when parsing executable
 
 - [ ] enum values
     - initialize with DWARF, allow user edits
@@ -79,3 +86,5 @@ compiler version
 - [ ] user-editable identifiers/names
 
 - [ ] multiple functions (tabs?)
+
+- [ ] fully data-driven asm->mil?

@@ -90,6 +90,7 @@ tests_in_binary!(
     // regression: infinite loop
     processAnnotations,
     redisReconnect,
+    redisConnectWithOptions,
 );
 
 tests_in_binary!(

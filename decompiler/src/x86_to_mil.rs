@@ -81,7 +81,37 @@ impl Builder {
     }
 
     pub fn build(self) -> mil::Program {
-        self.pb.build()
+        let mil = self.pb.build();
+
+        // check: in each mil block corresponding to a single asm instruction,
+        // each temporary register must be written before it's read.
+        {
+            let mut ivs = mil.iter().peekable();
+            // TODO bitvec?
+            let mut is_initialized = vec![false; mil.reg_count() as usize];
+            while let Some(addr) = ivs.peek().map(|iv| iv.addr) {
+                is_initialized.fill(false);
+
+                while let Some(iv) = ivs.next_if(|iv| iv.addr == addr) {
+                    for &mut input in iv.insn.get().input_regs_iter() {
+                        if Self::R_TMP_FIRST.0 <= input.0 && input.0 <= Self::R_TMP_LAST.0 {
+                            if !is_initialized[input.0 as usize] {
+                                eprintln!("--- in this mil program:");
+                                eprintln!("{:?}", mil);
+                                panic!(
+                                    "index {}: temporary input {:?} is not initialized",
+                                    iv.index, input,
+                                );
+                            }
+                        }
+                    }
+
+                    is_initialized[iv.dest.get().0 as usize] = true;
+                }
+            }
+        }
+
+        mil
     }
 
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
