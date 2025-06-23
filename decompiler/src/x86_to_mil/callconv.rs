@@ -322,15 +322,13 @@ pub fn pack_return_value(
 
     Ok(ret_val)
 }
-
 pub fn pack_params(
     bld: &mut Builder,
     types: &ty::TypeSet,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
-    param_values: &[mil::Reg],
-) -> anyhow::Result<Report> {
-    assert_eq!(param_types.len(), param_values.len());
+) -> anyhow::Result<(Report, Vec<mil::Reg>)> {
+    let param_count = param_types.len();
 
     let mut report = Report {
         ok_count: 0,
@@ -338,6 +336,7 @@ pub fn pack_params(
     };
 
     let mut state = ParamPassing::default();
+    let mut param_regs: Vec<mil::Reg> = Vec::with_capacity(param_count);
 
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
@@ -353,7 +352,7 @@ pub fn pack_params(
             report.errors.push(anyhow!(
                     "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
                 ));
-            return Ok(report);
+            return Ok((report, param_regs));
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
@@ -398,11 +397,13 @@ pub fn pack_params(
         bld.init_ancestral(param_dest, param_anc, mil::RegType::Bytes(sz as usize));
 
         pack_param(bld, &mut state, types, param_tyid, param_dest, pass_mode);
+        param_regs.push(param_dest);
 
         report.ok_count += 1;
     }
 
-    Ok(report)
+    assert_eq!(param_regs.len(), report.ok_count);
+    Ok((report, param_regs))
 }
 
 fn pack_param(

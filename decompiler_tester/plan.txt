@@ -54,8 +54,8 @@ compiler version
 - [x] ast: do not show StoreMem effect
     (actually, probably better to just handle effects differently in general)
 
-- [ ] bug: "<bug:Control:" (in redisConnectWithOptions)
-    - [ ] introduce check in asm->mil: within each mil block corresponding to a single asm instruction, temporary registers must be written before being read
+- [x] bug: "<bug:Control:" (in redisConnectWithOptions)
+    - [x] introduce check in asm->mil: within each mil block corresponding to a single asm instruction, temporary registers must be written before being read
 - [ ] bug: hidden callee name (in redisConnectWithOptions)
 - [ ] bug: ast syntax for LoadMem (not even a .* is shown)
 - [ ] duplicate calls (in redisConnectWithOptions)

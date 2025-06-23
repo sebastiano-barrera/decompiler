@@ -750,17 +750,11 @@ impl Builder {
         warnings: &mut Warnings,
     ) -> Result<Vec<mil::Reg>> {
         let param_count = subr_ty.param_tyids.len();
-        // TODO smallvec?
-        let param_values: Vec<_> = (0..param_count).map(|_| self.pb.tmp_gen()).collect();
 
-        let report = callconv::pack_params(
-            self,
-            types,
-            &subr_ty.param_tyids,
-            subr_ty.return_tyid,
-            &param_values,
-        )
-        .context("while applying calling convention")?;
+        let (report, param_values) =
+            callconv::pack_params(self, types, &subr_ty.param_tyids, subr_ty.return_tyid)
+                .context("while applying calling convention")?;
+        assert_eq!(report.ok_count, param_values.len());
 
         if report.ok_count < param_count {
             warnings.add(
