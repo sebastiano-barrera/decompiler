@@ -1669,14 +1669,6 @@ mod ast_view {
         /// naked statement (e.g., a call whose return value is unused)
         UnnamedStmt,
     }
-    impl ValueMode {
-        fn is_stmt(&self) -> bool {
-            match self {
-                ValueMode::Inline => false,
-                ValueMode::NamedStmt | ValueMode::UnnamedStmt => true,
-            }
-        }
-    }
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
             let rdr_count = decompiler::count_readers(ssa);
