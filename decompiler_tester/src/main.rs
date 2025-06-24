@@ -1829,22 +1829,14 @@ mod ast_view {
                     let was_let_printed = self.let_was_printed[reg];
                     self.seq(SeqKind::Flow, |s| {
                         if !was_let_printed {
-                            s.emit(Node::Element(Element {
-                                text: "<bug:let!>".to_string(),
-                                anchor: None,
-                                role: TextRole::Error,
-                            }));
+                            s.emit_bug_tag("let!");
                         }
                         s.emit_reg_ref(reg);
                     });
                 }
                 ValueMode::UnnamedStmt => {
                     // This should never happen!
-                    self.emit(Node::Element(Element {
-                        text: "<bug:unnamed>".to_string(),
-                        anchor: None,
-                        role: TextRole::Error,
-                    }));
+                    self.emit_bug_tag("unnamed");
                     self.transform_def(reg, parent_prec);
                 }
             }
@@ -2083,18 +2075,10 @@ mod ast_view {
                 }
 
                 Insn::CArg { .. } => {
-                    self.emit(Node::Element(Element {
-                        text: format!("<bug:CArg:{:?}>", reg),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::Kw,
-                    }));
+                    self.emit_bug_tag("CArg");
                 }
                 Insn::Control(_) => {
-                    self.emit(Node::Element(Element {
-                        text: format!("<bug:Control:{:?}>", reg),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::Kw,
-                    }));
+                    self.emit_bug_tag("Control");
                 }
 
                 Insn::Upsilon { value, phi_ref } => {
@@ -2262,7 +2246,7 @@ mod ast_view {
         fn emit_let_def(&mut self, reg: decompiler::Reg) {
             self.seq(SeqKind::Flow, |s| {
                 if s.let_was_printed[reg] {
-                    s.emit_simple(TextRole::Kw, "<bug:dupe let>".to_string());
+                    s.emit_bug_tag("dupe let");
                 }
 
                 s.emit_simple(TextRole::Kw, "let".to_string());
@@ -2294,6 +2278,14 @@ mod ast_view {
                 }));
                 b(s);
             });
+        }
+
+        fn emit_bug_tag(&mut self, tag: &str) {
+            self.emit(Node::Element(Element {
+                text: format!("<bug:{}>", tag),
+                anchor: None,
+                role: TextRole::Error,
+            }));
         }
     }
 }
