@@ -1643,7 +1643,7 @@ mod ast_view {
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
-        is_named: decompiler::RegMap<bool>,
+        value_mode: decompiler::RegMap<ValueMode>,
 
         // just to check that the algo is correct:
         block_status: decompiler::BlockMap<BlockStatus>,
@@ -1656,22 +1656,50 @@ mod ast_view {
         Started,
         Finished,
     }
+    #[derive(Clone, Copy)]
+    enum ValueMode {
+        /// Value's definition is printed inline on every use, as part of each
+        /// reader expression.
+        Inline,
+        /// The value is "defined" as a let statement (e.g., `let r123 = ...`)
+        /// before the first use. Every use then refers to it by name (e.g.,
+        /// `r123`).
+        NamedStmt,
+        /// The value is not named, but its definition is still printed as a
+        /// naked statement (e.g., a call whose return value is unused)
+        UnnamedStmt,
+    }
+    impl ValueMode {
+        fn is_stmt(&self) -> bool {
+            match self {
+                ValueMode::Inline => false,
+                ValueMode::NamedStmt | ValueMode::UnnamedStmt => true,
+            }
+        }
+    }
     impl<'a> Builder<'a> {
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
             let rdr_count = decompiler::count_readers(ssa);
-            let is_named = rdr_count.map(|reg, rdr_count| {
+            let value_mode = rdr_count.map(|reg, rdr_count| {
                 let insn = ssa[reg].get();
-                matches!(insn, Insn::Phi)
-                    || (*rdr_count > 1
-                        && !matches!(insn, Insn::Ancestral(_))
-                        && !matches!(insn, Insn::Const { .. }))
+                if matches!(insn, Insn::Ancestral(_) | Insn::Const { .. }) {
+                    ValueMode::Inline
+                } else if matches!(insn, Insn::Phi) || *rdr_count > 1 {
+                    ValueMode::NamedStmt
+                } else if *rdr_count == 0 && insn.has_side_effects() {
+                    // even without readers/users, effectful instructions need
+                    // to be printed at their scheduled slot
+                    ValueMode::UnnamedStmt
+                } else {
+                    ValueMode::Inline
+                }
             });
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
                 nodes: Vec::new(),
                 ssa,
-                is_named,
+                value_mode,
                 block_status,
                 open_stack: Vec::new(),
                 let_was_printed,
@@ -1720,12 +1748,16 @@ mod ast_view {
             // borrow &self.scheduler and &mut self.nodes)
             let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
             for reg in block_sched {
-                if self.is_named[reg] {
-                    self.emit_let_def(reg);
-                } else if self.ssa[reg].get().has_side_effects()
-                    && self.ssa.reg_type(reg) != decompiler::RegType::Control
-                {
-                    self.transform_def(reg, 0);
+                match self.value_mode[reg] {
+                    ValueMode::Inline => {
+                        // just skip; reader expressions will pick this up
+                    }
+                    ValueMode::NamedStmt => {
+                        self.emit_let_def(reg);
+                    }
+                    ValueMode::UnnamedStmt => {
+                        self.transform_def(reg, 0);
+                    }
                 }
             }
 
@@ -1789,21 +1821,32 @@ mod ast_view {
             parent_prec: decompiler::PrecedenceLevel,
         ) {
             // TODO! specific representation of operands
-            if self.is_named[reg] {
-                if self.let_was_printed[reg] {
-                    self.emit_reg_ref(reg);
-                } else {
+            match self.value_mode[reg] {
+                ValueMode::Inline => {
+                    self.transform_def(reg, parent_prec);
+                }
+                ValueMode::NamedStmt => {
+                    let was_let_printed = self.let_was_printed[reg];
                     self.seq(SeqKind::Flow, |s| {
-                        s.emit(Node::Element(Element {
-                            text: "<bug:let!>".to_string(),
-                            anchor: None,
-                            role: TextRole::Error,
-                        }));
+                        if !was_let_printed {
+                            s.emit(Node::Element(Element {
+                                text: "<bug:let!>".to_string(),
+                                anchor: None,
+                                role: TextRole::Error,
+                            }));
+                        }
                         s.emit_reg_ref(reg);
                     });
                 }
-            } else {
-                self.transform_def(reg, parent_prec);
+                ValueMode::UnnamedStmt => {
+                    // This should never happen!
+                    self.emit(Node::Element(Element {
+                        text: "<bug:unnamed>".to_string(),
+                        anchor: None,
+                        role: TextRole::Error,
+                    }));
+                    self.transform_def(reg, parent_prec);
+                }
             }
         }
 
