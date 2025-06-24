@@ -1485,7 +1485,8 @@ mod ast_view {
 
     pub struct Ast {
         nodes: Vec<Node>,
-        is_node_shown: RefCell<Vec<bool>>,
+        /// only for assert
+        was_node_shown: RefCell<Vec<bool>>,
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1526,7 +1527,7 @@ mod ast_view {
         pub fn empty() -> Self {
             Ast {
                 nodes: Vec::new(),
-                is_node_shown: RefCell::new(Vec::new()),
+                was_node_shown: RefCell::new(Vec::new()),
             }
         }
 
@@ -1536,7 +1537,7 @@ mod ast_view {
 
         pub fn show(&self, ui: &mut egui::Ui, hl: &mut Highlight) {
             {
-                let mut mask = self.is_node_shown.borrow_mut();
+                let mut mask = self.was_node_shown.borrow_mut();
                 mask.fill(false);
             }
 
@@ -1639,7 +1640,7 @@ mod ast_view {
 
         fn show_node(&self, ui: &mut egui::Ui, ndx: usize, hl: &mut Highlight) -> usize {
             let already_visited = {
-                let mut mask = self.is_node_shown.borrow_mut();
+                let mut mask = self.was_node_shown.borrow_mut();
                 std::mem::replace(&mut mask[ndx], true)
             };
             assert!(!already_visited);
@@ -1752,7 +1753,7 @@ mod ast_view {
             let is_node_shown = vec![false; self.nodes.len()];
             Ast {
                 nodes: self.nodes,
-                is_node_shown: RefCell::new(is_node_shown),
+                was_node_shown: RefCell::new(is_node_shown),
             }
         }
 
