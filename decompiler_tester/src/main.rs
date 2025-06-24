@@ -1484,17 +1484,21 @@ mod ast_view {
     use crate::hl_label;
 
     pub struct Ast {
-        // the tree is represented as a flat Vec of Nodes.
-        // the last element is the root node
         nodes: Vec<Node>,
         is_node_shown: RefCell<Vec<bool>>,
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Node {
-        Seq { kind: SeqKind, count: usize },
+        Seq(Seq),
         Element(Element),
         Space(u16),
+    }
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    struct Seq {
+        kind: SeqKind,
+        count: usize,
+        anchor: Option<Anchor>,
     }
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct Element {
@@ -1570,8 +1574,49 @@ mod ast_view {
                     res.inner
                 }
                 SeqKind::Flow => {
-                    ui.horizontal(|ui| self.show_block_content(ui, ndx_range, hl))
-                        .inner
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = 5.0;
+
+                        let stroke = egui::Stroke {
+                            width: 1.0,
+                            color: ui.visuals().text_color(),
+                        };
+                        let handle_size = 5.0;
+                        let handle_space = egui::Vec2 {
+                            x: handle_size,
+                            y: ui.text_style_height(&egui::TextStyle::Body),
+                        };
+                        let (response, painter) = ui.allocate_painter(
+                            handle_space,
+                            egui::Sense::CLICK | egui::Sense::HOVER,
+                        );
+
+                        let ret = self.show_block_content(ui, ndx_range, hl);
+
+                        if response.hovered() {
+                            ui.painter().rect(
+                                ui.min_rect(),
+                                0.,
+                                egui::Color32::TRANSPARENT,
+                                stroke,
+                                egui::StrokeKind::Outside,
+                            );
+                        } else {
+                            let points = [
+                                egui::vec2(1., 1.),
+                                egui::vec2(handle_size, 1.),
+                                egui::vec2(1., handle_size),
+                            ];
+                            for i in 0..points.len() {
+                                let from = response.rect.min + points[i];
+                                let to = response.rect.min + points[(i + 1) % points.len()];
+                                painter.line_segment([from, to], stroke);
+                            }
+                        }
+
+                        ret
+                    })
+                    .inner
                 }
             }
         }
@@ -1600,7 +1645,11 @@ mod ast_view {
             assert!(!already_visited);
 
             match &self.nodes[ndx] {
-                Node::Seq { kind, count } => {
+                Node::Seq(Seq {
+                    kind,
+                    count,
+                    anchor,
+                }) => {
                     // ndx      Open { count: 3 }
                     // ndx + 1  A
                     // ndx + 2  B
@@ -1708,14 +1757,23 @@ mod ast_view {
         }
 
         fn seq<R>(&mut self, kind: SeqKind, add_contents: impl FnOnce(&mut Self) -> R) -> R {
-            self.emit(Node::Seq { kind, count: 0 });
+            self.emit(Node::Seq(Seq {
+                kind,
+                count: 0,
+                anchor: None,
+            }));
             let len_pre = self.nodes.len();
             let ret = add_contents(self);
             let count = self.nodes.len() - len_pre;
 
-            let seq_head = &mut self.nodes[len_pre - 1];
-            assert!(matches!(seq_head, Node::Seq { count: 0, .. }));
-            *seq_head = Node::Seq { kind, count };
+            let Node::Seq(Seq {
+                count: seq_head_count,
+                ..
+            }) = &mut self.nodes[len_pre - 1]
+            else {
+                unreachable!()
+            };
+            *seq_head_count = count;
 
             ret
         }

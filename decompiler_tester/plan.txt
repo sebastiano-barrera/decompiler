@@ -58,7 +58,8 @@ compiler version
     - [x] introduce check in asm->mil: within each mil block corresponding to a single asm instruction, temporary registers must be written before being read
 - [x] bug: hidden callee name (in redisConnectWithOptions)
 - [x] duplicate calls (in redisConnectWithOptions)
-- [ ] bug: ast syntax for LoadMem (not even a .* is shown)
+- [--] bug: ast syntax for LoadMem (not even a .* is shown)
+    - not observed. maybe solved by earlier fixes.
 - [ ] ast: clickable marker for inline values
     - in general, it should be possible to see ANY correspondence between AST parts and
     SSA insns
