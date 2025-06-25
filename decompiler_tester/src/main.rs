@@ -1553,10 +1553,11 @@ mod ast_view {
         ) -> usize {
             match kind {
                 SeqKind::Vertical => {
+                    let indent_width = 30.0;
                     let mut child_rect = ui.available_rect_before_wrap();
 
                     let line_x = child_rect.min.x;
-                    child_rect.min.x += 30.0;
+                    child_rect.min.x += indent_width;
 
                     let res = ui.scope_builder(egui::UiBuilder::new().max_rect(child_rect), |ui| {
                         self.show_block_content(ui, ndx_range, hl)
@@ -1564,14 +1565,23 @@ mod ast_view {
 
                     let y_min = res.response.rect.min.y;
                     let y_max = res.response.rect.max.y;
-                    ui.painter().line_segment(
-                        [
-                            egui::Pos2::new(line_x, y_min),
-                            egui::Pos2::new(line_x, y_max),
-                        ],
-                        ui.visuals().window_stroke(),
-                    );
 
+                    let indent_rect = egui::Rect {
+                        min: egui::Pos2::new(line_x, y_min),
+                        max: egui::Pos2::new(line_x + indent_width, y_max),
+                    };
+                    let indent_response = ui.allocate_rect(indent_rect, egui::Sense::HOVER);
+
+                    let indicator_width = if indent_response.hovered() { 10.0 } else { 2.0 };
+                    let indicator_rect =
+                        indent_rect.with_max_x(indent_rect.min.x + indicator_width);
+                    ui.painter().rect(
+                        indicator_rect,
+                        0,
+                        ui.visuals().window_stroke.color,
+                        egui::Stroke::NONE,
+                        egui::StrokeKind::Inside,
+                    );
                     res.inner
                 }
                 SeqKind::Flow => {
