@@ -267,6 +267,42 @@ mod hl {
         /// graph block as the selected (pinned) block.
         pub block: bool,
     }
+
+    pub struct Colors {
+        pub background: egui::Color32,
+        pub background_pinned: egui::Color32,
+        /// Text color. Set to `None` to keep the default text color.
+        pub text: Option<egui::Color32>,
+        pub text_pinned: egui::Color32,
+        pub border_hovered: egui::Color32,
+        pub border_pinned: egui::Color32,
+    }
+
+    impl Default for Colors {
+        fn default() -> Self {
+            Colors {
+                background: egui::Color32::TRANSPARENT,
+                background_pinned: egui::Color32::BLACK,
+                text: None,
+                text_pinned: egui::Color32::WHITE,
+                border_hovered: egui::Color32::TRANSPARENT,
+                border_pinned: egui::Color32::TRANSPARENT,
+            }
+        }
+    }
+
+    pub const COLOR_BLUE_LIGHT: egui::Color32 = egui::Color32::from_rgb(166, 206, 227);
+    pub const COLOR_BLUE_DARK: egui::Color32 = egui::Color32::from_rgb(31, 120, 180);
+    pub const COLOR_GREEN_LIGHT: egui::Color32 = egui::Color32::from_rgb(178, 223, 138);
+    pub const COLOR_GREEN_DARK: egui::Color32 = egui::Color32::from_rgb(51, 160, 44);
+    pub const COLOR_RED_LIGHT: egui::Color32 = egui::Color32::from_rgb(251, 154, 153);
+    pub const COLOR_RED_DARK: egui::Color32 = egui::Color32::from_rgb(227, 26, 28);
+    pub const COLOR_ORANGE_LIGHT: egui::Color32 = egui::Color32::from_rgb(253, 191, 111);
+    pub const COLOR_ORANGE_DARK: egui::Color32 = egui::Color32::from_rgb(255, 127, 0);
+    pub const COLOR_PURPLE_LIGHT: egui::Color32 = egui::Color32::from_rgb(202, 178, 214);
+    pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
+    pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
+    pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -801,17 +837,17 @@ impl DecompiledFunction {
                             let line_hl = self.hl.asm_line_rel(ndx).unwrap();
                             let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
                             let (bg, fg) = if is_pinned {
-                                (COLOR_RED_DARK, egui::Color32::WHITE)
+                                (hl::COLOR_RED_DARK, egui::Color32::WHITE)
                             } else if line_hl.block {
-                                (COLOR_GREEN_LIGHT, egui::Color32::BLACK)
+                                (hl::COLOR_GREEN_LIGHT, egui::Color32::BLACK)
                             } else if line_hl.ssa {
-                                (COLOR_RED_LIGHT, egui::Color32::BLACK)
+                                (hl::COLOR_RED_LIGHT, egui::Color32::BLACK)
                             } else {
                                 (egui::Color32::TRANSPARENT, ui.visuals().text_color())
                             };
 
                             let stroke = if self.hl.asm_line_ndx.hovered() == Some(&ndx) {
-                                COLOR_RED_LIGHT
+                                hl::COLOR_RED_LIGHT
                             } else {
                                 egui::Color32::TRANSPARENT
                             };
@@ -1032,13 +1068,13 @@ fn show_ssa(
                 hl_rect.set_width(HL_BORDER_SIZE);
 
                 if hl.block.pinned() == Some(&bid) {
-                    ui.painter().rect_filled(hl_rect, 0.0, COLOR_GREEN_DARK);
+                    ui.painter().rect_filled(hl_rect, 0.0, hl::COLOR_GREEN_DARK);
                 } else if hl.block.hovered() == Some(&bid) {
                     ui.painter().rect_stroke(
                         hl_rect,
                         0.0,
                         egui::Stroke {
-                            color: COLOR_GREEN_DARK,
+                            color: hl::COLOR_GREEN_DARK,
                             width: 1.0,
                         },
                         egui::StrokeKind::Inside,
@@ -1055,19 +1091,6 @@ fn show_ssa(
         });
 }
 
-const COLOR_BLUE_LIGHT: egui::Color32 = egui::Color32::from_rgb(166, 206, 227);
-const COLOR_BLUE_DARK: egui::Color32 = egui::Color32::from_rgb(31, 120, 180);
-const COLOR_GREEN_LIGHT: egui::Color32 = egui::Color32::from_rgb(178, 223, 138);
-const COLOR_GREEN_DARK: egui::Color32 = egui::Color32::from_rgb(51, 160, 44);
-const COLOR_RED_LIGHT: egui::Color32 = egui::Color32::from_rgb(251, 154, 153);
-const COLOR_RED_DARK: egui::Color32 = egui::Color32::from_rgb(227, 26, 28);
-const COLOR_ORANGE_LIGHT: egui::Color32 = egui::Color32::from_rgb(253, 191, 111);
-const COLOR_ORANGE_DARK: egui::Color32 = egui::Color32::from_rgb(255, 127, 0);
-const COLOR_PURPLE_LIGHT: egui::Color32 = egui::Color32::from_rgb(202, 178, 214);
-const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
-const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
-const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
-
 // TODO Move these to an `ssa` module (when the refactoring happens)
 
 fn label_reg_def(
@@ -1079,7 +1102,7 @@ fn label_reg_def(
     let is_asm_related = hl.is_ssa_asm_related(reg);
     let mut colors = TextRole::RegDef.colors();
     if is_asm_related {
-        colors.background = COLOR_RED_LIGHT;
+        colors.background = hl::COLOR_RED_LIGHT;
         colors.text = Some(egui::Color32::BLACK);
     }
     hl_label(ui, &reg, &mut hl.reg, &colors, text)
@@ -1112,38 +1135,15 @@ fn label_block_ref(
     hl_label(ui, &bid, &mut hl.block, &TextRole::BlockRef.colors(), text)
 }
 
-struct HlLabelColors {
-    background: egui::Color32,
-    background_pinned: egui::Color32,
-    /// Text color. Set to `None` to keep the default text color.
-    text: Option<egui::Color32>,
-    text_pinned: egui::Color32,
-    border_hovered: egui::Color32,
-    border_pinned: egui::Color32,
-}
-
-impl Default for HlLabelColors {
-    fn default() -> Self {
-        HlLabelColors {
-            background: egui::Color32::TRANSPARENT,
-            background_pinned: egui::Color32::BLACK,
-            text: None,
-            text_pinned: egui::Color32::WHITE,
-            border_hovered: egui::Color32::TRANSPARENT,
-            border_pinned: egui::Color32::TRANSPARENT,
-        }
-    }
-}
-
 fn hl_label<T: PartialEq + Eq + Clone>(
     ui: &mut egui::Ui,
-    item: &T,
+    value: &T,
     hli: &mut hl::Item<T>,
-    colors: &HlLabelColors,
+    colors: &hl::Colors,
     text: egui::WidgetText,
 ) -> egui::Response {
-    let is_pinned = hli.pinned() == Some(item);
-    let is_hovered = hli.hovered() == Some(item);
+    let is_pinned = hli.pinned() == Some(value);
+    let is_hovered = hli.hovered() == Some(value);
 
     let bg = if is_pinned {
         colors.background_pinned
@@ -1177,11 +1177,11 @@ fn hl_label<T: PartialEq + Eq + Clone>(
 
     if res.clicked() {
         // toggle selection (TODO refactor into 'toggle' method)
-        hli.set_pinned(if is_pinned { None } else { Some(item.clone()) });
+        hli.set_pinned(if is_pinned { None } else { Some(value.clone()) });
     }
     if res.hovered() {
         // toggle selection
-        hli.set_hovered(Some(item.clone()));
+        hli.set_hovered(Some(value.clone()));
         ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
     }
 
@@ -1412,48 +1412,48 @@ enum TextRole {
     Ident,
 }
 impl TextRole {
-    fn colors(&self) -> crate::HlLabelColors {
+    fn colors(&self) -> hl::Colors {
         match self {
-            TextRole::Generic => crate::HlLabelColors::default(),
-            TextRole::Ident => crate::HlLabelColors {
-                text: Some(crate::COLOR_ORANGE_DARK),
+            TextRole::Generic => hl::Colors::default(),
+            TextRole::Ident => hl::Colors {
+                text: Some(hl::COLOR_ORANGE_DARK),
                 ..Default::default()
             },
-            TextRole::RegRef => crate::HlLabelColors {
-                background_pinned: crate::COLOR_BLUE_LIGHT,
+            TextRole::RegRef => hl::Colors {
+                background_pinned: hl::COLOR_BLUE_LIGHT,
                 text_pinned: egui::Color32::BLACK,
-                border_hovered: crate::COLOR_BLUE_LIGHT,
+                border_hovered: hl::COLOR_BLUE_LIGHT,
                 ..Default::default()
             },
-            TextRole::RegDef => crate::HlLabelColors {
-                background_pinned: crate::COLOR_BLUE_DARK,
-                border_hovered: crate::COLOR_BLUE_DARK,
+            TextRole::RegDef => hl::Colors {
+                background_pinned: hl::COLOR_BLUE_DARK,
+                border_hovered: hl::COLOR_BLUE_DARK,
                 ..Default::default()
             },
-            TextRole::BlockRef => crate::HlLabelColors {
-                background_pinned: crate::COLOR_GREEN_LIGHT,
+            TextRole::BlockRef => hl::Colors {
+                background_pinned: hl::COLOR_GREEN_LIGHT,
                 text_pinned: egui::Color32::BLACK,
-                border_hovered: crate::COLOR_GREEN_LIGHT,
+                border_hovered: hl::COLOR_GREEN_LIGHT,
                 ..Default::default()
             },
-            TextRole::BlockDef => crate::HlLabelColors {
-                background_pinned: crate::COLOR_GREEN_DARK,
-                border_hovered: crate::COLOR_GREEN_DARK,
+            TextRole::BlockDef => hl::Colors {
+                background_pinned: hl::COLOR_GREEN_DARK,
+                border_hovered: hl::COLOR_GREEN_DARK,
                 ..Default::default()
             },
-            TextRole::Literal => crate::HlLabelColors {
-                text: Some(crate::COLOR_GREEN_DARK),
+            TextRole::Literal => hl::Colors {
+                text: Some(hl::COLOR_GREEN_DARK),
                 ..Default::default()
             },
-            TextRole::Kw => crate::HlLabelColors {
+            TextRole::Kw => hl::Colors {
                 background_pinned: egui::Color32::WHITE,
                 text_pinned: egui::Color32::BLACK,
                 border_hovered: egui::Color32::BLACK,
                 border_pinned: egui::Color32::BLACK,
                 ..Default::default()
             },
-            TextRole::Error => crate::HlLabelColors {
-                background: crate::COLOR_RED_DARK,
+            TextRole::Error => hl::Colors {
+                background: hl::COLOR_RED_DARK,
                 text: Some(egui::Color32::WHITE),
                 ..Default::default()
             },
