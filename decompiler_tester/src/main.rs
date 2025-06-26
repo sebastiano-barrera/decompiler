@@ -1142,6 +1142,20 @@ fn hl_label<T: PartialEq + Eq + Clone>(
     colors: &hl::Colors,
     text: egui::WidgetText,
 ) -> egui::Response {
+    let add_contents = |ui: &mut egui::Ui| ui.label(text);
+
+    let res = highlight(ui, value, hli, colors, add_contents);
+
+    res
+}
+
+fn highlight<T: PartialEq + Eq + Clone>(
+    ui: &mut egui::Ui,
+    value: &T,
+    hli: &mut hl::Item<T>,
+    colors: &hl::Colors,
+    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
+) -> egui::Response {
     let is_pinned = hli.pinned() == Some(value);
     let is_hovered = hli.hovered() == Some(value);
 
@@ -1171,7 +1185,7 @@ fn hl_label<T: PartialEq + Eq + Clone>(
         })
         .show(ui, |ui| {
             ui.visuals_mut().override_text_color = fg;
-            ui.label(text)
+            add_contents(ui)
         })
         .inner;
 
@@ -1184,7 +1198,6 @@ fn hl_label<T: PartialEq + Eq + Clone>(
         hli.set_hovered(Some(value.clone()));
         ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
     }
-
     res
 }
 
