@@ -256,6 +256,36 @@ mod hl {
 
             is_pinned_dirty || is_hovered_dirty
         }
+        pub fn colors_for(&self, value: &T, colors: &Colors) -> FrameColors {
+            let is_pinned = self.pinned() == Some(value);
+            let is_hovered = self.hovered() == Some(value);
+
+            let background = if is_pinned {
+                colors.background_pinned
+            } else {
+                colors.background
+            };
+
+            let text = if is_pinned {
+                Some(colors.text_pinned)
+            } else {
+                colors.text
+            };
+
+            let border = if is_hovered {
+                colors.border_hovered
+            } else if is_pinned {
+                colors.border_pinned
+            } else {
+                egui::Color32::TRANSPARENT
+            };
+
+            FrameColors {
+                background,
+                text,
+                border,
+            }
+        }
     }
 
     #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -303,6 +333,62 @@ mod hl {
     pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
     pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
     pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
+
+    /// Colors of a specific link in a specific frame.
+    ///
+    /// Given that a single value is pinned/hovered at any given time, a link
+    /// has a specific background, text, and border color.
+    pub struct FrameColors {
+        pub background: egui::Color32,
+        /// Optional text override color.
+        ///
+        /// When None, use egui's default.
+        pub text: Option<egui::Color32>,
+        pub border: egui::Color32,
+    }
+
+    pub fn highlight<T: PartialEq + Eq + Clone>(
+        ui: &mut egui::Ui,
+        value: &T,
+        hli: &mut Item<T>,
+        colors: &Colors,
+        add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
+    ) -> egui::Response {
+        let colors = hli.colors_for(value, colors);
+        let res = egui::Frame::new()
+            .fill(colors.background)
+            .stroke(egui::Stroke {
+                width: 1.0,
+                color: colors.border,
+            })
+            .show(ui, |ui| {
+                ui.visuals_mut().override_text_color = colors.text;
+                add_contents(ui)
+            })
+            .inner;
+
+        anchor_interaction(ui, value, hli, &res);
+
+        res
+    }
+
+    pub fn anchor_interaction<T: PartialEq + Eq + Clone>(
+        ui: &mut egui::Ui,
+        value: &T,
+        hli: &mut Item<T>,
+        res: &egui::Response,
+    ) {
+        let is_pinned = hli.pinned() == Some(value);
+        if res.clicked() {
+            // toggle selection (TODO refactor into 'toggle' method)
+            hli.set_pinned(if is_pinned { None } else { Some(value.clone()) });
+        }
+        if res.hovered() {
+            // toggle selection
+            hli.set_hovered(Some(value.clone()));
+            ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -1105,7 +1191,7 @@ fn label_reg_def(
         colors.background = hl::COLOR_RED_LIGHT;
         colors.text = Some(egui::Color32::BLACK);
     }
-    hl_label(ui, &reg, &mut hl.reg, &colors, text)
+    hl::highlight(ui, &reg, &mut hl.reg, &colors, |ui| ui.label(text))
 }
 
 fn label_reg_ref(
@@ -1114,7 +1200,9 @@ fn label_reg_ref(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    hl_label(ui, &reg, &mut hl.reg, &TextRole::RegRef.colors(), text)
+    hl::highlight(ui, &reg, &mut hl.reg, &TextRole::RegRef.colors(), |ui| {
+        ui.label(text)
+    })
 }
 
 fn label_block_def(
@@ -1123,7 +1211,13 @@ fn label_block_def(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    hl_label(ui, &bid, &mut hl.block, &TextRole::BlockDef.colors(), text)
+    hl::highlight(
+        ui,
+        &bid,
+        &mut hl.block,
+        &TextRole::BlockDef.colors(),
+        |ui| ui.label(text),
+    )
 }
 
 fn label_block_ref(
@@ -1132,73 +1226,13 @@ fn label_block_ref(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    hl_label(ui, &bid, &mut hl.block, &TextRole::BlockRef.colors(), text)
-}
-
-fn hl_label<T: PartialEq + Eq + Clone>(
-    ui: &mut egui::Ui,
-    value: &T,
-    hli: &mut hl::Item<T>,
-    colors: &hl::Colors,
-    text: egui::WidgetText,
-) -> egui::Response {
-    let add_contents = |ui: &mut egui::Ui| ui.label(text);
-
-    let res = highlight(ui, value, hli, colors, add_contents);
-
-    res
-}
-
-fn highlight<T: PartialEq + Eq + Clone>(
-    ui: &mut egui::Ui,
-    value: &T,
-    hli: &mut hl::Item<T>,
-    colors: &hl::Colors,
-    add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-) -> egui::Response {
-    let is_pinned = hli.pinned() == Some(value);
-    let is_hovered = hli.hovered() == Some(value);
-
-    let bg = if is_pinned {
-        colors.background_pinned
-    } else {
-        colors.background
-    };
-    let fg = if is_pinned {
-        Some(colors.text_pinned)
-    } else {
-        colors.text
-    };
-    let stroke = if is_hovered {
-        colors.border_hovered
-    } else if is_pinned {
-        colors.border_pinned
-    } else {
-        egui::Color32::TRANSPARENT
-    };
-
-    let res = egui::Frame::new()
-        .fill(bg)
-        .stroke(egui::Stroke {
-            width: 1.0,
-            color: stroke,
-        })
-        .show(ui, |ui| {
-            ui.visuals_mut().override_text_color = fg;
-            add_contents(ui)
-        })
-        .inner;
-
-    if res.clicked() {
-        // toggle selection (TODO refactor into 'toggle' method)
-        hli.set_pinned(if is_pinned { None } else { Some(value.clone()) });
-    }
-    if res.hovered() {
-        // toggle selection
-        hli.set_hovered(Some(value.clone()));
-        ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
-    }
-    res
+    hl::highlight(
+        ui,
+        &bid,
+        &mut hl.block,
+        &TextRole::BlockRef.colors(),
+        |ui| ui.label(text),
+    )
 }
 
 impl egui_tiles::Behavior<Pane> for DecompiledFunction {
@@ -1493,8 +1527,7 @@ mod ast_view {
 
     use decompiler::Insn;
 
-    use super::hl::Highlight;
-    use crate::hl_label;
+    use super::hl;
 
     pub struct Ast {
         nodes: Vec<Node>,
@@ -1548,7 +1581,7 @@ mod ast_view {
             Builder::new(ssa).build()
         }
 
-        pub fn show(&self, ui: &mut egui::Ui, hl: &mut Highlight) {
+        pub fn show(&self, ui: &mut egui::Ui, hl: &mut hl::Highlight) {
             {
                 let mut mask = self.was_node_shown.borrow_mut();
                 mask.fill(false);
@@ -1562,7 +1595,7 @@ mod ast_view {
             ui: &mut egui::Ui,
             ndx_range: Range<usize>,
             kind: SeqKind,
-            hl: &mut Highlight,
+            hl: &mut hl::Highlight,
             anchor: Option<&Anchor>,
         ) -> usize {
             match kind {
@@ -1676,7 +1709,7 @@ mod ast_view {
             &self,
             ui: &mut egui::Ui,
             ndx_range: Range<usize>,
-            hl: &mut Highlight,
+            hl: &mut hl::Highlight,
         ) -> usize {
             let mut ndx = ndx_range.start;
             while ndx < ndx_range.end {
@@ -1688,7 +1721,7 @@ mod ast_view {
             ndx
         }
 
-        fn show_node(&self, ui: &mut egui::Ui, ndx: usize, hl: &mut Highlight) -> usize {
+        fn show_node(&self, ui: &mut egui::Ui, ndx: usize, hl: &mut hl::Highlight) -> usize {
             let already_visited = {
                 let mut mask = self.was_node_shown.borrow_mut();
                 std::mem::replace(&mut mask[ndx], true)
@@ -1722,10 +1755,14 @@ mod ast_view {
                 Node::Element(Element { text, anchor, role }) => {
                     match anchor {
                         Some(Anchor::Reg(reg)) => {
-                            hl_label(ui, reg, &mut hl.reg, &role.colors(), text.into());
+                            hl::highlight(ui, reg, &mut hl.reg, &role.colors(), |ui| {
+                                ui.label(text)
+                            });
                         }
                         Some(Anchor::Block(block_id)) => {
-                            hl_label(ui, block_id, &mut hl.block, &role.colors(), text.into());
+                            hl::highlight(ui, block_id, &mut hl.block, &role.colors(), |ui| {
+                                ui.label(text)
+                            });
                         }
                         None => {
                             ui.label(text);
