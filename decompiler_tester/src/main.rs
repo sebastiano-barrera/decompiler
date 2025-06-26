@@ -1541,7 +1541,7 @@ mod ast_view {
                 mask.fill(false);
             }
 
-            self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical, hl);
+            self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical, hl, None);
         }
 
         fn show_block(
@@ -1550,6 +1550,7 @@ mod ast_view {
             ndx_range: Range<usize>,
             kind: SeqKind,
             hl: &mut Highlight,
+            anchor: Option<&Anchor>,
         ) -> usize {
             match kind {
                 SeqKind::Vertical => {
@@ -1570,58 +1571,84 @@ mod ast_view {
                         min: egui::Pos2::new(line_x, y_min),
                         max: egui::Pos2::new(line_x + indent_width, y_max),
                     };
-                    let indent_response = ui.allocate_rect(indent_rect, egui::Sense::HOVER);
 
-                    let indicator_width = if indent_response.hovered() { 10.0 } else { 2.0 };
-                    let indicator_rect =
-                        indent_rect.with_max_x(indent_rect.min.x + indicator_width);
-                    ui.painter().rect(
-                        indicator_rect,
-                        0,
-                        ui.visuals().window_stroke.color,
-                        egui::Stroke::NONE,
-                        egui::StrokeKind::Inside,
-                    );
+                    let sense = if anchor.is_some() {
+                        egui::Sense::HOVER | egui::Sense::CLICK
+                    } else {
+                        egui::Sense::empty()
+                    };
+                    let indent_response = ui.allocate_rect(indent_rect, sense);
+
+                    let painter = ui.painter();
+                    if indent_response.hovered() {
+                        let stroke = ui.visuals().widgets.active.bg_stroke;
+                        painter.line_segment(
+                            [indent_rect.left_top(), indent_rect.right_top()],
+                            stroke,
+                        );
+                        painter.line_segment(
+                            [indent_rect.left_top(), indent_rect.left_bottom()],
+                            stroke,
+                        );
+                        painter.line_segment(
+                            [indent_rect.left_bottom(), indent_rect.right_bottom()],
+                            stroke,
+                        );
+                    } else {
+                        let stroke = ui.visuals().widgets.inactive.bg_stroke;
+                        painter.line_segment(
+                            [indent_rect.left_top(), indent_rect.left_bottom()],
+                            stroke,
+                        );
+                    }
+
                     res.inner
                 }
                 SeqKind::Flow => {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 5.0;
 
-                        let stroke = egui::Stroke {
-                            width: 1.0,
-                            color: ui.visuals().text_color(),
-                        };
                         let handle_size = 5.0;
-                        let handle_space = egui::Vec2 {
-                            x: handle_size,
-                            y: ui.text_style_height(&egui::TextStyle::Body),
+                        let handle_response_painter = if anchor.is_some() {
+                            let handle_space = egui::Vec2 {
+                                x: handle_size,
+                                y: ui.text_style_height(&egui::TextStyle::Body),
+                            };
+                            Some(ui.allocate_painter(
+                                handle_space,
+                                egui::Sense::CLICK | egui::Sense::HOVER,
+                            ))
+                        } else {
+                            None
                         };
-                        let (response, painter) = ui.allocate_painter(
-                            handle_space,
-                            egui::Sense::CLICK | egui::Sense::HOVER,
-                        );
 
                         let ret = self.show_block_content(ui, ndx_range, hl);
 
-                        if response.hovered() {
-                            ui.painter().rect(
-                                ui.min_rect(),
-                                0.,
-                                egui::Color32::TRANSPARENT,
-                                stroke,
-                                egui::StrokeKind::Outside,
-                            );
-                        } else {
-                            let points = [
-                                egui::vec2(1., 1.),
-                                egui::vec2(handle_size, 1.),
-                                egui::vec2(1., handle_size),
-                            ];
-                            for i in 0..points.len() {
-                                let from = response.rect.min + points[i];
-                                let to = response.rect.min + points[(i + 1) % points.len()];
-                                painter.line_segment([from, to], stroke);
+                        if let Some((response, painter)) = handle_response_painter {
+                            let stroke = egui::Stroke {
+                                width: 1.0,
+                                color: ui.visuals().text_color(),
+                            };
+
+                            if response.hovered() {
+                                ui.painter().rect(
+                                    ui.min_rect(),
+                                    0.,
+                                    egui::Color32::TRANSPARENT,
+                                    stroke,
+                                    egui::StrokeKind::Outside,
+                                );
+                            } else {
+                                let points = [
+                                    egui::vec2(1., 1.),
+                                    egui::vec2(handle_size, 1.),
+                                    egui::vec2(1., handle_size),
+                                ];
+                                for i in 0..points.len() {
+                                    let from = response.rect.min + points[i];
+                                    let to = response.rect.min + points[(i + 1) % points.len()];
+                                    painter.line_segment([from, to], stroke);
+                                }
                             }
                         }
 
@@ -1668,7 +1695,8 @@ mod ast_view {
                     // ndx + 4  TheNextThing
                     let start_ndx = ndx + 1; // skip the Open node
                     let end_ndx = start_ndx + count;
-                    let check_end_ndx = self.show_block(ui, start_ndx..end_ndx, *kind, hl);
+                    let check_end_ndx =
+                        self.show_block(ui, start_ndx..end_ndx, *kind, hl, anchor.as_ref());
                     if check_end_ndx != end_ndx {
                         eprintln!(
                             "warning: @ {}: skipped {} nodes",
@@ -1767,11 +1795,16 @@ mod ast_view {
             }
         }
 
-        fn seq<R>(&mut self, kind: SeqKind, add_contents: impl FnOnce(&mut Self) -> R) -> R {
+        fn seq<R>(
+            &mut self,
+            kind: SeqKind,
+            anchor: Option<Anchor>,
+            add_contents: impl FnOnce(&mut Self) -> R,
+        ) -> R {
             self.emit(Node::Seq(Seq {
                 kind,
                 count: 0,
-                anchor: None,
+                anchor,
             }));
             let len_pre = self.nodes.len();
             let ret = add_contents(self);
@@ -1833,7 +1866,7 @@ mod ast_view {
                     });
 
                     if let Some(cond) = cond {
-                        self.seq(SeqKind::Flow, |s| {
+                        self.seq(SeqKind::Flow, None, |s| {
                             s.emit(Node::Element(Element {
                                 text: "if".to_string(),
                                 anchor: None,
@@ -1841,7 +1874,7 @@ mod ast_view {
                             }));
                             s.transform_value(cond, 0);
                         });
-                        self.seq(SeqKind::Vertical, |s| {
+                        self.seq(SeqKind::Vertical, None, |s| {
                             s.transform_dest(bid, &pos);
                         });
                         self.emit(Node::Element(Element {
@@ -1888,7 +1921,7 @@ mod ast_view {
                 }
                 ValueMode::NamedStmt => {
                     let was_let_printed = self.let_was_printed[reg];
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         if !was_let_printed {
                             s.emit_bug_tag("let!");
                         }
@@ -1953,7 +1986,7 @@ mod ast_view {
                     }));
                 }
 
-                Insn::Phi => self.transform_regular_insn("Phi", std::iter::empty()),
+                Insn::Phi => self.transform_regular_insn(reg, "Phi", std::iter::empty()),
                 Insn::Const { value, size: _ } => {
                     self.emit_simple(TextRole::Literal, format!("{}", value));
                 }
@@ -1967,7 +2000,7 @@ mod ast_view {
                 }
 
                 Insn::StoreMem { addr, value } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.transform_value(addr, 255);
                         s.emit(Node::Element(Element {
                             text: ".*".to_string(),
@@ -1983,7 +2016,7 @@ mod ast_view {
                     });
                 }
                 Insn::LoadMem { addr, size: _ } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.transform_value(addr, prec);
 
                         s.emit_simple(TextRole::Kw, ".*".to_string());
@@ -1991,7 +2024,7 @@ mod ast_view {
                 }
 
                 Insn::Part { src, offset, size } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.transform_value(src, prec);
                         s.emit(Node::Element(Element {
                             text: format!("[{} .. {}]", offset, offset + size),
@@ -2001,7 +2034,7 @@ mod ast_view {
                     });
                 }
                 Insn::Concat { lo, hi } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.transform_value(hi, prec);
                         s.emit(Node::Element(Element {
                             text: "++".to_string(),
@@ -2017,7 +2050,7 @@ mod ast_view {
                     name,
                     size: _,
                 } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.transform_value(struct_value, prec);
                         s.emit(Node::Element(Element {
                             text: format!(".{}", name),
@@ -2032,7 +2065,7 @@ mod ast_view {
                     target_size,
                     sign: _,
                 } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.transform_value(reg, prec);
                         s.emit(Node::Element(Element {
                             text: format!("as i{}", target_size * 8),
@@ -2078,7 +2111,7 @@ mod ast_view {
                 }
 
                 Insn::Not(arg) => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.emit_simple(TextRole::Kw, "!".to_string());
                         s.transform_value(arg, prec);
                     });
@@ -2110,7 +2143,7 @@ mod ast_view {
                         })
                         .filter(|name| !name.is_empty());
 
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         if let Some(name) = callee_type_name {
                             let role = TextRole::Ident;
                             s.emit(Node::Element(Element {
@@ -2143,7 +2176,7 @@ mod ast_view {
                 }
 
                 Insn::Upsilon { value, phi_ref } => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                         s.emit_reg_ref(phi_ref);
                         s.emit(Node::Element(Element {
                             text: ":=".to_string(),
@@ -2161,6 +2194,7 @@ mod ast_view {
                 | Insn::IsZero(_)
                 | Insn::Parity(_) => {
                     self.transform_regular_insn(
+                        reg,
                         Self::opcode_name(&insn),
                         insn.input_regs_iter().map(|x| *x),
                     );
@@ -2211,10 +2245,11 @@ mod ast_view {
 
         fn transform_regular_insn(
             &mut self,
+            result: decompiler::Reg,
             opcode: &'static str,
             inputs: impl IntoIterator<Item = decompiler::Reg>,
         ) {
-            self.seq(SeqKind::Flow, |s| {
+            self.seq(SeqKind::Flow, Some(Anchor::Reg(result)), |s| {
                 s.emit_simple(TextRole::Generic, opcode.to_string());
                 s.emit_simple(TextRole::Kw, "(".to_string());
                 for (ndx, input) in inputs.into_iter().enumerate() {
@@ -2242,7 +2277,7 @@ mod ast_view {
         fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
             match dest {
                 decompiler::Dest::Ext(addr) => {
-                    self.seq(SeqKind::Flow, |s| {
+                    self.seq(SeqKind::Flow, None, |s| {
                         s.emit_simple(TextRole::Kw, "goto".to_string());
                         s.emit_simple(TextRole::Literal, format!("{}", *addr));
                     });
@@ -2257,7 +2292,7 @@ mod ast_view {
                         // just print the block inline, no "goto"s
                         self.transform_block_unlabeled(*bid);
                     } else {
-                        self.seq(SeqKind::Flow, |s| {
+                        self.seq(SeqKind::Flow, None, |s| {
                             s.emit_simple(TextRole::Kw, "goto".to_string());
                             s.emit(Node::Element(Element {
                                 text: format!("B{}", bid.as_number()),
@@ -2273,9 +2308,9 @@ mod ast_view {
                     });
 
                     if let Some(tgt) = tgt {
-                        self.seq(SeqKind::Flow, |s| {
+                        self.seq(SeqKind::Flow, None, |s| {
                             s.emit_simple(TextRole::Kw, "goto".to_string());
-                            s.seq(SeqKind::Flow, |s| {
+                            s.seq(SeqKind::Flow, None, |s| {
                                 s.emit_simple(TextRole::Kw, "*".to_string());
                                 s.transform_value(tgt, 0);
                             });
@@ -2290,7 +2325,7 @@ mod ast_view {
                     });
 
                     if let Some(ret) = ret {
-                        self.seq(SeqKind::Flow, |s| {
+                        self.seq(SeqKind::Flow, None, |s| {
                             s.emit_simple(TextRole::Kw, "return".to_string());
                             s.transform_value(ret, 0);
                         });
@@ -2305,7 +2340,7 @@ mod ast_view {
         }
 
         fn emit_let_def(&mut self, reg: decompiler::Reg) {
-            self.seq(SeqKind::Flow, |s| {
+            self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                 if s.let_was_printed[reg] {
                     s.emit_bug_tag("dupe let");
                 }
@@ -2330,7 +2365,7 @@ mod ast_view {
             F: FnOnce(&mut Self),
             G: FnOnce(&mut Self),
         {
-            self.seq(SeqKind::Flow, |s| {
+            self.seq(SeqKind::Flow, Some(Anchor::Reg(result)), |s| {
                 a(s);
                 s.emit(Node::Element(Element {
                     text: op_s.to_string(),
