@@ -58,7 +58,6 @@ struct Exe {
 }
 
 const TREE_ID_STAGES_EXE: &'static str = "tree_id_stages_exe";
-const TREE_ID_STAGE_FUNC: &'static str = "tree_id_stage_func";
 
 struct App {
     theme_preference: egui::ThemePreference,
@@ -82,7 +81,6 @@ struct StageExe {
 }
 struct StageFunc {
     df: DecompiledFunction,
-    tree: egui_tiles::Tree<Pane>,
 }
 struct DecompiledFunction {
     df: decompiler::DecompiledFunction,
@@ -124,26 +122,9 @@ mod hl {
         pub(super) reg: Item<decompiler::Reg>,
         pub(super) block: Item<decompiler::BlockID>,
         pub(super) asm_line_ndx: Item<usize>,
-
-        // derived from the above:
-        // same length as Assembly::lines
-        related_asm: Vec<AsmLineRelation>,
-        related_ssa: Option<decompiler::RegMap<bool>>,
     }
 
     impl Highlight {
-        pub(super) fn set_asm_line_count(&mut self, count: usize) {
-            self.related_asm.resize(count, AsmLineRelation::default());
-        }
-
-        pub(super) fn asm_line_rel(&self, ndx: usize) -> Option<&AsmLineRelation> {
-            self.related_asm.get(ndx)
-        }
-
-        pub(super) fn is_ssa_asm_related(&self, reg: decompiler::Reg) -> bool {
-            self.related_ssa.as_ref().map(|m| m[reg]).unwrap_or(false)
-        }
-
         pub(super) fn update(&mut self, ssa: &decompiler::SSAProgram, asm: &super::Assembly) {
             // TODO update dependent values from user-tracking stuff
             // NOTE not short-circuiting!
@@ -153,49 +134,7 @@ mod hl {
                 return;
             }
 
-            self.related_asm.fill(AsmLineRelation::default());
-
-            // TODO anything better than this cascade of if-let's?
-
-            if let Some(bid) = self.block.pinned {
-                for reg in ssa.block_regs(bid) {
-                    if let Some(iv) = ssa.get(reg) {
-                        if let Some(&ndx) = asm.ndx_of_addr.get(&iv.addr) {
-                            self.related_asm[ndx].block = true;
-                        }
-                    }
-                }
-            }
-            if let Some(reg) = self.reg.pinned {
-                if let Some(iv) = ssa.get(reg) {
-                    if let Some(&ndx) = asm.ndx_of_addr.get(&iv.addr) {
-                        self.related_asm[ndx].ssa = true;
-                    }
-                }
-            }
-
-            if let Some(rel_ssa) = &mut self.related_ssa {
-                if rel_ssa.reg_count() != ssa.reg_count() {
-                    *rel_ssa = decompiler::RegMap::for_program(ssa, false);
-                }
-            }
-
-            let related_ssa = self
-                .related_ssa
-                .get_or_insert_with(|| decompiler::RegMap::for_program(ssa, false));
-            assert_eq!(related_ssa.reg_count(), ssa.reg_count());
-
-            related_ssa.fill(false);
-            if let Some(asm_line_ndx) = self.asm_line_ndx.pinned {
-                if let Some(asm_line) = asm.lines.get(asm_line_ndx) {
-                    for reg in ssa.registers() {
-                        let iv = ssa.get(reg).unwrap();
-                        if iv.addr == asm_line.addr {
-                            related_ssa[reg] = true;
-                        }
-                    }
-                }
-            }
+            // TODO eliminate this function
         }
     }
 
@@ -391,18 +330,7 @@ mod hl {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
-enum Pane {
-    Assembly,
-    Mil,
-    Ssa,
-    SsaPreXform,
-    Ast,
-}
-
 mod persistence {
-    use super::Pane;
-
     use std::path::PathBuf;
 
     #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -418,7 +346,6 @@ mod persistence {
     #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
     pub struct Func {
         pub name: String,
-        pub tree: egui_tiles::Tree<Pane>,
     }
 
     impl Default for File {
@@ -469,13 +396,7 @@ impl App {
                 let stages_func = restore_exe
                     .funcs
                     .into_iter()
-                    .map(|restore_func| {
-                        let mut stage_func_or_err = load_function(&mut exe, &restore_func.name);
-                        if let Ok(stage_func) = &mut stage_func_or_err {
-                            stage_func.tree = restore_func.tree;
-                        }
-                        stage_func_or_err
-                    })
+                    .map(|restore_func| load_function(&mut exe, &restore_func.name))
                     .collect();
 
                 StageExe {
@@ -578,7 +499,6 @@ impl eframe::App for App {
                                 .filter_map(|stage_func_res| stage_func_res.as_ref().ok())
                                 .map(|stage_func| persistence::Func {
                                     name: stage_func.df.df.name().to_string(),
-                                    tree: stage_func.tree.clone(),
                                 })
                                 .collect()
                         }
@@ -636,6 +556,9 @@ impl ExeGetter for slotmap::SlotMap<ExeID, StageExeFallible> {
     }
 }
 
+/// Ephemeral struct, wrapping a pointer to an ExeGetter.
+///
+/// Just enough data and impl to render the UI for an Exe.
 struct ExeTabsBehavior<'a, G: ExeGetter> {
     exes: &'a mut G,
     theme_preference: &'a mut egui::ThemePreference,
@@ -742,8 +665,7 @@ impl StageExe {
     fn show_central(&mut self, ui: &mut egui::Ui) {
         match self.stages_func.last_mut() {
             Some(Ok(stage_func)) => {
-                stage_func.show_panels(ui);
-                stage_func.tree.ui(&mut stage_func.df, ui);
+                stage_func.show(ui);
             }
             Some(Err(err)) => {
                 egui::Frame::new().show(ui, |ui| {
@@ -832,42 +754,24 @@ impl StageFunc {
                 ast,
                 hl: hl::Highlight::default(),
             },
-            tree: egui_tiles::Tree::new_horizontal(
-                TREE_ID_STAGE_FUNC,
-                vec![Pane::Assembly, Pane::Ast],
-            ),
         }
     }
 
+    /// Show widgets specific for this function to be laid out on the top bar
+    /// (which is visually located at the executable level).
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
         ui.label(self.df.df.name());
-
-        ui.menu_button("Add view", |ui| {
-            for (pane, label) in [
-                (Pane::Assembly, "Assembly"),
-                (Pane::Mil, "MIL"),
-                (Pane::Ssa, "SSA"),
-                (Pane::SsaPreXform, "SSA pre-xform"),
-                (Pane::Ast, "AST"),
-            ] {
-                if ui.button(label).clicked() {
-                    let root_id = *self
-                        .tree
-                        .root
-                        .get_or_insert_with(|| self.tree.tiles.insert_vertical_tile(vec![]));
-                    let child = self.tree.tiles.insert_pane(pane);
-                    let egui_tiles::Tile::Container(root) =
-                        self.tree.tiles.get_mut(root_id).unwrap()
-                    else {
-                        panic!()
-                    };
-                    root.add_child(child);
-                    // do not close menu, in case the user wants another tile
-                }
-            }
-        });
     }
 
+    fn show(&mut self, ui: &mut egui::Ui) {
+        self.show_panels(ui);
+        self.show_central(ui);
+    }
+
+    /// Show the side panels (top, bottom, right, left) to be laid out around
+    /// the central are, with content specific to this function.
+    ///
+    /// To be called before `show_central`.
     fn show_panels(&mut self, ui: &mut egui::Ui) {
         if let Some(ssa) = self.df.df.ssa() {
             self.df.hl.update(ssa, &self.df.assembly);
@@ -904,12 +808,19 @@ impl StageFunc {
     fn show_status(&mut self, ui: &mut egui::Ui) {
         ui.toggle_value(&mut self.df.problems_is_visible, &self.df.problems_title);
     }
+
+    /// Show the widgets to be laid out in the central/main area assigned to this function.
+    fn show_central(&mut self, ui: &mut egui::Ui) {
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                self.df.ast.show(ui, &mut self.df.hl);
+            });
+    }
 }
 
 impl DecompiledFunction {
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
-        self.hl.set_asm_line_count(self.assembly.lines.len());
-
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
         egui::ScrollArea::both()
             .auto_shrink([false, false])
@@ -920,14 +831,9 @@ impl DecompiledFunction {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             let text = format!("0x{:x}", asm_line.addr);
 
-                            let line_hl = self.hl.asm_line_rel(ndx).unwrap();
                             let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
                             let (bg, fg) = if is_pinned {
                                 (hl::COLOR_RED_DARK, egui::Color32::WHITE)
-                            } else if line_hl.block {
-                                (hl::COLOR_GREEN_LIGHT, egui::Color32::BLACK)
-                            } else if line_hl.ssa {
-                                (hl::COLOR_RED_LIGHT, egui::Color32::BLACK)
                             } else {
                                 (egui::Color32::TRANSPARENT, ui.visuals().text_color())
                             };
@@ -1185,13 +1091,9 @@ fn label_reg_def(
     hl: &mut hl::Highlight,
     text: egui::WidgetText,
 ) -> egui::Response {
-    let is_asm_related = hl.is_ssa_asm_related(reg);
-    let mut colors = TextRole::RegDef.colors();
-    if is_asm_related {
-        colors.background = hl::COLOR_RED_LIGHT;
-        colors.text = Some(egui::Color32::BLACK);
-    }
-    hl::highlight(ui, &reg, &mut hl.reg, &colors, |ui| ui.label(text))
+    hl::highlight(ui, &reg, &mut hl.reg, &TextRole::RegDef.colors(), |ui| {
+        ui.label(text)
+    })
 }
 
 fn label_reg_ref(
@@ -1233,51 +1135,6 @@ fn label_block_ref(
         &TextRole::BlockRef.colors(),
         |ui| ui.label(text),
     )
-}
-
-impl egui_tiles::Behavior<Pane> for DecompiledFunction {
-    fn pane_ui(
-        &mut self,
-        ui: &mut egui::Ui,
-        _tile_id: egui_tiles::TileId,
-        pane: &mut Pane,
-    ) -> egui_tiles::UiResponse {
-        match pane {
-            Pane::Assembly => self.ui_tab_assembly(ui),
-            Pane::Mil => self.ui_tab_mil(ui),
-            Pane::Ssa => self.ui_tab_ssa(ui),
-            Pane::SsaPreXform => self.ui_tab_ssa_px(ui),
-            Pane::Ast => self.ui_tab_ast(ui),
-        }
-
-        egui_tiles::UiResponse::None
-    }
-
-    fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
-        match pane {
-            Pane::Mil => "MIL",
-            Pane::Ssa => "SSA",
-            Pane::SsaPreXform => "SSA pre-transforms",
-            Pane::Ast => "AST",
-            Pane::Assembly => "Assembly",
-        }
-        .into()
-    }
-
-    fn simplification_options(&self) -> egui_tiles::SimplificationOptions {
-        egui_tiles::SimplificationOptions {
-            all_panes_must_have_tabs: true,
-            ..Default::default()
-        }
-    }
-
-    fn is_tab_closable(
-        &self,
-        _tiles: &egui_tiles::Tiles<Pane>,
-        _tile_id: egui_tiles::TileId,
-    ) -> bool {
-        true
-    }
 }
 
 fn load_executable(path: &Path) -> Result<Exe> {
