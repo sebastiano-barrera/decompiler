@@ -814,8 +814,36 @@ impl StageFunc {
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                self.df.ast.show(ui, &mut self.df.hl);
+                self.show_integrated_ast(ui);
             });
+    }
+
+    fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
+        let hl: &mut hl::Highlight = &mut self.df.hl;
+
+        struct Row {
+            bid: decompiler::BlockID,
+        }
+
+        let Some(ssa) = self.df.df.ssa() else {
+            ui.label(" -- No SSA.");
+            return;
+        };
+
+        for bid in ssa.cfg().block_ids_rpo() {
+            // draw: horizontal line
+
+            // allocate block ID column
+            // draw: block ID ticker
+
+            // allocate AST column
+            // draw statements (values with mode NamedStmt, UnnamedStmt)
+
+            // draw block continuation (which may or may not include other blocks inline)
+            // using data about the next block for a nicely integrated look
+
+            // draw 'leftover' blocks (dominated by bid, but not visited via the continuation)
+        }
     }
 }
 
@@ -915,14 +943,6 @@ impl DecompiledFunction {
                 ui.label("No SSA generated");
             }
         };
-    }
-
-    fn ui_tab_ast(&mut self, ui: &mut egui::Ui) {
-        egui::ScrollArea::both()
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                self.ast.show(ui, &mut self.hl);
-            });
     }
 }
 
@@ -1366,18 +1386,10 @@ impl TextRole {
 }
 
 mod ast_view {
-    // target features for the ast view:
-    //
-    // - structured ("indented")
-    // - highlight def/use
-    // - folding (hide/show subtrees)
-    // - highlight indirect def/use chains
-    // - fast rendering
-    //
-    // I'm skeptic that we can just walk through the SSAProgram's def/use chains
-    // and get everything we want without a slow (allocation heavy) algorithm.
-    // better to just do a single transformation at the beginning and pick a
-    // representation that suits the rendering.
+    // This module is responsible for generating and displaying the Abstract Syntax Tree (AST)
+    // from the SSA (Static Single Assignment) form of the decompiled code.
+    // It focuses on creating a structured, navigable, and highlightable representation
+    // of the code for the user interface.
 
     use core::str;
     use std::{cell::RefCell, fmt::Debug, ops::Range};
@@ -1386,24 +1398,38 @@ mod ast_view {
 
     use super::hl;
 
+    /// Represents the Abstract Syntax Tree (AST) itself. It holds a flat list of nodes
+    /// that are rendered hierarchically based on `Seq` nodes.
     pub struct Ast {
         nodes: Vec<Node>,
         /// only for assert
         was_node_shown: RefCell<Vec<bool>>,
     }
 
+    /// Defines the different types of nodes that can exist in the AST.
+    /// - `Seq`: Represents a sequence of nodes, defining layout (vertical or flow) and containing other nodes.
+    /// - `Element`: Represents a textual element within the AST, like an identifier, keyword, or literal.
+    /// - `Space`: Represents a horizontal space for formatting purposes.
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Node {
         Seq(Seq),
         Element(Element),
         Space(u16),
     }
+    /// Represents a sequence of AST nodes. It defines how its child nodes should be laid out.
+    /// `count` indicates the number of child nodes that follow this `Seq` node in the `Ast.nodes` vector.
+    /// `anchor` is used for linking and highlighting, often to a specific register or block.
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct Seq {
         kind: SeqKind,
         count: usize,
         anchor: Option<Anchor>,
     }
+    /// Represents a single textual element in the AST.
+    /// `text`: The actual string content to be displayed.
+    /// `anchor`: Optional link to a register or block for highlighting and navigation.
+    /// `role`: Defines the semantic role of the text (e.g., keyword, register reference, literal)
+    ///         which is used to determine its display style (colors).
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct Element {
         // TODO this could use some string interning
@@ -1414,19 +1440,27 @@ mod ast_view {
 
     use super::TextRole;
 
+    /// Defines the layout behavior for a `Seq` node.
+    /// - `Vertical`: Children are laid out one below another, typically with indentation.
+    /// - `Flow`: Children are laid out horizontally, like text flowing in a paragraph.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum SeqKind {
         Vertical,
         Flow,
     }
 
+    /// Defines the type of entity an AST element or sequence can be anchored to.
+    /// - `Reg`: Anchored to a specific SSA register.
+    /// - `Block`: Anchored to a specific control flow graph block.
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum Anchor {
         Reg(decompiler::Reg),
         Block(decompiler::BlockID),
     }
 
+    /// Implementation block for the `Ast` struct, handling AST construction and UI rendering.
     impl Ast {
+        /// Creates an empty AST.
         pub fn empty() -> Self {
             Ast {
                 nodes: Vec::new(),
@@ -1434,20 +1468,31 @@ mod ast_view {
             }
         }
 
+        /// Constructs an `Ast` from an SSA program using the `Builder`. This is the primary
+        /// entry point for AST generation.
         pub fn from_ssa(ssa: &decompiler::SSAProgram) -> Self {
             Builder::new(ssa).build()
         }
 
+        /// Renders the AST within the provided egui UI.
+        /// It starts the rendering process by calling `frame_start` and then recursively
+        /// renders the top-level block.
         pub fn show(&self, ui: &mut egui::Ui, hl: &mut hl::Highlight) {
-            {
-                let mut mask = self.was_node_shown.borrow_mut();
-                mask.fill(false);
-            }
-
+            self.frame_start();
             self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical, hl, None);
         }
 
-        fn show_block(
+        /// Prepares the AST for a new rendering frame, typically by resetting internal flags
+        /// like `was_node_shown`.
+        pub fn frame_start(&self) {
+            let mut mask = self.was_node_shown.borrow_mut();
+            mask.fill(false);
+        }
+
+        /// Recursively renders a block of AST nodes based on the specified `SeqKind`.
+        /// Handles indentation for `Vertical` sequences and horizontal flow for `Flow` sequences.
+        /// Also manages interaction areas for anchors (e.g., hover effects).
+        pub fn show_block(
             &self,
             ui: &mut egui::Ui,
             ndx_range: Range<usize>,
@@ -1562,6 +1607,7 @@ mod ast_view {
             }
         }
 
+        /// Renders the content of a block, iterating through its nodes and calling `show_node` for each.
         fn show_block_content(
             &self,
             ui: &mut egui::Ui,
@@ -1578,6 +1624,10 @@ mod ast_view {
             ndx
         }
 
+        /// Renders a single AST node. It dispatches rendering based on the `Node` enum variant.
+        /// - For `Seq` nodes, it recursively calls `show_block` to render the sequence's children.
+        /// - For `Element` nodes, it renders the text, applying highlighting based on its `TextRole` and `Anchor`.
+        /// - For `Space` nodes, it adds a horizontal space.
         fn show_node(&self, ui: &mut egui::Ui, ndx: usize, hl: &mut hl::Highlight) -> usize {
             let already_visited = {
                 let mut mask = self.was_node_shown.borrow_mut();
@@ -1635,6 +1685,9 @@ mod ast_view {
         }
     }
 
+    /// The `Builder` is responsible for transforming the SSAProgram into the `Ast`'s flat `Vec<Node>` representation.
+    /// It traverses the SSA graph, making decisions about how instructions and control flow
+    /// should be represented in the AST (e.g., inline values vs. `let` statements).
     struct Builder<'a> {
         nodes: Vec<Node>,
         ssa: &'a decompiler::SSAProgram,
@@ -1645,12 +1698,20 @@ mod ast_view {
         open_stack: Vec<decompiler::BlockID>,
         let_was_printed: decompiler::RegMap<bool>,
     }
+    /// Tracks the processing status of a control flow graph block during AST generation.
+    /// - `Pending`: Block has not yet been processed.
+    /// - `Started`: Block processing has begun.
+    /// - `Finished`: Block has been fully processed.
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     enum BlockStatus {
         Pending,
         Started,
         Finished,
     }
+    /// Determines how a register's value definition is handled in the AST.
+    /// - `Inline`: The value is printed directly where it's used.
+    /// - `NamedStmt`: The value is defined using a `let` statement and then referred to by name.
+    /// - `UnnamedStmt`: The value's definition is printed as a statement, but it's not named (e.g., a call with unused return).
     #[derive(Clone, Copy)]
     enum ValueMode {
         /// Value's definition is printed inline on every use, as part of each
@@ -1664,7 +1725,11 @@ mod ast_view {
         /// naked statement (e.g., a call whose return value is unused)
         UnnamedStmt,
     }
+    /// Implementation block for the `Builder` struct, containing the logic for
+    /// converting SSA form into the AST nodes.
     impl<'a> Builder<'a> {
+        /// Creates a new `Builder` instance. It initializes the `value_mode` for each register
+        /// based on usage count and instruction type, determining how each value will be represented.
         fn new(ssa: &'a decompiler::SSAProgram) -> Self {
             let rdr_count = decompiler::count_readers(ssa);
             let value_mode = rdr_count.map(|reg, rdr_count| {
@@ -1693,6 +1758,8 @@ mod ast_view {
             }
         }
 
+        /// Builds the `Ast` by starting the transformation process from the entry block
+        /// of the SSA program.
         fn build(mut self) -> Ast {
             self.transform_block_labeled(self.ssa.cfg().entry_block_id());
             let is_node_shown = vec![false; self.nodes.len()];
@@ -1702,6 +1769,8 @@ mod ast_view {
             }
         }
 
+        /// Helper function to create a new `Seq` node and add its contents.
+        /// It automatically calculates the `count` of nodes within the sequence.
         fn seq<R>(
             &mut self,
             kind: SeqKind,
@@ -1728,6 +1797,7 @@ mod ast_view {
 
             ret
         }
+        /// Transforms a basic block, adding a label (e.g., " -- block Bx") before its content.
         fn transform_block_labeled(&mut self, bid: decompiler::BlockID) {
             self.emit(Node::Space(20));
             self.emit(Node::Element(Element {
@@ -1738,6 +1808,10 @@ mod ast_view {
             self.transform_block_unlabeled(bid);
         }
 
+        /// Transforms the content of a basic block. This is the core of the AST generation for blocks.
+        /// It iterates through scheduled registers, deciding whether to emit `let` statements,
+        /// inline definitions, or unnamed statements. It then handles control flow (jumps, conditionals, returns).
+        /// Finally, it recursively processes dominated blocks that haven't been visited yet.
         fn transform_block_unlabeled(&mut self, bid: decompiler::BlockID) {
             {
                 self.open_stack.push(bid);
@@ -1757,7 +1831,7 @@ mod ast_view {
                         self.emit_let_def(reg);
                     }
                     ValueMode::UnnamedStmt => {
-                        self.transform_def(reg, 0);
+                        self.transform_expr(reg, 0);
                     }
                 }
             }
@@ -1816,6 +1890,8 @@ mod ast_view {
             }
         }
 
+        /// Transforms a value (SSA register) into its AST representation.
+        /// The representation depends on its `ValueMode` (inline, named statement, or unnamed statement).
         fn transform_value(
             &mut self,
             reg: decompiler::Reg,
@@ -1824,7 +1900,7 @@ mod ast_view {
             // TODO! specific representation of operands
             match self.value_mode[reg] {
                 ValueMode::Inline => {
-                    self.transform_def(reg, parent_prec);
+                    self.transform_expr(reg, parent_prec);
                 }
                 ValueMode::NamedStmt => {
                     let was_let_printed = self.let_was_printed[reg];
@@ -1838,11 +1914,12 @@ mod ast_view {
                 ValueMode::UnnamedStmt => {
                     // This should never happen!
                     self.emit_bug_tag("unnamed");
-                    self.transform_def(reg, parent_prec);
+                    self.transform_expr(reg, parent_prec);
                 }
             }
         }
 
+        /// Emits an `Element` node representing a reference to an SSA register.
         fn emit_reg_ref(&mut self, reg: decompiler::Reg) {
             self.emit(Node::Element(Element {
                 text: format!("{:?}", reg),
@@ -1851,7 +1928,14 @@ mod ast_view {
             }))
         }
 
-        fn transform_def(
+        /// Transforms an SSA definition (instruction) into its AST representation.
+        /// This function handles various instruction types and generates corresponding
+        /// AST nodes, including arithmetic operations, memory access, calls, etc.
+        /// It also handles precedence for operators by adding parentheses when necessary.
+        ///
+        /// This function only generates expressions (or fragments of them). It
+        /// never generates a `let _ = ` form.
+        fn transform_expr(
             &mut self,
             reg: decompiler::Reg,
             parent_prec: decompiler::PrecedenceLevel,
@@ -2113,6 +2197,7 @@ mod ast_view {
             }
         }
 
+        /// Returns a static string name for a given SSA instruction opcode.
         fn opcode_name(insn: &Insn) -> &'static str {
             match insn {
                 Insn::Void => "Void",
@@ -2150,6 +2235,8 @@ mod ast_view {
             }
         }
 
+        /// Transforms a generic SSA instruction (opcode and inputs) into a flow-style AST sequence.
+        /// It formats the instruction as `opcode(input1, input2, ...)`
         fn transform_regular_insn(
             &mut self,
             result: decompiler::Reg,
@@ -2169,10 +2256,12 @@ mod ast_view {
             });
         }
 
+        /// Adds a `Node` to the internal `nodes` vector. This is the primary way to build the AST.
         fn emit(&mut self, init: Node) {
             self.nodes.push(init);
         }
 
+        /// A convenience function to emit a simple `Element` node with no anchor.
         fn emit_simple(&mut self, role: TextRole, text: String) {
             self.emit(Node::Element(Element {
                 text,
@@ -2181,6 +2270,9 @@ mod ast_view {
             }));
         }
 
+        /// Transforms a control flow destination into its AST representation.
+        /// Handles external jumps, jumps to other blocks (which may be inlined or
+        /// represented as `goto` statements), indirect jumps, and function returns.
         fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
             match dest {
                 decompiler::Dest::Ext(addr) => {
@@ -2246,6 +2338,7 @@ mod ast_view {
             }
         }
 
+        /// Emits a `let` statement definition for a given register.
         fn emit_let_def(&mut self, reg: decompiler::Reg) {
             self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
                 if s.let_was_printed[reg] {
@@ -2261,12 +2354,13 @@ mod ast_view {
                     role: TextRole::RegDef,
                 }));
                 s.emit_simple(TextRole::Kw, "=".to_string());
-                s.transform_def(reg, 0);
+                s.transform_expr(reg, 0);
             });
 
             self.let_was_printed[reg] = true;
         }
 
+        /// Helper to emit a binary operation expression (`a op b`).
         fn emit_binop<F, G>(&mut self, result: decompiler::Reg, op_s: &'static str, a: F, b: G)
         where
             F: FnOnce(&mut Self),
@@ -2283,6 +2377,7 @@ mod ast_view {
             });
         }
 
+        /// Emits a special "bug tag" element, used for debugging or indicating unhandled cases.
         fn emit_bug_tag(&mut self, tag: &str) {
             self.emit(Node::Element(Element {
                 text: format!("<bug:{}>", tag),
