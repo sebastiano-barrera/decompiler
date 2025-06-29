@@ -820,30 +820,7 @@ impl StageFunc {
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
         let hl: &mut hl::Highlight = &mut self.df.hl;
-
-        struct Row {
-            bid: decompiler::BlockID,
-        }
-
-        let Some(ssa) = self.df.df.ssa() else {
-            ui.label(" -- No SSA.");
-            return;
-        };
-
-        for bid in ssa.cfg().block_ids_rpo() {
-            // draw: horizontal line
-
-            // allocate block ID column
-            // draw: block ID ticker
-
-            // allocate AST column
-            // draw statements (values with mode NamedStmt, UnnamedStmt)
-
-            // draw block continuation (which may or may not include other blocks inline)
-            // using data about the next block for a nicely integrated look
-
-            // draw 'leftover' blocks (dominated by bid, but not visited via the continuation)
-        }
+        self.df.ast.show(ui, hl);
     }
 }
 
@@ -1392,61 +1369,72 @@ mod ast_view {
     // of the code for the user interface.
 
     use core::str;
+    use std::borrow::Cow;
+    use std::sync::Arc;
     use std::{cell::RefCell, fmt::Debug, ops::Range};
 
-    use decompiler::Insn;
+    use decompiler::{BlockID, Insn};
 
+    use super::TextRole;
     use super::hl;
 
     /// Represents the Abstract Syntax Tree (AST) itself. It holds a flat list of nodes
     /// that are rendered hierarchically based on `Seq` nodes.
     pub struct Ast {
-        nodes: Vec<Node>,
-        /// only for assert
-        was_node_shown: RefCell<Vec<bool>>,
+        plan: Vec<Block>,
     }
 
-    /// Defines the different types of nodes that can exist in the AST.
-    /// - `Seq`: Represents a sequence of nodes, defining layout (vertical or flow) and containing other nodes.
-    /// - `Element`: Represents a textual element within the AST, like an identifier, keyword, or literal.
-    /// - `Space`: Represents a horizontal space for formatting purposes.
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    enum Node {
-        Seq(Seq),
-        Element(Element),
-        Space(u16),
+    struct Block {
+        bid: BlockID,
+        stmts: Vec<Stmt>,
     }
-    /// Represents a sequence of AST nodes. It defines how its child nodes should be laid out.
-    /// `count` indicates the number of child nodes that follow this `Seq` node in the `Ast.nodes` vector.
-    /// `anchor` is used for linking and highlighting, often to a specific register or block.
+
+    enum Stmt {
+        ExprStmt(ExprTree),
+        NamedStmt { name: Arc<String>, value: ExprTree },
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    enum ExprTree {
+        Seq(Seq),
+        Term(Term),
+    }
+    impl From<Seq> for ExprTree {
+        fn from(value: Seq) -> Self {
+            ExprTree::Seq(value)
+        }
+    }
+    impl From<Term> for ExprTree {
+        fn from(value: Term) -> Self {
+            ExprTree::Term(value)
+        }
+    }
+
+    /// A sequence of AST expression nodes.
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct Seq {
-        kind: SeqKind,
-        count: usize,
+        /// Used for linking and highlighting, often to a specific register or block.
         anchor: Option<Anchor>,
+        /// Children nodes, intended to be laid out sequentially
+        children: Vec<ExprTree>,
+
+        /// Whether this sequence is wrapped by parentheses (in order to
+        /// maintain correct evaluation order while still respecting operator
+        /// precedence)
+        parentheses: bool,
     }
+
     /// Represents a single textual element in the AST.
-    /// `text`: The actual string content to be displayed.
-    /// `anchor`: Optional link to a register or block for highlighting and navigation.
-    /// `role`: Defines the semantic role of the text (e.g., keyword, register reference, literal)
-    ///         which is used to determine its display style (colors).
     #[derive(Debug, PartialEq, Eq, Clone)]
-    struct Element {
+    struct Term {
+        /// Optional link to a register or block for highlighting and navigation.
+        anchor: Option<Anchor>,
+        /// The actual string content to be displayed.
         // TODO this could use some string interning
         text: String,
-        anchor: Option<Anchor>,
+        /// Defines the semantic role of the text (e.g., keyword, register reference, literal)
+        /// which is used to determine its display style (colors).
         role: TextRole,
-    }
-
-    use super::TextRole;
-
-    /// Defines the layout behavior for a `Seq` node.
-    /// - `Vertical`: Children are laid out one below another, typically with indentation.
-    /// - `Flow`: Children are laid out horizontally, like text flowing in a paragraph.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    enum SeqKind {
-        Vertical,
-        Flow,
     }
 
     /// Defines the type of entity an AST element or sequence can be anchored to.
@@ -1458,14 +1446,34 @@ mod ast_view {
         Block(decompiler::BlockID),
     }
 
+    impl Seq {
+        fn new() -> Self {
+            Seq {
+                anchor: None,
+                children: Vec::new(),
+                parentheses: false,
+            }
+        }
+
+        fn with_anchor(mut self, anchor: Anchor) -> Self {
+            self.anchor = Some(anchor);
+            self
+        }
+
+        fn with_child(mut self, child: ExprTree) -> Self {
+            self.add_child(child);
+            self
+        }
+        fn add_child(&mut self, child: ExprTree) {
+            self.children.push(child);
+        }
+    }
+
     /// Implementation block for the `Ast` struct, handling AST construction and UI rendering.
     impl Ast {
         /// Creates an empty AST.
         pub fn empty() -> Self {
-            Ast {
-                nodes: Vec::new(),
-                was_node_shown: RefCell::new(Vec::new()),
-            }
+            Ast { plan: Vec::new() }
         }
 
         /// Constructs an `Ast` from an SSA program using the `Builder`. This is the primary
@@ -1478,210 +1486,64 @@ mod ast_view {
         /// It starts the rendering process by calling `frame_start` and then recursively
         /// renders the top-level block.
         pub fn show(&self, ui: &mut egui::Ui, hl: &mut hl::Highlight) {
-            self.frame_start();
-            self.show_block(ui, 0..self.nodes.len(), SeqKind::Vertical, hl, None);
-        }
-
-        /// Prepares the AST for a new rendering frame, typically by resetting internal flags
-        /// like `was_node_shown`.
-        pub fn frame_start(&self) {
-            let mut mask = self.was_node_shown.borrow_mut();
-            mask.fill(false);
-        }
-
-        /// Recursively renders a block of AST nodes based on the specified `SeqKind`.
-        /// Handles indentation for `Vertical` sequences and horizontal flow for `Flow` sequences.
-        /// Also manages interaction areas for anchors (e.g., hover effects).
-        pub fn show_block(
-            &self,
-            ui: &mut egui::Ui,
-            ndx_range: Range<usize>,
-            kind: SeqKind,
-            hl: &mut hl::Highlight,
-            anchor: Option<&Anchor>,
-        ) -> usize {
-            match kind {
-                SeqKind::Vertical => {
-                    let indent_width = 30.0;
-                    let mut child_rect = ui.available_rect_before_wrap();
-
-                    let line_x = child_rect.min.x;
-                    child_rect.min.x += indent_width;
-
-                    let res = ui.scope_builder(egui::UiBuilder::new().max_rect(child_rect), |ui| {
-                        self.show_block_content(ui, ndx_range, hl)
+            for block in &self.plan {
+                ui.horizontal(|ui| {
+                    ui.allocate_ui(egui::vec2(100.0, 20.0), |ui| {
+                        ui.painter().line_segment(
+                            [ui.max_rect().left_top(), ui.max_rect().right_top()],
+                            ui.visuals().window_stroke(),
+                        );
+                        ui.label(format!("B{}", block.bid.as_number()));
+                        ui.allocate_space(ui.available_size());
                     });
 
-                    let y_min = res.response.rect.min.y;
-                    let y_max = res.response.rect.max.y;
-
-                    let indent_rect = egui::Rect {
-                        min: egui::Pos2::new(line_x, y_min),
-                        max: egui::Pos2::new(line_x + indent_width, y_max),
-                    };
-
-                    let sense = if anchor.is_some() {
-                        egui::Sense::HOVER | egui::Sense::CLICK
-                    } else {
-                        egui::Sense::empty()
-                    };
-                    let indent_response = ui.allocate_rect(indent_rect, sense);
-
-                    let painter = ui.painter();
-                    if indent_response.hovered() {
-                        let stroke = ui.visuals().widgets.active.bg_stroke;
-                        painter.line_segment(
-                            [indent_rect.left_top(), indent_rect.right_top()],
-                            stroke,
-                        );
-                        painter.line_segment(
-                            [indent_rect.left_top(), indent_rect.left_bottom()],
-                            stroke,
-                        );
-                        painter.line_segment(
-                            [indent_rect.left_bottom(), indent_rect.right_bottom()],
-                            stroke,
-                        );
-                    } else {
-                        let stroke = ui.visuals().widgets.inactive.bg_stroke;
-                        painter.line_segment(
-                            [indent_rect.left_top(), indent_rect.left_bottom()],
-                            stroke,
-                        );
-                    }
-
-                    res.inner
-                }
-                SeqKind::Flow => {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing.x = 5.0;
-
-                        let handle_size = 5.0;
-                        let handle_response_painter = if anchor.is_some() {
-                            let handle_space = egui::Vec2 {
-                                x: handle_size,
-                                y: ui.text_style_height(&egui::TextStyle::Body),
-                            };
-                            Some(ui.allocate_painter(
-                                handle_space,
-                                egui::Sense::CLICK | egui::Sense::HOVER,
-                            ))
-                        } else {
-                            None
-                        };
-
-                        let ret = self.show_block_content(ui, ndx_range, hl);
-
-                        if let Some((response, painter)) = handle_response_painter {
-                            let stroke = egui::Stroke {
-                                width: 1.0,
-                                color: ui.visuals().text_color(),
-                            };
-
-                            if response.hovered() {
-                                ui.painter().rect(
-                                    ui.min_rect(),
-                                    0.,
-                                    egui::Color32::TRANSPARENT,
-                                    stroke,
-                                    egui::StrokeKind::Outside,
-                                );
-                            } else {
-                                let points = [
-                                    egui::vec2(1., 1.),
-                                    egui::vec2(handle_size, 1.),
-                                    egui::vec2(1., handle_size),
-                                ];
-                                for i in 0..points.len() {
-                                    let from = response.rect.min + points[i];
-                                    let to = response.rect.min + points[(i + 1) % points.len()];
-                                    painter.line_segment([from, to], stroke);
-                                }
-                            }
+                    ui.vertical(|ui| {
+                        for stmt in &block.stmts {
+                            self.show_stmt(ui, stmt);
                         }
-
-                        ret
-                    })
-                    .inner
-                }
+                    });
+                });
             }
         }
 
-        /// Renders the content of a block, iterating through its nodes and calling `show_node` for each.
-        fn show_block_content(
-            &self,
-            ui: &mut egui::Ui,
-            ndx_range: Range<usize>,
-            hl: &mut hl::Highlight,
-        ) -> usize {
-            let mut ndx = ndx_range.start;
-            while ndx < ndx_range.end {
-                let new_ndx = self.show_node(ui, ndx, hl);
-                assert!(new_ndx > ndx);
-                ndx = new_ndx;
-            }
-            assert_eq!(ndx, ndx_range.end);
-            ndx
+        fn show_stmt(&self, ui: &mut egui::Ui, stmt: &Stmt) {
+            ui.horizontal(|ui| {
+                let value_xp = match stmt {
+                    Stmt::ExprStmt(value_xp) => value_xp,
+                    Stmt::NamedStmt {
+                        name,
+                        value: value_xp,
+                    } => {
+                        ui.label(format!("let {} = ", name));
+                        value_xp
+                    }
+                };
+
+                self.show_expr(ui, value_xp);
+            });
         }
 
-        /// Renders a single AST node. It dispatches rendering based on the `Node` enum variant.
-        /// - For `Seq` nodes, it recursively calls `show_block` to render the sequence's children.
-        /// - For `Element` nodes, it renders the text, applying highlighting based on its `TextRole` and `Anchor`.
-        /// - For `Space` nodes, it adds a horizontal space.
-        fn show_node(&self, ui: &mut egui::Ui, ndx: usize, hl: &mut hl::Highlight) -> usize {
-            let already_visited = {
-                let mut mask = self.was_node_shown.borrow_mut();
-                std::mem::replace(&mut mask[ndx], true)
-            };
-            assert!(!already_visited);
-
-            match &self.nodes[ndx] {
-                Node::Seq(Seq {
-                    kind,
-                    count,
-                    anchor,
+        fn show_expr(&self, ui: &mut egui::Ui, value: &ExprTree) {
+            match value {
+                ExprTree::Seq(Seq {
+                    anchor: _,
+                    children,
+                    parentheses,
                 }) => {
-                    // ndx      Open { count: 3 }
-                    // ndx + 1  A
-                    // ndx + 2  B
-                    // ndx + 3  C
-                    // ndx + 4  TheNextThing
-                    let start_ndx = ndx + 1; // skip the Open node
-                    let end_ndx = start_ndx + count;
-                    let check_end_ndx =
-                        self.show_block(ui, start_ndx..end_ndx, *kind, hl, anchor.as_ref());
-                    if check_end_ndx != end_ndx {
-                        eprintln!(
-                            "warning: @ {}: skipped {} nodes",
-                            ndx,
-                            end_ndx as isize - check_end_ndx as isize
-                        )
+                    if *parentheses {
+                        ui.label("(");
                     }
-                    return end_ndx;
+                    for child in children {
+                        self.show_expr(ui, child);
+                    }
+                    if *parentheses {
+                        ui.label(")");
+                    }
                 }
-                Node::Element(Element { text, anchor, role }) => {
-                    match anchor {
-                        Some(Anchor::Reg(reg)) => {
-                            hl::highlight(ui, reg, &mut hl.reg, &role.colors(), |ui| {
-                                ui.label(text)
-                            });
-                        }
-                        Some(Anchor::Block(block_id)) => {
-                            hl::highlight(ui, block_id, &mut hl.block, &role.colors(), |ui| {
-                                ui.label(text)
-                            });
-                        }
-                        None => {
-                            ui.label(text);
-                        }
-                    };
-                }
-                &Node::Space(amount) => {
-                    ui.add_space(amount as f32);
+                ExprTree::Term(Term { anchor, text, role }) => {
+                    ui.label(text);
                 }
             }
-
-            ndx + 1
         }
     }
 
@@ -1689,7 +1551,8 @@ mod ast_view {
     /// It traverses the SSA graph, making decisions about how instructions and control flow
     /// should be represented in the AST (e.g., inline values vs. `let` statements).
     struct Builder<'a> {
-        nodes: Vec<Node>,
+        block_order: Vec<BlockID>,
+        plan: Vec<Block>,
         ssa: &'a decompiler::SSAProgram,
         value_mode: decompiler::RegMap<ValueMode>,
 
@@ -1749,7 +1612,8 @@ mod ast_view {
             let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
             let let_was_printed = decompiler::RegMap::for_program(ssa, false);
             Builder {
-                nodes: Vec::new(),
+                block_order: ssa.cfg().block_ids_rpo().collect(),
+                plan: Vec::new(),
                 ssa,
                 value_mode,
                 block_status,
@@ -1761,171 +1625,102 @@ mod ast_view {
         /// Builds the `Ast` by starting the transformation process from the entry block
         /// of the SSA program.
         fn build(mut self) -> Ast {
-            self.transform_block_labeled(self.ssa.cfg().entry_block_id());
-            let is_node_shown = vec![false; self.nodes.len()];
-            Ast {
-                nodes: self.nodes,
-                was_node_shown: RefCell::new(is_node_shown),
+            let block_order = std::mem::replace(&mut self.block_order, Vec::new());
+            for (ndx, &bid) in block_order.iter().enumerate() {
+                let next = block_order.get(ndx + 1);
+                let mut block = self.transform_block(bid);
+
+                match self.ssa.cfg().block_cont(bid) {
+                    decompiler::BlockCont::Always(dest) => {
+                        self.transform_dest(bid, &dest);
+                    }
+                    decompiler::BlockCont::Conditional { pos, neg } => {
+                        let cond = self.ssa.find_last_matching(bid, |insn| {
+                            decompiler::match_get!(
+                                insn,
+                                decompiler::Insn::SetJumpCondition(cond),
+                                cond
+                            )
+                        });
+
+                        if let Some(cond) = cond {
+                            let value_xpr = self.transform_value_use(cond, 0);
+
+                            block.stmts.push(Stmt::ExprStmt(
+                                Seq::new()
+                                    .with_child(mk_lit("if".into()).into())
+                                    .with_child(value_xpr)
+                                    .into(),
+                            ));
+
+                            self.transform_dest(bid, &pos);
+
+                            self.transform_dest(bid, &neg);
+                        } else {
+                            block.stmts.push(Stmt::ExprStmt(mk_error_term(
+                                "bug: no condition!".to_string(),
+                            )));
+                        }
+                    }
+                }
+
+                self.plan.push(block);
             }
+            Ast { plan: self.plan }
         }
 
-        /// Helper function to create a new `Seq` node and add its contents.
-        /// It automatically calculates the `count` of nodes within the sequence.
-        fn seq<R>(
-            &mut self,
-            kind: SeqKind,
-            anchor: Option<Anchor>,
-            add_contents: impl FnOnce(&mut Self) -> R,
-        ) -> R {
-            self.emit(Node::Seq(Seq {
-                kind,
-                count: 0,
-                anchor,
-            }));
-            let len_pre = self.nodes.len();
-            let ret = add_contents(self);
-            let count = self.nodes.len() - len_pre;
-
-            let Node::Seq(Seq {
-                count: seq_head_count,
-                ..
-            }) = &mut self.nodes[len_pre - 1]
-            else {
-                unreachable!()
-            };
-            *seq_head_count = count;
-
-            ret
-        }
-        /// Transforms a basic block, adding a label (e.g., " -- block Bx") before its content.
-        fn transform_block_labeled(&mut self, bid: decompiler::BlockID) {
-            self.emit(Node::Space(20));
-            self.emit(Node::Element(Element {
-                text: format!(" -- block B{}", bid.as_number()),
-                anchor: Some(Anchor::Block(bid)),
-                role: TextRole::BlockDef,
-            }));
-            self.transform_block_unlabeled(bid);
-        }
-
-        /// Transforms the content of a basic block. This is the core of the AST generation for blocks.
+        /// Transforms a basic block. This is the core of the AST generation for blocks.
         /// It iterates through scheduled registers, deciding whether to emit `let` statements,
         /// inline definitions, or unnamed statements. It then handles control flow (jumps, conditionals, returns).
         /// Finally, it recursively processes dominated blocks that haven't been visited yet.
-        fn transform_block_unlabeled(&mut self, bid: decompiler::BlockID) {
-            {
-                self.open_stack.push(bid);
-                assert_eq!(self.block_status[bid], BlockStatus::Pending);
-                self.block_status[bid] = BlockStatus::Started;
-            }
-
-            // TODO fix: remove .to_vec(). split builder core from visitors (then we can
-            // borrow &self.scheduler and &mut self.nodes)
-            let block_sched: Vec<_> = self.ssa.block_regs(bid).collect();
-            for reg in block_sched {
-                match self.value_mode[reg] {
-                    ValueMode::Inline => {
-                        // just skip; reader expressions will pick this up
+        fn transform_block(&self, bid: decompiler::BlockID) -> Block {
+            let stmts = self
+                .ssa
+                .block_regs(bid)
+                .into_iter()
+                .filter_map(|reg| {
+                    match self.value_mode[reg] {
+                        ValueMode::Inline => {
+                            // just skip; reader expressions will pick this up
+                            None
+                        }
+                        ValueMode::NamedStmt => Some(Stmt::NamedStmt {
+                            name: Arc::new(format!("{:?}", reg)),
+                            value: self.transform_expr(reg, 0),
+                        }),
+                        ValueMode::UnnamedStmt => Some(Stmt::ExprStmt(self.transform_expr(reg, 0))),
                     }
-                    ValueMode::NamedStmt => {
-                        self.emit_let_def(reg);
-                    }
-                    ValueMode::UnnamedStmt => {
-                        self.transform_expr(reg, 0);
-                    }
-                }
-            }
-
-            let cont = self.ssa.cfg().block_cont(bid);
-            match cont {
-                decompiler::BlockCont::Always(dest) => {
-                    self.transform_dest(bid, &dest);
-                }
-                decompiler::BlockCont::Conditional { pos, neg } => {
-                    let cond = self.ssa.find_last_matching(bid, |insn| {
-                        decompiler::match_get!(insn, decompiler::Insn::SetJumpCondition(cond), cond)
-                    });
-
-                    if let Some(cond) = cond {
-                        self.seq(SeqKind::Flow, None, |s| {
-                            s.emit(Node::Element(Element {
-                                text: "if".to_string(),
-                                anchor: None,
-                                role: TextRole::Kw,
-                            }));
-                            s.transform_value(cond, 0);
-                        });
-                        self.seq(SeqKind::Vertical, None, |s| {
-                            s.transform_dest(bid, &pos);
-                        });
-                        self.emit(Node::Element(Element {
-                            text: "else".to_string(),
-                            anchor: None,
-                            role: TextRole::Kw,
-                        }));
-                        self.transform_dest(bid, &neg);
-                    } else {
-                        self.emit(Node::Element(Element {
-                            text: "bug: no condition!".to_string(),
-                            anchor: None,
-                            role: TextRole::Error,
-                        }));
-                    }
-                }
-            }
-
-            // process other blocks dominated by this one,
-            let dom_tree = self.ssa.cfg().dom_tree();
-            for &child_bid in dom_tree.children_of(bid) {
-                if self.block_status[child_bid] == BlockStatus::Pending {
-                    self.transform_block_labeled(child_bid);
-                }
-            }
-
-            {
-                let check_bid = self.open_stack.pop().unwrap();
-                assert_eq!(bid, check_bid);
-                assert_eq!(self.block_status[bid], BlockStatus::Started);
-                self.block_status[bid] = BlockStatus::Finished;
-            }
+                })
+                .collect();
+            Block { bid, stmts }
         }
 
         /// Transforms a value (SSA register) into its AST representation.
         /// The representation depends on its `ValueMode` (inline, named statement, or unnamed statement).
-        fn transform_value(
-            &mut self,
+        fn transform_value_use(
+            &self,
             reg: decompiler::Reg,
             parent_prec: decompiler::PrecedenceLevel,
-        ) {
+        ) -> ExprTree {
             // TODO! specific representation of operands
             match self.value_mode[reg] {
-                ValueMode::Inline => {
-                    self.transform_expr(reg, parent_prec);
-                }
+                ValueMode::Inline => self.transform_expr(reg, parent_prec),
                 ValueMode::NamedStmt => {
-                    let was_let_printed = self.let_was_printed[reg];
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        if !was_let_printed {
-                            s.emit_bug_tag("let!");
-                        }
-                        s.emit_reg_ref(reg);
-                    });
+                    let reg_ref = mk_reg_ref(reg);
+                    if self.let_was_printed[reg] {
+                        reg_ref
+                    } else {
+                        Seq::new()
+                            .with_child(mk_error_term("bug:let!".to_string()))
+                            .with_child(reg_ref)
+                            .into()
+                    }
                 }
-                ValueMode::UnnamedStmt => {
-                    // This should never happen!
-                    self.emit_bug_tag("unnamed");
-                    self.transform_expr(reg, parent_prec);
-                }
+                ValueMode::UnnamedStmt => Seq::new()
+                    .with_child(mk_error_term("bug:unnamed-ref!".to_string()))
+                    .with_child(mk_reg_ref(reg))
+                    .into(),
             }
-        }
-
-        /// Emits an `Element` node representing a reference to an SSA register.
-        fn emit_reg_ref(&mut self, reg: decompiler::Reg) {
-            self.emit(Node::Element(Element {
-                text: format!("{:?}", reg),
-                anchor: Some(Anchor::Reg(reg)),
-                role: TextRole::RegRef,
-            }))
         }
 
         /// Transforms an SSA definition (instruction) into its AST representation.
@@ -1936,195 +1731,157 @@ mod ast_view {
         /// This function only generates expressions (or fragments of them). It
         /// never generates a `let _ = ` form.
         fn transform_expr(
-            &mut self,
+            &self,
             reg: decompiler::Reg,
             parent_prec: decompiler::PrecedenceLevel,
-        ) {
+        ) -> ExprTree {
             let mut insn = self.ssa[reg].get();
             let prec = decompiler::precedence(&insn);
 
-            if prec < parent_prec {
-                self.emit_simple(TextRole::Kw, "(".to_string());
-            }
-
-            match insn {
-                Insn::Void => {
-                    self.emit(Node::Element(Element {
-                        text: "void".to_string(),
-                        anchor: None,
-                        role: TextRole::Kw,
-                    }));
-                }
-                Insn::True => {
-                    self.emit(Node::Element(Element {
-                        text: "true".to_string(),
-                        anchor: None,
-                        role: TextRole::Kw,
-                    }));
-                }
-                Insn::False => {
-                    self.emit(Node::Element(Element {
-                        text: "false".to_string(),
-                        anchor: None,
-                        role: TextRole::Kw,
-                    }));
-                }
-                Insn::Undefined => {
-                    self.emit(Node::Element(Element {
-                        text: "undefined".to_string(),
-                        anchor: None,
-                        role: TextRole::Kw,
-                    }));
-                }
+            let anchor = Anchor::Reg(reg);
+            let mut expr: ExprTree = match insn {
+                Insn::Void => mk_kw("void".into()),
+                Insn::True => mk_kw("true".into()),
+                Insn::False => mk_kw("false".into()),
+                Insn::Undefined => mk_kw("undefined".into()),
 
                 Insn::Phi => self.transform_regular_insn(reg, "Phi", std::iter::empty()),
-                Insn::Const { value, size: _ } => {
-                    self.emit_simple(TextRole::Literal, format!("{}", value));
-                }
+                Insn::Const { value, size: _ } => mk_lit(format!("{}", value).into()),
 
-                Insn::Ancestral(aname) => {
-                    self.emit(Node::Element(Element {
-                        text: aname.name().to_string(),
+                Insn::Ancestral(aname) => ExprTree::Term(Term {
+                    text: aname.name().to_string(),
+                    anchor: Some(Anchor::Reg(reg)),
+                    role: TextRole::RegRef,
+                }),
+
+                Insn::StoreMem { addr, value } => Seq::new()
+                    .with_anchor(anchor)
+                    .with_child(self.transform_value_use(addr, 255))
+                    .with_child(mk_kw(".*".into()))
+                    .with_child(ExprTree::Term(Term {
+                        text: ":=".to_string(),
                         anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::RegRef,
-                    }));
-                }
+                        role: TextRole::RegDef,
+                    }))
+                    .with_child(self.transform_value_use(value, prec))
+                    .into(),
 
-                Insn::StoreMem { addr, value } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.transform_value(addr, 255);
-                        s.emit(Node::Element(Element {
-                            text: ".*".to_string(),
-                            anchor: Some(Anchor::Reg(addr)),
-                            role: TextRole::Kw,
-                        }));
-                        s.emit(Node::Element(Element {
-                            text: ":=".to_string(),
-                            anchor: Some(Anchor::Reg(reg)),
-                            role: TextRole::RegDef,
-                        }));
-                        s.transform_value(value, prec);
-                    });
-                }
-                Insn::LoadMem { addr, size: _ } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.transform_value(addr, prec);
+                Insn::LoadMem { addr, size: _ } => Seq::new()
+                    .with_anchor(anchor)
+                    .with_child(self.transform_value_use(addr, 0))
+                    .with_child(mk_kw(".*".into()))
+                    .into(),
 
-                        s.emit_simple(TextRole::Kw, ".*".to_string());
-                    });
-                }
+                Insn::Part { src, offset, size } => Seq::new()
+                    .with_anchor(anchor)
+                    .with_child(self.transform_value_use(src, prec))
+                    .with_child(mk_kw(format!("[{} .. {}]", offset, offset + size).into()))
+                    .into(),
 
-                Insn::Part { src, offset, size } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.transform_value(src, prec);
-                        s.emit(Node::Element(Element {
-                            text: format!("[{} .. {}]", offset, offset + size),
-                            anchor: Some(Anchor::Reg(reg)),
-                            role: TextRole::Kw,
-                        }));
-                    });
-                }
-                Insn::Concat { lo, hi } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.transform_value(hi, prec);
-                        s.emit(Node::Element(Element {
-                            text: "++".to_string(),
-                            anchor: Some(Anchor::Reg(reg)),
-                            role: TextRole::Kw,
-                        }));
-                        s.transform_value(lo, prec);
-                    });
-                }
+                Insn::Concat { lo, hi } => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(hi, prec))
+                    .with_child(mk_kw("++".into()))
+                    .with_child(self.transform_value_use(lo, prec))
+                    .into(),
 
                 Insn::StructGetMember {
                     struct_value,
                     name,
                     size: _,
-                } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.transform_value(struct_value, prec);
-                        s.emit(Node::Element(Element {
-                            text: format!(".{}", name),
-                            anchor: Some(Anchor::Reg(reg)),
-                            role: TextRole::Kw,
-                        }));
-                    });
-                }
+                } => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(struct_value, prec))
+                    .with_child(mk_kw(format!(".{}", name).into()))
+                    .into(),
 
                 Insn::Widen {
                     reg,
                     target_size,
                     sign: _,
-                } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.transform_value(reg, prec);
-                        s.emit(Node::Element(Element {
-                            text: format!("as i{}", target_size * 8),
-                            anchor: Some(Anchor::Reg(reg)),
-                            role: TextRole::Kw,
-                        }));
-                    });
-                }
+                } => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(reg, prec))
+                    .with_child(mk_kw(format!("as i{}", target_size * 8).into()))
+                    .into(),
 
-                Insn::Arith(op, a, b) => {
-                    self.emit_binop(
-                        reg,
-                        op.symbol(),
-                        |s| s.transform_value(a, prec),
-                        |s| s.transform_value(b, prec),
-                    );
-                }
-                Insn::ArithK(op, a, bk) => {
-                    self.emit_binop(
-                        reg,
-                        op.symbol(),
-                        |s| s.transform_value(a, prec),
-                        |s| {
-                            s.emit_simple(TextRole::Literal, format!("{}", bk));
-                        },
-                    );
-                }
-                Insn::Cmp(op, a, b) => {
-                    self.emit_binop(
-                        reg,
-                        op.symbol(),
-                        |s| s.transform_value(a, prec),
-                        |s| s.transform_value(b, prec),
-                    );
-                }
-                Insn::Bool(op, a, b) => {
-                    self.emit_binop(
-                        reg,
-                        op.symbol(),
-                        |s| s.transform_value(a, prec),
-                        |s| s.transform_value(b, prec),
-                    );
-                }
+                Insn::Arith(op, a, b) => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(a, prec))
+                    .with_child(ExprTree::Term(Term {
+                        text: op.symbol().to_string(),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }))
+                    .with_child(self.transform_value_use(b, prec))
+                    .into(),
 
-                Insn::Not(arg) => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.emit_simple(TextRole::Kw, "!".to_string());
-                        s.transform_value(arg, prec);
-                    });
-                }
+                Insn::ArithK(op, a, bk) => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(a, prec))
+                    .with_child(ExprTree::Term(Term {
+                        text: op.symbol().to_string(),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }))
+                    .with_child(ExprTree::Term(Term {
+                        text: format!("{}", bk),
+                        anchor: None,
+                        role: TextRole::Literal,
+                    }))
+                    .into(),
 
-                Insn::NotYetImplemented(msg) => {
-                    self.emit_simple(TextRole::Kw, format!("NYI:{}", msg));
-                }
+                Insn::Cmp(op, a, b) => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(a, prec))
+                    .with_child(ExprTree::Term(Term {
+                        text: op.symbol().to_string(),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }))
+                    .with_child(self.transform_value_use(b, prec))
+                    .into(),
+
+                Insn::Bool(op, a, b) => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(a, prec))
+                    .with_child(ExprTree::Term(Term {
+                        text: op.symbol().to_string(),
+                        anchor: Some(Anchor::Reg(reg)),
+                        role: TextRole::Kw,
+                    }))
+                    .with_child(self.transform_value_use(b, prec))
+                    .into(),
+
+                Insn::Not(arg) => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(ExprTree::Term(Term {
+                        text: "!".to_string(),
+                        anchor: None,
+                        role: TextRole::Kw,
+                    }))
+                    .with_child(self.transform_value_use(arg, prec))
+                    .into(),
+
+                Insn::NotYetImplemented(msg) => ExprTree::Term(Term {
+                    text: format!("NYI:{}", msg),
+                    anchor: None,
+                    role: TextRole::Kw,
+                }),
 
                 Insn::SetReturnValue(_) | Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) => {
-                    // handled through control flow / transform_dest
+                    ExprTree::Term(Term {
+                        text: "".to_string(),
+                        anchor: None,
+                        role: TextRole::Generic,
+                    })
                 }
 
                 Insn::Call { callee, first_arg } => {
-                    // Not quite correct (why would we print the type name?) but
-                    // happens to be always correct for well formed programs
                     let callee_type_name = self
                         .ssa
                         .get(callee)
                         .map(|iv| {
-                            // TODO This name should not be copied; rather, it
-                            // should be shared (in order to be editable)
                             self.ssa
                                 .types()
                                 .get_through_alias(iv.tyid.get())
@@ -2134,67 +1891,61 @@ mod ast_view {
                         })
                         .filter(|name| !name.is_empty());
 
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        if let Some(name) = callee_type_name {
-                            let role = TextRole::Ident;
-                            s.emit(Node::Element(Element {
-                                text: name,
-                                anchor: Some(Anchor::Reg(callee)),
-                                role,
-                            }));
-                        } else {
-                            s.transform_value(callee, prec);
-                        }
+                    let mut seq = Seq::new().with_anchor(Anchor::Reg(reg));
 
-                        s.emit_simple(TextRole::Kw, "(".to_string());
-
-                        for (ndx, arg) in s.ssa.get_call_args(first_arg).enumerate() {
-                            if ndx > 0 {
-                                s.emit_simple(TextRole::Kw, ",".to_string());
-                            }
-                            s.transform_value(arg, prec);
-                        }
-
-                        s.emit_simple(TextRole::Kw, ")".to_string());
-                    });
-                }
-
-                Insn::CArg { .. } => {
-                    self.emit_bug_tag("CArg");
-                }
-                Insn::Control(_) => {
-                    self.emit_bug_tag("Control");
-                }
-
-                Insn::Upsilon { value, phi_ref } => {
-                    self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                        s.emit_reg_ref(phi_ref);
-                        s.emit(Node::Element(Element {
-                            text: ":=".to_string(),
-                            anchor: Some(Anchor::Reg(reg)),
-                            role: TextRole::Kw,
+                    if let Some(name) = callee_type_name {
+                        seq.add_child(ExprTree::Term(Term {
+                            text: name,
+                            anchor: Some(Anchor::Reg(callee)),
+                            role: TextRole::Ident,
                         }));
-                        s.transform_value(value, prec);
-                    });
+                    } else {
+                        seq.add_child(self.transform_value_use(callee, prec));
+                    }
+
+                    seq.add_child(mk_kw("(".into()));
+
+                    for (_ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
+                        // if ndx > 0 {
+                        //     seq.add_child(mk_kw(",".into()));
+                        // }
+                        seq.add_child(self.transform_value_use(arg, prec));
+                    }
+
+                    seq.with_child(mk_kw(")".into())).into()
                 }
+
+                Insn::CArg { .. } => mk_error_term("<bug:CArg>".into()),
+                Insn::Control(_) => mk_error_term("<bug:Control>".into()),
+
+                Insn::Upsilon { value, phi_ref } => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(ExprTree::Term(Term {
+                        text: format!("{:?}", phi_ref),
+                        anchor: Some(Anchor::Reg(phi_ref)),
+                        role: TextRole::RegRef,
+                    }))
+                    .with_child(mk_kw(":=".into()))
+                    .with_child(self.transform_value_use(value, prec))
+                    .into(),
 
                 Insn::Get(_)
                 | Insn::OverflowOf(_)
                 | Insn::CarryOf(_)
                 | Insn::SignOf(_)
                 | Insn::IsZero(_)
-                | Insn::Parity(_) => {
-                    self.transform_regular_insn(
-                        reg,
-                        Self::opcode_name(&insn),
-                        insn.input_regs_iter().map(|x| *x),
-                    );
-                }
+                | Insn::Parity(_) => self.transform_regular_insn(
+                    reg,
+                    Self::opcode_name(&insn),
+                    insn.input_regs_iter().map(|x| *x),
+                ),
+            };
+
+            if let ExprTree::Seq(seq) = &mut expr {
+                seq.parentheses = prec < parent_prec;
             }
 
-            if prec < parent_prec {
-                self.emit_simple(TextRole::Kw, ")".to_string());
-            }
+            expr
         }
 
         /// Returns a static string name for a given SSA instruction opcode.
@@ -2238,84 +1989,72 @@ mod ast_view {
         /// Transforms a generic SSA instruction (opcode and inputs) into a flow-style AST sequence.
         /// It formats the instruction as `opcode(input1, input2, ...)`
         fn transform_regular_insn(
-            &mut self,
+            &self,
             result: decompiler::Reg,
             opcode: &'static str,
             inputs: impl IntoIterator<Item = decompiler::Reg>,
-        ) {
-            self.seq(SeqKind::Flow, Some(Anchor::Reg(result)), |s| {
-                s.emit_simple(TextRole::Generic, opcode.to_string());
-                s.emit_simple(TextRole::Kw, "(".to_string());
-                for (ndx, input) in inputs.into_iter().enumerate() {
-                    if ndx > 0 {
-                        s.emit_simple(TextRole::Kw, ",".to_string());
-                    }
-                    s.transform_value(input, 0);
-                }
-                s.emit_simple(TextRole::Kw, ")".to_string());
-            });
-        }
+        ) -> ExprTree {
+            let mut seq = Seq::new()
+                .with_anchor(Anchor::Reg(result))
+                .with_child(ExprTree::Term(Term {
+                    anchor: None,
+                    text: opcode.to_string(),
+                    role: TextRole::Generic,
+                }))
+                .with_child(mk_kw("(".into()));
 
-        /// Adds a `Node` to the internal `nodes` vector. This is the primary way to build the AST.
-        fn emit(&mut self, init: Node) {
-            self.nodes.push(init);
-        }
+            for (_ndx, input) in inputs.into_iter().enumerate() {
+                // if ndx > 0 {
+                //     seq.add_child(mk_kw(",".into()));
+                // }
+                seq.add_child(self.transform_value_use(input, 0));
+            }
 
-        /// A convenience function to emit a simple `Element` node with no anchor.
-        fn emit_simple(&mut self, role: TextRole, text: String) {
-            self.emit(Node::Element(Element {
-                text,
-                anchor: None,
-                role,
-            }));
+            seq.add_child(mk_kw(")".into()));
+            seq.into()
         }
 
         /// Transforms a control flow destination into its AST representation.
         /// Handles external jumps, jumps to other blocks (which may be inlined or
         /// represented as `goto` statements), indirect jumps, and function returns.
-        fn transform_dest(&mut self, src_bid: decompiler::BlockID, dest: &decompiler::Dest) {
+        ///
+        /// `next_bid` is used, when available, as the BlockID that is laid out
+        /// right after `src_bid` in order to lay out certain blocks inline or
+        /// avoid/insert `goto` expression.
+        fn transform_dest(
+            &mut self,
+            src_bid: decompiler::BlockID,
+            dest: &decompiler::Dest,
+        ) -> ExprTree {
             match dest {
-                decompiler::Dest::Ext(addr) => {
-                    self.seq(SeqKind::Flow, None, |s| {
-                        s.emit_simple(TextRole::Kw, "goto".to_string());
-                        s.emit_simple(TextRole::Literal, format!("{}", *addr));
-                    });
-                }
-                decompiler::Dest::Block(bid) => {
-                    let block_preds = self.ssa.cfg().block_preds(*bid);
-                    if block_preds.len() == 1 {
-                        if block_preds[0] != src_bid {
-                            // TODO emit a warning (not our fault, but a bug in the cfg)
+                decompiler::Dest::Ext(addr) => Seq::new()
+                    .with_child(mk_kw("goto".into()))
+                    .with_child(mk_lit(format!("{}", *addr).into()))
+                    .into(),
+                decompiler::Dest::Block(bid) => Seq::new()
+                    .with_child(mk_kw("goto".into()))
+                    .with_child(
+                        Term {
+                            text: format!("B{}", bid.as_number()),
+                            anchor: Some(Anchor::Block(*bid)),
+                            role: TextRole::BlockRef,
                         }
-
-                        // just print the block inline, no "goto"s
-                        self.transform_block_unlabeled(*bid);
-                    } else {
-                        self.seq(SeqKind::Flow, None, |s| {
-                            s.emit_simple(TextRole::Kw, "goto".to_string());
-                            s.emit(Node::Element(Element {
-                                text: format!("B{}", bid.as_number()),
-                                anchor: Some(Anchor::Block(*bid)),
-                                role: TextRole::BlockRef,
-                            }));
-                        });
-                    }
-                }
+                        .into(),
+                    )
+                    .into(),
                 decompiler::Dest::Indirect => {
                     let tgt = self.ssa.find_last_matching(src_bid, |insn| {
                         decompiler::match_get!(insn, decompiler::Insn::SetJumpTarget(tgt), tgt)
                     });
 
                     if let Some(tgt) = tgt {
-                        self.seq(SeqKind::Flow, None, |s| {
-                            s.emit_simple(TextRole::Kw, "goto".to_string());
-                            s.seq(SeqKind::Flow, None, |s| {
-                                s.emit_simple(TextRole::Kw, "*".to_string());
-                                s.transform_value(tgt, 0);
-                            });
-                        });
+                        Seq::new()
+                            .with_child(mk_kw("goto".into()))
+                            .with_child(mk_kw("*".into()))
+                            .with_child(self.transform_value_use(tgt, 0))
+                            .into()
                     } else {
-                        self.emit_simple(TextRole::Error, "bug: no jump target!".to_string());
+                        mk_error_term("<bug:no jump target>".into()).into()
                     }
                 }
                 decompiler::Dest::Return => {
@@ -2324,66 +2063,48 @@ mod ast_view {
                     });
 
                     if let Some(ret) = ret {
-                        self.seq(SeqKind::Flow, None, |s| {
-                            s.emit_simple(TextRole::Kw, "return".to_string());
-                            s.transform_value(ret, 0);
-                        });
+                        Seq::new()
+                            .with_child(mk_kw("return".into()))
+                            .with_child(self.transform_value_use(ret, 0))
+                            .into()
                     } else {
-                        self.emit_simple(TextRole::Error, "bug: no return value!".to_string());
+                        mk_error_term("<bug:no return value>".into()).into()
                     }
                 }
-                decompiler::Dest::Undefined => {
-                    self.emit_simple(TextRole::Kw, "goto undefined".to_string());
-                }
+                decompiler::Dest::Undefined => mk_kw("goto undefined".into()).into(),
             }
         }
+    }
 
-        /// Emits a `let` statement definition for a given register.
-        fn emit_let_def(&mut self, reg: decompiler::Reg) {
-            self.seq(SeqKind::Flow, Some(Anchor::Reg(reg)), |s| {
-                if s.let_was_printed[reg] {
-                    s.emit_bug_tag("dupe let");
-                }
+    fn mk_reg_ref(reg: decompiler::Reg) -> ExprTree {
+        ExprTree::Term(Term {
+            anchor: Some(Anchor::Reg(reg)),
+            text: format!("{:?}", reg),
+            role: TextRole::RegRef,
+        })
+    }
 
-                s.emit_simple(TextRole::Kw, "let".to_string());
-                // TODO make the name editable
+    fn mk_kw(text: Cow<'static, str>) -> ExprTree {
+        ExprTree::Term(Term {
+            anchor: None,
+            text: text.to_string(),
+            role: TextRole::Kw,
+        })
+    }
 
-                s.emit(Node::Element(Element {
-                    text: format!("{:?}", reg),
-                    anchor: Some(Anchor::Reg(reg)),
-                    role: TextRole::RegDef,
-                }));
-                s.emit_simple(TextRole::Kw, "=".to_string());
-                s.transform_expr(reg, 0);
-            });
+    fn mk_lit(text: Cow<'static, str>) -> ExprTree {
+        ExprTree::Term(Term {
+            anchor: None,
+            text: text.to_string(),
+            role: TextRole::Literal,
+        })
+    }
 
-            self.let_was_printed[reg] = true;
-        }
-
-        /// Helper to emit a binary operation expression (`a op b`).
-        fn emit_binop<F, G>(&mut self, result: decompiler::Reg, op_s: &'static str, a: F, b: G)
-        where
-            F: FnOnce(&mut Self),
-            G: FnOnce(&mut Self),
-        {
-            self.seq(SeqKind::Flow, Some(Anchor::Reg(result)), |s| {
-                a(s);
-                s.emit(Node::Element(Element {
-                    text: op_s.to_string(),
-                    anchor: Some(Anchor::Reg(result)),
-                    role: TextRole::Kw,
-                }));
-                b(s);
-            });
-        }
-
-        /// Emits a special "bug tag" element, used for debugging or indicating unhandled cases.
-        fn emit_bug_tag(&mut self, tag: &str) {
-            self.emit(Node::Element(Element {
-                text: format!("<bug:{}>", tag),
-                anchor: None,
-                role: TextRole::Error,
-            }));
-        }
+    fn mk_error_term(text: String) -> ExprTree {
+        ExprTree::Term(Term {
+            anchor: None,
+            text,
+            role: TextRole::Error,
+        })
     }
 }
