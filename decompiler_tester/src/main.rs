@@ -1370,8 +1370,8 @@ mod ast_view {
 
     use core::str;
     use std::borrow::Cow;
+    use std::fmt::Debug;
     use std::sync::Arc;
-    use std::{cell::RefCell, fmt::Debug, ops::Range};
 
     use decompiler::{BlockID, Insn};
 
@@ -1381,23 +1381,28 @@ mod ast_view {
     /// Represents the Abstract Syntax Tree (AST) itself. It holds a flat list of nodes
     /// that are rendered hierarchically based on `Seq` nodes.
     pub struct Ast {
-        plan: Vec<Block>,
-    }
-
-    struct Block {
-        bid: BlockID,
-        stmts: Vec<Stmt>,
+        plan: Vec<Stmt>,
     }
 
     enum Stmt {
+        /// A label marking the start of a block.
+        ///
+        /// The stmts included in block follow this BlockLabel.
+        BlockLabel(BlockID),
         ExprStmt(ExprTree),
-        NamedStmt { name: Arc<String>, value: ExprTree },
+        NamedStmt {
+            name: Arc<String>,
+            value: ExprTree,
+        },
+        Dedent,
+        Indent,
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     enum ExprTree {
         Seq(Seq),
         Term(Term),
+        Null,
     }
     impl From<Seq> for ExprTree {
         fn from(value: Seq) -> Self {
@@ -1486,45 +1491,38 @@ mod ast_view {
         /// It starts the rendering process by calling `frame_start` and then recursively
         /// renders the top-level block.
         pub fn show(&self, ui: &mut egui::Ui, hl: &mut hl::Highlight) {
-            for block in &self.plan {
-                ui.horizontal(|ui| {
-                    ui.allocate_ui(egui::vec2(100.0, 20.0), |ui| {
-                        ui.painter().line_segment(
-                            [ui.max_rect().left_top(), ui.max_rect().right_top()],
-                            ui.visuals().window_stroke(),
-                        );
-                        ui.label(format!("B{}", block.bid.as_number()));
-                        ui.allocate_space(ui.available_size());
-                    });
-
-                    ui.vertical(|ui| {
-                        for stmt in &block.stmts {
-                            self.show_stmt(ui, stmt);
+            let mut indent_level = 0;
+            for stmt in &self.plan {
+                ui.horizontal_top(|ui| {
+                    ui.add_space(indent_level as f32 * 20.0);
+                    match stmt {
+                        Stmt::BlockLabel(block_id) => {
+                            ui.label(format!("{:?}", block_id));
                         }
-                    });
+                        Stmt::ExprStmt(value_xp) => {
+                            self.show_expr(ui, value_xp);
+                        }
+                        Stmt::NamedStmt {
+                            name,
+                            value: value_xp,
+                        } => {
+                            ui.label(format!("let {} = ", name));
+                            self.show_expr(ui, value_xp);
+                        }
+                        Stmt::Dedent => {
+                            indent_level -= 1;
+                        }
+                        Stmt::Indent => {
+                            indent_level += 1;
+                        }
+                    }
                 });
             }
         }
 
-        fn show_stmt(&self, ui: &mut egui::Ui, stmt: &Stmt) {
-            ui.horizontal(|ui| {
-                let value_xp = match stmt {
-                    Stmt::ExprStmt(value_xp) => value_xp,
-                    Stmt::NamedStmt {
-                        name,
-                        value: value_xp,
-                    } => {
-                        ui.label(format!("let {} = ", name));
-                        value_xp
-                    }
-                };
-
-                self.show_expr(ui, value_xp);
-            });
-        }
-
         fn show_expr(&self, ui: &mut egui::Ui, value: &ExprTree) {
             match value {
+                ExprTree::Null => {}
                 ExprTree::Seq(Seq {
                     anchor: _,
                     children,
@@ -1541,7 +1539,11 @@ mod ast_view {
                     }
                 }
                 ExprTree::Term(Term { anchor, text, role }) => {
-                    ui.label(text);
+                    if text.trim().is_empty() {
+                        ui.label(format!("{:?}", value));
+                    } else {
+                        ui.label(text);
+                    }
                 }
             }
         }
@@ -1552,7 +1554,7 @@ mod ast_view {
     /// should be represented in the AST (e.g., inline values vs. `let` statements).
     struct Builder<'a> {
         block_order: Vec<BlockID>,
-        plan: Vec<Block>,
+        plan: Vec<Stmt>,
         ssa: &'a decompiler::SSAProgram,
         value_mode: decompiler::RegMap<ValueMode>,
 
@@ -1626,73 +1628,110 @@ mod ast_view {
         /// of the SSA program.
         fn build(mut self) -> Ast {
             let block_order = std::mem::replace(&mut self.block_order, Vec::new());
-            for (ndx, &bid) in block_order.iter().enumerate() {
-                let next = block_order.get(ndx + 1);
-                let mut block = self.transform_block(bid);
+            let mut iter = block_order.iter().peekable();
+            while let Some(&bid) = iter.next() {
+                self.transform_block(bid);
 
                 match self.ssa.cfg().block_cont(bid) {
-                    decompiler::BlockCont::Always(dest) => {
-                        self.transform_dest(bid, &dest);
+                    decompiler::BlockCont::Always(decompiler::Dest::Block(dest_bid))
+                        if iter.next_if(|&&b| b == dest_bid).is_some() =>
+                    {
+                        // don't print the 'goto', just 'print' the next block inline
                     }
+                    decompiler::BlockCont::Always(dest) => {
+                        let dest = self.transform_dest(bid, &dest);
+                        self.plan.push(Stmt::ExprStmt(dest));
+                    }
+
                     decompiler::BlockCont::Conditional { pos, neg } => {
-                        let cond = self.ssa.find_last_matching(bid, |insn| {
-                            decompiler::match_get!(
-                                insn,
-                                decompiler::Insn::SetJumpCondition(cond),
-                                cond
-                            )
-                        });
-
-                        if let Some(cond) = cond {
-                            let value_xpr = self.transform_value_use(cond, 0);
-
-                            block.stmts.push(Stmt::ExprStmt(
-                                Seq::new()
-                                    .with_child(mk_lit("if".into()).into())
-                                    .with_child(value_xpr)
-                                    .into(),
-                            ));
-
-                            self.transform_dest(bid, &pos);
-
-                            self.transform_dest(bid, &neg);
-                        } else {
-                            block.stmts.push(Stmt::ExprStmt(mk_error_term(
+                        let Some(if_header) = self.if_of_cond(bid) else {
+                            self.plan.push(Stmt::ExprStmt(mk_error_term(
                                 "bug: no condition!".to_string(),
                             )));
+                            break;
+                        };
+
+                        self.plan.push(if_header);
+
+                        match (pos, neg) {
+                            (decompiler::Dest::Block(pos_bid), _)
+                                if iter.next_if(|&&b| b == pos_bid).is_some() =>
+                            {
+                                self.plan.push(Stmt::Indent);
+                                self.transform_block(pos_bid);
+                                self.plan.push(Stmt::Dedent);
+
+                                self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                                self.plan.push(Stmt::Indent);
+                                let jump = self.transform_dest(bid, &neg);
+                                self.plan.push(Stmt::ExprStmt(jump));
+                                self.plan.push(Stmt::Dedent);
+                            }
+                            (_, decompiler::Dest::Block(neg_bid))
+                                if iter.next_if(|&&b| b == neg_bid).is_some() =>
+                            {
+                                self.plan.push(Stmt::Indent);
+                                let jump = self.transform_dest(bid, &pos);
+                                self.plan.push(Stmt::ExprStmt(jump));
+                                self.plan.push(Stmt::Dedent);
+
+                                self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                                self.plan.push(Stmt::Indent);
+                                self.transform_block(neg_bid);
+                                self.plan.push(Stmt::Dedent);
+                            }
+                            _ => {
+                                self.plan.push(Stmt::Indent);
+                                let jump = self.transform_dest(bid, &pos);
+                                self.plan.push(Stmt::ExprStmt(jump));
+                                self.plan.push(Stmt::Dedent);
+
+                                self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                                self.plan.push(Stmt::Indent);
+                                let jump = self.transform_dest(bid, &neg);
+                                self.plan.push(Stmt::ExprStmt(jump));
+                                self.plan.push(Stmt::Dedent);
+                            }
                         }
                     }
                 }
-
-                self.plan.push(block);
             }
             Ast { plan: self.plan }
+        }
+
+        fn if_of_cond(&mut self, bid: BlockID) -> Option<Stmt> {
+            let cond = self.ssa.find_last_matching(bid, |insn| {
+                decompiler::match_get!(insn, decompiler::Insn::SetJumpCondition(cond), cond)
+            })?;
+            let value_xpr = self.transform_value_use(cond, 0);
+            Some(Stmt::ExprStmt(
+                Seq::new()
+                    .with_child(mk_lit("if".into()).into())
+                    .with_child(value_xpr)
+                    .into(),
+            ))
         }
 
         /// Transforms a basic block. This is the core of the AST generation for blocks.
         /// It iterates through scheduled registers, deciding whether to emit `let` statements,
         /// inline definitions, or unnamed statements. It then handles control flow (jumps, conditionals, returns).
         /// Finally, it recursively processes dominated blocks that haven't been visited yet.
-        fn transform_block(&self, bid: decompiler::BlockID) -> Block {
-            let stmts = self
-                .ssa
-                .block_regs(bid)
-                .into_iter()
-                .filter_map(|reg| {
-                    match self.value_mode[reg] {
-                        ValueMode::Inline => {
-                            // just skip; reader expressions will pick this up
-                            None
-                        }
-                        ValueMode::NamedStmt => Some(Stmt::NamedStmt {
-                            name: Arc::new(format!("{:?}", reg)),
-                            value: self.transform_expr(reg, 0),
-                        }),
-                        ValueMode::UnnamedStmt => Some(Stmt::ExprStmt(self.transform_expr(reg, 0))),
+        fn transform_block(&mut self, bid: decompiler::BlockID) {
+            self.plan.push(Stmt::BlockLabel(bid));
+            for reg in self.ssa.block_regs(bid) {
+                match self.value_mode[reg] {
+                    ValueMode::Inline => {
+                        // just skip; reader expressions will pick this up
                     }
-                })
-                .collect();
-            Block { bid, stmts }
+                    ValueMode::NamedStmt => self.plan.push(Stmt::NamedStmt {
+                        name: Arc::new(format!("{:?}", reg)),
+                        value: self.transform_expr(reg, 0),
+                    }),
+                    ValueMode::UnnamedStmt => {
+                        self.plan.push(Stmt::ExprStmt(self.transform_expr(reg, 0)))
+                    }
+                }
+            }
         }
 
         /// Transforms a value (SSA register) into its AST representation.
@@ -1870,11 +1909,7 @@ mod ast_view {
                 }),
 
                 Insn::SetReturnValue(_) | Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) => {
-                    ExprTree::Term(Term {
-                        text: "".to_string(),
-                        anchor: None,
-                        role: TextRole::Generic,
-                    })
+                    ExprTree::Null
                 }
 
                 Insn::Call { callee, first_arg } => {
