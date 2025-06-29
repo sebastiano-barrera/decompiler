@@ -1723,10 +1723,13 @@ mod ast_view {
                     ValueMode::Inline => {
                         // just skip; reader expressions will pick this up
                     }
-                    ValueMode::NamedStmt => self.plan.push(Stmt::NamedStmt {
-                        name: Arc::new(format!("{:?}", reg)),
-                        value: self.transform_expr(reg, 0),
-                    }),
+                    ValueMode::NamedStmt => {
+                        self.let_was_printed[reg] = true;
+                        self.plan.push(Stmt::NamedStmt {
+                            name: Arc::new(format!("{:?}", reg)),
+                            value: self.transform_expr(reg, 0),
+                        })
+                    }
                     ValueMode::UnnamedStmt => {
                         self.plan.push(Stmt::ExprStmt(self.transform_expr(reg, 0)))
                     }
