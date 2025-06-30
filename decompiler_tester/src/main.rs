@@ -820,7 +820,7 @@ impl StageFunc {
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
         let hl: &mut hl::Highlight = &mut self.df.hl;
-        self.df.ast.show(ui, hl);
+        self.df.ast.show(ui, self.df.df.ssa(), hl);
     }
 }
 
@@ -1490,24 +1490,69 @@ mod ast_view {
         /// Renders the AST within the provided egui UI.
         /// It starts the rendering process by calling `frame_start` and then recursively
         /// renders the top-level block.
-        pub fn show(&self, ui: &mut egui::Ui, hl: &mut hl::Highlight) {
-            let mut indent_level = 0;
-            for stmt in &self.plan {
-                ui.horizontal_top(|ui| {
-                    ui.add_space(indent_level as f32 * 20.0);
+        pub fn show(
+            &mut self,
+            ui: &mut egui::Ui,
+            ssa: Option<&decompiler::SSAProgram>,
+            hl: &mut hl::Highlight,
+        ) {
+            ui.horizontal(|ui| {
+                let allocate_column = |ui: &mut egui::Ui, width| {
+                    let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
+                    let col_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .max_rect(col_rect)
+                            .layout(egui::Layout::top_down(egui::Align::TOP)),
+                    );
+                    ui.advance_cursor_after_rect(col_rect);
+                    col_ui
+                };
+
+                let mut left_ui = allocate_column(ui, 300.0);
+                let mut mid_ui = allocate_column(ui, 80.0);
+                let mut right_ui = allocate_column(ui, ui.available_width());
+
+                let mut indent_level = 0;
+                for stmt in &self.plan {
                     match stmt {
-                        Stmt::BlockLabel(block_id) => {
-                            ui.label(format!("{:?}", block_id));
+                        &Stmt::BlockLabel(block_id) => {
+                            let y_clear = (left_ui.min_rect().max.y)
+                                .max(mid_ui.min_rect().max.y)
+                                .max(right_ui.min_rect().max.y);
+                            left_ui.advance_cursor_after_rect(left_ui.cursor().with_max_y(y_clear));
+                            mid_ui.advance_cursor_after_rect(mid_ui.cursor().with_max_y(y_clear));
+                            right_ui
+                                .advance_cursor_after_rect(right_ui.cursor().with_max_y(y_clear));
+
+                            mid_ui.separator();
+                            mid_ui.label(format!("B{}", block_id.as_number()));
+
+                            if let Some(ssa) = ssa {
+                                left_ui.separator();
+                                for reg in ssa.block_regs(block_id) {
+                                    let insn = ssa[reg].get();
+                                    left_ui.label(format!("{:?} <- {:?}", reg, insn));
+                                }
+                                left_ui.label(format!("{:?}", ssa.cfg().block_cont(block_id)));
+                            }
+
+                            right_ui.separator();
                         }
                         Stmt::ExprStmt(value_xp) => {
-                            self.show_expr(ui, value_xp);
+                            right_ui.horizontal_top(|ui| {
+                                ui.add_space(indent_level as f32 * 20.0);
+                                self.show_expr(ui, value_xp);
+                            });
                         }
                         Stmt::NamedStmt {
                             name,
                             value: value_xp,
                         } => {
-                            ui.label(format!("let {} = ", name));
-                            self.show_expr(ui, value_xp);
+                            right_ui.horizontal_top(|ui| {
+                                ui.add_space(indent_level as f32 * 20.0);
+                                ui.label(format!("let {} = ", name));
+                                self.show_expr(ui, value_xp);
+                            });
                         }
                         Stmt::Dedent => {
                             indent_level -= 1;
@@ -1516,8 +1561,12 @@ mod ast_view {
                             indent_level += 1;
                         }
                     }
-                });
-            }
+                }
+
+                ui.expand_to_include_rect(left_ui.min_rect());
+                ui.expand_to_include_rect(mid_ui.min_rect());
+                ui.expand_to_include_rect(right_ui.min_rect());
+            });
         }
 
         fn show_expr(&self, ui: &mut egui::Ui, value: &ExprTree) {
