@@ -1396,6 +1396,7 @@ mod ast_view {
         },
         Dedent,
         Indent,
+        Comment(String),
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1559,6 +1560,13 @@ mod ast_view {
                         }
                         Stmt::Indent => {
                             indent_level += 1;
+                        }
+                        Stmt::Comment(comment) => {
+                            right_ui.horizontal(|ui| {
+                                ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
+                                ui.label("//");
+                                ui.label(comment);
+                            });
                         }
                     }
                 }
