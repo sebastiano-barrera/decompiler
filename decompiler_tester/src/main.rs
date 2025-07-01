@@ -1743,62 +1743,42 @@ mod ast_view {
                     // don't print the 'goto', just 'print' the next block inline
                 }
                 decompiler::BlockCont::Always(dest) => {
-                    let dest = self.transform_dest(bid, &dest);
+                    let dest = self.transform_jump(bid, &dest);
                     self.plan.push(Stmt::ExprStmt(dest));
                 }
 
                 decompiler::BlockCont::Conditional { pos, neg } => {
-                    match self.if_of_cond(bid) {
-                        Some(if_header) => {
-                            self.plan.push(if_header);
+                    let if_header = self.if_of_cond(bid).unwrap_or_else(|| {
+                        Stmt::ExprStmt(mk_error_term("bug: no condition!".to_string()))
+                    });
+                    self.plan.push(if_header);
 
-                            match (pos, neg) {
-                                (decompiler::Dest::Block(pos_bid), _)
-                                    if iter.peek() == Some(&pos_bid) =>
-                                {
-                                    self.plan.push(Stmt::Indent);
-                                    self.transform_block(iter);
-                                    self.plan.push(Stmt::Dedent);
-
-                                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                                    self.plan.push(Stmt::Indent);
-                                    let jump = self.transform_dest(bid, &neg);
-                                    self.plan.push(Stmt::ExprStmt(jump));
-                                    self.plan.push(Stmt::Dedent);
-                                }
-                                (_, decompiler::Dest::Block(neg_bid))
-                                    if iter.peek() == Some(&neg_bid) =>
-                                {
-                                    self.plan.push(Stmt::Indent);
-                                    let jump = self.transform_dest(bid, &pos);
-                                    self.plan.push(Stmt::ExprStmt(jump));
-                                    self.plan.push(Stmt::Dedent);
-
-                                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                                    self.plan.push(Stmt::Indent);
-                                    self.transform_block(iter);
-                                    self.plan.push(Stmt::Dedent);
-                                }
-                                _ => {
-                                    self.plan.push(Stmt::Indent);
-                                    let jump = self.transform_dest(bid, &pos);
-                                    self.plan.push(Stmt::ExprStmt(jump));
-                                    self.plan.push(Stmt::Dedent);
-
-                                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                                    self.plan.push(Stmt::Indent);
-                                    let jump = self.transform_dest(bid, &neg);
-                                    self.plan.push(Stmt::ExprStmt(jump));
-                                    self.plan.push(Stmt::Dedent);
-                                }
-                            }
+                    self.plan.push(Stmt::Indent);
+                    match pos {
+                        decompiler::Dest::Block(pos_bid) if iter.peek() == Some(&pos_bid) => {
+                            self.transform_block(iter);
                         }
-                        None => {
-                            self.plan.push(Stmt::ExprStmt(mk_error_term(
-                                "bug: no condition!".to_string(),
-                            )));
+                        _ => {
+                            let jump = self.transform_jump(bid, &pos);
+                            self.plan.push(Stmt::ExprStmt(jump));
                         }
-                    };
+                    }
+                    self.plan.push(Stmt::Dedent);
+
+                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                    self.plan.push(Stmt::Indent);
+                    match neg {
+                        decompiler::Dest::Block(neg_bid) if iter.peek() == Some(&neg_bid) => {
+                            self.transform_block(iter);
+                        }
+                        _ => {
+                            let jump = self.transform_jump(bid, &neg);
+                            self.plan.push(Stmt::ExprStmt(jump));
+                        }
+                    }
+                    self.plan.push(Stmt::Dedent);
+
+                    self.plan.push(Stmt::ExprStmt(mk_kw("endif".into()).into()));
                 }
             }
 
@@ -2127,7 +2107,7 @@ mod ast_view {
         /// `next_bid` is used, when available, as the BlockID that is laid out
         /// right after `src_bid` in order to lay out certain blocks inline or
         /// avoid/insert `goto` expression.
-        fn transform_dest(
+        fn transform_jump(
             &mut self,
             src_bid: decompiler::BlockID,
             dest: &decompiler::Dest,
