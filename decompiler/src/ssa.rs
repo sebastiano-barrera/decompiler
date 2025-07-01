@@ -206,9 +206,6 @@ impl Program {
     }
 
     fn assert_inputs_visible(&self) {
-        eprintln!("---- checking");
-        eprintln!("{:?}", self);
-
         enum Cmd {
             Start(cfg::BlockID),
             End(cfg::BlockID),
