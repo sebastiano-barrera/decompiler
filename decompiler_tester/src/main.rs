@@ -1371,6 +1371,7 @@ mod ast_view {
     use core::str;
     use std::borrow::Cow;
     use std::fmt::Debug;
+    use std::iter::Peekable;
     use std::sync::Arc;
 
     use decompiler::{BlockID, Insn};
@@ -1685,74 +1686,10 @@ mod ast_view {
         /// of the SSA program.
         fn build(mut self) -> Ast {
             let block_order = std::mem::replace(&mut self.block_order, Vec::new());
-            let mut iter = block_order.iter().peekable();
-            while let Some(&bid) = iter.next() {
-                self.transform_block(bid);
 
-                match self.ssa.cfg().block_cont(bid) {
-                    decompiler::BlockCont::Always(decompiler::Dest::Block(dest_bid))
-                        if iter.next_if(|&&b| b == dest_bid).is_some() =>
-                    {
-                        // don't print the 'goto', just 'print' the next block inline
-                    }
-                    decompiler::BlockCont::Always(dest) => {
-                        let dest = self.transform_dest(bid, &dest);
-                        self.plan.push(Stmt::ExprStmt(dest));
-                    }
+            let mut iter = block_order.into_iter().peekable();
+            while self.transform_block(&mut iter) {}
 
-                    decompiler::BlockCont::Conditional { pos, neg } => {
-                        let Some(if_header) = self.if_of_cond(bid) else {
-                            self.plan.push(Stmt::ExprStmt(mk_error_term(
-                                "bug: no condition!".to_string(),
-                            )));
-                            break;
-                        };
-
-                        self.plan.push(if_header);
-
-                        match (pos, neg) {
-                            (decompiler::Dest::Block(pos_bid), _)
-                                if iter.next_if(|&&b| b == pos_bid).is_some() =>
-                            {
-                                self.plan.push(Stmt::Indent);
-                                self.transform_block(pos_bid);
-                                self.plan.push(Stmt::Dedent);
-
-                                self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                                self.plan.push(Stmt::Indent);
-                                let jump = self.transform_dest(bid, &neg);
-                                self.plan.push(Stmt::ExprStmt(jump));
-                                self.plan.push(Stmt::Dedent);
-                            }
-                            (_, decompiler::Dest::Block(neg_bid))
-                                if iter.next_if(|&&b| b == neg_bid).is_some() =>
-                            {
-                                self.plan.push(Stmt::Indent);
-                                let jump = self.transform_dest(bid, &pos);
-                                self.plan.push(Stmt::ExprStmt(jump));
-                                self.plan.push(Stmt::Dedent);
-
-                                self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                                self.plan.push(Stmt::Indent);
-                                self.transform_block(neg_bid);
-                                self.plan.push(Stmt::Dedent);
-                            }
-                            _ => {
-                                self.plan.push(Stmt::Indent);
-                                let jump = self.transform_dest(bid, &pos);
-                                self.plan.push(Stmt::ExprStmt(jump));
-                                self.plan.push(Stmt::Dedent);
-
-                                self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                                self.plan.push(Stmt::Indent);
-                                let jump = self.transform_dest(bid, &neg);
-                                self.plan.push(Stmt::ExprStmt(jump));
-                                self.plan.push(Stmt::Dedent);
-                            }
-                        }
-                    }
-                }
-            }
             Ast { plan: self.plan }
         }
 
@@ -1773,8 +1710,14 @@ mod ast_view {
         /// It iterates through scheduled registers, deciding whether to emit `let` statements,
         /// inline definitions, or unnamed statements. It then handles control flow (jumps, conditionals, returns).
         /// Finally, it recursively processes dominated blocks that haven't been visited yet.
-        fn transform_block(&mut self, bid: decompiler::BlockID) {
+        fn transform_block<I>(&mut self, iter: &mut Peekable<I>) -> bool
+        where
+            I: Iterator<Item = decompiler::BlockID>,
+        {
+            let Some(bid) = iter.next() else { return false };
+
             self.plan.push(Stmt::BlockLabel(bid));
+
             for reg in self.ssa.block_regs(bid) {
                 match self.value_mode[reg] {
                     ValueMode::Inline => {
@@ -1792,6 +1735,74 @@ mod ast_view {
                     }
                 }
             }
+
+            match self.ssa.cfg().block_cont(bid) {
+                decompiler::BlockCont::Always(decompiler::Dest::Block(dest_bid))
+                    if iter.next_if(|&b| b == dest_bid).is_some() =>
+                {
+                    // don't print the 'goto', just 'print' the next block inline
+                }
+                decompiler::BlockCont::Always(dest) => {
+                    let dest = self.transform_dest(bid, &dest);
+                    self.plan.push(Stmt::ExprStmt(dest));
+                }
+
+                decompiler::BlockCont::Conditional { pos, neg } => {
+                    match self.if_of_cond(bid) {
+                        Some(if_header) => {
+                            self.plan.push(if_header);
+
+                            match (pos, neg) {
+                                (decompiler::Dest::Block(pos_bid), _)
+                                    if iter.peek() == Some(&pos_bid) =>
+                                {
+                                    self.plan.push(Stmt::Indent);
+                                    self.transform_block(iter);
+                                    self.plan.push(Stmt::Dedent);
+
+                                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                                    self.plan.push(Stmt::Indent);
+                                    let jump = self.transform_dest(bid, &neg);
+                                    self.plan.push(Stmt::ExprStmt(jump));
+                                    self.plan.push(Stmt::Dedent);
+                                }
+                                (_, decompiler::Dest::Block(neg_bid))
+                                    if iter.peek() == Some(&neg_bid) =>
+                                {
+                                    self.plan.push(Stmt::Indent);
+                                    let jump = self.transform_dest(bid, &pos);
+                                    self.plan.push(Stmt::ExprStmt(jump));
+                                    self.plan.push(Stmt::Dedent);
+
+                                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                                    self.plan.push(Stmt::Indent);
+                                    self.transform_block(iter);
+                                    self.plan.push(Stmt::Dedent);
+                                }
+                                _ => {
+                                    self.plan.push(Stmt::Indent);
+                                    let jump = self.transform_dest(bid, &pos);
+                                    self.plan.push(Stmt::ExprStmt(jump));
+                                    self.plan.push(Stmt::Dedent);
+
+                                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
+                                    self.plan.push(Stmt::Indent);
+                                    let jump = self.transform_dest(bid, &neg);
+                                    self.plan.push(Stmt::ExprStmt(jump));
+                                    self.plan.push(Stmt::Dedent);
+                                }
+                            }
+                        }
+                        None => {
+                            self.plan.push(Stmt::ExprStmt(mk_error_term(
+                                "bug: no condition!".to_string(),
+                            )));
+                        }
+                    };
+                }
+            }
+
+            true
         }
 
         /// Transforms a value (SSA register) into its AST representation.
