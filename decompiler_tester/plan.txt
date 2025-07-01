@@ -64,6 +64,14 @@ compiler version
     - in general, it should be possible to see ANY correspondence between AST parts and
     SSA insns
 
+- [ ] integrated AST+SSA+ASM layout
+    - this should make custom block ordering significantly faster
+    - [ ] fix 'missing block' bug
+        observed in redis-server`dismissObject
+    - [ ] add ASM view
+    - [ ] make ASM, SSA toggleable
+    - [ ] refactor?
+
 - [ ] custom block ordering
 
 - [ ] use type info
