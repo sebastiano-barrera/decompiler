@@ -71,8 +71,12 @@ compiler version
     - [--] assert: all blocks must be in transformed into AST
         - canceled: I can think of some reasons why you would want the block order to skip some blocks.
             - e.g.: limit visibility to a specific path in the CFG
-    - [ ] assert: blocks must appear in the same order as per parameter
-        - [ ] better representation?
+    - [x] assert: blocks must appear in the same order as per parameter
+        - no blocks skipped, no blocks duplicated, etc.
+        - [x] warnings UI
+    - [x] investigate why some blocks are missing above ("blmoveCommand")
+        fixed
+    - [ ] remove the AST transformation (visit CFG+SSA and just generate the UI)
     - [ ] make ASM, SSA toggleable
         - [ ] refactor: make views more independent from each other and from the "column allocation"
     - [ ] add ASM view

@@ -81,6 +81,7 @@ struct StageExe {
 }
 struct StageFunc {
     df: DecompiledFunction,
+    is_warnings_visible: bool,
 }
 struct DecompiledFunction {
     df: decompiler::DecompiledFunction,
@@ -754,6 +755,7 @@ impl StageFunc {
                 ast,
                 hl: hl::Highlight::default(),
             },
+            is_warnings_visible: false,
         }
     }
 
@@ -811,6 +813,28 @@ impl StageFunc {
 
     /// Show the widgets to be laid out in the central/main area assigned to this function.
     fn show_central(&mut self, ui: &mut egui::Ui) {
+        {
+            let warnings = self.df.ast.warnings();
+            if warnings.len() > 0 {
+                let text = format!("AST generation: {} warnings", warnings.len());
+                ui.toggle_value(&mut self.is_warnings_visible, text);
+                if self.is_warnings_visible {
+                    egui::Window::new("AST warnings")
+                        .open(&mut self.is_warnings_visible)
+                        .show(ui.ctx(), |ui| {
+                            egui::ScrollArea::vertical().show(ui, |ui| {
+                                for warning in warnings {
+                                    ui.horizontal(|ui| {
+                                        ui.label(" - ");
+                                        ui.add(egui::Label::new(warning.to_string()).wrap());
+                                    });
+                                }
+                            });
+                        });
+                }
+            }
+        }
+
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
@@ -1374,6 +1398,7 @@ mod ast_view {
     use std::iter::Peekable;
     use std::sync::Arc;
 
+    use anyhow::anyhow;
     use decompiler::{BlockID, Insn};
 
     use super::TextRole;
@@ -1383,6 +1408,7 @@ mod ast_view {
     /// that are rendered hierarchically based on `Seq` nodes.
     pub struct Ast {
         plan: Vec<Stmt>,
+        warnings: Vec<anyhow::Error>,
     }
 
     enum Stmt {
@@ -1480,7 +1506,10 @@ mod ast_view {
     impl Ast {
         /// Creates an empty AST.
         pub fn empty() -> Self {
-            Ast { plan: Vec::new() }
+            Ast {
+                plan: Vec::new(),
+                warnings: Vec::new(),
+            }
         }
 
         /// Constructs an `Ast` from an SSA program using the `Builder`. This is the primary
@@ -1605,6 +1634,10 @@ mod ast_view {
                 }
             }
         }
+
+        pub(crate) fn warnings(&self) -> impl ExactSizeIterator<Item = &dyn std::error::Error> {
+            self.warnings.iter().map(|err| err.as_ref())
+        }
     }
 
     /// The `Builder` is responsible for transforming the SSAProgram into the `Ast`'s flat `Vec<Node>` representation.
@@ -1687,10 +1720,32 @@ mod ast_view {
         fn build(mut self) -> Ast {
             let block_order = std::mem::replace(&mut self.block_order, Vec::new());
 
-            let mut iter = block_order.into_iter().peekable();
+            let mut iter = block_order.iter().copied().peekable();
             while self.transform_block(&mut iter) {}
 
-            Ast { plan: self.plan }
+            let mut warnings = Vec::new();
+            {
+                let block_order_check: Vec<_> = self
+                    .plan
+                    .iter()
+                    .filter_map(|stmt| match stmt {
+                        &Stmt::BlockLabel(bid) => Some(bid),
+                        _ => None,
+                    })
+                    .collect();
+                if block_order_check != block_order {
+                    warnings.push(anyhow!(
+                        "AST does not cover requested block order:\nrequested={:?};\nvisited={:?}",
+                        block_order,
+                        block_order_check
+                    ));
+                }
+            }
+
+            Ast {
+                plan: self.plan,
+                warnings,
+            }
         }
 
         fn if_of_cond(&mut self, bid: BlockID) -> Option<Stmt> {
@@ -1738,9 +1793,10 @@ mod ast_view {
 
             match self.ssa.cfg().block_cont(bid) {
                 decompiler::BlockCont::Always(decompiler::Dest::Block(dest_bid))
-                    if iter.next_if(|&b| b == dest_bid).is_some() =>
+                    if iter.peek() == Some(&dest_bid) =>
                 {
                     // don't print the 'goto', just 'print' the next block inline
+                    self.transform_block(iter);
                 }
                 decompiler::BlockCont::Always(dest) => {
                     let dest = self.transform_jump(bid, &dest);
