@@ -66,10 +66,16 @@ compiler version
 
 - [ ] integrated AST+SSA+ASM layout
     - this should make custom block ordering significantly faster
-    - [ ] fix 'missing block' bug
+    - [x] fix 'missing block' bug
         observed in redis-server`dismissObject
-    - [ ] add ASM view
+    - [--] assert: all blocks must be in transformed into AST
+        - canceled: I can think of some reasons why you would want the block order to skip some blocks.
+            - e.g.: limit visibility to a specific path in the CFG
+    - [ ] assert: blocks must appear in the same order as per parameter
+        - [ ] better representation?
     - [ ] make ASM, SSA toggleable
+        - [ ] refactor: make views more independent from each other and from the "column allocation"
+    - [ ] add ASM view
     - [ ] refactor?
 
 - [ ] custom block ordering
