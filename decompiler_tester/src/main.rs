@@ -844,7 +844,7 @@ impl StageFunc {
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
         let hl: &mut hl::Highlight = &mut self.df.hl;
-        self.df.ast.show(ui, self.df.df.ssa(), hl);
+        ast_view::show(ui, &self.df.ast, self.df.df.ssa(), hl);
     }
 }
 
@@ -1504,6 +1504,10 @@ mod ast_view {
         }
     }
 
+    pub struct ViewState {
+        pub ssa_enabled: bool,
+    }
+
     /// Implementation block for the `Ast` struct, handling AST construction and UI rendering.
     impl Ast {
         /// Creates an empty AST.
@@ -1518,71 +1522,6 @@ mod ast_view {
         /// entry point for AST generation.
         pub fn from_ssa(ssa: &decompiler::SSAProgram) -> Self {
             Builder::new(ssa).build()
-        }
-
-        /// Renders the AST within the provided egui UI.
-        /// It starts the rendering process by calling `frame_start` and then recursively
-        /// renders the top-level block.
-        pub fn show(
-            &mut self,
-            ui: &mut egui::Ui,
-            ssa: Option<&decompiler::SSAProgram>,
-            hl: &mut hl::Highlight,
-        ) {
-            columns::show(ui, [300.0, 80.0, columns::EXPANDING_WIDTH], |cols| {
-                let mut indent_level = 0;
-                for stmt in &self.plan {
-                    match stmt {
-                        &Stmt::BlockLabel(block_id) => {
-                            cols.clear();
-
-                            cols.ui(1).separator();
-                            cols.ui(1).label(format!("B{}", block_id.as_number()));
-
-                            if let Some(ssa) = ssa {
-                                cols.ui(0).separator();
-                                for reg in ssa.block_regs(block_id) {
-                                    let insn = ssa[reg].get();
-                                    cols.ui(0).label(format!("{:?} <- {:?}", reg, insn));
-                                }
-                                cols.ui(0)
-                                    .label(format!("{:?}", ssa.cfg().block_cont(block_id)));
-                            }
-
-                            cols.ui(2).separator();
-                        }
-                        Stmt::ExprStmt(value_xp) => {
-                            cols.ui(2).horizontal_top(|ui| {
-                                ui.add_space(indent_level as f32 * 20.0);
-                                self.show_expr(ui, value_xp);
-                            });
-                        }
-                        Stmt::NamedStmt {
-                            name,
-                            value: value_xp,
-                        } => {
-                            cols.ui(2).horizontal_top(|ui| {
-                                ui.add_space(indent_level as f32 * 20.0);
-                                ui.label(format!("let {} = ", name));
-                                self.show_expr(ui, value_xp);
-                            });
-                        }
-                        Stmt::Dedent => {
-                            indent_level -= 1;
-                        }
-                        Stmt::Indent => {
-                            indent_level += 1;
-                        }
-                        Stmt::Comment(comment) => {
-                            cols.ui(2).horizontal(|ui| {
-                                ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
-                                ui.label("//");
-                                ui.label(comment);
-                            });
-                        }
-                    }
-                }
-            });
         }
 
         fn show_expr(&self, ui: &mut egui::Ui, value: &ExprTree) {
@@ -1616,6 +1555,71 @@ mod ast_view {
         pub(crate) fn warnings(&self) -> impl ExactSizeIterator<Item = &dyn std::error::Error> {
             self.warnings.iter().map(|err| err.as_ref())
         }
+    }
+
+    /// Renders the AST within the provided egui UI.
+    pub fn show(
+        ui: &mut egui::Ui,
+        ast: &Ast,
+        ssa: Option<&decompiler::SSAProgram>,
+        hl: &mut hl::Highlight,
+    ) {
+        let widths = [300.0, 80.0, columns::EXPANDING_WIDTH];
+
+        columns::show(ui, widths, |cols| {
+            let mut indent_level = 0;
+            for stmt in &ast.plan {
+                match stmt {
+                    &Stmt::BlockLabel(block_id) => {
+                        cols.clear();
+
+                        cols.ui(1).separator();
+                        cols.ui(1).label(format!("B{}", block_id.as_number()));
+
+                        if let Some(ssa) = ssa {
+                            cols.ui(0).separator();
+                            for reg in ssa.block_regs(block_id) {
+                                let insn = ssa[reg].get();
+                                cols.ui(0).label(format!("{:?} <- {:?}", reg, insn));
+                            }
+                            cols.ui(0)
+                                .label(format!("{:?}", ssa.cfg().block_cont(block_id)));
+                        }
+
+                        cols.ui(2).separator();
+                    }
+                    Stmt::ExprStmt(value_xp) => {
+                        cols.ui(2).horizontal_top(|ui| {
+                            ui.add_space(indent_level as f32 * 20.0);
+                            ast.show_expr(ui, value_xp);
+                        });
+                    }
+                    Stmt::NamedStmt {
+                        name,
+                        value: value_xp,
+                    } => {
+                        cols.ui(2).horizontal_top(|ui| {
+                            ui.add_space(indent_level as f32 * 20.0);
+                            ui.label(format!("let {} = ", name));
+                            ast.show_expr(ui, value_xp);
+                        });
+                    }
+                    Stmt::Dedent => {
+                        indent_level -= 1;
+                    }
+                    Stmt::Indent => {
+                        indent_level += 1;
+                    }
+                    Stmt::Comment(comment) => {
+                        cols.ui(2).horizontal(|ui| {
+                            ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
+                            ui.label("//");
+                            ui.label(comment);
+                        });
+                    }
+                }
+            }
+        });
     }
 
     /// The `Builder` is responsible for transforming the SSAProgram into the `Ast`'s flat `Vec<Node>` representation.

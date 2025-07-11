@@ -79,7 +79,7 @@ compiler version
     - [--] remove the AST transformation (visit CFG+SSA and just generate the UI)
         - decided against it. the current approach is fine for now, and probably
         not too hard to change later.
-    - [ ] refactor? (to allow multiple views, possibly toggleable)
+    - [x] refactor? (to allow multiple views, possibly toggleable)
     - [ ] add ASM view
     - [ ] make ASM, SSA toggleable
         - [ ] refactor: make views more independent from each other and from the "column allocation"
