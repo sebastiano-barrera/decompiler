@@ -843,8 +843,17 @@ impl StageFunc {
     }
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
-        let hl: &mut hl::Highlight = &mut self.df.hl;
-        ast_view::show(ui, &self.df.ast, self.df.df.ssa(), hl);
+        let ast = &self.df.ast;
+        let mut col_ssa = self.df.df.ssa().map(|ssa| ast_view::SsaColumn::new(ssa));
+        let mut col_blk = ast_view::BlockIDColumn;
+        let mut col_ast = ast_view::AstColumn::new(ast);
+
+        ast_view::show(
+            ui,
+            ast,
+            &[300.0, 80.0, columns::EXPANDING_WIDTH],
+            &mut [&mut col_ssa.as_mut(), &mut col_blk, &mut col_ast],
+        );
     }
 }
 
@@ -1404,7 +1413,6 @@ mod ast_view {
     use crate::columns;
 
     use super::TextRole;
-    use super::hl;
 
     /// Represents the Abstract Syntax Tree (AST) itself. It holds a flat list of nodes
     /// that are rendered hierarchically based on `Seq` nodes.
@@ -1413,7 +1421,7 @@ mod ast_view {
         warnings: Vec<anyhow::Error>,
     }
 
-    enum Stmt {
+    pub enum Stmt {
         /// A label marking the start of a block.
         ///
         /// The stmts included in block follow this BlockLabel.
@@ -1429,7 +1437,7 @@ mod ast_view {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    enum ExprTree {
+    pub enum ExprTree {
         Seq(Seq),
         Term(Term),
         Null,
@@ -1504,10 +1512,6 @@ mod ast_view {
         }
     }
 
-    pub struct ViewState {
-        pub ssa_enabled: bool,
-    }
-
     /// Implementation block for the `Ast` struct, handling AST construction and UI rendering.
     impl Ast {
         /// Creates an empty AST.
@@ -1557,7 +1561,7 @@ mod ast_view {
         }
     }
 
-    trait Column {
+    pub trait Column {
         fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt);
     }
     impl<C: Column> Column for Option<&mut C> {
@@ -1568,9 +1572,17 @@ mod ast_view {
         }
     }
 
-    struct AstColumn<'a> {
+    pub struct AstColumn<'a> {
         indent_level: usize,
         ast: &'a Ast,
+    }
+    impl<'a> AstColumn<'a> {
+        pub fn new(ast: &'a Ast) -> Self {
+            AstColumn {
+                ast,
+                indent_level: 0,
+            }
+        }
     }
     impl Column for AstColumn<'_> {
         fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
@@ -1609,8 +1621,13 @@ mod ast_view {
         }
     }
 
-    struct SsaColumn<'a> {
+    pub struct SsaColumn<'a> {
         ssa: &'a decompiler::SSAProgram,
+    }
+    impl<'a> SsaColumn<'a> {
+        pub fn new(ssa: &'a decompiler::SSAProgram) -> Self {
+            SsaColumn { ssa }
+        }
     }
     impl Column for SsaColumn<'_> {
         fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
@@ -1624,7 +1641,7 @@ mod ast_view {
         }
     }
 
-    struct BlockIDColumn;
+    pub struct BlockIDColumn;
     impl Column for BlockIDColumn {
         fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
             if let &Stmt::BlockLabel(block_id) = stmt {
@@ -1634,31 +1651,19 @@ mod ast_view {
     }
 
     /// Renders the AST within the provided egui UI.
-    pub fn show(
-        ui: &mut egui::Ui,
-        ast: &Ast,
-        ssa: Option<&decompiler::SSAProgram>,
-        hl: &mut hl::Highlight,
-    ) {
-        let mut col_ast = AstColumn {
-            ast,
-            indent_level: 0,
-        };
-        let mut col_blk = BlockIDColumn;
-        let mut col_ssa = ssa.map(|ssa| SsaColumn { ssa });
-
-        columns::show(ui, &[300.0, 80.0, columns::EXPANDING_WIDTH], |cols| {
-            for stmt in &col_ast.ast.plan {
+    pub fn show(ui: &mut egui::Ui, ast: &Ast, widths: &[f32], columns: &mut [&mut dyn Column]) {
+        columns::show(ui, widths, |col_uis| {
+            for stmt in &ast.plan {
                 if let Stmt::BlockLabel(_) = stmt {
-                    cols.clear();
-                    for ndx in 0..cols.count() {
-                        cols.ui(ndx).separator();
+                    col_uis.clear();
+                    for ndx in 0..col_uis.count() {
+                        col_uis.ui(ndx).separator();
                     }
                 }
 
-                col_ssa.as_mut().push_stmt(cols.ui(0), stmt);
-                col_blk.push_stmt(cols.ui(1), stmt);
-                col_ast.push_stmt(cols.ui(2), stmt);
+                for (ndx, col) in columns.iter_mut().enumerate() {
+                    col.push_stmt(col_uis.ui(ndx), stmt);
+                }
             }
         });
     }
