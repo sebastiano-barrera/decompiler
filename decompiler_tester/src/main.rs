@@ -1557,6 +1557,82 @@ mod ast_view {
         }
     }
 
+    trait Column {
+        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt);
+    }
+    impl<C: Column> Column for Option<&mut C> {
+        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
+            if let Some(c) = self {
+                c.push_stmt(ui, stmt);
+            }
+        }
+    }
+
+    struct AstColumn<'a> {
+        indent_level: usize,
+        ast: &'a Ast,
+    }
+    impl Column for AstColumn<'_> {
+        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
+            match stmt {
+                &Stmt::BlockLabel(_) => {}
+                Stmt::ExprStmt(value_xp) => {
+                    ui.horizontal_top(|ui| {
+                        ui.add_space(self.indent_level as f32 * 20.0);
+                        self.ast.show_expr(ui, value_xp);
+                    });
+                }
+                Stmt::NamedStmt {
+                    name,
+                    value: value_xp,
+                } => {
+                    ui.horizontal_top(|ui| {
+                        ui.add_space(self.indent_level as f32 * 20.0);
+                        ui.label(format!("let {} = ", name));
+                        self.ast.show_expr(ui, value_xp);
+                    });
+                }
+                Stmt::Dedent => {
+                    self.indent_level -= 1;
+                }
+                Stmt::Indent => {
+                    self.indent_level += 1;
+                }
+                Stmt::Comment(comment) => {
+                    ui.horizontal(|ui| {
+                        ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
+                        ui.label("//");
+                        ui.label(comment);
+                    });
+                }
+            }
+        }
+    }
+
+    struct SsaColumn<'a> {
+        ssa: &'a decompiler::SSAProgram,
+    }
+    impl Column for SsaColumn<'_> {
+        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
+            if let &Stmt::BlockLabel(block_id) = stmt {
+                for reg in self.ssa.block_regs(block_id) {
+                    let insn = self.ssa[reg].get();
+                    ui.label(format!("{:?} <- {:?}", reg, insn));
+                }
+                ui.label(format!("{:?}", self.ssa.cfg().block_cont(block_id)));
+            }
+        }
+    }
+
+    struct BlockIDColumn;
+    impl Column for BlockIDColumn {
+        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
+            if let &Stmt::BlockLabel(block_id) = stmt {
+                ui.label(format!("B{}", block_id.as_number()));
+            }
+        }
+    }
+
     /// Renders the AST within the provided egui UI.
     pub fn show(
         ui: &mut egui::Ui,
@@ -1564,60 +1640,25 @@ mod ast_view {
         ssa: Option<&decompiler::SSAProgram>,
         hl: &mut hl::Highlight,
     ) {
-        let widths = [300.0, 80.0, columns::EXPANDING_WIDTH];
+        let mut col_ast = AstColumn {
+            ast,
+            indent_level: 0,
+        };
+        let mut col_blk = BlockIDColumn;
+        let mut col_ssa = ssa.map(|ssa| SsaColumn { ssa });
 
-        columns::show(ui, widths, |cols| {
-            let mut indent_level = 0;
-            for stmt in &ast.plan {
-                match stmt {
-                    &Stmt::BlockLabel(block_id) => {
-                        cols.clear();
-
-                        cols.ui(1).separator();
-                        cols.ui(1).label(format!("B{}", block_id.as_number()));
-
-                        if let Some(ssa) = ssa {
-                            cols.ui(0).separator();
-                            for reg in ssa.block_regs(block_id) {
-                                let insn = ssa[reg].get();
-                                cols.ui(0).label(format!("{:?} <- {:?}", reg, insn));
-                            }
-                            cols.ui(0)
-                                .label(format!("{:?}", ssa.cfg().block_cont(block_id)));
-                        }
-
-                        cols.ui(2).separator();
-                    }
-                    Stmt::ExprStmt(value_xp) => {
-                        cols.ui(2).horizontal_top(|ui| {
-                            ui.add_space(indent_level as f32 * 20.0);
-                            ast.show_expr(ui, value_xp);
-                        });
-                    }
-                    Stmt::NamedStmt {
-                        name,
-                        value: value_xp,
-                    } => {
-                        cols.ui(2).horizontal_top(|ui| {
-                            ui.add_space(indent_level as f32 * 20.0);
-                            ui.label(format!("let {} = ", name));
-                            ast.show_expr(ui, value_xp);
-                        });
-                    }
-                    Stmt::Dedent => {
-                        indent_level -= 1;
-                    }
-                    Stmt::Indent => {
-                        indent_level += 1;
-                    }
-                    Stmt::Comment(comment) => {
-                        cols.ui(2).horizontal(|ui| {
-                            ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
-                            ui.label("//");
-                            ui.label(comment);
-                        });
+        columns::show(ui, [300.0, 80.0, columns::EXPANDING_WIDTH], |cols| {
+            for stmt in &col_ast.ast.plan {
+                if let Stmt::BlockLabel(_) = stmt {
+                    cols.clear();
+                    for ndx in 0..cols.count() {
+                        cols.ui(ndx).separator();
                     }
                 }
+
+                col_ssa.as_mut().push_stmt(cols.ui(0), stmt);
+                col_blk.push_stmt(cols.ui(1), stmt);
+                col_ast.push_stmt(cols.ui(2), stmt);
             }
         });
     }
@@ -2291,6 +2332,10 @@ mod columns {
     impl<const N: usize> Columns<N> {
         pub fn ui(&mut self, ndx: usize) -> &mut egui::Ui {
             &mut self.uis[ndx]
+        }
+
+        pub fn count(&self) -> usize {
+            self.uis.len()
         }
 
         pub fn clear(&mut self) {
