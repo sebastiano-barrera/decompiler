@@ -82,6 +82,7 @@ struct StageExe {
 struct StageFunc {
     df: DecompiledFunction,
     is_warnings_visible: bool,
+    is_ssa_visible: bool,
 }
 struct DecompiledFunction {
     df: decompiler::DecompiledFunction,
@@ -756,13 +757,21 @@ impl StageFunc {
                 hl: hl::Highlight::default(),
             },
             is_warnings_visible: false,
+            is_ssa_visible: true,
         }
     }
 
     /// Show widgets specific for this function to be laid out on the top bar
     /// (which is visually located at the executable level).
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
-        ui.label(self.df.df.name());
+        ui.allocate_ui(
+            egui::vec2(300.0, ui.text_style_height(&egui::TextStyle::Body)),
+            |ui| {
+                ui.label(self.df.df.name());
+                ui.allocate_space(ui.available_size());
+            },
+        );
+        ui.checkbox(&mut self.is_ssa_visible, "SSA");
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
@@ -835,11 +844,7 @@ impl StageFunc {
             }
         }
 
-        egui::ScrollArea::both()
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                self.show_integrated_ast(ui);
-            });
+        self.show_integrated_ast(ui);
     }
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
@@ -848,12 +853,20 @@ impl StageFunc {
         let mut col_blk = BlockIDColumn;
         let mut col_ast = ast_view::AstColumn::new(ast);
 
-        ast_view::show(
-            ui,
-            ast,
-            &[300.0, 80.0, columns::EXPANDING_WIDTH],
-            &mut [&mut col_ssa.as_mut(), &mut col_blk, &mut col_ast],
-        );
+        let widths = &[300.0, 80.0, columns::EXPANDING_WIDTH];
+        let visible = &[self.is_ssa_visible, true, true];
+
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                ast_view::show(
+                    ui,
+                    ast,
+                    visible,
+                    widths,
+                    &mut [&mut col_ssa.as_mut(), &mut col_blk, &mut col_ast],
+                );
+            });
     }
 }
 
@@ -1437,6 +1450,7 @@ mod ast_view {
     use std::sync::Arc;
 
     use anyhow::anyhow;
+    use arrayvec::ArrayVec;
     use decompiler::{BlockID, Insn};
 
     use crate::columns;
@@ -1651,8 +1665,23 @@ mod ast_view {
     }
 
     /// Renders the AST within the provided egui UI.
-    pub fn show(ui: &mut egui::Ui, ast: &Ast, widths: &[f32], columns: &mut [&mut dyn Column]) {
-        columns::show(ui, widths, |col_uis| {
+    pub fn show(
+        ui: &mut egui::Ui,
+        ast: &Ast,
+        visible: &[bool],
+        widths: &[f32],
+        columns: &mut [&mut dyn Column],
+    ) {
+        assert_eq!(visible.len(), widths.len());
+        assert_eq!(visible.len(), columns.len());
+
+        let widths_masked: ArrayVec<f32, 16> = widths
+            .into_iter()
+            .zip(visible.into_iter())
+            .map(|(&w, &is_visible)| if is_visible { w } else { 0.0 })
+            .collect();
+
+        columns::show(ui, &widths_masked, |col_uis| {
             for stmt in &ast.plan {
                 if let Stmt::BlockLabel(_) = stmt {
                     col_uis.clear();
@@ -1662,7 +1691,9 @@ mod ast_view {
                 }
 
                 for (ndx, col) in columns.iter_mut().enumerate() {
-                    col.push_stmt(col_uis.ui(ndx), stmt);
+                    if visible[ndx] {
+                        col.push_stmt(col_uis.ui(ndx), stmt);
+                    }
                 }
             }
         });
@@ -2284,7 +2315,8 @@ mod columns {
 
     pub const EXPANDING_WIDTH: f32 = f32::INFINITY;
 
-    /// Sets up a multi-column layout where each column can be filled independently by the given closure.
+    /// Sets up a multi-column layout where each column can be filled
+    /// independently by the given closure.
     ///
     /// The desired width for each column is set via the `width` array (also
     /// determines the number of columns). Use `EXPANDING_WIDTH` for columns
