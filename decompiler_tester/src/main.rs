@@ -1401,6 +1401,8 @@ mod ast_view {
     use anyhow::anyhow;
     use decompiler::{BlockID, Insn};
 
+    use crate::columns;
+
     use super::TextRole;
     use super::hl;
 
@@ -1527,50 +1529,30 @@ mod ast_view {
             ssa: Option<&decompiler::SSAProgram>,
             hl: &mut hl::Highlight,
         ) {
-            ui.horizontal(|ui| {
-                let allocate_column = |ui: &mut egui::Ui, width| {
-                    let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
-                    let col_ui = ui.new_child(
-                        egui::UiBuilder::new()
-                            .max_rect(col_rect)
-                            .layout(egui::Layout::top_down(egui::Align::TOP)),
-                    );
-                    ui.advance_cursor_after_rect(col_rect);
-                    col_ui
-                };
-
-                let mut left_ui = allocate_column(ui, 300.0);
-                let mut mid_ui = allocate_column(ui, 80.0);
-                let mut right_ui = allocate_column(ui, ui.available_width());
-
+            columns::show(ui, [300.0, 80.0, columns::EXPANDING_WIDTH], |cols| {
                 let mut indent_level = 0;
                 for stmt in &self.plan {
                     match stmt {
                         &Stmt::BlockLabel(block_id) => {
-                            let y_clear = (left_ui.min_rect().max.y)
-                                .max(mid_ui.min_rect().max.y)
-                                .max(right_ui.min_rect().max.y);
-                            left_ui.advance_cursor_after_rect(left_ui.cursor().with_max_y(y_clear));
-                            mid_ui.advance_cursor_after_rect(mid_ui.cursor().with_max_y(y_clear));
-                            right_ui
-                                .advance_cursor_after_rect(right_ui.cursor().with_max_y(y_clear));
+                            cols.clear();
 
-                            mid_ui.separator();
-                            mid_ui.label(format!("B{}", block_id.as_number()));
+                            cols.ui(1).separator();
+                            cols.ui(1).label(format!("B{}", block_id.as_number()));
 
                             if let Some(ssa) = ssa {
-                                left_ui.separator();
+                                cols.ui(0).separator();
                                 for reg in ssa.block_regs(block_id) {
                                     let insn = ssa[reg].get();
-                                    left_ui.label(format!("{:?} <- {:?}", reg, insn));
+                                    cols.ui(0).label(format!("{:?} <- {:?}", reg, insn));
                                 }
-                                left_ui.label(format!("{:?}", ssa.cfg().block_cont(block_id)));
+                                cols.ui(0)
+                                    .label(format!("{:?}", ssa.cfg().block_cont(block_id)));
                             }
 
-                            right_ui.separator();
+                            cols.ui(2).separator();
                         }
                         Stmt::ExprStmt(value_xp) => {
-                            right_ui.horizontal_top(|ui| {
+                            cols.ui(2).horizontal_top(|ui| {
                                 ui.add_space(indent_level as f32 * 20.0);
                                 self.show_expr(ui, value_xp);
                             });
@@ -1579,7 +1561,7 @@ mod ast_view {
                             name,
                             value: value_xp,
                         } => {
-                            right_ui.horizontal_top(|ui| {
+                            cols.ui(2).horizontal_top(|ui| {
                                 ui.add_space(indent_level as f32 * 20.0);
                                 ui.label(format!("let {} = ", name));
                                 self.show_expr(ui, value_xp);
@@ -1592,7 +1574,7 @@ mod ast_view {
                             indent_level += 1;
                         }
                         Stmt::Comment(comment) => {
-                            right_ui.horizontal(|ui| {
+                            cols.ui(2).horizontal(|ui| {
                                 ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
                                 ui.label("//");
                                 ui.label(comment);
@@ -1600,10 +1582,6 @@ mod ast_view {
                         }
                     }
                 }
-
-                ui.expand_to_include_rect(left_ui.min_rect());
-                ui.expand_to_include_rect(mid_ui.min_rect());
-                ui.expand_to_include_rect(right_ui.min_rect());
             });
         }
 
@@ -2248,5 +2226,80 @@ mod ast_view {
             text,
             role: TextRole::Error,
         })
+    }
+}
+
+mod columns {
+    pub const EXPANDING_WIDTH: f32 = f32::INFINITY;
+
+    /// Sets up a multi-column layout where each column can be filled independently by the given closure.
+    ///
+    /// The desired width for each column is set via the `width` array (also
+    /// determines the number of columns). Use `EXPANDING_WIDTH` for columns
+    /// that should take up the remaining available space equally.
+    ///
+    /// The `add_contents` closure is given an array of [`Column`], allowing
+    /// access to a separate `egui::Ui` for each column.
+    pub fn show<const N: usize>(
+        ui: &mut egui::Ui,
+        widths: [f32; N],
+        add_contents: impl FnOnce(&mut Columns<N>),
+    ) {
+        ui.horizontal(move |ui| {
+            let width_fixed: f32 = widths.into_iter().filter(|w| w.is_finite()).sum();
+            let width_expanding_count = widths.into_iter().filter(|w| w.is_infinite()).count();
+            let width_available = ui.available_width();
+            let width_expanding_each: f32 =
+                (width_available - width_fixed) / width_expanding_count as f32;
+
+            let uis = std::array::from_fn(|ndx| {
+                let width = match widths[ndx] {
+                    w if w.is_infinite() => width_expanding_each,
+                    other => other,
+                };
+
+                let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
+                let col_ui = ui.new_child(
+                    egui::UiBuilder::new()
+                        .max_rect(col_rect)
+                        .layout(egui::Layout::top_down(egui::Align::TOP)),
+                );
+                ui.advance_cursor_after_rect(col_rect);
+
+                col_ui
+            });
+
+            let mut columns = Columns { uis };
+
+            add_contents(&mut columns);
+
+            for col in columns.uis {
+                // we're doing a custom layout, so we have to do this where egui
+                // would have done this automatically
+                ui.expand_to_include_rect(col.min_rect());
+            }
+        });
+    }
+
+    pub struct Columns<const N: usize> {
+        uis: [egui::Ui; N],
+    }
+    impl<const N: usize> Columns<N> {
+        pub fn ui(&mut self, ndx: usize) -> &mut egui::Ui {
+            &mut self.uis[ndx]
+        }
+
+        pub fn clear(&mut self) {
+            let y_clear = self
+                .uis
+                .iter()
+                .map(|ui| ui.min_rect().max.y)
+                .reduce(|ay, by| ay.max(by))
+                .unwrap();
+
+            for col in &mut self.uis {
+                col.advance_cursor_after_rect(col.cursor().with_max_y(y_clear));
+            }
+        }
     }
 }

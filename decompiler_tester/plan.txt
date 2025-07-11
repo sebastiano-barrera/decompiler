@@ -76,11 +76,16 @@ compiler version
         - [x] warnings UI
     - [x] investigate why some blocks are missing above ("blmoveCommand")
         fixed
-    - [ ] remove the AST transformation (visit CFG+SSA and just generate the UI)
+    - [--] remove the AST transformation (visit CFG+SSA and just generate the UI)
+        - decided against it. the current approach is fine for now, and probably
+        not too hard to change later.
+    - [ ] refactor? (to allow multiple views, possibly toggleable)
+    - [ ] add ASM view
     - [ ] make ASM, SSA toggleable
         - [ ] refactor: make views more independent from each other and from the "column allocation"
-    - [ ] add ASM view
-    - [ ] refactor?
+
+- [ ] go back to single executable, single function at a time
+    - increased code complexity is not worth it. can be paid to higher benefit later
 
 - [ ] custom block ordering
 
