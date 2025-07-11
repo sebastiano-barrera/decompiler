@@ -844,8 +844,8 @@ impl StageFunc {
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
         let ast = &self.df.ast;
-        let mut col_ssa = self.df.df.ssa().map(|ssa| ast_view::SsaColumn::new(ssa));
-        let mut col_blk = ast_view::BlockIDColumn;
+        let mut col_ssa = self.df.df.ssa().map(|ssa| SSAColumn::new(ssa));
+        let mut col_blk = BlockIDColumn;
         let mut col_ast = ast_view::AstColumn::new(ast);
 
         ast_view::show(
@@ -854,6 +854,35 @@ impl StageFunc {
             &[300.0, 80.0, columns::EXPANDING_WIDTH],
             &mut [&mut col_ssa.as_mut(), &mut col_blk, &mut col_ast],
         );
+    }
+}
+
+pub struct SSAColumn<'a> {
+    ssa: &'a decompiler::SSAProgram,
+}
+impl<'a> SSAColumn<'a> {
+    pub fn new(ssa: &'a decompiler::SSAProgram) -> Self {
+        SSAColumn { ssa }
+    }
+}
+impl ast_view::Column for SSAColumn<'_> {
+    fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &ast_view::Stmt) {
+        if let &ast_view::Stmt::BlockLabel(block_id) = stmt {
+            for reg in self.ssa.block_regs(block_id) {
+                let insn = self.ssa[reg].get();
+                ui.label(format!("{:?} <- {:?}", reg, insn));
+            }
+            ui.label(format!("{:?}", self.ssa.cfg().block_cont(block_id)));
+        }
+    }
+}
+
+pub struct BlockIDColumn;
+impl ast_view::Column for BlockIDColumn {
+    fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &ast_view::Stmt) {
+        if let &ast_view::Stmt::BlockLabel(block_id) = stmt {
+            ui.label(format!("B{}", block_id.as_number()));
+        }
     }
 }
 
@@ -1579,8 +1608,8 @@ mod ast_view {
     impl<'a> AstColumn<'a> {
         pub fn new(ast: &'a Ast) -> Self {
             AstColumn {
-                ast,
                 indent_level: 0,
+                ast,
             }
         }
     }
@@ -1617,35 +1646,6 @@ mod ast_view {
                         ui.label(comment);
                     });
                 }
-            }
-        }
-    }
-
-    pub struct SsaColumn<'a> {
-        ssa: &'a decompiler::SSAProgram,
-    }
-    impl<'a> SsaColumn<'a> {
-        pub fn new(ssa: &'a decompiler::SSAProgram) -> Self {
-            SsaColumn { ssa }
-        }
-    }
-    impl Column for SsaColumn<'_> {
-        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
-            if let &Stmt::BlockLabel(block_id) = stmt {
-                for reg in self.ssa.block_regs(block_id) {
-                    let insn = self.ssa[reg].get();
-                    ui.label(format!("{:?} <- {:?}", reg, insn));
-                }
-                ui.label(format!("{:?}", self.ssa.cfg().block_cont(block_id)));
-            }
-        }
-    }
-
-    pub struct BlockIDColumn;
-    impl Column for BlockIDColumn {
-        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
-            if let &Stmt::BlockLabel(block_id) = stmt {
-                ui.label(format!("B{}", block_id.as_number()));
             }
         }
     }
