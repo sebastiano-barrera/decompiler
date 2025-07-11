@@ -1647,7 +1647,7 @@ mod ast_view {
         let mut col_blk = BlockIDColumn;
         let mut col_ssa = ssa.map(|ssa| SsaColumn { ssa });
 
-        columns::show(ui, [300.0, 80.0, columns::EXPANDING_WIDTH], |cols| {
+        columns::show(ui, &[300.0, 80.0, columns::EXPANDING_WIDTH], |cols| {
             for stmt in &col_ast.ast.plan {
                 if let Stmt::BlockLabel(_) = stmt {
                     cols.clear();
@@ -2275,6 +2275,8 @@ mod ast_view {
 }
 
 mod columns {
+    use arrayvec::ArrayVec;
+
     pub const EXPANDING_WIDTH: f32 = f32::INFINITY;
 
     /// Sets up a multi-column layout where each column can be filled independently by the given closure.
@@ -2285,11 +2287,7 @@ mod columns {
     ///
     /// The `add_contents` closure is given an array of [`Column`], allowing
     /// access to a separate `egui::Ui` for each column.
-    pub fn show<const N: usize>(
-        ui: &mut egui::Ui,
-        widths: [f32; N],
-        add_contents: impl FnOnce(&mut Columns<N>),
-    ) {
+    pub fn show(ui: &mut egui::Ui, widths: &[f32], add_contents: impl FnOnce(&mut Columns)) {
         ui.horizontal(move |ui| {
             let width_fixed: f32 = widths.into_iter().filter(|w| w.is_finite()).sum();
             let width_expanding_count = widths.into_iter().filter(|w| w.is_infinite()).count();
@@ -2297,22 +2295,25 @@ mod columns {
             let width_expanding_each: f32 =
                 (width_available - width_fixed) / width_expanding_count as f32;
 
-            let uis = std::array::from_fn(|ndx| {
-                let width = match widths[ndx] {
-                    w if w.is_infinite() => width_expanding_each,
-                    other => other,
-                };
+            let uis: ArrayVec<_, MAX_COUNT> = widths
+                .into_iter()
+                .map(|width| {
+                    let width = match *width {
+                        w if w.is_infinite() => width_expanding_each,
+                        other => other,
+                    };
 
-                let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
-                let col_ui = ui.new_child(
-                    egui::UiBuilder::new()
-                        .max_rect(col_rect)
-                        .layout(egui::Layout::top_down(egui::Align::TOP)),
-                );
-                ui.advance_cursor_after_rect(col_rect);
+                    let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
+                    let col_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .max_rect(col_rect)
+                            .layout(egui::Layout::top_down(egui::Align::TOP)),
+                    );
+                    ui.advance_cursor_after_rect(col_rect);
 
-                col_ui
-            });
+                    col_ui
+                })
+                .collect();
 
             let mut columns = Columns { uis };
 
@@ -2326,10 +2327,12 @@ mod columns {
         });
     }
 
-    pub struct Columns<const N: usize> {
-        uis: [egui::Ui; N],
+    const MAX_COUNT: usize = 16;
+
+    pub struct Columns {
+        uis: ArrayVec<egui::Ui, MAX_COUNT>,
     }
-    impl<const N: usize> Columns<N> {
+    impl Columns {
         pub fn ui(&mut self, ndx: usize) -> &mut egui::Ui {
             &mut self.uis[ndx]
         }
