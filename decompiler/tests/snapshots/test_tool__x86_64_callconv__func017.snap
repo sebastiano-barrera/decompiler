@@ -7,6 +7,8 @@ func017 0x40115f+6 (file 0x115f)
           401164: c3                      ret
 
 function type: "func017" func (arg0 big <TypeID(795v1)>) *void <TypeID(1v1)>
+WARNING: 1 errors; only 0 out of 1 parameters could be mapped to registers and stack slots
+  #0: type has no alignment?
 0 warnings.
 
 

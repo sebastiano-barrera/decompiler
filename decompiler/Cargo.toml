@@ -3,6 +3,9 @@ name = "decompiler"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+trace = []
+
 [dependencies]
 anyhow = "1.0.89"
 bimap = "0.6.3"
@@ -31,3 +34,14 @@ features = ["decoder", "intel", "std", "instr_info"]
 insta = { version = "1.40.0", default-features = false }
 iced-x86 = { version = "1.21.0", features = ["encoder", "code_asm"] }
 include_dir = "0.7.4"
+
+# list ourselves here, to add the 'trace' feature when we run `cargo test` by default
+decompiler = { path = ".", features = ["trace"] }
+
+[[test]]
+name = "test_tool"
+path = "tests/test_tool.rs"
+required-features = ["trace"]
+
+
+

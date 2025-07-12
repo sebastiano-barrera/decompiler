@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     mil::{self, ArithOp, Insn, RegType},
-    ssa, x86_to_mil,
+    ssa, traceln, x86_to_mil,
 };
 
 mod mem;
@@ -462,9 +462,9 @@ pub fn canonical(prog: &mut ssa::Program) {
 
                 let final_has_fx = insn.has_side_effects();
                 if final_has_fx != orig_has_fx {
-                    eprintln!(" --- bug:");
-                    eprintln!("  orig: side fx: {:?} insn: {:?}", orig_has_fx, orig_insn);
-                    eprintln!(" final: side fx: {:?} insn: {:?}", final_has_fx, insn);
+                    traceln!(" --- bug:");
+                    traceln!("  orig: side fx: {:?} insn: {:?}", orig_has_fx, orig_insn);
+                    traceln!(" final: side fx: {:?} insn: {:?}", final_has_fx, insn);
                     panic!();
                 }
 
@@ -523,7 +523,7 @@ mod tests {
 
     use crate::{
         mil::{self, Control},
-        ssa, ty,
+        ssa, traceln, ty,
     };
     use mil::{ArithOp, Insn, Reg};
 
@@ -532,7 +532,7 @@ mod tests {
 
         use crate::{
             mil::{self, Control},
-            ssa, ty, xform,
+            ssa, traceln, ty, xform,
         };
         use mil::{ArithOp, Insn, Reg};
 
@@ -562,7 +562,7 @@ mod tests {
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             xform::canonical(&mut prog);
-            eprintln!("ssa post xform:\n\n{:?}", prog);
+            traceln!("ssa post xform:\n\n{:?}", prog);
 
             assert_eq!(prog.cfg().block_count(), 1);
             assert_eq!(prog[Reg(4)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
@@ -596,10 +596,10 @@ mod tests {
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-            eprintln!("ssa pre-xform:\n{prog:?}");
+            traceln!("ssa pre-xform:\n{prog:?}");
             xform::canonical(&mut prog);
             ssa::eliminate_dead_code(&mut prog);
-            eprintln!("ssa post-xform:\n{prog:?}");
+            traceln!("ssa post-xform:\n{prog:?}");
 
             assert_eq!(prog.insns_rpo().count(), 6);
             assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Mul, Reg(0), 1100));
@@ -852,7 +852,7 @@ mod tests {
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         super::canonical(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
-        eprintln!("ssa post-xform:\n{prog:?}");
+        traceln!("ssa post-xform:\n{prog:?}");
 
         assert_eq!(prog.insns_rpo().count(), 2);
         assert_eq!(

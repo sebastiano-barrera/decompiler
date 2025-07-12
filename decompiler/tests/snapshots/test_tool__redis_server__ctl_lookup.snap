@@ -311,6 +311,25 @@ ctl_lookup 0x5ddf40+1255 (file 0x1ddf40)
           5de422: e9 4b ff ff ff          jmp 00000000005DE372h
 
 function type: 0x5ddf40: no type info
+#call: to address 0x401280, returning to 0x5ddf74      -> resolved call to: TypeID(340442v1) = Type { name: "strchr", ty: Subroutine(Subroutine { return_tyid: TypeID(338770v1), param_names: [None, None], param_tyids: [TypeID(338833v1), TypeID(338762v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de00a      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de043      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de078      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de0e2      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de10c      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de136      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de169      -> resolved call to: TypeID(340440v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(338777v1), param_names: [None], param_tyids: [TypeID(338833v1)] }) }
+#call: to address 0x401340, returning to 0x5de181      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x401340, returning to 0x5de1ac      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x401280, returning to 0x5de206      -> resolved call to: TypeID(340442v1) = Type { name: "strchr", ty: Subroutine(Subroutine { return_tyid: TypeID(338770v1), param_names: [None, None], param_tyids: [TypeID(338833v1), TypeID(338762v1)] }) }
+#call: to address 0x6270e0, returning to 0x5de254      -> resolved call to: TypeID(340432v1) = Type { name: "je_malloc_strtoumax", ty: Subroutine(Subroutine { return_tyid: TypeID(338844v1), param_names: [None, None, None], param_tyids: [TypeID(338835v1), TypeID(338832v1), TypeID(338762v1)] }) }
+#call: to address 0x401340, returning to 0x5de2fc      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x401340, returning to 0x5de31c      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de358      -> resolved call to: TypeID(358627v1) = Type { name: "__builtin_strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [], param_tyids: [] }) }
+#call: to address 0x401340, returning to 0x5de399      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x401340, returning to 0x5de3c1      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x401340, returning to 0x5de3e9      -> resolved call to: TypeID(340436v1) = Type { name: "strncmp", ty: Subroutine(Subroutine { return_tyid: TypeID(338762v1), param_names: [None, None, None], param_tyids: [TypeID(338833v1), TypeID(338833v1), TypeID(338755v1)] }) }
+#call: to address 0x4012e0, returning to 0x5de40c      -> resolved call to: TypeID(358627v1) = Type { name: "__builtin_strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [], param_tyids: [] }) }
 4 warnings:
   #   0: call: call resolved but only packed 0/3 params
   #   1: no type hints for this callsite

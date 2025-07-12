@@ -822,6 +822,7 @@ dependencies = [
  "anyhow",
  "arrayvec",
  "bimap",
+ "decompiler",
  "enum-assoc",
  "facet",
  "facet-derive",

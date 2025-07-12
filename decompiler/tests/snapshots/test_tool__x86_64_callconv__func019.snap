@@ -7,6 +7,8 @@ func019 0x40116a+5 (file 0x116a)
           40116e: c3                      ret
 
 function type: "func019" func (arg0 big <TypeID(795v1)>) uint8_t <TypeID(789v1)>
+WARNING: 1 errors; only 0 out of 1 parameters could be mapped to registers and stack slots
+  #0: type has no alignment?
 0 warnings.
 
 

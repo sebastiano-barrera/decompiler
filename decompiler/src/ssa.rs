@@ -988,46 +988,51 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{mil, ty};
+    use crate::{mil, traceln, ty, util::global_log};
     use mil::{ArithOp, Control, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
-        let prog = {
-            let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
+        let mut logbuf = String::new();
+        global_log::with_buffer(&mut logbuf, || {
+            let prog = {
+                let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
 
-            pb.set_input_addr(0xf0);
-            pb.push(
-                Reg(0),
-                Insn::Const {
-                    value: 123,
-                    size: 8,
-                },
-            );
-            pb.push(Reg(1), Insn::SetJumpCondition(Reg(0)));
-            pb.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
+                pb.set_input_addr(0xf0);
+                pb.push(
+                    Reg(0),
+                    Insn::Const {
+                        value: 123,
+                        size: 8,
+                    },
+                );
+                pb.push(Reg(1), Insn::SetJumpCondition(Reg(0)));
+                pb.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
 
-            pb.set_input_addr(0xf1);
-            pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
-            pb.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
+                pb.set_input_addr(0xf1);
+                pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
+                pb.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
 
-            pb.set_input_addr(0xf2);
-            pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
+                pb.set_input_addr(0xf2);
+                pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
 
-            pb.set_input_addr(0xf3);
-            pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
-            pb.push(Reg(5), Insn::SetReturnValue(Reg(4)));
-            pb.push(Reg(5), Insn::Control(Control::Ret));
+                pb.set_input_addr(0xf3);
+                pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
+                pb.push(Reg(5), Insn::SetReturnValue(Reg(4)));
+                pb.push(Reg(5), Insn::Control(Control::Ret));
 
-            pb.build()
-        };
+                pb.build()
+            };
 
-        eprintln!("-- mil:");
-        eprintln!("{:?}", prog);
+            traceln!("-- mil:");
+            traceln!("{:?}", prog);
 
-        eprintln!("-- ssa:");
-        let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
-        insta::assert_debug_snapshot!(prog);
+            traceln!("-- ssa:");
+            let prog = super::mil_to_ssa(super::ConversionParams::new(prog));
+            traceln!("{:?}", prog);
+        });
+
+        insta::assert_snapshot!(logbuf);
     }
 
     #[test]

@@ -8,6 +8,8 @@ func042 0x4011dd+5 (file 0x11dd)
 
 function type: "func042" func (arg0 small <TypeID(785v1)>,
                                arg1 big <TypeID(795v1)>) uint8_t <TypeID(789v1)>
+WARNING: 1 errors; only 1 out of 2 parameters could be mapped to registers and stack slots
+  #0: type has no alignment?
 0 warnings.
 
 

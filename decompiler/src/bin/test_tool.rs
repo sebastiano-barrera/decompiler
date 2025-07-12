@@ -29,8 +29,7 @@ fn main() {
         contents
     };
 
-    let out = std::io::stdout();
-    let mut out = pp::PrettyPrinter::start(out);
+    let mut out = String::new();
     let res = decompiler::Executable::parse(&contents)
         .and_then(|exe| exe.process_function(&opts.function_name, &mut out));
     if let Err(err) = res {

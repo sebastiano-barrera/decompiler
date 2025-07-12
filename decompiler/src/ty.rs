@@ -6,7 +6,7 @@ use thiserror::Error;
 
 pub mod dwarf;
 
-use crate::pp::{self, PP};
+use crate::{pp::{self, PP}, trace, traceln};
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
@@ -197,7 +197,7 @@ impl TypeSet {
     }
 
     pub fn set_known_object(&mut self, addr: Addr, tyid: TypeID) {
-        eprintln!("#call: discovered 0x{:x} -> {:?}", addr, tyid);
+        traceln!("#call: discovered 0x{:x} -> {:?}", addr, tyid);
         self.known_objects.insert(addr, tyid);
     }
 
@@ -339,7 +339,7 @@ impl TypeSet {
         let CallSiteKey { return_pc, target } = key;
 
         #[cfg(debug_assertions)]
-        eprint!(
+        trace!(
             "#call: to address 0x{:x}, returning to 0x{:x}",
             target, return_pc
         );
@@ -352,10 +352,10 @@ impl TypeSet {
         match tyid {
             Some(tyid) => {
                 let typ = self.get_through_alias(tyid).unwrap();
-                eprintln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
+                traceln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
             }
             None => {
-                eprintln!("      -> unresolved");
+                traceln!("      -> unresolved");
             }
         }
 

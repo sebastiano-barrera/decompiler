@@ -8,6 +8,8 @@ func039 0x4011cd+6 (file 0x11cd)
 
 function type: "func039" func (arg0 small <TypeID(785v1)>,
                                arg1 big <TypeID(795v1)>) *void <TypeID(1v1)>
+WARNING: 1 errors; only 1 out of 2 parameters could be mapped to registers and stack slots
+  #0: type has no alignment?
 0 warnings.
 
 

@@ -131,6 +131,16 @@ redisConnectWithOptions 0x595210+517 (file 0x195210)
           595410: e9 45 ff ff ff          jmp 000000000059535Ah
 
 function type: "redisConnectWithOptions" func (options *?) *redisContext <TypeID(297540v1)>
+#call: to address 0x595fd0, returning to 0x595248      -> resolved call to: TypeID(297702v1) = Type { name: "hi_sdsempty", ty: Subroutine(Subroutine { return_tyid: TypeID(297374v1), param_names: [], param_tyids: [] }) }
+#call: to address 0x594ef0, returning to 0x595254      -> resolved call to: TypeID(298074v1) = Type { name: "redisReaderCreate", ty: Subroutine(Subroutine { return_tyid: TypeID(297536v1), param_names: [], param_tyids: [] }) }
+#call: to address 0x595200, returning to 0x5952e5      -> resolved call to: TypeID(297899v1) = Type { name: "redisSetPushCallback", ty: Subroutine(Subroutine { return_tyid: TypeID(297482v1), param_names: [Some("c"), Some("fn")], param_tyids: [TypeID(297610v1), TypeID(297482v1)] }) }
+#call: to address 0x592740, returning to 0x595307      -> resolved call to: TypeID(297630v1) = Type { name: "redisContextUpdateConnectTimeout", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None], param_tyids: [TypeID(297610v1), TypeID(297481v1)] }) }
+#call: to address 0x592ee0, returning to 0x59531b      -> resolved call to: TypeID(297627v1) = Type { name: "redisContextUpdateCommandTimeout", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None], param_tyids: [TypeID(297610v1), TypeID(297481v1)] }) }
+#call: to address 0x592f40, returning to 0x59538b      -> resolved call to: TypeID(297633v1) = Type { name: "redisContextSetTimeout", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None], param_tyids: [TypeID(297610v1), TypeID(297369v1)] }) }
+#call: to address 0x594df0, returning to 0x5953a4      -> resolved call to: TypeID(298077v1) = Type { name: "__redisSetError", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("c"), Some("type"), Some("str")], param_tyids: [TypeID(297610v1), TypeID(297248v1), TypeID(297417v1)] }) }
+#call: to address 0x594f00, returning to 0x5953d0      -> resolved call to: TypeID(298045v1) = Type { name: "redisFree", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("c")], param_tyids: [TypeID(297610v1)] }) }
+#call: to address 0x5930c0, returning to 0x5953f7      -> resolved call to: TypeID(297640v1) = Type { name: "redisContextConnectBindTcp", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None, None, None, None], param_tyids: [TypeID(297610v1), TypeID(297417v1), TypeID(297248v1), TypeID(297481v1), TypeID(297417v1)] }) }
+#call: to address 0x5930d0, returning to 0x595410      -> resolved call to: TypeID(297636v1) = Type { name: "redisContextConnectUnix", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None, None], param_tyids: [TypeID(297610v1), TypeID(297417v1), TypeID(297481v1)] }) }
 2 warnings:
   #   0: no type hints for this callsite
   #   1: call: call resolved but only packed 1/2 params

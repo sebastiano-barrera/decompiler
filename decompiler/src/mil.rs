@@ -6,6 +6,7 @@ use facet_reflect::HasFields;
 use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::ty;
+use crate::traceln;
 
 /// A MIL program.
 ///
@@ -489,11 +490,11 @@ impl ProgramBuilder {
                 if !is_initialized {
                     #[cfg(debug_assertions)]
                     {
-                        eprintln!("-- in mil block:");
+                        traceln!("-- in mil block:");
                         for ndx in ndx_start..ndx_end {
                             let insn = self.insns[ndx].get();
                             let dest = self.dests[ndx].get();
-                            eprintln!("{:5} {:?} <- {:?}", ndx, dest, insn);
+                            traceln!("{:5} {:?} <- {:?}", ndx, dest, insn);
                         }
                         panic!(
                             "Temporary register {:?} used at instruction {} without prior initialization in this block.",

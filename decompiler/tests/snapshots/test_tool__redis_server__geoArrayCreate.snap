@@ -14,6 +14,7 @@ geoArrayCreate 0x50c4d0+31 (file 0x10c4d0)
           50c4ee: c3                      ret
 
 function type: "geoArrayCreate" func () *geoArray <TypeID(246624v1)>
+#call: to address 0x43a810, returning to 0x50c4de      -> resolved call to: TypeID(107948v1) = Type { name: "zmalloc", ty: Subroutine(Subroutine { return_tyid: TypeID(172463v1), param_names: [Some("size")], param_tyids: [TypeID(172469v1)] }) }
 0 warnings.
 
 

@@ -10,6 +10,8 @@ function type: "func087" func (arg0 *void <TypeID(1v1)>,
                                arg1 *void <TypeID(1v1)>,
                                arg2 small <TypeID(785v1)>,
                                arg3 big <TypeID(795v1)>) uint8_t <TypeID(789v1)>
+WARNING: 1 errors; only 3 out of 4 parameters could be mapped to registers and stack slots
+  #0: type has no alignment?
 0 warnings.
 
 

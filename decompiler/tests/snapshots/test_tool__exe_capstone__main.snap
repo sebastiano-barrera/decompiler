@@ -58,6 +58,12 @@ main 0x401090+181 (file 0x1090)
           401143: eb e6                   jmp short 000000000040112Bh
 
 function type: "main" func () int <TypeID(17v1)>
+#call: to address 0x401070, returning to 0x4010aa      -> resolved call to: TypeID(3338v1) = Type { name: "cs_open", ty: Subroutine(Subroutine { return_tyid: TypeID(3319v1), param_names: [None, None, None], param_tyids: [TypeID(60v1), TypeID(124v1), TypeID(3322v1)] }) }
+#call: to address 0x401060, returning to 0x4010d5      -> resolved call to: TypeID(3330v1) = Type { name: "cs_disasm", ty: Subroutine(Subroutine { return_tyid: TypeID(4v1), param_names: [None, None, None, None, None, None], param_tyids: [TypeID(38v1), TypeID(125v1), TypeID(4v1), TypeID(33v1), TypeID(4v1), TypeID(3337v1)] }) }
+#call: to address 0x401050, returning to 0x40110f      -> resolved call to: TypeID(3327v1) = Type { name: "printf", ty: Subroutine(Subroutine { return_tyid: TypeID(17v1), param_names: [None], param_tyids: [TypeID(24v1)] }) }
+#call: to address 0x401040, returning to 0x401121      -> resolved call to: TypeID(3323v1) = Type { name: "cs_free", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [None, None], param_tyids: [TypeID(3326v1), TypeID(4v1)] }) }
+#call: to address 0x401080, returning to 0x401129      -> resolved call to: TypeID(3320v1) = Type { name: "cs_close", ty: Subroutine(Subroutine { return_tyid: TypeID(3319v1), param_names: [None], param_tyids: [TypeID(3322v1)] }) }
+#call: to address 0x401030, returning to 0x40113e      -> resolved call to: TypeID(3366v1) = Type { name: "__builtin_puts", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [], param_tyids: [] }) }
 4 warnings:
   #   0: packing parameters for subroutine type
            <- while applying calling convention

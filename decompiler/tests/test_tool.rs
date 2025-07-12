@@ -54,24 +54,11 @@ impl Exe {
     }
 
     fn process_function(&self, function_name: &str) -> String {
-        let mut buf = Vec::new();
-        let mut out = std::io::stderr().lock();
-
-        let mut wrt = pp::MultiWriter::new();
-        wrt.add_writer((&mut buf) as &mut dyn std::io::Write);
-
-        let debugging_madly = false;
-        if debugging_madly {
-            wrt.add_writer((&mut out) as _);
-        }
-
-        let mut pp = pp::PrettyPrinter::start(&mut wrt);
+        let mut log_buf = String::new();
         self.get_or_init()
-            .process_function(function_name, &mut pp)
+            .process_function(function_name, &mut log_buf)
             .expect("function decompilation failed");
-
-        drop(wrt);
-        String::from_utf8(buf).unwrap()
+        log_buf
     }
 }
 

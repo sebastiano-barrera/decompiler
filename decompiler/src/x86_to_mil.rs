@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::mil::{self, AncestralName, Control, RegType};
 use crate::ty;
+use crate::traceln;
 use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
@@ -115,9 +116,9 @@ impl Builder {
             match res {
                 Ok(report) => {
                     if report.ok_count < param_count {
-                        eprintln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
+                        traceln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
                         for (ndx, err) in report.errors.into_iter().enumerate() {
-                            eprintln!("  #{}: {}", ndx, err);
+                            traceln!("  #{}: {}", ndx, err);
                         }
                     }
                 }

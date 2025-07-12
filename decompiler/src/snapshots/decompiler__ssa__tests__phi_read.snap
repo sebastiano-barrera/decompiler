@@ -1,7 +1,24 @@
 ---
 source: decompiler/src/ssa.rs
-expression: prog
+expression: logbuf
 ---
+-- mil:
+program  9 instrs
+0xf0:
+    0 r0: TypeID(2v1) <- Const { value: 123, size: 8 }
+    1 r1: TypeID(2v1) <- SetJumpCondition(r0)
+    2 r1: TypeID(2v1) <- Control(JmpIf(5))
+0xf1:
+    3 r2: TypeID(2v1) <- Const { value: 4, size: 1 }
+    4 r1: TypeID(2v1) <- Control(Jmp(6))
+0xf2:
+    5 r2: TypeID(2v1) <- Const { value: 8, size: 1 }
+0xf3:
+    6 r4: TypeID(2v1) <- ArithK(Add, r2, 456)
+    7 r5: TypeID(2v1) <- SetReturnValue(r4)
+    8 r5: TypeID(2v1) <- Control(Ret)
+
+-- ssa:
 ssa program  12 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(1)) }.
          r0: ? <- Const { value: 123, size: 8 }

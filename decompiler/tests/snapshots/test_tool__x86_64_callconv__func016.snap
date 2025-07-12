@@ -7,6 +7,8 @@ func016 0x401158+7 (file 0x1158)
           40115e: c3                      ret
 
 function type: "func016" func (arg0 big <TypeID(795v1)>) double <TypeID(784v1)>
+WARNING: 1 errors; only 0 out of 1 parameters could be mapped to registers and stack slots
+  #0: type has no alignment?
 0 warnings.
 
 

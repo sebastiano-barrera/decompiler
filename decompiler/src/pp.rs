@@ -25,6 +25,10 @@ impl<W: Write> PrettyPrinter<W> {
             indent_next_chunk: false,
         }
     }
+
+    pub(crate) fn writer_mut(&mut self) -> &mut W {
+        &mut self.wrt
+    }
 }
 
 impl<W: Write> PP for PrettyPrinter<W> {

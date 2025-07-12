@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::traceln;
+
 /// Parse a raw binary into an ELF.
 ///
 /// Returns an error ([Error::UnsupportedExecFormat]) if the binary is detected
@@ -17,7 +19,7 @@ pub fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
     };
 
     if !elf.dynrelas.is_empty() || !elf.shdr_relocs.is_empty() || !elf.dynrels.is_empty() {
-        eprintln!("WARNING: The given executable contains relocations. These are not going to be applied, so some functionality might misbehave.");
+        traceln!("WARNING: The given executable contains relocations. These are not going to be applied, so some functionality might misbehave.");
     }
     Ok(elf)
 }

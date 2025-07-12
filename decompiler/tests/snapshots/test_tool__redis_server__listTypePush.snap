@@ -147,6 +147,14 @@ listTypePush 0x485d60+534 (file 0x85d60)
           485f71: e8 fa c5 03 00          call 00000000004C2570h
 
 function type: 0x485d60: no type info
+#call: to address 0x55dcb0, returning to 0x485dc4      -> resolved call to: TypeID(48714v1) = Type { name: "lpAppendInteger", ty: Subroutine(Subroutine { return_tyid: TypeID(266132v1), param_names: [Some("lp"), Some("lval")], param_tyids: [TypeID(266132v1), TypeID(266072v1)] }) }
+#call: to address 0x55dde0, returning to 0x485e2d      -> resolved call to: TypeID(48715v1) = Type { name: "lpPrependInteger", ty: Subroutine(Subroutine { return_tyid: TypeID(266132v1), param_names: [Some("lp"), Some("lval")], param_tyids: [TypeID(266132v1), TypeID(266072v1)] }) }
+#call: to address 0x44f9a0, returning to 0x485e47      -> resolved call to: TypeID(47972v1) = Type { name: "ll2string", ty: Subroutine(Subroutine { return_tyid: TypeID(177035v1), param_names: [Some("dst"), Some("dstlen"), Some("svalue")], param_tyids: [TypeID(177075v1), TypeID(177033v1), TypeID(177038v1)] }) }
+#call: to address 0x4012e0, returning to 0x485e4f      -> resolved call to: TypeID(48716v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(164785v1), param_names: [None], param_tyids: [TypeID(164861v1)] }) }
+#call: to address 0x418470, returning to 0x485e61      -> resolved call to: TypeID(48717v1) = Type { name: "quicklistPush", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("quicklist"), Some("value"), Some("sz"), Some("where")], param_tyids: [TypeID(163949v1), TypeID(163888v1), TypeID(163885v1), TypeID(163893v1)] }) }
+#call: to address 0x55dc20, returning to 0x485ee0      -> resolved call to: TypeID(48718v1) = Type { name: "lpPrepend", ty: Subroutine(Subroutine { return_tyid: TypeID(266132v1), param_names: [Some("lp"), Some("s"), Some("slen")], param_tyids: [TypeID(266132v1), TypeID(266132v1), TypeID(266068v1)] }) }
+#call: to address 0x55dc00, returning to 0x485f13      -> resolved call to: TypeID(45900v1) = Type { name: "lpAppend", ty: Subroutine(Subroutine { return_tyid: TypeID(266132v1), param_names: [Some("lp"), Some("ele"), Some("size")], param_tyids: [TypeID(266132v1), TypeID(266132v1), TypeID(266068v1)] }) }
+#call: to address 0x4c2570, returning to 0x485f76      -> resolved call to: TypeID(46168v1) = Type { name: "_serverPanic", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("file"), Some("line"), Some("msg")], param_tyids: [TypeID(211763v1), TypeID(211621v1), TypeID(211763v1)] }) }
 2 warnings:
   #   0: no function type
   #   1: call: call resolved but only packed 2/4 params
