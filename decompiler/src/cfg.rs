@@ -176,7 +176,7 @@ impl BlockCont {
 pub struct Schedule(BlockMap<Vec<mil::Index>>);
 
 impl Schedule {
-    /// Construct a BlockSpans from the an array representation of the block's spans.
+    /// Construct a Schedule from the an array representation of the block's spans.
     ///
     /// bounds[i] == start of block for BlockID(i) == end of block BlockID(i-1)
     fn from_bounds(bounds: &[mil::Index]) -> Self {
@@ -191,9 +191,9 @@ impl Schedule {
 
         assert_eq!(bmap.block_count(), block_count);
 
-        let bs = Schedule(bmap);
-        bs.assert_invariants();
-        bs
+        let sched = Schedule(bmap);
+        sched.assert_invariants();
+        sched
     }
 
     pub fn block_count(&self) -> u16 {
@@ -299,7 +299,13 @@ impl Graph {
     }
 }
 
-pub fn analyze_mil(program: &mil::Program) -> (Graph, Schedule) {
+pub struct MILAnalysis {
+    pub graph: Graph,
+    pub schedule: Schedule,
+    pub asm_ranges: BlockMap<Range<u64>>,
+}
+
+pub fn analyze_mil(program: &mil::Program) -> MILAnalysis {
     // if bounds == [b0, b1, b2, b3, ...]
     // then the basic blocks span instructions at indices [b0, b1), [b1, b2), [b2, b3), ...
     // in general, basic block at index bndx spans [bounds[bndx], bounds[bndx+1])
@@ -416,10 +422,16 @@ pub fn analyze_mil(program: &mil::Program) -> (Graph, Schedule) {
     };
     graph.assert_invariants();
 
-    let block_spans = Schedule::from_bounds(&bounds);
+    let schedule = Schedule::from_bounds(&bounds);
 
-    assert_eq!(graph.block_count(), block_spans.block_count());
-    (graph, block_spans)
+    assert_eq!(graph.block_count(), schedule.block_count());
+    // TODO
+    let asm_ranges = BlockMap::new(&graph, 0..0);
+    MILAnalysis {
+        graph,
+        schedule,
+        asm_ranges,
+    }
 }
 
 fn compute_predecessors(successors: &BlockMap<BlockCont>) -> BlockMultiMap<BlockID> {

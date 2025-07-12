@@ -530,7 +530,11 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     let var_count = program.reg_count();
     let vars = move || (0..var_count).map(mil::Reg);
 
-    let (cfg, mut schedule) = cfg::analyze_mil(&program);
+    let cfg::MILAnalysis {
+        graph: cfg,
+        schedule: mut schedule,
+        ..
+    } = cfg::analyze_mil(&program);
     assert_eq!(cfg.block_count(), schedule.block_count());
 
     let dom_tree = cfg.dom_tree();
