@@ -3,7 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use iced_x86::Formatter;
 use thiserror::Error;
 
-use crate::{ast, mil, pp, ssa, ty, x86_to_mil, xform};
+use crate::pp::PP;
+use crate::util::global_log;
+use crate::{ast, mil, pp, ssa, trace, traceln, ty, x86_to_mil, xform};
 
 pub use crate::ast::{precedence, PrecedenceLevel};
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
@@ -81,13 +83,16 @@ impl<'a> Executable<'a> {
             .collect();
 
         let mut types = ty::TypeSet::new();
-        let dwarf_report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
-        println!(
-            "dwarf types parsed with {} errors",
-            dwarf_report.errors.len()
-        );
-        for (ndx, (addr, err)) in dwarf_report.errors.into_iter().enumerate() {
-            println!(" #{}: 0x{:08x}: {}", ndx, addr, err);
+        let _dwarf_report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+        #[cfg(test)]
+        {
+            traceln!(
+                "dwarf types parsed with {} errors",
+                _dwarf_report.errors.len()
+            );
+            for (ndx, (addr, err)) in _dwarf_report.errors.into_iter().enumerate() {
+                traceln!(" #{}: 0x{:08x}: {}", ndx, addr, err);
+            }
         }
 
         Ok(Executable {
@@ -110,143 +115,156 @@ impl<'a> Executable<'a> {
     //
     // We should change `decompile_function` so that it is good enough for
     // test_tool, then migrate the latter.
-    pub fn process_function<W: pp::PP + ?Sized>(
+    pub fn process_function(
         &self,
         function_name: &str,
-        out: &mut W,
+        out: &mut String,
     ) -> std::result::Result<(), Error> {
-        let AddrRange {
-            base: func_addr,
-            size: func_size,
-        } = self
-            .func_syms
-            .get(function_name)
-            .copied()
-            .ok_or(Error::NotAFunction(function_name.to_owned()))?;
+        global_log::with_buffer(out, || {
+            let AddrRange {
+                base: func_addr,
+                size: func_size,
+            } = self
+                .func_syms
+                .get(function_name)
+                .copied()
+                .ok_or(Error::NotAFunction(function_name.to_owned()))?;
 
-        let func_end = func_addr + func_size;
+            let func_end = func_addr + func_size;
 
-        let text_section = self
-            .elf
-            .section_headers
-            .iter()
-            .find(|sec| {
-                sec.is_executable() && self.elf.shdr_strtab.get_at(sec.sh_name) == Some(".text")
-            })
-            .expect("no .text section?!");
+            let text_section = self
+                .elf
+                .section_headers
+                .iter()
+                .find(|sec| {
+                    sec.is_executable() && self.elf.shdr_strtab.get_at(sec.sh_name) == Some(".text")
+                })
+                .expect("no .text section?!");
 
-        let vm_range = text_section.vm_range();
-        if vm_range.start > func_addr || vm_range.end < func_end {
-            writeln!(
-            out,
-            "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
-            func_addr, func_end, vm_range.start, vm_range.end
-        )?;
-        }
-
-        // function's offset into the file
-        let func_section_ofs = func_addr - vm_range.start;
-        let func_fofs = text_section.sh_offset as usize + func_section_ofs;
-        let func_text = &self.raw_binary[func_fofs..func_fofs + func_size];
-        writeln!(
-            out,
-            "{} 0x{:x}+{} (file 0x{:x})",
-            function_name, func_addr, func_size, func_fofs,
-        )?;
-
-        let decoder = iced_x86::Decoder::with_ip(
-            64,
-            func_text,
-            func_addr.try_into().unwrap(),
-            iced_x86::DecoderOptions::NONE,
-        );
-        let mut formatter = iced_x86::IntelFormatter::new();
-        let mut instr_strbuf = String::new();
-        for instr in decoder {
-            write!(out, "{:16x}: ", instr.ip())?;
-            let ofs = instr.ip() as usize - func_addr;
-            let len = instr.len();
-            for i in 0..8 {
-                if i < len {
-                    write!(out, "{:02x} ", func_text[ofs + i])?;
-                } else {
-                    write!(out, "   ")?;
-                }
+            let vm_range = text_section.vm_range();
+            if vm_range.start > func_addr || vm_range.end < func_end {
+                traceln!(
+                    "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
+                    func_addr, func_end, vm_range.start, vm_range.end
+                );
             }
 
-            instr_strbuf.clear();
-            formatter.format(&instr, &mut instr_strbuf);
-            writeln!(out, "{}", instr_strbuf)?;
-        }
+            // function's offset into the file
+            let func_section_ofs = func_addr - vm_range.start;
+            let func_fofs = text_section.sh_offset as usize + func_section_ofs;
+            let func_text = &self.raw_binary[func_fofs..func_fofs + func_size];
+            traceln!(
+                "{} 0x{:x}+{} (file 0x{:x})",
+                function_name,
+                func_addr,
+                func_size,
+                func_fofs,
+            );
 
-        writeln!(out)?;
-        let mut decoder = iced_x86::Decoder::with_ip(
-            64,
-            func_text,
-            func_addr.try_into().unwrap(),
-            iced_x86::DecoderOptions::NONE,
-        );
-        let prog = {
-            let insns = decoder.iter();
-            let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
-
-            let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
-            let func_ty = if let Some(func_tyid) = func_tyid_opt {
-                let func_typ = self.types.get_through_alias(func_tyid).unwrap();
-                write!(out, "function type: ")?;
-                self.types.dump_type(out, func_typ).unwrap();
-                writeln!(out)?;
-
-                match &func_typ.ty {
-                    ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
-                    other => panic!(
-                        "can't use type ID {:?} type is not a subroutine: {:?}",
-                        func_tyid, other
-                    ),
+            let decoder = iced_x86::Decoder::with_ip(
+                64,
+                func_text,
+                func_addr.try_into().unwrap(),
+                iced_x86::DecoderOptions::NONE,
+            );
+            let mut formatter = iced_x86::IntelFormatter::new();
+            let mut instr_strbuf = String::new();
+            for instr in decoder {
+                trace!("{:16x}: ", instr.ip());
+                let ofs = instr.ip() as usize - func_addr;
+                let len = instr.len();
+                for i in 0..8 {
+                    if i < len {
+                        trace!("{:02x} ", func_text[ofs + i]);
+                    } else {
+                        trace!("   ");
+                    }
                 }
-            } else {
-                writeln!(out, "function type: 0x{func_addr:x}: no type info")?;
-                None
+
+                instr_strbuf.clear();
+                formatter.format(&instr, &mut instr_strbuf);
+                traceln!("{}", instr_strbuf);
+            }
+
+            traceln!();
+            let mut decoder = iced_x86::Decoder::with_ip(
+                64,
+                func_text,
+                func_addr.try_into().unwrap(),
+                iced_x86::DecoderOptions::NONE,
+            );
+            let prog = {
+                let insns = decoder.iter();
+                let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
+
+                let func_tyid_opt = self.types.get_known_object(func_addr.try_into().unwrap());
+                let func_ty = if let Some(func_tyid) = func_tyid_opt {
+                    let func_typ = self.types.get_through_alias(func_tyid).unwrap();
+                    trace!("function type: ");
+                    global_log::with_pp(|pp| {
+                        self.types.dump_type(pp, func_typ).unwrap();
+                    });
+                    traceln!();
+
+                    match &func_typ.ty {
+                        ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
+                        other => panic!(
+                            "can't use type ID {:?} type is not a subroutine: {:?}",
+                            func_tyid, other
+                        ),
+                    }
+                } else {
+                    traceln!("function type: 0x{func_addr:x}: no type info");
+                    None
+                };
+
+                let (prog, warnings) = b.translate(insns, func_ty).unwrap();
+                #[cfg(not(test))]
+                let _ = warnings;
+                traceln!("{:?}", warnings);
+                traceln!();
+
+                prog
             };
 
-            let (prog, warnings) = b.translate(insns, func_ty).unwrap();
-            writeln!(out, "{:?}", warnings)?;
-            writeln!(out)?;
+            traceln!("mil program = ");
+            traceln!("{:?}", prog);
 
-            prog
-        };
-        writeln!(out, "mil program = ")?;
-        writeln!(out, "{:?}", prog)?;
+            traceln!();
+            traceln!("ssa pre-xform:");
+            let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+            ssa::eliminate_dead_code(&mut prog);
+            traceln!("{:?}", prog);
 
-        writeln!(out)?;
-        writeln!(out, "ssa pre-xform:")?;
-        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-        ssa::eliminate_dead_code(&mut prog);
-        writeln!(out, "{:?}", prog)?;
+            traceln!();
+            traceln!("cfg:");
+            let cfg = prog.cfg();
+            traceln!("  entry: {:?}", cfg.direct().entry_bid());
+            for bid in cfg.block_ids() {
+                let regs: Vec<_> = prog.block_regs(bid).collect();
+                #[cfg(not(test))]
+                let _ = regs;
+                traceln!("  {:?} -> {:?} {:?}", bid, cfg.block_cont(bid), regs);
+            }
+            trace!("  domtree:\n    ");
+            global_log::with_pp(|pp| {
+                pp.open_box();
+                cfg.dom_tree().dump(pp)?;
+                pp.close_box();
+                Result::Ok(())
+            })?;
 
-        writeln!(out)?;
-        writeln!(out, "cfg:")?;
-        let cfg = prog.cfg();
-        writeln!(out, "  entry: {:?}", cfg.direct().entry_bid())?;
-        for bid in cfg.block_ids() {
-            let regs: Vec<_> = prog.block_regs(bid).collect();
-            writeln!(out, "  {:?} -> {:?} {:?}", bid, cfg.block_cont(bid), regs)?;
-        }
-        write!(out, "  domtree:\n    ")?;
-        out.open_box();
-        cfg.dom_tree().dump(out)?;
-        out.close_box();
+            traceln!();
+            traceln!("ssa post-xform:");
+            xform::canonical(&mut prog);
+            traceln!("{:?}", prog);
 
-        writeln!(out)?;
-        writeln!(out, "ssa post-xform:")?;
-        xform::canonical(&mut prog);
-        writeln!(out, "{:?}", prog)?;
+            traceln!();
+            let mut ast = ast::Ast::new(&prog);
+            global_log::with_pp(|pp| ast.pretty_print(pp))?;
 
-        writeln!(out)?;
-        let mut ast = ast::Ast::new(&prog);
-        ast.pretty_print(out).unwrap();
-
-        Ok(())
+            Ok(())
+        })
     }
 
     pub fn decompile_function(&self, function_name: &str) -> Result<DecompiledFunction> {
@@ -345,7 +363,7 @@ impl<'a> Executable<'a> {
             .ok_or(Error::NoTextSection)?;
         let vm_range = text_section.vm_range();
         if vm_range.start > vm_addr || vm_range.end < func_end {
-            eprintln!(
+            crate::trace!(
                 "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
                 vm_addr, func_end, vm_range.start, vm_range.end,
             );
