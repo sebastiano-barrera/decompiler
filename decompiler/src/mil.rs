@@ -5,8 +5,8 @@ use facet_reflect::HasFields;
 // coming
 use std::{cell::Cell, collections::HashMap, sync::Arc};
 
-use crate::ty;
 use crate::traceln;
+use crate::ty;
 
 /// A MIL program.
 ///
@@ -522,7 +522,12 @@ impl ProgramBuilder {
     }
 
     pub fn set_ancestral_type(&mut self, anc_name: AncestralName, typ: RegType) {
-        self.anc_types.insert(anc_name, typ);
+        let prev = self.anc_types.insert(anc_name, typ);
+        assert!(
+            prev.is_none(),
+            "type assigned multiple times to same ancestral: {:?}",
+            anc_name
+        );
     }
 
     /// Associate the instructions emitted via the following calls to `emit_*` to the given

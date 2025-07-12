@@ -2,7 +2,9 @@ use std::cmp::Ordering;
 
 use crate::{
     mil::{self, AncestralName, ArithOp, Insn},
-    ty,
+    pp::PP,
+    trace, traceln, ty,
+    util::global_log,
 };
 
 use super::Builder;
@@ -370,16 +372,26 @@ pub fn pack_params(
         }
     }
 
-    for &param_tyid in param_types.iter() {
+    for (ndx, &param_tyid) in param_types.iter().enumerate() {
         let param_ty = &types.get(param_tyid).unwrap().ty;
 
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
         }
+        trace!("      param[{}] = ", ndx);
+        global_log::with_pp(|pp| pp.open_box());
+        trace!("{:#?}", param_ty);
+        global_log::with_pp(|pp| pp.close_box());
+        traceln!();
 
         let mut eb_set = EightbytesSet::new_regs();
         let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
         if let Err(err) = res {
+            traceln!(
+                "      pack_params: had to cut it short after {} params: {:?}",
+                param_regs.len(),
+                err
+            );
             report.errors.push(err);
             // because each argument uses a variable number of integer regs, ssa
             // regs, and stack slots, we can't be sure of how to map ANY of the
@@ -388,14 +400,7 @@ pub fn pack_params(
         }
 
         let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state);
-        let sz = types.bytes_size(param_tyid).unwrap();
-
-        let param_anc = state
-            .pull_arg()
-            .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
         let param_dest = bld.tmp_gen();
-        bld.init_ancestral(param_dest, param_anc, mil::RegType::Bytes(sz as usize));
-
         pack_param(bld, &mut state, types, param_tyid, param_dest, pass_mode);
         param_regs.push(param_dest);
 

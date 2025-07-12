@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::mil::{self, AncestralName, Control, RegType};
-use crate::ty;
 use crate::traceln;
+use crate::ty;
 use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
@@ -458,6 +458,7 @@ impl Builder {
                                 .or_warn(&mut warnings)
                         })
                         .unwrap_or_else(|| vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]);
+                    traceln!("resolved call: subr_ty={subr_ty:?}; param_values={param_values:?}");
 
                     let v1 = self.pb.tmp_gen();
                     let first_arg = if param_values.is_empty() {

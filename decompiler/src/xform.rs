@@ -135,6 +135,7 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     let Insn::Part { src, offset, size } = insn else {
         return insn;
     };
+    traceln!("fold_subregs: {:?}", insn);
 
     let end = offset + size;
 
