@@ -101,6 +101,10 @@ impl<'a> Executable<'a> {
         self.func_syms.contains_key(name)
     }
 
+    pub fn types(&self) -> &ty::TypeSet {
+        &self.types
+    }
+
     #[instrument(skip(self))]
     pub fn decompile_function(&self, function_name: &str) -> Result<DecompiledFunction> {
         let mut df = self.find_function(function_name)?;
