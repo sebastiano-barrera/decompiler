@@ -6,7 +6,10 @@ use thiserror::Error;
 
 pub mod dwarf;
 
-use crate::{pp::{self, PP}, trace, traceln};
+use crate::{
+    pp::{self, PP},
+    trace, traceln,
+};
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
@@ -25,9 +28,15 @@ pub struct TypeSet {
     types: SlotMap<TypeID, Type>,
     known_objects: HashMap<Addr, TypeID>,
     call_sites: CallSites,
+    metadata: slotmap::SecondaryMap<TypeID, SmallVec<[MetaAttr; 4]>>,
 
     tyid_void: TypeID,
     tyid_unknown: TypeID,
+}
+
+#[derive(Debug)]
+pub enum MetaAttr {
+    DwarfSource { diofs: String },
 }
 
 pub type Addr = u64;
@@ -43,6 +52,7 @@ impl TypeSet {
 
         TypeSet {
             types,
+            metadata: slotmap::SecondaryMap::new(),
             known_objects: HashMap::new(),
             call_sites: CallSites::new(),
             tyid_void,
@@ -64,6 +74,13 @@ impl TypeSet {
     /// to it) for the remainder of the lifetime of this TypeSet.
     pub fn add(&mut self, typ: Type) -> TypeID {
         self.types.insert(typ)
+    }
+
+    pub fn add_metadata(&mut self, tyid: TypeID, attr: MetaAttr) {
+        if !self.metadata.contains_key(tyid) {
+            self.metadata.insert(tyid, SmallVec::new());
+        }
+        self.metadata[tyid].push(attr);
     }
 
     pub fn set(&mut self, tyid: TypeID, typ: Type) {
@@ -246,6 +263,12 @@ impl TypeSet {
             self.dump_type(out, typ)?;
             out.close_box();
             writeln!(out)?;
+
+            if let Some(metas) = self.metadata.get(tyid) {
+                for (ndx, meta) in metas.iter().enumerate() {
+                    writeln!(out, "    meta[{}] = {:?}", ndx, meta)?;
+                }
+            }
         }
         writeln!(out, "}}")
     }
@@ -341,7 +364,8 @@ impl TypeSet {
         #[cfg(debug_assertions)]
         trace!(
             "#call: to address 0x{:x}, returning to 0x{:x}",
-            target, return_pc
+            target,
+            return_pc
         );
 
         let tyid = self

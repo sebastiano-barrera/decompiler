@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
-use crate::ty;
+use crate::{pp::PP, trace, traceln, ty, util::global_log};
 
 use gimli::EndianSlice;
 use thiserror::Error;
@@ -128,6 +128,9 @@ impl<'a> TypeParser<'a> {
 
         assert_eq!(root.entry().tag(), gimli::DW_TAG_compile_unit);
 
+        trace!("TypeParser::load_types\n  ");
+        global_log::with_pp(|pp| pp.open_box());
+
         let mut children = root.children();
         while let Some(node) = children.next()? {
             let node_ofs = node.entry().offset().0;
@@ -141,6 +144,9 @@ impl<'a> TypeParser<'a> {
                 }
             }
         }
+
+        global_log::with_pp(|pp| pp.close_box());
+        traceln!();
 
         Ok(())
     }
@@ -200,6 +206,13 @@ impl<'a> TypeParser<'a> {
 
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
+
+        types.add_metadata(
+            tyid,
+            ty::MetaAttr::DwarfSource {
+                diofs: format!("{:#?}", diofs),
+            },
+        );
 
         // otherwise, leave tyid assigned to a clone of default_type
         let typ = res?;
@@ -580,7 +593,8 @@ impl std::ops::Deref for DebugInfoOffset {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_snapshot;
+    use crate::traceln;
+    use crate::util::global_log;
 
     use super::super::tests::DATA_DIR;
     use super::*;
@@ -597,21 +611,19 @@ mod tests {
 
     #[test]
     fn struct_type() {
-        let (elf, raw) = load_test_elf("test_composite_type.so");
-        let mut types = ty::TypeSet::new();
-        let report = load_dwarf_types(&elf, raw, &mut types).unwrap();
+        let mut logbuf = String::new();
+        global_log::with_buffer(&mut logbuf, || {
+            let (elf, raw) = load_test_elf("test_composite_type.so");
+            let mut types = ty::TypeSet::new();
+            let report = load_dwarf_types(&elf, raw, &mut types).unwrap();
 
-        let mut buf = Vec::new();
-        let mut pp = crate::pp::PrettyPrinter::start(&mut buf);
-        types.dump(&mut pp).unwrap();
+            global_log::with_pp(|pp| types.dump(pp).unwrap());
 
-        use std::io::Write;
-        writeln!(buf, "{} non-fatal errors:", report.errors.len()).unwrap();
-        for (ofs, err) in &report.errors {
-            writeln!(buf, "offset 0x{:8x}: {}", ofs, err).unwrap();
-        }
-
-        let buf = String::from_utf8(buf).unwrap();
-        assert_snapshot!(buf);
+            traceln!("{} non-fatal errors:", report.errors.len());
+            for (ofs, err) in &report.errors {
+                traceln!("offset 0x{:8x}: {}", ofs, err);
+            }
+        });
+        insta::assert_snapshot!(logbuf);
     }
 }

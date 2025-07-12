@@ -111,6 +111,10 @@ impl<'a> Executable<'a> {
         self.func_syms.contains_key(name)
     }
 
+    pub fn types(&self) -> &ty::TypeSet {
+        &self.types
+    }
+
     // This function is legacy. Only used by the test tool.
     //
     // We should change `decompile_function` so that it is good enough for
