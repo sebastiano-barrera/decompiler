@@ -194,7 +194,6 @@ impl TypeSet {
             Ty::Alias(ref_tyid) => self.select(*ref_tyid, byte_range),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
-                    // TODO avoid the hashmap lookup?
                     let Some(memb_size) = self.bytes_size(m.tyid) else {
                         // struct member has unknown size; just ignore it in the search
                         return false;
@@ -202,7 +201,7 @@ impl TypeSet {
 
                     let offset = m.offset as usize;
                     let memb_size = memb_size as usize;
-                    ByteRange::new(offset, offset + memb_size) == byte_range
+                    ByteRange::new(offset, offset + memb_size).contains(&byte_range)
                 });
 
                 if let Some(member) = member {
@@ -474,6 +473,10 @@ impl ByteRange {
     pub fn shift_left(&self, offset: usize) -> ByteRange {
         let offset: isize = offset.try_into().unwrap();
         self.shift(-offset)
+    }
+
+    fn contains(&self, other: &ByteRange) -> bool {
+        self.start <= other.start && self.end >= other.end
     }
 }
 

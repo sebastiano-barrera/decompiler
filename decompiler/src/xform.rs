@@ -454,18 +454,18 @@ fn apply_type_selection(
     }
 
     // in the most generic case, it contains a single SelectStep::RawBytes
-    let (last_step, ntrm_steps) = path.split_last().unwrap();
-
-    let mut src = src;
-    for step in ntrm_steps {
+    let mut last_reg = src;
+    for step in path {
         // add insns for intermediate steps
-        let step_insn = step.to_insn(src);
-        src = prog.append_new(bid, step_insn);
+        last_reg = prog.append_new(bid, step.to_insn(last_reg));
     }
 
     // for now, type IDs are not assigned to the intermediate steps
-    prog.set_value_type(src, Some(selected_tyid));
-    last_step.to_insn(src)
+    prog.set_value_type(last_reg, Some(selected_tyid));
+    // because we currently only return an Insn, we can't call set_value_type
+    // on the register corresponding to its result (`append_new` is done by
+    // `canonical`). so, Insn::Get it is
+    Insn::Get(last_reg)
 }
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
