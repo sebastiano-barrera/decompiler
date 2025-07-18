@@ -224,6 +224,28 @@ impl Program {
         self.schedule.of_block(bid).len()
     }
 
+    pub fn find_input_chain(&self, root: mil::Reg) -> Vec<mil::Reg> {
+        let mut is_visited = RegMap::for_program(self, false);
+        let mut chain = Vec::new();
+
+        let mut queue = vec![root];
+        while let Some(reg) = queue.pop() {
+            if is_visited[reg] {
+                continue;
+            }
+
+            is_visited[reg] = true;
+            chain.push(reg);
+
+            let mut insn = self.get(reg).unwrap();
+            for &mut input in insn.input_regs_iter() {
+                queue.push(input);
+            }
+        }
+
+        chain
+    }
+
     pub fn assert_invariants(&self) {
         self.assert_consistent_arrays_len();
         self.assert_no_circular_refs();
@@ -674,28 +696,6 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
     RegMap(count)
 }
 
-pub fn find_input_chain(prog: &Program, root: mil::Reg) -> Vec<mil::Reg> {
-    let mut is_visited = RegMap::for_program(prog, false);
-    let mut chain = Vec::new();
-
-    let mut queue = vec![root];
-    while let Some(reg) = queue.pop() {
-        if is_visited[reg] {
-            continue;
-        }
-
-        is_visited[reg] = true;
-        chain.push(reg);
-
-        let mut insn = prog.get(reg).unwrap();
-        for &mut input in insn.input_regs_iter() {
-            queue.push(input);
-        }
-    }
-
-    chain
-}
-
 #[cfg(test)]
 mod input_chain_tests {
     use super::*;
@@ -719,17 +719,17 @@ mod input_chain_tests {
     #[test]
     fn zero() {
         let prog = mk_simple_program();
-        let chain = find_input_chain(&prog, R(0));
+        let chain = prog.find_input_chain(R(0));
         assert_eq!(&chain, &[R(0)]);
 
-        let chain = find_input_chain(&prog, R(1));
+        let chain = prog.find_input_chain(R(1));
         assert_eq!(&chain, &[R(1)]);
     }
 
     #[test]
     fn simple() {
         let prog = mk_simple_program();
-        let chain = find_input_chain(&prog, R(3));
+        let chain = prog.find_input_chain(R(3));
         assert_eq!(&chain, &[R(3), R(2), R(0)]);
     }
 }
