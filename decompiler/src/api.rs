@@ -157,40 +157,44 @@ impl<'a> Executable<'a> {
             let func_section_ofs = func_addr - vm_range.start;
             let func_fofs = text_section.sh_offset as usize + func_section_ofs;
             let func_text = &self.raw_binary[func_fofs..func_fofs + func_size];
-            traceln!(
-                "{} 0x{:x}+{} (file 0x{:x})",
-                function_name,
-                func_addr,
-                func_size,
-                func_fofs,
-            );
 
-            let decoder = iced_x86::Decoder::with_ip(
-                64,
-                func_text,
-                func_addr.try_into().unwrap(),
-                iced_x86::DecoderOptions::NONE,
-            );
-            let mut formatter = iced_x86::IntelFormatter::new();
-            let mut instr_strbuf = String::new();
-            for instr in decoder {
-                trace!("{:16x}: ", instr.ip());
-                let ofs = instr.ip() as usize - func_addr;
-                let len = instr.len();
-                for i in 0..8 {
-                    if i < len {
-                        trace!("{:02x} ", func_text[ofs + i]);
-                    } else {
-                        trace!("   ");
+            #[cfg(feature = "data_tracing")]
+            {
+                traceln!(
+                    "{} 0x{:x}+{} (file 0x{:x})",
+                    function_name,
+                    func_addr,
+                    func_size,
+                    func_fofs,
+                );
+
+                let decoder = iced_x86::Decoder::with_ip(
+                    64,
+                    func_text,
+                    func_addr.try_into().unwrap(),
+                    iced_x86::DecoderOptions::NONE,
+                );
+                let mut formatter = iced_x86::IntelFormatter::new();
+                let mut instr_strbuf = String::new();
+                for instr in decoder {
+                    trace!("{:16x}: ", instr.ip());
+                    let ofs = instr.ip() as usize - func_addr;
+                    let len = instr.len();
+                    for i in 0..8 {
+                        if i < len {
+                            trace!("{:02x} ", func_text[ofs + i]);
+                        } else {
+                            trace!("   ");
+                        }
                     }
-                }
 
-                instr_strbuf.clear();
-                formatter.format(&instr, &mut instr_strbuf);
-                traceln!("{}", instr_strbuf);
+                    instr_strbuf.clear();
+                    formatter.format(&instr, &mut instr_strbuf);
+                    traceln!("{}", instr_strbuf);
+                }
+                traceln!();
             }
 
-            traceln!();
             let mut decoder = iced_x86::Decoder::with_ip(
                 64,
                 func_text,

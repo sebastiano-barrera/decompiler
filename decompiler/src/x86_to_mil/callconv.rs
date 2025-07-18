@@ -372,13 +372,13 @@ pub fn pack_params(
         }
     }
 
-    for (ndx, &param_tyid) in param_types.iter().enumerate() {
+    for (_ndx, &param_tyid) in param_types.iter().enumerate() {
         let param_ty = &types.get(param_tyid).unwrap().ty;
 
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
         }
-        trace!("      param[{}] = ", ndx);
+        trace!("      param[{}] = ", _ndx);
         global_log::with_pp(|pp| pp.open_box());
         trace!("{:#?}", param_ty);
         global_log::with_pp(|pp| pp.close_box());

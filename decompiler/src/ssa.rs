@@ -532,7 +532,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 
     let cfg::MILAnalysis {
         graph: cfg,
-        schedule: mut schedule,
+        mut schedule,
         ..
     } = cfg::analyze_mil(&program);
     assert_eq!(cfg.block_count(), schedule.block_count());

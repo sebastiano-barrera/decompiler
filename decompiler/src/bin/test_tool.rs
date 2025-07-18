@@ -1,7 +1,5 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use decompiler::pp;
-
 pub struct CliOptions {
     pub elf_filename: PathBuf,
     pub function_name: String,

@@ -372,7 +372,7 @@ impl TypeSet {
             .call_site_by_return_pc(return_pc)
             .or_else(|| self.get_known_object(target));
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "data_tracing")]
         match tyid {
             Some(tyid) => {
                 let typ = self.get_through_alias(tyid).unwrap();

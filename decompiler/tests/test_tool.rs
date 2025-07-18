@@ -1,5 +1,3 @@
-use decompiler::pp;
-
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
 

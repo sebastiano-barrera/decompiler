@@ -114,7 +114,9 @@ impl Builder {
             .context("while applying the calling convention for parameters");
 
             match res {
-                Ok(report) => {
+                Ok(report) =>
+                {
+                    #[cfg(feature = "data_tracing")]
                     if report.ok_count < param_count {
                         traceln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
                         for (ndx, err) in report.errors.into_iter().enumerate() {

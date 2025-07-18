@@ -488,7 +488,7 @@ impl ProgramBuilder {
                 let is_initialized =
                     (ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner].get() == input);
                 if !is_initialized {
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "data_tracing")]
                     {
                         traceln!("-- in mil block:");
                         for ndx in ndx_start..ndx_end {

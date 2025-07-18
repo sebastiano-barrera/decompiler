@@ -427,8 +427,12 @@ pub fn canonical(prog: &mut ssa::Program) {
     let mut deduper = Deduper::new();
 
     let mut any_change = true;
+    let mut cycle_ndx: usize = 0;
     while any_change {
         any_change = false;
+
+        trace_event!("xform cycle started", json!({"index": cycle_ndx}));
+        cycle_ndx += 1;
 
         let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
         for bid in bids {
