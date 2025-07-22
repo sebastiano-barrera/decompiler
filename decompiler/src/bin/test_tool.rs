@@ -30,6 +30,7 @@ fn main() {
     let mut out = String::new();
     let res = decompiler::Executable::parse(&contents)
         .and_then(|exe| exe.process_function(&opts.function_name, &mut out));
+    println!("{}", out);
     if let Err(err) = res {
         eprintln!("error: {}", err);
     }
