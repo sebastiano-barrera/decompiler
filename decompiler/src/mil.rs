@@ -436,6 +436,10 @@ pub struct ProgramBuilder {
 }
 
 impl ProgramBuilder {
+    pub fn new_simple() -> Self {
+        Self::new(Reg(10_000), Arc::new(ty::TypeSet::new()))
+    }
+
     pub fn new(lowest_tmp: Reg, types: Arc<ty::TypeSet>) -> Self {
         Self {
             insns: Vec::new(),
