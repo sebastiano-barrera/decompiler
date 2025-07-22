@@ -1,6 +1,8 @@
 
 - now: proceed without gui, power up CLI/textual interface if needed
 
+- [ ] large scale testing and tracking
+
 - [ ] use type info
     - [ ] struct member accesses
     - [ ] show in ast
