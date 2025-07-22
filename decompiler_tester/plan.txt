@@ -64,6 +64,12 @@ compiler version
     - in general, it should be possible to see ANY correspondence between AST parts and
     SSA insns
 
+- [ ] fix fgets call in redis-server`processAnnotations
+    - [ ] better means for debugging?
+        - [ ] rewrite tests in callconv (tired of snapshots...)
+    - (I already know what the cause is)
+    - [ ] ty: add DW_TAG_restrict_type
+
 - [ ] integrated AST+SSA+ASM layout
     - this should make custom block ordering significantly faster
     - [x] fix 'missing block' bug
