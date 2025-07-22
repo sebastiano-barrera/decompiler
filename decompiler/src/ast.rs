@@ -343,11 +343,18 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, operand, self_prec)?;
             }
             Insn::Call { callee, first_arg } => {
-                let tyid = self.ssa.value_type(callee).unwrap();
-                // Not quite correct (why would we print the type name?) but
-                // happens to be always correct for well formed programs
-                let name = self.types.name(tyid).unwrap_or("<?>");
-                write!(pp, "{}", name)?;
+                if let Some(tyid) = self.ssa.value_type(callee) {
+                    // Not quite correct (why would we print the type name?) but
+                    // happens to be always correct for well formed programs
+                    if let Some(name) = self.types.name(tyid) {
+                        write!(pp, "{}", name)?;
+                    } else {
+                        write!(pp, "<?>")?;
+                        self.pp_ref(pp, callee, self_prec)?;
+                    }
+                } else {
+                    self.pp_ref(pp, callee, self_prec)?;
+                }
 
                 write!(pp, "(")?;
                 pp.open_box();

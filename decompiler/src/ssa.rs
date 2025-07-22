@@ -416,11 +416,12 @@ impl Program {
             }
 
             if let Some(types) = types {
-                type_s.clear();
-                let tyid = self.value_type(reg).unwrap();
-                let mut pp = pp::PrettyPrinter::start(&mut type_s);
-                write!(pp, ": ").unwrap();
-                types.dump_type_ref(&mut pp, tyid).unwrap();
+                if let Some(tyid) = self.value_type(reg) {
+                    type_s.clear();
+                    let mut pp = pp::PrettyPrinter::start(&mut type_s);
+                    write!(pp, ": ").unwrap();
+                    types.dump_type_ref(&mut pp, tyid).unwrap();
+                }
             }
 
             let type_s = std::str::from_utf8(&type_s).unwrap();
