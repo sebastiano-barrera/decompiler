@@ -1,0 +1,636 @@
+---
+source: decompiler/tests/test_tool.rs
+assertion_line: 68
+expression: out
+---
+sum_matrix 0x4011c9+115 (file 0x11c9)
+          4011c9: 55                      push rbp
+          4011ca: 48 89 e5                mov rbp,rsp
+          4011cd: 48 89 f8                mov rax,rdi
+          4011d0: 48 89 f1                mov rcx,rsi
+          4011d3: 48 89 c0                mov rax,rax
+          4011d6: ba 00 00 00 00          mov edx,0
+          4011db: 48 89 ca                mov rdx,rcx
+          4011de: 48 89 45 e0             mov [rbp-20h],rax
+          4011e2: 48 89 55 e8             mov [rbp-18h],rdx
+          4011e6: c7 45 fc 00 00 00 00    mov dword ptr [rbp-4],0
+          4011ed: c7 45 f8 00 00 00 00    mov dword ptr [rbp-8],0
+          4011f4: eb 39                   jmp short 000000000040122Fh
+          4011f6: c7 45 f4 00 00 00 00    mov dword ptr [rbp-0Ch],0
+          4011fd: eb 24                   jmp short 0000000000401223h
+          4011ff: 48 8b 55 e0             mov rdx,[rbp-20h]
+          401203: 8b 45 ec                mov eax,[rbp-14h]
+          401206: 0f af 45 f8             imul eax,[rbp-8]
+          40120a: 89 c1                   mov ecx,eax
+          40120c: 8b 45 f4                mov eax,[rbp-0Ch]
+          40120f: 01 c8                   add eax,ecx
+          401211: 48 98                   cdqe
+          401213: 48 c1 e0 02             shl rax,2
+          401217: 48 01 d0                add rax,rdx
+          40121a: 8b 00                   mov eax,[rax]
+          40121c: 01 45 fc                add [rbp-4],eax
+          40121f: 83 45 f4 01             add dword ptr [rbp-0Ch],1
+          401223: 8b 45 ec                mov eax,[rbp-14h]
+          401226: 39 45 f4                cmp [rbp-0Ch],eax
+          401229: 7c d4                   jl short 00000000004011FFh
+          40122b: 83 45 f8 01             add dword ptr [rbp-8],1
+          40122f: 8b 45 e8                mov eax,[rbp-18h]
+          401232: 39 45 f8                cmp [rbp-8],eax
+          401235: 7c bf                   jl short 00000000004011F6h
+          401237: 8b 45 fc                mov eax,[rbp-4]
+          40123a: 5d                      pop rbp
+          40123b: c3                      ret
+
+function type: "sum_matrix" func (mat mat <TypeID(16v1)>) int <TypeID(10v1)>
+0 warnings.
+
+
+mil program = 
+program  237 instrs
+    0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
+    1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
+    2 r3: TypeID(2v1) <- Ancestral(AncestralName("PF"))
+    3 r4: TypeID(2v1) <- Ancestral(AncestralName("AF"))
+    4 r5: TypeID(2v1) <- Ancestral(AncestralName("ZF"))
+    5 r6: TypeID(2v1) <- Ancestral(AncestralName("SF"))
+    6 r7: TypeID(2v1) <- Ancestral(AncestralName("TF"))
+    7 r8: TypeID(2v1) <- Ancestral(AncestralName("IF"))
+    8 r9: TypeID(2v1) <- Ancestral(AncestralName("DF"))
+    9 r10: TypeID(2v1) <- Ancestral(AncestralName("OF"))
+   10 r11: TypeID(2v1) <- Ancestral(AncestralName("RBP"))
+   11 r12: TypeID(2v1) <- Ancestral(AncestralName("RSP"))
+   12 r13: TypeID(2v1) <- Ancestral(AncestralName("RIP"))
+   13 r14: TypeID(2v1) <- Ancestral(AncestralName("RDI"))
+   14 r15: TypeID(2v1) <- Ancestral(AncestralName("RSI"))
+   15 r16: TypeID(2v1) <- Ancestral(AncestralName("RAX"))
+   16 r17: TypeID(2v1) <- Ancestral(AncestralName("RBX"))
+   17 r18: TypeID(2v1) <- Ancestral(AncestralName("RCX"))
+   18 r19: TypeID(2v1) <- Ancestral(AncestralName("RDX"))
+   19 r20: TypeID(2v1) <- Ancestral(AncestralName("R8"))
+   20 r21: TypeID(2v1) <- Ancestral(AncestralName("R9"))
+   21 r22: TypeID(2v1) <- Ancestral(AncestralName("R10"))
+   22 r23: TypeID(2v1) <- Ancestral(AncestralName("R11"))
+   23 r24: TypeID(2v1) <- Ancestral(AncestralName("R12"))
+   24 r25: TypeID(2v1) <- Ancestral(AncestralName("R13"))
+   25 r26: TypeID(2v1) <- Ancestral(AncestralName("R14"))
+   26 r27: TypeID(2v1) <- Ancestral(AncestralName("R15"))
+   27 r28: TypeID(2v1) <- Ancestral(AncestralName("ZMM0"))
+   28 r29: TypeID(2v1) <- Ancestral(AncestralName("ZMM1"))
+   29 r30: TypeID(2v1) <- Ancestral(AncestralName("ZMM2"))
+   30 r31: TypeID(2v1) <- Ancestral(AncestralName("ZMM3"))
+   31 r32: TypeID(2v1) <- Ancestral(AncestralName("ZMM4"))
+   32 r33: TypeID(2v1) <- Ancestral(AncestralName("ZMM5"))
+   33 r34: TypeID(2v1) <- Ancestral(AncestralName("ZMM6"))
+   34 r35: TypeID(2v1) <- Ancestral(AncestralName("ZMM7"))
+   35 r36: TypeID(2v1) <- Ancestral(AncestralName("ZMM8"))
+   36 r37: TypeID(2v1) <- Ancestral(AncestralName("ZMM9"))
+   37 r38: TypeID(2v1) <- Ancestral(AncestralName("ZMM10"))
+   38 r39: TypeID(2v1) <- Ancestral(AncestralName("ZMM11"))
+   39 r40: TypeID(2v1) <- Ancestral(AncestralName("ZMM12"))
+   40 r41: TypeID(2v1) <- Ancestral(AncestralName("ZMM13"))
+   41 r42: TypeID(2v1) <- Ancestral(AncestralName("ZMM14"))
+   42 r43: TypeID(2v1) <- Ancestral(AncestralName("ZMM15"))
+   43 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
+   44 r46: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
+   45 r14: TypeID(2v1) <- Get(r46)
+   46 r47: TypeID(2v1) <- Part { src: r45, offset: 8, size: 8 }
+   47 r15: TypeID(2v1) <- Get(r47)
+0x4011c9:
+   48 r12: TypeID(2v1) <- ArithK(Add, r12, -8)
+   49 r46: TypeID(2v1) <- StoreMem { addr: r12, value: r11 }
+0x4011ca:
+   50 r11: TypeID(2v1) <- Get(r12)
+0x4011cd:
+   51 r16: TypeID(2v1) <- Get(r14)
+0x4011d0:
+   52 r18: TypeID(2v1) <- Get(r15)
+0x4011d3:
+   53 r16: TypeID(2v1) <- Get(r16)
+0x4011d6:
+   54 r45: TypeID(2v1) <- Const { value: 0, size: 4 }
+   55 r46: TypeID(2v1) <- Part { src: r19, offset: 4, size: 4 }
+   56 r19: TypeID(2v1) <- Concat { lo: r45, hi: r46 }
+0x4011db:
+   57 r19: TypeID(2v1) <- Get(r18)
+0x4011de:
+   58 r46: TypeID(2v1) <- Const { value: -32, size: 8 }
+   59 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   60 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r16 }
+0x4011e2:
+   61 r46: TypeID(2v1) <- Const { value: -24, size: 8 }
+   62 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   63 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r19 }
+0x4011e6:
+   64 r45: TypeID(2v1) <- Const { value: 0, size: 4 }
+   65 r46: TypeID(2v1) <- Const { value: -4, size: 8 }
+   66 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   67 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r45 }
+0x4011ed:
+   68 r45: TypeID(2v1) <- Const { value: 0, size: 4 }
+   69 r46: TypeID(2v1) <- Const { value: -8, size: 8 }
+   70 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   71 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r45 }
+0x4011f4:
+   72 r45: TypeID(2v1) <- Control(Jmp(204))
+0x4011f6:
+   73 r45: TypeID(2v1) <- Const { value: 0, size: 4 }
+   74 r46: TypeID(2v1) <- Const { value: -12, size: 8 }
+   75 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   76 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r45 }
+0x4011fd:
+   77 r45: TypeID(2v1) <- Control(Jmp(170))
+0x4011ff:
+   78 r46: TypeID(2v1) <- Const { value: -32, size: 8 }
+   79 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   80 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 8 }
+   81 r19: TypeID(2v1) <- Get(r45)
+0x401203:
+   82 r46: TypeID(2v1) <- Const { value: -20, size: 8 }
+   83 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+   84 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+   85 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+   86 r16: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+0x401206:
+   87 r46: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+   88 r48: TypeID(2v1) <- Const { value: -8, size: 8 }
+   89 r48: TypeID(2v1) <- Arith(Add, r48, r11)
+   90 r47: TypeID(2v1) <- LoadMem { addr: r48, size: 4 }
+   91 r49: TypeID(2v1) <- Arith(Mul, r46, r47)
+   92 r50: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+   93 r16: TypeID(2v1) <- Concat { lo: r49, hi: r50 }
+   94 r10: TypeID(2v1) <- OverflowOf(r49)
+   95 r2: TypeID(2v1) <- Get(r10)
+   96 r6: TypeID(2v1) <- Undefined
+   97 r5: TypeID(2v1) <- Undefined
+   98 r4: TypeID(2v1) <- Undefined
+   99 r3: TypeID(2v1) <- Undefined
+0x40120a:
+  100 r46: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+  101 r47: TypeID(2v1) <- Part { src: r18, offset: 4, size: 4 }
+  102 r18: TypeID(2v1) <- Concat { lo: r46, hi: r47 }
+0x40120c:
+  103 r46: TypeID(2v1) <- Const { value: -12, size: 8 }
+  104 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  105 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  106 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+  107 r16: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+0x40120f:
+  108 r46: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+  109 r48: TypeID(2v1) <- Part { src: r18, offset: 0, size: 4 }
+  110 r46: TypeID(2v1) <- Arith(Add, r46, r48)
+  111 r49: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+  112 r16: TypeID(2v1) <- Concat { lo: r46, hi: r49 }
+  113 r10: TypeID(2v1) <- OverflowOf(r46)
+  114 r2: TypeID(2v1) <- CarryOf(r46)
+  115 r6: TypeID(2v1) <- SignOf(r46)
+  116 r5: TypeID(2v1) <- IsZero(r46)
+  117 r50: TypeID(2v1) <- Part { src: r46, offset: 0, size: 1 }
+  118 r3: TypeID(2v1) <- Parity(r50)
+0x401211:
+  119 r45: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+  120 r16: TypeID(2v1) <- Widen { reg: r45, target_size: 8, sign: true }
+0x401213:
+  121 r46: TypeID(2v1) <- Const { value: 2, size: 1 }
+  122 r46: TypeID(2v1) <- Widen { reg: r46, target_size: 8, sign: false }
+  123 r16: TypeID(2v1) <- Arith(Shl, r16, r46)
+  124 r16: TypeID(2v1) <- Get(r16)
+  125 r6: TypeID(2v1) <- SignOf(r16)
+  126 r5: TypeID(2v1) <- IsZero(r16)
+  127 r47: TypeID(2v1) <- Part { src: r16, offset: 0, size: 1 }
+  128 r3: TypeID(2v1) <- Parity(r47)
+0x401217:
+  129 r16: TypeID(2v1) <- Arith(Add, r16, r19)
+  130 r16: TypeID(2v1) <- Get(r16)
+  131 r10: TypeID(2v1) <- OverflowOf(r16)
+  132 r2: TypeID(2v1) <- CarryOf(r16)
+  133 r6: TypeID(2v1) <- SignOf(r16)
+  134 r5: TypeID(2v1) <- IsZero(r16)
+  135 r47: TypeID(2v1) <- Part { src: r16, offset: 0, size: 1 }
+  136 r3: TypeID(2v1) <- Parity(r47)
+0x40121a:
+  137 r46: TypeID(2v1) <- Const { value: 0, size: 8 }
+  138 r46: TypeID(2v1) <- Arith(Add, r46, r16)
+  139 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  140 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+  141 r16: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+0x40121c:
+  142 r46: TypeID(2v1) <- Const { value: -4, size: 8 }
+  143 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  144 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  145 r48: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+  146 r45: TypeID(2v1) <- Arith(Add, r45, r48)
+  147 r49: TypeID(2v1) <- Const { value: -4, size: 8 }
+  148 r49: TypeID(2v1) <- Arith(Add, r49, r11)
+  149 r49: TypeID(2v1) <- StoreMem { addr: r49, value: r45 }
+  150 r10: TypeID(2v1) <- OverflowOf(r45)
+  151 r2: TypeID(2v1) <- CarryOf(r45)
+  152 r6: TypeID(2v1) <- SignOf(r45)
+  153 r5: TypeID(2v1) <- IsZero(r45)
+  154 r50: TypeID(2v1) <- Part { src: r45, offset: 0, size: 1 }
+  155 r3: TypeID(2v1) <- Parity(r50)
+0x40121f:
+  156 r46: TypeID(2v1) <- Const { value: -12, size: 8 }
+  157 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  158 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  159 r47: TypeID(2v1) <- Const { value: 1, size: 4 }
+  160 r45: TypeID(2v1) <- Arith(Add, r45, r47)
+  161 r48: TypeID(2v1) <- Const { value: -12, size: 8 }
+  162 r48: TypeID(2v1) <- Arith(Add, r48, r11)
+  163 r48: TypeID(2v1) <- StoreMem { addr: r48, value: r45 }
+  164 r10: TypeID(2v1) <- OverflowOf(r45)
+  165 r2: TypeID(2v1) <- CarryOf(r45)
+  166 r6: TypeID(2v1) <- SignOf(r45)
+  167 r5: TypeID(2v1) <- IsZero(r45)
+  168 r49: TypeID(2v1) <- Part { src: r45, offset: 0, size: 1 }
+  169 r3: TypeID(2v1) <- Parity(r49)
+0x401223:
+  170 r46: TypeID(2v1) <- Const { value: -20, size: 8 }
+  171 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  172 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  173 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+  174 r16: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+0x401226:
+  175 r46: TypeID(2v1) <- Const { value: -12, size: 8 }
+  176 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  177 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  178 r48: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+  179 r45: TypeID(2v1) <- Arith(Sub, r45, r48)
+  180 r10: TypeID(2v1) <- OverflowOf(r45)
+  181 r2: TypeID(2v1) <- CarryOf(r45)
+  182 r6: TypeID(2v1) <- SignOf(r45)
+  183 r5: TypeID(2v1) <- IsZero(r45)
+  184 r49: TypeID(2v1) <- Part { src: r45, offset: 0, size: 1 }
+  185 r3: TypeID(2v1) <- Parity(r49)
+0x401229:
+  186 r45: TypeID(2v1) <- Cmp(EQ, r6, r10)
+  187 r45: TypeID(2v1) <- Not(r45)
+  188 r46: TypeID(2v1) <- SetJumpCondition(r45)
+  189 r46: TypeID(2v1) <- Control(JmpIf(78))
+0x40122b:
+  190 r46: TypeID(2v1) <- Const { value: -8, size: 8 }
+  191 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  192 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  193 r47: TypeID(2v1) <- Const { value: 1, size: 4 }
+  194 r45: TypeID(2v1) <- Arith(Add, r45, r47)
+  195 r48: TypeID(2v1) <- Const { value: -8, size: 8 }
+  196 r48: TypeID(2v1) <- Arith(Add, r48, r11)
+  197 r48: TypeID(2v1) <- StoreMem { addr: r48, value: r45 }
+  198 r10: TypeID(2v1) <- OverflowOf(r45)
+  199 r2: TypeID(2v1) <- CarryOf(r45)
+  200 r6: TypeID(2v1) <- SignOf(r45)
+  201 r5: TypeID(2v1) <- IsZero(r45)
+  202 r49: TypeID(2v1) <- Part { src: r45, offset: 0, size: 1 }
+  203 r3: TypeID(2v1) <- Parity(r49)
+0x40122f:
+  204 r46: TypeID(2v1) <- Const { value: -24, size: 8 }
+  205 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  206 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  207 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+  208 r16: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+0x401232:
+  209 r46: TypeID(2v1) <- Const { value: -8, size: 8 }
+  210 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  211 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  212 r48: TypeID(2v1) <- Part { src: r16, offset: 0, size: 4 }
+  213 r45: TypeID(2v1) <- Arith(Sub, r45, r48)
+  214 r10: TypeID(2v1) <- OverflowOf(r45)
+  215 r2: TypeID(2v1) <- CarryOf(r45)
+  216 r6: TypeID(2v1) <- SignOf(r45)
+  217 r5: TypeID(2v1) <- IsZero(r45)
+  218 r49: TypeID(2v1) <- Part { src: r45, offset: 0, size: 1 }
+  219 r3: TypeID(2v1) <- Parity(r49)
+0x401235:
+  220 r45: TypeID(2v1) <- Cmp(EQ, r6, r10)
+  221 r45: TypeID(2v1) <- Not(r45)
+  222 r46: TypeID(2v1) <- SetJumpCondition(r45)
+  223 r46: TypeID(2v1) <- Control(JmpIf(73))
+0x401237:
+  224 r46: TypeID(2v1) <- Const { value: -4, size: 8 }
+  225 r46: TypeID(2v1) <- Arith(Add, r46, r11)
+  226 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 4 }
+  227 r47: TypeID(2v1) <- Part { src: r16, offset: 4, size: 4 }
+  228 r16: TypeID(2v1) <- Concat { lo: r45, hi: r47 }
+0x40123a:
+  229 r45: TypeID(2v1) <- LoadMem { addr: r12, size: 8 }
+  230 r11: TypeID(2v1) <- Get(r45)
+  231 r12: TypeID(2v1) <- ArithK(Add, r12, 8)
+0x40123b:
+  232 r45: TypeID(2v1) <- Void
+  233 r45: TypeID(2v1) <- Concat { lo: r45, hi: r16 }
+  234 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 4 }
+  235 r47: TypeID(2v1) <- SetReturnValue(r45)
+  236 r47: TypeID(2v1) <- Control(Ret)
+
+
+ssa pre-xform:
+ssa program  243 instrs
+.B0:    ;;  → Always(Block(BlockID(5))).
+         r10: ? <- Ancestral(AncestralName("RBP"))
+         r11: ? <- Ancestral(AncestralName("RSP"))
+  (  2)  r43: ? <- Ancestral(AncestralName("arg0"))
+  (  2)  r44: ? <- Part { src: r43, offset: 0, size: 8 }
+  (  2)  r46: ? <- Part { src: r43, offset: 8, size: 8 }
+  ( 21)  r48: ? <- ArithK(Add, r11, -8)
+         r49: ? <- StoreMem { addr: r48, value: r10 }
+         r58: ? <- Const { value: -32, size: 8 }
+         r59: ? <- Arith(Add, r58, r48)
+         r60: ? <- StoreMem { addr: r59, value: r44 }
+         r61: ? <- Const { value: -24, size: 8 }
+         r62: ? <- Arith(Add, r61, r48)
+         r63: ? <- StoreMem { addr: r62, value: r46 }
+         r64: ? <- Const { value: 0, size: 4 }
+         r65: ? <- Const { value: -4, size: 8 }
+         r66: ? <- Arith(Add, r65, r48)
+         r67: ? <- StoreMem { addr: r66, value: r64 }
+         r68: ? <- Const { value: 0, size: 4 }
+         r69: ? <- Const { value: -8, size: 8 }
+         r70: ? <- Arith(Add, r69, r48)
+         r71: ? <- StoreMem { addr: r70, value: r68 }
+         r239: ? <- Upsilon { value: r44, phi_ref: r238 }
+.B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
+         r238: ? <- Phi
+         r204: ? <- Const { value: -24, size: 8 }
+         r205: ? <- Arith(Add, r204, r48)
+         r206: ? <- LoadMem { addr: r205, size: 4 }
+         r207: ? <- Part { src: r238, offset: 4, size: 4 }
+  (  3)  r208: ? <- Concat { lo: r206, hi: r207 }
+         r209: ? <- Const { value: -8, size: 8 }
+         r210: ? <- Arith(Add, r209, r48)
+         r211: ? <- LoadMem { addr: r210, size: 4 }
+         r212: ? <- Part { src: r208, offset: 0, size: 4 }
+  (  2)  r213: ? <- Arith(Sub, r211, r212)
+         r214: ? <- OverflowOf(r213)
+         r216: ? <- SignOf(r213)
+         r220: ? <- Cmp(EQ, r216, r214)
+         r221: ? <- Not(r220)
+         r222: ? <- SetJumpCondition(r221)
+.B6:    ;; preds:B5  → Always(Return).
+         r224: ? <- Const { value: -4, size: 8 }
+         r225: ? <- Arith(Add, r224, r48)
+         r226: ? <- LoadMem { addr: r225, size: 4 }
+         r227: ? <- Part { src: r208, offset: 4, size: 4 }
+         r228: ? <- Concat { lo: r226, hi: r227 }
+         r233: ? <- Concat { lo: r232, hi: r228 }
+         r234: ? <- Part { src: r233, offset: 0, size: 4 }
+         r235: ? <- SetReturnValue(r234)
+.B1:    ;; preds:B5  → Always(Block(BlockID(3))).
+         r73: ? <- Const { value: 0, size: 4 }
+         r74: ? <- Const { value: -12, size: 8 }
+         r75: ? <- Arith(Add, r74, r48)
+         r76: ? <- StoreMem { addr: r75, value: r73 }
+         r240: ? <- Upsilon { value: r208, phi_ref: r237 }
+.B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
+         r237: ? <- Phi
+         r170: ? <- Const { value: -20, size: 8 }
+         r171: ? <- Arith(Add, r170, r48)
+         r172: ? <- LoadMem { addr: r171, size: 4 }
+         r173: ? <- Part { src: r237, offset: 4, size: 4 }
+  (  3)  r174: ? <- Concat { lo: r172, hi: r173 }
+         r175: ? <- Const { value: -12, size: 8 }
+         r176: ? <- Arith(Add, r175, r48)
+         r177: ? <- LoadMem { addr: r176, size: 4 }
+         r178: ? <- Part { src: r174, offset: 0, size: 4 }
+  (  2)  r179: ? <- Arith(Sub, r177, r178)
+         r180: ? <- OverflowOf(r179)
+         r182: ? <- SignOf(r179)
+         r186: ? <- Cmp(EQ, r182, r180)
+         r187: ? <- Not(r186)
+         r188: ? <- SetJumpCondition(r187)
+.B4:    ;; preds:B3  → Always(Block(BlockID(5))).
+         r190: ? <- Const { value: -8, size: 8 }
+         r191: ? <- Arith(Add, r190, r48)
+         r192: ? <- LoadMem { addr: r191, size: 4 }
+         r193: ? <- Const { value: 1, size: 4 }
+         r194: ? <- Arith(Add, r192, r193)
+         r195: ? <- Const { value: -8, size: 8 }
+         r196: ? <- Arith(Add, r195, r48)
+         r197: ? <- StoreMem { addr: r196, value: r194 }
+         r241: ? <- Upsilon { value: r174, phi_ref: r238 }
+.B2:    ;; preds:B3  → Always(Block(BlockID(3))).
+         r78: ? <- Const { value: -32, size: 8 }
+         r79: ? <- Arith(Add, r78, r48)
+         r80: ? <- LoadMem { addr: r79, size: 8 }
+         r82: ? <- Const { value: -20, size: 8 }
+         r83: ? <- Arith(Add, r82, r48)
+         r84: ? <- LoadMem { addr: r83, size: 4 }
+         r85: ? <- Part { src: r174, offset: 4, size: 4 }
+  (  2)  r86: ? <- Concat { lo: r84, hi: r85 }
+         r87: ? <- Part { src: r86, offset: 0, size: 4 }
+         r88: ? <- Const { value: -8, size: 8 }
+         r89: ? <- Arith(Add, r88, r48)
+         r90: ? <- LoadMem { addr: r89, size: 4 }
+         r91: ? <- Arith(Mul, r87, r90)
+         r92: ? <- Part { src: r86, offset: 4, size: 4 }
+  (  2)  r93: ? <- Concat { lo: r91, hi: r92 }
+         r100: ? <- Part { src: r93, offset: 0, size: 4 }
+         r101: ? <- Part { src: r46, offset: 4, size: 4 }
+         r102: ? <- Concat { lo: r100, hi: r101 }
+         r103: ? <- Const { value: -12, size: 8 }
+         r104: ? <- Arith(Add, r103, r48)
+         r105: ? <- LoadMem { addr: r104, size: 4 }
+         r106: ? <- Part { src: r93, offset: 4, size: 4 }
+  (  2)  r107: ? <- Concat { lo: r105, hi: r106 }
+         r108: ? <- Part { src: r107, offset: 0, size: 4 }
+         r109: ? <- Part { src: r102, offset: 0, size: 4 }
+         r110: ? <- Arith(Add, r108, r109)
+         r111: ? <- Part { src: r107, offset: 4, size: 4 }
+         r112: ? <- Concat { lo: r110, hi: r111 }
+         r119: ? <- Part { src: r112, offset: 0, size: 4 }
+         r120: ? <- Widen { reg: r119, target_size: 8, sign: true }
+         r121: ? <- Const { value: 2, size: 1 }
+         r122: ? <- Widen { reg: r121, target_size: 8, sign: false }
+         r123: ? <- Arith(Shl, r120, r122)
+  (  2)  r129: ? <- Arith(Add, r123, r80)
+         r137: ? <- Const { value: 0, size: 8 }
+         r138: ? <- Arith(Add, r137, r129)
+         r139: ? <- LoadMem { addr: r138, size: 4 }
+         r140: ? <- Part { src: r129, offset: 4, size: 4 }
+  (  2)  r141: ? <- Concat { lo: r139, hi: r140 }
+         r142: ? <- Const { value: -4, size: 8 }
+         r143: ? <- Arith(Add, r142, r48)
+         r144: ? <- LoadMem { addr: r143, size: 4 }
+         r145: ? <- Part { src: r141, offset: 0, size: 4 }
+         r146: ? <- Arith(Add, r144, r145)
+         r147: ? <- Const { value: -4, size: 8 }
+         r148: ? <- Arith(Add, r147, r48)
+         r149: ? <- StoreMem { addr: r148, value: r146 }
+         r156: ? <- Const { value: -12, size: 8 }
+         r157: ? <- Arith(Add, r156, r48)
+         r158: ? <- LoadMem { addr: r157, size: 4 }
+         r159: ? <- Const { value: 1, size: 4 }
+         r160: ? <- Arith(Add, r158, r159)
+         r161: ? <- Const { value: -12, size: 8 }
+         r162: ? <- Arith(Add, r161, r48)
+         r163: ? <- StoreMem { addr: r162, value: r160 }
+         r242: ? <- Upsilon { value: r141, phi_ref: r237 }
+
+
+cfg:
+  entry: BlockID(0)
+  BlockID(0) -> Always(Block(BlockID(5))) [r10, r11, r43, r44, r46, r48, r49, r58, r59, r60, r61, r62, r63, r64, r65, r66, r67, r68, r69, r70, r71, r239]
+  BlockID(1) -> Always(Block(BlockID(3))) [r73, r74, r75, r76, r240]
+  BlockID(2) -> Always(Block(BlockID(3))) [r78, r79, r80, r82, r83, r84, r85, r86, r87, r88, r89, r90, r91, r92, r93, r100, r101, r102, r103, r104, r105, r106, r107, r108, r109, r110, r111, r112, r119, r120, r121, r122, r123, r129, r137, r138, r139, r140, r141, r142, r143, r144, r145, r146, r147, r148, r149, r156, r157, r158, r159, r160, r161, r162, r163, r242]
+  BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r237, r170, r171, r172, r173, r174, r175, r176, r177, r178, r179, r180, r182, r186, r187, r188]
+  BlockID(4) -> Always(Block(BlockID(5))) [r190, r191, r192, r193, r194, r195, r196, r197, r241]
+  BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r238, r204, r205, r206, r207, r208, r209, r210, r211, r212, r213, r214, r216, r220, r221, r222]
+  BlockID(6) -> Always(Return) [r224, r225, r226, r227, r228, r232, r233, r234, r235]
+  domtree:
+    BlockID(0)
+    |  BlockID(5)
+    |  |  BlockID(1)
+    |  |  |  BlockID(3)
+    |  |  |  |  BlockID(2)
+    |  |  |  |  BlockID(4)
+    |  |  BlockID(6)
+
+ssa post-xform:
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 8 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r208, offset: 0, size: 4 }
+fold_subregs: Part { src: r208, offset: 4, size: 4 }
+fold_subregs: Part { src: r228, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r174, offset: 0, size: 4 }
+fold_subregs: Part { src: r174, offset: 4, size: 4 }
+fold_subregs: Part { src: r86, offset: 0, size: 4 }
+fold_subregs: Part { src: r86, offset: 4, size: 4 }
+fold_subregs: Part { src: r93, offset: 0, size: 4 }
+fold_subregs: Part { src: r46, offset: 4, size: 4 }
+fold_subregs: Part { src: r93, offset: 4, size: 4 }
+fold_subregs: Part { src: r107, offset: 0, size: 4 }
+fold_subregs: Part { src: r102, offset: 0, size: 4 }
+fold_subregs: Part { src: r107, offset: 4, size: 4 }
+fold_subregs: Part { src: r112, offset: 0, size: 4 }
+fold_subregs: Part { src: r129, offset: 4, size: 4 }
+fold_subregs: Part { src: r141, offset: 0, size: 4 }
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 8 }
+fold_subregs: Part { src: r46, offset: 0, size: 4 }
+fold_subregs: Part { src: r68, offset: 0, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r64, offset: 0, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r46, offset: 4, size: 4 }
+fold_subregs: Part { src: r73, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r68, offset: 0, size: 4 }
+fold_subregs: Part { src: r44, offset: 0, size: 8 }
+fold_subregs: Part { src: r46, offset: 4, size: 4 }
+fold_subregs: Part { src: r68, offset: 0, size: 4 }
+fold_subregs: Part { src: r73, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r64, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r73, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r129, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r129, offset: 4, size: 4 }
+ssa program  303 instrs
+.B0:    ;;  → Always(Block(BlockID(5))).
+         r10: ? <- Ancestral(AncestralName("RBP"))
+  (  9)  r11: ? <- Ancestral(AncestralName("RSP"))
+  (  6)  r43: ? <- Ancestral(AncestralName("arg0"))
+         r44: ? <- Part { src: r43, offset: 0, size: 8 }
+         r46: ? <- Part { src: r43, offset: 8, size: 8 }
+         r48: ? <- ArithK(Add, r11, -8)
+         r49: ? <- StoreMem { addr: r48, value: r10 }
+         r59: ? <- ArithK(Add, r11, -40)
+         r60: ? <- StoreMem { addr: r59, value: r44 }
+         r62: ? <- ArithK(Add, r11, -32)
+         r63: ? <- StoreMem { addr: r62, value: r46 }
+  (  2)  r64: ? <- Const { value: 0, size: 4 }
+         r66: ? <- ArithK(Add, r11, -12)
+         r67: ? <- StoreMem { addr: r66, value: r64 }
+         r68: ? <- Const { value: 0, size: 4 }
+         r70: ? <- ArithK(Add, r11, -16)
+         r71: ? <- StoreMem { addr: r70, value: r68 }
+.B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
+  (  2)  r244: ? <- Part { src: r43, offset: 8, size: 4 }
+         r214: ? <- OverflowOf(r244)
+         r216: ? <- SignOf(r244)
+         r220: ? <- Cmp(EQ, r216, r214)
+         r221: ? <- Not(r220)
+         r222: ? <- SetJumpCondition(r221)
+.B6:    ;; preds:B5  → Always(Return).
+         r235: ? <- SetReturnValue(r64)
+.B1:    ;; preds:B5  → Always(Block(BlockID(3))).
+         r73: ? <- Const { value: 0, size: 4 }
+         r75: ? <- ArithK(Add, r11, -20)
+         r76: ? <- StoreMem { addr: r75, value: r73 }
+.B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
+  (  2)  r259: ? <- Part { src: r43, offset: 12, size: 4 }
+         r180: ? <- OverflowOf(r259)
+         r182: ? <- SignOf(r259)
+         r186: ? <- Cmp(EQ, r182, r180)
+         r187: ? <- Not(r186)
+         r188: ? <- SetJumpCondition(r187)
+.B4:    ;; preds:B3  → Always(Block(BlockID(5))).
+         r194: ? <- Const { value: 1, size: 8 }
+         r196: ? <- ArithK(Add, r11, -16)
+         r197: ? <- StoreMem { addr: r196, value: r194 }
+.B2:    ;; preds:B3  → Always(Block(BlockID(3))).
+         r274: ? <- Part { src: r43, offset: 0, size: 8 }
+         r279: ? <- Part { src: r43, offset: 12, size: 4 }
+         r91: ? <- ArithK(Mul, r279, 0)
+         r120: ? <- Widen { reg: r91, target_size: 8, sign: true }
+         r121: ? <- Const { value: 2, size: 1 }
+         r122: ? <- Widen { reg: r121, target_size: 8, sign: false }
+         r123: ? <- Arith(Shl, r120, r122)
+         r129: ? <- Arith(Add, r123, r274)
+         r139: ? <- LoadMem { addr: r129, size: 4 }
+         r148: ? <- ArithK(Add, r11, -12)
+         r149: ? <- StoreMem { addr: r148, value: r139 }
+         r160: ? <- Const { value: 1, size: 8 }
+         r162: ? <- ArithK(Add, r11, -20)
+         r163: ? <- StoreMem { addr: r162, value: r160 }
+
+
+
+T0: {
+  [pre:RSP - 8]:* := pre:RBP;
+  [pre:RSP - 40]:* := pre:arg0[8 .. 0];
+  [pre:RSP - 32]:* := pre:arg0[16 .. 8];
+  [pre:RSP - 12]:* := 0;
+  [pre:RSP - 16]:* := 0;
+  goto T5
+  T5: {
+    let r244: Bytes(4) = pre:arg0[12 .. 8];
+    ;
+    if ! (SignOf (r244) EQ OverflowOf (r244)) {
+      [pre:RSP - 20]:* := 0;
+      goto T3
+      T3: {
+        let r259: Bytes(4) = pre:arg0[16 .. 12];
+        ;
+        if ! (SignOf (r259) EQ OverflowOf (r259)) {
+          [pre:RSP - 12]:* := [(pre:arg0[16 .. 12] * 0) as i64 << 2 as u64 + pre:arg0[8 .. 0]]:4;
+          [pre:RSP - 20]:* := 1;
+          loop T3
+        }
+        [pre:RSP - 16]:* := 1;
+        loop T5
+      }
+    
+    }
+    ;
+    return 0
+  }
+
+}
