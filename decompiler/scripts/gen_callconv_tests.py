@@ -27,6 +27,18 @@ class Scalar(Type):
 
 
 @dataclass(frozen=True)
+class Integer(Scalar):
+    def enlarge_to_8(self):
+        return Integer('uint64_t')
+
+
+@dataclass(frozen=True)
+class Float(Scalar):
+    def enlarge_to_8(self):
+        return Float('double')
+
+
+@dataclass(frozen=True)
 class Struct(Type):
     name: str
     member_types: Sequence[Type]
@@ -77,32 +89,25 @@ class Array(Type):
 
 
 scalar_types = [
-    Scalar('char'),
-    Scalar('short int'),
-    Scalar('int'),
-    Scalar('long long int'),
-    Scalar('void*'),
-    Scalar('float'),
-    Scalar('double'),
+    Integer('uint8_t'),
+    Integer('uint16_t'),
+    Integer('uint32_t'),
+    Integer('uint64_t'),
+    Integer('void*'),
+    Float('float'),
+    Float('double'),
 ]
 
 
 def gen_pre_targets():
-    yield Scalar('void*')
-    yield Scalar('double')
+    yield Integer('void*')
+    yield Integer('double')
     # just one big struct, just to put something in memory
     yield big_struct
 
 
 def gen_target_types():
-    return [
-        Scalar('char'),
-        Scalar('short int'),
-        Scalar('int'),
-        Scalar('long long int'),
-        Scalar('void*'),
-        Scalar('float'),
-        Scalar('double'),
+    return scalar_types + [
         small_struct,
         small_struct_floats,
         big_struct,
@@ -111,36 +116,36 @@ def gen_target_types():
 small_struct = Struct(
     name='small',
     member_types=tuple([
-        Scalar('void*'),
-        Scalar('float'),
-        Scalar('uint8_t'),
+        Integer('void*'),
+        Float('float'),
+        Integer('uint8_t'),
     ])
 )
 
 small_struct_floats = Struct(
     name='small_xmms',
     member_types=tuple([
-        Scalar('float'),
-        Scalar('double'),
+        Float('float'),
+        Float('double'),
     ])
 )
 
 big_struct = Struct(
     name='big',
     member_types=tuple([
-        Scalar('float'),
-        Scalar('double'),
-        Scalar('void*'),
-        Scalar('uint8_t'),
+        Float('float'),
+        Float('double'),
+        Integer('void*'),
+        Integer('uint8_t'),
         Array(
             count=3,
-            element_type=Scalar('uint8_t'),
+            element_type=Integer('uint8_t'),
         ),
     ])
 )
 
 def gen_seqs_with_len(seq_len):
-    seq = [Scalar('void*') for _ in range(seq_len)]
+    seq = [Integer('void*') for _ in range(seq_len)]
 
     if seq_len >= 2:
         seq[seq_len - 2] = small_struct
@@ -175,11 +180,11 @@ def func_code(func_name, target_name, target_ty, named_args):
         for arg_name, arg_ty in named_args
     ])
     func_declarator = f'{func_name}({args_s})'
-    decl = target_ty.decorate_var(func_declarator)
-
+    large_ty = target_ty.enlarge_to_8().c_repr
+    
     return '\n'.join([
-        f'{decl} {{',
-        f'  return {target_name};',
+        f'void {func_declarator} {{',
+        f'  asm("mov r10, %0" : /* outputs */ : /* inputs */ "irm" (({large_ty})({target_name})) :  /* clobbers */ "r10");',
         '}',
     ])
 
@@ -196,6 +201,12 @@ int main() {}
 ''')
 
     for i, (target_name, target_ty, named_args) in enumerate(gen()):
+        if not isinstance(target_ty, Scalar):
+            # aggregate types can't be assigned directly to a single machine
+            # register. we're going to generate test functions that access each
+            # part of the aggregate, anyway.
+            continue
+        
         func_name = 'func{:03}'.format(i)
 
         for _, ty in named_args:
