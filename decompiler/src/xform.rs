@@ -488,27 +488,18 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let mut prog = ssa::OpenProgram::wrap(prog);
     let mut deduper = Deduper::new();
 
-    println!("---");
     let mut any_change = true;
     while any_change {
-        println!(" * new cycle");
         any_change = false;
 
         let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
         for bid in bids {
-            println!("   * {bid:?}");
             // clear the block's schedule, then reconstruct it.
             // existing instruction are processed and replaced to keep using the memory they already occupy
             for reg in prog.clear_block_schedule(bid) {
                 let orig_block_len = prog.block_len(bid);
                 let orig_insn = prog.get(reg).unwrap();
                 let orig_has_fx = orig_insn.has_side_effects();
-
-                println!("     * {reg:?} -- {orig_insn:?}");
-                if let Some(tyid) = prog.value_type(reg) {
-                    let vt = types.get(tyid);
-                    println!("         {:?}", vt);
-                }
 
                 let mut insn = orig_insn;
                 if let Some(mem_ref_reg) = mem_ref_reg {
