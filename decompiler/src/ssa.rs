@@ -674,6 +674,66 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
     RegMap(count)
 }
 
+pub fn find_input_chain(prog: &Program, root: mil::Reg) -> Vec<mil::Reg> {
+    let mut is_visited = RegMap::for_program(prog, false);
+    let mut chain = Vec::new();
+
+    let mut queue = vec![root];
+    while let Some(reg) = queue.pop() {
+        if is_visited[reg] {
+            continue;
+        }
+
+        is_visited[reg] = true;
+        chain.push(reg);
+
+        let mut insn = prog.get(reg).unwrap();
+        for &mut input in insn.input_regs_iter() {
+            queue.push(input);
+        }
+    }
+
+    chain
+}
+
+#[cfg(test)]
+mod input_chain_tests {
+    use super::*;
+    use crate::mil::R;
+
+    fn mk_simple_program() -> Program {
+        let mut prog = mil::Program::new(R(20));
+        prog.push(R(0), mil::Insn::Const { value: 8, size: 8 });
+        prog.push(R(1), mil::Insn::Const { value: 9, size: 8 });
+        prog.push(R(0), mil::Insn::Arith(mil::ArithOp::Mul, R(0), R(0)));
+        prog.push(
+            R(0),
+            mil::Insn::LoadMem {
+                addr: R(0),
+                size: 8,
+            },
+        );
+        Program::from_mil(prog)
+    }
+
+    #[test]
+    fn zero() {
+        let prog = mk_simple_program();
+        let chain = find_input_chain(&prog, R(0));
+        assert_eq!(&chain, &[R(0)]);
+
+        let chain = find_input_chain(&prog, R(1));
+        assert_eq!(&chain, &[R(1)]);
+    }
+
+    #[test]
+    fn simple() {
+        let prog = mk_simple_program();
+        let chain = find_input_chain(&prog, R(3));
+        assert_eq!(&chain, &[R(3), R(2), R(0)]);
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

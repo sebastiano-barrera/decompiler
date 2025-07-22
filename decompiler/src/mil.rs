@@ -54,6 +54,13 @@ pub struct Program {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, facet::Facet)]
 pub struct Reg(pub u16);
 
+/// Ergonomic short-hand for the mil::Reg constructor
+#[allow(non_snake_case)]
+#[cfg(test)]
+pub const fn R(ndx: u16) -> Reg {
+    Reg(ndx)
+}
+
 impl Reg {
     pub fn reg_index(&self) -> u16 {
         self.0
