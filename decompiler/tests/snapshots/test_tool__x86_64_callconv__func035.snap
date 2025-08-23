@@ -2,16 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func035 0x4011a6+4 (file 0x11a6)
-          4011a6: 0f 28 c1                movaps xmm0,xmm1
-          4011a9: c3                      ret
-
-function type: "func035" func (arg0 small <TypeID(785v1)>,
-                               arg1 small_xmms <TypeID(792v1)>) double <TypeID(784v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  64 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -81,7 +72,7 @@ program  64 instrs
    63 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  64 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
@@ -102,28 +93,12 @@ ssa program  64 instrs
          r62: ? <- SetReturnValue(r61)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r27, r28, r48, r49, r50, r51, r52, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62]
+  BlockID(0) -> Always(Return) [r48, r61, r62]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r48, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r48, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r54, offset: 0, size: 16 }
-fold_subregs: Part { src: r51, offset: 16, size: 48 }
-fold_subregs: Part { src: r57, offset: 0, size: 8 }
-fold_subregs: Part { src: r52, offset: 0, size: 8 }
-fold_subregs: Part { src: r48, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r48, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r54, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
-fold_subregs: Part { src: r48, offset: 8, size: 8 }
+    
+ --- ssa
 ssa program  64 instrs
 .B0:    ;;  → Always(Return).
          r48: ? <- Ancestral(AncestralName("arg1"))
@@ -131,6 +106,7 @@ ssa program  64 instrs
          r62: ? <- SetReturnValue(r61)
 
 
+ --- ast
 
 T0: {
   ;

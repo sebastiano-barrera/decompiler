@@ -2,15 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func008 0x401125+4 (file 0x1125)
-          401125: 48 89 f8                mov rax,rdi
-          401128: c3                      ret
-
-function type: "func008" func (arg0 small <TypeID(785v1)>) *void <TypeID(1v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  54 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -70,7 +62,7 @@ program  54 instrs
    53 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  54 instrs
 .B0:    ;;  → Always(Return).
          r43: ? <- Ancestral(AncestralName("arg0"))
@@ -80,17 +72,12 @@ ssa program  54 instrs
          r52: ? <- SetReturnValue(r51)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r43, r44, r49, r50, r51, r52]
+  BlockID(0) -> Always(Return) [r43, r51, r52]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
-fold_subregs: Part { src: r44, offset: 0, size: 8 }
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
+    
+ --- ssa
 ssa program  54 instrs
 .B0:    ;;  → Always(Return).
          r43: ? <- Ancestral(AncestralName("arg0"))
@@ -98,6 +85,7 @@ ssa program  54 instrs
          r52: ? <- SetReturnValue(r51)
 
 
+ --- ast
 
 T0: {
   ;

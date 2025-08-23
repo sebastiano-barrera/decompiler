@@ -2,17 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func057 0x401215+4 (file 0x1215)
-          401215: 0f 28 c1                movaps xmm0,xmm1
-          401218: c3                      ret
-
-function type: "func057" func (arg0 *void <TypeID(1v1)>,
-                               arg1 small <TypeID(785v1)>,
-                               arg2 small_xmms <TypeID(792v1)>) double <TypeID(784v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  66 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -84,7 +74,7 @@ program  66 instrs
    65 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  66 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
@@ -105,28 +95,12 @@ ssa program  66 instrs
          r64: ? <- SetReturnValue(r63)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r27, r28, r50, r51, r52, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62, r63, r64]
+  BlockID(0) -> Always(Return) [r50, r63, r64]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r50, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r50, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r56, offset: 0, size: 16 }
-fold_subregs: Part { src: r53, offset: 16, size: 48 }
-fold_subregs: Part { src: r59, offset: 0, size: 8 }
-fold_subregs: Part { src: r54, offset: 0, size: 8 }
-fold_subregs: Part { src: r50, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r50, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r56, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
-fold_subregs: Part { src: r50, offset: 8, size: 8 }
+    
+ --- ssa
 ssa program  66 instrs
 .B0:    ;;  → Always(Return).
          r50: ? <- Ancestral(AncestralName("arg2"))
@@ -134,6 +108,7 @@ ssa program  66 instrs
          r64: ? <- SetReturnValue(r63)
 
 
+ --- ast
 
 T0: {
   ;

@@ -1,4 +1,9 @@
-use decompiler::pp;
+//! Tests based on "test_tool"
+//!
+//! These are pretty weak, but they work on real code. They only check that the
+//! decompiler doesn't panic, and they write the decompiler's output as text to
+//! a version-controlled file, just so that it's somewhere easy to diff and hard
+//! to forget updating.
 
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
@@ -54,10 +59,61 @@ impl Exe {
     }
 
     fn process_function(&self, function_name: &str) -> String {
+        use std::fmt::Write;
+
+        let exe = self.get_or_init();
+
+        let df = exe
+            .decompile_function(function_name)
+            .expect("decompiling function");
+
         let mut log_buf = String::new();
-        self.get_or_init()
-            .process_function(function_name, &mut log_buf)
-            .expect("function decompilation failed");
+
+        if let Some(mil) = df.mil() {
+            writeln!(log_buf, " --- mil").unwrap();
+            writeln!(log_buf, "{:?}", mil).unwrap();
+            writeln!(log_buf).unwrap();
+        }
+
+        if let Some(ssa) = df.ssa_pre_xform() {
+            writeln!(log_buf, " --- ssa pre-xform").unwrap();
+            writeln!(log_buf, "{:?}", ssa).unwrap();
+            writeln!(log_buf).unwrap();
+        }
+
+        if let Some(ssa) = df.ssa() {
+            writeln!(log_buf, " --- cfg").unwrap();
+            let cfg = ssa.cfg();
+            writeln!(log_buf, "  entry: {:?}", cfg.direct().entry_bid()).unwrap();
+            for bid in cfg.block_ids() {
+                let regs: Vec<_> = ssa.block_regs(bid).collect();
+                writeln!(
+                    log_buf,
+                    "  {:?} -> {:?} {:?}",
+                    bid,
+                    cfg.block_cont(bid),
+                    regs
+                )
+                .unwrap();
+            }
+            write!(log_buf, "  domtree:\n    ").unwrap();
+
+            let mut out = std::io::stdout().lock();
+            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut out);
+            cfg.dom_tree().dump(pp).unwrap();
+            writeln!(log_buf,).unwrap();
+
+            writeln!(log_buf, " --- ssa").unwrap();
+            writeln!(log_buf, "{:?}", ssa).unwrap();
+            writeln!(log_buf,).unwrap();
+
+            writeln!(log_buf, " --- ast").unwrap();
+            let mut ast = decompiler::Ast::new(&ssa);
+            let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
+            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
+            ast.pretty_print(pp).unwrap();
+        }
+
         log_buf
     }
 }

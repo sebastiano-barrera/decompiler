@@ -2,21 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func103 0x401316+7 (file 0x1316)
-          401316: f3 0f 10 44 24 08       movss xmm0,[rsp+8]
-          40131c: c3                      ret
-
-function type: "func103" func (arg0 *void <TypeID(1v1)>,
-                               arg1 *void <TypeID(1v1)>,
-                               arg2 *void <TypeID(1v1)>,
-                               arg3 small <TypeID(785v1)>,
-                               arg4 big <TypeID(795v1)>) float <TypeID(783v1)>
-WARNING: 1 errors; only 4 out of 5 parameters could be mapped to registers and stack slots
-  #0: type has no alignment?
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  61 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -83,7 +69,7 @@ program  61 instrs
    60 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  61 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
@@ -94,17 +80,12 @@ ssa program  61 instrs
          r59: ? <- SetReturnValue(r58)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r27, r54, r55, r56, r57, r58, r59]
+  BlockID(0) -> Always(Return) [r27, r54, r58, r59]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r27, offset: 0, size: 8 }
-fold_subregs: Part { src: r56, offset: 0, size: 4 }
-fold_subregs: Part { src: r27, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 0, size: 4 }
+    
+ --- ssa
 ssa program  61 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
@@ -113,6 +94,7 @@ ssa program  61 instrs
          r59: ? <- SetReturnValue(r58)
 
 
+ --- ast
 
 T0: {
   TODO /* unsupported: movss xmm0,[rsp+8] */;

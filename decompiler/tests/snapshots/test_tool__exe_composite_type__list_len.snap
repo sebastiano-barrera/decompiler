@@ -2,21 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-list_len 0x1120+28 (file 0x1120)
-            1120: 31 c0                   xor eax,eax
-            1122: 48 8d 4c 24 08          lea rcx,[rsp+8]
-            1127: 66 0f 1f 84 00 00 00 00 nop [rax+rax]
-            1130: ff c0                   inc eax
-            1132: 48 8b 49 10             mov rcx,[rcx+10h]
-            1136: 48 85 c9                test rcx,rcx
-            1139: 75 f5                   jne short 0000000000001130h
-            113b: c3                      ret
-
-function type: "list_len" func (p point <TypeID(18v1)>) int <TypeID(16v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  96 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -123,7 +109,7 @@ program  96 instrs
    95 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  102 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
   (  4)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -169,34 +155,14 @@ ssa program  102 instrs
          r94: ? <- SetReturnValue(r93)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(1))) [r11, r15, r43, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r54, r55, r56, r57, r64, r65, r98, r99]
-  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r97, r96, r67, r68, r69, r70, r77, r78, r79, r81, r83, r88, r89, r100, r101]
-  BlockID(2) -> Always(Return) [r91, r92, r93, r94]
+  BlockID(0) -> Always(Block(BlockID(1))) [r11, r15, r43, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r54, r55, r56, r57, r65, r98, r99]
+  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r97, r96, r67, r68, r69, r70, r78, r79, r83, r88, r89, r100, r101]
+  BlockID(2) -> Always(Return) [r94]
   domtree:
-    BlockID(0)
-    |  BlockID(1)
-    |  |  BlockID(2)
-
-ssa post-xform:
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
-fold_subregs: Part { src: r43, offset: 8, size: 8 }
-fold_subregs: Part { src: r43, offset: 16, size: 8 }
-fold_subregs: Part { src: r15, offset: 0, size: 4 }
-fold_subregs: Part { src: r15, offset: 0, size: 4 }
-fold_subregs: Part { src: r15, offset: 4, size: 4 }
-fold_subregs: Part { src: r96, offset: 0, size: 4 }
-fold_subregs: Part { src: r96, offset: 4, size: 4 }
-fold_subregs: Part { src: r70, offset: 0, size: 4 }
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
-fold_subregs: Part { src: r43, offset: 8, size: 8 }
-fold_subregs: Part { src: r43, offset: 16, size: 8 }
-fold_subregs: Part { src: r15, offset: 0, size: 4 }
-fold_subregs: Part { src: r15, offset: 0, size: 4 }
-fold_subregs: Part { src: r15, offset: 4, size: 4 }
-fold_subregs: Part { src: r96, offset: 0, size: 4 }
-fold_subregs: Part { src: r96, offset: 4, size: 4 }
+    
+ --- ssa
 ssa program  102 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
   (  4)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -237,6 +203,7 @@ ssa program  102 instrs
          r94: ? <- SetReturnValue(r68)
 
 
+ --- ast
 
 T0: {
   [pre:RSP + 8]:* := pre:arg0[8 .. 0];

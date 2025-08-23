@@ -2,18 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func069 0x401262+4 (file 0x1262)
-          401262: 4c 89 c0                mov rax,r8
-          401265: c3                      ret
-
-function type: "func069" func (arg0 *void <TypeID(1v1)>,
-                               arg1 *void <TypeID(1v1)>,
-                               arg2 small <TypeID(785v1)>,
-                               arg3 long long <TypeID(781v1)>) long long <TypeID(781v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  60 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -79,7 +68,7 @@ program  60 instrs
    59 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  60 instrs
 .B0:    ;;  → Always(Return).
          r52: ? <- Ancestral(AncestralName("arg3"))
@@ -88,20 +77,19 @@ ssa program  60 instrs
          r58: ? <- SetReturnValue(r57)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r52, r55, r56, r57, r58]
+  BlockID(0) -> Always(Return) [r52, r58]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r52, offset: 0, size: 8 }
+    
+ --- ssa
 ssa program  60 instrs
 .B0:    ;;  → Always(Return).
          r52: ? <- Ancestral(AncestralName("arg3"))
          r58: ? <- SetReturnValue(r52)
 
 
+ --- ast
 
 T0: {
   ;

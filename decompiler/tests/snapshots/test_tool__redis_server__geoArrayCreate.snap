@@ -2,29 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-geoArrayCreate 0x50c4d0+31 (file 0x10c4d0)
-          50c4d0: 55                      push rbp
-          50c4d1: bf 18 00 00 00          mov edi,18h
-          50c4d6: 48 89 e5                mov rbp,rsp
-          50c4d9: e8 32 e3 f2 ff          call 000000000043A810h
-          50c4de: 66 0f ef c0             pxor xmm0,xmm0
-          50c4e2: 48 c7 00 00 00 00 00    mov qword ptr [rax],0
-          50c4e9: 0f 11 40 08             movups [rax+8],xmm0
-          50c4ed: 5d                      pop rbp
-          50c4ee: c3                      ret
-
-function type: "geoArrayCreate" func () *geoArray <TypeID(246624v1)>
-#call: to address 0x43a810, returning to 0x50c4de      -> resolved call to: TypeID(107948v1) = Type { name: "zmalloc", ty: Subroutine(Subroutine { return_tyid: TypeID(172463v1), param_names: [Some("size")], param_tyids: [TypeID(172469v1)] }) }
-      param[0] = Alias(
-                     TypeID(
-                         172454v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(172463v1), param_names: [Some("size")], param_tyids: [TypeID(172469v1)] }); param_values=[r45]
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  91 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -128,7 +106,7 @@ program  91 instrs
    90 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  91 instrs
 .B0:    ;;  → Always(Return).
          r10: ? <- Ancestral(AncestralName("RBP"))
@@ -162,24 +140,12 @@ ssa program  91 instrs
          r89: ? <- SetReturnValue(r88)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r10, r11, r13, r27, r43, r44, r45, r46, r47, r51, r52, r53, r63, r64, r65, r66, r67, r68, r75, r76, r77, r78, r79, r80, r81, r82, r86, r87, r88, r89]
+  BlockID(0) -> Always(Return) [r10, r11, r13, r27, r43, r44, r45, r46, r47, r51, r52, r53, r64, r65, r66, r75, r78, r81, r82, r89]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r13, offset: 4, size: 4 }
-fold_subregs: Part { src: r53, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
-fold_subregs: Part { src: r68, offset: 0, size: 16 }
-fold_subregs: Part { src: r53, offset: 0, size: 8 }
-fold_subregs: Part { src: r13, offset: 4, size: 4 }
-fold_subregs: Part { src: r27, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
+    
+ --- ssa
 ssa program  91 instrs
 .B0:    ;;  → Always(Return).
          r10: ? <- Ancestral(AncestralName("RBP"))
@@ -204,6 +170,7 @@ ssa program  91 instrs
          r89: ? <- SetReturnValue(r53)
 
 
+ --- ast
 
 T0: {
   [pre:RSP - 8]:* := pre:RBP;

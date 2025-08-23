@@ -2,26 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-listNext 0x4110b0+39 (file 0x110b0)
-          4110b0: 48 8b 07                mov rax,[rdi]
-          4110b3: 48 85 c0                test rax,rax
-          4110b6: 74 1e                   je short 00000000004110D6h
-          4110b8: 8b 57 08                mov edx,[rdi+8]
-          4110bb: 85 d2                   test edx,edx
-          4110bd: 75 11                   jne short 00000000004110D0h
-          4110bf: 48 8b 50 08             mov rdx,[rax+8]
-          4110c3: 48 89 17                mov [rdi],rdx
-          4110c6: c3                      ret
-          4110c7: 66 0f 1f 84 00 00 00 00 nop [rax+rax]
-          4110d0: 48 8b 10                mov rdx,[rax]
-          4110d3: 48 89 17                mov [rdi],rdx
-          4110d6: c3                      ret
-
-function type: "listNext" func (iter *listIter <TypeID(163778v1)>) *listNode <TypeID(163773v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  99 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -136,7 +117,7 @@ program  99 instrs
    98 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  99 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
          r18: ? <- Ancestral(AncestralName("RDX"))
@@ -182,27 +163,16 @@ ssa program  99 instrs
          r97: ? <- SetReturnValue(r96)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r18, r43, r45, r46, r47, r49, r51, r56]
-  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r58, r59, r60, r61, r62, r63, r64, r65, r67, r72, r73]
-  BlockID(2) -> Always(Return) [r75, r76, r77, r79, r80, r81, r82, r83, r84, r85]
-  BlockID(3) -> Always(Block(BlockID(4))) [r87, r88, r89, r91, r92, r93]
-  BlockID(4) -> Always(Return) [r94, r95, r96, r97]
+  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r43, r47, r51, r56]
+  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r59, r60, r67, r72, r73]
+  BlockID(2) -> Always(Return) [r76, r77, r81, r85]
+  BlockID(3) -> Always(Block(BlockID(4))) [r89, r93]
+  BlockID(4) -> Always(Return) [r97]
   domtree:
-    BlockID(0)
-    |  BlockID(1)
-    |  |  BlockID(2)
-    |  |  BlockID(3)
-    |  BlockID(4)
-
-ssa post-xform:
-fold_subregs: Part { src: r18, offset: 4, size: 4 }
-fold_subregs: Part { src: r62, offset: 0, size: 4 }
-fold_subregs: Part { src: r62, offset: 0, size: 4 }
-fold_subregs: Part { src: r47, offset: 0, size: 8 }
-fold_subregs: Part { src: r47, offset: 0, size: 8 }
-fold_subregs: Part { src: r18, offset: 4, size: 4 }
+    
+ --- ssa
 ssa program  99 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
   (  4)  r43: ? <- Ancestral(AncestralName("arg0"))
@@ -227,6 +197,7 @@ ssa program  99 instrs
          r97: ? <- SetReturnValue(r47)
 
 
+ --- ast
 
 T0: {
   let r47: Bytes(8) = [pre:arg0]:8;

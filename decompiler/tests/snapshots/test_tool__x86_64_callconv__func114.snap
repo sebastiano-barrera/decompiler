@@ -2,20 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func114 0x401354+6 (file 0x1354)
-          401354: 48 8b 44 24 08          mov rax,[rsp+8]
-          401359: c3                      ret
-
-function type: "func114" func (arg0 *void <TypeID(1v1)>,
-                               arg1 *void <TypeID(1v1)>,
-                               arg2 *void <TypeID(1v1)>,
-                               arg3 *void <TypeID(1v1)>,
-                               arg4 small <TypeID(785v1)>,
-                               arg5 *void <TypeID(1v1)>) *void <TypeID(1v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  69 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -90,7 +77,7 @@ program  69 instrs
    68 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  69 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -106,16 +93,12 @@ ssa program  69 instrs
          r67: ? <- SetReturnValue(r66)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r56, r57, r58, r59, r60, r61, r62, r64, r65, r66, r67]
+  BlockID(0) -> Always(Return) [r11, r56, r58, r59, r67]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r56, offset: 0, size: 8 }
-fold_subregs: Part { src: r62, offset: 0, size: 8 }
-fold_subregs: Part { src: r56, offset: 0, size: 8 }
+    
+ --- ssa
 ssa program  74 instrs
 .B0:    ;;  → Always(Return).
          r11: ? <- Ancestral(AncestralName("RSP"))
@@ -125,6 +108,7 @@ ssa program  74 instrs
          r67: ? <- SetReturnValue(r56)
 
 
+ --- ast
 
 T0: {
   [pre:RSP + 8]:* := pre:arg5;

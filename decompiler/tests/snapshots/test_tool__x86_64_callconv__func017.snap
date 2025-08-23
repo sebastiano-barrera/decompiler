@@ -2,17 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func017 0x40115f+6 (file 0x115f)
-          40115f: 48 8b 44 24 18          mov rax,[rsp+18h]
-          401164: c3                      ret
-
-function type: "func017" func (arg0 big <TypeID(795v1)>) *void <TypeID(1v1)>
-WARNING: 1 errors; only 0 out of 1 parameters could be mapped to registers and stack slots
-  #0: type has no alignment?
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  52 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -70,7 +60,7 @@ program  52 instrs
    51 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  52 instrs
 .B0:    ;;  → Always(Return).
          r11: ? <- Ancestral(AncestralName("RSP"))
@@ -82,14 +72,12 @@ ssa program  52 instrs
          r50: ? <- SetReturnValue(r49)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r43, r44, r45, r47, r48, r49, r50]
+  BlockID(0) -> Always(Return) [r11, r44, r45, r50]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r45, offset: 0, size: 8 }
+    
+ --- ssa
 ssa program  52 instrs
 .B0:    ;;  → Always(Return).
          r11: ? <- Ancestral(AncestralName("RSP"))
@@ -98,6 +86,7 @@ ssa program  52 instrs
          r50: ? <- SetReturnValue(r45)
 
 
+ --- ast
 
 T0: {
   ;

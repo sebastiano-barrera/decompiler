@@ -2,16 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func055 0x401213+1 (file 0x1213)
-          401213: c3                      ret
-
-function type: "func055" func (arg0 *void <TypeID(1v1)>,
-                               arg1 small <TypeID(785v1)>,
-                               arg2 small_xmms <TypeID(792v1)>) small_xmms <TypeID(792v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  65 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -81,7 +72,7 @@ program  65 instrs
    64 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  65 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
@@ -101,26 +92,12 @@ ssa program  65 instrs
          r63: ? <- SetReturnValue(r62)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r27, r28, r50, r51, r52, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62, r63]
+  BlockID(0) -> Always(Return) [r50, r58, r60, r61, r63]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r50, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r50, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r53, offset: 0, size: 8 }
-fold_subregs: Part { src: r56, offset: 0, size: 8 }
-fold_subregs: Part { src: r61, offset: 0, size: 16 }
-fold_subregs: Part { src: r50, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r50, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r50, offset: 0, size: 8 }
-fold_subregs: Part { src: r50, offset: 8, size: 8 }
+    
+ --- ssa
 ssa program  65 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r50: ? <- Ancestral(AncestralName("arg2"))
@@ -130,6 +107,7 @@ ssa program  65 instrs
          r63: ? <- SetReturnValue(r61)
 
 
+ --- ast
 
 T0: {
   ;

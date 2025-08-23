@@ -2,19 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func096 0x4012e9+6 (file 0x12e9)
-          4012e9: 48 8b 44 24 08          mov rax,[rsp+8]
-          4012ee: c3                      ret
-
-function type: "func096" func (arg0 *void <TypeID(1v1)>,
-                               arg1 *void <TypeID(1v1)>,
-                               arg2 *void <TypeID(1v1)>,
-                               arg3 small <TypeID(785v1)>,
-                               arg4 small <TypeID(785v1)>) *void <TypeID(1v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  70 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -90,7 +78,7 @@ program  70 instrs
    69 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  70 instrs
 .B0:    ;;  → Always(Return).
   (  3)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -109,22 +97,12 @@ ssa program  70 instrs
          r68: ? <- SetReturnValue(r67)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r54, r55, r56, r57, r58, r59, r60, r61, r62, r63, r65, r66, r67, r68]
+  BlockID(0) -> Always(Return) [r11, r54, r55, r56, r57, r58, r59, r60, r71, r68]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r54, offset: 0, size: 8 }
-fold_subregs: Part { src: r54, offset: 8, size: 8 }
-fold_subregs: Part { src: r63, offset: 0, size: 8 }
-fold_subregs: Part { src: r54, offset: 0, size: 8 }
-fold_subregs: Part { src: r54, offset: 8, size: 8 }
-fold_subregs: Part { src: r55, offset: 0, size: 8 }
-fold_subregs: Part { src: r54, offset: 0, size: 8 }
-fold_subregs: Part { src: r54, offset: 8, size: 8 }
-fold_subregs: Part { src: r54, offset: 0, size: 8 }
+    
+ --- ssa
 ssa program  75 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -139,6 +117,7 @@ ssa program  75 instrs
          r68: ? <- SetReturnValue(r71)
 
 
+ --- ast
 
 T0: {
   [pre:RSP + 8]:* := pre:arg4[8 .. 0];

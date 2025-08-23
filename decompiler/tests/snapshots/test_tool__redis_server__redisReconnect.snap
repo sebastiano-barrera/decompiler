@@ -2,234 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-redisReconnect 0x595020+390 (file 0x195020)
-          595020: 55                      push rbp
-          595021: 48 8d 6f 0c             lea rbp,[rdi+0Ch]
-          595025: 53                      push rbx
-          595026: 48 89 fb                mov rbx,rdi
-          595029: 48 83 ec 08             sub rsp,8
-          59502d: c7 47 08 00 00 00 00    mov dword ptr [rdi+8],0
-          595034: 48 89 ef                mov rdi,rbp
-          595037: e8 a4 c2 e6 ff          call 00000000004012E0h
-          59503c: 48 89 ef                mov rdi,rbp
-          59503f: 31 f6                   xor esi,esi
-          595041: 48 89 c2                mov rdx,rax
-          595044: e8 f7 c3 e6 ff          call 0000000000401440h
-          595049: 48 8b bb 00 01 00 00    mov rdi,[rbx+100h]
-          595050: 48 85 ff                test rdi,rdi
-          595053: 74 19                   je short 000000000059506Eh
-          595055: 48 8b 03                mov rax,[rbx]
-          595058: 48 8b 50 08             mov rdx,[rax+8]
-          59505c: 48 85 d2                test rdx,rdx
-          59505f: 74 15                   je short 0000000000595076h
-          595061: ff d2                   call rdx
-          595063: 48 c7 83 00 01 00 00 00 mov qword ptr [rbx+100h],0
-          59506e: 48 8b 03                mov rax,[rbx]
-          595071: 48 85 c0                test rax,rax
-          595074: 74 0d                   je short 0000000000595083h
-          595076: 48 8b 00                mov rax,[rax]
-          595079: 48 85 c0                test rax,rax
-          59507c: 74 05                   je short 0000000000595083h
-          59507e: 48 89 df                mov rdi,rbx
-          595081: ff d0                   call rax
-          595083: 48 8b bb 98 00 00 00    mov rdi,[rbx+98h]
-          59508a: e8 e1 0f 00 00          call 0000000000596070h
-          59508f: 48 8b bb a0 00 00 00    mov rdi,[rbx+0A0h]
-          595096: e8 f5 47 00 00          call 0000000000599890h
-          59509b: e8 30 0f 00 00          call 0000000000595FD0h
-          5950a0: 48 89 83 98 00 00 00    mov [rbx+98h],rax
-          5950a7: e8 44 fe ff ff          call 0000000000594EF0h
-          5950ac: 48 83 bb 98 00 00 00 00 cmp qword ptr [rbx+98h],0
-          5950b4: 48 89 83 a0 00 00 00    mov [rbx+0A0h],rax
-          5950bb: 0f 84 c7 00 00 00       je 0000000000595188h
-          5950c1: 48 85 c0                test rax,rax
-          5950c4: 0f 84 be 00 00 00       je 0000000000595188h
-          5950ca: 8b 83 a8 00 00 00       mov eax,[rbx+0A8h]
-          5950d0: 85 c0                   test eax,eax
-          5950d2: 74 6c                   je short 0000000000595140h
-          5950d4: 83 f8 01                cmp eax,1
-          5950d7: 74 47                   je short 0000000000595120h
-          5950d9: 48 8d 15 58 9d 11 00    lea rdx,[6AEE38h]
-          5950e0: be 02 00 00 00          mov esi,2
-          5950e5: 48 89 df                mov rdi,rbx
-          5950e8: bd ff ff ff ff          mov ebp,0FFFFFFFFh
-          5950ed: e8 fe fc ff ff          call 0000000000594DF0h
-          5950f2: 48 8b 83 b8 00 00 00    mov rax,[rbx+0B8h]
-          5950f9: 48 85 c0                test rax,rax
-          5950fc: 74 12                   je short 0000000000595110h
-          5950fe: f6 83 90 00 00 00 01    test byte ptr [rbx+90h],1
-          595105: 74 09                   je short 0000000000595110h
-          595107: 83 bb 8c 00 00 00 ff    cmp dword ptr [rbx+8Ch],0FFFFFFFFh
-          59510e: 75 60                   jne short 0000000000595170h
-          595110: 48 83 c4 08             add rsp,8
-          595114: 89 e8                   mov eax,ebp
-          595116: 5b                      pop rbx
-          595117: 5d                      pop rbp
-          595118: c3                      ret
-          595119: 0f 1f 80 00 00 00 00    nop [rax]
-          595120: 48 8b 93 b0 00 00 00    mov rdx,[rbx+0B0h]
-          595127: 48 8b b3 d8 00 00 00    mov rsi,[rbx+0D8h]
-          59512e: 48 89 df                mov rdi,rbx
-          595131: e8 9a df ff ff          call 00000000005930D0h
-          595136: 89 c5                   mov ebp,eax
-          595138: eb b8                   jmp short 00000000005950F2h
-          59513a: 66 0f 1f 44 00 00       nop [rax+rax]
-          595140: 48 8b 8b b0 00 00 00    mov rcx,[rbx+0B0h]
-          595147: 8b 93 d0 00 00 00       mov edx,[rbx+0D0h]
-          59514d: 48 89 df                mov rdi,rbx
-          595150: 48 8b b3 c0 00 00 00    mov rsi,[rbx+0C0h]
-          595157: 4c 8b 83 c8 00 00 00    mov r8,[rbx+0C8h]
-          59515e: e8 5d df ff ff          call 00000000005930C0h
-          595163: 89 c5                   mov ebp,eax
-          595165: eb 8b                   jmp short 00000000005950F2h
-          595167: 66 0f 1f 84 00 00 00 00 nop [rax+rax]
-          595170: 48 8b 30                mov rsi,[rax]
-          595173: 48 8b 50 08             mov rdx,[rax+8]
-          595177: 48 89 df                mov rdi,rbx
-          59517a: e8 c1 dd ff ff          call 0000000000592F40h
-          59517f: 48 83 c4 08             add rsp,8
-          595183: 89 e8                   mov eax,ebp
-          595185: 5b                      pop rbx
-          595186: 5d                      pop rbp
-          595187: c3                      ret
-          595188: 48 8d 15 1f c2 10 00    lea rdx,[6A13AEh]
-          59518f: be 05 00 00 00          mov esi,5
-          595194: 48 89 df                mov rdi,rbx
-          595197: bd ff ff ff ff          mov ebp,0FFFFFFFFh
-          59519c: e8 4f fc ff ff          call 0000000000594DF0h
-          5951a1: e9 6a ff ff ff          jmp 0000000000595110h
-
-function type: "redisReconnect" func (c *redisContext <TypeID(297540v1)>) int <TypeID(297248v1)>
-#call: to address 0x4012e0, returning to 0x59503c      -> resolved call to: TypeID(297696v1) = Type { name: "strlen", ty: Subroutine(Subroutine { return_tyid: TypeID(297245v1), param_names: [None], param_tyids: [TypeID(297417v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297267v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(297245v1), param_names: [None], param_tyids: [TypeID(297417v1)] }); param_values=[r45]
-#call: to address 0x401440, returning to 0x595049      -> resolved call to: TypeID(298680v1) = Type { name: "__builtin_memset", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [], param_tyids: [] }) }
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(1v1), param_names: [], param_tyids: [] }); param_values=[]
-resolved call: subr_ty=None; param_values=[r14, r15, r19, r18]
-resolved call: subr_ty=None; param_values=[r14, r15, r19, r18]
-#call: to address 0x596070, returning to 0x59508f      -> resolved call to: TypeID(297676v1) = Type { name: "hi_sdsfree", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [None], param_tyids: [TypeID(297374v1)] }) }
-      param[0] = Alias(
-                     TypeID(
-                         297265v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(1v1), param_names: [None], param_tyids: [TypeID(297374v1)] }); param_values=[r45]
-#call: to address 0x599890, returning to 0x59509b      -> resolved call to: TypeID(297650v1) = Type { name: "redisReaderFree", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [None], param_tyids: [TypeID(297536v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297365v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(1v1), param_names: [None], param_tyids: [TypeID(297536v1)] }); param_values=[r45]
-#call: to address 0x595fd0, returning to 0x5950a0      -> resolved call to: TypeID(297702v1) = Type { name: "hi_sdsempty", ty: Subroutine(Subroutine { return_tyid: TypeID(297374v1), param_names: [], param_tyids: [] }) }
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(297374v1), param_names: [], param_tyids: [] }); param_values=[]
-#call: to address 0x594ef0, returning to 0x5950ac      -> resolved call to: TypeID(298074v1) = Type { name: "redisReaderCreate", ty: Subroutine(Subroutine { return_tyid: TypeID(297536v1), param_names: [], param_tyids: [] }) }
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(297536v1), param_names: [], param_tyids: [] }); param_values=[]
-#call: to address 0x594df0, returning to 0x5950f2      -> resolved call to: TypeID(298077v1) = Type { name: "__redisSetError", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("c"), Some("type"), Some("str")], param_tyids: [TypeID(297610v1), TypeID(297248v1), TypeID(297417v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297540v1,
-                     ),
-                 )
-      param[1] = Int(
-                     Int {
-                         size: 4,
-                         signed: Signed,
-                     },
-                 )
-      param[2] = Ptr(
-                     TypeID(
-                         297267v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("c"), Some("type"), Some("str")], param_tyids: [TypeID(297610v1), TypeID(297248v1), TypeID(297417v1)] }); param_values=[r45, r46, r47]
-#call: to address 0x5930d0, returning to 0x595136      -> resolved call to: TypeID(297636v1) = Type { name: "redisContextConnectUnix", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None, None], param_tyids: [TypeID(297610v1), TypeID(297417v1), TypeID(297481v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297540v1,
-                     ),
-                 )
-      param[1] = Ptr(
-                     TypeID(
-                         297267v1,
-                     ),
-                 )
-      param[2] = Ptr(
-                     TypeID(
-                         297369v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None, None], param_tyids: [TypeID(297610v1), TypeID(297417v1), TypeID(297481v1)] }); param_values=[r45, r46, r47]
-#call: to address 0x5930c0, returning to 0x595163      -> resolved call to: TypeID(297640v1) = Type { name: "redisContextConnectBindTcp", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None, None, None, None], param_tyids: [TypeID(297610v1), TypeID(297417v1), TypeID(297248v1), TypeID(297481v1), TypeID(297417v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297540v1,
-                     ),
-                 )
-      param[1] = Ptr(
-                     TypeID(
-                         297267v1,
-                     ),
-                 )
-      param[2] = Int(
-                     Int {
-                         size: 4,
-                         signed: Signed,
-                     },
-                 )
-      param[3] = Ptr(
-                     TypeID(
-                         297369v1,
-                     ),
-                 )
-      param[4] = Ptr(
-                     TypeID(
-                         297267v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None, None, None, None], param_tyids: [TypeID(297610v1), TypeID(297417v1), TypeID(297248v1), TypeID(297481v1), TypeID(297417v1)] }); param_values=[r45, r46, r47, r48, r49]
-#call: to address 0x592f40, returning to 0x59517f      -> resolved call to: TypeID(297633v1) = Type { name: "redisContextSetTimeout", ty: Subroutine(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None], param_tyids: [TypeID(297610v1), TypeID(297369v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297540v1,
-                     ),
-                 )
-      param[1] = Unknown(
-                     Unknown {
-                         size: 0,
-                     },
-                 )
-      pack_params: had to cut it short after 1 params: type has no alignment?
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(297248v1), param_names: [None, None], param_tyids: [TypeID(297610v1), TypeID(297369v1)] }); param_values=[r45]
-#call: to address 0x594df0, returning to 0x5951a1      -> resolved call to: TypeID(298077v1) = Type { name: "__redisSetError", ty: Subroutine(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("c"), Some("type"), Some("str")], param_tyids: [TypeID(297610v1), TypeID(297248v1), TypeID(297417v1)] }) }
-      param[0] = Ptr(
-                     TypeID(
-                         297540v1,
-                     ),
-                 )
-      param[1] = Int(
-                     Int {
-                         size: 4,
-                         signed: Signed,
-                     },
-                 )
-      param[2] = Ptr(
-                     TypeID(
-                         297267v1,
-                     ),
-                 )
-resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(1v1), param_names: [Some("c"), Some("type"), Some("str")], param_tyids: [TypeID(297610v1), TypeID(297248v1), TypeID(297417v1)] }); param_values=[r45, r46, r47]
-3 warnings:
-  #   0: no type hints for this callsite
-  #   1: no type hints for this callsite
-  #   2: call: call resolved but only packed 1/2 params
-
-
-mil program = 
+ --- mil
 program  569 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -894,7 +667,7 @@ program  569 instrs
   568 r45: TypeID(2v1) <- Control(Jmp(383))
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  582 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(1)) }.
          r10: ? <- Ancestral(AncestralName("RBP"))
@@ -1143,87 +916,30 @@ ssa program  582 instrs
          r404: ? <- SetReturnValue(r403)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(1)) } [r10, r11, r12, r14, r16, r17, r43, r45, r46, r47, r48, r50, r51, r62, r63, r64, r65, r69, r70, r71, r81, r83, r84, r85, r86, r87, r95, r96, r106, r107, r108, r110, r112, r117]
-  BlockID(1) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(2)) } [r119, r120, r121, r123, r124, r125, r127, r129, r134, r581]
-  BlockID(2) -> Always(Block(BlockID(3))) [r136, r137, r138, r139, r140, r151, r152, r153, r154]
-  BlockID(3) -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(4)) } [r155, r156, r157, r159, r161, r166, r580]
-  BlockID(4) -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(5)) } [r569, r168, r169, r170, r172, r174, r179]
+  BlockID(0) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(1)) } [r10, r11, r12, r14, r16, r17, r43, r45, r46, r48, r50, r51, r62, r64, r65, r69, r70, r71, r83, r84, r85, r86, r87, r95, r96, r107, r108, r112, r117]
+  BlockID(1) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(2)) } [r121, r124, r125, r129, r134, r581]
+  BlockID(2) -> Always(Block(BlockID(3))) [r136, r137, r138, r139, r140, r151, r153, r154]
+  BlockID(3) -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(4)) } [r157, r161, r166, r580]
+  BlockID(4) -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(5)) } [r569, r170, r174, r179]
   BlockID(5) -> Always(Block(BlockID(6))) [r182, r183, r184, r185, r186]
-  BlockID(6) -> Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(7)) } [r197, r198, r199, r203, r204, r205, r215, r216, r217, r221, r222, r223, r233, r234, r244, r245, r246, r247, r248, r249, r259, r260, r261, r262, r263, r264, r268, r271, r272, r273, r274]
-  BlockID(7) -> Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(8)) } [r276, r278, r283]
-  BlockID(8) -> Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(9)) } [r285, r286, r287, r288, r289, r290, r291, r292, r294, r299]
-  BlockID(9) -> Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(10)) } [r301, r302, r303, r307, r310]
-  BlockID(10) -> Always(Block(BlockID(11))) [r312, r313, r315, r316, r317, r326, r329, r330, r331, r332, r333]
-  BlockID(11) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(12)) } [r343, r344, r345, r347, r349, r354, r574, r575]
-  BlockID(12) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(13)) } [r356, r357, r358, r359, r360, r362, r367, r576, r577]
-  BlockID(13) -> Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(14)) } [r369, r370, r371, r372, r373, r377, r380, r381, r578, r579]
-  BlockID(14) -> Always(Return) [r571, r570, r392, r393, r394, r401, r402, r403, r404]
-  BlockID(15) -> Always(Block(BlockID(11))) [r406, r407, r408, r410, r411, r412, r421, r422, r423, r424, r425]
-  BlockID(16) -> Always(Block(BlockID(11))) [r440, r441, r442, r444, r445, r446, r447, r448, r450, r451, r452, r454, r455, r456, r464, r469, r470, r471, r472, r473, r474, r475]
-  BlockID(17) -> Always(Return) [r501, r502, r503, r513, r523, r524, r525, r532, r533, r534, r535]
-  BlockID(18) -> Always(Block(BlockID(14))) [r537, r538, r540, r541, r542, r544, r545, r546, r551, r554, r555, r556, r557, r558, r572, r573]
+  BlockID(6) -> Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(7)) } [r198, r199, r203, r204, r205, r216, r217, r221, r222, r223, r233, r234, r246, r247, r248, r249, r261, r262, r268, r272, r273, r274]
+  BlockID(7) -> Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(8)) } [r278, r283]
+  BlockID(8) -> Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(9)) } [r286, r287, r294, r299]
+  BlockID(9) -> Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(10)) } [r303, r307, r310]
+  BlockID(10) -> Always(Block(BlockID(11))) [r313, r315, r329, r330, r331, r332, r333]
+  BlockID(11) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(12)) } [r344, r345, r349, r354, r574]
+  BlockID(12) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(13)) } [r357, r358, r360, r362, r367, r576]
+  BlockID(13) -> Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(14)) } [r370, r371, r373, r377, r380, r381, r578]
+  BlockID(14) -> Always(Return) [r570, r403, r404]
+  BlockID(15) -> Always(Block(BlockID(11))) [r407, r408, r411, r412, r421, r422, r423, r424, r425]
+  BlockID(16) -> Always(Block(BlockID(11))) [r441, r442, r445, r446, r451, r452, r455, r456, r469, r470, r471, r472, r473, r474, r475]
+  BlockID(17) -> Always(Return) [r501, r502, r503, r534, r535]
+  BlockID(18) -> Always(Block(BlockID(14))) [r538, r540, r544, r545, r546, r554, r555, r556, r557, r558, r572]
   domtree:
-    BlockID(0)
-    |  BlockID(1)
-    |  |  BlockID(2)
-    |  BlockID(3)
-    |  BlockID(4)
-    |  |  BlockID(5)
-    |  BlockID(6)
-    |  |  BlockID(7)
-    |  |  |  BlockID(8)
-    |  |  |  |  BlockID(9)
-    |  |  |  |  |  BlockID(10)
-    |  |  |  |  |  BlockID(15)
-    |  |  |  |  BlockID(11)
-    |  |  |  |  |  BlockID(12)
-    |  |  |  |  |  |  BlockID(13)
-    |  |  |  |  |  |  |  BlockID(17)
-    |  |  |  |  BlockID(16)
-    |  |  BlockID(14)
-    |  |  BlockID(18)
-
-ssa post-xform:
-fold_subregs: Part { src: r71, offset: 0, size: 8 }
-fold_subregs: Part { src: r14, offset: 0, size: 4 }
-fold_subregs: Part { src: r14, offset: 0, size: 4 }
-fold_subregs: Part { src: r14, offset: 4, size: 4 }
-fold_subregs: Part { src: r234, offset: 0, size: 8 }
-fold_subregs: Part { src: r249, offset: 0, size: 8 }
-fold_subregs: Part { src: r249, offset: 4, size: 4 }
-fold_subregs: Part { src: r289, offset: 0, size: 4 }
-fold_subregs: Part { src: r289, offset: 0, size: 4 }
-fold_subregs: Part { src: r289, offset: 0, size: 4 }
-fold_subregs: Part { src: r87, offset: 4, size: 4 }
-fold_subregs: Part { src: r317, offset: 0, size: 4 }
-fold_subregs: Part { src: r71, offset: 4, size: 4 }
-fold_subregs: Part { src: r448, offset: 0, size: 4 }
-fold_subregs: Part { src: r503, offset: 0, size: 8 }
-fold_subregs: Part { src: r48, offset: 0, size: 4 }
-fold_subregs: Part { src: r503, offset: 4, size: 4 }
-fold_subregs: Part { src: r525, offset: 0, size: 4 }
-fold_subregs: Part { src: r87, offset: 4, size: 4 }
-fold_subregs: Part { src: r48, offset: 4, size: 4 }
-fold_subregs: Part { src: r542, offset: 0, size: 4 }
-fold_subregs: Part { src: r570, offset: 0, size: 4 }
-fold_subregs: Part { src: r571, offset: 4, size: 4 }
-fold_subregs: Part { src: r394, offset: 0, size: 4 }
-fold_subregs: Part { src: r14, offset: 0, size: 4 }
-fold_subregs: Part { src: r14, offset: 0, size: 4 }
-fold_subregs: Part { src: r14, offset: 4, size: 4 }
-fold_subregs: Part { src: r249, offset: 4, size: 4 }
-fold_subregs: Part { src: r14, offset: 4, size: 4 }
-fold_subregs: Part { src: r71, offset: 4, size: 4 }
-fold_subregs: Part { src: r48, offset: 0, size: 4 }
-fold_subregs: Part { src: r503, offset: 4, size: 4 }
-fold_subregs: Part { src: r48, offset: 0, size: 4 }
-fold_subregs: Part { src: r14, offset: 4, size: 4 }
-fold_subregs: Part { src: r48, offset: 4, size: 4 }
-fold_subregs: Part { src: r570, offset: 0, size: 4 }
-fold_subregs: Part { src: r571, offset: 4, size: 4 }
-fold_subregs: Part { src: r570, offset: 0, size: 4 }
+    
+ --- ssa
 ssa program  582 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(1)) }.
          r10: ? <- Ancestral(AncestralName("RBP"))
@@ -1401,6 +1117,7 @@ ssa program  582 instrs
          r404: ? <- SetReturnValue(r403)
 
 
+ --- ast
 
 T0: {
   [pre:RSP - 8]:* := pre:RBP;

@@ -2,15 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func013 0x401138+4 (file 0x1138)
-          401138: 0f 28 c1                movaps xmm0,xmm1
-          40113b: c3                      ret
-
-function type: "func013" func (arg0 small_xmms <TypeID(792v1)>) double <TypeID(784v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  59 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -75,7 +67,7 @@ program  59 instrs
    58 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  59 instrs
 .B0:    ;;  → Always(Return).
          r27: ? <- Ancestral(AncestralName("ZMM0"))
@@ -96,28 +88,12 @@ ssa program  59 instrs
          r57: ? <- SetReturnValue(r56)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r27, r28, r43, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r54, r55, r56, r57]
+  BlockID(0) -> Always(Return) [r43, r56, r57]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r43, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r49, offset: 0, size: 16 }
-fold_subregs: Part { src: r46, offset: 16, size: 48 }
-fold_subregs: Part { src: r52, offset: 0, size: 8 }
-fold_subregs: Part { src: r47, offset: 0, size: 8 }
-fold_subregs: Part { src: r43, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 8, size: 56 }
-fold_subregs: Part { src: r43, offset: 8, size: 8 }
-fold_subregs: Part { src: r28, offset: 8, size: 56 }
-fold_subregs: Part { src: r49, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
-fold_subregs: Part { src: r43, offset: 8, size: 8 }
+    
+ --- ssa
 ssa program  59 instrs
 .B0:    ;;  → Always(Return).
          r43: ? <- Ancestral(AncestralName("arg0"))
@@ -125,6 +101,7 @@ ssa program  59 instrs
          r57: ? <- SetReturnValue(r56)
 
 
+ --- ast
 
 T0: {
   ;

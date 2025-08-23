@@ -2,21 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func141 0x4013e3+7 (file 0x13e3)
-          4013e3: f3 0f 10 44 24 20       movss xmm0,[rsp+20h]
-          4013e9: c3                      ret
-
-function type: "func141" func (arg0 *void <TypeID(1v1)>,
-                               arg1 *void <TypeID(1v1)>,
-                               arg2 *void <TypeID(1v1)>,
-                               arg3 *void <TypeID(1v1)>,
-                               arg4 *void <TypeID(1v1)>,
-                               arg5 small <TypeID(785v1)>,
-                               arg6 small <TypeID(785v1)>) float <TypeID(783v1)>
-0 warnings.
-
-
-mil program = 
+ --- mil
 program  74 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -96,7 +82,7 @@ program  74 instrs
    73 r47: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  74 instrs
 .B0:    ;;  → Always(Return).
   (  4)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -122,25 +108,12 @@ ssa program  74 instrs
          r72: ? <- SetReturnValue(r71)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r27, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62, r63, r64, r65, r66, r67, r68, r69, r70, r71, r72]
+  BlockID(0) -> Always(Return) [r11, r27, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62, r63, r64, r65, r66, r67, r71, r72]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r53, offset: 0, size: 8 }
-fold_subregs: Part { src: r53, offset: 8, size: 8 }
-fold_subregs: Part { src: r60, offset: 0, size: 8 }
-fold_subregs: Part { src: r60, offset: 8, size: 8 }
-fold_subregs: Part { src: r27, offset: 0, size: 8 }
-fold_subregs: Part { src: r69, offset: 0, size: 4 }
-fold_subregs: Part { src: r53, offset: 0, size: 8 }
-fold_subregs: Part { src: r53, offset: 8, size: 8 }
-fold_subregs: Part { src: r60, offset: 0, size: 8 }
-fold_subregs: Part { src: r60, offset: 8, size: 8 }
-fold_subregs: Part { src: r27, offset: 0, size: 8 }
-fold_subregs: Part { src: r27, offset: 0, size: 4 }
+    
+ --- ssa
 ssa program  74 instrs
 .B0:    ;;  → Always(Return).
   (  4)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -164,6 +137,7 @@ ssa program  74 instrs
          r72: ? <- SetReturnValue(r71)
 
 
+ --- ast
 
 T0: {
   [pre:RSP + 8]:* := pre:arg5[8 .. 0];

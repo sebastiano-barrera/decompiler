@@ -115,55 +115,11 @@ pub fn common_ancestor<T: NumberedTree>(
     Some(ka)
 }
 
-pub mod global_log {
-    use std::{cell::RefCell, panic::UnwindSafe};
-
-    use crate::pp;
-
-    type PP = pp::PrettyPrinter<Vec<u8>>;
-    const BUF_CAP_INIT: usize = 1024 * 1024;
-    std::thread_local! {
-        static THE_PP: RefCell<PP> = RefCell::new(pp::PrettyPrinter::start(Vec::with_capacity(BUF_CAP_INIT)));
-    }
-
-    pub fn with_buffer<R>(s: &mut String, action: impl UnwindSafe + FnOnce() -> R) -> R {
-        THE_PP.with_borrow_mut(|pp| {
-            pp.writer_mut().clear();
-        });
-
-        let panic_res = std::panic::catch_unwind(action);
-
-        let buf = THE_PP.with_borrow_mut(|pp| {
-            std::mem::replace(pp.writer_mut(), Vec::with_capacity(BUF_CAP_INIT))
-        });
-        *s = String::from_utf8(buf).expect("all trace!() logs must be valid utf-8");
-
-        match panic_res {
-            Ok(ret) => ret,
-            Err(payload) => {
-                // dump the buffer before resuming unwind -- helps debugging
-                eprintln!("--- log buffer at the time of the panic:");
-                eprintln!("{}", s);
-                eprintln!("----------------------------------------");
-                std::panic::resume_unwind(payload);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub fn with_pp<R>(f: impl FnOnce(&mut PP) -> R) -> R {
-        THE_PP.with_borrow_mut(|pp| f(pp))
-    }
-}
-
 #[cfg(feature = "trace")]
 #[macro_export]
 macro_rules! traceln {
     ($($toks:tt)*) => {
-        $crate::util::global_log::with_pp(|pp| {
-            use std::io::Write;
-            writeln!(pp, $($toks)*).unwrap();
-        });
+        println!($($toks)*);
     }
 }
 
@@ -171,10 +127,7 @@ macro_rules! traceln {
 #[macro_export]
 macro_rules! trace {
     ($($toks:tt)*) => {
-        $crate::util::global_log::with_pp(|pp| {
-            use std::io::Write;
-            write!(pp, $($toks)*).unwrap();
-        });
+        print!($($toks)*);
     }
 }
 

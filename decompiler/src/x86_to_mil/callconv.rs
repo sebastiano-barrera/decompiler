@@ -4,7 +4,6 @@ use crate::{
     mil::{self, AncestralName, ArithOp, Insn},
     pp::PP,
     trace, traceln, ty,
-    util::global_log,
 };
 
 use super::Builder;
@@ -378,11 +377,11 @@ pub fn pack_params(
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
         }
-        trace!("      param[{}] = ", ndx);
-        global_log::with_pp(|pp| pp.open_box());
-        trace!("{:#?}", param_ty);
-        global_log::with_pp(|pp| pp.close_box());
-        traceln!();
+        // trace!("      param[{}] = ", ndx);
+        // global_log::with_pp(|pp| pp.open_box());
+        // trace!("{:#?}", param_ty);
+        // global_log::with_pp(|pp| pp.close_box());
+        // traceln!();
 
         let mut eb_set = EightbytesSet::new_regs();
         let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
@@ -900,35 +899,10 @@ enum RegClass {
 mod tests {
     use ty::TypeID;
 
-    use crate::{mil::Control, ssa, traceln, util::global_log};
+    use crate::{mil::Control, ssa, traceln};
 
     use super::*;
     use std::sync::Arc;
-
-    #[test]
-    fn param_i32() {
-        let types = make_scalars();
-        let param_types = &[types.tyid_i32];
-        let snap = check_types(&types, param_types);
-        insta::assert_snapshot!(snap);
-    }
-
-    fn check_types(types: &Types, param_types: &[ty::TypeID]) -> String {
-        let mut logbuf = String::new();
-        global_log::with_buffer(&mut logbuf, || {
-            let mut bld = Builder::new(Arc::new(ty::TypeSet::new()));
-            unpack_params(&mut bld, &types.types, param_types, types.tyid_void).unwrap();
-
-            let v0 = bld.tmp_gen();
-            bld.emit(v0, Insn::SetReturnValue(Builder::RDI));
-            bld.emit(v0, Insn::Control(Control::Ret));
-
-            let prog = bld.build();
-            let prog = ssa::mil_to_ssa(ssa::ConversionParams { program: prog });
-            traceln!("params: {:?}\nprogram:\n{:?}", param_types, prog);
-        });
-        logbuf
-    }
 
     struct Types {
         types: ty::TypeSet,

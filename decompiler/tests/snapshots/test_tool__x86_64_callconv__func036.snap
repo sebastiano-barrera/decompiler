@@ -2,24 +2,7 @@
 source: decompiler/tests/test_tool.rs
 expression: out
 ---
-func036 0x4011aa+21 (file 0x11aa)
-          4011aa: 48 89 f8                mov rax,rdi
-          4011ad: 0f 28 44 24 08          movaps xmm0,[rsp+8]
-          4011b2: 0f 28 4c 24 18          movaps xmm1,[rsp+18h]
-          4011b7: 0f 11 4f 10             movups [rdi+10h],xmm1
-          4011bb: 0f 11 07                movups [rdi],xmm0
-          4011be: c3                      ret
-
-function type: "func036" func (arg0 small <TypeID(785v1)>,
-                               arg1 big <TypeID(795v1)>) big <TypeID(795v1)>
-2 warnings:
-  #   0: while applying the calling convention for parameters
-           <- type has no alignment?
-  #   1: decoding return value
-           <- type has no alignment?
-
-
-mil program = 
+ --- mil
 program  64 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
@@ -93,7 +76,7 @@ program  64 instrs
    63 r46: TypeID(2v1) <- Control(Ret)
 
 
-ssa pre-xform:
+ --- ssa pre-xform
 ssa program  64 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -121,19 +104,12 @@ ssa program  64 instrs
          r62: ? <- SetReturnValue(r13)
 
 
-cfg:
+ --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r13, r27, r28, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62]
+  BlockID(0) -> Always(Return) [r11, r13, r45, r46, r50, r51, r56, r57, r61, r62]
   domtree:
-    BlockID(0)
-
-ssa post-xform:
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
-fold_subregs: Part { src: r28, offset: 16, size: 48 }
-fold_subregs: Part { src: r53, offset: 0, size: 16 }
-fold_subregs: Part { src: r48, offset: 0, size: 16 }
-fold_subregs: Part { src: r27, offset: 16, size: 48 }
-fold_subregs: Part { src: r28, offset: 16, size: 48 }
+    
+ --- ssa
 ssa program  64 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11: ? <- Ancestral(AncestralName("RSP"))
@@ -148,6 +124,7 @@ ssa program  64 instrs
          r62: ? <- SetReturnValue(r13)
 
 
+ --- ast
 
 T0: {
   [pre:RDI + 16]:* := [pre:RSP + 24]:16;
