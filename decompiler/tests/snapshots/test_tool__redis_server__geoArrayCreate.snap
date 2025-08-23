@@ -15,11 +15,17 @@ geoArrayCreate 0x50c4d0+31 (file 0x10c4d0)
 
 function type: "geoArrayCreate" func () *geoArray <TypeID(246624v1)>
 #call: to address 0x43a810, returning to 0x50c4de      -> resolved call to: TypeID(107948v1) = Type { name: "zmalloc", ty: Subroutine(Subroutine { return_tyid: TypeID(172463v1), param_names: [Some("size")], param_tyids: [TypeID(172469v1)] }) }
+      param[0] = Alias(
+                     TypeID(
+                         172454v1,
+                     ),
+                 )
+resolved call: subr_ty=Some(Subroutine { return_tyid: TypeID(172463v1), param_names: [Some("size")], param_tyids: [TypeID(172469v1)] }); param_values=[r45]
 0 warnings.
 
 
 mil program = 
-program  92 instrs
+program  91 instrs
     0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
     1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
     2 r3: TypeID(2v1) <- Ancestral(AncestralName("PF"))
@@ -73,58 +79,57 @@ program  92 instrs
 0x50c4d6:
    48 r11: TypeID(2v1) <- Get(r12)
 0x50c4d9:
-   49 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
-   50 r45: TypeID(2v1) <- Void
-   51 r45: TypeID(2v1) <- Get(r14)
-   52 r46: TypeID(2v1) <- CArg { value: r45, next_arg: None }
-   53 r47: TypeID(107948v1) <- Const { value: 4433936, size: 8 }
-   54 r46: TypeID(2v1) <- Call { callee: r47, first_arg: Some(r46) }
-   55 r2: TypeID(2v1) <- Undefined
-   56 r3: TypeID(2v1) <- Undefined
-   57 r4: TypeID(2v1) <- Undefined
-   58 r5: TypeID(2v1) <- Undefined
-   59 r6: TypeID(2v1) <- Undefined
-   60 r7: TypeID(2v1) <- Undefined
-   61 r8: TypeID(2v1) <- Undefined
-   62 r9: TypeID(2v1) <- Undefined
-   63 r10: TypeID(2v1) <- Undefined
-   64 r16: TypeID(2v1) <- Part { src: r46, offset: 0, size: 8 }
+   49 r45: TypeID(2v1) <- Void
+   50 r45: TypeID(2v1) <- Get(r14)
+   51 r46: TypeID(2v1) <- CArg { value: r45, next_arg: None }
+   52 r47: TypeID(107948v1) <- Const { value: 4433936, size: 8 }
+   53 r46: TypeID(2v1) <- Call { callee: r47, first_arg: Some(r46) }
+   54 r2: TypeID(2v1) <- Undefined
+   55 r3: TypeID(2v1) <- Undefined
+   56 r4: TypeID(2v1) <- Undefined
+   57 r5: TypeID(2v1) <- Undefined
+   58 r6: TypeID(2v1) <- Undefined
+   59 r7: TypeID(2v1) <- Undefined
+   60 r8: TypeID(2v1) <- Undefined
+   61 r9: TypeID(2v1) <- Undefined
+   62 r10: TypeID(2v1) <- Undefined
+   63 r16: TypeID(2v1) <- Part { src: r46, offset: 0, size: 8 }
 0x50c4de:
-   65 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 16 }
-   66 r48: TypeID(2v1) <- Part { src: r28, offset: 0, size: 16 }
-   67 r46: TypeID(2v1) <- Arith(BitXor, r46, r48)
-   68 r49: TypeID(2v1) <- Part { src: r28, offset: 16, size: 48 }
-   69 r28: TypeID(2v1) <- Concat { lo: r46, hi: r49 }
-   70 r10: TypeID(2v1) <- False
-   71 r2: TypeID(2v1) <- False
-   72 r6: TypeID(2v1) <- SignOf(r46)
-   73 r5: TypeID(2v1) <- IsZero(r46)
-   74 r50: TypeID(2v1) <- Part { src: r46, offset: 0, size: 1 }
-   75 r3: TypeID(2v1) <- Parity(r50)
+   64 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 16 }
+   65 r48: TypeID(2v1) <- Part { src: r28, offset: 0, size: 16 }
+   66 r46: TypeID(2v1) <- Arith(BitXor, r46, r48)
+   67 r49: TypeID(2v1) <- Part { src: r28, offset: 16, size: 48 }
+   68 r28: TypeID(2v1) <- Concat { lo: r46, hi: r49 }
+   69 r10: TypeID(2v1) <- False
+   70 r2: TypeID(2v1) <- False
+   71 r6: TypeID(2v1) <- SignOf(r46)
+   72 r5: TypeID(2v1) <- IsZero(r46)
+   73 r50: TypeID(2v1) <- Part { src: r46, offset: 0, size: 1 }
+   74 r3: TypeID(2v1) <- Parity(r50)
 0x50c4e2:
-   76 r45: TypeID(2v1) <- Const { value: 0, size: 8 }
-   77 r46: TypeID(2v1) <- Const { value: 0, size: 8 }
-   78 r46: TypeID(2v1) <- Arith(Add, r46, r16)
-   79 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r45 }
+   75 r45: TypeID(2v1) <- Const { value: 0, size: 8 }
+   76 r46: TypeID(2v1) <- Const { value: 0, size: 8 }
+   77 r46: TypeID(2v1) <- Arith(Add, r46, r16)
+   78 r46: TypeID(2v1) <- StoreMem { addr: r46, value: r45 }
 0x50c4e9:
-   80 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 16 }
-   81 r47: TypeID(2v1) <- Const { value: 8, size: 8 }
-   82 r47: TypeID(2v1) <- Arith(Add, r47, r16)
-   83 r47: TypeID(2v1) <- StoreMem { addr: r47, value: r46 }
+   79 r46: TypeID(2v1) <- Part { src: r28, offset: 0, size: 16 }
+   80 r47: TypeID(2v1) <- Const { value: 8, size: 8 }
+   81 r47: TypeID(2v1) <- Arith(Add, r47, r16)
+   82 r47: TypeID(2v1) <- StoreMem { addr: r47, value: r46 }
 0x50c4ed:
-   84 r45: TypeID(2v1) <- LoadMem { addr: r12, size: 8 }
-   85 r11: TypeID(2v1) <- Get(r45)
-   86 r12: TypeID(2v1) <- ArithK(Add, r12, 8)
+   83 r45: TypeID(2v1) <- LoadMem { addr: r12, size: 8 }
+   84 r11: TypeID(2v1) <- Get(r45)
+   85 r12: TypeID(2v1) <- ArithK(Add, r12, 8)
 0x50c4ee:
-   87 r45: TypeID(2v1) <- Void
-   88 r45: TypeID(2v1) <- Concat { lo: r45, hi: r16 }
-   89 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
-   90 r47: TypeID(2v1) <- SetReturnValue(r45)
-   91 r47: TypeID(2v1) <- Control(Ret)
+   86 r45: TypeID(2v1) <- Void
+   87 r45: TypeID(2v1) <- Concat { lo: r45, hi: r16 }
+   88 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 8 }
+   89 r47: TypeID(2v1) <- SetReturnValue(r45)
+   90 r47: TypeID(2v1) <- Control(Ret)
 
 
 ssa pre-xform:
-ssa program  92 instrs
+ssa program  91 instrs
 .B0:    ;;  → Always(Return).
          r10: ? <- Ancestral(AncestralName("RBP"))
          r11: ? <- Ancestral(AncestralName("RSP"))
@@ -135,36 +140,47 @@ ssa program  92 instrs
          r45: ? <- Const { value: 24, size: 4 }
          r46: ? <- Part { src: r13, offset: 4, size: 4 }
          r47: ? <- Concat { lo: r45, hi: r46 }
-         r52: ? <- CArg { value: r47, next_arg: None }
-         r53: zmalloc <TypeID(173061v1)> <- Const { value: 4433936, size: 8 }
-         r54: ? <- Call { callee: r53, first_arg: Some(r52) }
-  (  3)  r64: ? <- Part { src: r54, offset: 0, size: 8 }
+         r51: ? <- CArg { value: r47, next_arg: None }
+         r52: zmalloc <TypeID(173061v1)> <- Const { value: 4433936, size: 8 }
+         r53: ? <- Call { callee: r52, first_arg: Some(r51) }
+  (  3)  r63: ? <- Part { src: r53, offset: 0, size: 8 }
+         r64: ? <- Part { src: r27, offset: 0, size: 16 }
          r65: ? <- Part { src: r27, offset: 0, size: 16 }
-         r66: ? <- Part { src: r27, offset: 0, size: 16 }
-         r67: ? <- Arith(BitXor, r65, r66)
-         r68: ? <- Part { src: r27, offset: 16, size: 48 }
-         r69: ? <- Concat { lo: r67, hi: r68 }
+         r66: ? <- Arith(BitXor, r64, r65)
+         r67: ? <- Part { src: r27, offset: 16, size: 48 }
+         r68: ? <- Concat { lo: r66, hi: r67 }
+         r75: ? <- Const { value: 0, size: 8 }
          r76: ? <- Const { value: 0, size: 8 }
-         r77: ? <- Const { value: 0, size: 8 }
-         r78: ? <- Arith(Add, r77, r64)
-         r79: ? <- StoreMem { addr: r78, value: r76 }
-         r80: ? <- Part { src: r69, offset: 0, size: 16 }
-         r81: ? <- Const { value: 8, size: 8 }
-         r82: ? <- Arith(Add, r81, r64)
-         r83: ? <- StoreMem { addr: r82, value: r80 }
-         r88: ? <- Concat { lo: r87, hi: r64 }
-         r89: ? <- Part { src: r88, offset: 0, size: 8 }
-         r90: ? <- SetReturnValue(r89)
+         r77: ? <- Arith(Add, r76, r63)
+         r78: ? <- StoreMem { addr: r77, value: r75 }
+         r79: ? <- Part { src: r68, offset: 0, size: 16 }
+         r80: ? <- Const { value: 8, size: 8 }
+         r81: ? <- Arith(Add, r80, r63)
+         r82: ? <- StoreMem { addr: r81, value: r79 }
+         r87: ? <- Concat { lo: r86, hi: r63 }
+         r88: ? <- Part { src: r87, offset: 0, size: 8 }
+         r89: ? <- SetReturnValue(r88)
 
 
 cfg:
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r10, r11, r13, r27, r43, r44, r45, r46, r47, r52, r53, r54, r64, r65, r66, r67, r68, r69, r76, r77, r78, r79, r80, r81, r82, r83, r87, r88, r89, r90]
+  BlockID(0) -> Always(Return) [r10, r11, r13, r27, r43, r44, r45, r46, r47, r51, r52, r53, r63, r64, r65, r66, r67, r68, r75, r76, r77, r78, r79, r80, r81, r82, r86, r87, r88, r89]
   domtree:
     BlockID(0)
 
 ssa post-xform:
-ssa program  92 instrs
+fold_subregs: Part { src: r13, offset: 4, size: 4 }
+fold_subregs: Part { src: r53, offset: 0, size: 8 }
+fold_subregs: Part { src: r27, offset: 0, size: 16 }
+fold_subregs: Part { src: r27, offset: 0, size: 16 }
+fold_subregs: Part { src: r27, offset: 16, size: 48 }
+fold_subregs: Part { src: r68, offset: 0, size: 16 }
+fold_subregs: Part { src: r53, offset: 0, size: 8 }
+fold_subregs: Part { src: r13, offset: 4, size: 4 }
+fold_subregs: Part { src: r27, offset: 0, size: 16 }
+fold_subregs: Part { src: r27, offset: 0, size: 16 }
+fold_subregs: Part { src: r27, offset: 16, size: 48 }
+ssa program  91 instrs
 .B0:    ;;  → Always(Return).
          r10: ? <- Ancestral(AncestralName("RBP"))
          r11: ? <- Ancestral(AncestralName("RSP"))
@@ -175,25 +191,25 @@ ssa program  92 instrs
          r45: ? <- Const { value: 24, size: 4 }
          r46: ? <- Part { src: r13, offset: 4, size: 4 }
          r47: ? <- Concat { lo: r45, hi: r46 }
-         r52: ? <- CArg { value: r47, next_arg: None }
-         r53: zmalloc <TypeID(173061v1)> <- Const { value: 4433936, size: 8 }
-  (  3)  r54: ? <- Call { callee: r53, first_arg: Some(r52) }
+         r51: ? <- CArg { value: r47, next_arg: None }
+         r52: zmalloc <TypeID(173061v1)> <- Const { value: 4433936, size: 8 }
+  (  3)  r53: ? <- Call { callee: r52, first_arg: Some(r51) }
+         r64: ? <- Part { src: r27, offset: 0, size: 16 }
          r65: ? <- Part { src: r27, offset: 0, size: 16 }
-         r66: ? <- Part { src: r27, offset: 0, size: 16 }
-         r67: ? <- Arith(BitXor, r65, r66)
-         r76: ? <- Const { value: 0, size: 8 }
-         r79: ? <- StoreMem { addr: r54, value: r76 }
-         r82: ? <- ArithK(Add, r54, 8)
-         r83: ? <- StoreMem { addr: r82, value: r67 }
-         r90: ? <- SetReturnValue(r54)
+         r66: ? <- Arith(BitXor, r64, r65)
+         r75: ? <- Const { value: 0, size: 8 }
+         r78: ? <- StoreMem { addr: r53, value: r75 }
+         r81: ? <- ArithK(Add, r53, 8)
+         r82: ? <- StoreMem { addr: r81, value: r66 }
+         r89: ? <- SetReturnValue(r53)
 
 
 
 T0: {
   [pre:RSP - 8]:* := pre:RBP;
-  let r54: Bytes(8) = zmalloc(pre:RDI[8 .. 4] ++ 24);
-  [r54]:* := 0;
-  [r54 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
+  let r53: Bytes(8) = zmalloc(pre:RDI[8 .. 4] ++ 24);
+  [r53]:* := 0;
+  [r53 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
   ;
-  return r54
+  return r53
 }

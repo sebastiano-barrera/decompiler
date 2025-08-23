@@ -1,11 +1,7 @@
 ---
 source: decompiler/src/ty/dwarf.rs
-expression: logbuf
+expression: types
 ---
-#call: discovered 0x1100 -> TypeID(4v1)
-#call: discovered 0x1110 -> TypeID(6v1)
-#call: discovered 0x1120 -> TypeID(9v1)
-#call: discovered 0x1140 -> TypeID(13v1)
 TypeSet (29 types) = {
   <TypeID(1v1)> = "void" void
   <TypeID(2v1)> = ?
@@ -46,4 +42,3 @@ TypeSet (29 types) = {
   <TypeID(28v1)> = "char" i8
   <TypeID(29v1)> = *name_item <TypeID(24v1)>
 }
-0 non-fatal errors:

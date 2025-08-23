@@ -483,6 +483,64 @@ cfg:
     |  |  BlockID(6)
 
 ssa post-xform:
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 8 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r208, offset: 0, size: 4 }
+fold_subregs: Part { src: r208, offset: 4, size: 4 }
+fold_subregs: Part { src: r228, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r174, offset: 0, size: 4 }
+fold_subregs: Part { src: r174, offset: 4, size: 4 }
+fold_subregs: Part { src: r86, offset: 0, size: 4 }
+fold_subregs: Part { src: r86, offset: 4, size: 4 }
+fold_subregs: Part { src: r93, offset: 0, size: 4 }
+fold_subregs: Part { src: r46, offset: 4, size: 4 }
+fold_subregs: Part { src: r93, offset: 4, size: 4 }
+fold_subregs: Part { src: r107, offset: 0, size: 4 }
+fold_subregs: Part { src: r102, offset: 0, size: 4 }
+fold_subregs: Part { src: r107, offset: 4, size: 4 }
+fold_subregs: Part { src: r112, offset: 0, size: 4 }
+fold_subregs: Part { src: r129, offset: 4, size: 4 }
+fold_subregs: Part { src: r141, offset: 0, size: 4 }
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 8 }
+fold_subregs: Part { src: r46, offset: 0, size: 4 }
+fold_subregs: Part { src: r68, offset: 0, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r64, offset: 0, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r46, offset: 4, size: 4 }
+fold_subregs: Part { src: r73, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r68, offset: 0, size: 4 }
+fold_subregs: Part { src: r44, offset: 0, size: 8 }
+fold_subregs: Part { src: r46, offset: 4, size: 4 }
+fold_subregs: Part { src: r68, offset: 0, size: 4 }
+fold_subregs: Part { src: r73, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r64, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r73, offset: 0, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r129, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 8 }
+fold_subregs: Part { src: r43, offset: 8, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r238, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 0, size: 8 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r43, offset: 12, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r237, offset: 4, size: 4 }
+fold_subregs: Part { src: r129, offset: 4, size: 4 }
 ssa program  303 instrs
 .B0:    ;;  → Always(Block(BlockID(5))).
          r10: ? <- Ancestral(AncestralName("RBP"))

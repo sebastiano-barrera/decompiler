@@ -87,6 +87,20 @@ impl<W: std::io::Write> std::fmt::Write for IoAsFmt<W> {
     }
 }
 
+pub struct FmtAsIoUTF8<W>(pub W);
+
+impl<W: std::fmt::Write> std::io::Write for FmtAsIoUTF8<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let s = std::str::from_utf8(buf).unwrap();
+        self.0.write_str(s).unwrap();
+        Ok(s.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 pub struct MultiWriter<W>(SmallVec<[W; 4]>);
 
 impl<W> MultiWriter<W> {

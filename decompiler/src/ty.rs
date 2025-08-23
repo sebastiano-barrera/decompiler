@@ -6,7 +6,10 @@ use thiserror::Error;
 
 pub mod dwarf;
 
-use crate::{pp::{self, PP}, trace, traceln};
+use crate::{
+    pp::{self, PP},
+    trace, traceln,
+};
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
@@ -341,7 +344,8 @@ impl TypeSet {
         #[cfg(debug_assertions)]
         trace!(
             "#call: to address 0x{:x}, returning to 0x{:x}",
-            target, return_pc
+            target,
+            return_pc
         );
 
         let tyid = self
@@ -360,6 +364,14 @@ impl TypeSet {
         }
 
         tyid
+    }
+}
+
+impl std::fmt::Debug for TypeSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut pp = crate::pp::PrettyPrinter::start(pp::FmtAsIoUTF8(f));
+        self.dump(&mut pp).unwrap();
+        Ok(())
     }
 }
 

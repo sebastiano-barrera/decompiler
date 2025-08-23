@@ -93,6 +93,9 @@ cfg:
     BlockID(0)
 
 ssa post-xform:
+fold_subregs: Part { src: r15, offset: 1, size: 7 }
+fold_subregs: Part { src: r47, offset: 0, size: 1 }
+fold_subregs: Part { src: r15, offset: 1, size: 7 }
 ssa program  53 instrs
 .B0:    ;;  → Always(Return).
          r11: ? <- Ancestral(AncestralName("RSP"))
