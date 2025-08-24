@@ -174,7 +174,7 @@ impl<'a> TypeParser<'a> {
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
             // - [ ] DW_TAG_volatile_type
-            // - [ ] DW_TAG_restrict_type
+            // - [x] DW_TAG_restrict_type
             // - [ ] DW_TAG_atomic_type
             // - [ ] DW_TAG_union_type
             // - [ ] DW_TAG_enumeration_type
@@ -207,6 +207,9 @@ impl<'a> TypeParser<'a> {
             }
             gimli::constants::DW_TAG_base_type => self.parse_base_type(node, types),
             gimli::constants::DW_TAG_typedef => self.parse_alias(node),
+
+            // we currently don't care about the `restrict` attribute at all
+            gimli::constants::DW_TAG_restrict_type => self.parse_alias(node),
 
             other => Err(Error::UnsupportedDwarfTag(other)),
         };
