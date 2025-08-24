@@ -7,7 +7,7 @@ use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
 use anyhow::{Context as _, Result};
-use tracing::{event, Level};
+use tracing::{event, span, Level};
 
 pub mod callconv;
 
@@ -141,6 +141,7 @@ impl Builder {
 
             let mut output = String::new();
             formatter.format(&insn, &mut output);
+            let _ = span!(Level::TRACE, "translating instruction", insn = output).enter();
 
             use iced_x86::Mnemonic as M;
             match insn.mnemonic() {

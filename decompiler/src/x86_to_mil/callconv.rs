@@ -8,7 +8,7 @@ use crate::{
 use super::Builder;
 
 use anyhow::anyhow;
-use tracing::{event, instrument, Level};
+use tracing::{event, instrument, span, Level, Span};
 
 #[derive(Clone, Copy)]
 enum PassMode {
@@ -68,8 +68,11 @@ pub fn unpack_params(
         }
     }
 
-    for &param_tyid in param_types.iter() {
+    for (ndx, &param_tyid) in param_types.iter().enumerate() {
         let param_ty = &types.get(param_tyid).unwrap().ty;
+
+        let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
+        let _enter = span.enter();
 
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
@@ -381,7 +384,8 @@ pub fn pack_params(
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
         }
-        event!(Level::TRACE, ndx, ?param_ty, "processing parameter");
+        let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
+        let _enter = span.enter();
 
         let mut eb_set = EightbytesSet::new_regs();
         let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
