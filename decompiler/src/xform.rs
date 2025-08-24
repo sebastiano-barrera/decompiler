@@ -135,7 +135,6 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     let Insn::Part { src, offset, size } = insn else {
         return insn;
     };
-    traceln!("fold_subregs: {:?}", insn);
 
     let end = offset + size;
 
@@ -463,10 +462,11 @@ pub fn canonical(prog: &mut ssa::Program) {
 
                 let final_has_fx = insn.has_side_effects();
                 if final_has_fx != orig_has_fx {
-                    traceln!(" --- bug:");
-                    traceln!("  orig: side fx: {:?} insn: {:?}", orig_has_fx, orig_insn);
-                    traceln!(" final: side fx: {:?} insn: {:?}", final_has_fx, insn);
-                    panic!();
+                    panic!(
+                        " --- bug:\n\
+                        orig: side fx: {orig_has_fx:?} insn: {orig_insn:?}\n\
+                        final: side fx: {final_has_fx:?} insn: {insn:?}"
+                    );
                 }
 
                 any_change = any_change || (insn != orig_insn);
@@ -563,7 +563,6 @@ mod tests {
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
             xform::canonical(&mut prog);
-            traceln!("ssa post xform:\n\n{:?}", prog);
 
             assert_eq!(prog.cfg().block_count(), 1);
             assert_eq!(prog[Reg(4)].get(), Insn::ArithK(ArithOp::Add, Reg(0), 10));
@@ -597,10 +596,8 @@ mod tests {
                 b.build()
             };
             let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
-            traceln!("ssa pre-xform:\n{prog:?}");
             xform::canonical(&mut prog);
             ssa::eliminate_dead_code(&mut prog);
-            traceln!("ssa post-xform:\n{prog:?}");
 
             assert_eq!(prog.insns_rpo().count(), 6);
             assert_eq!(prog[Reg(5)].get(), Insn::ArithK(ArithOp::Mul, Reg(0), 1100));
@@ -853,7 +850,6 @@ mod tests {
         let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
         super::canonical(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
-        traceln!("ssa post-xform:\n{prog:?}");
 
         assert_eq!(prog.insns_rpo().count(), 2);
         assert_eq!(

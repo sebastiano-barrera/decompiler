@@ -74,12 +74,12 @@ or logically)
 
 */
 
+use crate::traceln;
 use crate::{
     cfg,
     mil::{self, Insn, Reg},
     ssa,
 };
-use crate::traceln;
 
 pub fn fold_load_store(
     prog: &mut ssa::OpenProgram,
@@ -251,8 +251,7 @@ mod tests {
 
     use crate::{
         mil::{self, ArithOp, Control, Insn, Reg},
-        ssa, ty, x86_to_mil, xform,
-        traceln,
+        ssa, traceln, ty, x86_to_mil, xform,
     };
 
     define_ancestral_name!(ANC_MEM, "memory");
@@ -284,9 +283,9 @@ mod tests {
             let program = bld.build();
             let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
-            traceln!("ssa pre-xform:\n{program:?}");
+            println!("ssa pre-xform:\n{program:?}");
             xform::canonical(&mut program);
-            traceln!("ssa post-xform:\n{program:?}");
+            println!("ssa post-xform:\n{program:?}");
 
             let insn = program.get(Reg(6)).unwrap().insn.get();
             assert_eq!(insn, Insn::SetReturnValue(Reg(1)));
@@ -326,9 +325,9 @@ mod tests {
         let program = bld.build();
         let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
-        traceln!("ssa pre-xform:\n{program:?}");
+        println!("ssa pre-xform:\n{program:?}");
         xform::canonical(&mut program);
-        traceln!("ssa post-xform:\n{program:?}");
+        println!("ssa post-xform:\n{program:?}");
 
         let ret = program.get(Reg(7)).unwrap().insn.get();
         let Insn::SetReturnValue(ret_val) = ret else {
@@ -378,9 +377,9 @@ mod tests {
         let program = bld.build();
         let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
-        traceln!("ssa pre-xform:\n{program:?}");
+        println!("ssa pre-xform:\n{program:?}");
         xform::canonical(&mut program);
-        traceln!("ssa post-xform:\n{program:?}");
+        println!("ssa post-xform:\n{program:?}");
 
         let Insn::SetReturnValue(ret_val) = program[Reg(7)].get() else {
             panic!()

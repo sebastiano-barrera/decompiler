@@ -97,7 +97,8 @@ ssa program  69 instrs
   entry: BlockID(0)
   BlockID(0) -> Always(Return) [r11, r56, r58, r59, r67]
   domtree:
-    
+    BlockID(0)
+
  --- ssa
 ssa program  74 instrs
 .B0:    ;;  → Always(Return).

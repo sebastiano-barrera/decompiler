@@ -67,7 +67,7 @@ struct AddrRange {
 }
 
 impl<'a> Executable<'a> {
-    #[instrument]
+    #[instrument(skip_all)]
     pub fn parse(raw_binary: &'a [u8]) -> Result<Self> {
         let elf = crate::elf::parse_elf(raw_binary)?;
         let func_syms = elf
@@ -201,7 +201,8 @@ impl<'a> Executable<'a> {
             .ok_or(Error::NoTextSection)?;
         let vm_range = text_section.vm_range();
         if vm_range.start > vm_addr || vm_range.end < func_end {
-            crate::trace!(
+            event!(
+                Level::WARN,
                 "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
                 vm_addr, func_end, vm_range.start, vm_range.end,
             );

@@ -1,0 +1,9 @@
+[package]
+name = "decompiler_cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced-x86 = "1.21.0"
+tracing-subscriber = "0.3.19"
+decompiler = { path = "../decompiler", features = ["trace"] }

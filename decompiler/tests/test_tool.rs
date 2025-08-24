@@ -71,14 +71,12 @@ impl Exe {
 
         if let Some(mil) = df.mil() {
             writeln!(log_buf, " --- mil").unwrap();
-            writeln!(log_buf, "{:?}", mil).unwrap();
-            writeln!(log_buf).unwrap();
+            writeln!(log_buf, "{:?}\n", mil).unwrap();
         }
 
         if let Some(ssa) = df.ssa_pre_xform() {
             writeln!(log_buf, " --- ssa pre-xform").unwrap();
-            writeln!(log_buf, "{:?}", ssa).unwrap();
-            writeln!(log_buf).unwrap();
+            writeln!(log_buf, "{:?}\n", ssa).unwrap();
         }
 
         if let Some(ssa) = df.ssa() {
@@ -98,14 +96,13 @@ impl Exe {
             }
             write!(log_buf, "  domtree:\n    ").unwrap();
 
-            let mut out = std::io::stdout().lock();
-            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut out);
+            let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
+            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
             cfg.dom_tree().dump(pp).unwrap();
-            writeln!(log_buf,).unwrap();
+            writeln!(log_buf).unwrap();
 
             writeln!(log_buf, " --- ssa").unwrap();
-            writeln!(log_buf, "{:?}", ssa).unwrap();
-            writeln!(log_buf,).unwrap();
+            writeln!(log_buf, "{:?}\n", ssa).unwrap();
 
             writeln!(log_buf, " --- ast").unwrap();
             let mut ast = decompiler::Ast::new(&ssa);

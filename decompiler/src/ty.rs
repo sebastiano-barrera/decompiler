@@ -3,6 +3,7 @@ use std::{collections::HashMap, ops::Range, sync::Arc};
 use slotmap::SlotMap;
 use smallvec::{smallvec, SmallVec};
 use thiserror::Error;
+use tracing::{event, Level};
 
 pub mod dwarf;
 
@@ -200,7 +201,7 @@ impl TypeSet {
     }
 
     pub fn set_known_object(&mut self, addr: Addr, tyid: TypeID) {
-        traceln!("#call: discovered 0x{:x} -> {:?}", addr, tyid);
+        event!(Level::TRACE, addr, ?tyid, "discovered call");
         self.known_objects.insert(addr, tyid);
     }
 
@@ -341,27 +342,12 @@ impl TypeSet {
     pub fn resolve_call(&self, key: CallSiteKey) -> Option<TypeID> {
         let CallSiteKey { return_pc, target } = key;
 
-        #[cfg(debug_assertions)]
-        trace!(
-            "#call: to address 0x{:x}, returning to 0x{:x}",
-            target,
-            return_pc
-        );
-
         let tyid = self
             .call_site_by_return_pc(return_pc)
             .or_else(|| self.get_known_object(target));
 
-        #[cfg(debug_assertions)]
-        match tyid {
-            Some(tyid) => {
-                let typ = self.get_through_alias(tyid).unwrap();
-                traceln!("      -> resolved call to: {:?} = {:?}", tyid, typ);
-            }
-            None => {
-                traceln!("      -> unresolved");
-            }
-        }
+        let typ = tyid.map(|tyid| self.get_through_alias(tyid).unwrap());
+        event!(Level::TRACE, ?tyid, ?typ, "call resolution");
 
         tyid
     }

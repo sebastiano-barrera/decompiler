@@ -432,7 +432,14 @@ ssa program  243 instrs
   BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r244, r214, r216, r220, r221, r222]
   BlockID(6) -> Always(Return) [r235]
   domtree:
-    
+    BlockID(0)
+|  BlockID(5)
+|  |  BlockID(1)
+|  |  |  BlockID(3)
+|  |  |  |  BlockID(2)
+|  |  |  |  BlockID(4)
+|  |  BlockID(6)
+
  --- ssa
 ssa program  303 instrs
 .B0:    ;;  → Always(Block(BlockID(5))).

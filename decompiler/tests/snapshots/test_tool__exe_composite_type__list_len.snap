@@ -161,7 +161,10 @@ ssa program  102 instrs
   BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r97, r96, r67, r68, r69, r70, r78, r79, r83, r88, r89, r100, r101]
   BlockID(2) -> Always(Return) [r94]
   domtree:
-    
+    BlockID(0)
+|  BlockID(1)
+|  |  BlockID(2)
+
  --- ssa
 ssa program  102 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).

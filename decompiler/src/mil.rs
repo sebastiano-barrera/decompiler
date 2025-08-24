@@ -488,23 +488,11 @@ impl ProgramBuilder {
                 let is_initialized =
                     (ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner].get() == input);
                 if !is_initialized {
-                    #[cfg(debug_assertions)]
-                    {
-                        traceln!("-- in mil block:");
-                        for ndx in ndx_start..ndx_end {
-                            let insn = self.insns[ndx].get();
-                            let dest = self.dests[ndx].get();
-                            traceln!("{:5} {:?} <- {:?}", ndx, dest, insn);
-                        }
-                        panic!(
-                            "Temporary register {:?} used at instruction {} without prior initialization in this block.",
-                            input,
-                            ndx,
-                        );
-                    }
-
-                    #[cfg(not(debug_assertions))]
-                    panic!("assertion failed: mil tmp reg used before initialization");
+                    panic!(
+                        "Temporary register {:?} used at instruction {} without prior initialization in this block.",
+                        input,
+                        ndx,
+                    );
                 }
             }
         }

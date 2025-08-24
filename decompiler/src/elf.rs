@@ -1,6 +1,5 @@
 use thiserror::Error;
-
-use crate::traceln;
+use tracing::{Level, event, instrument};
 
 /// Parse a raw binary into an ELF.
 ///
@@ -11,6 +10,7 @@ use crate::traceln;
 /// original payload. This implies that _relocations are not applied_, which in
 /// turn causes many sections (including symbol names in DWARF debug info) to
 /// be non-functional. (ref: `limitation--no-relocatable`)
+#[instrument(skip_all)]
 pub fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
     let object = goblin::Object::parse(raw_binary).expect("elf parse error");
     let elf = match object {
@@ -19,7 +19,10 @@ pub fn parse_elf(raw_binary: &[u8]) -> Result<goblin::elf::Elf<'_>> {
     };
 
     if !elf.dynrelas.is_empty() || !elf.shdr_relocs.is_empty() || !elf.dynrels.is_empty() {
-        traceln!("WARNING: The given executable contains relocations. These are not going to be applied, so some functionality might misbehave.");
+        event!(
+            Level::WARN,
+            "The executable contains relocations. These are not going to be applied, so some functionality might misbehave."
+        );
     }
     Ok(elf)
 }

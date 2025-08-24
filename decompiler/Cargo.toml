@@ -43,6 +43,3 @@ decompiler = { path = ".", features = ["trace"] }
 name = "test_tool"
 path = "tests/test_tool.rs"
 required-features = ["trace"]
-
-
-

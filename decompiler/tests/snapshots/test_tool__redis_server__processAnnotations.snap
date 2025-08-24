@@ -958,7 +958,23 @@ ssa program  621 instrs
   BlockID(14) -> Always(Block(BlockID(15))) [r589, r473, r474, r475, r491, r492, r493, r504, r505, r506, r510, r511, r512, r596]
   BlockID(15) -> Always(Undefined) [r592, r525, r526, r527, r541, r542, r543, r557, r558, r568, r574, r575, r576]
   domtree:
-    
+    BlockID(0)
+|  BlockID(1)
+|  |  BlockID(2)
+|  |  |  BlockID(4)
+|  |  |  |  BlockID(5)
+|  |  |  |  |  BlockID(6)
+|  |  |  |  |  |  BlockID(7)
+|  |  |  |  |  |  |  BlockID(8)
+|  |  |  |  |  |  |  |  BlockID(9)
+|  |  |  |  |  |  |  |  |  BlockID(10)
+|  |  |  |  |  |  BlockID(11)
+|  |  BlockID(3)
+|  BlockID(12)
+|  BlockID(13)
+|  BlockID(14)
+|  BlockID(15)
+
  --- ssa
 ssa program  626 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(1)) }.

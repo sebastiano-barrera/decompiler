@@ -1,6 +1,5 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use decompiler::pp;
 use iced_x86::Formatter;
 
 pub struct CliOptions {
@@ -9,6 +8,8 @@ pub struct CliOptions {
 }
 
 fn main() {
+    tracing_subscriber::fmt::init();
+
     let mut args = std::env::args();
     let program_name = args.next().unwrap();
     let opts = match parse_cli(args) {
@@ -43,7 +44,7 @@ fn main() {
         .decompile_function(function_name)
         .expect("decompiling function");
 
-    print!(" --- asm");
+    println!(" --- asm");
     let decoder = df.disassemble(&exe);
     dump_assembly(decoder, df.machine_code(&exe));
     println!();

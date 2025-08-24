@@ -8,6 +8,7 @@ use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
 use anyhow::{Context as _, Result};
+use tracing::{event, Level};
 
 pub mod callconv;
 
@@ -116,10 +117,12 @@ impl Builder {
             match res {
                 Ok(report) => {
                     if report.ok_count < param_count {
-                        traceln!("WARNING: {} errors; only {} out of {} parameters could be mapped to registers and stack slots", report.errors.len(), report.ok_count, param_count);
-                        for (ndx, err) in report.errors.into_iter().enumerate() {
-                            traceln!("  #{}: {}", ndx, err);
-                        }
+                        event!(
+                            Level::WARN,
+                            ok_count = report.ok_count,
+                            total_count = param_count,
+                            "partial parameter unpacking"
+                        );
                     }
                 }
                 Err(err) => {
@@ -458,7 +461,7 @@ impl Builder {
                                 .or_warn(&mut warnings)
                         })
                         .unwrap_or_else(|| vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]);
-                    traceln!("resolved call: subr_ty={subr_ty:?}; param_values={param_values:?}");
+                    event!(Level::TRACE, ?subr_ty, ?param_values, "resolved call");
 
                     let v1 = self.pb.tmp_gen();
                     let first_arg = if param_values.is_empty() {

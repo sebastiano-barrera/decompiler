@@ -1312,7 +1312,43 @@ ssa program  773 instrs
   BlockID(34) -> Always(Block(BlockID(23))) [r683, r684, r687, r688, r693, r694, r697, r698, r711, r712, r713, r714, r715, r716, r717]
   BlockID(35) -> Always(Block(BlockID(23))) [r730, r731, r734, r735, r744, r745, r746, r747, r748]
   domtree:
-    
+    BlockID(0)
+|  BlockID(1)
+|  |  BlockID(2)
+|  |  |  BlockID(3)
+|  |  |  |  BlockID(4)
+|  |  |  |  BlockID(5)
+|  |  |  |  |  BlockID(6)
+|  |  |  |  |  BlockID(7)
+|  |  |  |  |  |  BlockID(8)
+|  |  |  |  |  |  BlockID(9)
+|  |  |  |  |  |  |  BlockID(10)
+|  |  |  |  |  |  |  BlockID(11)
+|  |  |  |  |  |  |  |  BlockID(12)
+|  |  |  |  |  |  |  |  BlockID(13)
+|  |  |  |  |  |  |  |  |  BlockID(14)
+|  |  |  |  |  |  |  |  |  BlockID(15)
+|  |  |  |  |  |  |  |  |  |  BlockID(16)
+|  |  |  |  |  |  |  |  |  |  BlockID(17)
+|  |  |  |  |  |  |  |  |  |  |  BlockID(18)
+|  |  |  |  |  |  |  |  |  |  |  |  BlockID(19)
+|  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(20)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(21)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(22)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(35)
+|  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(23)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(24)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(25)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(26)
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(27)
+|  |  |  |  |  |  |  |  |  |  |  |  |  BlockID(34)
+|  |  |  |  |  |  |  |  |  |  |  BlockID(28)
+|  |  |  |  |  |  |  |  |  |  |  BlockID(29)
+|  |  |  |  |  |  |  |  |  |  BlockID(30)
+|  |  |  |  |  |  |  |  |  |  |  BlockID(31)
+|  |  BlockID(32)
+|  BlockID(33)
+
  --- ssa
 ssa program  773 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(33)), neg: Block(BlockID(1)) }.

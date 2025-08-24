@@ -2,13 +2,13 @@ use std::cmp::Ordering;
 
 use crate::{
     mil::{self, AncestralName, ArithOp, Insn},
-    pp::PP,
-    trace, traceln, ty,
+    ty,
 };
 
 use super::Builder;
 
 use anyhow::anyhow;
+use tracing::{event, instrument, Level};
 
 #[derive(Clone, Copy)]
 enum PassMode {
@@ -22,19 +22,16 @@ enum PassMode {
 
 pub struct Report {
     pub ok_count: usize,
-    pub errors: Vec<anyhow::Error>,
 }
 
+#[instrument(skip_all)]
 pub fn unpack_params(
     bld: &mut Builder,
     types: &ty::TypeSet,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
-    let mut report = Report {
-        ok_count: 0,
-        errors: Vec::new(),
-    };
+    let mut report = Report { ok_count: 0 };
 
     let mut state = ParamPassing::default();
 
@@ -49,9 +46,10 @@ pub fn unpack_params(
         }
         ty::Ty::Unknown(_) => {
             // nothing better to do in this case...
-            report.errors.push(anyhow!(
-                    "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
-                ));
+            event!(
+                Level::ERROR,
+                "unknown return type (remaining parameters can't be mapped)"
+            );
             return Ok(report);
         }
         _ => {
@@ -80,7 +78,11 @@ pub fn unpack_params(
         let mut eb_set = EightbytesSet::new_regs();
         let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
         if let Err(err) = res {
-            report.errors.push(err);
+            event!(
+                Level::ERROR,
+                ?err,
+                "parameter type could not be classified (remaining parameters can't be mapped)"
+            );
             // because each argument uses a variable number of integer regs, ssa
             // regs, and stack slots, we can't be sure of how to map ANY of the
             // remaining parameters
@@ -104,6 +106,7 @@ pub fn unpack_params(
     Ok(report)
 }
 
+#[instrument(skip_all)]
 fn unpack_param(
     bld: &mut Builder,
     state: &mut ParamPassing,
@@ -195,6 +198,7 @@ fn unpack_param(
     }
 }
 
+#[instrument(skip_all)]
 pub fn pack_return_value(
     bld: &mut Builder,
     types: &ty::TypeSet,
@@ -323,6 +327,8 @@ pub fn pack_return_value(
 
     Ok(ret_val)
 }
+
+#[instrument(skip_all)]
 pub fn pack_params(
     bld: &mut Builder,
     types: &ty::TypeSet,
@@ -331,10 +337,7 @@ pub fn pack_params(
 ) -> anyhow::Result<(Report, Vec<mil::Reg>)> {
     let param_count = param_types.len();
 
-    let mut report = Report {
-        ok_count: 0,
-        errors: Vec::new(),
-    };
+    let mut report = Report { ok_count: 0 };
 
     let mut state = ParamPassing::default();
     let mut param_regs: Vec<mil::Reg> = Vec::with_capacity(param_count);
@@ -350,9 +353,10 @@ pub fn pack_params(
         }
         ty::Ty::Unknown(_) => {
             // nothing better to do in this case...
-            report.errors.push(anyhow!(
-                    "unknown return type (can't guarantee mapping of parameters to register/stack slots)"
-                ));
+            event!(
+                Level::ERROR,
+                "unknown return type (remaining parameters can't be mapped)"
+            );
             return Ok((report, param_regs));
         }
         _ => {
@@ -377,21 +381,18 @@ pub fn pack_params(
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
         }
-        // trace!("      param[{}] = ", ndx);
-        // global_log::with_pp(|pp| pp.open_box());
-        // trace!("{:#?}", param_ty);
-        // global_log::with_pp(|pp| pp.close_box());
-        // traceln!();
+        event!(Level::TRACE, ndx, ?param_ty, "processing parameter");
 
         let mut eb_set = EightbytesSet::new_regs();
         let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
         if let Err(err) = res {
-            traceln!(
-                "      pack_params: had to cut it short after {} params: {:?}",
-                param_regs.len(),
-                err
+            event!(
+                Level::ERROR,
+                ok_count = param_regs.len(),
+                total_count = param_types.len(),
+                ?err,
+                "parameter type could not be classified (remaining parameters can't be mapped)"
             );
-            report.errors.push(err);
             // because each argument uses a variable number of integer regs, ssa
             // regs, and stack slots, we can't be sure of how to map ANY of the
             // remaining parameters
