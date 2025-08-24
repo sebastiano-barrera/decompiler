@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::mil::{self, AncestralName, Control, RegType};
-use crate::traceln;
 use crate::ty;
 use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};

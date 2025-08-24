@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     mil::{self, ArithOp, Insn, RegType},
-    ssa, traceln, x86_to_mil,
+    ssa, x86_to_mil,
 };
 
 mod mem;
@@ -524,7 +524,7 @@ mod tests {
 
     use crate::{
         mil::{self, Control},
-        ssa, traceln, ty,
+        ssa, ty,
     };
     use mil::{ArithOp, Insn, Reg};
 
@@ -533,7 +533,7 @@ mod tests {
 
         use crate::{
             mil::{self, Control},
-            ssa, traceln, ty, xform,
+            ssa, ty, xform,
         };
         use mil::{ArithOp, Insn, Reg};
 

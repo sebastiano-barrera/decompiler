@@ -74,7 +74,6 @@ or logically)
 
 */
 
-use crate::traceln;
 use crate::{
     cfg,
     mil::{self, Insn, Reg},
@@ -251,7 +250,7 @@ mod tests {
 
     use crate::{
         mil::{self, ArithOp, Control, Insn, Reg},
-        ssa, traceln, ty, x86_to_mil, xform,
+        ssa, ty, x86_to_mil, xform,
     };
 
     define_ancestral_name!(ANC_MEM, "memory");

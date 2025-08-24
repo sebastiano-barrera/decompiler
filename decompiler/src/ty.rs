@@ -7,10 +7,7 @@ use tracing::{event, Level};
 
 pub mod dwarf;
 
-use crate::{
-    pp::{self, PP},
-    trace, traceln,
-};
+use crate::pp::{self, PP};
 // important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
 // types represented and manipulated in this module, so we MUST use the same
 // type here.

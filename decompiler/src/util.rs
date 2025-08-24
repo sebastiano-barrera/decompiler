@@ -114,31 +114,3 @@ pub fn common_ancestor<T: NumberedTree>(
 
     Some(ka)
 }
-
-#[cfg(feature = "trace")]
-#[macro_export]
-macro_rules! traceln {
-    ($($toks:tt)*) => {
-        println!($($toks)*);
-    }
-}
-
-#[cfg(feature = "trace")]
-#[macro_export]
-macro_rules! trace {
-    ($($toks:tt)*) => {
-        print!($($toks)*);
-    }
-}
-
-#[cfg(not(feature = "trace"))]
-#[macro_export]
-macro_rules! trace {
-    ($($toks:tt)*) => {};
-}
-
-#[cfg(not(feature = "trace"))]
-#[macro_export]
-macro_rules! traceln {
-    ($($toks:tt)*) => {};
-}

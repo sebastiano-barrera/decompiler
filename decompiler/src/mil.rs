@@ -5,7 +5,6 @@ use facet_reflect::HasFields;
 // coming
 use std::{cell::Cell, collections::HashMap, sync::Arc};
 
-use crate::traceln;
 use crate::ty;
 
 /// A MIL program.
