@@ -83,10 +83,7 @@ impl<'a> Executable<'a> {
             .collect();
 
         let mut types = ty::TypeSet::new();
-        let dwarf_report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
-        for (addr, err) in dwarf_report.errors.into_iter() {
-            event!(Level::ERROR, addr, error = %err);
-        }
+        let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
 
         Ok(Executable {
             raw_binary,

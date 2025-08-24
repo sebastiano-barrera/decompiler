@@ -4,6 +4,7 @@ use crate::ty;
 
 use gimli::EndianSlice;
 use thiserror::Error;
+use tracing::{event, instrument, span, Level};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -132,12 +133,19 @@ impl<'a> TypeParser<'a> {
         while let Some(node) = children.next()? {
             let node_ofs = node.entry().offset().0;
 
+            let span = span!(Level::DEBUG, "dwarf-node", node_ofs);
+            let _enter = span.enter();
+
             match self.try_parse_type(node, types, self.unit) {
                 Ok(_) => {}
-                Err(Error::UnsupportedDwarfTag(_)) => {}
-                Err(other_err) => {
+                Err(Error::UnsupportedDwarfTag(tag)) => {
+                    let tag = tag.static_string().unwrap_or("?");
+                    event!(Level::ERROR, tag, "UnsupportedDwarfTag");
+                }
+                Err(err) => {
+                    event!(Level::ERROR, ?err);
                     let mut errors = self.errors.borrow_mut();
-                    errors.push((node_ofs, other_err));
+                    errors.push((node_ofs, err));
                 }
             }
         }
@@ -145,6 +153,7 @@ impl<'a> TypeParser<'a> {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     fn try_parse_type(
         &self,
         node: GimliNode,
@@ -160,6 +169,7 @@ impl<'a> TypeParser<'a> {
             .expect(ERRMSG_DEBUG_INFO)
             .into();
         let tyid = self.get_tyid(diofs)?;
+        event!(Level::TRACE, ?tyid);
 
         let res = match entry.tag() {
             // tag types I'm going to support, least to most common:
