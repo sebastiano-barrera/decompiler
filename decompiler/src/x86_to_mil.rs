@@ -440,71 +440,37 @@ impl Builder {
                 }
 
                 M::Call => {
-                    let target_tyid = if let OpKind::NearBranch64 = insn.op0_kind() {
-                        let return_pc = insn.next_ip();
-                        let target = insn.near_branch_target();
-                        types.resolve_call(ty::CallSiteKey { return_pc, target })
-                    } else {
-                        None
-                    };
-
-                    let subr_ty = target_tyid
-                        .ok_or(anyhow::anyhow!("no type hints for this callsite"))
-                        .and_then(|tyid| check_subroutine_type(&types, tyid))
-                        .or_warn(&mut warnings);
-
-                    let param_values = subr_ty
-                        .and_then(|subr_ty| {
-                            self.pack_params(&types, subr_ty, &mut warnings)
-                                .context("packing parameters for subroutine type")
-                                .or_warn(&mut warnings)
-                        })
-                        .unwrap_or_else(|| vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX]);
-                    event!(Level::TRACE, ?subr_ty, ?param_values, "resolved call");
-
-                    let v1 = self.pb.tmp_gen();
-                    let first_arg = if param_values.is_empty() {
-                        None
-                    } else {
-                        for (ndx, arg) in param_values.into_iter().rev().enumerate() {
-                            self.emit(
-                                v1,
-                                mil::Insn::CArg {
-                                    value: arg,
-                                    next_arg: if ndx > 0 { Some(v1) } else { None },
-                                },
-                            );
-                        }
-                        Some(v1)
-                    };
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
                         sz, 8,
                         "invalid call instruction: operand must be 8 bytes, not {}",
                         sz
                     );
-                    self.pb
-                        .set_type(callee, target_tyid.unwrap_or(types.tyid_unknown()));
-                    self.emit(v1, mil::Insn::Call { callee, first_arg });
-                    self.reset_all_flags();
 
-                    subr_ty
-                        .and_then(|subr_ty| {
-                            callconv::unpack_return_value(
+                    let v1 = self.tmp_gen();
+                    match self.resolve_call(&insn, &types) {
+                        Some((subr_tyid, subr_ty, param_values)) => {
+                            event!(Level::TRACE, ?subr_tyid, ?param_values, "resolved call");
+
+                            self.emit_call(callee, param_values, subr_tyid, v1);
+
+                            if let Err(err) = callconv::unpack_return_value(
                                 &mut self,
                                 &types,
                                 subr_ty.return_tyid,
                                 v1,
-                            )
-                            .context(
-                                "while applying calling convention for return value in call site",
-                            )
-                            .or_warn(&mut warnings)
-                        })
-                        .unwrap_or_else(|| {
+                            ) {
+                                event!(Level::ERROR, ?err, "could not unpack return value");
+                            }
+                        }
+                        None => {
                             // just a dumb approximation of a likely case
+                            event!(Level::ERROR, "call unresolved, using a default fallback");
+                            let param_values = vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX];
+                            self.emit_call(callee, param_values, types.tyid_unknown(), v1);
                             self.emit(v1, mil::Insn::Get(Self::RAX));
-                        });
+                        }
+                    }
                 }
 
                 //
@@ -735,6 +701,73 @@ impl Builder {
         Ok((mil, warnings))
     }
 
+    fn resolve_call<'t>(
+        &mut self,
+        insn: &iced_x86::Instruction,
+        types: &'t ty::TypeSet,
+    ) -> Option<(ty::TypeID, &'t ty::Subroutine, Vec<mil::Reg>)> {
+        let target_tyid = match insn.op0_kind() {
+            OpKind::NearBranch64 => {
+                let return_pc = insn.next_ip();
+                let target = insn.near_branch_target();
+                types.resolve_call(ty::CallSiteKey { return_pc, target })
+            }
+            _ => None,
+        };
+        let Some(subr_tyid) = target_tyid else {
+            event!(Level::WARN, "no type hints for this callsite");
+            return None;
+        };
+
+        let subr_ty = match check_subroutine_type(types, subr_tyid) {
+            Ok(subr_ty) => subr_ty,
+            Err(err) => {
+                event!(
+                    Level::ERROR,
+                    ?err,
+                    "could not narrow down to subroutine type"
+                );
+                return None;
+            }
+        };
+
+        let param_values = match self.pack_params(&types, subr_ty) {
+            Ok(params) => params,
+            Err(err) => {
+                event!(Level::ERROR, ?err, "could not pack params");
+                return None;
+            }
+        };
+
+        Some((subr_tyid, subr_ty, param_values))
+    }
+
+    fn emit_call(
+        &mut self,
+        callee: mil::Reg,
+        param_values: Vec<mil::Reg>,
+        target_tyid: ty::TypeID,
+        ret_reg: mil::Reg,
+    ) {
+        let first_arg = if param_values.is_empty() {
+            None
+        } else {
+            for (ndx, arg) in param_values.into_iter().rev().enumerate() {
+                self.emit(
+                    ret_reg,
+                    mil::Insn::CArg {
+                        value: arg,
+                        next_arg: if ndx > 0 { Some(ret_reg) } else { None },
+                    },
+                );
+            }
+            Some(ret_reg)
+        };
+        self.pb.set_type(callee, target_tyid);
+        self.emit(ret_reg, mil::Insn::Call { callee, first_arg });
+        self.reset_all_flags();
+    }
+
     fn reset_all_flags(&mut self) {
         self.emit(Self::CF, mil::Insn::Undefined);
         self.emit(Self::PF, mil::Insn::Undefined);
@@ -751,25 +784,11 @@ impl Builder {
         &mut self,
         types: &ty::TypeSet,
         subr_ty: &ty::Subroutine,
-        warnings: &mut Warnings,
     ) -> Result<Vec<mil::Reg>> {
-        let param_count = subr_ty.param_tyids.len();
-
-        let (report, param_values) =
+        let (_report, param_values) =
             callconv::pack_params(self, types, &subr_ty.param_tyids, subr_ty.return_tyid)
                 .context("while applying calling convention")?;
-        assert_eq!(report.ok_count, param_values.len());
-
-        if report.ok_count < param_count {
-            warnings.add(
-                anyhow::anyhow!(
-                    "call: call resolved but only packed {}/{} params",
-                    report.ok_count,
-                    param_count
-                )
-                .into(),
-            );
-        }
+        assert_eq!(_report.ok_count, param_values.len());
         Ok(param_values)
     }
 
