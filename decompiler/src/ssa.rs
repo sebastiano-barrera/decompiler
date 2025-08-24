@@ -42,7 +42,7 @@ impl Program {
     /// Get the defining instruction for the given register.
     ///
     /// (Note that it's not allowed to fetch instructions by position.)
-    pub fn get(&self, reg: mil::Reg) -> Option<mil::InsnView> {
+    pub fn get(&self, reg: mil::Reg) -> Option<mil::InsnView<'_>> {
         // In SSA, Reg(ndx) happens to be located at index ndx.
         // But it's a detail we try to hide, as it's likely we're going to have
         // to transition to a more complex structure in the future.
@@ -532,7 +532,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
 
     let cfg::MILAnalysis {
         graph: cfg,
-        schedule: mut schedule,
+        mut schedule,
         ..
     } = cfg::analyze_mil(&program);
     assert_eq!(cfg.block_count(), schedule.block_count());

@@ -302,7 +302,6 @@ impl Graph {
 pub struct MILAnalysis {
     pub graph: Graph,
     pub schedule: Schedule,
-    pub asm_ranges: BlockMap<Range<u64>>,
 }
 
 pub fn analyze_mil(program: &mil::Program) -> MILAnalysis {
@@ -425,13 +424,7 @@ pub fn analyze_mil(program: &mil::Program) -> MILAnalysis {
     let schedule = Schedule::from_bounds(&bounds);
 
     assert_eq!(graph.block_count(), schedule.block_count());
-    // TODO
-    let asm_ranges = BlockMap::new(&graph, 0..0);
-    MILAnalysis {
-        graph,
-        schedule,
-        asm_ranges,
-    }
+    MILAnalysis { graph, schedule }
 }
 
 fn compute_predecessors(successors: &BlockMap<BlockCont>) -> BlockMultiMap<BlockID> {

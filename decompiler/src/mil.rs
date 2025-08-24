@@ -88,7 +88,7 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
 #[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
-#[func(pub fn input_regs(&mut self) -> ArgsMut { ArgsMut::new() })]
+#[func(pub fn input_regs(&mut self) -> ArgsMut<'_> { ArgsMut::new() })]
 #[allow(dead_code)]
 pub enum Insn {
     Void,
@@ -353,7 +353,7 @@ impl std::fmt::Debug for Program {
 
 impl Program {
     #[inline(always)]
-    pub fn get(&self, ndx: Index) -> Option<InsnView> {
+    pub fn get(&self, ndx: Index) -> Option<InsnView<'_>> {
         let index = ndx;
         let ndx = ndx as usize;
         // if this  slot is enabled as per the mask, then every Vec access must succeed
@@ -381,7 +381,7 @@ impl Program {
     }
 
     #[inline(always)]
-    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView<'_>> {
         (0..self.len()).filter_map(|ndx| self.get(ndx))
     }
 
