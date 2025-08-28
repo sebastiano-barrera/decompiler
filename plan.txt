@@ -1,78 +1,45 @@
-- [x] gui: ssa: show block continuations
-- [x] gui: ssa: add scrollarea
 
-- [ ] ssa: switch to a fully scheduled IR
-    - [x] disable xform
-    - [--] replace Schedule with a dummy
-    - [x] refactor
-        - too complicated to add instructions in the middle. attempt: only
-        append + modify the cfg consequently
-        - remove Schedule
-    - [ ] restore eliminate_dead_code
-    - [ ] feature: add instructions
-        - [ ] cfg: add new block
-            - this probably requires a slightly less efficient representation where blocks are easy to cut and stitch
-    - [ ] re-enable xform
+- now: proceed without gui, power up CLI/textual interface if needed
 
-    - notes
-        Fully scheduled instructions
-        Can be put in any order, we then parse/check that the ordering is compatible with def/use chains.
+- [ ] use type info
+    - [ ] struct member accesses
+    - [ ] show in ast
+    - [ ] function prototype
+    - [ ] ssa: value types
+    - [ ] ast: value types
+    - [ ] enum values
+        - initialize with DWARF, allow user edits
 
-        - Stable IDs used as references in user instructions
-        - Order index for easy reordering
-            - "deferred ordering"
-                - we don't need to keep the program actually ordered in memory at all times; just keep a representation of the order around that's easy to change during the course of compilation, and *then* it can be transformed into a concrete ordering when strictly needed.
+- [ ] string literals
 
-            - logical order:
-                = the order in which the instructions follow each other in the context of a specific block
-                - block local!
-                - logical index collisions are possible; ordering solved by considering storage index, too
+- [ ] gui: restore
+    - evaluate HTML/web interface approach. (I'm thinking: better suited to our output, which is fundamentally text, with more or less interactivity added on top)
 
-                - sparse:
-                    - the only point of logical indices is to order them later, so they only need to be Ord.
-                    - they can be sparse: (120000, 23000, 40000, ...)
-                    - we can "allocate" a certain number (say, 1024) logical index slots for each storage index during initial construction, then we have plenty of space for deferred additions
+--- The following are to be prioritized and grouped
 
-                - how do we associate blocks to the instructions that belong to them?
-                    - each block *must* cover a range of logical indices
-                    - storage indices may be all over the place, no problem
+- [ ] custom block ordering
 
-            - storage order:
-                = the order in which instructions appear conretely in some hidden Vec<_>.
-                - mostly useful for fast lookup.
-                - stable: new instructions are always appended at the end of the hidden Vec<_>, without changing the storage index of existing insns
-                - compact: they're literally index in a Vec<_>, so they form a compact domain (0, 1, 2, 3...)
-- [ ] ssa: find a way to attach instructions to blocks!
-    - right now, only effectful instructions are attached to blocks in a
-    specific order, while pure instructions are scheduled only if and when it's
-    strictly necessary, by ordering them in RPO.
+- [ ] ast: clickable marker for inline values
+    - in general, it should be possible to see ANY correspondence between AST parts and
+    SSA insns
 
-    however, there is a bug:
-        - if insn rX is used (directly or indirectly) by two effects located in
-        two distinct blocks, then the scheduling algorithm will NOT place them
-        in a common ancestor.
+- [ ] gui: add ASM view
+    - make it possible to show/hide
+    - this should make custom block ordering significantly faster
+    - [ ] add ASM view
+    - [ ] make ASM, SSA toggleable
+        - [ ] refactor: make views more independent from each other and from the "column allocation"
 
-        the easy way out: fix the scheduling algorithm.
+- [ ] go back to single executable, single function at a time
+    - increased code complexity is not worth it. can be paid to higher benefit later
 
-            - use lists:
-                - probably necessary
-                - we don't want them in general
-                - ... i guess we could make a temporary one just for scheduling
+- [ ] attach errors/warnings to ssa instructions wherever applicable
 
-            - basically S-o-N's Global Code Motion
-                - or is it?
+- [ ] gui: user-editable identifiers/names
 
-        - switching to an IR design where every instruction is attached to a block creates
-        a challenge around adding new instruction: we need to make space for them!
+- [ ] gui: multiple functions (tabs?)
 
-- [ ] auto add parentheses based on operator precedence
-
-- [ ] fix <bug:let!>
-- [ ] fix: if syntax with "pending else"
-- [ ] fix: Phi's should always be named (probably with a special syntax)
-- [ ] fix: StoreMem's results should probably always be hidden. Why are they even in the SSA?
-    - vestige from the sea-of-nodes experiment?
-
+- [ ] fully data-driven asm->mil?
 
 - [ ] remove horizontal padding/margin in ast's Flow seqs
 
