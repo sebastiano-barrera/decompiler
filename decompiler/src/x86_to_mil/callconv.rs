@@ -217,7 +217,12 @@ pub fn pack_return_value(
         ty::Ty::Unknown(Unknown { size }) => {
             // nothing better to do in this case...
             let ret_val = bld.tmp_gen();
-            bld.emit(ret_val, Insn::UndefinedBytes { size: *size });
+            bld.emit(
+                ret_val,
+                Insn::UndefinedBytes {
+                    size: size.unwrap_or(0),
+                },
+            );
         }
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);

@@ -88,21 +88,20 @@ impl TypeSet {
 
     pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
         let ty = &self.get(tyid)?.ty;
-        let sz = match ty {
-            Ty::Int(int_ty) => int_ty.size as u32,
-            Ty::Bool(Bool { size }) => *size as u32,
-            Ty::Float(Float { size }) => *size as u32,
-            Ty::Enum(enum_ty) => enum_ty.base_type.size as u32,
-            Ty::Struct(struct_ty) => struct_ty.size,
+        match ty {
+            Ty::Int(int_ty) => Some(int_ty.size as u32),
+            Ty::Bool(Bool { size }) => Some(*size as u32),
+            Ty::Float(Float { size }) => Some(*size as u32),
+            Ty::Enum(enum_ty) => Some(enum_ty.base_type.size as u32),
+            Ty::Struct(struct_ty) => Some(struct_ty.size),
             Ty::Unknown(unk_ty) => unk_ty.size,
             // TODO architecture dependent!
-            Ty::Ptr(_) => 8,
+            Ty::Ptr(_) => Some(8),
             // TODO does this even make sense?
-            Ty::Subroutine(_) => 8,
-            Ty::Void => 0,
-            Ty::Alias(ref_tyid) => return self.bytes_size(*ref_tyid),
-        };
-        Some(sz)
+            Ty::Subroutine(_) => Some(8),
+            Ty::Void => Some(0),
+            Ty::Alias(ref_tyid) => self.bytes_size(*ref_tyid),
+        }
     }
 
     pub fn assert_invariants(&self) {
@@ -380,7 +379,9 @@ impl Type {
     fn anon_unknown(bytes_size: u32) -> Self {
         Type {
             name: Arc::new(String::new()),
-            ty: Ty::Unknown(Unknown { size: bytes_size }),
+            ty: Ty::Unknown(Unknown {
+                size: Some(bytes_size),
+            }),
         }
     }
 }
@@ -463,8 +464,8 @@ pub struct StructMember {
 /// Placeholder for types that are not fully understood by the system.
 #[derive(Debug, Clone)]
 pub struct Unknown {
-    /// Size in bytes.  Types of unknown size have size 0.
-    pub size: u32,
+    /// Size in bytes.  `None`, for types of unknown size.
+    pub size: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
