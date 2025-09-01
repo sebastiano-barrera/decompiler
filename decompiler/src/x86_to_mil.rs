@@ -468,7 +468,12 @@ impl Builder {
                             // just a dumb approximation of a likely case
                             event!(Level::ERROR, "call unresolved, using a default fallback");
                             let param_values = vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX];
-                            self.emit_call(callee, param_values, types.tyid_unknown(), v1);
+                            self.emit_call(
+                                callee,
+                                param_values,
+                                types.tyid_shared_unknown_unsized(),
+                                v1,
+                            );
                             self.emit(v1, mil::Insn::Get(Self::RAX));
                         }
                     }
@@ -1474,7 +1479,7 @@ impl Builder {
 }
 
 pub fn check_subroutine_type(types: &ty::TypeSet, tyid: ty::TypeID) -> Result<&ty::Subroutine> {
-    match &types.get_through_alias(tyid).expect("invalid type ID").ty {
+    match &types.get_through_alias(tyid).expect("invalid type ID") {
         ty::Ty::Subroutine(subr_ty) => Ok(subr_ty),
         _ => anyhow::bail!("not a subroutine type (ID: {:?})", tyid),
     }

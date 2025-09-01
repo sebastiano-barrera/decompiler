@@ -385,7 +385,8 @@ impl Program {
         let index = self.insns.len().try_into().unwrap();
         self.insns.push(Cell::new(insn));
         self.dests.push(Cell::new(dest));
-        self.dest_tyids.push(Cell::new(self.types.tyid_unknown()));
+        self.dest_tyids
+            .push(Cell::new(self.types.tyid_shared_unknown_unsized()));
         self.addrs.push(u64::MAX);
         index
     }
@@ -500,7 +501,8 @@ impl ProgramBuilder {
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
-        self.dest_ty.push(Cell::new(self.types.tyid_unknown()));
+        self.dest_ty
+            .push(Cell::new(self.types.tyid_shared_unknown_unsized()));
         dest
     }
 

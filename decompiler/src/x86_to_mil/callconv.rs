@@ -38,7 +38,7 @@ pub fn unpack_params(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &types.get(ret_tyid).unwrap().ty {
+    match &types.get(ret_tyid).unwrap() {
         // we're fine, just let's go
         ty::Ty::Void => {}
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
@@ -69,7 +69,7 @@ pub fn unpack_params(
     }
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = &types.get(param_tyid).unwrap().ty;
+        let param_ty = &types.get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
@@ -207,7 +207,7 @@ pub fn pack_return_value(
     types: &ty::TypeSet,
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<mil::Reg> {
-    let ret_ty = &types.get(ret_tyid).unwrap().ty;
+    let ret_ty = &types.get(ret_tyid).unwrap();
 
     let ret_val = bld.tmp_gen();
     match ret_ty {
@@ -353,7 +353,7 @@ pub fn pack_params(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &types.get(ret_tyid).unwrap().ty {
+    match &types.get(ret_tyid).unwrap() {
         // we're fine, just let's go
         ty::Ty::Void => {}
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
@@ -384,7 +384,7 @@ pub fn pack_params(
     }
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = &types.get(param_tyid).unwrap().ty;
+        let param_ty = &types.get(param_tyid).unwrap();
 
         if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
             panic!("invalid type for a function parameter: {:?}", param_ty);
@@ -505,7 +505,7 @@ pub fn unpack_return_value(
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
-    match &types.get(ret_tyid).unwrap().ty {
+    match &types.get(ret_tyid).unwrap() {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown(_) => {
@@ -688,7 +688,7 @@ fn classify_eightbytes(
     tyid: ty::TypeID,
     offset: u32,
 ) -> anyhow::Result<()> {
-    let ty = &types.get(tyid).unwrap().ty;
+    let ty = &types.get(tyid).unwrap();
 
     if let ty::Ty::Alias(ref_tyid) = ty {
         return classify_eightbytes(eb_set, types, *ref_tyid, offset);
@@ -928,37 +928,29 @@ mod tests {
 
     // TOOD share the result (e.g. as a OnceCell)
     fn make_scalars() -> Types {
-        use ty::{Int, Signedness, Ty, Type, TypeSet};
+        use ty::{Int, Signedness, Ty, TypeSet};
 
         let mut types = TypeSet::new();
 
-        fn mk_int(name: &str, size: u8) -> Type {
-            Type {
-                name: Arc::new(name.to_owned()),
-                ty: Ty::Int(Int {
-                    size,
-                    signed: Signedness::Signed,
-                }),
-            }
+        fn mk_int(types: &mut TypeSet, name: &str, size: u8) -> TypeID {
+            let tyid = types.add(Ty::Int(Int {
+                size,
+                signed: Signedness::Signed,
+            }));
+            types.set_name(tyid, name.to_owned());
+            tyid
         }
 
-        let tyid_void = types.add(Type {
-            name: Arc::new("void".to_owned()),
-            ty: Ty::Void,
-        });
-        let tyid_i8 = types.add(mk_int("i8", 1));
-        let tyid_i16 = types.add(mk_int("i16", 2));
-        let tyid_i32 = types.add(mk_int("i32", 4));
-        let tyid_i64 = types.add(mk_int("i64", 8));
+        let tyid_void = types.tyid_shared_void();
+        let tyid_i8 = mk_int(&mut types, "i8", 1);
+        let tyid_i16 = mk_int(&mut types, "i16", 2);
+        let tyid_i32 = mk_int(&mut types, "i32", 4);
+        let tyid_i64 = mk_int(&mut types, "i64", 8);
 
-        let tyid_f32 = types.add(Type {
-            name: Arc::new("float32".to_owned()),
-            ty: Ty::Float(ty::Float { size: 4 }),
-        });
-        let tyid_f64 = types.add(Type {
-            name: Arc::new("float64".to_owned()),
-            ty: Ty::Float(ty::Float { size: 8 }),
-        });
+        let tyid_f32 = types.add(Ty::Float(ty::Float { size: 4 }));
+        types.set_name(tyid_f32, "float32".to_owned());
+        let tyid_f64 = types.add(Ty::Float(ty::Float { size: 8 }));
+        types.set_name(tyid_f32, "float64".to_owned());
 
         Types {
             types,
@@ -1138,21 +1130,18 @@ mod tests {
             let sz = types.bytes_size(tyid).unwrap();
             ofs + sz
         };
-
-        let name = Arc::new("SampleStruct".to_owned());
-        types.add(ty::Type {
-            name,
-            ty: ty::Ty::Struct(ty::Struct {
-                size: struct_sz,
-                members: members
-                    .iter()
-                    .map(|&(offset, tyid)| ty::StructMember {
-                        offset,
-                        name: Arc::new(format!("x{}", offset)),
-                        tyid,
-                    })
-                    .collect(),
-            }),
-        })
+        let tyid = types.add(ty::Ty::Struct(ty::Struct {
+            size: struct_sz,
+            members: members
+                .iter()
+                .map(|&(offset, tyid)| ty::StructMember {
+                    offset,
+                    name: Arc::new(format!("x{}", offset)),
+                    tyid,
+                })
+                .collect(),
+        }));
+        types.set_name(tyid, "SampleStruct".to_owned());
+        tyid
     }
 }

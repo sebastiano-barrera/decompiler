@@ -2094,16 +2094,8 @@ mod ast_view {
                     let callee_type_name = self
                         .ssa
                         .get(callee)
-                        .map(|iv| {
-                            self.ssa
-                                .types()
-                                .get_through_alias(iv.tyid.get())
-                                .unwrap()
-                                .name
-                                .to_string()
-                        })
-                        .filter(|name| !name.is_empty());
-
+                        .and_then(|iv| self.ssa.types().name(iv.tyid.get()))
+                        .map(|s| s.to_string());
                     let mut seq = Seq::new().with_anchor(Anchor::Reg(reg));
 
                     if let Some(name) = callee_type_name {

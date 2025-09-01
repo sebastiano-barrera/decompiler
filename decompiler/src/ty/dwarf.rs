@@ -69,7 +69,7 @@ pub fn load_dwarf_types(
     // an effort is only made to support DWARF5, not DWARF4
     let mut errors = Vec::new();
 
-    let default_type = ty::Type::anon_unknown(0);
+    let default_type = ty::Ty::Unknown(ty::Unknown { size: None });
     let tyid_of_node = allocate_tyids(&dwarf, types, &default_type)?;
 
     let mut units = dwarf.debug_info.units();
@@ -186,23 +186,27 @@ impl<'a> TypeParser<'a> {
             // - [x] DW_TAG_pointer_type
             // - [x] DW_TAG_base_type
             // - [x] DW_TAG_typedef
-            gimli::constants::DW_TAG_structure_type => self.parse_struct_type(node),
-            gimli::constants::DW_TAG_pointer_type => self.parse_pointer_type(node, types),
+            gimli::constants::DW_TAG_structure_type => self
+                .parse_struct_type(node)
+                .map(|(name, ty)| (Some(name), ty)),
+            gimli::constants::DW_TAG_pointer_type => {
+                self.parse_pointer_type(node, types).map(|ty| (None, ty))
+            }
             // subprograms (functions, in C) are considered as subroutine types
             // with a only single instance existing in the program.
             gimli::constants::DW_TAG_subprogram | gimli::constants::DW_TAG_subroutine_type => {
                 // Share the same TypeID for all concrete out-of-line abstract instances of a subprogram
-                if let (gimli::constants::DW_TAG_subprogram, Some(attr_value)) = (
-                    entry.tag(),
-                    entry.attr_value(gimli::constants::DW_AT_abstract_origin)?,
-                ) {
+                let attr_value_opt = entry.attr_value(gimli::constants::DW_AT_abstract_origin)?;
+
+                if let (gimli::constants::DW_TAG_subprogram, Some(attr_value)) =
+                    (entry.tag(), attr_value_opt)
+                {
                     let tyid = self.resolve_reference(attr_value, diofs)?;
-                    Ok(ty::Type {
-                        name: Arc::new(String::new()),
-                        ty: ty::Ty::Alias(tyid),
-                    })
+                    let name = self.get_name(entry)?.map(|s| s.to_owned());
+                    Ok((name, ty::Ty::Alias(tyid)))
                 } else {
                     self.parse_subroutine_type(node, types)
+                        .map(|(name, ty)| (Some(name), ty))
                 }
             }
             gimli::constants::DW_TAG_base_type => self.parse_base_type(node, types),
@@ -215,9 +219,9 @@ impl<'a> TypeParser<'a> {
         };
 
         // otherwise, leave tyid assigned to a clone of default_type
-        let typ = res?;
+        let (name, ty) = res?;
 
-        if !matches!(&typ.ty, ty::Ty::Unknown(_)) {
+        if !matches!(ty, ty::Ty::Unknown(_)) {
             if let Some(addr_attrvalue) = addr_av {
                 let addr = self.dwarf.attr_address(unit, addr_attrvalue)?.ok_or(
                     Error::InvalidValueType(diofs.0, gimli::constants::DW_AT_low_pc),
@@ -226,7 +230,10 @@ impl<'a> TypeParser<'a> {
             }
         }
 
-        types.set(tyid, typ);
+        types.set(tyid, ty);
+        if let Some(name) = name {
+            types.set_name(tyid, name);
+        }
         Ok(tyid)
     }
 
@@ -241,7 +248,11 @@ impl<'a> TypeParser<'a> {
         }
     }
 
-    fn parse_subroutine_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+    fn parse_subroutine_type(
+        &self,
+        node: GimliNode,
+        types: &mut ty::TypeSet,
+    ) -> Result<(String, ty::Ty)> {
         let entry = node.entry();
         assert!(
             entry.tag() == gimli::constants::DW_TAG_subroutine_type
@@ -253,7 +264,7 @@ impl<'a> TypeParser<'a> {
             .map(|s| s.to_owned())
             .unwrap_or_else(String::new);
         let return_tyid = match self.resolve_type_of(entry) {
-            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => Ok(types.tyid_void()),
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => Ok(types.tyid_shared_void()),
             res => res,
         }?;
 
@@ -271,17 +282,15 @@ impl<'a> TypeParser<'a> {
         }
 
         assert_eq!(param_names.len(), param_tyids.len());
-        Ok(ty::Type {
-            name: Arc::new(name),
-            ty: ty::Ty::Subroutine(ty::Subroutine {
-                return_tyid,
-                param_names,
-                param_tyids,
-            }),
-        })
+        let ty = ty::Ty::Subroutine(ty::Subroutine {
+            return_tyid,
+            param_names,
+            param_tyids,
+        });
+        Ok((name, ty))
     }
 
-    fn parse_pointer_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Type> {
+    fn parse_pointer_type(&self, node: GimliNode, types: &mut ty::TypeSet) -> Result<ty::Ty> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::DW_TAG_pointer_type);
 
@@ -289,18 +298,14 @@ impl<'a> TypeParser<'a> {
 
         // special case: C's `void*` is represented as a DW_TAG_pointer_type without DW_AT_type
         let pointee_tyid = match res {
-            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => types.tyid_void(),
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => types.tyid_shared_void(),
             _ => res?,
         };
 
-        Ok(ty::Type {
-            // TODO make name optional
-            name: Arc::new(String::new()),
-            ty: ty::Ty::Ptr(pointee_tyid),
-        })
+        Ok(ty::Ty::Ptr(pointee_tyid))
     }
 
-    fn parse_struct_type(&self, node: GimliNode) -> Result<ty::Type> {
+    fn parse_struct_type(&self, node: GimliNode) -> Result<(String, ty::Ty)> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_structure_type);
 
@@ -333,10 +338,7 @@ impl<'a> TypeParser<'a> {
             }
         }
 
-        Ok(ty::Type {
-            name: Arc::new(name),
-            ty: ty::Ty::Struct(ty::Struct { members, size }),
-        })
+        Ok((name, ty::Ty::Struct(ty::Struct { members, size })))
     }
 
     fn parse_struct_member(&self, member: &DIE<'_, '_, '_>) -> Result<ty::StructMember> {
@@ -361,7 +363,11 @@ impl<'a> TypeParser<'a> {
         Ok(ty::StructMember { offset, name, tyid })
     }
 
-    fn parse_base_type(&self, node: GimliNode, _types: &mut ty::TypeSet) -> Result<ty::Type> {
+    fn parse_base_type(
+        &self,
+        node: GimliNode,
+        _types: &mut ty::TypeSet,
+    ) -> Result<(Option<String>, ty::Ty)> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_base_type);
 
@@ -421,22 +427,15 @@ impl<'a> TypeParser<'a> {
             }
         };
 
-        let name = self.get_name(entry)?.unwrap_or("").to_owned();
-
-        Ok(ty::Type {
-            name: Arc::new(name),
-            ty,
-        })
+        let name = self.get_name(entry)?.map(|s| s.to_owned());
+        Ok((name, ty))
     }
 
-    fn parse_alias(&self, node: GimliNode) -> Result<ty::Type> {
+    fn parse_alias(&self, node: GimliNode) -> Result<(Option<String>, ty::Ty)> {
         let entry = node.entry();
         let ref_tyid = self.resolve_type_of(entry)?;
-        let name = self.get_name(entry)?;
-        Ok(ty::Type {
-            name: Arc::new(name.unwrap_or("").to_owned()),
-            ty: ty::Ty::Alias(ref_tyid),
-        })
+        let name = self.get_name(entry)?.map(|s| s.to_owned());
+        Ok((name, ty::Ty::Alias(ref_tyid)))
     }
 
     fn parse_call_site(&self, entry: &DIE, types: &mut ty::TypeSet) -> Result<()> {
@@ -522,7 +521,7 @@ impl<'a> TypeParser<'a> {
 fn allocate_tyids(
     dwarf: &gimli::Dwarf<ESlice>,
     types: &mut ty::TypeSet,
-    default_type: &ty::Type,
+    default_type: &ty::Ty,
 ) -> Result<HashMap<DebugInfoOffset, ty::TypeID>> {
     let mut map = HashMap::new();
 

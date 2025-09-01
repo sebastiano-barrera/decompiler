@@ -112,8 +112,8 @@ impl<'a> Executable<'a> {
             let func_tyid_opt = self.types.get_known_object(df.vm_addr.try_into().unwrap());
             let func_ty = match func_tyid_opt {
                 Some(func_tyid) => {
-                    let func_typ = self.types.get_through_alias(func_tyid).unwrap();
-                    match &func_typ.ty {
+                    let func_ty = self.types.get_through_alias(func_tyid).unwrap();
+                    match func_ty {
                         ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
                         _ => {
                             return Err(Error::NotASubroutineType(func_tyid));
