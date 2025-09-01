@@ -907,8 +907,6 @@ enum RegClass {
 mod tests {
     use ty::TypeID;
 
-    use crate::{mil::Control, ssa};
-
     use super::*;
     use std::sync::Arc;
 

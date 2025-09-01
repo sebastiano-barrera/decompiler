@@ -60,20 +60,14 @@ pub type Index = u16;
 pub enum RegType {
     Bytes(usize),
     Bool,
-    MemoryEffect,
-    Undefined,
-    Unit,
-    Control,
+    Effect,
 }
 impl RegType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
             RegType::Bytes(sz) => Some(*sz),
             RegType::Bool => None,
-            RegType::MemoryEffect => None,
-            RegType::Undefined => None,
-            RegType::Unit => None,
-            RegType::Control => None,
+            RegType::Effect => None,
         }
     }
 }

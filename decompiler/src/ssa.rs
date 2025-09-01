@@ -151,11 +151,12 @@ impl Program {
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
             | Insn::SetJumpCondition(_)
-            | Insn::Control(_) => RegType::Control,
+            | Insn::Control(_)
+            | Insn::NotYetImplemented(_)
+            | Insn::StoreMem { .. }
+            | Insn::Upsilon { .. } => RegType::Effect,
 
-            Insn::NotYetImplemented(_) => RegType::Unit,
             Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
-            Insn::StoreMem { .. } => RegType::MemoryEffect,
             Insn::OverflowOf(_) => RegType::Bool,
             Insn::CarryOf(_) => RegType::Bool,
             Insn::SignOf(_) => RegType::Bool,
@@ -176,7 +177,6 @@ impl Program {
                 .ancestor_type(anc_name)
                 .expect("ancestor has no defined type"),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
-            Insn::Upsilon { .. } => RegType::Unit,
         }
     }
 

@@ -26,6 +26,7 @@ impl<'a> Ast<'a> {
             // ancestral are as good as r# refs, so never 'name' them / always print inline
             matches!(insn, Insn::Phi)
                 || (*count > 1
+                    && !matches!(insn, Insn::StoreMem { .. })
                     && !matches!(insn, Insn::Ancestral(_))
                     && !matches!(insn, Insn::Const { .. }))
         });
@@ -204,7 +205,7 @@ impl<'a> Ast<'a> {
         let should_print_semicolon = if let Insn::Phi = self.ssa[reg].get() {
             write!(pp, "let mut r{}: {:?}", reg.reg_index(), reg_type)?;
             true
-        } else if self.is_named(reg) && reg_type != mil::RegType::MemoryEffect {
+        } else if self.is_named(reg) {
             write!(pp, "let r{}: {:?} = ", reg.reg_index(), reg_type)?;
             self.pp_def(pp, reg, 0)?
         } else {
@@ -332,11 +333,10 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, operand, self_prec)?;
             }
             Insn::Call { callee, first_arg } => {
-                let callee_iv = self.ssa.get(callee).unwrap();
                 let typ = self
                     .ssa
                     .types()
-                    .get_through_alias(callee_iv.tyid.get())
+                    .get_through_alias(self.ssa.value_type(callee))
                     .unwrap();
                 if let ty::Ty::Unknown(_) = &typ.ty {
                     self.pp_ref(pp, callee, self_prec)?;
@@ -403,7 +403,7 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
             }
             Insn::Upsilon { value, phi_ref } => match self.ssa.reg_type(value) {
-                mil::RegType::Bool | mil::RegType::Bytes(_) | mil::RegType::Undefined => {
+                mil::RegType::Bool | mil::RegType::Bytes(_) => {
                     write!(pp, "r{} := ", phi_ref.reg_index())?;
                     pp.open_box();
                     self.pp_def(pp, value, 0)?;
@@ -412,7 +412,7 @@ impl<'a> Ast<'a> {
                 // `value` doesn't need to be printed here, as it's already been
                 // printed (has side effect) and the target phi register's value
                 // is not significant
-                mil::RegType::MemoryEffect | mil::RegType::Unit | mil::RegType::Control => {}
+                mil::RegType::Effect => {}
             },
             Insn::CArg { .. } => {
                 unreachable!("CArg should be handled via the Call it belongs to!")
