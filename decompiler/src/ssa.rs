@@ -161,7 +161,8 @@ impl Program {
             Insn::SignOf(_) => RegType::Bool,
             Insn::IsZero(_) => RegType::Bool,
             Insn::Parity(_) => RegType::Bool,
-            Insn::Undefined => RegType::Undefined,
+            Insn::UndefinedBool => RegType::Bool,
+            Insn::UndefinedBytes { size } => RegType::Bytes(size as usize),
             Insn::Phi => {
                 let mut ys = self.upsilons_of_phi(reg);
                 let Some(y) = ys.next() else {

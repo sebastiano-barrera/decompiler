@@ -389,8 +389,11 @@ impl<'a> Ast<'a> {
             Insn::Parity(_) => {
                 self.pp_def_default(pp, "Parity".into(), insn.input_regs(), self_prec)?;
             }
-            Insn::Undefined => {
-                write!(pp, "undefined")?;
+            Insn::UndefinedBool => {
+                write!(pp, "undefined_bool")?;
+            }
+            Insn::UndefinedBytes { size } => {
+                write!(pp, "undefined_bytes({})", size)?;
             }
             Insn::Ancestral(anc_name) => {
                 write!(pp, "pre:{}", anc_name.name())?;
@@ -541,7 +544,8 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::True
         | Insn::False
         | Insn::Const { .. }
-        | Insn::Undefined
+        | Insn::UndefinedBool
+        | Insn::UndefinedBytes { .. }
         | Insn::Ancestral(_)
         | Insn::Phi
         | Insn::StructGetMember { .. }

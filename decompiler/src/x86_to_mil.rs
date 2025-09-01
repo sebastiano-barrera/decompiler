@@ -369,10 +369,10 @@ impl Builder {
                             self.emit(v0, mil::Insn::Arith(mil::ArithOp::Mul, v0, src_b));
                             self.emit(Self::OF, mil::Insn::OverflowOf(v0));
                             self.emit(Self::CF, mil::Insn::Get(Self::OF));
-                            self.emit(Self::SF, mil::Insn::Undefined);
-                            self.emit(Self::ZF, mil::Insn::Undefined);
-                            self.emit(Self::AF, mil::Insn::Undefined);
-                            self.emit(Self::PF, mil::Insn::Undefined);
+                            self.emit(Self::SF, mil::Insn::UndefinedBool);
+                            self.emit(Self::ZF, mil::Insn::UndefinedBool);
+                            self.emit(Self::AF, mil::Insn::UndefinedBool);
+                            self.emit(Self::PF, mil::Insn::UndefinedBool);
 
                             let a_size = a_size.try_into().unwrap();
                             let result_hi = self.pb.tmp_gen();
@@ -430,10 +430,10 @@ impl Builder {
                             self.emit_write(&insn, 0, result, result_size);
                             self.emit(Self::OF, mil::Insn::OverflowOf(result));
                             self.emit(Self::CF, mil::Insn::Get(Self::OF));
-                            self.emit(Self::SF, mil::Insn::Undefined);
-                            self.emit(Self::ZF, mil::Insn::Undefined);
-                            self.emit(Self::AF, mil::Insn::Undefined);
-                            self.emit(Self::PF, mil::Insn::Undefined);
+                            self.emit(Self::SF, mil::Insn::UndefinedBool);
+                            self.emit(Self::ZF, mil::Insn::UndefinedBool);
+                            self.emit(Self::AF, mil::Insn::UndefinedBool);
+                            self.emit(Self::PF, mil::Insn::UndefinedBool);
                         }
 
                         other => panic!("imul: invalid operands count: {}", other),
@@ -770,15 +770,15 @@ impl Builder {
     }
 
     fn reset_all_flags(&mut self) {
-        self.emit(Self::CF, mil::Insn::Undefined);
-        self.emit(Self::PF, mil::Insn::Undefined);
-        self.emit(Self::AF, mil::Insn::Undefined);
-        self.emit(Self::ZF, mil::Insn::Undefined);
-        self.emit(Self::SF, mil::Insn::Undefined);
-        self.emit(Self::TF, mil::Insn::Undefined);
-        self.emit(Self::IF, mil::Insn::Undefined);
-        self.emit(Self::DF, mil::Insn::Undefined);
-        self.emit(Self::OF, mil::Insn::Undefined);
+        self.emit(Self::CF, mil::Insn::UndefinedBool);
+        self.emit(Self::PF, mil::Insn::UndefinedBool);
+        self.emit(Self::AF, mil::Insn::UndefinedBool);
+        self.emit(Self::ZF, mil::Insn::UndefinedBool);
+        self.emit(Self::SF, mil::Insn::UndefinedBool);
+        self.emit(Self::TF, mil::Insn::UndefinedBool);
+        self.emit(Self::IF, mil::Insn::UndefinedBool);
+        self.emit(Self::DF, mil::Insn::UndefinedBool);
+        self.emit(Self::OF, mil::Insn::UndefinedBool);
     }
 
     fn pack_params(

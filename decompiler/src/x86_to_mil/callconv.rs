@@ -2,13 +2,13 @@ use std::cmp::Ordering;
 
 use crate::{
     mil::{self, AncestralName, ArithOp, Insn},
-    ty,
+    ty::{self, Unknown},
 };
 
 use super::Builder;
 
 use anyhow::anyhow;
-use tracing::{event, instrument, span, Level, Span};
+use tracing::{event, instrument, span, Level};
 
 #[derive(Clone, Copy)]
 enum PassMode {
@@ -214,10 +214,10 @@ pub fn pack_return_value(
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
         }
-        ty::Ty::Unknown(_) => {
+        ty::Ty::Unknown(Unknown { size }) => {
             // nothing better to do in this case...
             let ret_val = bld.tmp_gen();
-            bld.emit(ret_val, Insn::Undefined);
+            bld.emit(ret_val, Insn::UndefinedBytes { size: *size });
         }
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);
@@ -505,8 +505,11 @@ pub fn unpack_return_value(
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown(_) => {
             // don't know anything better that could be done in this case...
-            for mreg in [Builder::RAX, Builder::RDX, Builder::ZMM0, Builder::ZMM1] {
-                bld.emit(mreg, Insn::Undefined);
+            for mreg in [Builder::RAX, Builder::RDX] {
+                bld.emit(mreg, Insn::UndefinedBytes { size: 8 });
+            }
+            for mreg in [Builder::ZMM0, Builder::ZMM1] {
+                bld.emit(mreg, Insn::UndefinedBytes { size: 64 });
             }
             Ok(())
         }

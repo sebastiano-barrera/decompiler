@@ -1948,7 +1948,19 @@ mod ast_view {
                 Insn::Void => mk_kw("void".into()),
                 Insn::True => mk_kw("true".into()),
                 Insn::False => mk_kw("false".into()),
-                Insn::Undefined => mk_kw("undefined".into()),
+                Insn::UndefinedBool => ExprTree::Seq(
+                    Seq::new()
+                        .with_anchor(anchor)
+                        .with_child(mk_kw("undefined".into()).into())
+                        .with_child(mk_kw("bool".into()).into()),
+                ),
+                Insn::UndefinedBytes { size } => ExprTree::Seq(
+                    Seq::new()
+                        .with_anchor(anchor)
+                        .with_child(mk_kw("undefined".into()).into())
+                        .with_child(mk_kw("bytes".into()).into())
+                        .with_child(mk_kw(format!("{}", size).into()).into()),
+                ),
 
                 Insn::Phi => self.transform_regular_insn(reg, "Phi", std::iter::empty()),
                 Insn::Const { value, size: _ } => mk_lit(format!("{}", value).into()),
@@ -2180,7 +2192,8 @@ mod ast_view {
                 Insn::SignOf(_) => "SignOf",
                 Insn::IsZero(_) => "IsZero",
                 Insn::Parity(_) => "Parity",
-                Insn::Undefined => "Undefined",
+                Insn::UndefinedBool => "UndefinedBool",
+                Insn::UndefinedBytes { .. } => "UndefinedBytes",
                 Insn::Ancestral(_) => "Ancestral",
                 Insn::Phi => "Phi",
                 Insn::Upsilon { .. } => "Upsilon",

@@ -191,8 +191,10 @@ pub enum Insn {
     IsZero(Reg),
     #[assoc(input_regs = array([_0]))]
     Parity(Reg),
-
-    Undefined,
+    UndefinedBool,
+    UndefinedBytes {
+        size: u32,
+    },
     Ancestral(AncestralName),
 
     Phi,
