@@ -38,7 +38,6 @@ pub struct Program {
     cfg: cfg::Graph,
 }
 
-slotmap::new_key_type! { pub struct TypeID; }
 
 impl Program {
     pub fn cfg(&self) -> &cfg::Graph {
