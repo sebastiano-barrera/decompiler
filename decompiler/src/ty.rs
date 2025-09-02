@@ -12,10 +12,8 @@ use tracing::{event, Level};
 pub mod dwarf;
 
 use crate::pp::{self, PP};
-// important: TypeID is an *opaque* ID used by `ssa` to refer to complex data
-// types represented and manipulated in this module, so we MUST use the same
-// type here.
-pub use crate::ssa::TypeID;
+
+slotmap::new_key_type! { pub struct TypeID; }
 
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Error, PartialEq, Eq)]
