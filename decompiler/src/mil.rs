@@ -20,7 +20,6 @@ pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    dest_tyids: Vec<Cell<ty::TypeID>>,
     reg_count: Index,
 
     // Not sure about the Arc here.  Very likely that it's going to have to
@@ -332,7 +331,6 @@ impl std::fmt::Debug for Program {
         for ndx in 0..len {
             let insn = self.insns[ndx].get();
             let dest = self.dests[ndx].get();
-            let dest_tyid = self.dest_tyids[ndx].get();
             let addr = self.addrs[ndx];
 
             if last_addr != addr {
@@ -340,7 +338,6 @@ impl std::fmt::Debug for Program {
                 last_addr = addr;
             }
             write!(f, "{:5} {:?}", ndx, dest,)?;
-            write!(f, ": {:?}", dest_tyid)?;
             writeln!(f, " <- {:?}", insn)?;
         }
         Ok(())
@@ -355,12 +352,10 @@ impl Program {
         // if this  slot is enabled as per the mask, then every Vec access must succeed
         let insn = &self.insns[ndx];
         let dest = &self.dests[ndx];
-        let dest_tyid = &self.dest_tyids[ndx];
         let addr = self.addrs[ndx];
         Some(InsnView {
             insn,
             dest,
-            tyid: dest_tyid,
             index,
             addr,
         })
@@ -385,8 +380,6 @@ impl Program {
         let index = self.insns.len().try_into().unwrap();
         self.insns.push(Cell::new(insn));
         self.dests.push(Cell::new(dest));
-        self.dest_tyids
-            .push(Cell::new(self.types.tyid_shared_unknown_unsized()));
         self.addrs.push(u64::MAX);
         index
     }
@@ -409,7 +402,6 @@ impl Program {
 
 pub struct InsnView<'a> {
     pub insn: &'a Cell<Insn>,
-    pub tyid: &'a Cell<ty::TypeID>,
     pub dest: &'a Cell<Reg>,
     pub index: Index,
     pub addr: u64,
@@ -420,7 +412,6 @@ pub struct ProgramBuilder {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    dest_ty: Vec<Cell<ty::TypeID>>,
     cur_input_addr: u64,
     anc_types: HashMap<AncestralName, RegType>,
     types: Arc<ty::TypeSet>,
@@ -437,7 +428,6 @@ impl ProgramBuilder {
             insns: Vec::new(),
             dests: Vec::new(),
             addrs: Vec::new(),
-            dest_ty: Vec::new(),
             cur_input_addr: 0,
             anc_types: HashMap::new(),
             types,
@@ -501,8 +491,6 @@ impl ProgramBuilder {
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
-        self.dest_ty
-            .push(Cell::new(self.types.tyid_shared_unknown_unsized()));
         dest
     }
 
@@ -524,22 +512,6 @@ impl ProgramBuilder {
         self.cur_input_addr = addr;
     }
 
-    /// Associate the given type ID to the given register.
-    ///
-    /// The type ID is associated to the last instruction that assigned the
-    /// register. Panics if this instruction can't be located (it's a user bug)
-    pub fn set_type(&mut self, reg: Reg, tyid: ty::TypeID) {
-        let (ndx, _) = self
-            .dests
-            .iter()
-            .enumerate()
-            .rev()
-            .find(|(_, dest)| dest.get() == reg)
-            .expect("no instruction writes to the given register");
-
-        self.dest_ty[ndx].set(tyid);
-    }
-
     pub fn build(mut self) -> Program {
         self.check_use_after_init();
         assert_eq!(self.init_checked_count, self.dests.len());
@@ -548,14 +520,12 @@ impl ProgramBuilder {
             insns,
             dests,
             addrs,
-            dest_ty,
             types,
             ..
         } = self;
 
         assert_eq!(dests.len(), insns.len());
         assert_eq!(dests.len(), addrs.len());
-        assert_eq!(dests.len(), dest_ty.len());
 
         // addrs is input addr of mil addr;
         // we also need mil addr of input addr to resolve jumps
@@ -611,7 +581,6 @@ impl ProgramBuilder {
             insns,
             dests,
             addrs,
-            dest_tyids: dest_ty,
             types,
             reg_count,
             mil_of_input_addr,

@@ -769,7 +769,6 @@ impl Builder {
             }
             Some(ret_reg)
         };
-        self.pb.set_type(callee, target_tyid);
         self.emit(ret_reg, mil::Insn::Call { callee, first_arg });
         self.reset_all_flags();
     }

@@ -28,6 +28,12 @@ pub struct Program {
     //
     inner: mil::Program,
 
+    /// Type ID of each SSA value.
+    ///
+    /// For values where high-level/rich type information is not available, the
+    /// ID for a ty::Type::Unknown of appropriate size is used.
+    tyid: RegMap<ty::TypeID>,
+
     schedule: cfg::Schedule,
     cfg: cfg::Graph,
 }
@@ -185,7 +191,7 @@ impl Program {
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> ty::TypeID {
-        self.inner.get(reg.reg_index()).unwrap().tyid.get()
+        self.tyid[reg]
     }
 
     pub fn assert_invariants(&self) {
@@ -501,7 +507,7 @@ impl std::fmt::Debug for Program {
             }
 
             type_s.clear();
-            let tyid = iv.tyid.get();
+            let tyid = self.value_type(reg);
             let mut pp = pp::PrettyPrinter::start(&mut type_s);
             write!(pp, ": ").unwrap();
             self.types().dump_type_ref(&mut pp, tyid).unwrap();
@@ -734,12 +740,34 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         iv.dest.set(mil::Reg(ndx.try_into().unwrap()));
     }
 
-    let ssa = Program {
+    let tyid = {
+        let tyid_unk_unsized = program.types().tyid_unknown_unsized();
+        RegMap::new(tyid_unk_unsized, program.len())
+    };
+
+    let mut ssa = Program {
         inner: program,
+        tyid,
         schedule,
         cfg,
     };
     ssa.assert_invariants();
+
+    for reg in ssa.registers() {
+        let reg_type = ssa.reg_type(reg);
+        match reg_type {
+            mil::RegType::Bytes(_) => ssa.types(),
+            mil::RegType::Bool => todo!(),
+            // TODO I think all of these should go the way of the dodo
+            // leave unsized unknown type
+            mil::RegType::MemoryEffect |
+            mil::RegType::Undefined |
+            mil::RegType::Unit |
+            mil::RegType::Control => continue,
+        }
+        ssa.tyid[reg] = ;
+    }
+
     ssa
 }
 
@@ -900,7 +928,12 @@ pub struct RegMap<T>(Vec<T>);
 
 impl<T: Clone> RegMap<T> {
     pub fn for_program(prog: &Program, init: T) -> Self {
-        let inner = vec![init; prog.reg_count() as usize];
+        let count = prog.reg_count();
+        Self::new(init, count)
+    }
+
+    fn new(init: T, count: mil::Index) -> Self {
+        let inner = vec![init; count as usize];
         RegMap(inner)
     }
 
