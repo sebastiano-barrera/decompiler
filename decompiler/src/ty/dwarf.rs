@@ -232,7 +232,7 @@ impl<'a> TypeParser<'a> {
 
         types.set(tyid, ty);
         if let Some(name) = name {
-            types.set_name(tyid, name);
+            _ = types.set_name(tyid, name);
         }
         Ok(tyid)
     }
@@ -595,7 +595,7 @@ mod tests {
     use super::super::tests::DATA_DIR;
     use super::*;
 
-    fn load_test_elf(rel_path: &str) -> (goblin::elf::Elf, &'_ [u8]) {
+    fn load_test_elf(rel_path: &str) -> (goblin::elf::Elf<'static>, &'static [u8]) {
         let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
         let object = goblin::Object::parse(&raw).expect("could not parse ELF");
         let elf = match object {

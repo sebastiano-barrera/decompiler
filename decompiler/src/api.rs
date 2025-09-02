@@ -234,6 +234,7 @@ pub struct DecompiledFunction {
     function_name: String,
 
     /// Offset of the machine code from the ELF's .text section
+    #[allow(dead_code)]
     text_section_offset: usize,
     /// Offset of the machine code from the start of the executable file.
     file_offset: usize,

@@ -917,7 +917,6 @@ mod tests {
 
     struct Types {
         types: ty::TypeSet,
-        tyid_void: ty::TypeID,
         tyid_i64: ty::TypeID,
         tyid_i32: ty::TypeID,
         tyid_i16: ty::TypeID,
@@ -937,24 +936,22 @@ mod tests {
                 size,
                 signed: Signedness::Signed,
             }));
-            types.set_name(tyid, name.to_owned());
+            _ = types.set_name(tyid, name.to_owned());
             tyid
         }
 
-        let tyid_void = types.tyid_shared_void();
         let tyid_i8 = mk_int(&mut types, "i8", 1);
         let tyid_i16 = mk_int(&mut types, "i16", 2);
         let tyid_i32 = mk_int(&mut types, "i32", 4);
         let tyid_i64 = mk_int(&mut types, "i64", 8);
 
         let tyid_f32 = types.add(Ty::Float(ty::Float { size: 4 }));
-        types.set_name(tyid_f32, "float32".to_owned());
+        _ = types.set_name(tyid_f32, "float32".to_owned());
         let tyid_f64 = types.add(Ty::Float(ty::Float { size: 8 }));
-        types.set_name(tyid_f32, "float64".to_owned());
+        _ = types.set_name(tyid_f32, "float64".to_owned());
 
         Types {
             types,
-            tyid_void,
             tyid_i64,
             tyid_i32,
             tyid_i16,
@@ -1141,7 +1138,7 @@ mod tests {
                 })
                 .collect(),
         }));
-        types.set_name(tyid, "SampleStruct".to_owned());
+        _ = types.set_name(tyid, "SampleStruct".to_owned());
         tyid
     }
 }

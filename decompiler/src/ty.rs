@@ -68,7 +68,7 @@ impl TypeSet {
             read_only,
         };
 
-        types.set_name(tyid_void, "void".to_owned());
+        _ = types.set_name(tyid_void, "void".to_owned());
         types
     }
 
@@ -651,13 +651,13 @@ mod tests {
             size: 4,
             signed: Signedness::Signed,
         }));
-        types.set_name(tyid_i32, "i32".to_owned());
+        _ = types.set_name(tyid_i32, "i32".to_owned());
 
         let tyid_i8 = types.add(Ty::Int(Int {
             size: 1,
             signed: Signedness::Signed,
         }));
-        types.set_name(tyid_i8, "i8".to_owned());
+        _ = types.set_name(tyid_i8, "i8".to_owned());
 
         let ty_point = types.add(Ty::Struct(Struct {
             size: 24,
@@ -680,7 +680,7 @@ mod tests {
                 },
             ],
         }));
-        types.set_name(ty_point, "point".to_owned());
+        _ = types.set_name(ty_point, "point".to_owned());
 
         {
             let s = types.select(ty_point, 0..4).unwrap();
@@ -720,7 +720,7 @@ mod tests {
             size: 4,
             signed: Signedness::Signed,
         }));
-        types.set_name(tyid_i32, "i32".to_owned());
+        _ = types.set_name(tyid_i32, "i32".to_owned());
 
         let ty_point = types.add(Ty::Struct(Struct {
             size: 4,
@@ -730,7 +730,7 @@ mod tests {
                 tyid: tyid_i32,
             }],
         }));
-        types.set_name(ty_point, "point".to_owned());
+        _ = types.set_name(ty_point, "point".to_owned());
 
         types.assert_invariants();
     }
