@@ -1,4 +1,8 @@
-use std::{collections::HashMap, ops::Range, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+    sync::Arc,
+};
 
 use slotmap::SlotMap;
 use smallvec::{smallvec, SmallVec};
@@ -12,6 +16,13 @@ use crate::pp::{self, PP};
 // types represented and manipulated in this module, so we MUST use the same
 // type here.
 pub use crate::ssa::TypeID;
+
+pub type Result<T> = std::result::Result<T, Error>;
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum Error {
+    #[error("change forbidden; the referred type is read-only")]
+    ReadOnly,
+}
 
 /// A set of types.
 ///
@@ -30,6 +41,8 @@ pub struct TypeSet {
 
     tyid_void: TypeID,
     tyid_unk_unsized: TypeID,
+    tyid_unk_of_size: HashMap<u32, TypeID>,
+    read_only: HashSet<TypeID>,
 }
 
 pub type Addr = u64;
@@ -40,6 +53,10 @@ impl TypeSet {
         let tyid_void = types.insert(Ty::Void);
         let tyid_unk_unsized = types.insert(Ty::Unknown(Unknown { size: None }));
 
+        let mut read_only = HashSet::new();
+        read_only.insert(tyid_void);
+        read_only.insert(tyid_unk_unsized);
+
         let mut types = TypeSet {
             types,
             name_of_tyid: slotmap::SecondaryMap::new(),
@@ -47,6 +64,8 @@ impl TypeSet {
             call_sites: CallSites::new(),
             tyid_void,
             tyid_unk_unsized,
+            tyid_unk_of_size: HashMap::new(),
+            read_only,
         };
 
         types.set_name(tyid_void, "void".to_owned());
@@ -59,6 +78,17 @@ impl TypeSet {
     pub fn tyid_shared_unknown_unsized(&self) -> TypeID {
         self.tyid_unk_unsized
     }
+    pub fn tyid_shared_unknown_of_size(&mut self, size: u32) -> TypeID {
+        if let Some(tyid) = self.tyid_unk_of_size.get(&size) {
+            debug_assert!(self.read_only.contains(&tyid));
+            return *tyid;
+        }
+
+        let tyid = self.types.insert(Ty::Unknown(Unknown { size: Some(size) }));
+        self.tyid_unk_of_size.insert(size, tyid);
+        self.read_only.insert(tyid);
+        tyid
+    }
 
     /// Get the name of a type, if it has one.
     ///
@@ -68,8 +98,13 @@ impl TypeSet {
     }
 
     /// Set the name of a type.
-    pub fn set_name(&mut self, tyid: TypeID, name: String) {
+    pub fn set_name(&mut self, tyid: TypeID, name: String) -> Result<()> {
+        if self.read_only.contains(&tyid) {
+            return Err(Error::ReadOnly);
+        }
+
         self.name_of_tyid.insert(tyid, name);
+        Ok(())
     }
 
     /// Add a type to the set. Returns a TypeID corresponding to it.
@@ -166,7 +201,11 @@ impl TypeSet {
     }
 
     #[allow(dead_code)]
-    pub fn select(&self, tyid: TypeID, byte_range: Range<i64>) -> Result<Selection, SelectError> {
+    pub fn select(
+        &self,
+        tyid: TypeID,
+        byte_range: Range<i64>,
+    ) -> std::result::Result<Selection, SelectError> {
         assert!(!byte_range.is_empty());
         let ty = &self.get(tyid).unwrap();
 
@@ -383,7 +422,7 @@ pub struct CallSiteKey {
     pub target: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ty {
     Int(Int),
     Bool(Bool),
@@ -398,7 +437,7 @@ pub enum Ty {
     Alias(TypeID),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Int {
     pub size: u8,
     pub signed: Signedness,
@@ -408,18 +447,18 @@ impl Int {
         self.size
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Signedness {
     Signed,
     Unsigned,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bool {
     size: u8,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Float {
     pub size: u8,
 }
@@ -430,13 +469,13 @@ impl Float {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Enum {
     pub variants: Vec<EnumVariant>,
     pub base_type: Int,
 }
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnumVariant {
     pub value: i64,
     pub name: Arc<String>,
@@ -446,12 +485,12 @@ pub struct EnumVariant {
 ///
 /// Unions may be represented by adding overlapping members. All members'
 /// occupied byte range must fit into the structure's size.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Struct {
     pub members: Vec<StructMember>,
     pub size: u32,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructMember {
     pub offset: u32,
     pub name: Arc<String>,
@@ -459,13 +498,13 @@ pub struct StructMember {
 }
 
 /// Placeholder for types that are not fully understood by the system.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unknown {
     /// Size in bytes.  `None`, for types of unknown size.
     pub size: Option<u32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Subroutine {
     pub return_tyid: TypeID,
     pub param_names: Vec<Option<Arc<String>>>,
@@ -555,6 +594,54 @@ mod tests {
     use include_dir::{include_dir, Dir};
 
     pub(crate) static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/ty/");
+
+    #[test]
+    fn shared_void() {
+        let mut types = TypeSet::new();
+
+        let tyid_void_1 = types.tyid_shared_void();
+        let tyid_void_2 = types.tyid_shared_void();
+        assert_eq!(tyid_void_1, tyid_void_2);
+        assert_eq!(types.get(tyid_void_1), Some(&Ty::Void));
+
+        let res = types.set_name(tyid_void_1, "whatever".to_string());
+        assert_eq!(res, Err(Error::ReadOnly));
+    }
+
+    #[test]
+    fn shared_unknown_unsized() {
+        let mut types = TypeSet::new();
+
+        let tyid_unk_1 = types.tyid_shared_unknown_unsized();
+        let tyid_unk_2 = types.tyid_shared_unknown_unsized();
+        assert_eq!(tyid_unk_1, tyid_unk_2);
+        assert_eq!(
+            types.get(tyid_unk_1),
+            Some(&Ty::Unknown(Unknown { size: None }))
+        );
+
+        let res = types.set_name(tyid_unk_1, "whatever".to_string());
+        assert_eq!(res, Err(Error::ReadOnly));
+    }
+
+    #[test]
+    fn shared_unknown_sized() {
+        const SIZES: [u32; 6] = [0, 44, 120423, 21, 2, 4];
+
+        let mut types = TypeSet::new();
+
+        let tyids = SIZES.map(|size| types.tyid_shared_unknown_of_size(size));
+        let tyids_check = SIZES.map(|size| types.tyid_shared_unknown_of_size(size));
+        assert_eq!(tyids_check, tyids);
+
+        for (size, tyid) in SIZES.iter().zip(tyids) {
+            let ty = types.get(tyid).unwrap();
+            assert_eq!(ty, &Ty::Unknown(Unknown { size: Some(*size) }));
+
+            let res = types.set_name(tyid, "whatever".to_string());
+            assert_eq!(res, Err(Error::ReadOnly));
+        }
+    }
 
     #[test]
     fn simple_struct() {
