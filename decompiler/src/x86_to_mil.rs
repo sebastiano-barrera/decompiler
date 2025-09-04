@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::ops::DerefMut;
+use std::sync::{Arc, RwLock};
 
 use crate::mil::{self, AncestralName, Control, RegType};
 use crate::ty;
@@ -19,7 +20,7 @@ impl Builder {
     pub fn new(
         // this may become a simple &ty::TypeSet and be passed directly to
         // Self::translate
-        types: Arc<ty::TypeSet>,
+        types: Arc<RwLock<ty::TypeSet>>,
     ) -> Self {
         let mut bld = Builder {
             pb: mil::ProgramBuilder::new(Self::R_TMP_FIRST, types),
@@ -99,7 +100,9 @@ impl Builder {
     ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
 
-        let types = Arc::clone(self.pb.types());
+        let types = Arc::clone(&self.pb.types());
+        let mut types = types.write().unwrap();
+        let types = types.deref_mut();
         let mut formatter = IntelFormatter::new();
         let mut warnings = Warnings::default();
 

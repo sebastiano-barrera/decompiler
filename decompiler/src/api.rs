@@ -1,3 +1,4 @@
+use std::sync::RwLock;
 use std::{collections::HashMap, sync::Arc};
 
 use thiserror::Error;
@@ -57,7 +58,7 @@ pub struct Executable<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
     func_syms: HashMap<String, AddrRange>,
-    types: Arc<ty::TypeSet>,
+    types: Arc<RwLock<ty::TypeSet>>,
 }
 
 #[derive(Clone, Copy)]
@@ -89,7 +90,7 @@ impl<'a> Executable<'a> {
             raw_binary,
             elf,
             func_syms,
-            types: Arc::new(types),
+            types: Arc::new(RwLock::new(types)),
         })
     }
 
@@ -109,10 +110,11 @@ impl<'a> Executable<'a> {
         let mil_res = std::panic::catch_unwind(move || {
             let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
 
-            let func_tyid_opt = self.types.get_known_object(df.vm_addr.try_into().unwrap());
+            let types = self.types.write().unwrap();
+            let func_tyid_opt = types.get_known_object(df.vm_addr.try_into().unwrap());
             let func_ty = match func_tyid_opt {
                 Some(func_tyid) => {
-                    let func_ty = self.types.get_through_alias(func_tyid).unwrap();
+                    let func_ty = types.get_through_alias(func_tyid).unwrap();
                     match func_ty {
                         ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
                         _ => {

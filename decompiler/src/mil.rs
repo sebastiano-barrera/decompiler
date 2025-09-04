@@ -3,7 +3,11 @@ use facet_reflect::HasFields;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{cell::Cell, collections::HashMap, sync::Arc};
+use std::{
+    cell::Cell,
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use crate::ty;
 
@@ -22,10 +26,6 @@ pub struct Program {
     addrs: Vec<u64>,
     reg_count: Index,
 
-    // Not sure about the Arc here.  Very likely that it's going to have to
-    // change when I do the GUI layer.
-    types: Arc<ty::TypeSet>,
-
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
     // instruction back to the original machine code / assembly
@@ -33,6 +33,8 @@ pub struct Program {
     mil_of_input_addr: HashMap<u64, Index>,
 
     anc_types: HashMap<AncestralName, RegType>,
+
+    types: Arc<RwLock<ty::TypeSet>>,
 }
 
 /// Register ID
@@ -394,10 +396,6 @@ impl Program {
     pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
         self.anc_types.get(&anc_name).copied()
     }
-
-    pub fn types(&self) -> &ty::TypeSet {
-        &self.types
-    }
 }
 
 pub struct InsnView<'a> {
@@ -414,7 +412,7 @@ pub struct ProgramBuilder {
     addrs: Vec<u64>,
     cur_input_addr: u64,
     anc_types: HashMap<AncestralName, RegType>,
-    types: Arc<ty::TypeSet>,
+    types: Arc<RwLock<ty::TypeSet>>,
 
     reg_gen: RegGen,
     // Number of instructions that have already been checked for correct
@@ -423,21 +421,22 @@ pub struct ProgramBuilder {
 }
 
 impl ProgramBuilder {
-    pub fn new(lowest_tmp: Reg, types: Arc<ty::TypeSet>) -> Self {
+    pub fn new(lowest_tmp: Reg, types: Arc<RwLock<ty::TypeSet>>) -> Self {
         Self {
             insns: Vec::new(),
             dests: Vec::new(),
             addrs: Vec::new(),
             cur_input_addr: 0,
             anc_types: HashMap::new(),
-            types,
 
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
+
+            types,
         }
     }
 
-    pub fn types(&self) -> &Arc<ty::TypeSet> {
+    pub fn types(&self) -> &Arc<RwLock<ty::TypeSet>> {
         &self.types
     }
 
