@@ -1,0 +1,83 @@
+
+# Idea
+
+Insert QEMU's TCG bytecode into the decompiler's conversion chain in order to
+take advantage of the translator already built into QEMU from x86_64 machine
+code to bytecode.
+
+The hope is that TCG is much, much smaller and simpler than x86_64 machine code,
+and the translator takes care of this complexity delta for us.
+
+QEMU's Tiny Code Generator (TCG) converts machine code (from various
+architectures, including x86_64) into a custom bytecode, which can then be
+re-translated into machine code (for the host architecture) or interpreted by a
+purpose-built interpreter (TCI, the Tiny Code Interpreter).
+
+# Useful references
+
+- QEMU official documentation: TCG Emulation / Translator Internals
+	https://www.qemu.org/docs/master/devel/tcg.html
+
+# Plan
+
+- [ ] validate the idea: is the QEMU TCG bytecode good for our purposes?
+
+	- [ ] examine the bytecode opcodes definition (I expect questions to come up here)
+		- how complicated are they to decode from the raw buffer?
+		- how complicated are they to understand correctly?
+
+		- [x] helpers
+			- these seem to be calls to custom functions that the tcg code generator can
+			insert into the bytecode stream.
+			- basically, "bits of custom interpreter"
+			- they make no sense for our application
+			- how much of a problem are they?
+
+			- <!!!> decision: helper OPS are ok to insert into the insns stream (I will have
+			to figure out a way to translate them into meaningful MIL, or forward them as
+			they are in MIL)
+
+			- this is going to bite me in the ass later on, but I can't do much about it for
+			now
+
+	- [ ] consider: translate the bytecode into my own IR? or restructure the entire application around it? 
+
+		- case: translate the bytecode into my own IR
+			- [ ] understand how difficult it is to achieve this correctly
+
+- [--] attempt the first hard part: pull the code apart and just compile it, somehow
+	- if this succeeds, I can attempt live debugging, tool-assisted refactoring etc.
+
+- <!!!> I think that the code supports a lot of stuff that just doesn't apply to my case:
+
+	- is able to call into the emulated I/O subsystem because it assumes that it has to read
+	machine code from device memory!
+
+	- **MMIO**. there are a lot of mentions of "MMIO", though i don't understand
+	why; virtual memory and page fault sure, but MMIO? 	
+
+	- **Single Basic Block**. the TranslationBlock is assumed to be limited to a
+	single basic block. this may or may not be a difficult restriction to lift.
+	maybe I can just repeat the translation process until the whole code is covered.
+
+- [ ] approach: "just" cherry pick the code, rewriting bit by bit
+
+	- as I encounter a dependency on a symbol (macro/struct/function etc.), I shall make a decision and possibly import it 
+
+	- start from x86_translate_code (go through accel/ then back to the target-specific code)
+
+	- a bunch of branches can be deleted that are designed to go through the I/O system
+
+	- I assume that, at a certain point, I won't have to do any more manual gardening and I will be able to import whole files with little to no changes
+
+
+- [ ] approach: refactor QEMU's C code into a separate module, with a custom build system. then wrap it into a custom C API to integrate it with the Rust code.
+
+	- <???> how to validate the result? 
+	- [ ] identify code's entry points and structure
+
+		- could be useful: build QEMU and run it in gdb
+			- maybe I could use fedora's debuginfo server as a shortcut (to avoid a long build)?
+		
+	- [ ] separate code and build 
+
