@@ -70,6 +70,8 @@ impl TypeSet {
         types
     }
 
+    // TODO Maybe these IDs could be global and independent of the TypeSet instance. Then we
+    // avoid taking a lock.
     pub fn tyid_shared_void(&self) -> TypeID {
         self.tyid_void
     }

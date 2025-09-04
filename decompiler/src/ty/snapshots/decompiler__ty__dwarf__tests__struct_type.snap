@@ -3,13 +3,13 @@ source: decompiler/src/ty/dwarf.rs
 expression: types
 ---
 TypeSet (29 types) = {
-  <TypeID(1v1)> = "void" void
+  <TypeID(1v1)> = void
   <TypeID(2v1)> = ?
   <TypeID(3v1)> = ?
-  <TypeID(4v1)> = "point_init" func (p *point <TypeID(18v1)>) void <TypeID(1v1)>
+  <TypeID(4v1)> = "point_init" func (p *point <TypeID(18v1)>) void
   <TypeID(5v1)> = ?
   <TypeID(6v1)> = "join" func (a *point <TypeID(18v1)>,
-                               b *point <TypeID(18v1)>) void <TypeID(1v1)>
+                               b *point <TypeID(18v1)>) void
   <TypeID(7v1)> = ?
   <TypeID(8v1)> = ?
   <TypeID(9v1)> = "list_len" func (p point <TypeID(18v1)>) int <TypeID(16v1)>

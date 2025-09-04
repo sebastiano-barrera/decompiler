@@ -1,4 +1,8 @@
-use std::{cell::Cell, io::Write, sync::{Arc, RwLock}};
+use std::{
+    cell::Cell,
+    io::Write,
+    sync::{Arc, RwLock},
+};
 
 /// Static Single-Assignment representation of a program (and conversion from direct multiple
 /// assignment).
@@ -28,35 +32,15 @@ pub struct Program {
     //
     inner: mil::Program,
 
-
-    // NOTE -- Why Arc<RwLock<_>>
-    //
-    // Although the `Program` struct will only ever contain TypeIDs (which are
-    // simple data and therefore have a lifetime independent from the parent
-    // TypeSet), we must make sure that those TypeIDs are only ever generated
-    // from, and looked up in, the same TypeSet. It's easiest to do that by
-    // storing a pointer to the TypeSet in the struct.
-    //
-    // We expect the average decompiler library user to keep many `Program`
-    // instances around, and to access the `TypeSet` from other locations still
-    // (e.g. UI systems), with an almost exclusively read-only workload. But
-    // there are important, albeit infrequent, exceptions: for example, creating
-    // "shared unknown sized types" (see
-    // `ty::TypeSet::tyid_shared_unknown_sized`).
-    //
-    // So that's an RwLock.
-    types: Arc<RwLock<ty::TypeSet>>,
-
     /// Type ID of each SSA value.
     ///
     /// For values where high-level/rich type information is not available, the
     /// ID for a ty::Type::Unknown of appropriate size is used.
-    tyid: RegMap<ty::TypeID>,
+    tyid: Vec<ty::TypeID>,
 
     schedule: cfg::Schedule,
     cfg: cfg::Graph,
 }
-
 
 impl Program {
     pub fn cfg(&self) -> &cfg::Graph {
@@ -199,25 +183,30 @@ impl Program {
             Insn::Ancestral(anc_name) => self
                 .inner
                 .ancestor_type(anc_name)
-                .expect("ancestor has no defined type"),
+                .unwrap_or_else(|| panic!("ancestor has no defined type: {}", anc_name.name())),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
         }
     }
 
     pub fn types(&self) -> &Arc<RwLock<ty::TypeSet>> {
-        &self.types
+        self.inner.types()
     }
 
     pub fn value_type(&self, reg: mil::Reg) -> ty::TypeID {
-        self.tyid[reg]
+        self.tyid[reg.0 as usize]
     }
 
     pub fn assert_invariants(&self) {
+        self.assert_consistent_arrays();
         self.assert_dest_reg_is_index();
         self.assert_no_circular_refs();
         self.assert_inputs_visible();
         self.assert_consistent_phis();
         self.assert_carg_chain();
+    }
+
+    fn assert_consistent_arrays(&self) {
+        assert_eq!(self.inner.len() as usize, self.tyid.len());
     }
 
     fn assert_dest_reg_is_index(&self) {
@@ -392,9 +381,18 @@ impl<'a> OpenProgram<'a> {
         }
     }
     pub fn insert_later(&mut self, insn: mil::Insn) -> mil::Reg {
+        // the instruction is appended to the program now, but added to the
+        // schedule later
         let ndx = self.program.inner.push_new(insn);
         let reg = mil::Reg(ndx);
         self.inserts.push(reg);
+
+        let tyid = {
+            let types = self.program.types().read().unwrap();
+            types.tyid_shared_unknown_unsized()
+        };
+        self.program.tyid.push(tyid);
+
         reg
     }
     pub fn execute(self) {
@@ -408,6 +406,7 @@ impl<'a> OpenProgram<'a> {
                 .schedule
                 .insert(reg.reg_index(), self.insert_bid, self.insert_ndx_inb);
         }
+        self.program.assert_invariants();
     }
 }
 impl std::ops::Deref for OpenProgram<'_> {
@@ -468,7 +467,7 @@ fn test_assert_no_circular_refs() {
     use crate::ty;
 
     let prog = {
-        let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
+        let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(RwLock::new(ty::TypeSet::new())));
         pb.set_input_addr(0xf0);
         pb.push(
             Reg(0),
@@ -487,6 +486,8 @@ fn test_assert_no_circular_refs() {
 
 impl std::fmt::Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let types = self.types().read().unwrap();
+
         let rdr_count = count_readers(self);
         let mut type_s = Vec::with_capacity(64);
 
@@ -528,7 +529,7 @@ impl std::fmt::Debug for Program {
             let tyid = self.value_type(reg);
             let mut pp = pp::PrettyPrinter::start(&mut type_s);
             write!(pp, ": ").unwrap();
-            self.types().dump_type_ref(&mut pp, tyid).unwrap();
+            types.dump_type_ref(&mut pp, tyid).unwrap();
 
             let type_s = std::str::from_utf8(&type_s).unwrap();
             writeln!(f, "{:?}{} <- {:?}", reg, type_s, iv.insn.get())?;
@@ -759,8 +760,9 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     }
 
     let tyid = {
-        let tyid_unk_unsized = program.types().tyid_unknown_unsized();
-        RegMap::new(tyid_unk_unsized, program.len())
+        let types = program.types().read().unwrap();
+        let tyid_unk_unsized = types.tyid_shared_unknown_unsized();
+        vec![tyid_unk_unsized; program.len() as usize]
     };
 
     let mut ssa = Program {
@@ -771,19 +773,20 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     };
     ssa.assert_invariants();
 
+    let types = Arc::clone(ssa.types());
+    let mut types = types.write().unwrap();
     for reg in ssa.registers() {
         let reg_type = ssa.reg_type(reg);
-        match reg_type {
-            mil::RegType::Bytes(_) => ssa.types(),
-            mil::RegType::Bool => todo!(),
-            // TODO I think all of these should go the way of the dodo
-            // leave unsized unknown type
-            mil::RegType::MemoryEffect |
-            mil::RegType::Undefined |
-            mil::RegType::Unit |
-            mil::RegType::Control => continue,
-        }
-        ssa.tyid[reg] = ;
+        let tyid = match reg_type {
+            mil::RegType::Effect => continue,
+            mil::RegType::Bytes(size) => {
+                let size = size.try_into().unwrap();
+                types.tyid_shared_unknown_of_size(size)
+            }
+            // TODO add an unknown bool type
+            mil::RegType::Bool => types.tyid_shared_unknown_unsized(),
+        };
+        ssa.tyid[reg.0 as usize] = tyid;
     }
 
     ssa
@@ -1038,7 +1041,7 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::sync::{Arc, RwLock};
 
     use crate::{mil, ty};
     use mil::{ArithOp, Control, Insn, Reg};
@@ -1046,7 +1049,8 @@ mod tests {
     #[test]
     fn test_phi_read() {
         let prog = {
-            let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
+            let mut pb =
+                mil::ProgramBuilder::new(Reg(0), Arc::new(RwLock::new(ty::TypeSet::new())));
 
             pb.set_input_addr(0xf0);
             pb.push(
@@ -1104,7 +1108,7 @@ mod tests {
 
     fn make_prog_no_cycles() -> super::Program {
         let prog = {
-            let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
+            let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(RwLock::new(ty::TypeSet::new())));
             b.push(Reg(0), Insn::Const { value: 5, size: 8 });
             b.push(Reg(1), Insn::Const { value: 5, size: 8 });
             b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));

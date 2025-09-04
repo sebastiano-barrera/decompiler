@@ -34,6 +34,22 @@ pub struct Program {
 
     anc_types: HashMap<AncestralName, RegType>,
 
+    // NOTE -- Why Arc<RwLock<_>>
+    //
+    // Although the `Program` struct will only ever contain TypeIDs (which are
+    // simple data and therefore have a lifetime independent from the parent
+    // TypeSet), we must make sure that those TypeIDs are only ever generated
+    // from, and looked up in, the same TypeSet. It's easiest to do that by
+    // storing a pointer to the TypeSet in the struct.
+    //
+    // We expect the average decompiler library user to keep many `Program`
+    // instances around, and to access the `TypeSet` from other locations still
+    // (e.g. UI systems), with an almost exclusively read-only workload. But
+    // there are important, albeit infrequent, exceptions: for example, creating
+    // "shared unknown sized types" (see
+    // `ty::TypeSet::tyid_shared_unknown_sized`).
+    //
+    // So that's an RwLock.
     types: Arc<RwLock<ty::TypeSet>>,
 }
 
@@ -395,6 +411,10 @@ impl Program {
 
     pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
         self.anc_types.get(&anc_name).copied()
+    }
+
+    pub fn types(&self) -> &Arc<RwLock<ty::TypeSet>> {
+        &self.types
     }
 }
 

@@ -246,39 +246,38 @@ fn find_dominating_conflicting_store(
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::sync::{Arc, RwLock};
 
     use crate::{
         mil::{self, ArithOp, Control, Insn, Reg},
         ssa, ty, x86_to_mil, xform,
     };
 
-    define_ancestral_name!(ANC_MEM, "memory");
-
     #[test]
     fn single_bb_direct() {
         for size in [1, 2, 4, 5, 8] {
-            let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-            bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
-            bld.push(Reg(1), Insn::Const { size, value: -123 });
-            bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
-            bld.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
+            let mut bld =
+                mil::ProgramBuilder::new(Reg(0), Arc::new(RwLock::new(ty::TypeSet::new())));
+            bld.set_ancestral_type(x86_to_mil::ANC_RSP, mil::RegType::Bytes(8));
+            bld.push(Reg(0), Insn::Const { size, value: -123 });
+            bld.push(Reg(1), Insn::Ancestral(x86_to_mil::ANC_RSP));
+            bld.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
             bld.push(
-                Reg(4),
+                Reg(3),
                 Insn::StoreMem {
-                    addr: Reg(3),
-                    value: Reg(1),
+                    addr: Reg(2),
+                    value: Reg(0),
                 },
             );
             bld.push(
-                Reg(5),
+                Reg(4),
                 Insn::LoadMem {
-                    addr: Reg(3),
+                    addr: Reg(2),
                     size: size.try_into().unwrap(),
                 },
             );
-            bld.push(Reg(6), Insn::SetReturnValue(Reg(5)));
-            bld.push(Reg(6), Insn::Control(Control::Ret));
+            bld.push(Reg(5), Insn::SetReturnValue(Reg(4)));
+            bld.push(Reg(5), Insn::Control(Control::Ret));
             let program = bld.build();
             let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
@@ -286,41 +285,41 @@ mod tests {
             xform::canonical(&mut program);
             println!("ssa post-xform:\n{program:?}");
 
-            let insn = program.get(Reg(6)).unwrap().insn.get();
-            assert_eq!(insn, Insn::SetReturnValue(Reg(1)));
+            let insn = program.get(Reg(5)).unwrap().insn.get();
+            assert_eq!(insn, Insn::SetReturnValue(Reg(0)));
         }
     }
 
     #[test]
     fn single_bb_part() {
-        let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-        bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
+        let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(RwLock::new(ty::TypeSet::new())));
+        bld.set_ancestral_type(x86_to_mil::ANC_RSP, mil::RegType::Bytes(8));
         bld.push(
-            Reg(1),
+            Reg(0),
             Insn::Const {
                 size: 8,
                 value: -123,
             },
         );
-        bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
-        bld.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
+        bld.push(Reg(1), Insn::Ancestral(x86_to_mil::ANC_RSP));
+        bld.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
         bld.push(
-            Reg(4),
+            Reg(3),
             Insn::StoreMem {
-                addr: Reg(3),
-                value: Reg(1),
+                addr: Reg(2),
+                value: Reg(0),
             },
         );
-        bld.push(Reg(5), Insn::ArithK(mil::ArithOp::Add, Reg(3), 2));
+        bld.push(Reg(4), Insn::ArithK(mil::ArithOp::Add, Reg(2), 2));
         bld.push(
-            Reg(6),
+            Reg(5),
             Insn::LoadMem {
-                addr: Reg(5),
+                addr: Reg(4),
                 size: 3,
             },
         );
-        bld.push(Reg(7), Insn::SetReturnValue(Reg(6)));
-        bld.push(Reg(7), Insn::Control(Control::Ret));
+        bld.push(Reg(6), Insn::SetReturnValue(Reg(5)));
+        bld.push(Reg(6), Insn::Control(Control::Ret));
         let program = bld.build();
         let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
@@ -328,7 +327,7 @@ mod tests {
         xform::canonical(&mut program);
         println!("ssa post-xform:\n{program:?}");
 
-        let ret = program.get(Reg(7)).unwrap().insn.get();
+        let ret = program.get(Reg(6)).unwrap().insn.get();
         let Insn::SetReturnValue(ret_val) = ret else {
             panic!()
         };
@@ -336,7 +335,7 @@ mod tests {
         assert!(matches!(
             program[ret_val].get(),
             Insn::Part {
-                src: Reg(1),
+                src: Reg(0),
                 offset: 2,
                 size: 3
             }
@@ -345,34 +344,34 @@ mod tests {
 
     #[test]
     fn single_bb_concat() {
-        let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-        bld.push(Reg(0), Insn::Ancestral(ANC_MEM));
+        let mut bld = mil::ProgramBuilder::new(Reg(0), Arc::new(RwLock::new(ty::TypeSet::new())));
+        bld.set_ancestral_type(x86_to_mil::ANC_RSP, mil::RegType::Bytes(8));
         bld.push(
-            Reg(1),
+            Reg(0),
             Insn::Const {
                 size: 8,
                 value: -123,
             },
         );
-        bld.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
-        bld.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
+        bld.push(Reg(1), Insn::Ancestral(x86_to_mil::ANC_RSP));
+        bld.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
         bld.push(
-            Reg(4),
+            Reg(3),
             Insn::StoreMem {
-                addr: Reg(3),
-                value: Reg(1),
+                addr: Reg(2),
+                value: Reg(0),
             },
         );
-        bld.push(Reg(5), Insn::ArithK(mil::ArithOp::Add, Reg(3), 2));
+        bld.push(Reg(4), Insn::ArithK(mil::ArithOp::Add, Reg(2), 2));
         bld.push(
-            Reg(6),
+            Reg(5),
             Insn::LoadMem {
-                addr: Reg(5),
+                addr: Reg(4),
                 size: 23,
             },
         );
-        bld.push(Reg(7), Insn::SetReturnValue(Reg(6)));
-        bld.push(Reg(7), Insn::Control(Control::Ret));
+        bld.push(Reg(6), Insn::SetReturnValue(Reg(5)));
+        bld.push(Reg(6), Insn::Control(Control::Ret));
         let program = bld.build();
         let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
 
@@ -380,7 +379,7 @@ mod tests {
         xform::canonical(&mut program);
         println!("ssa post-xform:\n{program:?}");
 
-        let Insn::SetReturnValue(ret_val) = program[Reg(7)].get() else {
+        let Insn::SetReturnValue(ret_val) = program[Reg(6)].get() else {
             panic!()
         };
         let Insn::Concat { hi, lo } = program[ret_val].get() else {
@@ -388,7 +387,7 @@ mod tests {
         };
         assert_eq!(
             Insn::Part {
-                src: Reg(1),
+                src: Reg(0),
                 offset: 2,
                 size: 6
             },

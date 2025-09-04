@@ -2091,11 +2091,13 @@ mod ast_view {
                 }
 
                 Insn::Call { callee, first_arg } => {
-                    let callee_type_name = self
-                        .ssa
-                        .get(callee)
-                        .and_then(|iv| self.ssa.types().name(iv.tyid.get()))
-                        .map(|s| s.to_string());
+                    let callee_type_name = {
+                        let types = self.ssa.types();
+                        let types = types.read().unwrap();
+                        types
+                            .name(self.ssa.value_type(callee))
+                            .map(|s| s.to_string())
+                    };
                     let mut seq = Seq::new().with_anchor(Anchor::Reg(reg));
 
                     if let Some(name) = callee_type_name {

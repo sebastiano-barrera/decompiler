@@ -333,14 +333,16 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, operand, self_prec)?;
             }
             Insn::Call { callee, first_arg } => {
+                let types = self.ssa.types().read().unwrap();
+
                 let tyid = self.ssa.value_type(callee);
-                let ty = self.ssa.types().get_through_alias(tyid).unwrap();
+                let ty = types.get_through_alias(tyid).unwrap();
                 if let ty::Ty::Unknown(_) = ty {
                     self.pp_ref(pp, callee, self_prec)?;
                 } else {
                     // Not quite correct (why would we print the type name?) but
                     // happens to be always correct for well formed programs
-                    let name = self.ssa.types().name(tyid).unwrap_or("<?>");
+                    let name = types.name(tyid).unwrap_or("<?>");
                     write!(pp, "{}", name)?;
                 };
 
