@@ -435,10 +435,16 @@ pub fn canonical(prog: &mut ssa::Program) {
             for (ndx_in_block, reg) in block_seq.into_iter().enumerate() {
                 let ndx_in_block = ndx_in_block.try_into().unwrap();
 
+                let mut prog = ssa::OpenProgram::wrap(prog, bid, ndx_in_block);
+
+                if let Some(mem_ref_reg) = mem_ref_reg {
+                    if mem::fold_load_store(&mut prog, mem_ref_reg, reg, bid) {
+                        any_change = true;
+                    }
+                }
+
                 let orig_insn = prog[reg].get();
                 let orig_has_fx = orig_insn.has_side_effects();
-
-                let mut prog = ssa::OpenProgram::wrap(prog, bid, ndx_in_block);
 
                 let mut insn = orig_insn;
                 insn = fold_get(insn, &prog);
@@ -458,6 +464,7 @@ pub fn canonical(prog: &mut ssa::Program) {
                     // Insn::Get is currently wrong (would be quite complicated to handle)
                     insn = deduper.try_dedup(reg, insn);
                 }
+                // insn = apply_type_selection(&mut prog);
                 prog[reg].set(insn);
 
                 let final_has_fx = insn.has_side_effects();
@@ -469,11 +476,8 @@ pub fn canonical(prog: &mut ssa::Program) {
                     );
                 }
 
-                any_change = any_change || (insn != orig_insn);
-
-                if let Some(mem_ref_reg) = mem_ref_reg {
-                    let did_something = mem::fold_load_store(&mut prog, mem_ref_reg, reg, bid);
-                    any_change = any_change || did_something;
+                if insn != orig_insn {
+                    any_change = true;
                 }
 
                 prog.execute();

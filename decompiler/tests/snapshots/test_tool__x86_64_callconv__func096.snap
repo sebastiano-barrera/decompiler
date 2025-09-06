@@ -99,7 +99,7 @@ ssa program  70 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r11, r54, r55, r56, r57, r58, r59, r60, r71, r68]
+  BlockID(0) -> Always(Return) [r11, r54, r55, r56, r57, r58, r59, r60, r68]
   domtree:
     BlockID(0)
 
@@ -107,22 +107,22 @@ ssa program  70 instrs
 ssa program  75 instrs
 .B0:    ;;  → Always(Return).
   (  2)  r11: unknown <UnknownUnsized> <- Ancestral(AncestralName("RSP"))
-  (  3)  r54: unknown <UnknownUnsized> <- Ancestral(AncestralName("arg4"))
-         r55: unknown <UnknownUnsized> <- Part { src: r54, offset: 0, size: 8 }
+  (  2)  r54: unknown <UnknownUnsized> <- Ancestral(AncestralName("arg4"))
+  (  2)  r55: unknown <UnknownUnsized> <- Part { src: r54, offset: 0, size: 8 }
          r56: unknown <UnknownUnsized> <- ArithK(Add, r11, 8)
          r57: unknown <UnknownUnsized> <- StoreMem { addr: r56, value: r55 }
          r58: unknown <UnknownUnsized> <- Part { src: r54, offset: 8, size: 8 }
          r59: unknown <UnknownUnsized> <- ArithK(Add, r11, 16)
          r60: unknown <UnknownUnsized> <- StoreMem { addr: r59, value: r58 }
-         r71: unknown <UnknownUnsized> <- Part { src: r54, offset: 0, size: 8 }
-         r68: unknown <UnknownUnsized> <- SetReturnValue(r71)
+         r68: unknown <UnknownUnsized> <- SetReturnValue(r55)
 
 
  --- ast
 
 T0: {
-  [pre:RSP + 8]:* := pre:arg4[8 .. 0];
+  let r55: Bytes(8) = pre:arg4[8 .. 0];
+  [pre:RSP + 8]:* := r55;
   [pre:RSP + 16]:* := pre:arg4[16 .. 8];
   ;
-  return pre:arg4[8 .. 0]
+  return r55
 }
