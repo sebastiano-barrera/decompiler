@@ -38,6 +38,7 @@ include_dir = "0.7.4"
 
 # list ourselves here, to add the 'trace' feature when we run `cargo test` by default
 decompiler = { path = ".", features = ["trace"] }
+test-log = { version = "0.2.18", features = ["trace"] }
 
 [[test]]
 name = "test_tool"

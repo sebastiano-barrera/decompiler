@@ -14,7 +14,7 @@ static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/");
 
 macro_rules! case {
     ($case:ident, $exe:expr, $func_name:ident) => {
-        #[test]
+        #[test_log::test]
         #[allow(non_snake_case)]
         fn $case() {
             let function_name = stringify!($func_name);
