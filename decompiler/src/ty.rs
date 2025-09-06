@@ -1,8 +1,8 @@
 use std::{collections::HashMap, ops::Range, sync::Arc};
 
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 use thiserror::Error;
-use tracing::{event, span, Level};
+use tracing::{event, Level};
 
 pub mod dwarf;
 
@@ -149,6 +149,14 @@ impl TypeSet {
             Ty::Subroutine(_) => Some(8),
             Ty::Void => Some(0),
             Ty::Alias(ref_tyid) => self.bytes_size(*ref_tyid),
+            Ty::Array(Array {
+                element_tyid,
+                index_subrange,
+            }) => {
+                let element_size = self.bytes_size(*element_tyid)?;
+                let element_count: u32 = index_subrange.count()?.try_into().ok()?;
+                Some(element_size * element_count)
+            }
         }
     }
 
@@ -156,22 +164,29 @@ impl TypeSet {
     pub fn select(
         &self,
         tyid: TypeID,
-        byte_range: Range<i64>,
+        byte_range: Range<u32>,
+    ) -> std::result::Result<Selection, SelectError> {
+        self.select_from(tyid, byte_range, SmallVec::new())
+    }
+
+    #[allow(dead_code)]
+    fn select_from(
+        &self,
+        tyid: TypeID,
+        byte_range: Range<u32>,
+        mut path: SelectionPath,
     ) -> std::result::Result<Selection, SelectError> {
         assert!(!byte_range.is_empty());
         let ty = &self.get(tyid).unwrap();
 
-        let size = self.bytes_size(tyid).unwrap_or(0) as i64;
+        let size = self.bytes_size(tyid).unwrap_or(0);
 
         if byte_range.end > size {
             return Err(SelectError::InvalidRange);
         }
 
         if byte_range == (0..size) {
-            return Ok(Selection {
-                tyid,
-                path: SmallVec::new(),
-            });
+            return Ok(Selection { tyid, path });
         }
 
         match ty {
@@ -191,18 +206,29 @@ impl TypeSet {
                         // struct member has unknown size; just ignore it in the search
                         return false;
                     };
-                    let memb_size = memb_size as i64;
-                    let ofs = m.offset as i64;
-                    (ofs..ofs + memb_size) == byte_range
+                    (m.offset..m.offset + memb_size) == byte_range
                 });
 
                 if let Some(member) = member {
-                    Ok(Selection {
-                        tyid: member.tyid,
-                        path: smallvec![SelectStep::Member(Arc::clone(&member.name))],
-                    })
+                    path.push(SelectStep::Member(Arc::clone(&member.name)));
+                    return self.select_from(member.tyid, byte_range, path);
                 } else {
-                    Err(SelectError::RangeCrossesBoundaries)
+                    return Err(SelectError::RangeCrossesBoundaries);
+                }
+            }
+            Ty::Array(array_ty) => {
+                let element_size = self
+                    .bytes_size(array_ty.element_tyid)
+                    .ok_or(SelectError::InvalidType)?;
+
+                if byte_range.start % element_size == 0
+                    && byte_range.end - byte_range.start == element_size
+                {
+                    let ndx = byte_range.start / element_size;
+                    path.push(SelectStep::Index(ndx));
+                    return self.select_from(array_ty.element_tyid, byte_range, path);
+                } else {
+                    return Err(SelectError::RangeCrossesBoundaries);
                 }
             }
         }
@@ -236,6 +262,14 @@ impl TypeSet {
                     align = align.max(memb_align);
                 }
                 Some(align)
+            }
+            Ty::Array(array_ty) => {
+                // TODO implement the full version of the rule for x86_64:
+                // > An array uses the same alignment as its elements, except
+                // > that a local or global array variable of length at least
+                // > 16 bytes or a C99 variable-length array variable always has
+                // > alignment of at least 16 bytes.6
+                self.alignment(array_ty.element_tyid)
             }
         }
     }
@@ -307,6 +341,24 @@ impl TypeSet {
                 }
                 out.close_box();
                 write!(out, "\n}}")?;
+            }
+            Ty::Array(array_ty) => {
+                write!(out, "[")?;
+                let Subrange { lo, hi } = array_ty.index_subrange;
+                match (lo, hi) {
+                    (0, None) => {}
+                    (0, Some(hi)) => {
+                        write!(out, "{hi}")?;
+                    }
+                    (lo, None) => {
+                        write!(out, "{lo}..")?;
+                    }
+                    (lo, Some(hi)) => {
+                        write!(out, "{lo}..{hi}")?;
+                    }
+                }
+                write!(out, "]")?;
+                self.dump_type_ref(out, array_ty.element_tyid)?;
             }
             Ty::Ptr(type_id) => {
                 write!(out, "*")?;
@@ -385,6 +437,7 @@ pub enum Ty {
     #[allow(dead_code)]
     Enum(Enum),
     Struct(Struct),
+    Array(Array),
     Ptr(TypeID),
     Float(Float),
     Subroutine(Subroutine),
@@ -453,6 +506,23 @@ pub struct StructMember {
     pub tyid: TypeID,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Array {
+    pub element_tyid: TypeID,
+    pub index_subrange: Subrange,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Subrange {
+    pub lo: i64,
+    pub hi: Option<i64>,
+}
+impl Subrange {
+    fn count(&self) -> Option<i64> {
+        let hi = self.hi?;
+        Some(hi - self.lo + 1)
+    }
+}
+
 /// Placeholder for types that are not fully understood by the system.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unknown {
@@ -474,12 +544,13 @@ pub struct Subroutine {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Selection {
     pub tyid: TypeID,
-    pub path: SmallVec<[SelectStep; 4]>,
+    pub path: SelectionPath,
 }
+pub type SelectionPath = SmallVec<[SelectStep; 4]>;
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum SelectStep {
-    Index(i64),
+    Index(u32),
     Member(Arc<String>),
 }
 impl SelectStep {
@@ -499,6 +570,9 @@ pub enum SelectError {
 
     #[error("the given range is invalid for the type")]
     InvalidRange,
+
+    #[error("the type to select into is internally invalid")]
+    InvalidType,
 }
 
 #[allow(dead_code)]

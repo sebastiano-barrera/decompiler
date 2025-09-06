@@ -173,9 +173,11 @@ impl<'a> TypeParser<'a> {
             // - [ ] DW_TAG_atomic_type
             // - [ ] DW_TAG_union_type
             // - [ ] DW_TAG_enumeration_type
+            //   - [ ] as index for DW_TAG_array_type
+            //   - [ ] standalone
             // - [ ] DW_TAG_const_type
-            // - [ ] DW_TAG_array_type
-            // - [ ] DW_TAG_subrange_type
+            // - [x] DW_TAG_array_type
+            // - [ ] DW_TAG_subrange_type (outside of DW_TAG_array_type's index type)
             // - [x] DW_TAG_subroutine_type
             // - [x] DW_TAG_structure_type
             // - [x] DW_TAG_pointer_type
@@ -184,6 +186,7 @@ impl<'a> TypeParser<'a> {
             gimli::constants::DW_TAG_structure_type => self
                 .parse_struct_type(node)
                 .map(|(name, ty)| (Some(name), ty)),
+            gimli::constants::DW_TAG_array_type => self.parse_array_type(node),
             gimli::constants::DW_TAG_pointer_type => {
                 self.parse_pointer_type(node).map(|ty| (None, ty))
             }
@@ -368,17 +371,69 @@ impl<'a> TypeParser<'a> {
         Ok(ty::StructMember { offset, name, tyid })
     }
 
+    fn parse_array_type(&mut self, node: GimliNode) -> Result<(Option<String>, ty::Ty)> {
+        let entry = node.entry();
+        assert_eq!(entry.tag(), gimli::constants::DW_TAG_array_type);
+
+        // anything other than the simplest `element_t arr[N]` is not supported
+        check_unsupported_attr(entry, gimli::DW_AT_byte_stride)?;
+        check_unsupported_attr(entry, gimli::DW_AT_bit_stride)?;
+        check_unsupported_attr(entry, gimli::DW_AT_byte_size)?;
+        check_unsupported_attr(entry, gimli::DW_AT_bit_size)?;
+        check_unsupported_attr(entry, gimli::DW_AT_ordering)?;
+
+        let name = self.get_name(entry)?.map(|s| s.to_owned());
+        let element_tyid = self.resolve_type_of(entry)?;
+
+        let index_subrange = 'search: {
+            let mut children = node.children();
+            while let Some(child_node) = children.next()? {
+                let entry = child_node.entry();
+                if entry.tag() == gimli::DW_TAG_subrange_type {
+                    check_unsupported_attr(entry, gimli::DW_AT_threads_scaled)?;
+                    let (lo, hi) = if let Some(count) = entry
+                        .attr(gimli::DW_AT_count)?
+                        .and_then(|a| a.udata_value())
+                    {
+                        let hi = count.try_into().unwrap();
+                        (0, Some(hi))
+                    } else {
+                        let lo = entry
+                            .attr(gimli::DW_AT_lower_bound)?
+                            .and_then(|val| val.sdata_value())
+                            .unwrap_or(0);
+                        let hi = entry
+                            .attr(gimli::DW_AT_upper_bound)?
+                            .and_then(|val| val.sdata_value());
+                        (lo, hi)
+                    };
+                    break 'search Some(ty::Subrange { lo, hi });
+                }
+                // TODO DW_TAG_enumeration_type as the index subrange type
+            }
+
+            None
+        };
+
+        let Some(index_subrange) = index_subrange else {
+            let msg = "array index type could not be parsed".to_owned();
+            return Err(Error::UnsupportedFeature(msg));
+        };
+
+        let ty = ty::Ty::Array(ty::Array {
+            element_tyid,
+            index_subrange,
+        });
+
+        Ok((name, ty))
+    }
+
     fn parse_base_type(&mut self, node: GimliNode) -> Result<(Option<String>, ty::Ty)> {
         let entry = node.entry();
         assert_eq!(entry.tag(), gimli::constants::DW_TAG_base_type);
 
-        if entry.attr(gimli::DW_AT_bit_size)?.is_some()
-            || entry.attr(gimli::DW_AT_data_bit_offset)?.is_some()
-        {
-            return Err(Error::UnsupportedFeature(
-                "bit field (base type with bit_size and/or data_bit_offset)".to_owned(),
-            ));
-        }
+        check_unsupported_attr(entry, gimli::DW_AT_bit_size)?;
+        check_unsupported_attr(entry, gimli::DW_AT_data_bit_offset)?;
 
         let attr = get_required_attr(entry, gimli::DW_AT_encoding)?;
         let enc = match attr.value() {
@@ -525,6 +580,17 @@ impl<'a> TypeParser<'a> {
             .slice();
         // TODO lift the utf8 encoding restriction
         Ok(Some(std::str::from_utf8(name).unwrap()))
+    }
+}
+
+fn check_unsupported_attr(entry: &DIE<'_, '_, '_>, attr: gimli::DwAt) -> Result<()> {
+    match entry.attr(attr)? {
+        Some(_) => {
+            let name = attr.static_string().unwrap_or("(unknown name)");
+            let msg = format!("attribute is unsupported: {}", name);
+            Err(Error::UnsupportedFeature(msg))
+        }
+        None => Ok(()),
     }
 }
 

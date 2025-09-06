@@ -733,6 +733,35 @@ fn classify_eightbytes(
                 }
             }
         }
+        ty::Ty::Array(array_ty) => {
+            if let ty::Subrange {
+                lo: 0,
+                hi: Some(count),
+            } = array_ty.index_subrange
+            {
+                if count < 0 {
+                    // TODO nicer way to exclude this case altogether?
+                    return Err(anyhow!("invalid array index subrange (count < 0)"));
+                }
+                let count: u32 = count.try_into().unwrap();
+
+                let element_size = types
+                    .bytes_size(array_ty.element_tyid)
+                    .ok_or_else(|| anyhow!("array element type has no size"))?;
+                for i in 0..count {
+                    classify_eightbytes(eb_set, types, array_ty.element_tyid, i * element_size)?;
+                    if eb_set == &EightbytesSet::Memory {
+                        return Ok(());
+                    }
+                }
+            } else {
+                // C/C++ don't do this; not sure how to handle parameter passing
+                // in this case
+                return Err(anyhow!(
+                    "array parameter has indices not in 0..N range; discarding"
+                ));
+            }
+        }
 
         ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
             panic!("invalid type for a function param: {:?}", ty)
