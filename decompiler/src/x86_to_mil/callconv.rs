@@ -916,7 +916,6 @@ mod tests {
     use std::sync::Arc;
 
     struct Types {
-        types: ty::TypeSet,
         tyid_i64: ty::TypeID,
         tyid_i32: ty::TypeID,
         tyid_i16: ty::TypeID,
@@ -925,33 +924,55 @@ mod tests {
         tyid_f64: ty::TypeID,
     }
 
-    // TOOD share the result (e.g. as a OnceCell)
-    fn make_scalars() -> Types {
-        use ty::{Int, Signedness, Ty, TypeSet};
+    struct TypeIdGen {
+        counter: ty::RegularTypeID,
+    }
 
-        let mut types = TypeSet::new();
-
-        fn mk_int(types: &mut TypeSet, name: &str, size: u8) -> TypeID {
-            let tyid = types.add(Ty::Int(Int {
-                size,
-                signed: Signedness::Signed,
-            }));
-            _ = types.set_name(tyid, name.to_owned());
-            tyid
+    impl TypeIdGen {
+        fn new() -> Self {
+            TypeIdGen { counter: 0 }
         }
 
-        let tyid_i8 = mk_int(&mut types, "i8", 1);
-        let tyid_i16 = mk_int(&mut types, "i16", 2);
-        let tyid_i32 = mk_int(&mut types, "i32", 4);
-        let tyid_i64 = mk_int(&mut types, "i64", 8);
+        fn next_id(&mut self) -> TypeID {
+            let tyid = TypeID::Regular(self.counter);
+            self.counter += 1;
+            tyid
+        }
+    }
 
-        let tyid_f32 = types.add(Ty::Float(ty::Float { size: 4 }));
-        _ = types.set_name(tyid_f32, "float32".to_owned());
-        let tyid_f64 = types.add(Ty::Float(ty::Float { size: 8 }));
-        _ = types.set_name(tyid_f32, "float64".to_owned());
+    // TOOD share the result (e.g. as a OnceCell)
+    fn make_scalars(types: &mut ty::TypeSet, tyid_gen: &mut TypeIdGen) -> Types {
+        use ty::{Int, Signedness, Ty, TypeSet};
+
+        let mut mk_int = |types: &mut TypeSet, name: &str, size: u8| {
+            let tyid = tyid_gen.next_id();
+            let ty = Ty::Int(Int {
+                size,
+                signed: Signedness::Signed,
+            });
+            types.set(tyid, ty).unwrap();
+            types.set_name(tyid, name.to_owned());
+            tyid
+        };
+
+        let tyid_i8 = mk_int(types, "i8", 1);
+        let tyid_i16 = mk_int(types, "i16", 2);
+        let tyid_i32 = mk_int(types, "i32", 4);
+        let tyid_i64 = mk_int(types, "i64", 8);
+
+        let tyid_f32 = tyid_gen.next_id();
+        types
+            .set(tyid_f32, Ty::Float(ty::Float { size: 4 }))
+            .unwrap();
+        types.set_name(tyid_f32, "float32".to_owned());
+
+        let tyid_f64 = tyid_gen.next_id();
+        types
+            .set(tyid_f64, Ty::Float(ty::Float { size: 8 }))
+            .unwrap();
+        types.set_name(tyid_f64, "float64".to_owned());
 
         Types {
-            types,
             tyid_i64,
             tyid_i32,
             tyid_i16,
@@ -963,13 +984,16 @@ mod tests {
 
     #[test]
     fn classify_struct_one_int() {
-        let mut scas = make_scalars();
+        let mut types = ty::TypeSet::new();
+        let mut tyid_gen = TypeIdGen::new();
+        let scas = make_scalars(&mut types, &mut tyid_gen);
 
         for sca_tyid in [scas.tyid_i8, scas.tyid_i16, scas.tyid_i32, scas.tyid_i64] {
-            let struct_tyid = make_sample_struct(&mut scas.types, &[(0, sca_tyid)]);
+            let struct_tyid = tyid_gen.next_id();
+            make_sample_struct(&mut types, struct_tyid, &[(0, sca_tyid)]);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -987,7 +1011,9 @@ mod tests {
 
     #[test]
     fn classify_struct_ints_fit_1_eb() {
-        let mut scas = make_scalars();
+        let mut types = ty::TypeSet::new();
+        let mut tyid_gen = TypeIdGen::new();
+        let scas = make_scalars(&mut types, &mut tyid_gen);
 
         let cases: &[&[_]] = &[
             &[
@@ -1014,10 +1040,11 @@ mod tests {
         ];
 
         for &members in cases {
-            let struct_tyid = make_sample_struct(&mut scas.types, members);
+            let struct_tyid = tyid_gen.next_id();
+            make_sample_struct(&mut types, struct_tyid, members);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -1035,13 +1062,16 @@ mod tests {
 
     #[test]
     fn classify_struct_one_float() {
-        let mut scas = make_scalars();
+        let mut types = ty::TypeSet::new();
+        let mut tyid_gen = TypeIdGen::new();
+        let scas = make_scalars(&mut types, &mut tyid_gen);
 
         for sca_tyid in [scas.tyid_f32, scas.tyid_f64] {
-            let struct_tyid = make_sample_struct(&mut scas.types, &[(0, sca_tyid)]);
+            let struct_tyid = tyid_gen.next_id();
+            make_sample_struct(&mut types, struct_tyid, &[(0, sca_tyid)]);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 &buf,
@@ -1059,7 +1089,9 @@ mod tests {
 
     #[test]
     fn classify_struct_two_ints() {
-        let mut scas = make_scalars();
+        let mut types = ty::TypeSet::new();
+        let mut tyid_gen = TypeIdGen::new();
+        let scas = make_scalars(&mut types, &mut tyid_gen);
 
         let cases: &[&[_]] = &[
             &[(0, scas.tyid_i8), (8, scas.tyid_i8)],
@@ -1076,10 +1108,11 @@ mod tests {
         ];
 
         for &members in cases {
-            let struct_tyid = make_sample_struct(&mut scas.types, members);
+            let struct_tyid = tyid_gen.next_id();
+            make_sample_struct(&mut types, struct_tyid, members);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -1097,7 +1130,9 @@ mod tests {
 
     #[test]
     fn classify_struct_larger() {
-        let mut scas = make_scalars();
+        let mut types = ty::TypeSet::new();
+        let mut tyid_gen = TypeIdGen::new();
+        let scas = make_scalars(&mut types, &mut tyid_gen);
 
         let cases: &[&[_]] = &[
             &[(0, scas.tyid_i8), (8, scas.tyid_i8), (64, scas.tyid_i8)],
@@ -1112,14 +1147,15 @@ mod tests {
 
         for &members in cases {
             println!("{:?}", members);
-            let struct_tyid = make_sample_struct(&mut scas.types, members);
+            let struct_tyid = tyid_gen.next_id();
+            make_sample_struct(&mut types, struct_tyid, members);
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &scas.types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
             assert_eq!(buf, EightbytesSet::Memory);
         }
     }
 
-    fn make_sample_struct(types: &mut ty::TypeSet, members: &[(u32, TypeID)]) -> TypeID {
+    fn make_sample_struct(types: &mut ty::TypeSet, tyid: TypeID, members: &[(u32, TypeID)]) {
         assert!(members.iter().is_sorted_by_key(|(ofs, _)| ofs));
 
         let struct_sz = {
@@ -1127,7 +1163,7 @@ mod tests {
             let sz = types.bytes_size(tyid).unwrap();
             ofs + sz
         };
-        let tyid = types.add(ty::Ty::Struct(ty::Struct {
+        let ty_struct = ty::Ty::Struct(ty::Struct {
             size: struct_sz,
             members: members
                 .iter()
@@ -1137,8 +1173,8 @@ mod tests {
                     tyid,
                 })
                 .collect(),
-        }));
-        _ = types.set_name(tyid, "SampleStruct".to_owned());
-        tyid
+        });
+        types.set(tyid, ty_struct).unwrap();
+        types.set_name(tyid, "SampleStruct".to_owned());
     }
 }

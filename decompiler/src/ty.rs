@@ -1,10 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Range,
-    sync::Arc,
-};
+use std::{collections::HashMap, ops::Range, sync::Arc};
 
-use slotmap::SlotMap;
 use smallvec::{smallvec, SmallVec};
 use thiserror::Error;
 use tracing::{event, Level};
@@ -13,7 +8,15 @@ pub mod dwarf;
 
 use crate::pp::{self, PP};
 
-slotmap::new_key_type! { pub struct TypeID; }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub enum TypeID {
+    Regular(RegularTypeID),
+    Void,
+    UnknownUnsized,
+    Unknown { size: u32 },
+}
+
+pub type RegularTypeID = usize;
 
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -32,59 +35,45 @@ pub enum Error {
 /// This is the only public API in `ty`. Data about types can be retrieved and
 /// manipulated via this API.
 pub struct TypeSet {
-    types: SlotMap<TypeID, Ty>,
-    name_of_tyid: slotmap::SecondaryMap<TypeID, String>,
+    types: HashMap<TypeID, Ty>,
+    name_of_tyid: HashMap<TypeID, String>,
     known_objects: HashMap<Addr, TypeID>,
     call_sites: CallSites,
-
-    tyid_void: TypeID,
-    tyid_unk_unsized: TypeID,
-    tyid_unk_of_size: HashMap<u32, TypeID>,
-    read_only: HashSet<TypeID>,
 }
 
 pub type Addr = u64;
 
 impl TypeSet {
     pub fn new() -> Self {
-        let mut types = SlotMap::with_key();
-        let tyid_void = types.insert(Ty::Void);
-        let tyid_unk_unsized = types.insert(Ty::Unknown(Unknown { size: None }));
+        let mut types = HashMap::new();
+        types.insert(TypeID::Void, Ty::Void);
+        types.insert(TypeID::UnknownUnsized, Ty::Unknown(Unknown { size: None }));
 
-        let mut read_only = HashSet::new();
-        read_only.insert(tyid_void);
-        read_only.insert(tyid_unk_unsized);
+        let mut name_of_tyid = HashMap::new();
+        name_of_tyid.insert(TypeID::Void, "void".to_owned());
+        name_of_tyid.insert(TypeID::UnknownUnsized, "unknown".to_owned());
 
-        let mut types = TypeSet {
+        TypeSet {
             types,
-            name_of_tyid: slotmap::SecondaryMap::new(),
+            name_of_tyid,
             known_objects: HashMap::new(),
             call_sites: CallSites::new(),
-            tyid_void,
-            tyid_unk_unsized,
-            tyid_unk_of_size: HashMap::new(),
-            read_only,
-        };
-
-        _ = types.set_name(tyid_void, "void".to_owned());
-        types
+        }
     }
 
     pub fn tyid_shared_void(&self) -> TypeID {
-        self.tyid_void
+        TypeID::Void
     }
     pub fn tyid_shared_unknown_unsized(&self) -> TypeID {
-        self.tyid_unk_unsized
+        TypeID::UnknownUnsized
     }
     pub fn tyid_shared_unknown_of_size(&mut self, size: u32) -> TypeID {
-        if let Some(tyid) = self.tyid_unk_of_size.get(&size) {
-            debug_assert!(self.read_only.contains(&tyid));
-            return *tyid;
+        let tyid = TypeID::Unknown { size };
+        if !self.types.contains_key(&tyid) {
+            self.types
+                .insert(tyid, Ty::Unknown(Unknown { size: Some(size) }));
+            self.set_name(tyid, format!("unknown{}", size));
         }
-
-        let tyid = self.types.insert(Ty::Unknown(Unknown { size: Some(size) }));
-        self.tyid_unk_of_size.insert(size, tyid);
-        self.read_only.insert(tyid);
         tyid
     }
 
@@ -92,48 +81,57 @@ impl TypeSet {
     ///
     /// Invalid TypeIDs result in None.
     pub fn name(&self, tyid: TypeID) -> Option<&str> {
-        self.name_of_tyid.get(tyid).map(|s| s.as_str())
+        self.name_of_tyid.get(&tyid).map(|s| s.as_str())
     }
-
     /// Set the name of a type.
-    pub fn set_name(&mut self, tyid: TypeID, name: String) -> Result<()> {
-        if self.read_only.contains(&tyid) {
-            return Err(Error::ReadOnly);
-        }
-
+    pub fn set_name(&mut self, tyid: TypeID, name: String) {
         self.name_of_tyid.insert(tyid, name);
-        Ok(())
+    }
+    pub fn unset_name(&mut self, tyid: TypeID) {
+        self.name_of_tyid.remove(&tyid);
     }
 
-    /// Add a type to the set. Returns a TypeID corresponding to it.
+    /// Add a type to the database using the given TypeID, or change the type it refers to.
     ///
-    /// The return TypeID can "change meaning", i.e. refer to a different type,
-    /// if `set` is called on it.
-    pub fn add(&mut self, ty: Ty) -> TypeID {
-        self.types.insert(ty)
-    }
-
-    /// Change the type referred to by a TypeID.
+    /// Any name assigned to the type is preserved.
     ///
-    /// Panics if the TypeID is invalid. Make sure to only pass TypeIDs that
-    /// have been returned by this same TypeSet's `add` method in the past.
-    pub fn set(&mut self, tyid: TypeID, ty: Ty) {
-        *self.types.get_mut(tyid).unwrap() = ty;
+    /// Non-regular TypeIDs are read-only, so they cannot be redefined (this
+    /// function will return an Error::ReadOnly).
+    pub fn set(&mut self, tyid: TypeID, ty: Ty) -> Result<()> {
+        match tyid {
+            TypeID::Regular(_) => {
+                self.types.insert(tyid, ty);
+                Ok(())
+            }
+            _ => Err(Error::ReadOnly),
+        }
+        // the name remains (in self.name_of_tyid).
+        // it can be removed separately if needed.
     }
 
     pub fn get(&self, tyid: TypeID) -> Option<&Ty> {
-        self.types.get(tyid)
+        self.types.get(&tyid)
     }
 
     pub fn get_through_alias(&self, mut tyid: TypeID) -> Option<&Ty> {
         loop {
-            let ty = self.types.get(tyid)?;
+            let ty = self.get(tyid)?;
             if let Ty::Alias(target_tyid) = ty {
                 tyid = *target_tyid;
             } else {
                 return Some(ty);
             }
         }
+    }
+
+    pub fn get_or_create(&mut self, tyid: TypeID, create_fn: impl FnOnce() -> Ty) -> Result<&Ty> {
+        if !self.types.contains_key(&tyid) {
+            let ty = create_fn();
+            self.set(tyid, ty)?;
+        }
+
+        let ty = self.get(tyid).unwrap();
+        Ok(ty)
     }
 
     pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
@@ -293,8 +291,8 @@ impl TypeSet {
             keys
         };
 
-        for tyid in tyids {
-            let ty = self.types.get(tyid).unwrap();
+        for &tyid in tyids {
+            let ty = self.get(tyid).unwrap();
             write!(out, "  <{:?}> = ", tyid)?;
             out.open_box();
             self.dump_type(out, tyid, ty)?;
@@ -602,8 +600,8 @@ mod tests {
         assert_eq!(tyid_void_1, tyid_void_2);
         assert_eq!(types.get(tyid_void_1), Some(&Ty::Void));
 
-        let res = types.set_name(tyid_void_1, "whatever".to_string());
-        assert_eq!(res, Err(Error::ReadOnly));
+        types.set_name(tyid_void_1, "whatever".to_string());
+        assert_eq!(types.name(tyid_void_1), Some("whatever"));
     }
 
     #[test]
@@ -618,8 +616,8 @@ mod tests {
             Some(&Ty::Unknown(Unknown { size: None }))
         );
 
-        let res = types.set_name(tyid_unk_1, "whatever".to_string());
-        assert_eq!(res, Err(Error::ReadOnly));
+        types.set_name(tyid_unk_1, "whatever".to_string());
+        assert_eq!(types.name(tyid_unk_1), Some("whatever"));
     }
 
     #[test]
@@ -636,28 +634,39 @@ mod tests {
             let ty = types.get(tyid).unwrap();
             assert_eq!(ty, &Ty::Unknown(Unknown { size: Some(*size) }));
 
-            let res = types.set_name(tyid, "whatever".to_string());
-            assert_eq!(res, Err(Error::ReadOnly));
+            types.set_name(tyid, "whatever".to_string());
+            assert_eq!(types.name(tyid), Some("whatever"));
         }
     }
-
     #[test]
     fn simple_struct() {
         let mut types = TypeSet::new();
 
-        let tyid_i32 = types.add(Ty::Int(Int {
+        let mut next_ty_id: RegularTypeID = 0;
+        let mut gen_tyid = || {
+            let id = next_ty_id;
+            next_ty_id += 1;
+            TypeID::Regular(id)
+        };
+
+        let tyid_i32 = gen_tyid();
+        let ty_i32 = Ty::Int(Int {
             size: 4,
             signed: Signedness::Signed,
-        }));
-        _ = types.set_name(tyid_i32, "i32".to_owned());
+        });
+        types.set(tyid_i32, ty_i32).unwrap();
+        types.set_name(tyid_i32, "i32".to_owned());
 
-        let tyid_i8 = types.add(Ty::Int(Int {
+        let tyid_i8 = gen_tyid();
+        let ty_i8 = Ty::Int(Int {
             size: 1,
             signed: Signedness::Signed,
-        }));
-        _ = types.set_name(tyid_i8, "i8".to_owned());
+        });
+        types.set(tyid_i8, ty_i8).unwrap();
+        types.set_name(tyid_i8, "i8".to_owned());
 
-        let ty_point = types.add(Ty::Struct(Struct {
+        let tyid_point = gen_tyid();
+        let ty_point = Ty::Struct(Struct {
             size: 24,
             members: vec![
                 StructMember {
@@ -677,11 +686,12 @@ mod tests {
                     tyid: tyid_i8,
                 },
             ],
-        }));
-        _ = types.set_name(ty_point, "point".to_owned());
+        });
+        types.set(tyid_point, ty_point).unwrap();
+        types.set_name(tyid_point, "point".to_owned());
 
         {
-            let s = types.select(ty_point, 0..4).unwrap();
+            let s = types.select(tyid_point, 0..4).unwrap();
             assert_eq!(s.tyid, tyid_i32);
             assert_eq!(s.path.len(), 1);
             assert_eq!(s.path[0].as_str(), Some("x"));
@@ -689,13 +699,13 @@ mod tests {
 
         for byte_range in [(0..5), (1..5), (3..7), (8..16), (12..14)] {
             assert_eq!(
-                types.select(ty_point, byte_range),
+                types.select(tyid_point, byte_range),
                 Err(SelectError::RangeCrossesBoundaries)
             );
         }
 
         {
-            let s = types.select(ty_point, 12..13).unwrap();
+            let s = types.select(tyid_point, 12..13).unwrap();
             assert_eq!(s.tyid, tyid_i8);
             assert_eq!(s.path.len(), 1);
             assert_eq!(s.path[0].as_str(), Some("cost"));
@@ -703,7 +713,7 @@ mod tests {
 
         for byte_range in [(23..25), (24..25)] {
             assert_eq!(
-                types.select(ty_point, byte_range),
+                types.select(tyid_point, byte_range),
                 Err(SelectError::InvalidRange)
             );
         }
@@ -714,21 +724,40 @@ mod tests {
     fn struct_size_out_of_bounds() {
         let mut types = TypeSet::new();
 
-        let tyid_i32 = types.add(Ty::Int(Int {
-            size: 4,
-            signed: Signedness::Signed,
-        }));
-        _ = types.set_name(tyid_i32, "i32".to_owned());
+        let mut next_ty_id: RegularTypeID = 0;
+        let mut gen_tyid = || {
+            let id = next_ty_id;
+            next_ty_id += 1;
+            TypeID::Regular(id)
+        };
 
-        let ty_point = types.add(Ty::Struct(Struct {
-            size: 4,
-            members: vec![StructMember {
-                offset: 4,
-                name: Arc::new("x".to_owned()),
-                tyid: tyid_i32,
-            }],
-        }));
-        _ = types.set_name(ty_point, "point".to_owned());
+        let tyid_i32 = gen_tyid();
+        types
+            .set(
+                tyid_i32,
+                Ty::Int(Int {
+                    size: 4,
+                    signed: Signedness::Signed,
+                }),
+            )
+            .unwrap();
+        types.set_name(tyid_i32, "i32".to_owned());
+
+        let ty_point = gen_tyid();
+        types
+            .set(
+                ty_point,
+                Ty::Struct(Struct {
+                    size: 4,
+                    members: vec![StructMember {
+                        offset: 4,
+                        name: Arc::new("x".to_owned()),
+                        tyid: tyid_i32,
+                    }],
+                }),
+            )
+            .unwrap();
+        types.set_name(ty_point, "point".to_owned());
 
         types.assert_invariants();
     }

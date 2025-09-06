@@ -32,7 +32,6 @@ pub struct Program {
     cfg: cfg::Graph,
 }
 
-
 impl Program {
     pub fn cfg(&self) -> &cfg::Graph {
         &self.cfg
