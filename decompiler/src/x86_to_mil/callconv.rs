@@ -163,7 +163,7 @@ fn unpack_param(
             }
         }
         PassMode::OneBigSse { reg, eb_count } => {
-            assert_eq!(sz.div_ceil(8), eb_count as u32);
+            assert_eq!(sz.div_ceil(8), eb_count as usize);
             bld.emit(
                 arg_value,
                 mil::Insn::Widen {
@@ -221,7 +221,7 @@ pub fn pack_return_value(
             bld.emit(
                 ret_val,
                 Insn::UndefinedBytes {
-                    size: size.unwrap_or(0),
+                    size: size.unwrap_or(0).try_into().unwrap(),
                 },
             );
         }
@@ -306,7 +306,7 @@ pub fn pack_return_value(
 
                     let addr = bld.tmp_gen();
                     for eb_ndx in 0..eb_count {
-                        let eb_offset = (8 * eb_ndx).into();
+                        let eb_offset = (8 * eb_ndx).try_into().unwrap();
                         bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
                         let eb = bld.tmp_gen();
                         bld.emit(eb, Insn::LoadMem { addr, size: 8 });
@@ -462,7 +462,7 @@ fn pack_param(
             assert_eq!(regs_eb_count, eb_count);
         }
         PassMode::OneBigSse { reg, eb_count } => {
-            assert_eq!(sz.div_ceil(8), eb_count as u32);
+            assert_eq!(sz.div_ceil(8), eb_count as usize);
             let sse_value = bld.emit_read_machine_reg(reg);
             bld.emit(arg_value, Insn::Get(sse_value));
         }
@@ -478,7 +478,7 @@ fn pack_param(
                 arg_value,
                 Insn::LoadMem {
                     addr,
-                    size: 8 * eb_count,
+                    size: (8 * eb_count).try_into().unwrap(),
                 },
             );
         }
@@ -674,7 +674,7 @@ fn eightbytes_to_pass_mode(eb_set: EightbytesSet, state_saved: &mut ParamPassing
     pass_mode
 }
 
-fn eightbytes_range(offset: u32, size: u32) -> (u8, u8) {
+fn eightbytes_range(offset: usize, size: usize) -> (u8, u8) {
     let eb_first_ndx = offset / 8;
     let eb_last_ndx = (offset + size - 1) / 8;
     (
@@ -687,7 +687,7 @@ fn classify_eightbytes(
     eb_set: &mut EightbytesSet,
     types: &ty::TypeSet,
     tyid: ty::TypeID,
-    offset: u32,
+    offset: usize,
 ) -> anyhow::Result<()> {
     let ty = &types.get(tyid).unwrap();
 
@@ -695,10 +695,10 @@ fn classify_eightbytes(
         return classify_eightbytes(eb_set, types, *ref_tyid, offset);
     }
 
-    let sz: u32 = types
+    let sz = types
         .bytes_size(tyid)
         .ok_or_else(|| anyhow!("type has no size?"))?;
-    let alignment: u32 = types
+    let alignment: usize = types
         .alignment(tyid)
         .ok_or_else(|| anyhow!("type has no alignment?"))?
         .into();
@@ -743,7 +743,7 @@ fn classify_eightbytes(
                     // TODO nicer way to exclude this case altogether?
                     return Err(anyhow!("invalid array index subrange (count < 0)"));
                 }
-                let count: u32 = count.try_into().unwrap();
+                let count: usize = count.try_into().unwrap();
 
                 let element_size = types
                     .bytes_size(array_ty.element_tyid)
@@ -1185,7 +1185,7 @@ mod tests {
         }
     }
 
-    fn make_sample_struct(types: &mut ty::TypeSet, tyid: TypeID, members: &[(u32, TypeID)]) {
+    fn make_sample_struct(types: &mut ty::TypeSet, tyid: TypeID, members: &[(usize, TypeID)]) {
         assert!(members.iter().is_sorted_by_key(|(ofs, _)| ofs));
 
         let struct_sz = {

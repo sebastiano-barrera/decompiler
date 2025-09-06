@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use smallvec::SmallVec;
 use thiserror::Error;
@@ -13,7 +13,7 @@ pub enum TypeID {
     Regular(RegularTypeID),
     Void,
     UnknownUnsized,
-    Unknown { size: u32 },
+    Unknown { size: usize },
 }
 
 pub type RegularTypeID = usize;
@@ -67,7 +67,7 @@ impl TypeSet {
     pub fn tyid_shared_unknown_unsized(&self) -> TypeID {
         TypeID::UnknownUnsized
     }
-    pub fn tyid_shared_unknown_of_size(&mut self, size: u32) -> TypeID {
+    pub fn tyid_shared_unknown_of_size(&mut self, size: usize) -> TypeID {
         let tyid = TypeID::Unknown { size };
         if !self.types.contains_key(&tyid) {
             self.types
@@ -134,13 +134,13 @@ impl TypeSet {
         Ok(ty)
     }
 
-    pub fn bytes_size(&self, tyid: TypeID) -> Option<u32> {
+    pub fn bytes_size(&self, tyid: TypeID) -> Option<usize> {
         let ty = self.get(tyid)?;
         match ty {
-            Ty::Int(int_ty) => Some(int_ty.size as u32),
-            Ty::Bool(Bool { size }) => Some(*size as u32),
-            Ty::Float(Float { size }) => Some(*size as u32),
-            Ty::Enum(enum_ty) => Some(enum_ty.base_type.size as u32),
+            Ty::Int(int_ty) => Some(int_ty.size as usize),
+            Ty::Bool(Bool { size }) => Some(*size as usize),
+            Ty::Float(Float { size }) => Some(*size as usize),
+            Ty::Enum(enum_ty) => Some(enum_ty.base_type.size as usize),
             Ty::Struct(struct_ty) => Some(struct_ty.size),
             Ty::Unknown(unk_ty) => unk_ty.size,
             // TODO architecture dependent!
@@ -154,7 +154,7 @@ impl TypeSet {
                 index_subrange,
             }) => {
                 let element_size = self.bytes_size(*element_tyid)?;
-                let element_count: u32 = index_subrange.count()?.try_into().ok()?;
+                let element_count: usize = index_subrange.count()?.try_into().ok()?;
                 Some(element_size * element_count)
             }
         }
@@ -164,7 +164,7 @@ impl TypeSet {
     pub fn select(
         &self,
         tyid: TypeID,
-        byte_range: Range<u32>,
+        byte_range: ByteRange,
     ) -> std::result::Result<Selection, SelectError> {
         self.select_from(tyid, byte_range, SmallVec::new())
     }
@@ -173,19 +173,19 @@ impl TypeSet {
     fn select_from(
         &self,
         tyid: TypeID,
-        byte_range: Range<u32>,
+        byte_range: ByteRange,
         mut path: SelectionPath,
     ) -> std::result::Result<Selection, SelectError> {
         assert!(!byte_range.is_empty());
-        let ty = &self.get(tyid).unwrap();
+        let ty = self.get(tyid).unwrap();
 
-        let size = self.bytes_size(tyid).unwrap_or(0);
+        let size = self.bytes_size(tyid).unwrap_or(0) as usize;
 
         if byte_range.end > size {
             return Err(SelectError::InvalidRange);
         }
 
-        if byte_range == (0..size) {
+        if byte_range == ByteRange::new(0, size) {
             return Ok(Selection { tyid, path });
         }
 
@@ -206,12 +206,16 @@ impl TypeSet {
                         // struct member has unknown size; just ignore it in the search
                         return false;
                     };
-                    (m.offset..m.offset + memb_size) == byte_range
+
+                    let offset = m.offset as usize;
+                    let memb_size = memb_size as usize;
+                    ByteRange::new(offset, offset + memb_size) == byte_range
                 });
 
                 if let Some(member) = member {
                     path.push(SelectStep::Member(Arc::clone(&member.name)));
-                    return self.select_from(member.tyid, byte_range, path);
+                    let memb_range = byte_range.shift_left(member.offset);
+                    return self.select_from(member.tyid, memb_range, path);
                 } else {
                     return Err(SelectError::RangeCrossesBoundaries);
                 }
@@ -225,8 +229,9 @@ impl TypeSet {
                     && byte_range.end - byte_range.start == element_size
                 {
                     let ndx = byte_range.start / element_size;
+                    let element_range = byte_range.shift_left(element_size * ndx);
                     path.push(SelectStep::Index(ndx));
-                    return self.select_from(array_ty.element_tyid, byte_range, path);
+                    return self.select_from(array_ty.element_tyid, element_range, path);
                 } else {
                     return Err(SelectError::RangeCrossesBoundaries);
                 }
@@ -425,6 +430,49 @@ impl std::fmt::Debug for TypeSet {
     }
 }
 
+/// A range of bytes.
+///
+/// Similar to `std::ops::Range<usize>`, but:
+/// - this is not an Iterator
+/// - there is no custom syntax to construct an instance
+/// - once created, the instance is not mutable (via the public API)
+/// - there are useful methods, e.g. to shift the interval left
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub struct ByteRange {
+    start: usize,
+    end: usize,
+}
+impl ByteRange {
+    pub fn new(start: usize, end: usize) -> Self {
+        assert!(end >= start);
+        ByteRange { start, end }
+    }
+
+    pub fn lo(&self) -> usize {
+        self.start
+    }
+    pub fn hi(&self) -> usize {
+        self.end
+    }
+    pub fn len(&self) -> usize {
+        self.end - self.start
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn shift(&self, offset: isize) -> ByteRange {
+        ByteRange {
+            start: (self.start as isize + offset) as usize,
+            end: (self.end as isize + offset) as usize,
+        }
+    }
+    pub fn shift_left(&self, offset: usize) -> ByteRange {
+        let offset: isize = offset.try_into().unwrap();
+        self.shift(-offset)
+    }
+}
+
 pub struct CallSiteKey {
     pub return_pc: u64,
     pub target: u64,
@@ -497,11 +545,11 @@ pub struct EnumVariant {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Struct {
     pub members: Vec<StructMember>,
-    pub size: u32,
+    pub size: usize,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructMember {
-    pub offset: u32,
+    pub offset: usize,
     pub name: Arc<String>,
     pub tyid: TypeID,
 }
@@ -527,7 +575,7 @@ impl Subrange {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unknown {
     /// Size in bytes.  `None`, for types of unknown size.
-    pub size: Option<u32>,
+    pub size: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -550,7 +598,7 @@ pub type SelectionPath = SmallVec<[SelectStep; 4]>;
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum SelectStep {
-    Index(u32),
+    Index(usize),
     Member(Arc<String>),
 }
 impl SelectStep {
@@ -656,7 +704,7 @@ mod tests {
 
     #[test]
     fn shared_unknown_sized() {
-        const SIZES: [u32; 6] = [0, 44, 120423, 21, 2, 4];
+        const SIZES: [usize; 6] = [0, 44, 120423, 21, 2, 4];
 
         let mut types = TypeSet::new();
 
@@ -725,13 +773,19 @@ mod tests {
         types.set_name(tyid_point, "point".to_owned());
 
         {
-            let s = types.select(tyid_point, 0..4).unwrap();
+            let s = types.select(tyid_point, ByteRange::new(0, 4)).unwrap();
             assert_eq!(s.tyid, tyid_i32);
             assert_eq!(s.path.len(), 1);
             assert_eq!(s.path[0].as_str(), Some("x"));
         }
 
-        for byte_range in [(0..5), (1..5), (3..7), (8..16), (12..14)] {
+        for byte_range in [
+            (ByteRange::new(0, 5)),
+            (ByteRange::new(1, 5)),
+            (ByteRange::new(3, 7)),
+            (ByteRange::new(8, 16)),
+            (ByteRange::new(12, 14)),
+        ] {
             assert_eq!(
                 types.select(tyid_point, byte_range),
                 Err(SelectError::RangeCrossesBoundaries)
@@ -739,13 +793,13 @@ mod tests {
         }
 
         {
-            let s = types.select(tyid_point, 12..13).unwrap();
+            let s = types.select(tyid_point, ByteRange::new(12, 13)).unwrap();
             assert_eq!(s.tyid, tyid_i8);
             assert_eq!(s.path.len(), 1);
             assert_eq!(s.path[0].as_str(), Some("cost"));
         }
 
-        for byte_range in [(23..25), (24..25)] {
+        for byte_range in [(ByteRange::new(23, 25)), (ByteRange::new(24, 25))] {
             assert_eq!(
                 types.select(tyid_point, byte_range),
                 Err(SelectError::InvalidRange)
