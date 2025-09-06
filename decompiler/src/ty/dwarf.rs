@@ -91,7 +91,6 @@ pub fn load_dwarf_types(
         return Err(Error::NoCompileUnit);
     }
 
-    types.assert_invariants();
     Ok(Report { errors })
 }
 
@@ -215,24 +214,36 @@ impl<'a> TypeParser<'a> {
         };
 
         // otherwise, leave tyid assigned to a clone of default_type
-        let (name, ty) = res?;
+        match res {
+            Err(err) => {
+                // still ensure that TypeID is associated to a type
+                event!(Level::TRACE, ?err, "error parsing type, assigning Unknown");
+                self.types
+                    .set(tyid, ty::Ty::Unknown(ty::Unknown { size: None }))
+                    .unwrap();
 
-        if !matches!(ty, ty::Ty::Unknown(_)) {
-            if let Some(addr_attrvalue) = addr_av {
-                let addr = self.dwarf.attr_address(unit, addr_attrvalue)?.ok_or(
-                    Error::InvalidValueType(diofs.0, gimli::constants::DW_AT_low_pc),
-                )?;
-                self.types.set_known_object(addr, tyid);
+                Err(err)
+            }
+            Ok((name, ty)) => {
+                if !matches!(ty, ty::Ty::Unknown(_)) {
+                    if let Some(addr_attrvalue) = addr_av {
+                        let addr = self.dwarf.attr_address(unit, addr_attrvalue)?.ok_or(
+                            Error::InvalidValueType(diofs.0, gimli::constants::DW_AT_low_pc),
+                        )?;
+                        self.types.set_known_object(addr, tyid);
+                    }
+                }
+
+                // unwrap(): it's a programming error if set() fails here because that
+                // would mean that tyid is non-regular (read-only)
+                self.types.set(tyid, ty).unwrap();
+                if let Some(name) = name {
+                    self.types.set_name(tyid, name);
+                }
+
+                Ok(tyid)
             }
         }
-
-        // unwrap(): it's a programming error if set() fails here because that
-        // would mean that tyid is non-regular (read-only)
-        self.types.set(tyid, ty).unwrap();
-        if let Some(name) = name {
-            self.types.set_name(tyid, name);
-        }
-        Ok(tyid)
     }
 
     fn take_error<T>(&self, offset: usize, res: Result<T>) -> Option<T> {

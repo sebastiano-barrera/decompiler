@@ -4,109 +4,109 @@ expression: out
 ---
  --- mil
 program  77 instrs
-    0 r12: TypeID(2v1) <- Ancestral(AncestralName("stack_bottom"))
-    1 r2: TypeID(2v1) <- Ancestral(AncestralName("CF"))
-    2 r3: TypeID(2v1) <- Ancestral(AncestralName("PF"))
-    3 r4: TypeID(2v1) <- Ancestral(AncestralName("AF"))
-    4 r5: TypeID(2v1) <- Ancestral(AncestralName("ZF"))
-    5 r6: TypeID(2v1) <- Ancestral(AncestralName("SF"))
-    6 r7: TypeID(2v1) <- Ancestral(AncestralName("TF"))
-    7 r8: TypeID(2v1) <- Ancestral(AncestralName("IF"))
-    8 r9: TypeID(2v1) <- Ancestral(AncestralName("DF"))
-    9 r10: TypeID(2v1) <- Ancestral(AncestralName("OF"))
-   10 r11: TypeID(2v1) <- Ancestral(AncestralName("RBP"))
-   11 r12: TypeID(2v1) <- Ancestral(AncestralName("RSP"))
-   12 r13: TypeID(2v1) <- Ancestral(AncestralName("RIP"))
-   13 r14: TypeID(2v1) <- Ancestral(AncestralName("RDI"))
-   14 r15: TypeID(2v1) <- Ancestral(AncestralName("RSI"))
-   15 r16: TypeID(2v1) <- Ancestral(AncestralName("RAX"))
-   16 r17: TypeID(2v1) <- Ancestral(AncestralName("RBX"))
-   17 r18: TypeID(2v1) <- Ancestral(AncestralName("RCX"))
-   18 r19: TypeID(2v1) <- Ancestral(AncestralName("RDX"))
-   19 r20: TypeID(2v1) <- Ancestral(AncestralName("R8"))
-   20 r21: TypeID(2v1) <- Ancestral(AncestralName("R9"))
-   21 r22: TypeID(2v1) <- Ancestral(AncestralName("R10"))
-   22 r23: TypeID(2v1) <- Ancestral(AncestralName("R11"))
-   23 r24: TypeID(2v1) <- Ancestral(AncestralName("R12"))
-   24 r25: TypeID(2v1) <- Ancestral(AncestralName("R13"))
-   25 r26: TypeID(2v1) <- Ancestral(AncestralName("R14"))
-   26 r27: TypeID(2v1) <- Ancestral(AncestralName("R15"))
-   27 r28: TypeID(2v1) <- Ancestral(AncestralName("ZMM0"))
-   28 r29: TypeID(2v1) <- Ancestral(AncestralName("ZMM1"))
-   29 r30: TypeID(2v1) <- Ancestral(AncestralName("ZMM2"))
-   30 r31: TypeID(2v1) <- Ancestral(AncestralName("ZMM3"))
-   31 r32: TypeID(2v1) <- Ancestral(AncestralName("ZMM4"))
-   32 r33: TypeID(2v1) <- Ancestral(AncestralName("ZMM5"))
-   33 r34: TypeID(2v1) <- Ancestral(AncestralName("ZMM6"))
-   34 r35: TypeID(2v1) <- Ancestral(AncestralName("ZMM7"))
-   35 r36: TypeID(2v1) <- Ancestral(AncestralName("ZMM8"))
-   36 r37: TypeID(2v1) <- Ancestral(AncestralName("ZMM9"))
-   37 r38: TypeID(2v1) <- Ancestral(AncestralName("ZMM10"))
-   38 r39: TypeID(2v1) <- Ancestral(AncestralName("ZMM11"))
-   39 r40: TypeID(2v1) <- Ancestral(AncestralName("ZMM12"))
-   40 r41: TypeID(2v1) <- Ancestral(AncestralName("ZMM13"))
-   41 r42: TypeID(2v1) <- Ancestral(AncestralName("ZMM14"))
-   42 r43: TypeID(2v1) <- Ancestral(AncestralName("ZMM15"))
-   43 r45: TypeID(2v1) <- Ancestral(AncestralName("arg0"))
-   44 r14: TypeID(2v1) <- Get(r45)
-   45 r46: TypeID(2v1) <- Ancestral(AncestralName("arg1"))
-   46 r15: TypeID(2v1) <- Get(r46)
-   47 r47: TypeID(2v1) <- Ancestral(AncestralName("arg2"))
-   48 r19: TypeID(2v1) <- Get(r47)
-   49 r48: TypeID(2v1) <- Ancestral(AncestralName("arg3"))
-   50 r18: TypeID(2v1) <- Get(r48)
-   51 r49: TypeID(2v1) <- Ancestral(AncestralName("arg4"))
-   52 r50: TypeID(2v1) <- Part { src: r49, offset: 0, size: 8 }
-   53 r20: TypeID(2v1) <- Get(r50)
-   54 r51: TypeID(2v1) <- Part { src: r49, offset: 8, size: 8 }
-   55 r21: TypeID(2v1) <- Get(r51)
-   56 r52: TypeID(2v1) <- Ancestral(AncestralName("arg5"))
-   57 r54: TypeID(2v1) <- Part { src: r52, offset: 0, size: 8 }
-   58 r53: TypeID(2v1) <- ArithK(Add, r12, 8)
-   59 r53: TypeID(2v1) <- StoreMem { addr: r53, value: r54 }
-   60 r54: TypeID(2v1) <- Part { src: r52, offset: 8, size: 8 }
-   61 r53: TypeID(2v1) <- ArithK(Add, r12, 16)
-   62 r53: TypeID(2v1) <- StoreMem { addr: r53, value: r54 }
+    0 r12: UnknownUnsized <- Ancestral(AncestralName("stack_bottom"))
+    1 r2: UnknownUnsized <- Ancestral(AncestralName("CF"))
+    2 r3: UnknownUnsized <- Ancestral(AncestralName("PF"))
+    3 r4: UnknownUnsized <- Ancestral(AncestralName("AF"))
+    4 r5: UnknownUnsized <- Ancestral(AncestralName("ZF"))
+    5 r6: UnknownUnsized <- Ancestral(AncestralName("SF"))
+    6 r7: UnknownUnsized <- Ancestral(AncestralName("TF"))
+    7 r8: UnknownUnsized <- Ancestral(AncestralName("IF"))
+    8 r9: UnknownUnsized <- Ancestral(AncestralName("DF"))
+    9 r10: UnknownUnsized <- Ancestral(AncestralName("OF"))
+   10 r11: UnknownUnsized <- Ancestral(AncestralName("RBP"))
+   11 r12: UnknownUnsized <- Ancestral(AncestralName("RSP"))
+   12 r13: UnknownUnsized <- Ancestral(AncestralName("RIP"))
+   13 r14: UnknownUnsized <- Ancestral(AncestralName("RDI"))
+   14 r15: UnknownUnsized <- Ancestral(AncestralName("RSI"))
+   15 r16: UnknownUnsized <- Ancestral(AncestralName("RAX"))
+   16 r17: UnknownUnsized <- Ancestral(AncestralName("RBX"))
+   17 r18: UnknownUnsized <- Ancestral(AncestralName("RCX"))
+   18 r19: UnknownUnsized <- Ancestral(AncestralName("RDX"))
+   19 r20: UnknownUnsized <- Ancestral(AncestralName("R8"))
+   20 r21: UnknownUnsized <- Ancestral(AncestralName("R9"))
+   21 r22: UnknownUnsized <- Ancestral(AncestralName("R10"))
+   22 r23: UnknownUnsized <- Ancestral(AncestralName("R11"))
+   23 r24: UnknownUnsized <- Ancestral(AncestralName("R12"))
+   24 r25: UnknownUnsized <- Ancestral(AncestralName("R13"))
+   25 r26: UnknownUnsized <- Ancestral(AncestralName("R14"))
+   26 r27: UnknownUnsized <- Ancestral(AncestralName("R15"))
+   27 r28: UnknownUnsized <- Ancestral(AncestralName("ZMM0"))
+   28 r29: UnknownUnsized <- Ancestral(AncestralName("ZMM1"))
+   29 r30: UnknownUnsized <- Ancestral(AncestralName("ZMM2"))
+   30 r31: UnknownUnsized <- Ancestral(AncestralName("ZMM3"))
+   31 r32: UnknownUnsized <- Ancestral(AncestralName("ZMM4"))
+   32 r33: UnknownUnsized <- Ancestral(AncestralName("ZMM5"))
+   33 r34: UnknownUnsized <- Ancestral(AncestralName("ZMM6"))
+   34 r35: UnknownUnsized <- Ancestral(AncestralName("ZMM7"))
+   35 r36: UnknownUnsized <- Ancestral(AncestralName("ZMM8"))
+   36 r37: UnknownUnsized <- Ancestral(AncestralName("ZMM9"))
+   37 r38: UnknownUnsized <- Ancestral(AncestralName("ZMM10"))
+   38 r39: UnknownUnsized <- Ancestral(AncestralName("ZMM11"))
+   39 r40: UnknownUnsized <- Ancestral(AncestralName("ZMM12"))
+   40 r41: UnknownUnsized <- Ancestral(AncestralName("ZMM13"))
+   41 r42: UnknownUnsized <- Ancestral(AncestralName("ZMM14"))
+   42 r43: UnknownUnsized <- Ancestral(AncestralName("ZMM15"))
+   43 r45: UnknownUnsized <- Ancestral(AncestralName("arg0"))
+   44 r14: UnknownUnsized <- Get(r45)
+   45 r46: UnknownUnsized <- Ancestral(AncestralName("arg1"))
+   46 r15: UnknownUnsized <- Get(r46)
+   47 r47: UnknownUnsized <- Ancestral(AncestralName("arg2"))
+   48 r19: UnknownUnsized <- Get(r47)
+   49 r48: UnknownUnsized <- Ancestral(AncestralName("arg3"))
+   50 r18: UnknownUnsized <- Get(r48)
+   51 r49: UnknownUnsized <- Ancestral(AncestralName("arg4"))
+   52 r50: UnknownUnsized <- Part { src: r49, offset: 0, size: 8 }
+   53 r20: UnknownUnsized <- Get(r50)
+   54 r51: UnknownUnsized <- Part { src: r49, offset: 8, size: 8 }
+   55 r21: UnknownUnsized <- Get(r51)
+   56 r52: UnknownUnsized <- Ancestral(AncestralName("arg5"))
+   57 r54: UnknownUnsized <- Part { src: r52, offset: 0, size: 8 }
+   58 r53: UnknownUnsized <- ArithK(Add, r12, 8)
+   59 r53: UnknownUnsized <- StoreMem { addr: r53, value: r54 }
+   60 r54: UnknownUnsized <- Part { src: r52, offset: 8, size: 8 }
+   61 r53: UnknownUnsized <- ArithK(Add, r12, 16)
+   62 r53: UnknownUnsized <- StoreMem { addr: r53, value: r54 }
 0x40135c:
-   63 r46: TypeID(2v1) <- Const { value: 8, size: 8 }
-   64 r46: TypeID(2v1) <- Arith(Add, r46, r12)
-   65 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 8 }
-   66 r16: TypeID(2v1) <- Get(r45)
+   63 r46: UnknownUnsized <- Const { value: 8, size: 8 }
+   64 r46: UnknownUnsized <- Arith(Add, r46, r12)
+   65 r45: UnknownUnsized <- LoadMem { addr: r46, size: 8 }
+   66 r16: UnknownUnsized <- Get(r45)
 0x401361:
-   67 r46: TypeID(2v1) <- Const { value: 16, size: 8 }
-   68 r46: TypeID(2v1) <- Arith(Add, r46, r12)
-   69 r45: TypeID(2v1) <- LoadMem { addr: r46, size: 8 }
-   70 r19: TypeID(2v1) <- Get(r45)
+   67 r46: UnknownUnsized <- Const { value: 16, size: 8 }
+   68 r46: UnknownUnsized <- Arith(Add, r46, r12)
+   69 r45: UnknownUnsized <- LoadMem { addr: r46, size: 8 }
+   70 r19: UnknownUnsized <- Get(r45)
 0x401366:
-   71 r45: TypeID(2v1) <- Void
-   72 r45: TypeID(2v1) <- Concat { lo: r45, hi: r16 }
-   73 r45: TypeID(2v1) <- Concat { lo: r45, hi: r19 }
-   74 r45: TypeID(2v1) <- Part { src: r45, offset: 0, size: 16 }
-   75 r47: TypeID(2v1) <- SetReturnValue(r45)
-   76 r47: TypeID(2v1) <- Control(Ret)
+   71 r45: UnknownUnsized <- Void
+   72 r45: UnknownUnsized <- Concat { lo: r45, hi: r16 }
+   73 r45: UnknownUnsized <- Concat { lo: r45, hi: r19 }
+   74 r45: UnknownUnsized <- Part { src: r45, offset: 0, size: 16 }
+   75 r47: UnknownUnsized <- SetReturnValue(r45)
+   76 r47: UnknownUnsized <- Control(Ret)
 
 
  --- ssa pre-xform
 ssa program  77 instrs
 .B0:    ;;  → Always(Return).
-  (  4)  r11: ? <- Ancestral(AncestralName("RSP"))
-  (  2)  r56: ? <- Ancestral(AncestralName("arg5"))
-         r57: ? <- Part { src: r56, offset: 0, size: 8 }
-         r58: ? <- ArithK(Add, r11, 8)
-         r59: ? <- StoreMem { addr: r58, value: r57 }
-         r60: ? <- Part { src: r56, offset: 8, size: 8 }
-         r61: ? <- ArithK(Add, r11, 16)
-         r62: ? <- StoreMem { addr: r61, value: r60 }
-         r63: ? <- Const { value: 8, size: 8 }
-         r64: ? <- Arith(Add, r63, r11)
-         r65: ? <- LoadMem { addr: r64, size: 8 }
-         r67: ? <- Const { value: 16, size: 8 }
-         r68: ? <- Arith(Add, r67, r11)
-         r69: ? <- LoadMem { addr: r68, size: 8 }
-         r72: ? <- Concat { lo: r71, hi: r65 }
-         r73: ? <- Concat { lo: r72, hi: r69 }
-         r74: ? <- Part { src: r73, offset: 0, size: 16 }
-         r75: ? <- SetReturnValue(r74)
+  (  4)  r11: unknown <UnknownUnsized> <- Ancestral(AncestralName("RSP"))
+  (  2)  r56: unknown <UnknownUnsized> <- Ancestral(AncestralName("arg5"))
+         r57: unknown <UnknownUnsized> <- Part { src: r56, offset: 0, size: 8 }
+         r58: unknown <UnknownUnsized> <- ArithK(Add, r11, 8)
+         r59: unknown <UnknownUnsized> <- StoreMem { addr: r58, value: r57 }
+         r60: unknown <UnknownUnsized> <- Part { src: r56, offset: 8, size: 8 }
+         r61: unknown <UnknownUnsized> <- ArithK(Add, r11, 16)
+         r62: unknown <UnknownUnsized> <- StoreMem { addr: r61, value: r60 }
+         r63: unknown <UnknownUnsized> <- Const { value: 8, size: 8 }
+         r64: unknown <UnknownUnsized> <- Arith(Add, r63, r11)
+         r65: unknown <UnknownUnsized> <- LoadMem { addr: r64, size: 8 }
+         r67: unknown <UnknownUnsized> <- Const { value: 16, size: 8 }
+         r68: unknown <UnknownUnsized> <- Arith(Add, r67, r11)
+         r69: unknown <UnknownUnsized> <- LoadMem { addr: r68, size: 8 }
+         r72: unknown <UnknownUnsized> <- Concat { lo: r71, hi: r65 }
+         r73: unknown <UnknownUnsized> <- Concat { lo: r72, hi: r69 }
+         r74: unknown <UnknownUnsized> <- Part { src: r73, offset: 0, size: 16 }
+         r75: unknown <UnknownUnsized> <- SetReturnValue(r74)
 
 
  --- cfg
@@ -118,18 +118,18 @@ ssa program  77 instrs
  --- ssa
 ssa program  87 instrs
 .B0:    ;;  → Always(Return).
-  (  2)  r11: ? <- Ancestral(AncestralName("RSP"))
-  (  4)  r56: ? <- Ancestral(AncestralName("arg5"))
-         r57: ? <- Part { src: r56, offset: 0, size: 8 }
-         r58: ? <- ArithK(Add, r11, 8)
-         r59: ? <- StoreMem { addr: r58, value: r57 }
-         r60: ? <- Part { src: r56, offset: 8, size: 8 }
-         r61: ? <- ArithK(Add, r11, 16)
-         r62: ? <- StoreMem { addr: r61, value: r60 }
-         r78: ? <- Part { src: r56, offset: 0, size: 8 }
-         r83: ? <- Part { src: r56, offset: 8, size: 8 }
-         r73: ? <- Concat { lo: r78, hi: r83 }
-         r75: ? <- SetReturnValue(r73)
+  (  2)  r11: unknown <UnknownUnsized> <- Ancestral(AncestralName("RSP"))
+  (  4)  r56: unknown <UnknownUnsized> <- Ancestral(AncestralName("arg5"))
+         r57: unknown <UnknownUnsized> <- Part { src: r56, offset: 0, size: 8 }
+         r58: unknown <UnknownUnsized> <- ArithK(Add, r11, 8)
+         r59: unknown <UnknownUnsized> <- StoreMem { addr: r58, value: r57 }
+         r60: unknown <UnknownUnsized> <- Part { src: r56, offset: 8, size: 8 }
+         r61: unknown <UnknownUnsized> <- ArithK(Add, r11, 16)
+         r62: unknown <UnknownUnsized> <- StoreMem { addr: r61, value: r60 }
+         r78: unknown <UnknownUnsized> <- Part { src: r56, offset: 0, size: 8 }
+         r83: unknown <UnknownUnsized> <- Part { src: r56, offset: 8, size: 8 }
+         r73: unknown <UnknownUnsized> <- Concat { lo: r78, hi: r83 }
+         r75: unknown <UnknownUnsized> <- SetReturnValue(r73)
 
 
  --- ast

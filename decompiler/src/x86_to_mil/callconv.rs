@@ -7,7 +7,7 @@ use crate::{
 
 use super::Builder;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Ok};
 use tracing::{event, instrument, span, Level};
 
 #[derive(Clone, Copy)]
@@ -74,36 +74,22 @@ pub fn unpack_params(
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
 
-        if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
-            panic!("invalid type for a function parameter: {:?}", param_ty);
+        let res = unpack_param(bld, &mut state, types, param_tyid);
+        match res {
+            Result::Err(err) => {
+                event!(
+                    Level::ERROR,
+                    ?err,
+                    ok_count = report.ok_count,
+                    total_count = param_types.len(),
+                    "parameter type could not be classified (remaining parameters can't be mapped)"
+                );
+                break;
+            }
+            Result::Ok(()) => {
+                report.ok_count += 1;
+            }
         }
-
-        let mut eb_set = EightbytesSet::new_regs();
-        let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
-        if let Err(err) = res {
-            event!(
-                Level::ERROR,
-                ?err,
-                "parameter type could not be classified (remaining parameters can't be mapped)"
-            );
-            // because each argument uses a variable number of integer regs, ssa
-            // regs, and stack slots, we can't be sure of how to map ANY of the
-            // remaining parameters
-            break;
-        }
-
-        let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state);
-        let sz = types.bytes_size(param_tyid).unwrap();
-
-        let param_anc = state
-            .pull_arg()
-            .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
-        let param_src = bld.tmp_gen();
-        bld.init_ancestral(param_src, param_anc, mil::RegType::Bytes(sz as usize));
-
-        unpack_param(bld, &mut state, types, param_tyid, param_src, pass_mode);
-
-        report.ok_count += 1;
     }
 
     Ok(report)
@@ -115,10 +101,23 @@ fn unpack_param(
     state: &mut ParamPassing,
     types: &ty::TypeSet,
     tyid: ty::TypeID,
-    arg_value: mil::Reg,
-    mode: PassMode,
-) {
+) -> anyhow::Result<()> {
+    let mut eb_set = EightbytesSet::new_regs();
+    classify_eightbytes(&mut eb_set, types, tyid, 0)?;
+
+    let mode = eightbytes_to_pass_mode(eb_set, state);
+    // .unwrap(): classify_eightbytes already checks that size is known
     let sz = types.bytes_size(tyid).unwrap();
+
+    let param_anc = state
+        .pull_arg()
+        .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
+    let arg_value = bld.tmp_gen();
+    bld.init_ancestral(arg_value, param_anc, mil::RegType::Bytes(sz as usize));
+
+    let sz = types
+        .bytes_size(tyid)
+        .ok_or_else(|| anyhow!("type has no size?"))?;
 
     match mode {
         PassMode::Regs(regs) => {
@@ -199,6 +198,8 @@ fn unpack_param(
             }
         }
     }
+
+    Ok(())
 }
 
 #[instrument(skip_all)]
@@ -234,6 +235,7 @@ pub fn pack_return_value(
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
+            // .unwrap(): classify_eightbytes already checks that size is known
             let sz = types.bytes_size(ret_tyid).unwrap();
             assert!(sz > 0);
 
@@ -386,34 +388,25 @@ pub fn pack_params(
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
         let param_ty = &types.get(param_tyid).unwrap();
 
-        if let ty::Ty::Void | ty::Ty::Bool(_) | ty::Ty::Subroutine(_) = param_ty {
-            panic!("invalid type for a function parameter: {:?}", param_ty);
-        }
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
 
-        let mut eb_set = EightbytesSet::new_regs();
-        let res = classify_eightbytes(&mut eb_set, types, param_tyid, 0);
-        if let Err(err) = res {
-            event!(
-                Level::ERROR,
-                ok_count = param_regs.len(),
-                total_count = param_types.len(),
-                ?err,
-                "parameter type could not be classified (remaining parameters can't be mapped)"
-            );
-            // because each argument uses a variable number of integer regs, ssa
-            // regs, and stack slots, we can't be sure of how to map ANY of the
-            // remaining parameters
-            break;
+        match pack_param(bld, &mut state, types, param_tyid) {
+            Result::Ok(param_dest) => {
+                param_regs.push(param_dest);
+                report.ok_count += 1;
+            }
+            Result::Err(err) => {
+                event!(
+                    Level::ERROR,
+                    ok_count = param_regs.len(),
+                    total_count = param_types.len(),
+                    ?err,
+                    "parameter type could not be classified (remaining parameters can't be mapped)"
+                );
+                break;
+            }
         }
-
-        let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state);
-        let param_dest = bld.tmp_gen();
-        pack_param(bld, &mut state, types, param_tyid, param_dest, pass_mode);
-        param_regs.push(param_dest);
-
-        report.ok_count += 1;
     }
 
     assert_eq!(param_regs.len(), report.ok_count);
@@ -425,10 +418,15 @@ fn pack_param(
     state: &mut ParamPassing,
     types: &ty::TypeSet,
     tyid: ty::TypeID,
-    arg_value: mil::Reg,
-    mode: PassMode,
-) {
-    let sz = types.bytes_size(tyid).unwrap();
+) -> anyhow::Result<mil::Reg> {
+    let mut eb_set = EightbytesSet::new_regs();
+    classify_eightbytes(&mut eb_set, types, tyid, 0)?;
+    let mode = eightbytes_to_pass_mode(eb_set, state);
+    let arg_value = bld.tmp_gen();
+
+    let sz = types
+        .bytes_size(tyid)
+        .ok_or_else(|| anyhow!("type has no size?"))?;
     let eb_count = sz.div_ceil(8);
 
     bld.emit(arg_value, Insn::Void);
@@ -497,6 +495,8 @@ fn pack_param(
             },
         );
     }
+
+    Ok(arg_value)
 }
 
 pub fn unpack_return_value(
@@ -528,6 +528,7 @@ pub fn unpack_return_value(
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
+            // .unwrap(): classify_eightbytes already checks that size is known
             let sz = types.bytes_size(ret_tyid).unwrap();
             assert!(sz > 0);
 

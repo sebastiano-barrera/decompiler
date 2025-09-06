@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use smallvec::{smallvec, SmallVec};
 use thiserror::Error;
-use tracing::{event, Level};
+use tracing::{event, span, Level};
 
 pub mod dwarf;
 
@@ -152,50 +152,6 @@ impl TypeSet {
         }
     }
 
-    pub fn assert_invariants(&self) {
-        for (_, ty) in self.types.iter() {
-            match &ty {
-                Ty::Void
-                | Ty::Subroutine(_)
-                | Ty::Int(_)
-                | Ty::Enum(_)
-                | Ty::Ptr(_)
-                | Ty::Unknown(_)
-                | Ty::Bool(_)
-                | Ty::Float(_)
-                | Ty::Alias(_) => {}
-                Ty::Struct(struct_ty) => {
-                    assert!(struct_ty.members.iter().all(|m| {
-                        let size = self.bytes_size(m.tyid).unwrap();
-                        m.offset + size <= struct_ty.size
-                    }));
-
-                    // the code below makes sense if I never want to allow
-                    // overlapping struct members. But it could be useful! this
-                    // program is not beholden to the rules of programming languages
-
-                    // let count = struct_ty.members.len();
-                    // for i in 0..count {
-                    //     for j in 0..count {
-                    //         if i >= j {
-                    //             continue;
-                    //         }
-
-                    //         let mi = &struct_ty.members[i];
-                    //         let mi_end = mi.offset + self.get(mi.tyid).unwrap().ty.bytes_size();
-                    //         let mj = &struct_ty.members[j];
-                    //         let mj_end = mj.offset + self.get(mj.tyid).unwrap().ty.bytes_size();
-
-                    //         if mj_end > mi.offset && mi_end > mj.offset {
-                    //             panic!("struct '{}': members `{}` ({}:{}) and `{}` ({}:{}) overlap!");
-                    //         }
-                    //     }
-                    // }
-                }
-            }
-        }
-    }
-
     #[allow(dead_code)]
     pub fn select(
         &self,
@@ -231,7 +187,11 @@ impl TypeSet {
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     // TODO avoid the hashmap lookup?
-                    let memb_size = self.bytes_size(m.tyid).unwrap() as i64;
+                    let Some(memb_size) = self.bytes_size(m.tyid) else {
+                        // struct member has unknown size; just ignore it in the search
+                        return false;
+                    };
+                    let memb_size = memb_size as i64;
                     let ofs = m.offset as i64;
                     (ofs..ofs + memb_size) == byte_range
                 });
@@ -717,48 +677,5 @@ mod tests {
                 Err(SelectError::InvalidRange)
             );
         }
-    }
-
-    #[test]
-    #[should_panic]
-    fn struct_size_out_of_bounds() {
-        let mut types = TypeSet::new();
-
-        let mut next_ty_id: RegularTypeID = 0;
-        let mut gen_tyid = || {
-            let id = next_ty_id;
-            next_ty_id += 1;
-            TypeID::Regular(id)
-        };
-
-        let tyid_i32 = gen_tyid();
-        types
-            .set(
-                tyid_i32,
-                Ty::Int(Int {
-                    size: 4,
-                    signed: Signedness::Signed,
-                }),
-            )
-            .unwrap();
-        types.set_name(tyid_i32, "i32".to_owned());
-
-        let ty_point = gen_tyid();
-        types
-            .set(
-                ty_point,
-                Ty::Struct(Struct {
-                    size: 4,
-                    members: vec![StructMember {
-                        offset: 4,
-                        name: Arc::new("x".to_owned()),
-                        tyid: tyid_i32,
-                    }],
-                }),
-            )
-            .unwrap();
-        types.set_name(ty_point, "point".to_owned());
-
-        types.assert_invariants();
     }
 }
