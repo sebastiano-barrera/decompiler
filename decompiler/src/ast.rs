@@ -435,14 +435,14 @@ impl<'a> Ast<'a> {
 
         self.pp_ref(pp, a, self_prec)?;
         if let Some(asz) = asz {
-            write!(pp, "as i{}", asz)?;
+            write!(pp, " as i{}", asz)?;
         }
 
         write!(pp, " {} ", op_str)?;
 
         self.pp_ref(pp, b, self_prec)?;
         if let Some(bsz) = bsz {
-            write!(pp, "as i{}", bsz)?;
+            write!(pp, " as i{}", bsz)?;
         }
 
         Ok(())
