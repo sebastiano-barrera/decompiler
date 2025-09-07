@@ -1,4 +1,6 @@
 use crate::mil::{self, AncestralName, Control};
+use std::borrow::Cow;
+
 use crate::ty;
 use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};
@@ -106,12 +108,10 @@ impl<'a> Builder<'a> {
     ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
 
-        let func_ty = func_tyid_opt.and_then(|tyid| {
-            let func_ty = self.types.get_through_alias(tyid)?;
-            match func_ty {
-                ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
-                _ => None,
-            }
+        let func_ty = func_tyid_opt.and_then(|tyid| self.types.get_through_alias(tyid));
+        let func_ty = func_ty.as_ref().and_then(|cow| match cow.as_ref() {
+            ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
+            _ => None,
         });
         event!(Level::DEBUG, ?func_ty, "function type resolved");
 
@@ -1460,9 +1460,14 @@ impl<'a> Builder<'a> {
     }
 }
 
-pub fn check_subroutine_type(types: &ty::TypeSet, tyid: ty::TypeID) -> Result<&ty::Subroutine> {
-    match &types.get_through_alias(tyid).expect("invalid type ID") {
-        ty::Ty::Subroutine(subr_ty) => Ok(subr_ty),
+pub fn check_subroutine_type(
+    types: &ty::TypeSet,
+    tyid: ty::TypeID,
+) -> Result<Cow<'_, ty::Subroutine>> {
+    let ty = types.get_through_alias(tyid).expect("invalid type ID");
+    match ty {
+        Cow::Borrowed(ty::Ty::Subroutine(subr_ty)) => Ok(Cow::Borrowed(subr_ty)),
+        Cow::Owned(ty::Ty::Subroutine(subr_ty)) => Ok(Cow::Owned(subr_ty)),
         _ => anyhow::bail!("not a subroutine type (ID: {:?})", tyid),
     }
 }

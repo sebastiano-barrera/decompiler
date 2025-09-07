@@ -345,7 +345,7 @@ impl<'a> Ast<'a> {
             Insn::Call { callee, first_arg } => {
                 let tyid = self.ssa.value_type(callee).unwrap();
                 let ty = self.types.get_through_alias(tyid).unwrap();
-                if let ty::Ty::Unknown(_) = ty {
+                if let ty::Ty::Unknown(_) = &*ty {
                     self.pp_ref(pp, callee, self_prec)?;
                 } else {
                     // Not quite correct (why would we print the type name?) but

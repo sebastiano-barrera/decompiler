@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, sync::Arc};
 
 use smallvec::SmallVec;
 use thiserror::Error;
@@ -35,8 +35,8 @@ pub enum Error {
 /// This is the only public API in `ty`. Data about types can be retrieved and
 /// manipulated via this API.
 pub struct TypeSet {
-    types: HashMap<TypeID, Ty>,
-    name_of_tyid: HashMap<TypeID, String>,
+    types: HashMap<RegularTypeID, Ty>,
+    name_of_tyid: HashMap<RegularTypeID, String>,
     known_objects: HashMap<Addr, TypeID>,
     call_sites: CallSites,
 }
@@ -54,8 +54,8 @@ impl TypeSet {
         name_of_tyid.insert(TypeID::UnknownUnsized, "unknown".to_owned());
 
         TypeSet {
-            types,
-            name_of_tyid,
+            types: HashMap::new(),
+            name_of_tyid: HashMap::new(),
             known_objects: HashMap::new(),
             call_sites: CallSites::new(),
         }
@@ -67,28 +67,43 @@ impl TypeSet {
     pub fn tyid_shared_unknown_unsized(&self) -> TypeID {
         TypeID::UnknownUnsized
     }
-    pub fn tyid_shared_unknown_of_size(&mut self, size: usize) -> TypeID {
-        let tyid = TypeID::Unknown { size };
-        if !self.types.contains_key(&tyid) {
-            self.types
-                .insert(tyid, Ty::Unknown(Unknown { size: Some(size) }));
-            self.set_name(tyid, format!("unknown{}", size));
-        }
-        tyid
+    pub fn tyid_shared_unknown_of_size(&self, size: usize) -> TypeID {
+        TypeID::Unknown { size }
     }
 
     /// Get the name of a type, if it has one.
     ///
     /// Invalid TypeIDs result in None.
     pub fn name(&self, tyid: TypeID) -> Option<&str> {
-        self.name_of_tyid.get(&tyid).map(|s| s.as_str())
+        match tyid {
+            TypeID::Regular(rtyid) => self.name_of_tyid.get(&rtyid).map(|s| s.as_str()),
+            TypeID::Void => Some("void"),
+            TypeID::UnknownUnsized | TypeID::Unknown { size: _ } => Some("?"),
+        }
     }
     /// Set the name of a type.
+    ///
+    /// Has no effect on non-stored types (see [TypeID]).
     pub fn set_name(&mut self, tyid: TypeID, name: String) {
-        self.name_of_tyid.insert(tyid, name);
+        match tyid {
+            TypeID::Regular(rtyid) => {
+                self.name_of_tyid.insert(rtyid, name);
+            }
+            // do nothing; the names for these types is stored in read-only memory
+            TypeID::Void | TypeID::UnknownUnsized | TypeID::Unknown { .. } => {}
+        };
     }
+    /// Removes a custom name on a type, as previously set by [`Self:set_name`]
+    ///
+    /// Has no effect on non-stored types (see [TypeID]).
     pub fn unset_name(&mut self, tyid: TypeID) {
-        self.name_of_tyid.remove(&tyid);
+        match tyid {
+            TypeID::Regular(rtyid) => {
+                self.name_of_tyid.remove(&rtyid);
+            }
+            // do nothing; the names for these types is stored in read-only memory
+            TypeID::Void | TypeID::UnknownUnsized | TypeID::Unknown { .. } => {}
+        }
     }
 
     /// Add a type to the database using the given TypeID, or change the type it refers to.
@@ -99,8 +114,8 @@ impl TypeSet {
     /// function will return an Error::ReadOnly).
     pub fn set(&mut self, tyid: TypeID, ty: Ty) -> Result<()> {
         match tyid {
-            TypeID::Regular(_) => {
-                self.types.insert(tyid, ty);
+            TypeID::Regular(rtyid) => {
+                self.types.insert(rtyid, ty);
                 Ok(())
             }
             _ => Err(Error::ReadOnly),
@@ -109,14 +124,19 @@ impl TypeSet {
         // it can be removed separately if needed.
     }
 
-    pub fn get(&self, tyid: TypeID) -> Option<&Ty> {
-        self.types.get(&tyid)
+    pub fn get(&self, tyid: TypeID) -> Option<Cow<'_, Ty>> {
+        match tyid {
+            TypeID::Regular(rtyid) => self.types.get(&rtyid).map(Cow::Borrowed),
+            TypeID::Void => Some(Cow::Owned(Ty::Void)),
+            TypeID::UnknownUnsized => Some(Cow::Owned(Ty::Unknown(Unknown { size: None }))),
+            TypeID::Unknown { size } => Some(Cow::Owned(Ty::Unknown(Unknown { size: Some(size) }))),
+        }
     }
 
-    pub fn get_through_alias(&self, mut tyid: TypeID) -> Option<&Ty> {
+    pub fn get_through_alias(&self, mut tyid: TypeID) -> Option<Cow<'_, Ty>> {
         loop {
             let ty = self.get(tyid)?;
-            if let Ty::Alias(target_tyid) = ty {
+            if let Ty::Alias(target_tyid) = &*ty {
                 tyid = *target_tyid;
             } else {
                 return Some(ty);
@@ -124,8 +144,12 @@ impl TypeSet {
         }
     }
 
-    pub fn get_or_create(&mut self, tyid: TypeID, create_fn: impl FnOnce() -> Ty) -> Result<&Ty> {
-        if !self.types.contains_key(&tyid) {
+    pub fn get_or_create(
+        &mut self,
+        tyid: TypeID,
+        create_fn: impl FnOnce() -> Ty,
+    ) -> Result<Cow<'_, Ty>> {
+        if self.get(tyid).is_none() {
             let ty = create_fn();
             self.set(tyid, ty)?;
         }
@@ -136,7 +160,7 @@ impl TypeSet {
 
     pub fn bytes_size(&self, tyid: TypeID) -> Option<usize> {
         let ty = self.get(tyid)?;
-        match ty {
+        match ty.as_ref() {
             Ty::Int(int_ty) => Some(int_ty.size as usize),
             Ty::Bool(Bool { size }) => Some(*size as usize),
             Ty::Float(Float { size }) => Some(*size as usize),
@@ -189,7 +213,7 @@ impl TypeSet {
             return Ok(Selection { tyid, path });
         }
 
-        match ty {
+        match ty.as_ref() {
             Ty::Void
             | Ty::Ptr(_)
             | Ty::Int(_)
@@ -199,7 +223,7 @@ impl TypeSet {
             | Ty::Bool(_) => Err(SelectError::InvalidRange),
             Ty::Unknown(_) => {
                 let sub_tyid = self.tyid_shared_unknown_of_size(byte_range.len());
-                path.push(SelectStep::Unknown);
+                path.push(SelectStep::RawBytes { byte_range });
                 Ok(Selection {
                     tyid: sub_tyid,
                     path,
@@ -263,7 +287,7 @@ impl TypeSet {
 
     pub fn alignment(&self, tyid: TypeID) -> Option<u8> {
         let ty = self.get(tyid)?;
-        match ty {
+        match ty.as_ref() {
             Ty::Int(int_ty) => Some(int_ty.alignment()),
             Ty::Enum(enum_ty) => Some(enum_ty.base_type.alignment()),
             Ty::Ptr(_) => Some(8),
@@ -297,17 +321,18 @@ impl TypeSet {
         writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
 
         // ensure that the iteration always happens in the same order
-        let tyids = {
+        let rtyids = {
             let mut keys: Vec<_> = self.types.keys().collect();
             keys.sort();
             keys
         };
 
-        for &tyid in tyids {
+        for &rtyid in rtyids {
+            let tyid = TypeID::Regular(rtyid);
             let ty = self.get(tyid).unwrap();
-            write!(out, "  <{:?}> = ", tyid)?;
+            write!(out, "  <{:?}> = ", rtyid)?;
             out.open_box();
-            self.dump_type(out, tyid, ty)?;
+            self.dump_type(out, tyid, &*ty)?;
             out.close_box();
             writeln!(out)?;
         }
@@ -318,7 +343,7 @@ impl TypeSet {
         let typ = self.get(tyid).unwrap();
         match self.name(tyid) {
             Some(name) => write!(out, "{} <{:?}>", name, tyid),
-            None => self.dump_type(out, tyid, typ),
+            None => self.dump_type(out, tyid, &*typ),
         }
     }
 
@@ -450,7 +475,7 @@ impl std::fmt::Debug for TypeSet {
 /// - there is no custom syntax to construct an instance
 /// - once created, the instance is not mutable (via the public API)
 /// - there are useful methods, e.g. to shift the interval left
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct ByteRange {
     start: usize,
     end: usize,
@@ -613,7 +638,7 @@ pub type SelectionPath = SmallVec<[SelectStep; 4]>;
 pub enum SelectStep {
     Index { index: usize, element_size: usize },
     Member { name: Arc<String>, size: usize },
-    Unknown,
+    RawBytes { byte_range: ByteRange },
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -685,10 +710,11 @@ mod tests {
         let tyid_void_1 = types.tyid_shared_void();
         let tyid_void_2 = types.tyid_shared_void();
         assert_eq!(tyid_void_1, tyid_void_2);
-        assert_eq!(types.get(tyid_void_1), Some(&Ty::Void));
+        assert_eq!(types.get(tyid_void_1).as_deref(), Some(&Ty::Void));
 
+        // the name is not editable
         types.set_name(tyid_void_1, "whatever".to_string());
-        assert_eq!(types.name(tyid_void_1), Some("whatever"));
+        assert_eq!(types.name(tyid_void_1), Some("void"));
     }
 
     #[test]
@@ -699,12 +725,13 @@ mod tests {
         let tyid_unk_2 = types.tyid_shared_unknown_unsized();
         assert_eq!(tyid_unk_1, tyid_unk_2);
         assert_eq!(
-            types.get(tyid_unk_1),
+            types.get(tyid_unk_1).as_deref(),
             Some(&Ty::Unknown(Unknown { size: None }))
         );
 
+        // the name is not editable
         types.set_name(tyid_unk_1, "whatever".to_string());
-        assert_eq!(types.name(tyid_unk_1), Some("whatever"));
+        assert_eq!(types.name(tyid_unk_1), Some("?"));
     }
 
     #[test]
@@ -719,10 +746,11 @@ mod tests {
 
         for (size, tyid) in SIZES.iter().zip(tyids) {
             let ty = types.get(tyid).unwrap();
-            assert_eq!(ty, &Ty::Unknown(Unknown { size: Some(*size) }));
+            assert_eq!(ty.as_ref(), &Ty::Unknown(Unknown { size: Some(*size) }));
 
+            // the name is not editable
             types.set_name(tyid, "whatever".to_string());
-            assert_eq!(types.name(tyid), Some("whatever"));
+            assert_eq!(types.name(tyid), Some("?"));
         }
     }
     #[test]

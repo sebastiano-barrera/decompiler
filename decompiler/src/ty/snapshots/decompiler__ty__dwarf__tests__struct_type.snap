@@ -2,28 +2,26 @@
 source: decompiler/src/ty/dwarf.rs
 expression: types
 ---
-TypeSet (14 types) = {
-  <Regular(39)> = "point_init" func (p *point <Regular(182)>) void <Void>
-  <Regular(61)> = "join" func (a *point <Regular(182)>,
-                               b *point <Regular(182)>) void <Void>
-  <Regular(93)> = "list_len" func (p point <Regular(182)>) int <Regular(173)>
-  <Regular(139)> = "name_list_len" func (cur name_item <Regular(228)>) int <Regular(173)>
-  <Regular(173)> = "int" i32
-  <Regular(177)> = *point <Regular(182)>
-  <Regular(182)> = "point" struct {
-                       @  0 x float <Regular(224)>
-                       @  4 y float <Regular(224)>
-                       @  8 prev *point <Regular(182)>
-                       @ 16 next *point <Regular(182)>
-                   }
-  <Regular(224)> = "float" float32
-  <Regular(228)> = "name_item" struct {
-                       @  0 name *char <Regular(257)>
-                       @  8 next *name_item <Regular(228)>
-                   }
-  <Regular(252)> = *char <Regular(257)>
-  <Regular(257)> = "char" i8
-  <Regular(261)> = *name_item <Regular(228)>
-  <Void> = "void" void
-  <UnknownUnsized> = "unknown" ?
+TypeSet (12 types) = {
+  <39> = "point_init" func (p *point <Regular(182)>) void <Void>
+  <61> = "join" func (a *point <Regular(182)>,
+                      b *point <Regular(182)>) void <Void>
+  <93> = "list_len" func (p point <Regular(182)>) int <Regular(173)>
+  <139> = "name_list_len" func (cur name_item <Regular(228)>) int <Regular(173)>
+  <173> = "int" i32
+  <177> = *point <Regular(182)>
+  <182> = "point" struct {
+              @  0 x float <Regular(224)>
+              @  4 y float <Regular(224)>
+              @  8 prev *point <Regular(182)>
+              @ 16 next *point <Regular(182)>
+          }
+  <224> = "float" float32
+  <228> = "name_item" struct {
+              @  0 name *char <Regular(257)>
+              @  8 next *name_item <Regular(228)>
+          }
+  <252> = *char <Regular(257)>
+  <257> = "char" i8
+  <261> = *name_item <Regular(228)>
 }

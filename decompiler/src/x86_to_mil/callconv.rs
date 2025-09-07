@@ -37,7 +37,7 @@ pub fn unpack_params(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match bld.types.get(ret_tyid).unwrap() {
+    match &*bld.types.get(ret_tyid).unwrap() {
         // we're fine, just let's go
         ty::Ty::Void => {}
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
@@ -198,10 +198,9 @@ fn unpack_param(
 
 #[instrument(skip_all)]
 pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
-    let ret_ty = &bld.types.get(ret_tyid).unwrap();
-
+    let ret_ty = &*bld.types.get(ret_tyid).unwrap();
     let ret_val = bld.tmp_gen();
-    match ret_ty {
+    match &*ret_ty {
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
         }
@@ -349,7 +348,7 @@ pub fn pack_params(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match bld.types.get(ret_tyid).unwrap() {
+    match &*bld.types.get(ret_tyid).unwrap() {
         // we're fine, just let's go
         ty::Ty::Void => {}
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
@@ -498,7 +497,7 @@ pub fn unpack_return_value(
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
-    match bld.types.get(ret_tyid).unwrap() {
+    match &*bld.types.get(ret_tyid).unwrap() {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown(_) => {
@@ -682,9 +681,9 @@ fn classify_eightbytes(
     tyid: ty::TypeID,
     offset: usize,
 ) -> anyhow::Result<()> {
-    let ty = &types.get(tyid).unwrap();
+    let ty = types.get(tyid).unwrap();
 
-    if let ty::Ty::Alias(ref_tyid) = ty {
+    if let ty::Ty::Alias(ref_tyid) = &*ty {
         return classify_eightbytes(eb_set, types, *ref_tyid, offset);
     }
 
@@ -702,7 +701,7 @@ fn classify_eightbytes(
         return Ok(());
     }
 
-    match ty {
+    match &*ty {
         ty::Ty::Int(_) | ty::Ty::Bool(_) | ty::Ty::Ptr(_) | ty::Ty::Enum(_) => {
             let (eb_first_ndx, eb_last_ndx) = eightbytes_range(offset, sz);
             // should only fail for unaligned types, which we've already excluded

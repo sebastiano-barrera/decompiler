@@ -450,35 +450,33 @@ fn apply_type_selection(
         };
 
     let mut final_reg = src;
-    for step in path {
-        match step {
+    for (step_ndx, step) in path.into_iter().enumerate() {
+        let insn = match step {
             ty::SelectStep::Index {
                 index,
                 element_size,
-            } => {
-                final_reg = prog.insert(
-                    bid,
-                    ndx_in_block,
-                    Insn::ArrayGetElement {
-                        array: final_reg,
-                        index: index.try_into().unwrap(),
-                        size: element_size.try_into().unwrap(),
-                    },
-                );
-            }
+            } => Insn::ArrayGetElement {
+                array: final_reg,
+                index: index.try_into().unwrap(),
+                size: element_size.try_into().unwrap(),
+            },
             ty::SelectStep::Member { name, size } => {
-                final_reg = prog.insert(
-                    bid,
-                    ndx_in_block,
-                    Insn::StructGetMember {
-                        struct_value: final_reg,
-                        // TODO figure out memory managment for this
-                        name: name.to_string().leak(),
-                        size: size.try_into().unwrap(),
-                    },
-                );
+                Insn::StructGetMember {
+                    struct_value: final_reg,
+                    // TODO figure out memory managment for this
+                    name: name.to_string().leak(),
+                    size: size.try_into().unwrap(),
+                }
             }
-        }
+            ty::SelectStep::RawBytes { byte_range } => Insn::Part {
+                src: final_reg,
+                offset: byte_range.lo().try_into().unwrap(),
+                size: byte_range.len().try_into().unwrap(),
+            },
+        };
+
+        let step_ndx: u16 = step_ndx.try_into().unwrap();
+        final_reg = prog.insert(bid, ndx_in_block + step_ndx, insn);
     }
 
     Insn::Get(final_reg)
