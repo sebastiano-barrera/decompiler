@@ -154,14 +154,15 @@ impl<'a> Executable<'a> {
                 .map(|err| Error::FrontendError(err.to_string())),
         );
 
-        let mut ssa =
-            match std::panic::catch_unwind(|| ssa::mil_to_ssa(ssa::ConversionParams::new(mil))) {
-                Ok(p) => p,
-                Err(err) => {
-                    df.error = Some(Error::SSAError(panic_message(err)));
-                    return Ok(df);
-                }
-            };
+        let mut ssa = match std::panic::catch_unwind(|| {
+            ssa::modname::mil_to_ssa(ssa::modname::ConversionParams::new(mil))
+        }) {
+            Ok(p) => p,
+            Err(err) => {
+                df.error = Some(Error::SSAError(panic_message(err)));
+                return Ok(df);
+            }
+        };
         ssa::eliminate_dead_code(&mut ssa);
         df.ssa_pre_xform = Some(ssa.clone());
 

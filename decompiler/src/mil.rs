@@ -15,17 +15,12 @@ use crate::ty;
 ///  - a corresponding address in the original machine code (`u64`).
 ///
 /// By convention, the entry point of the program is always at index 0.
-#[derive(Clone)]
 pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    dest_tyids: Vec<Cell<ty::TypeID>>,
     reg_count: Index,
-
-    // Not sure about the Arc here.  Very likely that it's going to have to
-    // change when I do the GUI layer.
-    types: Arc<ty::TypeSet>,
+    ancestral_tyids: HashMap<AncestralName, ty::TypeID>,
 
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
@@ -33,7 +28,23 @@ pub struct Program {
     #[allow(dead_code)]
     mil_of_input_addr: HashMap<u64, Index>,
 
-    anc_types: HashMap<AncestralName, RegType>,
+    /// Address that will be associated to all instructions emitted until the
+    /// next call to `set_input_addr`.
+    cur_input_addr: u64,
+
+    /// Generator of temporary registers.
+    ///
+    /// The generated registers are always numerically >= `first_tmp`.
+    ///
+    /// The generator can be reset to start again from `first_tmp`, which is
+    /// supposed to happen at the start of each ASM instruction (compilation of
+    /// distinct assembly instruction should never communicate via temporary
+    /// registers).
+    reg_gen: RegGen,
+
+    /// Number of instructions that have already been checked for correct
+    /// use-after-init. See `check_use_after_init`.
+    init_checked_count: usize,
 }
 
 /// Register ID
@@ -339,7 +350,6 @@ impl std::fmt::Debug for Program {
         for ndx in 0..len {
             let insn = self.insns[ndx].get();
             let dest = self.dests[ndx].get();
-            let dest_tyid = self.dest_tyids[ndx].get();
             let addr = self.addrs[ndx];
 
             if last_addr != addr {
@@ -347,7 +357,6 @@ impl std::fmt::Debug for Program {
                 last_addr = addr;
             }
             write!(f, "{:5} {:?}", ndx, dest,)?;
-            write!(f, ": {:?}", dest_tyid)?;
             writeln!(f, " <- {:?}", insn)?;
         }
         Ok(())
@@ -355,116 +364,35 @@ impl std::fmt::Debug for Program {
 }
 
 impl Program {
-    #[inline(always)]
-    pub fn get(&self, ndx: Index) -> Option<InsnView<'_>> {
-        let index = ndx;
-        let ndx = ndx as usize;
-        // if this  slot is enabled as per the mask, then every Vec access must succeed
-        let insn = &self.insns[ndx];
-        let dest = &self.dests[ndx];
-        let dest_tyid = &self.dest_tyids[ndx];
-        let addr = self.addrs[ndx];
-        Some(InsnView {
-            insn,
-            dest,
-            tyid: dest_tyid,
-            index,
-            addr,
-        })
-    }
-
-    #[inline(always)]
-    pub fn reg_count(&self) -> Index {
-        self.reg_count
-    }
-
-    #[inline(always)]
-    pub fn len(&self) -> Index {
-        self.insns.len().try_into().unwrap()
-    }
-
-    #[inline(always)]
-    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView<'_>> {
-        (0..self.len()).filter_map(|ndx| self.get(ndx))
-    }
-
-    pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
-        let index = self.insns.len().try_into().unwrap();
-        self.insns.push(Cell::new(insn));
-        self.dests.push(Cell::new(dest));
-        self.dest_tyids
-            .push(Cell::new(self.types.tyid_shared_unknown_unsized()));
-        self.addrs.push(u64::MAX);
-        index
-    }
-
-    pub fn push_new(&mut self, insn: Insn) -> Index {
-        let dest = Reg(self.len());
-        let ndx = self.push(dest, insn);
-        assert_eq!(Reg(ndx), dest);
-        ndx
-    }
-
-    pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<RegType> {
-        self.anc_types.get(&anc_name).copied()
-    }
-
-    pub fn types(&self) -> &ty::TypeSet {
-        &self.types
-    }
-}
-
-pub struct InsnView<'a> {
-    pub insn: &'a Cell<Insn>,
-    pub tyid: &'a Cell<ty::TypeID>,
-    pub dest: &'a Cell<Reg>,
-    pub index: Index,
-    pub addr: u64,
-}
-
-// will be mostly useful to keep origin info later
-pub struct ProgramBuilder {
-    insns: Vec<Cell<Insn>>,
-    dests: Vec<Cell<Reg>>,
-    addrs: Vec<u64>,
-    dest_ty: Vec<Cell<ty::TypeID>>,
-    cur_input_addr: u64,
-    anc_types: HashMap<AncestralName, RegType>,
-    types: Arc<ty::TypeSet>,
-
-    reg_gen: RegGen,
-    // Number of instructions that have already been checked for correct
-    // use-after-init. See `check_use_after_init`.
-    init_checked_count: usize,
-}
-
-impl ProgramBuilder {
-    pub fn new(lowest_tmp: Reg, types: Arc<ty::TypeSet>) -> Self {
+    pub fn new(lowest_tmp: Reg) -> Self {
         Self {
             insns: Vec::new(),
             dests: Vec::new(),
             addrs: Vec::new(),
-            dest_ty: Vec::new(),
             cur_input_addr: 0,
-            anc_types: HashMap::new(),
-            types,
-
+            ancestral_tyids: HashMap::new(),
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
+            reg_count: 0,
+            mil_of_input_addr: HashMap::new(),
         }
     }
 
-    pub fn types(&self) -> &Arc<ty::TypeSet> {
-        &self.types
-    }
-
+    /// Generate a new temporary register.
+    ///
+    /// Call `tmp_reset()` to reset the generator after finishing compilation of
+    /// a single assembly instruction.
     pub fn tmp_gen(&mut self) -> Reg {
         self.reg_gen.next()
     }
+    /// Reset the temporary register generator, so that the next call to
+    /// `tmp_gen()` returns the first temporary register again (parameter `lowest_tmp` of
+    /// [`Self::new`]).
     pub fn tmp_reset(&mut self) {
         self.reg_gen.reset();
         self.check_use_after_init();
     }
+
     /// Check that all used temporary registers have been initialized (written)
     /// before use.
     ///
@@ -503,18 +431,25 @@ impl ProgramBuilder {
         self.init_checked_count = ndx_end;
     }
 
-    pub fn push(&mut self, dest: Reg, insn: Insn) -> Reg {
+    /// Push a new instruction to the program, associating it to the given
+    /// destination register.
+    ///
+    /// The instruction must not be a Phi node (these are only allowed to be
+    /// introduced during conversion to SSA).
+    pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
         assert!(!matches!(insn, Insn::Phi));
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
-        self.dest_ty
-            .push(Cell::new(self.types.tyid_shared_unknown_unsized()));
-        dest
+        self.len() - 1
     }
 
-    pub fn set_ancestral_regtype(&mut self, anc_name: AncestralName, typ: RegType) {
-        let prev = self.anc_types.insert(anc_name, typ);
+    /// Associate the given type ID to the given ancestral name.
+    ///
+    /// It's forbidden to call this function twice with the same ancestral name.
+    /// (Panics on violation of this rule.)
+    pub fn set_ancestral_tyid(&mut self, anc_name: AncestralName, tyid: ty::TypeID) {
+        let prev = self.ancestral_tyids.insert(anc_name, tyid);
         assert!(
             prev.is_none(),
             "type assigned multiple times to same ancestral: {:?}",
@@ -531,100 +466,114 @@ impl ProgramBuilder {
         self.cur_input_addr = addr;
     }
 
-    /// Associate the given type ID to the given register.
-    ///
-    /// The type ID is associated to the last instruction that assigned the
-    /// register. Panics if this instruction can't be located (it's a user bug)
-    pub fn set_type(&mut self, reg: Reg, tyid: ty::TypeID) {
-        let (ndx, _) = self
-            .dests
-            .iter()
-            .enumerate()
-            .rev()
-            .find(|(_, dest)| dest.get() == reg)
-            .expect("no instruction writes to the given register");
-
-        self.dest_ty[ndx].set(tyid);
+    pub fn assert_invariants(&self) {
+        assert_eq!(self.init_checked_count, self.dests.len(), "Not all instructions have been checked for use-after-init. Call tmp_reset() at the end of each assembly instruction.");
+        assert_eq!(self.dests.len(), self.insns.len());
+        assert_eq!(self.dests.len(), self.addrs.len());
     }
 
-    pub fn build(mut self) -> Program {
-        self.check_use_after_init();
-        assert_eq!(self.init_checked_count, self.dests.len());
+    pub fn convert_jmp_ext_to_int(&mut self) {
+        // mil::Index (in this MIL code) corresponding to each machine code address
+        let index_of_mcode_addr = self.map_index_of_mcode_addr();
 
-        let Self {
-            insns,
-            dests,
-            addrs,
-            dest_ty,
-            types,
-            ..
-        } = self;
-
-        assert_eq!(dests.len(), insns.len());
-        assert_eq!(dests.len(), addrs.len());
-        assert_eq!(dests.len(), dest_ty.len());
-
-        // addrs is input addr of mil addr;
-        // we also need mil addr of input addr to resolve jumps
-        let mil_of_input_addr = {
-            let mut map: HashMap<u64, Index> = HashMap::new();
-            let mut last_addr = u64::MAX;
-            for (ndx, &addr) in addrs.iter().enumerate() {
-                if addr != last_addr {
-                    let ndx = ndx.try_into().unwrap();
-                    map.insert(addr, ndx);
-                    last_addr = addr;
-                }
-            }
-            map
-        };
-
-        for insn in &insns {
+        for insn in &self.insns {
             match insn.get() {
                 Insn::Control(Control::JmpExt(addr)) => {
-                    if let Some(ndx) = mil_of_input_addr.get(&addr) {
+                    if let Some(ndx) = index_of_mcode_addr.get(&addr) {
                         insn.set(Insn::Control(Control::Jmp(*ndx)));
                     }
                 }
                 Insn::Control(Control::JmpExtIf(addr)) => {
-                    if let Some(ndx) = mil_of_input_addr.get(&addr) {
+                    if let Some(ndx) = index_of_mcode_addr.get(&addr) {
                         insn.set(Insn::Control(Control::JmpIf(*ndx)));
                     }
                 }
                 _ => {}
             }
         }
-
-        let reg_count = {
-            let max_dest = dests
-                .iter()
-                .map(|reg| reg.get().reg_index())
-                .max()
-                .unwrap_or(0);
-            let max_input = insns
-                .iter()
-                .flat_map(|insn| {
-                    insn.get()
-                        .input_regs_iter()
-                        .map(|reg| reg.reg_index())
-                        .max()
-                })
-                .max()
-                .unwrap_or(0);
-            1 + max_dest.max(max_input)
-        };
-
-        Program {
-            insns,
-            dests,
-            addrs,
-            dest_tyids: dest_ty,
-            types,
-            reg_count,
-            mil_of_input_addr,
-            anc_types: self.anc_types,
-        }
     }
+
+    fn map_index_of_mcode_addr(&self) -> HashMap<u64, Index> {
+        let mut map = HashMap::new();
+        let mut last_addr = u64::MAX;
+        for (ndx, &addr) in self.addrs.iter().enumerate() {
+            if addr != last_addr {
+                let ndx = ndx.try_into().unwrap();
+                map.insert(addr, ndx);
+                last_addr = addr;
+            }
+        }
+        map
+    }
+
+    /// Return the number of distinct registers used in this program.
+    ///
+    /// This information is not cached. Every call to this function will iterate
+    /// through the code and recompute it.
+    fn count_distinct_regs(&self) -> Index {
+        let max_dest = self
+            .dests
+            .iter()
+            .map(|reg| reg.get().reg_index())
+            .max()
+            .unwrap_or(0);
+        let max_input = self
+            .insns
+            .iter()
+            .flat_map(|insn| {
+                insn.get()
+                    .input_regs_iter()
+                    .map(|reg| reg.reg_index())
+                    .max()
+            })
+            .max()
+            .unwrap_or(0);
+        1 + max_dest.max(max_input)
+    }
+
+    // pub fn build(mut self) -> Program {
+    //     self.assert_invariants();
+    //     self.convert_jmp_ext_to_int();
+    //     self.count_distinct_regs();
+    //     self.cur_input_addr = u64::MAX;
+    // }
+
+    #[inline(always)]
+    pub fn get(&self, ndx: Index) -> Option<InsnView<'_>> {
+        let index = ndx;
+        let ndx = ndx as usize;
+        // if this  slot is enabled as per the mask, then every Vec access must succeed
+        let insn = &self.insns[ndx];
+        let dest = &self.dests[ndx];
+        let addr = self.addrs[ndx];
+        Some(InsnView {
+            insn,
+            dest,
+            index,
+            addr,
+        })
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> Index {
+        self.insns.len().try_into().unwrap()
+    }
+
+    #[inline(always)]
+    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView<'_>> {
+        (0..self.len()).filter_map(|ndx| self.get(ndx))
+    }
+
+    pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<ty::TypeID> {
+        self.ancestral_tyids.get(&anc_name).copied()
+    }
+}
+
+pub struct InsnView<'a> {
+    pub insn: &'a Cell<Insn>,
+    pub dest: &'a Cell<Reg>,
+    pub index: Index,
+    pub addr: u64,
 }
 
 pub struct ExpandedInsn {

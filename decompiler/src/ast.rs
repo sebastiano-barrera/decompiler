@@ -21,8 +21,9 @@ impl<'a> Ast<'a> {
         let rdr_count = ssa::count_readers(ssa);
 
         let is_named = rdr_count.map(|reg, count| {
-            let Some(iv) = ssa.get(reg) else { return false };
-            let insn = iv.insn.get();
+            let Some(insn) = ssa.get(reg) else {
+                return false;
+            };
             // ancestral are as good as r# refs, so never 'name' them / always print inline
             matches!(insn, Insn::Phi)
                 || (*count > 1
@@ -234,8 +235,7 @@ impl<'a> Ast<'a> {
         //  - printing the "toplevel" definition of a named or effectful instruction;
         //  - printing an instruction definition inline as part of the 1 dependent instruction
         // (For this reason, we can't pp_labeled_inputs here)
-        let iv = self.ssa.get(reg).unwrap();
-        let mut insn = iv.insn.get();
+        let mut insn = self.ssa.get(reg).unwrap();
 
         if let Insn::Get(x) = insn {
             return self.pp_def(pp, x, parent_prec);

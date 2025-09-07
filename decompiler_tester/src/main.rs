@@ -2098,8 +2098,8 @@ mod ast_view {
                 Insn::Call { callee, first_arg } => {
                     let callee_type_name = self
                         .ssa
-                        .get(callee)
-                        .and_then(|iv| self.ssa.types().name(iv.tyid.get()))
+                        .value_type(callee)
+                        .and_then(|tyid| self.ssa.types().name(tyid))
                         .map(|s| s.to_string());
                     let mut seq = Seq::new().with_anchor(Anchor::Reg(reg));
 

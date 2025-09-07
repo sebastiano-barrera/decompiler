@@ -27,7 +27,6 @@ pub struct Report {
 #[instrument(skip_all)]
 pub fn unpack_params(
     bld: &mut Builder,
-    types: &ty::TypeSet,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
@@ -38,7 +37,7 @@ pub fn unpack_params(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &types.get(ret_tyid).unwrap() {
+    match bld.types.get(ret_tyid).unwrap() {
         // we're fine, just let's go
         ty::Ty::Void => {}
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
@@ -54,7 +53,7 @@ pub fn unpack_params(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, &bld.types, ret_tyid, 0)?;
             // pass a copy of state: we just want to predict the outcome of
             // pack_return_value, we don't want to actually pull regs yet
             let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
@@ -69,12 +68,12 @@ pub fn unpack_params(
     }
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = &types.get(param_tyid).unwrap();
+        let param_ty = bld.types.get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
 
-        let res = unpack_param(bld, &mut state, types, param_tyid);
+        let res = unpack_param(bld, &mut state, param_tyid);
         match res {
             Result::Err(err) => {
                 event!(
@@ -99,25 +98,20 @@ pub fn unpack_params(
 fn unpack_param(
     bld: &mut Builder,
     state: &mut ParamPassing,
-    types: &ty::TypeSet,
     tyid: ty::TypeID,
 ) -> anyhow::Result<()> {
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, types, tyid, 0)?;
+    classify_eightbytes(&mut eb_set, &bld.types, tyid, 0)?;
 
     let mode = eightbytes_to_pass_mode(eb_set, state);
     // .unwrap(): classify_eightbytes already checks that size is known
-    let sz = types.bytes_size(tyid).unwrap();
+    let sz = bld.types.bytes_size(tyid).unwrap();
 
     let param_anc = state
         .pull_arg()
         .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
     let arg_value = bld.tmp_gen();
-    bld.init_ancestral(arg_value, param_anc, mil::RegType::Bytes(sz as usize));
-
-    let sz = types
-        .bytes_size(tyid)
-        .ok_or_else(|| anyhow!("type has no size?"))?;
+    bld.init_ancestral(arg_value, param_anc, tyid);
 
     match mode {
         PassMode::Regs(regs) => {
@@ -203,12 +197,8 @@ fn unpack_param(
 }
 
 #[instrument(skip_all)]
-pub fn pack_return_value(
-    bld: &mut Builder,
-    types: &ty::TypeSet,
-    ret_tyid: ty::TypeID,
-) -> anyhow::Result<mil::Reg> {
-    let ret_ty = &types.get(ret_tyid).unwrap();
+pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
+    let ret_ty = &bld.types.get(ret_tyid).unwrap();
 
     let ret_val = bld.tmp_gen();
     match ret_ty {
@@ -230,13 +220,13 @@ pub fn pack_return_value(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, &bld.types, ret_tyid, 0)?;
             // for return values, no more than 2 registers should be used; if the type
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
             // .unwrap(): classify_eightbytes already checks that size is known
-            let sz = types.bytes_size(ret_tyid).unwrap();
+            let sz = bld.types.bytes_size(ret_tyid).unwrap();
             assert!(sz > 0);
 
             bld.emit(ret_val, Insn::Void);
@@ -341,10 +331,14 @@ pub fn pack_return_value(
 #[instrument(skip_all)]
 pub fn pack_params(
     bld: &mut Builder,
-    types: &ty::TypeSet,
-    param_types: &[ty::TypeID],
-    ret_tyid: ty::TypeID,
+    subr_tyid: ty::TypeID,
 ) -> anyhow::Result<(Report, Vec<mil::Reg>)> {
+    let Result::Ok(subr_ty) = super::check_subroutine_type(bld.types, subr_tyid) else {
+        return Err(anyhow::anyhow!("could not narrow down to subroutine type"));
+    };
+    let param_types = &subr_ty.param_tyids;
+    let ret_tyid = subr_ty.return_tyid;
+
     let param_count = param_types.len();
 
     let mut report = Report { ok_count: 0 };
@@ -355,7 +349,7 @@ pub fn pack_params(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &types.get(ret_tyid).unwrap() {
+    match bld.types.get(ret_tyid).unwrap() {
         // we're fine, just let's go
         ty::Ty::Void => {}
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
@@ -371,7 +365,7 @@ pub fn pack_params(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.types, ret_tyid, 0)?;
             // pass a copy of state: we just want to predict the outcome of
             // pack_return_value, we don't want to actually pull regs yet
             let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
@@ -386,12 +380,12 @@ pub fn pack_params(
     }
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = &types.get(param_tyid).unwrap();
+        let param_ty = bld.types.get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
 
-        match pack_param(bld, &mut state, types, param_tyid) {
+        match pack_param(bld, &mut state, param_tyid) {
             Result::Ok(param_dest) => {
                 param_regs.push(param_dest);
                 report.ok_count += 1;
@@ -416,15 +410,15 @@ pub fn pack_params(
 fn pack_param(
     bld: &mut Builder,
     state: &mut ParamPassing,
-    types: &ty::TypeSet,
     tyid: ty::TypeID,
 ) -> anyhow::Result<mil::Reg> {
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, types, tyid, 0)?;
+    classify_eightbytes(&mut eb_set, bld.types, tyid, 0)?;
     let mode = eightbytes_to_pass_mode(eb_set, state);
     let arg_value = bld.tmp_gen();
 
-    let sz = types
+    let sz = bld
+        .types
         .bytes_size(tyid)
         .ok_or_else(|| anyhow!("type has no size?"))?;
     let eb_count = sz.div_ceil(8);
@@ -501,11 +495,10 @@ fn pack_param(
 
 pub fn unpack_return_value(
     bld: &mut Builder,
-    types: &ty::TypeSet,
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
-    match &types.get(ret_tyid).unwrap() {
+    match bld.types.get(ret_tyid).unwrap() {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown(_) => {
@@ -523,13 +516,13 @@ pub fn unpack_return_value(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.types, ret_tyid, 0)?;
             // for return values, no more than 2 registers should be used; if the type
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
             // .unwrap(): classify_eightbytes already checks that size is known
-            let sz = types.bytes_size(ret_tyid).unwrap();
+            let sz = bld.types.bytes_size(ret_tyid).unwrap();
             assert!(sz > 0);
 
             match eb_set {

@@ -280,13 +280,13 @@ mod tests {
             bld.push(Reg(6), Insn::SetReturnValue(Reg(5)));
             bld.push(Reg(6), Insn::Control(Control::Ret));
             let program = bld.build();
-            let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
+            let mut program = ssa::modname::mil_to_ssa(ssa::modname::ConversionParams { program });
 
             println!("ssa pre-xform:\n{program:?}");
             xform::canonical(&mut program);
             println!("ssa post-xform:\n{program:?}");
 
-            let insn = program.get(Reg(6)).unwrap().insn.get();
+            let insn = program.get(Reg(6)).unwrap();
             assert_eq!(insn, Insn::SetReturnValue(Reg(1)));
         }
     }
@@ -322,13 +322,13 @@ mod tests {
         bld.push(Reg(7), Insn::SetReturnValue(Reg(6)));
         bld.push(Reg(7), Insn::Control(Control::Ret));
         let program = bld.build();
-        let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
+        let mut program = ssa::modname::mil_to_ssa(ssa::modname::ConversionParams { program });
 
         println!("ssa pre-xform:\n{program:?}");
         xform::canonical(&mut program);
         println!("ssa post-xform:\n{program:?}");
 
-        let ret = program.get(Reg(7)).unwrap().insn.get();
+        let ret = program.get(Reg(7)).unwrap();
         let Insn::SetReturnValue(ret_val) = ret else {
             panic!()
         };
@@ -374,7 +374,7 @@ mod tests {
         bld.push(Reg(7), Insn::SetReturnValue(Reg(6)));
         bld.push(Reg(7), Insn::Control(Control::Ret));
         let program = bld.build();
-        let mut program = ssa::mil_to_ssa(ssa::ConversionParams { program });
+        let mut program = ssa::modname::mil_to_ssa(ssa::modname::ConversionParams { program });
 
         println!("ssa pre-xform:\n{program:?}");
         xform::canonical(&mut program);

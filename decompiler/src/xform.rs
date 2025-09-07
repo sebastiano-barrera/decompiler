@@ -143,8 +143,8 @@ fn fold_subregs(insn: mil::Insn, prog: &ssa::Program) -> Insn {
     let src_sz = prog.reg_type(src).bytes_size().unwrap();
     assert!(end as usize <= src_sz);
 
-    let src = prog.get(src).unwrap();
-    match src.insn.get() {
+    let src_insn = prog.get(src).unwrap();
+    match src_insn {
         Insn::Part {
             src: up_src,
             offset: up_offset,
@@ -388,7 +388,7 @@ fn fold_part_null(insn: mil::Insn, prog: &ssa::Program) -> Insn {
 fn fold_get(mut insn: mil::Insn, prog: &ssa::Program) -> Insn {
     for input in insn.input_regs_iter() {
         loop {
-            let input_def = prog.get(*input).unwrap().insn.get();
+            let input_def = prog.get(*input).unwrap();
             if let Insn::Get(arg) = input_def {
                 *input = arg;
             } else {
@@ -907,7 +907,7 @@ mod tests {
             b.push(Reg(0), Insn::Control(Control::Ret));
             b.build()
         };
-        let mut prog = ssa::mil_to_ssa(ssa::ConversionParams::new(prog));
+        let mut prog = ssa::mil_to_ssa(ssa::modname::ConversionParams::new(prog));
         super::canonical(&mut prog);
         ssa::eliminate_dead_code(&mut prog);
 

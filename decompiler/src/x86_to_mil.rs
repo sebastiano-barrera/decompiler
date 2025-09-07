@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::mil::{self, AncestralName, Control, RegType};
+use crate::mil::{self, AncestralName, Control};
 use crate::ty;
 use crate::util::{ToWarnings, Warnings};
 use iced_x86::{Formatter, IntelFormatter};
@@ -11,76 +9,73 @@ use tracing::{event, instrument, span, Level};
 
 pub mod callconv;
 
-pub struct Builder {
-    pb: mil::ProgramBuilder,
+pub struct Builder<'a> {
+    pb: mil::Program,
+    types: &'a ty::TypeSet,
 }
 
-impl Builder {
-    pub fn new(
-        // this may become a simple &ty::TypeSet and be passed directly to
-        // Self::translate
-        types: Arc<ty::TypeSet>,
-    ) -> Self {
+impl<'a> Builder<'a> {
+    pub fn new(types: &'a mut ty::TypeSet) -> Self {
+        // TODO implement a shared unknown bool
+        let unk_bool = types.tyid_shared_unknown_unsized();
+        let unk8 = types.tyid_shared_unknown_of_size(8);
+        let unk64 = types.tyid_shared_unknown_of_size(64);
+
         let mut bld = Builder {
-            pb: mil::ProgramBuilder::new(Self::R_TMP_FIRST, types),
+            pb: mil::Program::new(Self::R_TMP_FIRST),
+            types,
         };
 
-        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, RegType::Bytes(8));
+        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, unk8);
 
         // ensure all registers are initialized at least once. most of these
-        // instructions (if all goes well, all of them) get "deleted" (masked)
-        // if the program is valid and the decompilation correct.  if not, this
-        // allows the program to still be decompiled into something (albeit,
-        // with some "holes")
+        // instructions get "deleted" (masked) if the program is valid and the
+        // decompilation correct. if not, this allows the program to still be
+        // decompiled into something (albeit, with some "holes")
 
-        bld.init_ancestral(Self::CF, ANC_CF, RegType::Bool);
-        bld.init_ancestral(Self::PF, ANC_PF, RegType::Bool);
-        bld.init_ancestral(Self::AF, ANC_AF, RegType::Bool);
-        bld.init_ancestral(Self::ZF, ANC_ZF, RegType::Bool);
-        bld.init_ancestral(Self::SF, ANC_SF, RegType::Bool);
-        bld.init_ancestral(Self::TF, ANC_TF, RegType::Bool);
-        bld.init_ancestral(Self::IF, ANC_IF, RegType::Bool);
-        bld.init_ancestral(Self::DF, ANC_DF, RegType::Bool);
-        bld.init_ancestral(Self::OF, ANC_OF, RegType::Bool);
-        bld.init_ancestral(Self::RBP, ANC_RBP, RegType::Bytes(8));
-        bld.init_ancestral(Self::RSP, ANC_RSP, RegType::Bytes(8));
-        bld.init_ancestral(Self::RIP, ANC_RIP, RegType::Bytes(8));
-        bld.init_ancestral(Self::RDI, ANC_RDI, RegType::Bytes(8));
-        bld.init_ancestral(Self::RSI, ANC_RSI, RegType::Bytes(8));
-        bld.init_ancestral(Self::RAX, ANC_RAX, RegType::Bytes(8));
-        bld.init_ancestral(Self::RBX, ANC_RBX, RegType::Bytes(8));
-        bld.init_ancestral(Self::RCX, ANC_RCX, RegType::Bytes(8));
-        bld.init_ancestral(Self::RDX, ANC_RDX, RegType::Bytes(8));
-        bld.init_ancestral(Self::R8, ANC_R8, RegType::Bytes(8));
-        bld.init_ancestral(Self::R9, ANC_R9, RegType::Bytes(8));
-        bld.init_ancestral(Self::R10, ANC_R10, RegType::Bytes(8));
-        bld.init_ancestral(Self::R11, ANC_R11, RegType::Bytes(8));
-        bld.init_ancestral(Self::R12, ANC_R12, RegType::Bytes(8));
-        bld.init_ancestral(Self::R13, ANC_R13, RegType::Bytes(8));
-        bld.init_ancestral(Self::R14, ANC_R14, RegType::Bytes(8));
-        bld.init_ancestral(Self::R15, ANC_R15, RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, RegType::Bytes(64));
+        bld.init_ancestral(Self::PF, ANC_PF, unk_bool);
+        bld.init_ancestral(Self::AF, ANC_AF, unk_bool);
+        bld.init_ancestral(Self::ZF, ANC_ZF, unk_bool);
+        bld.init_ancestral(Self::SF, ANC_SF, unk_bool);
+        bld.init_ancestral(Self::TF, ANC_TF, unk_bool);
+        bld.init_ancestral(Self::IF, ANC_IF, unk_bool);
+        bld.init_ancestral(Self::DF, ANC_DF, unk_bool);
+        bld.init_ancestral(Self::OF, ANC_OF, unk_bool);
+        bld.init_ancestral(Self::RBP, ANC_RBP, unk8);
+        bld.init_ancestral(Self::RSP, ANC_RSP, unk8);
+        bld.init_ancestral(Self::RIP, ANC_RIP, unk8);
+        bld.init_ancestral(Self::RDI, ANC_RDI, unk8);
+        bld.init_ancestral(Self::RSI, ANC_RSI, unk8);
+        bld.init_ancestral(Self::RAX, ANC_RAX, unk8);
+        bld.init_ancestral(Self::RBX, ANC_RBX, unk8);
+        bld.init_ancestral(Self::RCX, ANC_RCX, unk8);
+        bld.init_ancestral(Self::RDX, ANC_RDX, unk8);
+        bld.init_ancestral(Self::R8, ANC_R8, unk8);
+        bld.init_ancestral(Self::R9, ANC_R9, unk8);
+        bld.init_ancestral(Self::R10, ANC_R10, unk8);
+        bld.init_ancestral(Self::R11, ANC_R11, unk8);
+        bld.init_ancestral(Self::R12, ANC_R12, unk8);
+        bld.init_ancestral(Self::R13, ANC_R13, unk8);
+        bld.init_ancestral(Self::R14, ANC_R14, unk8);
+        bld.init_ancestral(Self::R15, ANC_R15, unk8);
+        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, unk64);
+        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, unk64);
+        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, unk64);
+        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, unk64);
+        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, unk64);
+        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, unk64);
+        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, unk64);
+        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, unk64);
+        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, unk64);
+        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, unk64);
+        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, unk64);
+        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, unk64);
+        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, unk64);
+        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, unk64);
+        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, unk64);
+        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, unk64);
 
         bld
-    }
-
-    pub fn build(self) -> mil::Program {
-        self.pb.build()
     }
 
     /// Emit an Ancestral instruction for the given AncestralName and assign the
@@ -88,9 +83,9 @@ impl Builder {
     ///
     /// The register is assigned the given RegType. The high-level type is a
     /// corresponding ty::Ty::Unknown.
-    fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
+    fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, tyid: ty::TypeID) {
         self.emit(reg, mil::Insn::Ancestral(anc_name));
-        self.pb.set_ancestral_regtype(anc_name, rt);
+        self.pb.set_ancestral_tyid(anc_name, tyid);
         // TODO requires a fix in ty::TypeSet
         // let tyid = match rt {
         //     RegType::Bytes(sz) => self.pb.types().tyid_shared_unknown_of_size(sz),
@@ -106,25 +101,14 @@ impl Builder {
     /// picked according to the size of the high-level type.
     fn init_ancestral_typed(&mut self, reg: mil::Reg, anc_name: AncestralName, tyid: ty::TypeID) {
         self.emit(reg, mil::Insn::Ancestral(anc_name));
-        self.pb.set_type(reg, tyid);
-        let rt = match self.pb.types().bytes_size(tyid) {
-            Some(sz) => RegType::Bytes(sz),
-            // This could be controversial.
-            //
-            // The current idea here is that if we don't know the size of the
-            // type, we want to prevent any access to the represented storage (Part instructions).
-            //
-            // TODO evaluate/try to implement a RegType::Unknown
-            None => RegType::Bytes(0),
-        };
-        self.pb.set_ancestral_regtype(anc_name, rt);
+        self.pb.set_ancestral_tyid(anc_name, tyid);
     }
 
-    pub fn tmp_gen(&mut self) -> mil::Reg {
+    fn tmp_gen(&mut self) -> mil::Reg {
         self.pb.tmp_gen()
     }
 
-    #[instrument(skip(self, insns), level = "trace")]
+    #[instrument(skip_all, level = "trace")]
     pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
@@ -132,19 +116,13 @@ impl Builder {
     ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
 
-        let types = Arc::clone(self.pb.types());
         let mut formatter = IntelFormatter::new();
         let mut warnings = Warnings::default();
 
         if let Some(func_ty) = func_ty {
             let param_count = func_ty.param_tyids.len();
-            let res = callconv::unpack_params(
-                &mut self,
-                &types,
-                &func_ty.param_tyids,
-                func_ty.return_tyid,
-            )
-            .context("while applying the calling convention for parameters");
+            let res = callconv::unpack_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid)
+                .context("while applying the calling convention for parameters");
 
             match res {
                 Ok(report) => {
@@ -248,7 +226,7 @@ impl Builder {
                     let ret_val = func_ty
                         .ok_or_else(|| anyhow::anyhow!("no function type"))
                         .and_then(|func_ty| {
-                            callconv::pack_return_value(&mut self, &types, func_ty.return_tyid)
+                            callconv::pack_return_value(&mut self, func_ty.return_tyid)
                                 .context("decoding return value")
                         })
                         .or_warn(&mut warnings)
@@ -482,18 +460,19 @@ impl Builder {
                     );
 
                     let v1 = self.tmp_gen();
-                    match self.resolve_call(&insn, &types) {
-                        Some((subr_tyid, subr_ty, param_values)) => {
+                    match self.resolve_call(&insn) {
+                        Some((subr_tyid, param_values)) => {
+                            // .unwrap(): resolve_call() is supposed to check this already
+                            let subr_ty = check_subroutine_type(self.types, subr_tyid).unwrap();
+                            let return_tyid = subr_ty.return_tyid;
+
                             event!(Level::TRACE, ?subr_tyid, ?param_values, "resolved call");
 
-                            self.emit_call(callee, param_values, subr_tyid, v1);
+                            self.emit_call(callee, param_values, v1);
 
-                            if let Err(err) = callconv::unpack_return_value(
-                                &mut self,
-                                &types,
-                                subr_ty.return_tyid,
-                                v1,
-                            ) {
+                            if let Err(err) =
+                                callconv::unpack_return_value(&mut self, return_tyid, v1)
+                            {
                                 event!(Level::ERROR, ?err, "could not unpack return value");
                             }
                         }
@@ -501,12 +480,7 @@ impl Builder {
                             // just a dumb approximation of a likely case
                             event!(Level::ERROR, "call unresolved, using a default fallback");
                             let param_values = vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX];
-                            self.emit_call(
-                                callee,
-                                param_values,
-                                types.tyid_shared_unknown_unsized(),
-                                v1,
-                            );
+                            self.emit_call(callee, param_values, v1);
                             self.emit(v1, mil::Insn::Get(Self::RAX));
                         }
                     }
@@ -736,20 +710,19 @@ impl Builder {
             }
         }
 
-        let mil = self.build();
-        Ok((mil, warnings))
+        Ok((self.pb, warnings))
     }
 
-    fn resolve_call<'t>(
+    fn resolve_call(
         &mut self,
         insn: &iced_x86::Instruction,
-        types: &'t ty::TypeSet,
-    ) -> Option<(ty::TypeID, &'t ty::Subroutine, Vec<mil::Reg>)> {
+    ) -> Option<(ty::TypeID, Vec<mil::Reg>)> {
         let target_tyid = match insn.op0_kind() {
             OpKind::NearBranch64 => {
                 let return_pc = insn.next_ip();
                 let target = insn.near_branch_target();
-                types.resolve_call(ty::CallSiteKey { return_pc, target })
+                self.types
+                    .resolve_call(ty::CallSiteKey { return_pc, target })
             }
             _ => None,
         };
@@ -758,19 +731,7 @@ impl Builder {
             return None;
         };
 
-        let subr_ty = match check_subroutine_type(types, subr_tyid) {
-            Ok(subr_ty) => subr_ty,
-            Err(err) => {
-                event!(
-                    Level::ERROR,
-                    ?err,
-                    "could not narrow down to subroutine type"
-                );
-                return None;
-            }
-        };
-
-        let param_values = match self.pack_params(&types, subr_ty) {
+        let param_values = match self.pack_params(subr_tyid) {
             Ok(params) => params,
             Err(err) => {
                 event!(Level::ERROR, ?err, "could not pack params");
@@ -778,16 +739,10 @@ impl Builder {
             }
         };
 
-        Some((subr_tyid, subr_ty, param_values))
+        Some((subr_tyid, param_values))
     }
 
-    fn emit_call(
-        &mut self,
-        callee: mil::Reg,
-        param_values: Vec<mil::Reg>,
-        target_tyid: ty::TypeID,
-        ret_reg: mil::Reg,
-    ) {
+    fn emit_call(&mut self, callee: mil::Reg, param_values: Vec<mil::Reg>, ret_reg: mil::Reg) {
         let first_arg = if param_values.is_empty() {
             None
         } else {
@@ -802,7 +757,6 @@ impl Builder {
             }
             Some(ret_reg)
         };
-        self.pb.set_type(callee, target_tyid);
         self.emit(ret_reg, mil::Insn::Call { callee, first_arg });
         self.reset_all_flags();
     }
@@ -819,14 +773,9 @@ impl Builder {
         self.emit(Self::OF, mil::Insn::UndefinedBool);
     }
 
-    fn pack_params(
-        &mut self,
-        types: &ty::TypeSet,
-        subr_ty: &ty::Subroutine,
-    ) -> Result<Vec<mil::Reg>> {
+    fn pack_params(&mut self, subr_tyid: ty::TypeID) -> Result<Vec<mil::Reg>> {
         let (_report, param_values) =
-            callconv::pack_params(self, types, &subr_ty.param_tyids, subr_ty.return_tyid)
-                .context("while applying calling convention")?;
+            callconv::pack_params(self, subr_tyid).context("while applying calling convention")?;
         assert_eq!(_report.ok_count, param_values.len());
         Ok(param_values)
     }
@@ -1507,7 +1456,8 @@ impl Builder {
     }
 
     fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
-        self.pb.push(dest, insn)
+        self.pb.push(dest, insn);
+        dest
     }
 }
 
