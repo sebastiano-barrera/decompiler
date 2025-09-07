@@ -7,7 +7,7 @@ use iced_x86::{Formatter, IntelFormatter};
 use iced_x86::{OpKind, Register};
 
 use anyhow::{Context as _, Result};
-use tracing::{event, span, Level};
+use tracing::{event, instrument, span, Level};
 
 pub mod callconv;
 
@@ -83,15 +83,48 @@ impl Builder {
         self.pb.build()
     }
 
+    /// Emit an Ancestral instruction for the given AncestralName and assign the
+    /// result to register to `reg`.
+    ///
+    /// The register is assigned the given RegType. The high-level type is a
+    /// corresponding ty::Ty::Unknown.
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: RegType) {
         self.emit(reg, mil::Insn::Ancestral(anc_name));
-        self.pb.set_ancestral_type(anc_name, rt);
+        self.pb.set_ancestral_regtype(anc_name, rt);
+        // TODO requires a fix in ty::TypeSet
+        // let tyid = match rt {
+        //     RegType::Bytes(sz) => self.pb.types().tyid_shared_unknown_of_size(sz),
+        //     RegType::Bool | RegType::Effect => self.pb.types().tyid_shared_unknown_unsized(),
+        // };
+        // self.pb.set_type(reg, tyid);
+    }
+
+    /// Emit an Ancestral instruction for the given AncestralName and assign the
+    /// result to register to `reg`.
+    ///
+    /// The register is assigned the given high-level type. The RegType is
+    /// picked according to the size of the high-level type.
+    fn init_ancestral_typed(&mut self, reg: mil::Reg, anc_name: AncestralName, tyid: ty::TypeID) {
+        self.emit(reg, mil::Insn::Ancestral(anc_name));
+        self.pb.set_type(reg, tyid);
+        let rt = match self.pb.types().bytes_size(tyid) {
+            Some(sz) => RegType::Bytes(sz),
+            // This could be controversial.
+            //
+            // The current idea here is that if we don't know the size of the
+            // type, we want to prevent any access to the represented storage (Part instructions).
+            //
+            // TODO evaluate/try to implement a RegType::Unknown
+            None => RegType::Bytes(0),
+        };
+        self.pb.set_ancestral_regtype(anc_name, rt);
     }
 
     pub fn tmp_gen(&mut self) -> mil::Reg {
         self.pb.tmp_gen()
     }
 
+    #[instrument(skip(self, insns), level = "trace")]
     pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,

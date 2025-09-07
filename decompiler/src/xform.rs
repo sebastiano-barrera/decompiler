@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use tracing::{event, Level};
+
 use crate::{
     mil::{self, ArithOp, Insn, RegType},
-    ssa, x86_to_mil,
+    ssa, ty, x86_to_mil,
 };
 
 mod mem;
@@ -405,6 +407,60 @@ fn fold_part_void(insn: Insn) -> Insn {
     insn
 }
 
+fn apply_type_selection(insn: mil::Insn, prog: &mut ssa::OpenProgram) -> Insn {
+    let Insn::Part { src, offset, size } = insn else {
+        return insn;
+    };
+
+    let offset = offset as usize;
+    let size = size as usize;
+
+    let src_tyid = prog.value_type(src);
+    let ty::Selection { tyid: _, path } = match prog
+        .types()
+        .select(src_tyid, ty::ByteRange::new(offset, offset + size))
+    {
+        Ok(part_tyid) => part_tyid,
+        Err(err) => {
+            event!(
+                Level::INFO,
+                ?src_tyid,
+                ?offset,
+                ?size,
+                ?err,
+                "unable to select in type"
+            );
+            return insn;
+        }
+    };
+
+    let mut final_reg = src;
+    for step in path {
+        match step {
+            ty::SelectStep::Index {
+                index,
+                element_size,
+            } => {
+                final_reg = prog.insert_later(Insn::ArrayGetElement {
+                    array: final_reg,
+                    index: index.try_into().unwrap(),
+                    size: element_size.try_into().unwrap(),
+                });
+            }
+            ty::SelectStep::Member { name, size } => {
+                final_reg = prog.insert_later(Insn::StructGetMember {
+                    struct_value: final_reg,
+                    // TODO figure out memory managment for this
+                    name: name.to_string().leak(),
+                    size: size.try_into().unwrap(),
+                });
+            }
+        }
+    }
+
+    Insn::Get(final_reg)
+}
+
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 pub fn canonical(prog: &mut ssa::Program) {
     prog.assert_invariants();
@@ -459,12 +515,12 @@ pub fn canonical(prog: &mut ssa::Program) {
                 insn = fold_widen_const(insn, &prog);
                 insn = fold_bitops(insn, &prog);
                 insn = fold_constants(insn, &mut prog);
+                insn = apply_type_selection(insn, &mut prog);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
                     insn = deduper.try_dedup(reg, insn);
                 }
-                // insn = apply_type_selection(&mut prog);
                 prog[reg].set(insn);
 
                 let final_has_fx = insn.has_side_effects();
@@ -633,8 +689,8 @@ mod tests {
             }
             fn gen_prog(vp: VariantParams) -> mil::Program {
                 let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.anc_a_sz as usize));
-                b.set_ancestral_type(ANC_B, mil::RegType::Bytes(vp.anc_b_sz as usize));
+                b.set_ancestral_regtype(ANC_A, mil::RegType::Bytes(vp.anc_a_sz as usize));
+                b.set_ancestral_regtype(ANC_B, mil::RegType::Bytes(vp.anc_b_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
                 b.push(Reg(1), Insn::Ancestral(ANC_B));
                 b.push(
@@ -757,7 +813,7 @@ mod tests {
 
             fn gen_prog(vp: VariantParams) -> mil::Program {
                 let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-                b.set_ancestral_type(ANC_A, mil::RegType::Bytes(vp.src_sz as usize));
+                b.set_ancestral_regtype(ANC_A, mil::RegType::Bytes(vp.src_sz as usize));
                 b.push(Reg(0), Insn::Ancestral(ANC_A));
                 b.push(
                     Reg(1),

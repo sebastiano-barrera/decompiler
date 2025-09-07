@@ -175,6 +175,7 @@ impl Program {
                 .ancestor_type(anc_name)
                 .expect("ancestor has no defined type"),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
+            Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
         }
     }
 

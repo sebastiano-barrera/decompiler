@@ -114,6 +114,13 @@ pub enum Insn {
         // larger size are definitely possible
         size: u32,
     },
+    #[assoc(input_regs = array([_array]))]
+    ArrayGetElement {
+        array: Reg,
+        index: u32,
+        size: u32,
+    },
+
     #[assoc(input_regs = array([_reg]))]
     Widen {
         reg: Reg,
@@ -506,7 +513,7 @@ impl ProgramBuilder {
         dest
     }
 
-    pub fn set_ancestral_type(&mut self, anc_name: AncestralName, typ: RegType) {
+    pub fn set_ancestral_regtype(&mut self, anc_name: AncestralName, typ: RegType) {
         let prev = self.anc_types.insert(anc_name, typ);
         assert!(
             prev.is_none(),

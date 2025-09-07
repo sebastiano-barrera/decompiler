@@ -280,6 +280,14 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, struct_value, self_prec)?;
                 write!(pp, ".{}", name)?;
             }
+            Insn::ArrayGetElement {
+                array,
+                index,
+                size: _,
+            } => {
+                self.pp_ref(pp, array, self_prec)?;
+                write!(pp, "[{}]", index)?;
+            }
             Insn::Part { src, offset, size } => {
                 self.pp_ref(pp, src, self_prec)?;
                 // syntax is [end..start] because it's more intuitive with concatenation, e.g.:
@@ -547,6 +555,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::Ancestral(_)
         | Insn::Phi
         | Insn::StructGetMember { .. }
+        | Insn::ArrayGetElement { .. }
         | Insn::LoadMem { .. } => 255,
 
         Insn::Part { .. } => 254,

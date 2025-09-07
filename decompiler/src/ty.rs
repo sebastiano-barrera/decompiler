@@ -176,9 +176,11 @@ impl TypeSet {
         byte_range: ByteRange,
         mut path: SelectionPath,
     ) -> std::result::Result<Selection, SelectError> {
-        assert!(!byte_range.is_empty());
-        let ty = self.get(tyid).unwrap();
+        if byte_range.is_empty() {
+            return Err(SelectError::InvalidRange);
+        }
 
+        let ty = self.get(tyid).unwrap();
         let size = self.bytes_size(tyid).unwrap_or(0) as usize;
 
         if byte_range.end > size {
@@ -213,7 +215,10 @@ impl TypeSet {
                 });
 
                 if let Some(member) = member {
-                    path.push(SelectStep::Member(Arc::clone(&member.name)));
+                    path.push(SelectStep::Member {
+                        name: Arc::clone(&member.name),
+                        size,
+                    });
                     let memb_range = byte_range.shift_left(member.offset);
                     return self.select_from(member.tyid, memb_range, path);
                 } else {
@@ -228,9 +233,12 @@ impl TypeSet {
                 if byte_range.start % element_size == 0
                     && byte_range.end - byte_range.start == element_size
                 {
-                    let ndx = byte_range.start / element_size;
-                    let element_range = byte_range.shift_left(element_size * ndx);
-                    path.push(SelectStep::Index(ndx));
+                    let index = byte_range.start / element_size;
+                    let element_range = byte_range.shift_left(element_size * index);
+                    path.push(SelectStep::Index {
+                        index,
+                        element_size,
+                    });
                     return self.select_from(array_ty.element_tyid, element_range, path);
                 } else {
                     return Err(SelectError::RangeCrossesBoundaries);
@@ -598,17 +606,8 @@ pub type SelectionPath = SmallVec<[SelectStep; 4]>;
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum SelectStep {
-    Index(usize),
-    Member(Arc<String>),
-}
-impl SelectStep {
-    #[allow(dead_code)]
-    fn as_str(&self) -> Option<&str> {
-        match self {
-            SelectStep::Index(_) => None,
-            SelectStep::Member(name) => Some(name.as_str()),
-        }
-    }
+    Index { index: usize, element_size: usize },
+    Member { name: Arc<String>, size: usize },
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -776,7 +775,14 @@ mod tests {
             let s = types.select(tyid_point, ByteRange::new(0, 4)).unwrap();
             assert_eq!(s.tyid, tyid_i32);
             assert_eq!(s.path.len(), 1);
-            assert_eq!(s.path[0].as_str(), Some("x"));
+            let SelectStep::Member {
+                name: member_name,
+                size: _,
+            } = &s.path[0]
+            else {
+                panic!()
+            };
+            assert_eq!(member_name.as_str(), "x");
         }
 
         for byte_range in [
@@ -796,7 +802,14 @@ mod tests {
             let s = types.select(tyid_point, ByteRange::new(12, 13)).unwrap();
             assert_eq!(s.tyid, tyid_i8);
             assert_eq!(s.path.len(), 1);
-            assert_eq!(s.path[0].as_str(), Some("cost"));
+            let SelectStep::Member {
+                name: member_name,
+                size: _,
+            } = &s.path[0]
+            else {
+                panic!()
+            };
+            assert_eq!(member_name.as_str(), "cost");
         }
 
         for byte_range in [(ByteRange::new(23, 25)), (ByteRange::new(24, 25))] {

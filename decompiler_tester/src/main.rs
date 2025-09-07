@@ -2011,6 +2011,11 @@ mod ast_view {
                     .with_child(self.transform_value_use(struct_value, prec))
                     .with_child(mk_kw(format!(".{}", name).into()))
                     .into(),
+                Insn::ArrayGetElement { array, index, size } => Seq::new()
+                    .with_anchor(Anchor::Reg(reg))
+                    .with_child(self.transform_value_use(array, prec))
+                    .with_child(mk_kw(format!("[{}]", index).into()))
+                    .into(),
 
                 Insn::Widen {
                     reg,
@@ -2155,6 +2160,7 @@ mod ast_view {
 
         /// Returns a static string name for a given SSA instruction opcode.
         fn opcode_name(insn: &Insn) -> &'static str {
+            // TODO use facet for this!
             match insn {
                 Insn::Void => "Void",
                 Insn::True => "True",
@@ -2164,6 +2170,7 @@ mod ast_view {
                 Insn::Part { .. } => "Part",
                 Insn::Concat { .. } => "Concat",
                 Insn::StructGetMember { .. } => "StructGetMember",
+                Insn::ArrayGetElement { .. } => "ArrayGetElement",
                 Insn::Widen { .. } => "Widen",
                 Insn::Arith(_, _, _) => "Arith",
                 Insn::ArithK(_, _, _) => "ArithK",
