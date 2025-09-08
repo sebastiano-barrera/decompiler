@@ -10,6 +10,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Ast<'a> {
     ssa: &'a ssa::Program,
+    types: &'a ty::TypeSet,
     printed: HashSet<Reg>,
     is_named: ssa::RegMap<bool>,
 
@@ -17,7 +18,7 @@ pub struct Ast<'a> {
 }
 
 impl<'a> Ast<'a> {
-    pub fn new(ssa: &'a ssa::Program) -> Self {
+    pub fn new(ssa: &'a ssa::Program, types: &'a ty::TypeSet) -> Self {
         let rdr_count = ssa::count_readers(ssa);
 
         let is_named = rdr_count.map(|reg, count| {
@@ -34,6 +35,7 @@ impl<'a> Ast<'a> {
 
         Ast {
             ssa,
+            types,
             printed: HashSet::new(),
             is_named,
             block_printed: cfg::BlockMap::new(ssa.cfg(), false),
@@ -73,7 +75,7 @@ impl<'a> Ast<'a> {
         self.block_printed[bid] = true;
 
         for reg in self.ssa.block_regs(bid) {
-            if self.is_named(reg) || self.ssa[reg].get().has_side_effects() {
+            if self.is_named(reg) || self.ssa.get(reg).unwrap().has_side_effects() {
                 self.pp_stmt(pp, reg)?;
             }
         }
@@ -203,7 +205,7 @@ impl<'a> Ast<'a> {
         self.printed.insert(reg);
 
         let reg_type = self.ssa.reg_type(reg);
-        let should_print_semicolon = if let Insn::Phi = self.ssa[reg].get() {
+        let should_print_semicolon = if let Insn::Phi = self.ssa.get(reg).unwrap() {
             write!(pp, "let mut r{}: {:?}", reg.reg_index(), reg_type)?;
             true
         } else if self.is_named(reg) {
@@ -341,24 +343,26 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, operand, self_prec)?;
             }
             Insn::Call { callee, first_arg } => {
-                let tyid = self.ssa.value_type(callee);
-                let ty = self.ssa.types().get_through_alias(tyid).unwrap();
+                let tyid = self.ssa.value_type(callee).unwrap();
+                let ty = self.types.get_through_alias(tyid).unwrap();
                 if let ty::Ty::Unknown(_) = ty {
                     self.pp_ref(pp, callee, self_prec)?;
                 } else {
                     // Not quite correct (why would we print the type name?) but
                     // happens to be always correct for well formed programs
-                    let name = self.ssa.types().name(tyid).unwrap_or("<?>");
+                    let name = self.types.name(tyid).unwrap_or("<?>");
                     write!(pp, "{}", name)?;
                 };
 
                 write!(pp, "(")?;
                 pp.open_box();
-                for (ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
-                    if ndx > 0 {
-                        writeln!(pp, ",")?;
+                if let Some(first_arg) = first_arg {
+                    for (ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
+                        if ndx > 0 {
+                            writeln!(pp, ",")?;
+                        }
+                        self.pp_ref(pp, arg, self_prec)?;
                     }
-                    self.pp_ref(pp, arg, self_prec)?;
                 }
                 pp.close_box();
                 write!(pp, ")")?;

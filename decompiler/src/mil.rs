@@ -15,11 +15,11 @@ use crate::ty;
 ///  - a corresponding address in the original machine code (`u64`).
 ///
 /// By convention, the entry point of the program is always at index 0.
+#[derive(Clone)]
 pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    reg_count: Index,
     ancestral_tyids: HashMap<AncestralName, ty::TypeID>,
 
     // TODO More specific types
@@ -373,7 +373,6 @@ impl Program {
             ancestral_tyids: HashMap::new(),
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
-            reg_count: 0,
             mil_of_input_addr: HashMap::new(),
         }
     }
@@ -510,7 +509,7 @@ impl Program {
     ///
     /// This information is not cached. Every call to this function will iterate
     /// through the code and recompute it.
-    fn count_distinct_regs(&self) -> Index {
+    pub fn count_distinct_regs(&self) -> Index {
         let max_dest = self
             .dests
             .iter()
@@ -567,6 +566,26 @@ impl Program {
     pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<ty::TypeID> {
         self.ancestral_tyids.get(&anc_name).copied()
     }
+
+    pub fn unwrap(self) -> ProgramCore {
+        ProgramCore {
+            insns: self.insns.into_iter().map(Cell::into_inner).collect(),
+            dests: self.dests.into_iter().map(Cell::into_inner).collect(),
+            addrs: self.addrs,
+            ancestral_tyids: self.ancestral_tyids,
+        }
+    }
+}
+
+/// The innards of a [Program], without the API.
+///
+/// Designed to favor transformation into other forms and not to be converted
+/// back into a [mil::Program].
+pub struct ProgramCore {
+    pub insns: Vec<Insn>,
+    pub dests: Vec<Reg>,
+    pub addrs: Vec<u64>,
+    pub ancestral_tyids: HashMap<AncestralName, ty::TypeID>,
 }
 
 pub struct InsnView<'a> {
@@ -621,6 +640,7 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
     }
 }
 
+#[derive(Clone)]
 struct RegGen {
     first: Reg,
     next: Reg,

@@ -13,23 +13,36 @@ mod cons;
 
 #[derive(Clone)]
 pub struct Program {
-    /// # Design notes
-    ///
-    /// - SSA registers are numerically equal to the index of the defining
-    ///   instruction in `inner`. mil::Index values are just as good as mil::Reg
-    ///   for identifying both insns and values. This allows for fast lookups.
-    ///
-    /// - the order of instructions in the arrays below (insns, dest_tyids, etc.)
-    ///   is meaningless. after conversion from a mil::Program, extra instructions
-    ///   can be appended for various uses.  the actual program order is determined
-    ///   entirely by `schedule`.  instructions included in `scheduled` are said to
-    ///   be "scheduled".
-    ///
-    ///   - it's a bug if an instruction has an input register whose defining
-    ///     instruction is not scheduled.
+    // # Design notes
+    //
+    // - SSA registers are numerically equal to the index of the defining
+    //   instruction in `inner`. mil::Index values are just as good as mil::Reg
+    //   for identifying both insns and values. This allows for fast lookups.
+    //
+    // - I'm going for a sort of "struct of arrays" approach. each of the Vecs below
+    //   is the same length, and the element at the same index in each represents
+    //   a different facet of the same instruction.
+    //
+    // - the order of instructions in the arrays below (insns, dest_tyids, etc.)
+    //   is meaningless. after conversion from a mil::Program, extra instructions
+    //   can be appended for various uses.  the actual program order is determined
+    //   entirely by `schedule`.  instructions included in `scheduled` are said to
+    //   be "scheduled".
+    //
+    // - it's a bug if an instruction has an input register whose defining
+    //   instruction is not scheduled.
     insns: Vec<Cell<mil::Insn>>,
     addrs: Vec<u64>,
+
+    /// Type ID for the instruction's result.
+    ///
+    /// For all instructions right after construction, and for freshly added
+    /// instructions, this is initialized as [ty::TypeID::UnknownUnsized].
+    ///
+    /// [`Program::refresh_types`] can be called to attempt resolving these
+    /// to more precise type. See that function's documentation for more details.
     tyids: Vec<ty::TypeID>,
+
     schedule: cfg::Schedule,
     cfg: cfg::Graph,
 }
@@ -41,6 +54,10 @@ pub struct Program {
 /// that the &mut Program is wrapped in a temporary [OpenProgram], which is the
 /// only type provding editing APIs.
 impl Program {
+    pub fn from_mil(mil: mil::Program) -> Self {
+        cons::mil_to_ssa(mil)
+    }
+
     pub fn cfg(&self) -> &cfg::Graph {
         &self.cfg
     }
@@ -184,15 +201,17 @@ impl Program {
                 // assuming that all types are the same, as per assert_phis_consistent
                 self.reg_type(y.input_reg)
             }
-            Insn::Ancestral(anc_name) => self
-                .inner
-                .ancestor_type(anc_name)
-                .expect("ancestor has no defined type"),
+            // TODO rewrite the type stuff until this is clear and correct
+            Insn::Ancestral(_) => mil::RegType::Bytes(8),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
         }
     }
 
+    /// Return the TypeID of the given register (or, equivalently, of the given
+    /// register's defining instruction's result).
+    ///
+    /// Returns None if `reg` is invalid.
     pub fn value_type(&self, reg: mil::Reg) -> Option<ty::TypeID> {
         self.tyids.get(reg.0 as usize).copied()
     }
@@ -203,6 +222,13 @@ impl Program {
         self.assert_inputs_visible_scheduled();
         self.assert_consistent_phis();
         self.assert_carg_chain();
+    }
+}
+
+/// Internal API
+impl Program {
+    fn refresh_types(&mut self) {
+        // TODO!
     }
 
     fn assert_consistent_arrays_len(&self) {
@@ -422,14 +448,16 @@ impl<'a> OpenProgram<'a> {
 
     /// Insert a new instruction in the SSA program and schedule it at
     /// the given position (0-based index) of the given basic block.
+    ///
+    /// Returns the Reg assigned to the new instruction.
     pub fn insert(&mut self, bid: cfg::BlockID, ndx_in_block: u16, insn: mil::Insn) -> mil::Reg {
         // it's a bug to leave any instruction unscheduled, so we add
         // the instruction and schedule it as a single "atomic" operation
         let ndx = self.insns.len().try_into().unwrap();
         self.program.insns.push(Cell::new(insn));
         self.program.addrs.push(u64::MAX);
-        self.program.tyids.push(todo!());
-        self.schedule.insert(ndx, bid, ndx_in_block);
+        self.program.tyids.push(ty::TypeID::UnknownUnsized);
+        self.program.schedule.insert(ndx, bid, ndx_in_block);
         mil::Reg(ndx)
     }
 }
@@ -484,27 +512,21 @@ pub fn eliminate_dead_code(prog: &mut Program) {
 #[test]
 #[should_panic]
 fn test_assert_no_circular_refs() {
-    use std::sync::Arc;
-
     use mil::{ArithOp, Insn, Reg};
 
-    use crate::ty;
+    let mut prog = mil::Program::new(Reg(0));
+    prog.set_input_addr(0xf0);
+    prog.push(
+        Reg(0),
+        Insn::Const {
+            value: 123,
+            size: 8,
+        },
+    );
+    prog.push(Reg(1), Insn::Arith(ArithOp::Add, Reg(0), Reg(2)));
+    prog.push(Reg(2), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
 
-    let prog = {
-        let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-        pb.set_input_addr(0xf0);
-        pb.push(
-            Reg(0),
-            Insn::Const {
-                value: 123,
-                size: 8,
-            },
-        );
-        pb.push(Reg(1), Insn::Arith(ArithOp::Add, Reg(0), Reg(2)));
-        pb.push(Reg(2), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
-        pb.build()
-    };
-    let prog = cons::mil_to_ssa(cons::ConversionParams::new(prog));
+    let prog = Program::from_mil(prog);
     prog.assert_no_circular_refs();
 }
 
@@ -608,44 +630,40 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
 
-    use crate::{mil, ty};
+    use crate::mil;
     use mil::{ArithOp, Control, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
-        let prog = {
-            let mut pb = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
+        let mut prog = mil::Program::new(Reg(0));
 
-            pb.set_input_addr(0xf0);
-            pb.push(
-                Reg(0),
-                Insn::Const {
-                    value: 123,
-                    size: 8,
-                },
-            );
-            pb.push(Reg(1), Insn::SetJumpCondition(Reg(0)));
-            pb.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
+        prog.set_input_addr(0xf0);
+        prog.push(
+            Reg(0),
+            Insn::Const {
+                value: 123,
+                size: 8,
+            },
+        );
+        prog.push(Reg(1), Insn::SetJumpCondition(Reg(0)));
+        prog.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
 
-            pb.set_input_addr(0xf1);
-            pb.push(Reg(2), Insn::Const { value: 4, size: 1 });
-            pb.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
+        prog.set_input_addr(0xf1);
+        prog.push(Reg(2), Insn::Const { value: 4, size: 1 });
+        prog.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
 
-            pb.set_input_addr(0xf2);
-            pb.push(Reg(2), Insn::Const { value: 8, size: 1 });
+        prog.set_input_addr(0xf2);
+        prog.push(Reg(2), Insn::Const { value: 8, size: 1 });
 
-            pb.set_input_addr(0xf3);
-            pb.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
-            pb.push(Reg(5), Insn::SetReturnValue(Reg(4)));
-            pb.push(Reg(5), Insn::Control(Control::Ret));
+        prog.set_input_addr(0xf3);
+        prog.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
+        prog.push(Reg(5), Insn::SetReturnValue(Reg(4)));
+        prog.push(Reg(5), Insn::Control(Control::Ret));
 
-            pb.build()
-        };
-        let prog = super::cons::mil_to_ssa(super::cons::ConversionParams::new(prog));
+        let prog = super::Program::from_mil(prog);
 
-        assert_eq!(prog.get(Reg(9)), Insn::Phi);
+        assert_eq!(prog.get(Reg(9)), Some(Insn::Phi));
 
         let mut upss: Vec<_> = prog.upsilons_of_phi(Reg(9)).collect();
         upss.sort_by_key(|ud| ud.input_reg.reg_index());
@@ -670,17 +688,14 @@ mod tests {
     }
 
     fn make_prog_no_cycles() -> super::Program {
-        let prog = {
-            let mut b = mil::ProgramBuilder::new(Reg(0), Arc::new(ty::TypeSet::new()));
-            b.push(Reg(0), Insn::Const { value: 5, size: 8 });
-            b.push(Reg(1), Insn::Const { value: 5, size: 8 });
-            b.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
-            b.push(Reg(0), Insn::SetReturnValue(Reg(0)));
-            b.push(Reg(0), Insn::Control(Control::Ret));
-            b.build()
-        };
-        let prog = super::cons::mil_to_ssa(super::cons::ConversionParams::new(prog));
-        // cycle absent here: SSA conversion would have failed by now
-        prog
+        let mut prog = mil::Program::new(Reg(0));
+        prog.push(Reg(0), Insn::Const { value: 5, size: 8 });
+        prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
+        prog.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
+        prog.push(Reg(0), Insn::SetReturnValue(Reg(0)));
+        prog.push(Reg(0), Insn::Control(Control::Ret));
+
+        // SSA conversion would fail if there was a cycle
+        super::Program::from_mil(prog)
     }
 }

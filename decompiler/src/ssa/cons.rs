@@ -1,22 +1,22 @@
 //! SSA construction (conversion from MIL)
+//!
+//! This module is fully internal. No API is exposed for consumption outside
+//! of the super module (ssa).
+
+use std::cell::Cell;
+
 use super::Program;
-use crate::{cfg, mil};
+use crate::{cfg, mil, ty};
 
-// TODO Remove this. No longer needed in the current design. Already cut down to nothing.
-pub struct ConversionParams {
-    pub program: mil::Program,
-}
+pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
+    program.assert_invariants();
+    program.convert_jmp_ext_to_int();
+    // use this 'addr' value for all isntructions inserted from now on.
+    // it's a dummy value for instructions that have no direct connection
+    // to the source machine program
+    program.set_input_addr(u64::MAX);
 
-impl ConversionParams {
-    pub fn new(program: mil::Program) -> Self {
-        ConversionParams { program }
-    }
-}
-
-pub fn mil_to_ssa(input: ConversionParams) -> Program {
-    let ConversionParams { mut program, .. } = input;
-
-    let var_count = program.reg_count();
+    let var_count = program.count_distinct_regs();
     let vars = move || (0..var_count).map(mil::Reg);
 
     let cfg::MILAnalysis {
@@ -72,60 +72,7 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
     rename(entry)
     */
 
-    // TODO rework this with a more efficient data structure
-    struct VarMap {
-        count: mil::Index,
-        stack: Vec<Box<[Option<mil::Reg>]>>,
-    }
-
-    impl VarMap {
-        fn new(count: mil::Index) -> Self {
-            VarMap {
-                count,
-                stack: Vec::new(),
-            }
-        }
-
-        fn push(&mut self) {
-            if self.stack.is_empty() {
-                self.stack
-                    .push(vec![None; self.count.into()].into_boxed_slice());
-            } else {
-                let new_elem = self.stack.last().unwrap().clone();
-                self.stack.push(new_elem);
-            }
-
-            self.check_invariants()
-        }
-
-        fn check_invariants(&self) {
-            for elem in &self.stack {
-                assert_eq!(elem.len(), self.count.into());
-            }
-        }
-
-        fn pop(&mut self) {
-            self.stack.pop();
-            self.check_invariants();
-        }
-
-        fn current(&self) -> &[Option<mil::Reg>] {
-            &self.stack.last().expect("no mappings!")[..]
-        }
-        fn current_mut(&mut self) -> &mut [Option<mil::Reg>] {
-            &mut self.stack.last_mut().expect("no mappings!")[..]
-        }
-        fn get(&self, reg: mil::Reg) -> Option<mil::Reg> {
-            let reg_num = reg.reg_index() as usize;
-            self.current()[reg_num]
-        }
-
-        fn set(&mut self, old: mil::Reg, new: mil::Reg) {
-            let reg_num = old.reg_index() as usize;
-            self.current_mut()[reg_num] = Some(new);
-        }
-    }
-
+    let mut program = program.unwrap();
     let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
@@ -145,13 +92,10 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                 // becomes mil::Reg(index) (this replacement will physically
                 // happen later on).
                 for &insn_ndx in schedule.of_block(bid) {
-                    let iv = program.get(insn_ndx).unwrap();
-
-                    let mut insn = iv.insn.get();
+                    let mut insn = program.insns[insn_ndx as usize];
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
-                    iv.insn.set(insn);
 
                     // in the output SSA, each destination register corresponds to the instruction's
                     // index. this way, the numeric value of a register can also be used as
@@ -159,9 +103,9 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                     let new_dest = mil::Reg(insn_ndx);
                     // iv.dest is rewritten later (always mil::Reg(index))
                     // we only update `var_map`
-                    let old_name = iv.dest.get();
+                    let old_name = program.dests[insn_ndx as usize];
 
-                    let new_name = if let mil::Insn::Get(input_reg) = iv.insn.get() {
+                    let new_name = if let mil::Insn::Get(input_reg) = insn {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
                         // output
                         input_reg
@@ -189,11 +133,14 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
                             let value = var_map
                                 .get(var)
                                 .expect("value not initialized in pre-ssa (phi)");
-                            let ups = program.push_new(mil::Insn::Upsilon {
+
+                            let ndx = program.insns.len().try_into().unwrap();
+                            program.insns.push(mil::Insn::Upsilon {
                                 value,
                                 phi_ref: mil::Reg(phi_ndx),
                             });
-                            schedule.append(ups, bid);
+                            program.dests.push(mil::Reg(ndx));
+                            schedule.append(ndx, bid);
                         }
                     }
                 }
@@ -215,23 +162,32 @@ pub fn mil_to_ssa(input: ConversionParams) -> Program {
         }
     }
 
-    // replace all dest with mil::Reg(index), regardless of whether or not the
-    // insn is scheduled. not strictly required, but simplifies a bunch of other
-    // algorithms later on
-    for (ndx, iv) in program.iter().enumerate() {
-        iv.dest.set(mil::Reg(ndx.try_into().unwrap()));
-    }
+    let tyids = program
+        .insns
+        .iter()
+        .map(|insn| match insn {
+            mil::Insn::Ancestral(anc_name) => program
+                .ancestral_tyids
+                .get(anc_name)
+                .copied()
+                .unwrap_or(ty::TypeID::UnknownUnsized),
+            _ => ty::TypeID::UnknownUnsized,
+        })
+        .collect();
 
-    let ssa = Program {
-        inner: program,
+    let mut ssa = Program {
+        insns: program.insns.into_iter().map(Cell::new).collect(),
+        addrs: program.addrs,
+        tyids,
         schedule,
         cfg,
     };
     ssa.assert_invariants();
+    ssa.refresh_types();
     ssa
 }
 
-pub(crate) fn compute_phis_set(
+fn compute_phis_set(
     program: &mil::Program,
     cfg: &cfg::Graph,
     block_spans: &cfg::Schedule,
@@ -273,7 +229,7 @@ pub(crate) fn compute_phis_set(
 /// This is the set of variables which are read before any write in the block.
 /// In other words, for these are the variables, the block observes the values
 /// left there by other blocks.
-pub(crate) fn find_received_vars(
+fn find_received_vars(
     prog: &mil::Program,
     block_spans: &cfg::Schedule,
     graph: &cfg::Graph,
@@ -294,50 +250,106 @@ pub(crate) fn find_received_vars(
     is_received
 }
 
+// TODO rework this with a more efficient data structure
+struct VarMap {
+    count: mil::Index,
+    stack: Vec<Box<[Option<mil::Reg>]>>,
+}
+
+impl VarMap {
+    fn new(count: mil::Index) -> Self {
+        VarMap {
+            count,
+            stack: Vec::new(),
+        }
+    }
+
+    fn push(&mut self) {
+        if self.stack.is_empty() {
+            self.stack
+                .push(vec![None; self.count.into()].into_boxed_slice());
+        } else {
+            let new_elem = self.stack.last().unwrap().clone();
+            self.stack.push(new_elem);
+        }
+
+        self.check_invariants()
+    }
+
+    fn check_invariants(&self) {
+        for elem in &self.stack {
+            assert_eq!(elem.len(), self.count.into());
+        }
+    }
+
+    fn pop(&mut self) {
+        self.stack.pop();
+        self.check_invariants();
+    }
+
+    fn current(&self) -> &[Option<mil::Reg>] {
+        &self.stack.last().expect("no mappings!")[..]
+    }
+    fn current_mut(&mut self) -> &mut [Option<mil::Reg>] {
+        &mut self.stack.last_mut().expect("no mappings!")[..]
+    }
+    fn get(&self, reg: mil::Reg) -> Option<mil::Reg> {
+        let reg_num = reg.reg_index() as usize;
+        self.current()[reg_num]
+    }
+
+    fn set(&mut self, old: mil::Reg, new: mil::Reg) {
+        let reg_num = old.reg_index() as usize;
+        self.current_mut()[reg_num] = Some(new);
+    }
+}
+
 #[derive(Debug)]
-pub(crate) struct RegMat<T>(Mat<T>);
+struct RegMat<T>(Mat<T>);
 
 impl<T: Clone> RegMat<T> {
-    pub(crate) fn for_program(program: &mil::Program, graph: &cfg::Graph, value: T) -> Self {
-        let var_count = program.reg_count() as usize;
+    fn for_program(program: &mil::Program, graph: &cfg::Graph, value: T) -> Self {
+        // NOTE(perf) this function is called a few times, and each time `count_distinct_regs`
+        // is going to iterate through the program.  maybe wasteful, but I bet it's fine.
+        let var_count = program.count_distinct_regs() as usize;
         RegMat(Mat::new(value, graph.block_count() as usize, var_count))
     }
 
-    pub(crate) fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
+    fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {
         self.0
             .item(bid.as_number() as usize, reg.reg_index() as usize)
     }
 
-    pub(crate) fn set(&mut self, bid: cfg::BlockID, reg: mil::Reg, value: T) {
+    fn set(&mut self, bid: cfg::BlockID, reg: mil::Reg, value: T) {
         *self
             .0
             .item_mut(bid.as_number() as usize, reg.reg_index() as usize) = value;
     }
 }
 
-pub(crate) struct Mat<T> {
-    pub(crate) items: Box<[T]>,
-    pub(crate) rows: usize,
-    pub(crate) cols: usize,
+struct Mat<T> {
+    items: Box<[T]>,
+    rows: usize,
+    cols: usize,
 }
 
 impl<T> Mat<T> {
-    pub(crate) fn ndx(&self, i: usize, j: usize) -> usize {
+    fn ndx(&self, i: usize, j: usize) -> usize {
         assert!(i < self.rows);
         assert!(j < self.cols);
         self.cols * i + j
     }
 
-    pub(crate) fn item(&self, i: usize, j: usize) -> &T {
+    fn item(&self, i: usize, j: usize) -> &T {
         &self.items[self.ndx(i, j)]
     }
-    pub(crate) fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
+    fn item_mut(&mut self, i: usize, j: usize) -> &mut T {
         &mut self.items[self.ndx(i, j)]
     }
 }
 
 impl<T: Clone> Mat<T> {
-    pub(crate) fn new(init: T, rows: usize, cols: usize) -> Self {
+    fn new(init: T, rows: usize, cols: usize) -> Self {
         let items = vec![init; rows * cols].into_boxed_slice();
         Mat { items, rows, cols }
     }
@@ -345,6 +357,8 @@ impl<T: Clone> Mat<T> {
 
 impl<T: std::fmt::Debug> std::fmt::Debug for Mat<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::io::Write;
+
         let mut item_buf = Vec::new();
 
         writeln!(f, "mat. {}×{}", self.rows, self.cols)?;
@@ -362,9 +376,9 @@ impl<T: std::fmt::Debug> std::fmt::Debug for Mat<T> {
     }
 }
 
-fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> cons::Mat<bool> {
+fn compute_dominance_frontier(graph: &cfg::Graph, dom_tree: &cfg::DomTree) -> Mat<bool> {
     let count = graph.block_count() as usize;
-    let mut mat = cons::Mat::new(false, count, count);
+    let mut mat = Mat::new(false, count, count);
 
     for bid in graph.block_ids() {
         let preds = graph.block_preds(bid);

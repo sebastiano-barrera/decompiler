@@ -112,11 +112,19 @@ impl<'a> Builder<'a> {
     pub fn translate(
         mut self,
         insns: impl Iterator<Item = iced_x86::Instruction>,
-        func_ty: Option<&ty::Subroutine>,
+        func_tyid_opt: Option<ty::TypeID>,
     ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
 
-        let mut formatter = IntelFormatter::new();
+        let func_ty = func_tyid_opt.and_then(|tyid| {
+            let func_ty = self.types.get_through_alias(tyid)?;
+            match func_ty {
+                ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
+                _ => None,
+            }
+        });
+        event!(Level::DEBUG, ?func_ty, "function type resolved");
+
         let mut warnings = Warnings::default();
 
         if let Some(func_ty) = func_ty {
@@ -142,6 +150,7 @@ impl<'a> Builder<'a> {
             }
         }
 
+        let mut formatter = IntelFormatter::new();
         for insn in insns {
             // Temporary abstract registers
             //    These are used in the mil program to compute 'small stuff' (memory

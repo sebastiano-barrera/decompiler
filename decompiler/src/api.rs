@@ -1,3 +1,4 @@
+use std::sync::RwLock;
 use std::{collections::HashMap, sync::Arc};
 
 use thiserror::Error;
@@ -57,7 +58,7 @@ pub struct Executable<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
     func_syms: HashMap<String, AddrRange>,
-    types: Arc<ty::TypeSet>,
+    types: ty::TypeSet,
 }
 
 #[derive(Clone, Copy)]
@@ -89,7 +90,7 @@ impl<'a> Executable<'a> {
             raw_binary,
             elf,
             func_syms,
-            types: Arc::new(types),
+            types,
         })
     }
 
@@ -101,35 +102,16 @@ impl<'a> Executable<'a> {
         self.func_syms.contains_key(name)
     }
 
-    pub fn types(&self) -> &ty::TypeSet {
-        &self.types
-    }
-
     #[instrument(skip(self))]
-    pub fn decompile_function(&self, function_name: &str) -> Result<DecompiledFunction> {
+    pub fn decompile_function(&mut self, function_name: &str) -> Result<DecompiledFunction> {
         let mut df = self.find_function(function_name)?;
 
         let mut decoder = df.disassemble(self);
-        let mil_res = std::panic::catch_unwind(move || {
-            let b = x86_to_mil::Builder::new(Arc::clone(&self.types));
-
             let func_tyid_opt = self.types.get_known_object(df.vm_addr.try_into().unwrap());
-            let func_ty = match func_tyid_opt {
-                Some(func_tyid) => {
-                    let func_ty = self.types.get_through_alias(func_tyid).unwrap();
-                    match func_ty {
-                        ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
-                        _ => {
-                            return Err(Error::NotASubroutineType(func_tyid));
-                        }
-                    }
-                }
-                None => None,
-            };
 
-            b.translate(decoder.iter(), func_ty)
+            x86_to_mil::Builder::new(&mut self.types)
+                .translate(decoder.iter(), func_tyid_opt)
                 .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()))
-        });
 
         // fold a panic into a regular error
         let mil_res = match mil_res {
@@ -154,9 +136,7 @@ impl<'a> Executable<'a> {
                 .map(|err| Error::FrontendError(err.to_string())),
         );
 
-        let mut ssa = match std::panic::catch_unwind(|| {
-            ssa::modname::mil_to_ssa(ssa::modname::ConversionParams::new(mil))
-        }) {
+        let mut ssa = match std::panic::catch_unwind(|| ssa::Program::from_mil(mil)) {
             Ok(p) => p,
             Err(err) => {
                 df.error = Some(Error::SSAError(panic_message(err)));
@@ -167,7 +147,7 @@ impl<'a> Executable<'a> {
         df.ssa_pre_xform = Some(ssa.clone());
 
         let xform_res = std::panic::catch_unwind(move || {
-            xform::canonical(&mut ssa);
+            xform::canonical(&mut ssa, &self.types);
             ssa
         });
         match xform_res {
