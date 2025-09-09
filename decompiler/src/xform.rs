@@ -501,7 +501,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
     // TODO make this architecture agnostic
     let mem_ref_reg = find_mem_ref(prog);
-
+    let mut prog = ssa::OpenProgram::wrap(prog);
     let mut deduper = Deduper::new();
 
     let mut any_change = true;
@@ -513,8 +513,6 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             let block_seq: Vec<_> = prog.block_regs(bid).collect();
             for (ndx_in_block, reg) in block_seq.into_iter().enumerate() {
                 let ndx_in_block = ndx_in_block.try_into().unwrap();
-
-                let mut prog = ssa::OpenProgram::wrap(prog);
 
                 if let Some(mem_ref_reg) = mem_ref_reg {
                     if mem::fold_load_store(&mut prog, mem_ref_reg, reg, bid, ndx_in_block) {
@@ -561,9 +559,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             }
         }
     }
-
-    ssa::eliminate_dead_code(prog);
-    prog.assert_invariants();
+    println!("--- ssa post-xform\n{:?}\n---", &*prog);
 }
 
 struct Deduper {
@@ -699,7 +695,7 @@ mod tests {
         define_ancestral_name!(ANC_A, "A");
         define_ancestral_name!(ANC_B, "B");
 
-        #[test]
+        #[test_log::test]
         fn part_of_concat() {
             use mil::{Insn, Reg};
 
@@ -710,19 +706,15 @@ mod tests {
                 offset: u16,
                 size: u16,
             }
-            fn gen_prog(vp: VariantParams) -> mil::Program {
+            fn gen_prog(vp: VariantParams, types: &mut ty::TypeSet) -> mil::Program {
                 let mut p = mil::Program::new(Reg(0));
                 p.set_ancestral_tyid(
                     ANC_A,
-                    ty::TypeID::Unknown {
-                        size: vp.anc_a_sz as usize,
-                    },
+                    types.tyid_shared_unknown_of_size(vp.anc_a_sz as usize),
                 );
                 p.set_ancestral_tyid(
                     ANC_B,
-                    ty::TypeID::Unknown {
-                        size: vp.anc_b_sz as usize,
-                    },
+                    types.tyid_shared_unknown_of_size(vp.anc_b_sz as usize),
                 );
                 p.push(Reg(0), Insn::Ancestral(ANC_A));
                 p.push(Reg(1), Insn::Ancestral(ANC_B));
@@ -746,6 +738,8 @@ mod tests {
                 p
             }
 
+            let mut types = ty::TypeSet::new();
+
             for anc_a_sz in 1..=7 {
                 for anc_b_sz in 1..=(8 - anc_a_sz) {
                     let concat_sz = anc_a_sz + anc_b_sz;
@@ -753,14 +747,17 @@ mod tests {
                     // case: fall within lo
                     for offset in 0..=(anc_a_sz - 1) {
                         for size in 1..=(anc_a_sz - offset) {
-                            let prog = gen_prog(VariantParams {
-                                anc_a_sz,
-                                anc_b_sz,
-                                offset,
-                                size,
-                            });
+                            let prog = gen_prog(
+                                VariantParams {
+                                    anc_a_sz,
+                                    anc_b_sz,
+                                    offset,
+                                    size,
+                                },
+                                &mut types,
+                            );
                             let mut prog = ssa::Program::from_mil(prog);
-                            xform::canonical(&mut prog, &ty::TypeSet::new());
+                            xform::canonical(&mut prog, &types);
 
                             assert_eq!(
                                 prog.get(Reg(3)).unwrap(),
@@ -780,14 +777,17 @@ mod tests {
                     // case: fall within hi
                     for offset in anc_a_sz..concat_sz {
                         for size in 1..=(concat_sz - offset) {
-                            let prog = gen_prog(VariantParams {
-                                anc_a_sz,
-                                anc_b_sz,
-                                offset,
-                                size,
-                            });
+                            let prog = gen_prog(
+                                VariantParams {
+                                    anc_a_sz,
+                                    anc_b_sz,
+                                    offset,
+                                    size,
+                                },
+                                &mut types,
+                            );
                             let mut prog = ssa::Program::from_mil(prog);
-                            xform::canonical(&mut prog, &ty::TypeSet::new());
+                            xform::canonical(&mut prog, &types);
 
                             assert_eq!(
                                 prog.get(Reg(3)).unwrap(),
@@ -814,16 +814,19 @@ mod tests {
 
                             dbg!((anc_a_sz, anc_b_sz, offset, size));
 
-                            let prog = gen_prog(VariantParams {
-                                anc_a_sz,
-                                anc_b_sz,
-                                offset,
-                                size,
-                            });
+                            let prog = gen_prog(
+                                VariantParams {
+                                    anc_a_sz,
+                                    anc_b_sz,
+                                    offset,
+                                    size,
+                                },
+                                &mut types,
+                            );
                             let mut prog = ssa::Program::from_mil(prog);
                             let orig_insn = prog.get(Reg(3)).unwrap();
 
-                            xform::canonical(&mut prog, &ty::TypeSet::new());
+                            xform::canonical(&mut prog, &types);
                             assert_eq!(prog.get(Reg(3)).unwrap(), orig_insn);
                         }
                     }
@@ -844,14 +847,9 @@ mod tests {
                 size1: u16,
             }
 
-            fn gen_prog(vp: VariantParams) -> mil::Program {
+            fn gen_prog(vp: VariantParams, types: &mut ty::TypeSet) -> mil::Program {
                 let mut p = mil::Program::new(Reg(0));
-                p.set_ancestral_tyid(
-                    ANC_A,
-                    ty::TypeID::Unknown {
-                        size: vp.src_sz as usize,
-                    },
-                );
+                p.set_ancestral_tyid(ANC_A, types.tyid_shared_unknown_of_size(vp.src_sz as usize));
                 p.push(Reg(0), Insn::Ancestral(ANC_A));
                 p.push(
                     Reg(1),
@@ -874,6 +872,7 @@ mod tests {
                 p
             }
 
+            let mut types = ty::TypeSet::new();
             let sample_data = b"12345678";
 
             for src_sz in 1..=8 {
@@ -881,15 +880,18 @@ mod tests {
                     for size0 in 1..=(src_sz - offs0) {
                         for offs1 in 0..size0 {
                             for size1 in 1..=(size0 - offs1) {
-                                let prog = gen_prog(VariantParams {
-                                    src_sz,
-                                    offs0,
-                                    size0,
-                                    offs1,
-                                    size1,
-                                });
+                                let prog = gen_prog(
+                                    VariantParams {
+                                        src_sz,
+                                        offs0,
+                                        size0,
+                                        offs1,
+                                        size1,
+                                    },
+                                    &mut types,
+                                );
                                 let mut prog = ssa::Program::from_mil(prog);
-                                xform::canonical(&mut prog, &ty::TypeSet::new());
+                                xform::canonical(&mut prog, &types);
 
                                 let exp_offset = offs0 + offs1;
                                 let exp_size = size1;

@@ -5,7 +5,7 @@ mod elf;
 mod mil;
 mod ssa;
 mod tests;
-mod ty;
+pub mod ty;
 mod util;
 mod x86_to_mil;
 mod xform;

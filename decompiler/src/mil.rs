@@ -3,7 +3,7 @@ use facet_reflect::HasFields;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{cell::Cell, collections::HashMap, sync::Arc};
+use std::{cell::Cell, collections::HashMap};
 
 use crate::ty;
 
@@ -436,7 +436,6 @@ impl Program {
     /// The instruction must not be a Phi node (these are only allowed to be
     /// introduced during conversion to SSA).
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
-        assert!(!matches!(insn, Insn::Phi));
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
@@ -465,10 +464,25 @@ impl Program {
         self.cur_input_addr = addr;
     }
 
-    pub fn assert_invariants(&self) {
+    /// Check that this MIL program is valid, assuming that it is not currently
+    /// undergoing active edits/modifications.
+    ///
+    /// In particular, this will call tmp_reset(), and therefore check that
+    /// all the instructions added since the last call to `tmp_reset` ahve been
+    /// initialized before use. (See [`check_use_after_init`].)
+    pub fn validate(&mut self) {
+        self.tmp_reset();
+        self.assert_invariants();
+    }
+
+    fn assert_invariants(&self) {
         assert_eq!(self.init_checked_count, self.dests.len(), "Not all instructions have been checked for use-after-init. Call tmp_reset() at the end of each assembly instruction.");
         assert_eq!(self.dests.len(), self.insns.len());
         assert_eq!(self.dests.len(), self.addrs.len());
+        assert!(!self
+            .insns
+            .iter()
+            .any(|insn| matches!(insn.get(), Insn::Phi)));
     }
 
     pub fn convert_jmp_ext_to_int(&mut self) {

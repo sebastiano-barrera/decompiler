@@ -94,16 +94,6 @@ impl<'a> Builder<'a> {
         // self.pb.set_type(reg, tyid);
     }
 
-    /// Emit an Ancestral instruction for the given AncestralName and assign the
-    /// result to register to `reg`.
-    ///
-    /// The register is assigned the given high-level type. The RegType is
-    /// picked according to the size of the high-level type.
-    fn init_ancestral_typed(&mut self, reg: mil::Reg, anc_name: AncestralName, tyid: ty::TypeID) {
-        self.emit(reg, mil::Insn::Ancestral(anc_name));
-        self.pb.set_ancestral_tyid(anc_name, tyid);
-    }
-
     fn tmp_gen(&mut self) -> mil::Reg {
         self.pb.tmp_gen()
     }

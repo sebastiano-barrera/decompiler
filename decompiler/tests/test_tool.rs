@@ -8,7 +8,10 @@
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
 
-use std::{path::Path, sync::OnceLock};
+use std::{
+    path::Path,
+    sync::{Mutex, MutexGuard, OnceLock},
+};
 
 static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/");
 
@@ -36,7 +39,7 @@ macro_rules! tests_in_binary {
 }
 
 struct Exe {
-    once_lock: OnceLock<decompiler::Result<decompiler::Executable<'static>>>,
+    once_lock: OnceLock<Mutex<decompiler::Executable<'static>>>,
     path: &'static str,
 }
 impl Exe {
@@ -47,21 +50,20 @@ impl Exe {
         }
     }
 
-    fn get_or_init(&self) -> &decompiler::Executable<'static> {
-        self.once_lock
-            .get_or_init(|| {
-                let rel_path = Path::new(self.path);
-                let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
-                decompiler::Executable::parse(raw)
-            })
-            .as_ref()
-            .unwrap()
+    fn get_or_init(&self) -> MutexGuard<'_, decompiler::Executable<'static>> {
+        let mutex = self.once_lock.get_or_init(|| {
+            let rel_path = Path::new(self.path);
+            let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
+            let exe = decompiler::Executable::parse(raw).unwrap();
+            Mutex::new(exe)
+        });
+        mutex.lock().unwrap()
     }
 
     fn process_function(&self, function_name: &str) -> String {
         use std::fmt::Write;
 
-        let exe = self.get_or_init();
+        let mut exe = self.get_or_init();
 
         let df = exe
             .decompile_function(function_name)
@@ -105,7 +107,7 @@ impl Exe {
             writeln!(log_buf, "{:?}\n", ssa).unwrap();
 
             writeln!(log_buf, " --- ast").unwrap();
-            let mut ast = decompiler::Ast::new(&ssa);
+            let mut ast = decompiler::Ast::new(&ssa, exe.types());
             let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
             let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
             ast.pretty_print(pp).unwrap();

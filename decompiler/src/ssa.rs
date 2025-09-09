@@ -463,6 +463,7 @@ impl<'a> OpenProgram<'a> {
 }
 impl Drop for OpenProgram<'_> {
     fn drop(&mut self) {
+        eliminate_dead_code(&mut self.program);
         self.program.assert_invariants();
     }
 }

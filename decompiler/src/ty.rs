@@ -44,7 +44,7 @@ pub struct TypeSet {
 pub type Addr = u64;
 
 impl TypeSet {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut types = HashMap::new();
         types.insert(TypeID::Void, Ty::Void);
         types.insert(TypeID::UnknownUnsized, Ty::Unknown(Unknown { size: None }));
@@ -160,7 +160,6 @@ impl TypeSet {
         }
     }
 
-    #[allow(dead_code)]
     pub fn select(
         &self,
         tyid: TypeID,
@@ -169,7 +168,6 @@ impl TypeSet {
         self.select_from(tyid, byte_range, SmallVec::new())
     }
 
-    #[allow(dead_code)]
     fn select_from(
         &self,
         tyid: TypeID,
@@ -180,7 +178,7 @@ impl TypeSet {
             return Err(SelectError::InvalidRange);
         }
 
-        let ty = self.get(tyid).unwrap();
+        let ty = self.get(tyid).ok_or(SelectError::InvalidType)?;
         let size = self.bytes_size(tyid).unwrap_or(0) as usize;
 
         if byte_range.end > size {
@@ -196,10 +194,17 @@ impl TypeSet {
             | Ty::Ptr(_)
             | Ty::Int(_)
             | Ty::Enum(_)
-            | Ty::Unknown(_)
             | Ty::Subroutine(_)
             | Ty::Float(_)
             | Ty::Bool(_) => Err(SelectError::InvalidRange),
+            Ty::Unknown(_) => {
+                let sub_tyid = self.tyid_shared_unknown_of_size(byte_range.len());
+                path.push(SelectStep::Unknown);
+                Ok(Selection {
+                    tyid: sub_tyid,
+                    path,
+                })
+            }
             Ty::Alias(ref_tyid) => self.select(*ref_tyid, byte_range),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
@@ -608,6 +613,7 @@ pub type SelectionPath = SmallVec<[SelectStep; 4]>;
 pub enum SelectStep {
     Index { index: usize, element_size: usize },
     Member { name: Arc<String>, size: usize },
+    Unknown,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]

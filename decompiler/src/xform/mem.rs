@@ -153,7 +153,7 @@ pub fn fold_load_store(
     let right_size = (load.end - end_i).try_into().unwrap();
     let right = prog.insert(
         load_bid,
-        load_ndx_in_blk,
+        load_ndx_in_blk + 1,
         load_or_void(
             right_addr, // addr
             right_size, // size

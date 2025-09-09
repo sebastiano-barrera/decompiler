@@ -32,7 +32,7 @@ fn main() {
         contents
     };
 
-    let exe = match decompiler::Executable::parse(&contents) {
+    let mut exe = match decompiler::Executable::parse(&contents) {
         Err(err) => {
             eprintln!("error: {}", err);
             return;
@@ -81,7 +81,7 @@ fn main() {
         println!();
 
         println!(" --- ast");
-        let mut ast = decompiler::Ast::new(&ssa);
+        let mut ast = decompiler::Ast::new(&ssa, exe.types());
         let mut out = std::io::stdout().lock();
         let pp = &mut decompiler::pp::PrettyPrinter::start(&mut out);
         ast.pretty_print(pp).unwrap();

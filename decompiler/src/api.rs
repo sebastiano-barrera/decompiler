@@ -1,5 +1,4 @@
-use std::sync::RwLock;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use thiserror::Error;
 
@@ -67,6 +66,19 @@ struct AddrRange {
     size: usize,
 }
 
+/// Indication of where in the executable a function's machine code is located.
+struct FuncCoords {
+    /// Offset of the machine code from the ELF's .text section
+    #[allow(dead_code)]
+    text_section_offset: usize,
+    /// Offset of the machine code from the start of the executable file.
+    file_offset: usize,
+    /// Address of the machine code at runtime, in the process' virtual memory.
+    vm_addr: usize,
+    /// Size of the original machine code, in bytes.
+    code_size: usize,
+}
+
 impl<'a> Executable<'a> {
     #[instrument(skip_all)]
     pub fn parse(raw_binary: &'a [u8]) -> Result<Self> {
@@ -102,22 +114,35 @@ impl<'a> Executable<'a> {
         self.func_syms.contains_key(name)
     }
 
+    pub fn types(&self) -> &ty::TypeSet {
+        &self.types
+    }
+
     #[instrument(skip(self))]
     pub fn decompile_function(&mut self, function_name: &str) -> Result<DecompiledFunction> {
-        let mut df = self.find_function(function_name)?;
+        let coords = self.find_function(function_name)?;
 
-        let mut decoder = df.disassemble(self);
-            let func_tyid_opt = self.types.get_known_object(df.vm_addr.try_into().unwrap());
+        let vm_addr = coords.vm_addr.try_into().unwrap();
+        let mut decoder = iced_x86::Decoder::with_ip(
+            64,
+            self.machine_code(&coords),
+            vm_addr,
+            iced_x86::DecoderOptions::NONE,
+        );
 
-            x86_to_mil::Builder::new(&mut self.types)
-                .translate(decoder.iter(), func_tyid_opt)
-                .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()))
+        let func_tyid_opt = self.types.get_known_object(vm_addr);
+        let mil_res = x86_to_mil::Builder::new(&mut self.types)
+            .translate(decoder.iter(), func_tyid_opt)
+            .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()));
 
-        // fold a panic into a regular error
-        let mil_res = match mil_res {
-            Ok(Ok(res)) => Ok(res),
-            Ok(Err(err)) => Err(err),
-            Err(panic_err) => Err(Error::FrontendError(panic_message(panic_err))),
+        let mut df = DecompiledFunction {
+            function_name: function_name.to_string(),
+            coords,
+            mil: None,
+            ssa_pre_xform: None,
+            ssa: None,
+            error: None,
+            warnings: Vec::new(),
         };
 
         let (mil, warnings) = match mil_res {
@@ -146,24 +171,13 @@ impl<'a> Executable<'a> {
         ssa::eliminate_dead_code(&mut ssa);
         df.ssa_pre_xform = Some(ssa.clone());
 
-        let xform_res = std::panic::catch_unwind(move || {
-            xform::canonical(&mut ssa, &self.types);
-            ssa
-        });
-        match xform_res {
-            Err(err) => {
-                df.warnings.push(Error::XformError(panic_message(err)));
-                return Ok(df);
-            }
-            Ok(ssa) => {
-                df.ssa = Some(ssa);
-            }
-        };
+        xform::canonical(&mut ssa, &self.types);
+        df.ssa = Some(ssa);
 
         Ok(df)
     }
 
-    fn find_function(&self, function_name: &str) -> Result<DecompiledFunction> {
+    fn find_function(&self, function_name: &str) -> Result<FuncCoords> {
         let AddrRange {
             base: vm_addr,
             size: code_size,
@@ -191,18 +205,21 @@ impl<'a> Executable<'a> {
         }
         let text_section_offset = vm_addr - vm_range.start;
         let file_offset = text_section.sh_offset as usize + text_section_offset;
-        Ok(DecompiledFunction {
-            function_name: function_name.to_string(),
+        Ok(FuncCoords {
             text_section_offset,
             file_offset,
             vm_addr,
             code_size,
-            mil: None,
-            ssa_pre_xform: None,
-            ssa: None,
-            error: None,
-            warnings: Vec::new(),
         })
+    }
+
+    fn machine_code(&self, coords: &FuncCoords) -> &'a [u8] {
+        let FuncCoords {
+            file_offset,
+            code_size,
+            ..
+        } = *coords;
+        &self.raw_binary[file_offset..file_offset + code_size]
     }
 }
 
@@ -218,17 +235,7 @@ fn panic_message(panic_err: Box<dyn std::any::Any + Send>) -> String {
 pub struct DecompiledFunction {
     function_name: String,
 
-    /// Offset of the machine code from the ELF's .text section
-    #[allow(dead_code)]
-    text_section_offset: usize,
-    /// Offset of the machine code from the start of the executable file.
-    file_offset: usize,
-    /// Address of the machine code at runtime, in the process' virtual memory.
-    vm_addr: usize,
-
-    /// Size of the original machine code, in bytes.
-    code_size: usize,
-
+    coords: FuncCoords,
     mil: Option<mil::Program>,
     ssa_pre_xform: Option<crate::ssa::Program>,
     ssa: Option<crate::ssa::Program>,
@@ -250,15 +257,15 @@ impl DecompiledFunction {
         self.warnings.as_slice()
     }
 
-    pub fn machine_code<'e>(&self, exe: &'e Executable) -> &'e [u8] {
-        &exe.raw_binary[self.file_offset..self.file_offset + self.code_size]
+    pub fn machine_code<'a>(&self, exe: &Executable<'a>) -> &'a [u8] {
+        exe.machine_code(&self.coords)
     }
 
     pub fn disassemble<'e>(&self, exe: &'e Executable) -> iced_x86::Decoder<'e> {
         iced_x86::Decoder::with_ip(
             64,
             self.machine_code(exe),
-            self.vm_addr.try_into().unwrap(),
+            self.coords.vm_addr.try_into().unwrap(),
             iced_x86::DecoderOptions::NONE,
         )
     }

@@ -9,12 +9,21 @@ use super::Program;
 use crate::{cfg, mil, ty};
 
 pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
-    program.assert_invariants();
+    // NOTE: the mil program is going to progressively become closer to the final SSA form.
+    //
+    // some notes:
+    //
+    // - the properties checked by `validate` may be violated by the time this function
+    //   finishes (typically: Phi insns are going to be inserted, even though `validate`
+    //   forbids them.)
+    //
+    // - the value u64::MAX is used for the 'addrs' array for all insns inserted
+    //   from now on. it's a dummy value for instructions that have no direct
+    //   connection to the source machine program
+
+    program.validate();
     program.convert_jmp_ext_to_int();
-    // use this 'addr' value for all isntructions inserted from now on.
-    // it's a dummy value for instructions that have no direct connection
-    // to the source machine program
-    program.set_input_addr(u64::MAX);
+    println!("--- mil\n{:?}\n---", program);
 
     let var_count = program.count_distinct_regs();
     let vars = move || (0..var_count).map(mil::Reg);
@@ -29,16 +38,20 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     let dom_tree = cfg.dom_tree();
     let is_phi_needed = compute_phis_set(&program, &cfg, &schedule, dom_tree);
 
+    // from now on, `program` is going to progressively become closer to the SSA result
+
     // create all required phi nodes, and link them to basic blocks and
     // variables, to be "wired" later to the data flow graph
     let phis = {
-        let mut phis = RegMat::for_program(&program, &cfg, None);
+        let mut phis = RegMat::with_size(None, var_count, cfg.block_count());
         for bid in cfg.block_ids() {
             for var in vars() {
                 if *is_phi_needed.get(bid, var) {
                     // just set `var` as the dest; the regular renaming process
                     // will process this insn just like the others
-                    let ndx = program.push(var, mil::Insn::Phi);
+                    let ndx = program.len().try_into().unwrap();
+                    program.push(var, mil::Insn::Phi);
+
                     // in `phis`, we need a stable ID for this insn (which
                     // survives the renaming)
                     phis.set(bid, var, Some(ndx));
@@ -72,7 +85,6 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     rename(entry)
     */
 
-    let mut program = program.unwrap();
     let mut var_map = VarMap::new(var_count);
 
     enum Cmd {
@@ -92,7 +104,8 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                 // becomes mil::Reg(index) (this replacement will physically
                 // happen later on).
                 for &insn_ndx in schedule.of_block(bid) {
-                    let mut insn = program.insns[insn_ndx as usize];
+                    let iv = program.get(insn_ndx).unwrap();
+                    let mut insn = iv.insn.get();
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
@@ -103,7 +116,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                     let new_dest = mil::Reg(insn_ndx);
                     // iv.dest is rewritten later (always mil::Reg(index))
                     // we only update `var_map`
-                    let old_name = program.dests[insn_ndx as usize];
+                    let old_name = iv.dest.get();
 
                     let new_name = if let mil::Insn::Get(input_reg) = insn {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
@@ -113,6 +126,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                         new_dest
                     };
                     var_map.set(old_name, new_name);
+                    iv.insn.set(insn);
                 }
 
                 // -- patch successor's phi nodes
@@ -134,12 +148,14 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                                 .get(var)
                                 .expect("value not initialized in pre-ssa (phi)");
 
-                            let ndx = program.insns.len().try_into().unwrap();
-                            program.insns.push(mil::Insn::Upsilon {
-                                value,
-                                phi_ref: mil::Reg(phi_ndx),
-                            });
-                            program.dests.push(mil::Reg(ndx));
+                            let ndx = program.len().try_into().unwrap();
+                            program.push(
+                                mil::Reg(ndx),
+                                mil::Insn::Upsilon {
+                                    value,
+                                    phi_ref: mil::Reg(phi_ndx),
+                                },
+                            );
                             schedule.append(ndx, bid);
                         }
                     }
@@ -162,6 +178,8 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         }
     }
 
+    // convert into plain data, fully accessible form
+    let program = program.unwrap();
     let tyids = program
         .insns
         .iter()
@@ -182,6 +200,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         schedule,
         cfg,
     };
+    println!("---\n{:?}\n---", ssa);
     ssa.assert_invariants();
     ssa.refresh_types();
     ssa
@@ -311,8 +330,13 @@ impl<T: Clone> RegMat<T> {
     fn for_program(program: &mil::Program, graph: &cfg::Graph, value: T) -> Self {
         // NOTE(perf) this function is called a few times, and each time `count_distinct_regs`
         // is going to iterate through the program.  maybe wasteful, but I bet it's fine.
-        let var_count = program.count_distinct_regs() as usize;
-        RegMat(Mat::new(value, graph.block_count() as usize, var_count))
+        let var_count = program.count_distinct_regs();
+        let block_count = graph.block_count();
+        Self::with_size(value, var_count, block_count)
+    }
+
+    fn with_size(value: T, var_count: u16, block_count: u16) -> RegMat<T> {
+        RegMat(Mat::new(value, block_count as usize, var_count as usize))
     }
 
     fn get(&self, bid: cfg::BlockID, reg: mil::Reg) -> &T {

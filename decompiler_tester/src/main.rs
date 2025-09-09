@@ -739,7 +739,7 @@ impl StageFunc {
         let ssa_px_vcache = SSAViewCache::new_from_option(df.ssa_pre_xform());
 
         let ast = match df.ssa() {
-            Some(ssa) => ast_view::Ast::from_ssa(ssa),
+            Some(ssa) => ast_view::Ast::from_ssa(ssa, exe.types()),
             None => ast_view::Ast::empty(),
         };
 
@@ -882,7 +882,7 @@ impl ast_view::Column for SSAColumn<'_> {
     fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &ast_view::Stmt) {
         if let &ast_view::Stmt::BlockLabel(block_id) = stmt {
             for reg in self.ssa.block_regs(block_id) {
-                let insn = self.ssa[reg].get();
+                let insn = self.ssa.get(reg).unwrap();
                 ui.label(format!("{:?} <- {:?}", reg, insn));
             }
             ui.label(format!("{:?}", self.ssa.cfg().block_cont(block_id)));
@@ -1082,7 +1082,7 @@ fn show_ssa(
                         });
 
                         for reg in ssa.block_regs(bid) {
-                            let insn = ssa[reg].get();
+                            let insn = ssa.get(reg).unwrap();
                             if insn == decompiler::Insn::Void {
                                 continue;
                             }
@@ -1567,8 +1567,8 @@ mod ast_view {
 
         /// Constructs an `Ast` from an SSA program using the `Builder`. This is the primary
         /// entry point for AST generation.
-        pub fn from_ssa(ssa: &decompiler::SSAProgram) -> Self {
-            Builder::new(ssa).build()
+        pub fn from_ssa(ssa: &decompiler::SSAProgram, types: &decompiler::ty::TypeSet) -> Self {
+            Builder::new(ssa, types).build()
         }
 
         fn show_expr(&self, ui: &mut egui::Ui, value: &ExprTree) {
@@ -1706,6 +1706,7 @@ mod ast_view {
         block_order: Vec<BlockID>,
         plan: Vec<Stmt>,
         ssa: &'a decompiler::SSAProgram,
+        types: &'a decompiler::ty::TypeSet,
         value_mode: decompiler::RegMap<ValueMode>,
 
         // just to check that the algo is correct:
@@ -1745,10 +1746,10 @@ mod ast_view {
     impl<'a> Builder<'a> {
         /// Creates a new `Builder` instance. It initializes the `value_mode` for each register
         /// based on usage count and instruction type, determining how each value will be represented.
-        fn new(ssa: &'a decompiler::SSAProgram) -> Self {
+        fn new(ssa: &'a decompiler::SSAProgram, types: &'a decompiler::ty::TypeSet) -> Self {
             let rdr_count = decompiler::count_readers(ssa);
             let value_mode = rdr_count.map(|reg, rdr_count| {
-                let insn = ssa[reg].get();
+                let insn = ssa.get(reg).unwrap();
                 if matches!(insn, Insn::Ancestral(_) | Insn::Const { .. }) {
                     ValueMode::Inline
                 } else if matches!(insn, Insn::Phi) || *rdr_count > 1 {
@@ -1767,6 +1768,7 @@ mod ast_view {
                 block_order: ssa.cfg().block_ids_rpo().collect(),
                 plan: Vec::new(),
                 ssa,
+                types,
                 value_mode,
                 block_status,
                 open_stack: Vec::new(),
@@ -1940,7 +1942,7 @@ mod ast_view {
             reg: decompiler::Reg,
             parent_prec: decompiler::PrecedenceLevel,
         ) -> ExprTree {
-            let mut insn = self.ssa[reg].get();
+            let mut insn = self.ssa.get(reg).unwrap();
             let prec = decompiler::precedence(&insn);
 
             let anchor = Anchor::Reg(reg);
@@ -2099,7 +2101,7 @@ mod ast_view {
                     let callee_type_name = self
                         .ssa
                         .value_type(callee)
-                        .and_then(|tyid| self.ssa.types().name(tyid))
+                        .and_then(|tyid| self.types.name(tyid))
                         .map(|s| s.to_string());
                     let mut seq = Seq::new().with_anchor(Anchor::Reg(reg));
 
@@ -2115,11 +2117,13 @@ mod ast_view {
 
                     seq.add_child(mk_kw("(".into()));
 
-                    for (_ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
-                        // if ndx > 0 {
-                        //     seq.add_child(mk_kw(",".into()));
-                        // }
-                        seq.add_child(self.transform_value_use(arg, prec));
+                    if let Some(first_arg) = first_arg {
+                        for (_ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
+                            // if ndx > 0 {
+                            //     seq.add_child(mk_kw(",".into()));
+                            // }
+                            seq.add_child(self.transform_value_use(arg, prec));
+                        }
                     }
 
                     seq.with_child(mk_kw(")".into())).into()
