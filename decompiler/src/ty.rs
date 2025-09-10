@@ -17,6 +17,7 @@ pub enum TypeID {
     Void,
     UnknownUnsized,
     Unknown { size: usize },
+    Flag,
 }
 
 pub type RegularTypeID = usize;
@@ -82,6 +83,7 @@ impl TypeSet {
             TypeID::Regular(rtyid) => self.name_of_tyid.get(&rtyid).map(|s| s.as_str()),
             TypeID::Void => Some("void"),
             TypeID::UnknownUnsized | TypeID::Unknown { size: _ } => Some("?"),
+            TypeID::Flag => Some("flag"),
         }
     }
     /// Set the name of a type.
@@ -93,7 +95,7 @@ impl TypeSet {
                 self.name_of_tyid.insert(rtyid, name);
             }
             // do nothing; the names for these types is stored in read-only memory
-            TypeID::Void | TypeID::UnknownUnsized | TypeID::Unknown { .. } => {}
+            TypeID::Void | TypeID::UnknownUnsized | TypeID::Unknown { .. } | TypeID::Flag => {}
         };
     }
     /// Removes a custom name on a type, as previously set by [`Self:set_name`]
@@ -105,7 +107,7 @@ impl TypeSet {
                 self.name_of_tyid.remove(&rtyid);
             }
             // do nothing; the names for these types is stored in read-only memory
-            TypeID::Void | TypeID::UnknownUnsized | TypeID::Unknown { .. } => {}
+            TypeID::Void | TypeID::UnknownUnsized | TypeID::Unknown { .. } | TypeID::Flag => {}
         }
     }
 
@@ -133,6 +135,7 @@ impl TypeSet {
             TypeID::Void => Some(Cow::Owned(Ty::Void)),
             TypeID::UnknownUnsized => Some(Cow::Owned(Ty::Unknown(Unknown { size: None }))),
             TypeID::Unknown { size } => Some(Cow::Owned(Ty::Unknown(Unknown { size: Some(size) }))),
+            TypeID::Flag => Some(Cow::Owned(Ty::Flag)),
         }
     }
 
@@ -175,6 +178,7 @@ impl TypeSet {
             // TODO does this even make sense?
             Ty::Subroutine(_) => Some(8),
             Ty::Void => Some(0),
+            Ty::Flag => None,
             Ty::Alias(ref_tyid) => self.bytes_size(*ref_tyid),
             Ty::Array(Array {
                 element_tyid,
@@ -218,6 +222,7 @@ impl TypeSet {
 
         match ty.as_ref() {
             Ty::Void
+            | Ty::Flag
             | Ty::Ptr(_)
             | Ty::Int(_)
             | Ty::Enum(_)
@@ -297,7 +302,7 @@ impl TypeSet {
             Ty::Float(float_ty) => Some(float_ty.alignment()),
             Ty::Alias(ref_tyid) => self.alignment(*ref_tyid),
 
-            Ty::Void | Ty::Bool(_) | Ty::Subroutine(_) | Ty::Unknown(_) => None,
+            Ty::Void | Ty::Bool(_) | Ty::Subroutine(_) | Ty::Unknown(_) | Ty::Flag => None,
 
             Ty::Struct(struct_ty) => {
                 // TODO any further check necessary?
@@ -370,6 +375,9 @@ impl TypeSet {
                     Signedness::Unsigned => "u",
                 };
                 write!(out, "{}{}", prefix, size * 8)?;
+            }
+            Ty::Flag => {
+                write!(out, "flag")?;
             }
             Ty::Bool(Bool { size }) => write!(out, "bool{}", *size * 8)?,
             Ty::Float(Float { size }) => write!(out, "float{}", *size * 8)?,
@@ -521,6 +529,7 @@ pub struct CallSiteKey {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ty {
+    Flag,
     Int(Int),
     Bool(Bool),
     #[allow(dead_code)]

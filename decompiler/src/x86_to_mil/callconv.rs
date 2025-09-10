@@ -755,7 +755,7 @@ fn classify_eightbytes(
             }
         }
 
-        ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void => {
+        ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void | ty::Ty::Flag => {
             panic!("invalid type for a function param: {:?}", ty)
         }
         ty::Ty::Alias(_) => unreachable!(),
