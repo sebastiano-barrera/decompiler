@@ -1,4 +1,5 @@
 _unver/
+.vscode/
 
 # Added by cargo
 /target
@@ -6,3 +7,4 @@ _unver/
 src/.dir-locals.el
 .aider*
 test-data/integration/redis-server.dwarf
+

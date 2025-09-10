@@ -4,18 +4,13 @@ use tracing::{event, Level};
 
 use crate::{
     cfg::BlockID,
-    mil::{ArithOp, Index, Insn, Reg, RegType},
+    mil::{ArithOp, Insn, Reg, RegType},
     ssa, ty, x86_to_mil,
 };
 
 mod mem;
 
-fn fold_constants(
-    insn: Insn,
-    prog: &mut ssa::OpenProgram,
-    bid: BlockID,
-    ndx_in_block: Index,
-) -> Insn {
+fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn {
     use crate::mil::ArithOp;
 
     /// Evaluate expression (ak (op) bk)
@@ -102,8 +97,8 @@ fn fold_constants(
             if l_op == r_op && l_op == op =>
         {
             if let Some(k) = assoc_const(op, lk, rk) {
-                li = fold_constants(Insn::Arith(op, llr, rlr), prog, bid, ndx_in_block);
-                lr = prog.insert(bid, ndx_in_block, li);
+                li = fold_constants(Insn::Arith(op, llr, rlr), prog, bid);
+                lr = prog.append_new(bid, li);
                 ri = Insn::Const { value: k, size: 8 };
             }
         }
@@ -419,10 +414,9 @@ fn fold_part_void(insn: Insn) -> Insn {
 }
 
 fn apply_type_selection(
-    insn: Insn,
+    mut insn: Insn,
     prog: &mut ssa::OpenProgram,
     bid: BlockID,
-    ndx_in_block: Index,
     types: &ty::TypeSet,
 ) -> Insn {
     let Insn::Part { src, offset, size } = insn else {
@@ -449,37 +443,34 @@ fn apply_type_selection(
             }
         };
 
-    let mut final_reg = src;
-    for (step_ndx, step) in path.into_iter().enumerate() {
-        let insn = match step {
+    for step in path {
+        let src = prog.append_new(bid, insn);
+        insn = match step {
             ty::SelectStep::Index {
                 index,
                 element_size,
             } => Insn::ArrayGetElement {
-                array: final_reg,
+                array: src,
                 index: index.try_into().unwrap(),
                 size: element_size.try_into().unwrap(),
             },
             ty::SelectStep::Member { name, size } => {
                 Insn::StructGetMember {
-                    struct_value: final_reg,
+                    struct_value: src,
                     // TODO figure out memory managment for this
                     name: name.to_string().leak(),
                     size: size.try_into().unwrap(),
                 }
             }
             ty::SelectStep::RawBytes { byte_range } => Insn::Part {
-                src: final_reg,
+                src: src,
                 offset: byte_range.lo().try_into().unwrap(),
                 size: byte_range.len().try_into().unwrap(),
             },
         };
-
-        let step_ndx: u16 = step_ndx.try_into().unwrap();
-        final_reg = prog.insert(bid, ndx_in_block + step_ndx, insn);
     }
 
-    Insn::Get(final_reg)
+    insn
 }
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
@@ -508,20 +499,16 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
         let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
         for bid in bids {
-            let block_seq: Vec<_> = prog.block_regs(bid).collect();
-            for (ndx_in_block, reg) in block_seq.into_iter().enumerate() {
-                let ndx_in_block = ndx_in_block.try_into().unwrap();
-
-                if let Some(mem_ref_reg) = mem_ref_reg {
-                    if mem::fold_load_store(&mut prog, mem_ref_reg, reg, bid, ndx_in_block) {
-                        any_change = true;
-                    }
-                }
-
+            // clear the block's schedule, then reconstruct it.
+            // existing instruction are processed and replaced to keep using the memory they already occupy
+            for reg in prog.clear_block_schedule(bid) {
                 let orig_insn = prog.get(reg).unwrap();
                 let orig_has_fx = orig_insn.has_side_effects();
 
                 let mut insn = orig_insn;
+                if let Some(mem_ref_reg) = mem_ref_reg {
+                    insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
+                }
                 insn = fold_get(insn, &prog);
                 insn = fold_subregs(insn, &prog);
                 insn = fold_concat_void(insn, &prog);
@@ -533,14 +520,15 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_widen_null(insn, &prog);
                 insn = fold_widen_const(insn, &prog);
                 insn = fold_bitops(insn, &prog);
-                insn = fold_constants(insn, &mut prog, bid, ndx_in_block);
-                insn = apply_type_selection(insn, &mut prog, bid, ndx_in_block, types);
+                insn = fold_constants(insn, &mut prog, bid);
+                insn = apply_type_selection(insn, &mut prog, bid, types);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
                     insn = deduper.try_dedup(reg, insn);
                 }
                 prog.set(reg, insn);
+                prog.append_existing(bid, reg);
 
                 let final_has_fx = insn.has_side_effects();
                 if final_has_fx != orig_has_fx {
@@ -690,6 +678,8 @@ mod tests {
             ssa, ty, xform,
         };
 
+        use test_log::test;
+
         define_ancestral_name!(ANC_A, "A");
         define_ancestral_name!(ANC_B, "B");
 
@@ -697,7 +687,7 @@ mod tests {
         fn part_of_concat() {
             use mil::{Insn, Reg};
 
-            #[derive(Clone, Copy)]
+            #[derive(Clone, Copy, Debug)]
             struct VariantParams {
                 anc_a_sz: u16,
                 anc_b_sz: u16,
@@ -745,15 +735,13 @@ mod tests {
                     // case: fall within lo
                     for offset in 0..=(anc_a_sz - 1) {
                         for size in 1..=(anc_a_sz - offset) {
-                            let prog = gen_prog(
-                                VariantParams {
-                                    anc_a_sz,
-                                    anc_b_sz,
-                                    offset,
-                                    size,
-                                },
-                                &mut types,
-                            );
+                            let variant_params = VariantParams {
+                                anc_a_sz,
+                                anc_b_sz,
+                                offset,
+                                size,
+                            };
+                            let prog = gen_prog(variant_params, &mut types);
                             let mut prog = ssa::Program::from_mil(prog);
                             xform::canonical(&mut prog, &types);
 

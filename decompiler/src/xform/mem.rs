@@ -83,10 +83,9 @@ use crate::{
 pub fn fold_load_store(
     prog: &mut ssa::OpenProgram,
     ref_reg: mil::Reg,
-    load_reg: mil::Reg,
-    load_bid: cfg::BlockID,
-    load_ndx_in_blk: mil::Index,
-) -> bool {
+    bid: cfg::BlockID,
+    load_insn: mil::Insn,
+) -> mil::Insn {
     //
     // check if we're looking at a Load that we know how to transform
     // Load(ArithK(Add, ref_reg, offset), size)
@@ -94,28 +93,27 @@ pub fn fold_load_store(
     let Insn::LoadMem {
         addr: addr_l,
         size: size_l,
-    } = prog.get(load_reg).unwrap()
+    } = load_insn
     else {
-        return false;
+        return load_insn;
     };
     let load = {
         let Insn::ArithK(mil::ArithOp::Add, offset_reg, start) = prog.get(addr_l).unwrap() else {
             // not in register-relative form; we can't work with this
-            return false;
+            return load_insn;
         };
 
         if offset_reg != ref_reg {
             // wrong reference register; we can't work with this
-            return false;
+            return load_insn;
         }
 
         let end = start + size_l as i64;
         LoadInt { start, end }
     };
 
-    let Some(store) = find_dominating_conflicting_store(prog, ref_reg, &load, load_reg, load_bid)
-    else {
-        return false;
+    let Some(store) = find_dominating_conflicting_store(prog, ref_reg, &load, bid) else {
+        return load_insn;
     };
 
     // intersect LoadInt, StoreInt
@@ -123,9 +121,8 @@ pub fn fold_load_store(
     let end_i = load.end.min(store.end);
 
     let left_size = (start_i - load.start).try_into().unwrap();
-    let left = prog.insert(
-        load_bid,
-        load_ndx_in_blk,
+    let left = prog.append_new(
+        bid,
         load_or_void(
             // same as load.start; but we can reuse the same ArithK as in the original load
             addr_l,    // addr
@@ -135,9 +132,8 @@ pub fn fold_load_store(
 
     let mid_size = (end_i - start_i).try_into().unwrap();
     let mid_offset = (start_i - store.start).try_into().unwrap();
-    let mid = prog.insert(
-        load_bid,
-        load_ndx_in_blk,
+    let mid = prog.append_new(
+        bid,
         Insn::Part {
             src: store.value,
             offset: mid_offset,
@@ -145,37 +141,23 @@ pub fn fold_load_store(
         },
     );
 
-    let right_addr = prog.insert(
-        load_bid,
-        load_ndx_in_blk,
-        Insn::ArithK(mil::ArithOp::Add, ref_reg, end_i),
-    );
+    let right_addr = prog.append_new(bid, Insn::ArithK(mil::ArithOp::Add, ref_reg, end_i));
     let right_size = (load.end - end_i).try_into().unwrap();
-    let right = prog.insert(
-        load_bid,
-        load_ndx_in_blk + 1,
+    let right = prog.append_new(
+        bid,
         load_or_void(
             right_addr, // addr
             right_size, // size
         ),
     );
 
-    let mid_left = prog.insert(
-        load_bid,
-        load_ndx_in_blk,
-        Insn::Concat { lo: mid, hi: left },
-    );
+    let mid_left = prog.append_new(bid, Insn::Concat { lo: mid, hi: left });
 
     // replace the load with the final replacement value (the outermost Concat)
-    prog.set(
-        load_reg,
-        Insn::Concat {
-            lo: right,
-            hi: mid_left,
-        },
-    );
-
-    true
+    Insn::Concat {
+        lo: right,
+        hi: mid_left,
+    }
 }
 
 struct LoadInt {
@@ -197,11 +179,18 @@ fn load_or_void(addr: Reg, size: u32) -> Insn {
 }
 
 /// Find the last dominating store instruction.
+///
+/// # Important note!
+///
+/// This function is designed to follow the design of [crate::xform::canonical]:
+/// it expects the schedule for the block identified by `load_bid` to contain the
+/// load instruction (indirectly described by `load`) as its last instruction.
+///
+/// This is what normally happens.
 fn find_dominating_conflicting_store(
     prog: &ssa::Program,
     ref_reg: mil::Reg,
     load: &LoadInt,
-    load_reg: mil::Reg,
     load_bid: cfg::BlockID,
 ) -> Option<StoreInt> {
     assert!(load.start <= load.end);
@@ -246,10 +235,12 @@ fn find_dominating_conflicting_store(
         None
     };
 
+    // in case xform::canonical no longer clears+reconstructs each block's schedule,
+    // add this after .rev():
+    //     .skip_while(|&r| r != load_reg)
     if let Some(store) = prog
         .block_regs(load_bid)
         .rev()
-        .skip_while(|&r| r != load_reg)
         .find_map(|r| select_store(&prog.get(r).unwrap()))
     {
         return Some(store);

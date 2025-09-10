@@ -453,12 +453,35 @@ impl<'a> OpenProgram<'a> {
     pub fn insert(&mut self, bid: cfg::BlockID, ndx_in_block: u16, insn: mil::Insn) -> mil::Reg {
         // it's a bug to leave any instruction unscheduled, so we add
         // the instruction and schedule it as a single "atomic" operation
+        let ndx = self.add_insn(insn);
+        self.program.schedule.insert(ndx, bid, ndx_in_block);
+        mil::Reg(ndx)
+    }
+
+    fn add_insn(&mut self, insn: mil::Insn) -> mil::Index {
         let ndx = self.insns.len().try_into().unwrap();
         self.program.insns.push(Cell::new(insn));
         self.program.addrs.push(u64::MAX);
         self.program.tyids.push(ty::TypeID::UnknownUnsized);
-        self.program.schedule.insert(ndx, bid, ndx_in_block);
+        ndx
+    }
+
+    pub fn clear_block_schedule(&mut self, bid: cfg::BlockID) -> Vec<mil::Reg> {
+        self.program
+            .schedule
+            .clear_block(bid)
+            .into_iter()
+            .map(|ndx| mil::Reg(ndx))
+            .collect()
+    }
+
+    pub fn append_new(&mut self, bid: cfg::BlockID, insn: mil::Insn) -> mil::Reg {
+        let ndx = self.add_insn(insn);
+        self.program.schedule.append(ndx, bid);
         mil::Reg(ndx)
+    }
+    pub fn append_existing(&mut self, bid: cfg::BlockID, reg: mil::Reg) {
+        self.program.schedule.append(reg.0, bid);
     }
 }
 impl Drop for OpenProgram<'_> {

@@ -196,25 +196,31 @@ impl Schedule {
         sched
     }
 
-    pub fn block_count(&self) -> u16 {
+    pub(crate) fn block_count(&self) -> u16 {
         self.0.block_count()
     }
 
-    pub fn of_block(&self, bid: BlockID) -> &[mil::Index] {
+    pub(crate) fn of_block(&self, bid: BlockID) -> &[mil::Index] {
         &self.0[bid]
     }
 
-    pub fn insert(&mut self, ndx: mil::Index, bid: BlockID, ndx_in_block: u16) {
+    pub(crate) fn insert(&mut self, ndx: mil::Index, bid: BlockID, ndx_in_block: u16) {
         self.0[bid].insert(ndx_in_block as usize, ndx);
     }
-    pub fn append(&mut self, ndx: mil::Index, bid: BlockID) {
+    pub(crate) fn append(&mut self, ndx: mil::Index, bid: BlockID) {
         self.0[bid].push(ndx);
     }
 
-    pub fn retain(&mut self, mut pred: impl FnMut(BlockID, u16) -> bool) {
+    pub(crate) fn retain(&mut self, mut pred: impl FnMut(BlockID, u16) -> bool) {
         for (bid, ndxs) in self.0.items_mut() {
             ndxs.retain(|&ndx| pred(bid, ndx));
         }
+    }
+
+    pub(crate) fn clear_block(&mut self, bid: BlockID) -> Vec<mil::Index> {
+        let mut ret = Vec::new();
+        std::mem::swap(&mut self.0[bid], &mut ret);
+        ret
     }
 
     fn assert_invariants(&self) {
