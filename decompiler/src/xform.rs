@@ -426,7 +426,10 @@ fn apply_type_selection(
     let offset = offset as usize;
     let size = size as usize;
 
-    let src_tyid = prog.value_type(src).unwrap();
+    // desist if there is no type information for the src value
+    let Some(src_tyid) = prog.value_type(src) else {
+        return insn;
+    };
     let ty::Selection { tyid: _, path } =
         match types.select(src_tyid, ty::ByteRange::new(offset, offset + size)) {
             Ok(part_tyid) => part_tyid,

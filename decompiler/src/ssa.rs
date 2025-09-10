@@ -19,9 +19,10 @@ pub struct Program {
     //   instruction in `inner`. mil::Index values are just as good as mil::Reg
     //   for identifying both insns and values. This allows for fast lookups.
     //
-    // - I'm going for a sort of "struct of arrays" approach. each of the Vecs below
-    //   is the same length, and the element at the same index in each represents
-    //   a different facet of the same instruction.
+    // - Struct-of-Arrays. Each of the Vecs below is the same length, and the
+    //   element at the same index in each represents a different facet of the
+    //   same instruction. This is checked by `assert_invariants`, among other
+    //   things.
     //
     // - the order of instructions in the arrays below (insns, dest_tyids, etc.)
     //   is meaningless. after conversion from a mil::Program, extra instructions
@@ -36,12 +37,13 @@ pub struct Program {
 
     /// Type ID for the instruction's result.
     ///
-    /// For all instructions right after construction, and for freshly added
-    /// instructions, this is initialized as [ty::TypeID::UnknownUnsized].
+    /// Managed externally (via getter `value_type` and setter `set_value_type`).
     ///
-    /// [`Program::refresh_types`] can be called to attempt resolving these
-    /// to more precise type. See that function's documentation for more details.
-    tyids: Vec<ty::TypeID>,
+    /// The default for all instruction after initialization or insertion after
+    /// initialization is None, which represents lack of type information.
+    ///
+    /// This is intended to be manipulated by specific passes in `xform`.
+    tyids: Vec<Option<ty::TypeID>>,
 
     schedule: cfg::Schedule,
     cfg: cfg::Graph,
@@ -213,7 +215,11 @@ impl Program {
     ///
     /// Returns None if `reg` is invalid.
     pub fn value_type(&self, reg: mil::Reg) -> Option<ty::TypeID> {
-        self.tyids.get(reg.0 as usize).copied()
+        self.tyids.get(reg.0 as usize).copied().flatten()
+    }
+
+    pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
+        self.tyids[reg.0 as usize] = tyid;
     }
 
     pub fn assert_invariants(&self) {
@@ -227,10 +233,6 @@ impl Program {
 
 /// Internal API
 impl Program {
-    fn refresh_types(&mut self) {
-        // TODO!
-    }
-
     fn assert_consistent_arrays_len(&self) {
         assert_eq!(self.insns.len(), self.addrs.len());
         assert_eq!(self.insns.len(), self.tyids.len());
@@ -460,7 +462,7 @@ impl<'a> OpenProgram<'a> {
         let ndx = self.insns.len().try_into().unwrap();
         self.program.insns.push(Cell::new(insn));
         self.program.addrs.push(u64::MAX);
-        self.program.tyids.push(ty::TypeID::UnknownUnsized);
+        self.program.tyids.push(None);
         mil::Reg(ndx)
     }
 

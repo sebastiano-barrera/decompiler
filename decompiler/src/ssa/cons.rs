@@ -5,8 +5,10 @@
 
 use std::cell::Cell;
 
+use tracing::{event, Level};
+
 use super::Program;
-use crate::{cfg, mil, ty};
+use crate::{cfg, mil};
 
 pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     // NOTE: the mil program is going to progressively become closer to the final SSA form.
@@ -183,24 +185,22 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         .insns
         .iter()
         .map(|insn| match insn {
-            mil::Insn::Ancestral { anc_name, size: _ } => program
-                .ancestral_tyids
-                .get(anc_name)
-                .copied()
-                .unwrap_or(ty::TypeID::UnknownUnsized),
-            _ => ty::TypeID::UnknownUnsized,
+            mil::Insn::Ancestral { anc_name, size: _ } => {
+                program.ancestral_tyids.get(anc_name).copied()
+            }
+            _ => None,
         })
         .collect();
 
-    let mut ssa = Program {
+    let ssa = Program {
         insns: program.insns.into_iter().map(Cell::new).collect(),
         addrs: program.addrs,
         tyids,
         schedule,
         cfg,
     };
+    event!(Level::TRACE, ?ssa, "ssa constructed");
     ssa.assert_invariants();
-    ssa.refresh_types();
     ssa
 }
 
