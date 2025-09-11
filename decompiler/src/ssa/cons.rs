@@ -23,7 +23,6 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
 
     program.validate();
     program.convert_jmp_ext_to_int();
-    println!("--- mil\n{:?}\n---", program);
 
     let var_count = program.count_distinct_regs();
     let vars = move || (0..var_count).map(mil::Reg);
@@ -200,7 +199,6 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         schedule,
         cfg,
     };
-    println!("---\n{:?}\n---", ssa);
     ssa.assert_invariants();
     ssa.refresh_types();
     ssa

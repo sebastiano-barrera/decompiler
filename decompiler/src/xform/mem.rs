@@ -300,9 +300,7 @@ mod tests {
 
             let mut program = ssa::Program::from_mil(program);
 
-            println!("ssa pre-xform:\n{program:?}");
             xform::canonical(&mut program, &ty::TypeSet::new());
-            println!("ssa post-xform:\n{program:?}");
 
             let insn = program.get(Reg(5)).unwrap();
             assert_eq!(insn, Insn::SetReturnValue(Reg(0)));
@@ -347,9 +345,7 @@ mod tests {
 
         let mut program = ssa::Program::from_mil(program);
 
-        println!("ssa pre-xform:\n{program:?}");
         xform::canonical(&mut program, &ty::TypeSet::new());
-        println!("ssa post-xform:\n{program:?}");
 
         let ret = program.get(Reg(6)).unwrap();
         let Insn::SetReturnValue(ret_val) = ret else {
@@ -404,9 +400,7 @@ mod tests {
 
         let mut program = ssa::Program::from_mil(program);
 
-        println!("ssa pre-xform:\n{program:?}");
         xform::canonical(&mut program, &ty::TypeSet::new());
-        println!("ssa post-xform:\n{program:?}");
 
         let Insn::SetReturnValue(ret_val) = program.get(Reg(6)).unwrap() else {
             panic!()

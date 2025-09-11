@@ -553,7 +553,6 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             }
         }
     }
-    println!("--- ssa post-xform\n{:?}\n---", &*prog);
 }
 
 struct Deduper {
