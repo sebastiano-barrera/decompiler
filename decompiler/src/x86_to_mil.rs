@@ -86,7 +86,8 @@ impl<'a> Builder<'a> {
     /// The register is assigned the given RegType. The high-level type is a
     /// corresponding ty::Ty::Unknown.
     fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, tyid: ty::TypeID) {
-        self.emit(reg, mil::Insn::Ancestral(anc_name));
+        let size = self.types.bytes_size(tyid).unwrap_or(0).try_into().unwrap();
+        self.emit(reg, mil::Insn::Ancestral { anc_name, size });
         self.pb.set_ancestral_tyid(anc_name, tyid);
         // TODO requires a fix in ty::TypeSet
         // let tyid = match rt {

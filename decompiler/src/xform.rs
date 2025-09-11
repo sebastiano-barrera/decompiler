@@ -443,7 +443,14 @@ fn apply_type_selection(
             }
         };
 
-    for step in path {
+    if path.len() == 1 && matches!(path[0], ty::SelectStep::RawBytes { .. }) {
+        // shortcut and don't do anything. failing to do this will cause a new
+        // Insn::Part to be appended to the block, identical to [src], which
+        // sends us into an infinite loop
+        return insn;
+    }
+
+    for step in dbg!(path) {
         let src = prog.append_new(bid, insn);
         insn = match step {
             ty::SelectStep::Index {
@@ -463,7 +470,7 @@ fn apply_type_selection(
                 }
             }
             ty::SelectStep::RawBytes { byte_range } => Insn::Part {
-                src: src,
+                src,
                 offset: byte_range.lo().try_into().unwrap(),
                 size: byte_range.len().try_into().unwrap(),
             },
@@ -502,6 +509,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             // clear the block's schedule, then reconstruct it.
             // existing instruction are processed and replaced to keep using the memory they already occupy
             for reg in prog.clear_block_schedule(bid) {
+                let orig_block_len = prog.block_len(bid);
                 let orig_insn = prog.get(reg).unwrap();
                 let orig_has_fx = orig_insn.has_side_effects();
 
@@ -539,7 +547,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                     );
                 }
 
-                if insn != orig_insn {
+                if insn != orig_insn || prog.block_len(bid) != orig_block_len + 1 {
                     any_change = true;
                 }
             }
@@ -576,9 +584,15 @@ impl Deduper {
 }
 
 fn find_mem_ref(prog: &ssa::Program) -> Option<Reg> {
-    (0..prog.reg_count())
-        .map(Reg)
-        .find(|&reg| matches!(prog.get(reg).unwrap(), Insn::Ancestral(x86_to_mil::ANC_RSP)))
+    (0..prog.reg_count()).map(Reg).find(|&reg| {
+        matches!(
+            prog.get(reg).unwrap(),
+            Insn::Ancestral {
+                anc_name: x86_to_mil::ANC_RSP,
+                ..
+            }
+        )
+    })
 }
 
 #[cfg(test)]
@@ -599,7 +613,13 @@ mod tests {
         #[test]
         fn addk() {
             let mut prog = mil::Program::new(Reg(0));
-            prog.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            prog.push(
+                Reg(0),
+                Insn::Ancestral {
+                    anc_name: mil::ANC_STACK_BOTTOM,
+                    size: 8,
+                },
+            );
             prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
             prog.push(Reg(2), Insn::Const { value: 44, size: 8 });
             prog.push(Reg(0), Insn::Arith(ArithOp::Add, Reg(1), Reg(0)));
@@ -613,7 +633,13 @@ mod tests {
                 },
             );
             prog.push(Reg(3), Insn::Const { value: 0, size: 8 });
-            prog.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            prog.push(
+                Reg(4),
+                Insn::Ancestral {
+                    anc_name: mil::ANC_STACK_BOTTOM,
+                    size: 8,
+                },
+            );
             prog.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(3), Reg(4)));
             prog.push(Reg(0), Insn::SetReturnValue(Reg(3)));
             prog.push(Reg(0), Insn::Control(Control::Ret));
@@ -632,7 +658,10 @@ mod tests {
             );
             assert_eq!(
                 prog.get(Reg(8)).unwrap(),
-                Insn::Ancestral(mil::ANC_STACK_BOTTOM)
+                Insn::Ancestral {
+                    anc_name: mil::ANC_STACK_BOTTOM,
+                    size: 8,
+                }
             );
             assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(8)));
         }
@@ -640,7 +669,13 @@ mod tests {
         #[test]
         fn mulk() {
             let mut prog = mil::Program::new(Reg(0));
-            prog.push(Reg(0), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            prog.push(
+                Reg(0),
+                Insn::Ancestral {
+                    anc_name: mil::ANC_STACK_BOTTOM,
+                    size: 8,
+                },
+            );
             prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
             prog.push(Reg(2), Insn::Const { value: 44, size: 8 });
             prog.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(0)));
@@ -654,7 +689,13 @@ mod tests {
                     value: Reg(4),
                 },
             );
-            prog.push(Reg(4), Insn::Ancestral(mil::ANC_STACK_BOTTOM));
+            prog.push(
+                Reg(4),
+                Insn::Ancestral {
+                    anc_name: mil::ANC_STACK_BOTTOM,
+                    size: 8,
+                },
+            );
             prog.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(3), Reg(4)));
             prog.push(Reg(0), Insn::SetReturnValue(Reg(4)));
             prog.push(Reg(0), Insn::Control(Control::Ret));
@@ -704,8 +745,20 @@ mod tests {
                     ANC_B,
                     types.tyid_shared_unknown_of_size(vp.anc_b_sz as usize),
                 );
-                p.push(Reg(0), Insn::Ancestral(ANC_A));
-                p.push(Reg(1), Insn::Ancestral(ANC_B));
+                p.push(
+                    Reg(0),
+                    Insn::Ancestral {
+                        anc_name: ANC_A,
+                        size: vp.anc_a_sz as _,
+                    },
+                );
+                p.push(
+                    Reg(1),
+                    Insn::Ancestral {
+                        anc_name: ANC_B,
+                        size: vp.anc_b_sz as _,
+                    },
+                );
                 p.push(
                     Reg(2),
                     Insn::Concat {
@@ -834,9 +887,15 @@ mod tests {
             }
 
             fn gen_prog(vp: VariantParams, types: &mut ty::TypeSet) -> mil::Program {
-                let mut p = mil::Program::new(Reg(0));
+                let mut p = mil::Program::new(Reg(10_000));
                 p.set_ancestral_tyid(ANC_A, types.tyid_shared_unknown_of_size(vp.src_sz as usize));
-                p.push(Reg(0), Insn::Ancestral(ANC_A));
+                p.push(
+                    Reg(0),
+                    Insn::Ancestral {
+                        anc_name: ANC_A,
+                        size: vp.src_sz as _,
+                    },
+                );
                 p.push(
                     Reg(1),
                     Insn::Part {

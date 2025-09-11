@@ -202,7 +202,7 @@ impl Program {
                 self.reg_type(y.input_reg)
             }
             // TODO rewrite the type stuff until this is clear and correct
-            Insn::Ancestral(_) => mil::RegType::Bytes(8),
+            Insn::Ancestral { anc_name: _, size } => mil::RegType::Bytes(size as usize),
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
         }
@@ -446,24 +446,22 @@ impl<'a> OpenProgram<'a> {
         OpenProgram { program }
     }
 
-    /// Insert a new instruction in the SSA program and schedule it at
-    /// the given position (0-based index) of the given basic block.
+    /// Add a new instruction to the set of values
     ///
-    /// Returns the Reg assigned to the new instruction.
-    pub fn insert(&mut self, bid: cfg::BlockID, ndx_in_block: u16, insn: mil::Insn) -> mil::Reg {
-        // it's a bug to leave any instruction unscheduled, so we add
-        // the instruction and schedule it as a single "atomic" operation
-        let ndx = self.add_insn(insn);
-        self.program.schedule.insert(ndx, bid, ndx_in_block);
-        mil::Reg(ndx)
-    }
-
-    fn add_insn(&mut self, insn: mil::Insn) -> mil::Index {
+    /// # Important note
+    ///
+    /// After calling this function, the returned Reg is valid (i.e. assigned
+    /// to an instruction), but it is not scheduled yet.
+    ///
+    /// Schedule the instruction by calling `append_existing`. Failing to
+    /// do so before dropping this [OpenProgram] will result in a panic in
+    /// [Program::assert_invariants].
+    fn add_insn(&mut self, insn: mil::Insn) -> mil::Reg {
         let ndx = self.insns.len().try_into().unwrap();
         self.program.insns.push(Cell::new(insn));
         self.program.addrs.push(u64::MAX);
         self.program.tyids.push(ty::TypeID::UnknownUnsized);
-        ndx
+        mil::Reg(ndx)
     }
 
     pub fn clear_block_schedule(&mut self, bid: cfg::BlockID) -> Vec<mil::Reg> {
@@ -475,13 +473,32 @@ impl<'a> OpenProgram<'a> {
             .collect()
     }
 
+    /// Add a new instruction to the data flow graph, and schedule it at the end
+    /// of the given basic block.
+    ///
+    /// Returns the register corresponding to the new value.
     pub fn append_new(&mut self, bid: cfg::BlockID, insn: mil::Insn) -> mil::Reg {
-        let ndx = self.add_insn(insn);
-        self.program.schedule.append(ndx, bid);
-        mil::Reg(ndx)
+        let reg = self.add_insn(insn);
+        self.program.schedule.append(reg.reg_index(), bid);
+        reg
     }
+    /// Append an existing instruction (identified by the given [Reg]) at the end
+    /// of the given basic block.
+    ///
+    /// # Note
+    ///
+    /// It's the caller's responsibility to make sure that the given register is:
+    /// 1. valid, and
+    /// 2. scheduled at exactly one position in the program.
+    ///
+    /// The above invariants are checked when the [OpenProgram] is dropped.
+    /// Failing to uphold them will result in a panic at that time.
     pub fn append_existing(&mut self, bid: cfg::BlockID, reg: mil::Reg) {
-        self.program.schedule.append(reg.0, bid);
+        self.program.schedule.append(reg.reg_index(), bid);
+    }
+
+    pub(crate) fn block_len(&self, bid: cfg::BlockID) -> usize {
+        self.program.schedule.of_block(bid).len()
     }
 }
 impl Drop for OpenProgram<'_> {

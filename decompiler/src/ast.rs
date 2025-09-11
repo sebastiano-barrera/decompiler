@@ -29,7 +29,7 @@ impl<'a> Ast<'a> {
             matches!(insn, Insn::Phi)
                 || (*count > 1
                     && !matches!(insn, Insn::StoreMem { .. })
-                    && !matches!(insn, Insn::Ancestral(_))
+                    && !matches!(insn, Insn::Ancestral { .. })
                     && !matches!(insn, Insn::Const { .. }))
         });
 
@@ -405,7 +405,7 @@ impl<'a> Ast<'a> {
             Insn::UndefinedBytes { size } => {
                 write!(pp, "undefined_bytes({})", size)?;
             }
-            Insn::Ancestral(anc_name) => {
+            Insn::Ancestral { anc_name, size: _ } => {
                 write!(pp, "pre:{}", anc_name.name())?;
             }
 
@@ -556,7 +556,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::Const { .. }
         | Insn::UndefinedBool
         | Insn::UndefinedBytes { .. }
-        | Insn::Ancestral(_)
+        | Insn::Ancestral { .. }
         | Insn::Phi
         | Insn::StructGetMember { .. }
         | Insn::ArrayGetElement { .. }

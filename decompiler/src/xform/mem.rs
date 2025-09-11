@@ -271,27 +271,32 @@ mod tests {
     #[test]
     fn single_bb_direct() {
         for size in [1, 2, 4, 5, 8] {
-            let mut program = mil::Program::new(Reg(0));
-            program.push(Reg(0), Insn::Ancestral(ANC_MEM));
-            program.push(Reg(1), Insn::Const { size, value: -123 });
-            program.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
-            program.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
+            let mut program = mil::Program::new(Reg(10_000));
+            program.push(Reg(0), Insn::Const { size, value: -123 });
             program.push(
-                Reg(4),
+                Reg(1),
+                Insn::Ancestral {
+                    anc_name: x86_to_mil::ANC_RSP,
+                    size: 8,
+                },
+            );
+            program.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
+            program.push(
+                Reg(3),
                 Insn::StoreMem {
-                    addr: Reg(3),
-                    value: Reg(1),
+                    addr: Reg(2),
+                    value: Reg(0),
                 },
             );
             program.push(
-                Reg(5),
+                Reg(4),
                 Insn::LoadMem {
-                    addr: Reg(3),
+                    addr: Reg(2),
                     size: size.try_into().unwrap(),
                 },
             );
-            program.push(Reg(6), Insn::SetReturnValue(Reg(5)));
-            program.push(Reg(6), Insn::Control(Control::Ret));
+            program.push(Reg(5), Insn::SetReturnValue(Reg(4)));
+            program.push(Reg(5), Insn::Control(Control::Ret));
 
             let mut program = ssa::Program::from_mil(program);
 
@@ -299,41 +304,46 @@ mod tests {
             xform::canonical(&mut program, &ty::TypeSet::new());
             println!("ssa post-xform:\n{program:?}");
 
-            let insn = program.get(Reg(6)).unwrap();
-            assert_eq!(insn, Insn::SetReturnValue(Reg(1)));
+            let insn = program.get(Reg(5)).unwrap();
+            assert_eq!(insn, Insn::SetReturnValue(Reg(0)));
         }
     }
 
     #[test]
     fn single_bb_part() {
-        let mut program = mil::Program::new(Reg(0));
-        program.push(Reg(0), Insn::Ancestral(ANC_MEM));
+        let mut program = mil::Program::new(Reg(10_000));
         program.push(
-            Reg(1),
+            Reg(0),
             Insn::Const {
                 size: 8,
                 value: -123,
             },
         );
-        program.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
-        program.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
         program.push(
-            Reg(4),
-            Insn::StoreMem {
-                addr: Reg(3),
-                value: Reg(1),
+            Reg(1),
+            Insn::Ancestral {
+                anc_name: x86_to_mil::ANC_RSP,
+                size: 8,
             },
         );
-        program.push(Reg(5), Insn::ArithK(mil::ArithOp::Add, Reg(3), 2));
+        program.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
         program.push(
-            Reg(6),
+            Reg(3),
+            Insn::StoreMem {
+                addr: Reg(2),
+                value: Reg(0),
+            },
+        );
+        program.push(Reg(4), Insn::ArithK(mil::ArithOp::Add, Reg(2), 2));
+        program.push(
+            Reg(5),
             Insn::LoadMem {
-                addr: Reg(5),
+                addr: Reg(4),
                 size: 3,
             },
         );
-        program.push(Reg(7), Insn::SetReturnValue(Reg(6)));
-        program.push(Reg(7), Insn::Control(Control::Ret));
+        program.push(Reg(6), Insn::SetReturnValue(Reg(5)));
+        program.push(Reg(6), Insn::Control(Control::Ret));
 
         let mut program = ssa::Program::from_mil(program);
 
@@ -341,7 +351,7 @@ mod tests {
         xform::canonical(&mut program, &ty::TypeSet::new());
         println!("ssa post-xform:\n{program:?}");
 
-        let ret = program.get(Reg(7)).unwrap();
+        let ret = program.get(Reg(6)).unwrap();
         let Insn::SetReturnValue(ret_val) = ret else {
             panic!()
         };
@@ -349,7 +359,7 @@ mod tests {
         assert!(matches!(
             program.get(ret_val).unwrap(),
             Insn::Part {
-                src: Reg(1),
+                src: Reg(0),
                 offset: 2,
                 size: 3
             }
@@ -358,34 +368,39 @@ mod tests {
 
     #[test]
     fn single_bb_concat() {
-        let mut program = mil::Program::new(Reg(0));
-        program.push(Reg(0), Insn::Ancestral(ANC_MEM));
+        let mut program = mil::Program::new(Reg(10_000));
         program.push(
-            Reg(1),
+            Reg(0),
             Insn::Const {
                 size: 8,
                 value: -123,
             },
         );
-        program.push(Reg(2), Insn::Ancestral(x86_to_mil::ANC_RSP));
-        program.push(Reg(3), Insn::ArithK(ArithOp::Add, Reg(2), 16));
         program.push(
-            Reg(4),
-            Insn::StoreMem {
-                addr: Reg(3),
-                value: Reg(1),
+            Reg(1),
+            Insn::Ancestral {
+                anc_name: x86_to_mil::ANC_RSP,
+                size: 8,
             },
         );
-        program.push(Reg(5), Insn::ArithK(mil::ArithOp::Add, Reg(3), 2));
+        program.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
         program.push(
-            Reg(6),
+            Reg(3),
+            Insn::StoreMem {
+                addr: Reg(2),
+                value: Reg(0),
+            },
+        );
+        program.push(Reg(4), Insn::ArithK(mil::ArithOp::Add, Reg(2), 2));
+        program.push(
+            Reg(5),
             Insn::LoadMem {
-                addr: Reg(5),
+                addr: Reg(4),
                 size: 23,
             },
         );
-        program.push(Reg(7), Insn::SetReturnValue(Reg(6)));
-        program.push(Reg(7), Insn::Control(Control::Ret));
+        program.push(Reg(6), Insn::SetReturnValue(Reg(5)));
+        program.push(Reg(6), Insn::Control(Control::Ret));
 
         let mut program = ssa::Program::from_mil(program);
 
@@ -393,7 +408,7 @@ mod tests {
         xform::canonical(&mut program, &ty::TypeSet::new());
         println!("ssa post-xform:\n{program:?}");
 
-        let Insn::SetReturnValue(ret_val) = program.get(Reg(7)).unwrap() else {
+        let Insn::SetReturnValue(ret_val) = program.get(Reg(6)).unwrap() else {
             panic!()
         };
         let Insn::Concat { hi, lo } = program.get(ret_val).unwrap() else {
@@ -401,7 +416,7 @@ mod tests {
         };
         assert_eq!(
             Insn::Part {
-                src: Reg(1),
+                src: Reg(0),
                 offset: 2,
                 size: 6
             },
@@ -416,7 +431,10 @@ mod tests {
             panic!()
         };
         assert_eq!(
-            Insn::Ancestral(x86_to_mil::ANC_RSP),
+            Insn::Ancestral {
+                anc_name: x86_to_mil::ANC_RSP,
+                size: 8
+            },
             program.get(base_reg).unwrap()
         );
     }

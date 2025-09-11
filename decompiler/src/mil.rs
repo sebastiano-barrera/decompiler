@@ -207,7 +207,10 @@ pub enum Insn {
     UndefinedBytes {
         size: u32,
     },
-    Ancestral(AncestralName),
+    Ancestral {
+        anc_name: AncestralName,
+        size: u32,
+    },
 
     Phi,
 
