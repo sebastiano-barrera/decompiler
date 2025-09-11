@@ -218,8 +218,8 @@ impl Program {
         self.tyids.get(reg.0 as usize).copied().flatten()
     }
 
-    pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
-        self.tyids[reg.0 as usize] = tyid;
+    pub fn block_len(&self, bid: cfg::BlockID) -> usize {
+        self.schedule.of_block(bid).len()
     }
 
     pub fn assert_invariants(&self) {
@@ -499,8 +499,8 @@ impl<'a> OpenProgram<'a> {
         self.program.schedule.append(reg.reg_index(), bid);
     }
 
-    pub(crate) fn block_len(&self, bid: cfg::BlockID) -> usize {
-        self.program.schedule.of_block(bid).len()
+    pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
+        self.program.tyids[reg.0 as usize] = tyid;
     }
 }
 impl Drop for OpenProgram<'_> {

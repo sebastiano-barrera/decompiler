@@ -430,31 +430,41 @@ fn apply_type_selection(
     let Some(src_tyid) = prog.value_type(src) else {
         return insn;
     };
-    let ty::Selection { tyid: _, path } =
-        match types.select(src_tyid, ty::ByteRange::new(offset, offset + size)) {
-            Ok(part_tyid) => part_tyid,
-            Err(err) => {
-                event!(
-                    Level::INFO,
-                    ?src_tyid,
-                    ?offset,
-                    ?size,
-                    ?err,
-                    "unable to select in type"
-                );
-                return insn;
-            }
-        };
+    let ty::Selection {
+        tyid: selected_tyid,
+        path,
+    } = match types.select(src_tyid, ty::ByteRange::new(offset, offset + size)) {
+        Ok(part_tyid) => part_tyid,
+        Err(err) => {
+            event!(
+                Level::INFO,
+                ?src_tyid,
+                ?offset,
+                ?size,
+                ?err,
+                "unable to select in type"
+            );
+            return insn;
+        }
+    };
 
-    // path is for sure >= 1
+    if path.len() == 0 {
+        // this is what TypeSet::select returns when the required byte range precisely matches src
+        return Insn::Get(src);
+    }
+
     // in the most generic case, it contains a single SelectStep::RawBytes
-    let (last_step, addl_steps) = path.split_last().unwrap();
+    let (last_step, ntrm_steps) = path.split_last().unwrap();
 
     let mut src = src;
-    for step in addl_steps {
+    for step in ntrm_steps {
+        // add insns for intermediate steps
         let step_insn = step.to_insn(src);
         src = prog.append_new(bid, step_insn);
     }
+
+    // for now, type IDs are not assigned to the intermediate steps
+    prog.set_value_type(src, Some(selected_tyid));
     last_step.to_insn(src)
 }
 
@@ -478,6 +488,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let mut prog = ssa::OpenProgram::wrap(prog);
     let mut deduper = Deduper::new();
 
+    println!("---");
     let mut any_change = true;
     while any_change {
         println!(" * new cycle");
@@ -494,6 +505,10 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 let orig_has_fx = orig_insn.has_side_effects();
 
                 println!("     * {reg:?} -- {orig_insn:?}");
+                if let Some(tyid) = prog.value_type(reg) {
+                    let vt = types.get(tyid);
+                    println!("         {:?}", vt);
+                }
 
                 let mut insn = orig_insn;
                 if let Some(mem_ref_reg) = mem_ref_reg {
