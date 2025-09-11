@@ -221,14 +221,11 @@ impl<'a> TypeParser<'a> {
             Err(err) => {
                 // still ensure that TypeID is associated to a type
                 event!(Level::TRACE, ?err, "error parsing type, assigning Unknown");
-                self.types
-                    .set(tyid, ty::Ty::Unknown(ty::Unknown { size: None }))
-                    .unwrap();
-
+                self.types.set(tyid, ty::Ty::Unknown);
                 Err(err)
             }
             Ok((name, ty)) => {
-                if !matches!(ty, ty::Ty::Unknown(_)) {
+                if ty != ty::Ty::Unknown {
                     if let Some(addr_attrvalue) = addr_av {
                         let addr = self.dwarf.attr_address(unit, addr_attrvalue)?.ok_or(
                             Error::InvalidValueType(diofs.0, gimli::constants::DW_AT_low_pc),
@@ -237,9 +234,7 @@ impl<'a> TypeParser<'a> {
                     }
                 }
 
-                // unwrap(): it's a programming error if set() fails here because that
-                // would mean that tyid is non-regular (read-only)
-                self.types.set(tyid, ty).unwrap();
+                self.types.set(tyid, ty);
                 if let Some(name) = name {
                     self.types.set_name(tyid, name);
                 }
@@ -550,11 +545,8 @@ impl<'a> TypeParser<'a> {
     /// In all cases, the TypeID is returned.
     // TODO Remove the Result<_> from the return type
     fn get_tyid(&mut self, type_unit_offset: DebugInfoOffset) -> Result<ty::TypeID> {
-        let rtyid = type_unit_offset.0 .0;
-        let tyid = ty::TypeID::Regular(rtyid);
-        self.types
-            .get_or_create(tyid, || ty::Ty::Unknown(ty::Unknown { size: None }))
-            .unwrap();
+        let tyid = ty::TypeID(type_unit_offset.0 .0);
+        self.types.get_or_create(tyid, || ty::Ty::Unknown);
         Ok(tyid)
     }
 

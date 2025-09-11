@@ -185,9 +185,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         .insns
         .iter()
         .map(|insn| match insn {
-            mil::Insn::Ancestral { anc_name, size: _ } => {
-                program.ancestral_tyids.get(anc_name).copied()
-            }
+            mil::Insn::Ancestral { anc_name, .. } => program.ancestral_tyids.get(anc_name).copied(),
             _ => None,
         })
         .collect();

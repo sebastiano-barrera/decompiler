@@ -344,15 +344,10 @@ impl<'a> Ast<'a> {
             }
             Insn::Call { callee, first_arg } => {
                 let tyid = self.ssa.value_type(callee).unwrap();
-                let ty = self.types.get_through_alias(tyid).unwrap();
-                if let ty::Ty::Unknown(_) = &*ty {
-                    self.pp_ref(pp, callee, self_prec)?;
-                } else {
-                    // Not quite correct (why would we print the type name?) but
-                    // happens to be always correct for well formed programs
-                    let name = self.types.name(tyid).unwrap_or("<?>");
-                    write!(pp, "{}", name)?;
-                };
+                // Not quite correct (why would we print the type name?) but
+                // happens to be always correct for well formed programs
+                let name = self.types.name(tyid).unwrap_or("<?>");
+                write!(pp, "{}", name)?;
 
                 write!(pp, "(")?;
                 pp.open_box();
@@ -405,7 +400,7 @@ impl<'a> Ast<'a> {
             Insn::UndefinedBytes { size } => {
                 write!(pp, "undefined_bytes({})", size)?;
             }
-            Insn::Ancestral { anc_name, size: _ } => {
+            Insn::Ancestral { anc_name, .. } => {
                 write!(pp, "pre:{}", anc_name.name())?;
             }
 

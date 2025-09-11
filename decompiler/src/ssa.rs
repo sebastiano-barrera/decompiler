@@ -203,8 +203,10 @@ impl Program {
                 // assuming that all types are the same, as per assert_phis_consistent
                 self.reg_type(y.input_reg)
             }
-            // TODO rewrite the type stuff until this is clear and correct
-            Insn::Ancestral { anc_name: _, size } => mil::RegType::Bytes(size as usize),
+            Insn::Ancestral {
+                anc_name: _,
+                reg_type,
+            } => reg_type,
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
         }

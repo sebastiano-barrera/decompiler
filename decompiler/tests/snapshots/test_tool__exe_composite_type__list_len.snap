@@ -3,231 +3,229 @@ source: decompiler/tests/test_tool.rs
 expression: out
 ---
  --- mil
-program  96 instrs
-    0 r12: UnknownUnsized <- Ancestral(AncestralName("stack_bottom"))
-    1 r2: UnknownUnsized <- Ancestral(AncestralName("CF"))
-    2 r3: UnknownUnsized <- Ancestral(AncestralName("PF"))
-    3 r4: UnknownUnsized <- Ancestral(AncestralName("AF"))
-    4 r5: UnknownUnsized <- Ancestral(AncestralName("ZF"))
-    5 r6: UnknownUnsized <- Ancestral(AncestralName("SF"))
-    6 r7: UnknownUnsized <- Ancestral(AncestralName("TF"))
-    7 r8: UnknownUnsized <- Ancestral(AncestralName("IF"))
-    8 r9: UnknownUnsized <- Ancestral(AncestralName("DF"))
-    9 r10: UnknownUnsized <- Ancestral(AncestralName("OF"))
-   10 r11: UnknownUnsized <- Ancestral(AncestralName("RBP"))
-   11 r12: UnknownUnsized <- Ancestral(AncestralName("RSP"))
-   12 r13: UnknownUnsized <- Ancestral(AncestralName("RIP"))
-   13 r14: UnknownUnsized <- Ancestral(AncestralName("RDI"))
-   14 r15: UnknownUnsized <- Ancestral(AncestralName("RSI"))
-   15 r16: UnknownUnsized <- Ancestral(AncestralName("RAX"))
-   16 r17: UnknownUnsized <- Ancestral(AncestralName("RBX"))
-   17 r18: UnknownUnsized <- Ancestral(AncestralName("RCX"))
-   18 r19: UnknownUnsized <- Ancestral(AncestralName("RDX"))
-   19 r20: UnknownUnsized <- Ancestral(AncestralName("R8"))
-   20 r21: UnknownUnsized <- Ancestral(AncestralName("R9"))
-   21 r22: UnknownUnsized <- Ancestral(AncestralName("R10"))
-   22 r23: UnknownUnsized <- Ancestral(AncestralName("R11"))
-   23 r24: UnknownUnsized <- Ancestral(AncestralName("R12"))
-   24 r25: UnknownUnsized <- Ancestral(AncestralName("R13"))
-   25 r26: UnknownUnsized <- Ancestral(AncestralName("R14"))
-   26 r27: UnknownUnsized <- Ancestral(AncestralName("R15"))
-   27 r28: UnknownUnsized <- Ancestral(AncestralName("ZMM0"))
-   28 r29: UnknownUnsized <- Ancestral(AncestralName("ZMM1"))
-   29 r30: UnknownUnsized <- Ancestral(AncestralName("ZMM2"))
-   30 r31: UnknownUnsized <- Ancestral(AncestralName("ZMM3"))
-   31 r32: UnknownUnsized <- Ancestral(AncestralName("ZMM4"))
-   32 r33: UnknownUnsized <- Ancestral(AncestralName("ZMM5"))
-   33 r34: UnknownUnsized <- Ancestral(AncestralName("ZMM6"))
-   34 r35: UnknownUnsized <- Ancestral(AncestralName("ZMM7"))
-   35 r36: UnknownUnsized <- Ancestral(AncestralName("ZMM8"))
-   36 r37: UnknownUnsized <- Ancestral(AncestralName("ZMM9"))
-   37 r38: UnknownUnsized <- Ancestral(AncestralName("ZMM10"))
-   38 r39: UnknownUnsized <- Ancestral(AncestralName("ZMM11"))
-   39 r40: UnknownUnsized <- Ancestral(AncestralName("ZMM12"))
-   40 r41: UnknownUnsized <- Ancestral(AncestralName("ZMM13"))
-   41 r42: UnknownUnsized <- Ancestral(AncestralName("ZMM14"))
-   42 r43: UnknownUnsized <- Ancestral(AncestralName("ZMM15"))
-   43 r45: UnknownUnsized <- Ancestral(AncestralName("arg0"))
-   44 r47: UnknownUnsized <- Part { src: r45, offset: 0, size: 8 }
-   45 r46: UnknownUnsized <- ArithK(Add, r12, 8)
-   46 r46: UnknownUnsized <- StoreMem { addr: r46, value: r47 }
-   47 r47: UnknownUnsized <- Part { src: r45, offset: 8, size: 8 }
-   48 r46: UnknownUnsized <- ArithK(Add, r12, 16)
-   49 r46: UnknownUnsized <- StoreMem { addr: r46, value: r47 }
-   50 r47: UnknownUnsized <- Part { src: r45, offset: 16, size: 8 }
-   51 r46: UnknownUnsized <- ArithK(Add, r12, 24)
-   52 r46: UnknownUnsized <- StoreMem { addr: r46, value: r47 }
+program  95 instrs
+    0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), reg_type: Bytes(8) }
+    1 r3 <- Ancestral { anc_name: AncestralName("PF"), reg_type: Bool }
+    2 r4 <- Ancestral { anc_name: AncestralName("AF"), reg_type: Bool }
+    3 r5 <- Ancestral { anc_name: AncestralName("ZF"), reg_type: Bool }
+    4 r6 <- Ancestral { anc_name: AncestralName("SF"), reg_type: Bool }
+    5 r7 <- Ancestral { anc_name: AncestralName("TF"), reg_type: Bool }
+    6 r8 <- Ancestral { anc_name: AncestralName("IF"), reg_type: Bool }
+    7 r9 <- Ancestral { anc_name: AncestralName("DF"), reg_type: Bool }
+    8 r10 <- Ancestral { anc_name: AncestralName("OF"), reg_type: Bool }
+    9 r11 <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
+   10 r12 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
+   11 r13 <- Ancestral { anc_name: AncestralName("RIP"), reg_type: Bytes(8) }
+   12 r14 <- Ancestral { anc_name: AncestralName("RDI"), reg_type: Bytes(8) }
+   13 r15 <- Ancestral { anc_name: AncestralName("RSI"), reg_type: Bytes(8) }
+   14 r16 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
+   15 r17 <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
+   16 r18 <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
+   17 r19 <- Ancestral { anc_name: AncestralName("RDX"), reg_type: Bytes(8) }
+   18 r20 <- Ancestral { anc_name: AncestralName("R8"), reg_type: Bytes(8) }
+   19 r21 <- Ancestral { anc_name: AncestralName("R9"), reg_type: Bytes(8) }
+   20 r22 <- Ancestral { anc_name: AncestralName("R10"), reg_type: Bytes(8) }
+   21 r23 <- Ancestral { anc_name: AncestralName("R11"), reg_type: Bytes(8) }
+   22 r24 <- Ancestral { anc_name: AncestralName("R12"), reg_type: Bytes(8) }
+   23 r25 <- Ancestral { anc_name: AncestralName("R13"), reg_type: Bytes(8) }
+   24 r26 <- Ancestral { anc_name: AncestralName("R14"), reg_type: Bytes(8) }
+   25 r27 <- Ancestral { anc_name: AncestralName("R15"), reg_type: Bytes(8) }
+   26 r28 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
+   27 r29 <- Ancestral { anc_name: AncestralName("ZMM1"), reg_type: Bytes(64) }
+   28 r30 <- Ancestral { anc_name: AncestralName("ZMM2"), reg_type: Bytes(64) }
+   29 r31 <- Ancestral { anc_name: AncestralName("ZMM3"), reg_type: Bytes(64) }
+   30 r32 <- Ancestral { anc_name: AncestralName("ZMM4"), reg_type: Bytes(64) }
+   31 r33 <- Ancestral { anc_name: AncestralName("ZMM5"), reg_type: Bytes(64) }
+   32 r34 <- Ancestral { anc_name: AncestralName("ZMM6"), reg_type: Bytes(64) }
+   33 r35 <- Ancestral { anc_name: AncestralName("ZMM7"), reg_type: Bytes(64) }
+   34 r36 <- Ancestral { anc_name: AncestralName("ZMM8"), reg_type: Bytes(64) }
+   35 r37 <- Ancestral { anc_name: AncestralName("ZMM9"), reg_type: Bytes(64) }
+   36 r38 <- Ancestral { anc_name: AncestralName("ZMM10"), reg_type: Bytes(64) }
+   37 r39 <- Ancestral { anc_name: AncestralName("ZMM11"), reg_type: Bytes(64) }
+   38 r40 <- Ancestral { anc_name: AncestralName("ZMM12"), reg_type: Bytes(64) }
+   39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
+   40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
+   41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
+   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(24) }
+   43 r47 <- Part { src: r45, offset: 0, size: 8 }
+   44 r46 <- ArithK(Add, r12, 8)
+   45 r46 <- StoreMem { addr: r46, value: r47 }
+   46 r47 <- Part { src: r45, offset: 8, size: 8 }
+   47 r46 <- ArithK(Add, r12, 16)
+   48 r46 <- StoreMem { addr: r46, value: r47 }
+   49 r47 <- Part { src: r45, offset: 16, size: 8 }
+   50 r46 <- ArithK(Add, r12, 24)
+   51 r46 <- StoreMem { addr: r46, value: r47 }
 0x1120:
-   53 r46: UnknownUnsized <- Part { src: r16, offset: 0, size: 4 }
-   54 r48: UnknownUnsized <- Part { src: r16, offset: 0, size: 4 }
-   55 r46: UnknownUnsized <- Arith(BitXor, r46, r48)
-   56 r49: UnknownUnsized <- Part { src: r16, offset: 4, size: 4 }
-   57 r16: UnknownUnsized <- Concat { lo: r46, hi: r49 }
-   58 r10: UnknownUnsized <- False
-   59 r2: UnknownUnsized <- False
-   60 r6: UnknownUnsized <- SignOf(r46)
-   61 r5: UnknownUnsized <- IsZero(r46)
-   62 r50: UnknownUnsized <- Part { src: r46, offset: 0, size: 1 }
-   63 r3: UnknownUnsized <- Parity(r50)
+   52 r46 <- Part { src: r16, offset: 0, size: 4 }
+   53 r48 <- Part { src: r16, offset: 0, size: 4 }
+   54 r46 <- Arith(BitXor, r46, r48)
+   55 r49 <- Part { src: r16, offset: 4, size: 4 }
+   56 r16 <- Concat { lo: r46, hi: r49 }
+   57 r10 <- False
+   58 r2 <- False
+   59 r6 <- SignOf(r46)
+   60 r5 <- IsZero(r46)
+   61 r50 <- Part { src: r46, offset: 0, size: 1 }
+   62 r3 <- Parity(r50)
 0x1122:
-   64 r45: UnknownUnsized <- Const { value: 8, size: 8 }
-   65 r45: UnknownUnsized <- Arith(Add, r45, r12)
-   66 r18: UnknownUnsized <- Get(r45)
+   63 r45 <- Const { value: 8, size: 8 }
+   64 r45 <- Arith(Add, r45, r12)
+   65 r18 <- Get(r45)
 0x1130:
-   67 r46: UnknownUnsized <- Part { src: r16, offset: 0, size: 4 }
-   68 r46: UnknownUnsized <- ArithK(Add, r46, 1)
-   69 r47: UnknownUnsized <- Part { src: r16, offset: 4, size: 4 }
-   70 r16: UnknownUnsized <- Concat { lo: r46, hi: r47 }
-   71 r10: UnknownUnsized <- False
-   72 r2: UnknownUnsized <- False
-   73 r6: UnknownUnsized <- SignOf(r46)
-   74 r5: UnknownUnsized <- IsZero(r46)
-   75 r48: UnknownUnsized <- Part { src: r46, offset: 0, size: 1 }
-   76 r3: UnknownUnsized <- Parity(r48)
+   66 r46 <- Part { src: r16, offset: 0, size: 4 }
+   67 r46 <- ArithK(Add, r46, 1)
+   68 r47 <- Part { src: r16, offset: 4, size: 4 }
+   69 r16 <- Concat { lo: r46, hi: r47 }
+   70 r10 <- False
+   71 r2 <- False
+   72 r6 <- SignOf(r46)
+   73 r5 <- IsZero(r46)
+   74 r48 <- Part { src: r46, offset: 0, size: 1 }
+   75 r3 <- Parity(r48)
 0x1132:
-   77 r46: UnknownUnsized <- Const { value: 16, size: 8 }
-   78 r46: UnknownUnsized <- Arith(Add, r46, r18)
-   79 r45: UnknownUnsized <- LoadMem { addr: r46, size: 8 }
-   80 r18: UnknownUnsized <- Get(r45)
+   76 r46 <- Const { value: 16, size: 8 }
+   77 r46 <- Arith(Add, r46, r18)
+   78 r45 <- LoadMem { addr: r46, size: 8 }
+   79 r18 <- Get(r45)
 0x1136:
-   81 r18: UnknownUnsized <- Arith(BitAnd, r18, r18)
-   82 r6: UnknownUnsized <- SignOf(r18)
-   83 r5: UnknownUnsized <- IsZero(r18)
-   84 r47: UnknownUnsized <- Part { src: r18, offset: 0, size: 1 }
-   85 r3: UnknownUnsized <- Parity(r18)
-   86 r2: UnknownUnsized <- False
-   87 r10: UnknownUnsized <- False
+   80 r18 <- Arith(BitAnd, r18, r18)
+   81 r6 <- SignOf(r18)
+   82 r5 <- IsZero(r18)
+   83 r47 <- Part { src: r18, offset: 0, size: 1 }
+   84 r3 <- Parity(r18)
+   85 r2 <- False
+   86 r10 <- False
 0x1139:
-   88 r45: UnknownUnsized <- Not(r5)
-   89 r46: UnknownUnsized <- SetJumpCondition(r45)
-   90 r46: UnknownUnsized <- Control(JmpIf(67))
+   87 r45 <- Not(r5)
+   88 r46 <- SetJumpCondition(r45)
+   89 r46 <- Control(JmpExtIf(4400))
 0x113b:
-   91 r45: UnknownUnsized <- Void
-   92 r45: UnknownUnsized <- Concat { lo: r45, hi: r16 }
-   93 r45: UnknownUnsized <- Part { src: r45, offset: 0, size: 4 }
-   94 r47: UnknownUnsized <- SetReturnValue(r45)
-   95 r47: UnknownUnsized <- Control(Ret)
+   90 r45 <- Void
+   91 r45 <- Concat { lo: r45, hi: r16 }
+   92 r45 <- Part { src: r45, offset: 0, size: 4 }
+   93 r47 <- SetReturnValue(r45)
+   94 r47 <- Control(Ret)
 
 
  --- ssa pre-xform
-ssa program  102 instrs
+ssa program  101 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
-  (  4)  r11: unknown <UnknownUnsized> <- Ancestral(AncestralName("RSP"))
-  (  3)  r15: unknown <UnknownUnsized> <- Ancestral(AncestralName("RAX"))
-  (  3)  r43: unknown <UnknownUnsized> <- Ancestral(AncestralName("arg0"))
-         r44: unknown <UnknownUnsized> <- Part { src: r43, offset: 0, size: 8 }
-         r45: unknown <UnknownUnsized> <- ArithK(Add, r11, 8)
-         r46: unknown <UnknownUnsized> <- StoreMem { addr: r45, value: r44 }
-         r47: unknown <UnknownUnsized> <- Part { src: r43, offset: 8, size: 8 }
-         r48: unknown <UnknownUnsized> <- ArithK(Add, r11, 16)
-         r49: unknown <UnknownUnsized> <- StoreMem { addr: r48, value: r47 }
-         r50: unknown <UnknownUnsized> <- Part { src: r43, offset: 16, size: 8 }
-         r51: unknown <UnknownUnsized> <- ArithK(Add, r11, 24)
-         r52: unknown <UnknownUnsized> <- StoreMem { addr: r51, value: r50 }
-         r53: unknown <UnknownUnsized> <- Part { src: r15, offset: 0, size: 4 }
-         r54: unknown <UnknownUnsized> <- Part { src: r15, offset: 0, size: 4 }
-         r55: unknown <UnknownUnsized> <- Arith(BitXor, r53, r54)
-         r56: unknown <UnknownUnsized> <- Part { src: r15, offset: 4, size: 4 }
-         r57: unknown <UnknownUnsized> <- Concat { lo: r55, hi: r56 }
-         r64: unknown <UnknownUnsized> <- Const { value: 8, size: 8 }
-         r65: unknown <UnknownUnsized> <- Arith(Add, r64, r11)
-         r98: unknown <UnknownUnsized> <- Upsilon { value: r57, phi_ref: r96 }
-         r99: unknown <UnknownUnsized> <- Upsilon { value: r65, phi_ref: r97 }
+  (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
+  (  3)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
+  (  3)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(24) }
+         r43 <- Part { src: r42, offset: 0, size: 8 }
+         r44 <- ArithK(Add, r10, 8)
+         r45 <- StoreMem { addr: r44, value: r43 }
+         r46 <- Part { src: r42, offset: 8, size: 8 }
+         r47 <- ArithK(Add, r10, 16)
+         r48 <- StoreMem { addr: r47, value: r46 }
+         r49 <- Part { src: r42, offset: 16, size: 8 }
+         r50 <- ArithK(Add, r10, 24)
+         r51 <- StoreMem { addr: r50, value: r49 }
+         r52 <- Part { src: r14, offset: 0, size: 4 }
+         r53 <- Part { src: r14, offset: 0, size: 4 }
+         r54 <- Arith(BitXor, r52, r53)
+         r55 <- Part { src: r14, offset: 4, size: 4 }
+         r56 <- Concat { lo: r54, hi: r55 }
+         r63 <- Const { value: 8, size: 8 }
+         r64 <- Arith(Add, r63, r10)
+         r97 <- Upsilon { value: r56, phi_ref: r95 }
+         r98 <- Upsilon { value: r64, phi_ref: r96 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
-         r97: unknown <UnknownUnsized> <- Phi
-  (  2)  r96: unknown <UnknownUnsized> <- Phi
-         r67: unknown <UnknownUnsized> <- Part { src: r96, offset: 0, size: 4 }
-         r68: unknown <UnknownUnsized> <- ArithK(Add, r67, 1)
-         r69: unknown <UnknownUnsized> <- Part { src: r96, offset: 4, size: 4 }
-  (  2)  r70: unknown <UnknownUnsized> <- Concat { lo: r68, hi: r69 }
-         r77: unknown <UnknownUnsized> <- Const { value: 16, size: 8 }
-         r78: unknown <UnknownUnsized> <- Arith(Add, r77, r97)
-  (  2)  r79: unknown <UnknownUnsized> <- LoadMem { addr: r78, size: 8 }
-  (  2)  r81: unknown <UnknownUnsized> <- Arith(BitAnd, r79, r79)
-         r83: unknown <UnknownUnsized> <- IsZero(r81)
-         r88: unknown <UnknownUnsized> <- Not(r83)
-         r89: unknown <UnknownUnsized> <- SetJumpCondition(r88)
-         r100: unknown <UnknownUnsized> <- Upsilon { value: r70, phi_ref: r96 }
-         r101: unknown <UnknownUnsized> <- Upsilon { value: r81, phi_ref: r97 }
+         r96 <- Phi
+  (  2)  r95 <- Phi
+         r66 <- Part { src: r95, offset: 0, size: 4 }
+         r67 <- ArithK(Add, r66, 1)
+         r68 <- Part { src: r95, offset: 4, size: 4 }
+  (  2)  r69 <- Concat { lo: r67, hi: r68 }
+         r76 <- Const { value: 16, size: 8 }
+         r77 <- Arith(Add, r76, r96)
+  (  2)  r78 <- LoadMem { addr: r77, size: 8 }
+  (  2)  r80 <- Arith(BitAnd, r78, r78)
+         r82 <- IsZero(r80)
+         r87 <- Not(r82)
+         r88 <- SetJumpCondition(r87)
+         r99 <- Upsilon { value: r69, phi_ref: r95 }
+         r100 <- Upsilon { value: r80, phi_ref: r96 }
 .B2:    ;; preds:B1  → Always(Return).
-         r92: unknown <UnknownUnsized> <- Concat { lo: r91, hi: r70 }
-         r93: unknown <UnknownUnsized> <- Part { src: r92, offset: 0, size: 4 }
-         r94: unknown <UnknownUnsized> <- SetReturnValue(r93)
+         r91 <- Concat { lo: r90, hi: r69 }
+         r92 <- Part { src: r91, offset: 0, size: 4 }
+         r93 <- SetReturnValue(r92)
 
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(1))) [r11, r15, r43, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r54, r55, r56, r57, r65, r98, r99]
-  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r97, r96, r67, r68, r69, r70, r78, r79, r83, r88, r89, r100, r101]
-  BlockID(2) -> Always(Return) [r94]
+  BlockID(0) -> Always(Block(BlockID(1))) [r10, r14, r42, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r54, r55, r56, r64, r97, r98]
+  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r96, r95, r66, r67, r68, r69, r77, r78, r82, r87, r88, r99, r100]
+  BlockID(2) -> Always(Return) [r93]
   domtree:
     BlockID(0)
 |  BlockID(1)
 |  |  BlockID(2)
 
  --- ssa
-ssa program  102 instrs
+ssa program  101 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
-  (  4)  r11: unknown <UnknownUnsized> <- Ancestral(AncestralName("RSP"))
-  (  3)  r15: unknown <UnknownUnsized> <- Ancestral(AncestralName("RAX"))
-  (  3)  r43: unknown <UnknownUnsized> <- Ancestral(AncestralName("arg0"))
-         r44: unknown <UnknownUnsized> <- Part { src: r43, offset: 0, size: 8 }
-         r45: unknown <UnknownUnsized> <- ArithK(Add, r11, 8)
-         r46: unknown <UnknownUnsized> <- StoreMem { addr: r45, value: r44 }
-         r47: unknown <UnknownUnsized> <- Part { src: r43, offset: 8, size: 8 }
-         r48: unknown <UnknownUnsized> <- ArithK(Add, r11, 16)
-         r49: unknown <UnknownUnsized> <- StoreMem { addr: r48, value: r47 }
-         r50: unknown <UnknownUnsized> <- Part { src: r43, offset: 16, size: 8 }
-         r51: unknown <UnknownUnsized> <- ArithK(Add, r11, 24)
-         r52: unknown <UnknownUnsized> <- StoreMem { addr: r51, value: r50 }
-         r53: unknown <UnknownUnsized> <- Part { src: r15, offset: 0, size: 4 }
-         r54: unknown <UnknownUnsized> <- Part { src: r15, offset: 0, size: 4 }
-         r55: unknown <UnknownUnsized> <- Arith(BitXor, r53, r54)
-         r56: unknown <UnknownUnsized> <- Part { src: r15, offset: 4, size: 4 }
-         r57: unknown <UnknownUnsized> <- Concat { lo: r55, hi: r56 }
-         r65: unknown <UnknownUnsized> <- ArithK(Add, r11, 8)
-         r98: unknown <UnknownUnsized> <- Upsilon { value: r57, phi_ref: r96 }
-         r99: unknown <UnknownUnsized> <- Upsilon { value: r65, phi_ref: r97 }
+  (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
+  (  3)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
+  (  3)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(24) }
+         r44 <- ArithK(Add, r10, 8)
+         r45 <- StoreMem { addr: r44, value: r42 }
+         r46 <- StructGetMember { struct_value: r42, name: "prev", size: 24 }
+         r47 <- ArithK(Add, r10, 16)
+         r48 <- StoreMem { addr: r47, value: r46 }
+         r49 <- Part { src: r42, offset: 16, size: 8 }
+         r50 <- ArithK(Add, r10, 24)
+         r51 <- StoreMem { addr: r50, value: r49 }
+         r52 <- Part { src: r14, offset: 0, size: 4 }
+         r53 <- Part { src: r14, offset: 0, size: 4 }
+         r54 <- Arith(BitXor, r52, r53)
+         r55 <- Part { src: r14, offset: 4, size: 4 }
+         r56 <- Concat { lo: r54, hi: r55 }
+         r64 <- ArithK(Add, r10, 8)
+         r97 <- Upsilon { value: r56, phi_ref: r95 }
+         r98 <- Upsilon { value: r64, phi_ref: r96 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
-         r97: unknown <UnknownUnsized> <- Phi
-  (  2)  r96: unknown <UnknownUnsized> <- Phi
-         r67: unknown <UnknownUnsized> <- Part { src: r96, offset: 0, size: 4 }
-  (  2)  r68: unknown <UnknownUnsized> <- ArithK(Add, r67, 1)
-         r69: unknown <UnknownUnsized> <- Part { src: r96, offset: 4, size: 4 }
-         r70: unknown <UnknownUnsized> <- Concat { lo: r68, hi: r69 }
-         r78: unknown <UnknownUnsized> <- ArithK(Add, r97, 16)
-  (  2)  r79: unknown <UnknownUnsized> <- LoadMem { addr: r78, size: 8 }
-         r83: unknown <UnknownUnsized> <- IsZero(r79)
-         r88: unknown <UnknownUnsized> <- Not(r83)
-         r89: unknown <UnknownUnsized> <- SetJumpCondition(r88)
-         r100: unknown <UnknownUnsized> <- Upsilon { value: r70, phi_ref: r96 }
-         r101: unknown <UnknownUnsized> <- Upsilon { value: r79, phi_ref: r97 }
+         r96 <- Phi
+  (  2)  r95 <- Phi
+         r66 <- Part { src: r95, offset: 0, size: 4 }
+  (  2)  r67 <- ArithK(Add, r66, 1)
+         r68 <- Part { src: r95, offset: 4, size: 4 }
+         r69 <- Concat { lo: r67, hi: r68 }
+         r77 <- ArithK(Add, r96, 16)
+  (  2)  r78 <- LoadMem { addr: r77, size: 8 }
+         r82 <- IsZero(r78)
+         r87 <- Not(r82)
+         r88 <- SetJumpCondition(r87)
+         r99 <- Upsilon { value: r69, phi_ref: r95 }
+         r100 <- Upsilon { value: r78, phi_ref: r96 }
 .B2:    ;; preds:B1  → Always(Return).
-         r94: unknown <UnknownUnsized> <- SetReturnValue(r68)
+         r93 <- SetReturnValue(r67)
 
 
  --- ast
 
 T0: {
-  [pre:RSP + 8]:* := pre:arg0[8 .. 0];
-  [pre:RSP + 16]:* := pre:arg0[16 .. 8];
+  [pre:RSP + 8]:* := pre:arg0;
+  [pre:RSP + 16]:* := pre:arg0.prev;
   [pre:RSP + 24]:* := pre:arg0[24 .. 16];
-  r96 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
-  r97 := pre:RSP + 8;
+  r95 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
+  r96 := pre:RSP + 8;
   goto T1
   T1: {
-    let mut r97: Bytes(8);
     let mut r96: Bytes(8);
-    let r68: Bytes(4) = r96[4 .. 0] + 1;
-    let r79: Bytes(8) = [r97 + 16]:8;
+    let mut r95: Bytes(8);
+    let r67: Bytes(4) = r95[4 .. 0] + 1;
+    let r78: Bytes(8) = [r96 + 16]:8;
     ;
-    r96 := r96[8 .. 4] ++ r68;
-    r97 := [r97 + 16]:8;
-    if ! IsZero (r79) {
+    r95 := r95[8 .. 4] ++ r67;
+    r96 := [r96 + 16]:8;
+    if ! IsZero (r78) {
       goto T1
     }
     ;
-    return r68
+    return r67
   }
 
 }

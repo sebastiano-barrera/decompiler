@@ -1968,8 +1968,7 @@ mod ast_view {
                 Insn::Const { value, size: _ } => mk_lit(format!("{}", value).into()),
 
                 Insn::Ancestral {
-                    anc_name: aname,
-                    size: _,
+                    anc_name: aname, ..
                 } => ExprTree::Term(Term {
                     text: aname.name().to_string(),
                     anchor: Some(Anchor::Reg(reg)),

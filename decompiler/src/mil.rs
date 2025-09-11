@@ -67,7 +67,8 @@ impl std::fmt::Debug for Reg {
 
 pub type Index = u16;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, facet::Facet)]
+#[repr(u8)]
 pub enum RegType {
     Bytes(usize),
     Bool,
@@ -209,7 +210,7 @@ pub enum Insn {
     },
     Ancestral {
         anc_name: AncestralName,
-        size: u32,
+        reg_type: RegType,
     },
 
     Phi,

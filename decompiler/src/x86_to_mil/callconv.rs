@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use crate::{
     mil::{self, AncestralName, ArithOp, Insn},
-    ty::{self, Unknown},
+    ty,
 };
 
 use super::Builder;
@@ -43,7 +43,7 @@ pub fn unpack_params(
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);
         }
-        ty::Ty::Unknown(_) => {
+        ty::Ty::Unknown => {
             // nothing better to do in this case...
             event!(
                 Level::ERROR,
@@ -111,7 +111,8 @@ fn unpack_param(
         .pull_arg()
         .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
     let arg_value = bld.tmp_gen();
-    bld.init_ancestral(arg_value, param_anc, tyid);
+    bld.init_ancestral(arg_value, param_anc, mil::RegType::Bytes(sz));
+    bld.set_ancestral_tyid(param_anc, tyid);
 
     match mode {
         PassMode::Regs(regs) => {
@@ -204,15 +205,9 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
         }
-        ty::Ty::Unknown(Unknown { size }) => {
+        ty::Ty::Unknown => {
             // nothing better to do in this case...
-            let ret_val = bld.tmp_gen();
-            bld.emit(
-                ret_val,
-                Insn::UndefinedBytes {
-                    size: size.unwrap_or(0).try_into().unwrap(),
-                },
-            );
+            bld.emit(ret_val, Insn::UndefinedBytes { size: 0 });
         }
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);
@@ -354,7 +349,7 @@ pub fn pack_params(
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
             panic!("invalid type for a function return value: {:?}", ret_ty);
         }
-        ty::Ty::Unknown(_) => {
+        ty::Ty::Unknown => {
             // nothing better to do in this case...
             event!(
                 Level::ERROR,
@@ -500,7 +495,7 @@ pub fn unpack_return_value(
     match &*bld.types.get(ret_tyid).unwrap() {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
-        ty::Ty::Unknown(_) => {
+        ty::Ty::Unknown => {
             // don't know anything better that could be done in this case...
             for mreg in [Builder::RAX, Builder::RDX] {
                 bld.emit(mreg, Insn::UndefinedBytes { size: 8 });
@@ -755,7 +750,7 @@ fn classify_eightbytes(
             }
         }
 
-        ty::Ty::Subroutine(_) | ty::Ty::Unknown(_) | ty::Ty::Void | ty::Ty::Flag => {
+        ty::Ty::Subroutine(_) | ty::Ty::Unknown | ty::Ty::Void | ty::Ty::Flag => {
             panic!("invalid type for a function param: {:?}", ty)
         }
         ty::Ty::Alias(_) => unreachable!(),
@@ -947,7 +942,7 @@ mod tests {
     }
 
     struct TypeIdGen {
-        counter: ty::RegularTypeID,
+        counter: usize,
     }
 
     impl TypeIdGen {
@@ -956,7 +951,7 @@ mod tests {
         }
 
         fn next_id(&mut self) -> TypeID {
-            let tyid = TypeID::Regular(self.counter);
+            let tyid = TypeID(self.counter);
             self.counter += 1;
             tyid
         }
@@ -972,7 +967,7 @@ mod tests {
                 size,
                 signed: Signedness::Signed,
             });
-            types.set(tyid, ty).unwrap();
+            types.set(tyid, ty);
             types.set_name(tyid, name.to_owned());
             tyid
         };
@@ -983,15 +978,12 @@ mod tests {
         let tyid_i64 = mk_int(types, "i64", 8);
 
         let tyid_f32 = tyid_gen.next_id();
-        types
-            .set(tyid_f32, Ty::Float(ty::Float { size: 4 }))
-            .unwrap();
+        types.set(tyid_f32, Ty::Float(ty::Float { size: 4 }));
         types.set_name(tyid_f32, "float32".to_owned());
 
         let tyid_f64 = tyid_gen.next_id();
-        types
-            .set(tyid_f64, Ty::Float(ty::Float { size: 8 }))
-            .unwrap();
+        types.set(tyid_f64, Ty::Float(ty::Float { size: 8 }));
+
         types.set_name(tyid_f64, "float64".to_owned());
 
         Types {
@@ -1196,7 +1188,7 @@ mod tests {
                 })
                 .collect(),
         });
-        types.set(tyid, ty_struct).unwrap();
+        types.set(tyid, ty_struct);
         types.set_name(tyid, "SampleStruct".to_owned());
     }
 }
