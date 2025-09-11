@@ -1,0 +1,230 @@
+---
+source: decompiler/tests/test_tool.rs
+assertion_line: 138
+expression: out
+---
+ --- mil
+program  101 instrs
+    0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), size: 8 }
+    1 r3 <- Ancestral { anc_name: AncestralName("PF"), size: 0 }
+    2 r4 <- Ancestral { anc_name: AncestralName("AF"), size: 0 }
+    3 r5 <- Ancestral { anc_name: AncestralName("ZF"), size: 0 }
+    4 r6 <- Ancestral { anc_name: AncestralName("SF"), size: 0 }
+    5 r7 <- Ancestral { anc_name: AncestralName("TF"), size: 0 }
+    6 r8 <- Ancestral { anc_name: AncestralName("IF"), size: 0 }
+    7 r9 <- Ancestral { anc_name: AncestralName("DF"), size: 0 }
+    8 r10 <- Ancestral { anc_name: AncestralName("OF"), size: 0 }
+    9 r11 <- Ancestral { anc_name: AncestralName("RBP"), size: 8 }
+   10 r12 <- Ancestral { anc_name: AncestralName("RSP"), size: 8 }
+   11 r13 <- Ancestral { anc_name: AncestralName("RIP"), size: 8 }
+   12 r14 <- Ancestral { anc_name: AncestralName("RDI"), size: 8 }
+   13 r15 <- Ancestral { anc_name: AncestralName("RSI"), size: 8 }
+   14 r16 <- Ancestral { anc_name: AncestralName("RAX"), size: 8 }
+   15 r17 <- Ancestral { anc_name: AncestralName("RBX"), size: 8 }
+   16 r18 <- Ancestral { anc_name: AncestralName("RCX"), size: 8 }
+   17 r19 <- Ancestral { anc_name: AncestralName("RDX"), size: 8 }
+   18 r20 <- Ancestral { anc_name: AncestralName("R8"), size: 8 }
+   19 r21 <- Ancestral { anc_name: AncestralName("R9"), size: 8 }
+   20 r22 <- Ancestral { anc_name: AncestralName("R10"), size: 8 }
+   21 r23 <- Ancestral { anc_name: AncestralName("R11"), size: 8 }
+   22 r24 <- Ancestral { anc_name: AncestralName("R12"), size: 8 }
+   23 r25 <- Ancestral { anc_name: AncestralName("R13"), size: 8 }
+   24 r26 <- Ancestral { anc_name: AncestralName("R14"), size: 8 }
+   25 r27 <- Ancestral { anc_name: AncestralName("R15"), size: 8 }
+   26 r28 <- Ancestral { anc_name: AncestralName("ZMM0"), size: 64 }
+   27 r29 <- Ancestral { anc_name: AncestralName("ZMM1"), size: 64 }
+   28 r30 <- Ancestral { anc_name: AncestralName("ZMM2"), size: 64 }
+   29 r31 <- Ancestral { anc_name: AncestralName("ZMM3"), size: 64 }
+   30 r32 <- Ancestral { anc_name: AncestralName("ZMM4"), size: 64 }
+   31 r33 <- Ancestral { anc_name: AncestralName("ZMM5"), size: 64 }
+   32 r34 <- Ancestral { anc_name: AncestralName("ZMM6"), size: 64 }
+   33 r35 <- Ancestral { anc_name: AncestralName("ZMM7"), size: 64 }
+   34 r36 <- Ancestral { anc_name: AncestralName("ZMM8"), size: 64 }
+   35 r37 <- Ancestral { anc_name: AncestralName("ZMM9"), size: 64 }
+   36 r38 <- Ancestral { anc_name: AncestralName("ZMM10"), size: 64 }
+   37 r39 <- Ancestral { anc_name: AncestralName("ZMM11"), size: 64 }
+   38 r40 <- Ancestral { anc_name: AncestralName("ZMM12"), size: 64 }
+   39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), size: 64 }
+   40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), size: 64 }
+   41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), size: 64 }
+   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), size: 8 }
+   43 r15 <- Get(r45)
+   44 r46 <- Ancestral { anc_name: AncestralName("arg1"), size: 8 }
+   45 r19 <- Get(r46)
+   46 r47 <- Ancestral { anc_name: AncestralName("arg2"), size: 8 }
+   47 r18 <- Get(r47)
+   48 r48 <- Ancestral { anc_name: AncestralName("arg3"), size: 16 }
+   49 r49 <- Part { src: r48, offset: 0, size: 8 }
+   50 r20 <- Get(r49)
+   51 r50 <- Part { src: r48, offset: 8, size: 8 }
+   52 r21 <- Get(r50)
+   53 r51 <- Ancestral { anc_name: AncestralName("arg4"), size: 32 }
+   54 r53 <- Part { src: r51, offset: 0, size: 8 }
+   55 r52 <- ArithK(Add, r12, 8)
+   56 r52 <- StoreMem { addr: r52, value: r53 }
+   57 r53 <- Part { src: r51, offset: 8, size: 8 }
+   58 r52 <- ArithK(Add, r12, 16)
+   59 r52 <- StoreMem { addr: r52, value: r53 }
+   60 r53 <- Part { src: r51, offset: 16, size: 8 }
+   61 r52 <- ArithK(Add, r12, 24)
+   62 r52 <- StoreMem { addr: r52, value: r53 }
+   63 r53 <- Part { src: r51, offset: 24, size: 8 }
+   64 r52 <- ArithK(Add, r12, 32)
+   65 r52 <- StoreMem { addr: r52, value: r53 }
+0x401301:
+   66 r16 <- Get(r14)
+0x401304:
+   67 r46 <- Const { value: 8, size: 8 }
+   68 r46 <- Arith(Add, r46, r12)
+   69 r45 <- LoadMem { addr: r46, size: 16 }
+   70 r47 <- Part { src: r28, offset: 16, size: 48 }
+   71 r28 <- Concat { lo: r45, hi: r47 }
+0x401309:
+   72 r46 <- Const { value: 24, size: 8 }
+   73 r46 <- Arith(Add, r46, r12)
+   74 r45 <- LoadMem { addr: r46, size: 16 }
+   75 r47 <- Part { src: r29, offset: 16, size: 48 }
+   76 r29 <- Concat { lo: r45, hi: r47 }
+0x40130e:
+   77 r46 <- Part { src: r29, offset: 0, size: 16 }
+   78 r47 <- Const { value: 16, size: 8 }
+   79 r47 <- Arith(Add, r47, r14)
+   80 r47 <- StoreMem { addr: r47, value: r46 }
+0x401312:
+   81 r46 <- Part { src: r28, offset: 0, size: 16 }
+   82 r47 <- Const { value: 0, size: 8 }
+   83 r47 <- Arith(Add, r47, r14)
+   84 r47 <- StoreMem { addr: r47, value: r46 }
+0x401315:
+   85 r45 <- Void
+   86 r47 <- ArithK(Add, r16, 0)
+   87 r48 <- LoadMem { addr: r47, size: 8 }
+   88 r45 <- Concat { lo: r45, hi: r48 }
+   89 r47 <- ArithK(Add, r16, 8)
+   90 r49 <- LoadMem { addr: r47, size: 8 }
+   91 r45 <- Concat { lo: r45, hi: r49 }
+   92 r47 <- ArithK(Add, r16, 16)
+   93 r50 <- LoadMem { addr: r47, size: 8 }
+   94 r45 <- Concat { lo: r45, hi: r50 }
+   95 r47 <- ArithK(Add, r16, 24)
+   96 r51 <- LoadMem { addr: r47, size: 8 }
+   97 r45 <- Concat { lo: r45, hi: r51 }
+   98 r45 <- Part { src: r45, offset: 0, size: 32 }
+   99 r52 <- SetReturnValue(r45)
+  100 r52 <- Control(Ret)
+
+
+ --- ssa pre-xform
+ssa program  101 instrs
+.B0:    ;;  → Always(Return).
+  (  6)  r10 <- Ancestral { anc_name: AncestralName("RSP"), size: 8 }
+  (  6)  r12 <- Ancestral { anc_name: AncestralName("RDI"), size: 8 }
+         r26 <- Ancestral { anc_name: AncestralName("ZMM0"), size: 64 }
+         r27 <- Ancestral { anc_name: AncestralName("ZMM1"), size: 64 }
+  (  4)  r53 <- Ancestral { anc_name: AncestralName("arg4"), size: 32 }
+         r54 <- Part { src: r53, offset: 0, size: 8 }
+         r55 <- ArithK(Add, r10, 8)
+         r56 <- StoreMem { addr: r55, value: r54 }
+         r57 <- Part { src: r53, offset: 8, size: 8 }
+         r58 <- ArithK(Add, r10, 16)
+         r59 <- StoreMem { addr: r58, value: r57 }
+         r60 <- Part { src: r53, offset: 16, size: 8 }
+         r61 <- ArithK(Add, r10, 24)
+         r62 <- StoreMem { addr: r61, value: r60 }
+         r63 <- Part { src: r53, offset: 24, size: 8 }
+         r64 <- ArithK(Add, r10, 32)
+         r65 <- StoreMem { addr: r64, value: r63 }
+         r67 <- Const { value: 8, size: 8 }
+         r68 <- Arith(Add, r67, r10)
+         r69 <- LoadMem { addr: r68, size: 16 }
+         r70 <- Part { src: r26, offset: 16, size: 48 }
+         r71 <- Concat { lo: r69, hi: r70 }
+         r72 <- Const { value: 24, size: 8 }
+         r73 <- Arith(Add, r72, r10)
+         r74 <- LoadMem { addr: r73, size: 16 }
+         r75 <- Part { src: r27, offset: 16, size: 48 }
+         r76 <- Concat { lo: r74, hi: r75 }
+         r77 <- Part { src: r76, offset: 0, size: 16 }
+         r78 <- Const { value: 16, size: 8 }
+         r79 <- Arith(Add, r78, r12)
+         r80 <- StoreMem { addr: r79, value: r77 }
+         r81 <- Part { src: r71, offset: 0, size: 16 }
+         r82 <- Const { value: 0, size: 8 }
+         r83 <- Arith(Add, r82, r12)
+         r84 <- StoreMem { addr: r83, value: r81 }
+         r86 <- ArithK(Add, r12, 0)
+         r87 <- LoadMem { addr: r86, size: 8 }
+         r88 <- Concat { lo: r85, hi: r87 }
+         r89 <- ArithK(Add, r12, 8)
+         r90 <- LoadMem { addr: r89, size: 8 }
+         r91 <- Concat { lo: r88, hi: r90 }
+         r92 <- ArithK(Add, r12, 16)
+         r93 <- LoadMem { addr: r92, size: 8 }
+         r94 <- Concat { lo: r91, hi: r93 }
+         r95 <- ArithK(Add, r12, 24)
+         r96 <- LoadMem { addr: r95, size: 8 }
+         r97 <- Concat { lo: r94, hi: r96 }
+         r98 <- Part { src: r97, offset: 0, size: 32 }
+         r99 <- SetReturnValue(r98)
+
+
+ --- cfg
+  entry: BlockID(0)
+  BlockID(0) -> Always(Return) [r10, r12, r53, r54, r55, r56, r57, r58, r59, r60, r61, r62, r63, r64, r65, r112, r102, r105, r117, r107, r110, r79, r80, r84, r87, r89, r90, r91, r92, r93, r94, r95, r96, r97, r99]
+  domtree:
+    BlockID(0)
+
+ --- ssa
+ssa program  121 instrs
+.B0:    ;;  → Always(Return).
+  (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), size: 8 }
+  (  6)  r12 <- Ancestral { anc_name: AncestralName("RDI"), size: 8 }
+  (  6)  r53 <- Ancestral { anc_name: AncestralName("arg4"), size: 32 }
+         r54 <- Part { src: r53, offset: 0, size: 8 }
+         r55 <- ArithK(Add, r10, 8)
+         r56 <- StoreMem { addr: r55, value: r54 }
+  (  2)  r57 <- StructGetMember { struct_value: r53, name: "member1", size: 32 }
+         r58 <- ArithK(Add, r10, 16)
+         r59 <- StoreMem { addr: r58, value: r57 }
+  (  2)  r60 <- StructGetMember { struct_value: r53, name: "member2", size: 32 }
+         r61 <- ArithK(Add, r10, 24)
+         r62 <- StoreMem { addr: r61, value: r60 }
+         r63 <- Part { src: r53, offset: 24, size: 8 }
+         r64 <- ArithK(Add, r10, 32)
+         r65 <- StoreMem { addr: r64, value: r63 }
+         r112 <- Part { src: r53, offset: 0, size: 8 }
+         r102 <- Part { src: r57, offset: 0, size: 8 }
+         r105 <- Concat { lo: r102, hi: r112 }
+         r117 <- Part { src: r60, offset: 0, size: 8 }
+         r107 <- Part { src: r53, offset: 24, size: 8 }
+         r110 <- Concat { lo: r107, hi: r117 }
+         r79 <- ArithK(Add, r12, 16)
+         r80 <- StoreMem { addr: r79, value: r110 }
+         r84 <- StoreMem { addr: r12, value: r105 }
+         r87 <- LoadMem { addr: r12, size: 8 }
+         r89 <- ArithK(Add, r12, 8)
+         r90 <- LoadMem { addr: r89, size: 8 }
+         r91 <- Concat { lo: r87, hi: r90 }
+         r92 <- ArithK(Add, r12, 16)
+         r93 <- LoadMem { addr: r92, size: 8 }
+         r94 <- Concat { lo: r91, hi: r93 }
+         r95 <- ArithK(Add, r12, 24)
+         r96 <- LoadMem { addr: r95, size: 8 }
+         r97 <- Concat { lo: r94, hi: r96 }
+         r99 <- SetReturnValue(r97)
+
+
+ --- ast
+
+T0: {
+  [pre:RSP + 8]:* := pre:arg4[8 .. 0];
+  let r57: Bytes(32) = pre:arg4.member1;
+  [pre:RSP + 16]:* := r57;
+  let r60: Bytes(32) = pre:arg4.member2;
+  [pre:RSP + 24]:* := r60;
+  [pre:RSP + 32]:* := pre:arg4[32 .. 24];
+  [pre:RDI + 16]:* := r60[8 .. 0] ++ pre:arg4[32 .. 24];
+  [pre:RDI]:* := pre:arg4[8 .. 0] ++ r57[8 .. 0];
+  ;
+  return [pre:RDI + 24]:8 as i8 ++ [pre:RDI + 16]:8 as i8 ++ [pre:RDI + 8]:8 ++ [pre:RDI]:8 as i16 as i24
+}

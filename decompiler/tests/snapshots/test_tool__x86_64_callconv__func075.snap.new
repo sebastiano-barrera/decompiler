@@ -1,0 +1,127 @@
+---
+source: decompiler/tests/test_tool.rs
+assertion_line: 138
+expression: out
+---
+ --- mil
+program  65 instrs
+    0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), size: 8 }
+    1 r3 <- Ancestral { anc_name: AncestralName("PF"), size: 0 }
+    2 r4 <- Ancestral { anc_name: AncestralName("AF"), size: 0 }
+    3 r5 <- Ancestral { anc_name: AncestralName("ZF"), size: 0 }
+    4 r6 <- Ancestral { anc_name: AncestralName("SF"), size: 0 }
+    5 r7 <- Ancestral { anc_name: AncestralName("TF"), size: 0 }
+    6 r8 <- Ancestral { anc_name: AncestralName("IF"), size: 0 }
+    7 r9 <- Ancestral { anc_name: AncestralName("DF"), size: 0 }
+    8 r10 <- Ancestral { anc_name: AncestralName("OF"), size: 0 }
+    9 r11 <- Ancestral { anc_name: AncestralName("RBP"), size: 8 }
+   10 r12 <- Ancestral { anc_name: AncestralName("RSP"), size: 8 }
+   11 r13 <- Ancestral { anc_name: AncestralName("RIP"), size: 8 }
+   12 r14 <- Ancestral { anc_name: AncestralName("RDI"), size: 8 }
+   13 r15 <- Ancestral { anc_name: AncestralName("RSI"), size: 8 }
+   14 r16 <- Ancestral { anc_name: AncestralName("RAX"), size: 8 }
+   15 r17 <- Ancestral { anc_name: AncestralName("RBX"), size: 8 }
+   16 r18 <- Ancestral { anc_name: AncestralName("RCX"), size: 8 }
+   17 r19 <- Ancestral { anc_name: AncestralName("RDX"), size: 8 }
+   18 r20 <- Ancestral { anc_name: AncestralName("R8"), size: 8 }
+   19 r21 <- Ancestral { anc_name: AncestralName("R9"), size: 8 }
+   20 r22 <- Ancestral { anc_name: AncestralName("R10"), size: 8 }
+   21 r23 <- Ancestral { anc_name: AncestralName("R11"), size: 8 }
+   22 r24 <- Ancestral { anc_name: AncestralName("R12"), size: 8 }
+   23 r25 <- Ancestral { anc_name: AncestralName("R13"), size: 8 }
+   24 r26 <- Ancestral { anc_name: AncestralName("R14"), size: 8 }
+   25 r27 <- Ancestral { anc_name: AncestralName("R15"), size: 8 }
+   26 r28 <- Ancestral { anc_name: AncestralName("ZMM0"), size: 64 }
+   27 r29 <- Ancestral { anc_name: AncestralName("ZMM1"), size: 64 }
+   28 r30 <- Ancestral { anc_name: AncestralName("ZMM2"), size: 64 }
+   29 r31 <- Ancestral { anc_name: AncestralName("ZMM3"), size: 64 }
+   30 r32 <- Ancestral { anc_name: AncestralName("ZMM4"), size: 64 }
+   31 r33 <- Ancestral { anc_name: AncestralName("ZMM5"), size: 64 }
+   32 r34 <- Ancestral { anc_name: AncestralName("ZMM6"), size: 64 }
+   33 r35 <- Ancestral { anc_name: AncestralName("ZMM7"), size: 64 }
+   34 r36 <- Ancestral { anc_name: AncestralName("ZMM8"), size: 64 }
+   35 r37 <- Ancestral { anc_name: AncestralName("ZMM9"), size: 64 }
+   36 r38 <- Ancestral { anc_name: AncestralName("ZMM10"), size: 64 }
+   37 r39 <- Ancestral { anc_name: AncestralName("ZMM11"), size: 64 }
+   38 r40 <- Ancestral { anc_name: AncestralName("ZMM12"), size: 64 }
+   39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), size: 64 }
+   40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), size: 64 }
+   41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), size: 64 }
+   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), size: 8 }
+   43 r15 <- Get(r45)
+   44 r46 <- Ancestral { anc_name: AncestralName("arg1"), size: 8 }
+   45 r19 <- Get(r46)
+   46 r47 <- Ancestral { anc_name: AncestralName("arg2"), size: 16 }
+   47 r48 <- Part { src: r47, offset: 0, size: 8 }
+   48 r18 <- Get(r48)
+   49 r49 <- Part { src: r47, offset: 8, size: 8 }
+   50 r20 <- Get(r49)
+   51 r50 <- Ancestral { anc_name: AncestralName("arg3"), size: 16 }
+   52 r52 <- Part { src: r50, offset: 0, size: 8 }
+   53 r51 <- ArithK(Add, r12, 8)
+   54 r51 <- StoreMem { addr: r51, value: r52 }
+   55 r52 <- Part { src: r50, offset: 8, size: 8 }
+   56 r51 <- ArithK(Add, r12, 16)
+   57 r51 <- StoreMem { addr: r51, value: r52 }
+0x401277:
+   58 r45 <- NotYetImplemented("unsupported: movd xmm0,r9d")
+0x40127c:
+   59 r45 <- Void
+   60 r46 <- Part { src: r28, offset: 0, size: 8 }
+   61 r45 <- Concat { lo: r45, hi: r46 }
+   62 r45 <- Part { src: r45, offset: 0, size: 4 }
+   63 r47 <- SetReturnValue(r45)
+   64 r47 <- Control(Ret)
+
+
+ --- ssa pre-xform
+ssa program  65 instrs
+.B0:    ;;  → Always(Return).
+  (  2)  r10 <- Ancestral { anc_name: AncestralName("RSP"), size: 8 }
+         r26 <- Ancestral { anc_name: AncestralName("ZMM0"), size: 64 }
+  (  2)  r51 <- Ancestral { anc_name: AncestralName("arg3"), size: 16 }
+         r52 <- Part { src: r51, offset: 0, size: 8 }
+         r53 <- ArithK(Add, r10, 8)
+         r54 <- StoreMem { addr: r53, value: r52 }
+         r55 <- Part { src: r51, offset: 8, size: 8 }
+         r56 <- ArithK(Add, r10, 16)
+         r57 <- StoreMem { addr: r56, value: r55 }
+         r58 <- NotYetImplemented("unsupported: movd xmm0,r9d")
+         r60 <- Part { src: r26, offset: 0, size: 8 }
+         r61 <- Concat { lo: r59, hi: r60 }
+         r62 <- Part { src: r61, offset: 0, size: 4 }
+         r63 <- SetReturnValue(r62)
+
+
+ --- cfg
+  entry: BlockID(0)
+  BlockID(0) -> Always(Return) [r10, r26, r51, r52, r53, r54, r55, r56, r57, r58, r62, r63]
+  domtree:
+    BlockID(0)
+
+ --- ssa
+ssa program  65 instrs
+.B0:    ;;  → Always(Return).
+  (  2)  r10 <- Ancestral { anc_name: AncestralName("RSP"), size: 8 }
+         r26 <- Ancestral { anc_name: AncestralName("ZMM0"), size: 64 }
+  (  2)  r51 <- Ancestral { anc_name: AncestralName("arg3"), size: 16 }
+         r52 <- StructGetMember { struct_value: r51, name: "member0", size: 16 }
+         r53 <- ArithK(Add, r10, 8)
+         r54 <- StoreMem { addr: r53, value: r52 }
+         r55 <- Part { src: r51, offset: 8, size: 8 }
+         r56 <- ArithK(Add, r10, 16)
+         r57 <- StoreMem { addr: r56, value: r55 }
+         r58 <- NotYetImplemented("unsupported: movd xmm0,r9d")
+         r62 <- Part { src: r26, offset: 0, size: 4 }
+         r63 <- SetReturnValue(r62)
+
+
+ --- ast
+
+T0: {
+  [pre:RSP + 8]:* := pre:arg3.member0;
+  [pre:RSP + 16]:* := pre:arg3[16 .. 8];
+  TODO /* unsupported: movd xmm0,r9d */;
+  ;
+  return pre:ZMM0[4 .. 0]
+}

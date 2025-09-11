@@ -414,7 +414,7 @@ fn fold_part_void(insn: Insn) -> Insn {
 }
 
 fn apply_type_selection(
-    mut insn: Insn,
+    insn: Insn,
     prog: &mut ssa::OpenProgram,
     bid: BlockID,
     types: &ty::TypeSet,
@@ -443,41 +443,16 @@ fn apply_type_selection(
             }
         };
 
-    if path.len() == 1 && matches!(path[0], ty::SelectStep::RawBytes { .. }) {
-        // shortcut and don't do anything. failing to do this will cause a new
-        // Insn::Part to be appended to the block, identical to [src], which
-        // sends us into an infinite loop
-        return insn;
-    }
+    // path is for sure >= 1
+    // in the most generic case, it contains a single SelectStep::RawBytes
+    let (last_step, addl_steps) = path.split_last().unwrap();
 
-    for step in dbg!(path) {
-        let src = prog.append_new(bid, insn);
-        insn = match step {
-            ty::SelectStep::Index {
-                index,
-                element_size,
-            } => Insn::ArrayGetElement {
-                array: src,
-                index: index.try_into().unwrap(),
-                size: element_size.try_into().unwrap(),
-            },
-            ty::SelectStep::Member { name, size } => {
-                Insn::StructGetMember {
-                    struct_value: src,
-                    // TODO figure out memory managment for this
-                    name: name.to_string().leak(),
-                    size: size.try_into().unwrap(),
-                }
-            }
-            ty::SelectStep::RawBytes { byte_range } => Insn::Part {
-                src,
-                offset: byte_range.lo().try_into().unwrap(),
-                size: byte_range.len().try_into().unwrap(),
-            },
-        };
+    let mut src = src;
+    for step in addl_steps {
+        let step_insn = step.to_insn(src);
+        src = prog.append_new(bid, step_insn);
     }
-
-    insn
+    last_step.to_insn(src)
 }
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
@@ -502,16 +477,20 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
     let mut any_change = true;
     while any_change {
+        println!(" * new cycle");
         any_change = false;
 
         let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
         for bid in bids {
+            println!("   * {bid:?}");
             // clear the block's schedule, then reconstruct it.
             // existing instruction are processed and replaced to keep using the memory they already occupy
             for reg in prog.clear_block_schedule(bid) {
                 let orig_block_len = prog.block_len(bid);
                 let orig_insn = prog.get(reg).unwrap();
                 let orig_has_fx = orig_insn.has_side_effects();
+
+                println!("     * {reg:?} -- {orig_insn:?}");
 
                 let mut insn = orig_insn;
                 if let Some(mem_ref_reg) = mem_ref_reg {

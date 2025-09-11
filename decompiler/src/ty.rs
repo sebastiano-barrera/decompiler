@@ -6,7 +6,10 @@ use tracing::{event, Level};
 
 pub mod dwarf;
 
-use crate::pp::{self, PP};
+use crate::{
+    mil,
+    pp::{self, PP},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum TypeID {
@@ -639,6 +642,34 @@ pub enum SelectStep {
     Index { index: usize, element_size: usize },
     Member { name: Arc<String>, size: usize },
     RawBytes { byte_range: ByteRange },
+}
+
+impl SelectStep {
+    pub fn to_insn(&self, src: mil::Reg) -> mil::Insn {
+        match self {
+            SelectStep::Index {
+                index,
+                element_size,
+            } => mil::Insn::ArrayGetElement {
+                array: src,
+                index: (*index).try_into().unwrap(),
+                size: (*element_size).try_into().unwrap(),
+            },
+            SelectStep::Member { name, size } => {
+                mil::Insn::StructGetMember {
+                    struct_value: src,
+                    // TODO figure out memory managment for this
+                    name: name.to_string().leak(),
+                    size: (*size).try_into().unwrap(),
+                }
+            }
+            SelectStep::RawBytes { byte_range } => mil::Insn::Part {
+                src,
+                offset: byte_range.lo().try_into().unwrap(),
+                size: byte_range.len().try_into().unwrap(),
+            },
+        }
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
