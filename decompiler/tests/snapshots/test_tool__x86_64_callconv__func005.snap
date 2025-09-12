@@ -50,45 +50,45 @@ program  52 instrs
    43 r45 <- Widen { reg: r45, target_size: 32, sign: false }
    44 r46 <- Part { src: r28, offset: 32, size: 32 }
    45 r28 <- Concat { lo: r45, hi: r46 }
-0x40111c:
-   46 r45 <- Void
-   47 r46 <- Part { src: r28, offset: 0, size: 8 }
-   48 r45 <- Concat { lo: r45, hi: r46 }
-   49 r45 <- Part { src: r45, offset: 0, size: 4 }
-   50 r47 <- SetReturnValue(r45)
-   51 r47 <- Control(Ret)
+0x400473:
+   46 r45 <- NotYetImplemented("unsupported: cvtss2sd xmm0,xmm0")
+0x400477:
+   47 r45 <- NotYetImplemented("unsupported: movq rax,xmm0")
+0x40047c:
+   48 r22 <- Get(r16)
+0x40047f:
+   49 r45 <- Void
+   50 r46 <- SetReturnValue(r45)
+   51 r46 <- Control(Ret)
 
 
  --- ssa pre-xform
 ssa program  52 instrs
 .B0:    ;;  → Always(Return).
-         r26 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
-         r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(4) }
-         r43 <- Widen { reg: r42, target_size: 32, sign: false }
-         r44 <- Part { src: r26, offset: 32, size: 32 }
-         r45 <- Concat { lo: r43, hi: r44 }
-         r47 <- Part { src: r45, offset: 0, size: 8 }
-         r48 <- Concat { lo: r46, hi: r47 }
-         r49 <- Part { src: r48, offset: 0, size: 4 }
+         r46 <- NotYetImplemented("unsupported: cvtss2sd xmm0,xmm0")
+         r47 <- NotYetImplemented("unsupported: movq rax,xmm0")
          r50 <- SetReturnValue(r49)
 
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r42, r50]
+  BlockID(0) -> Always(Return) [r46, r47, r49, r50]
   domtree:
     BlockID(0)
 
  --- ssa
 ssa program  52 instrs
 .B0:    ;;  → Always(Return).
-         r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(4) }
-         r50 <- SetReturnValue(r42)
+         r46 <- NotYetImplemented("unsupported: cvtss2sd xmm0,xmm0")
+         r47 <- NotYetImplemented("unsupported: movq rax,xmm0")
+         r50 <- SetReturnValue(r49)
 
 
  --- ast
 
 T0: {
+  TODO /* unsupported: cvtss2sd xmm0,xmm0 */;
+  TODO /* unsupported: movq rax,xmm0 */;
   ;
-  return pre:arg0
+  return void
 }
