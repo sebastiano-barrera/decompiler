@@ -205,9 +205,10 @@ impl TypeSet {
                 });
 
                 if let Some(member) = member {
+                    let member_size = self.bytes_size(member.tyid).unwrap().try_into().unwrap();
                     path.push(SelectStep::Member {
                         name: Arc::clone(&member.name),
-                        size,
+                        size: member_size,
                     });
                     let memb_range = byte_range.shift_left(member.offset);
                     return self.select_from(member.tyid, memb_range, path);
