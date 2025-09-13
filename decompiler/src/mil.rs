@@ -57,7 +57,6 @@ pub struct Reg(pub u16);
 
 /// Ergonomic short-hand for the mil::Reg constructor
 #[allow(non_snake_case)]
-#[cfg(test)]
 pub const fn R(ndx: u16) -> Reg {
     Reg(ndx)
 }

@@ -6,7 +6,9 @@ use crate::{mil, ssa, ty, x86_to_mil, xform};
 
 pub use crate::ast::{precedence, Ast, PrecedenceLevel};
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
-pub use crate::mil::{to_expanded, ExpandedInsn, ExpandedValue, Insn, Reg, RegType};
+pub use crate::mil::{
+    to_expanded, AncestralName, ExpandedInsn, ExpandedValue, Insn, Reg, RegType, R,
+};
 pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap};
 
 use tracing::*;
