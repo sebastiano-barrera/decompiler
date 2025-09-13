@@ -23,6 +23,11 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     //   from now on. it's a dummy value for instructions that have no direct
     //   connection to the source machine program
 
+    event!(
+        Level::TRACE,
+        ?program,
+        "converting mil to ssa (pre validation)"
+    );
     program.validate();
     program.convert_jmp_ext_to_int();
 

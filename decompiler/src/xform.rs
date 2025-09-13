@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tracing::{event, Level};
+use tracing::{event, span, Level};
 
 use crate::{
     cfg::BlockID,
@@ -469,6 +469,7 @@ fn apply_type_selection(
 }
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
+#[tracing::instrument(skip_all)]
 pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     prog.assert_invariants();
 
@@ -497,6 +498,9 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             // clear the block's schedule, then reconstruct it.
             // existing instruction are processed and replaced to keep using the memory they already occupy
             for reg in prog.clear_block_schedule(bid) {
+                let span = span!(Level::TRACE, "processing", ?reg);
+                let _enter = span.enter();
+
                 let orig_block_len = prog.block_len(bid);
                 let orig_insn = prog.get(reg).unwrap();
                 let orig_has_fx = orig_insn.has_side_effects();
@@ -525,6 +529,8 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 }
                 prog.set(reg, insn);
                 prog.append_existing(bid, reg);
+
+                event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
 
                 let final_has_fx = insn.has_side_effects();
                 if final_has_fx != orig_has_fx {
