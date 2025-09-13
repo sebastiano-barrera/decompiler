@@ -80,7 +80,12 @@ impl<'a> Builder<'a> {
     ///
     /// The register is assigned the given RegType. The high-level type is a
     /// corresponding ty::Ty::Unknown.
-    fn init_ancestral(&mut self, reg: mil::Reg, anc_name: AncestralName, rt: mil::RegType) {
+    fn init_ancestral(
+        &mut self,
+        reg: mil::Reg,
+        anc_name: AncestralName,
+        rt: mil::RegType,
+    ) -> mil::Index {
         // TODO this function could be removed. this used to make more sense,
         // when it was more complex
         self.emit(
@@ -89,11 +94,11 @@ impl<'a> Builder<'a> {
                 anc_name,
                 reg_type: rt,
             },
-        );
+        )
     }
 
-    pub fn set_ancestral_tyid(&mut self, anc_name: AncestralName, tyid: ty::TypeID) {
-        self.pb.set_ancestral_tyid(anc_name, tyid);
+    pub fn set_value_type(&mut self, index: mil::Index, tyid: ty::TypeID) {
+        self.pb.set_value_type(index, tyid);
     }
 
     fn tmp_gen(&mut self) -> mil::Reg {
@@ -931,80 +936,110 @@ impl<'a> Builder<'a> {
                 let reg = insn.op_register(op_ndx);
                 self.emit_read_machine_reg(reg)
             }
-            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.near_branch_target() as i64,
-                    size: 8,
-                },
-            ),
+            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.near_branch_target() as i64,
+                        size: 8,
+                    },
+                );
+                v0
+            }
             OpKind::FarBranch16 | OpKind::FarBranch32 => {
                 todo!("not supported: far branch operands")
             }
 
-            OpKind::Immediate8 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate8() as _,
-                    size: 1,
-                },
-            ),
-            OpKind::Immediate8_2nd => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate8_2nd() as _,
-                    size: 1,
-                },
-            ),
-            OpKind::Immediate16 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate16() as _,
-                    size: 2,
-                },
-            ),
-            OpKind::Immediate32 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate32() as _,
-                    size: 4,
-                },
-            ),
-            OpKind::Immediate64 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate64() as _,
-                    size: 8,
-                },
-            ),
-            OpKind::Immediate8to16 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate8to16() as _,
-                    size: 2,
-                },
-            ),
-            OpKind::Immediate8to32 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate8to32() as _,
-                    size: 4,
-                },
-            ),
-            OpKind::Immediate8to64 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate8to64() as _,
-                    size: 8,
-                },
-            ),
-            OpKind::Immediate32to64 => self.emit(
-                v0,
-                mil::Insn::Const {
-                    value: insn.immediate32to64() as _,
-                    size: 8,
-                },
-            ),
+            OpKind::Immediate8 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate8() as _,
+                        size: 1,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate8_2nd => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate8_2nd() as _,
+                        size: 1,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate16 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate16() as _,
+                        size: 2,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate32 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate32() as _,
+                        size: 4,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate64 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate64() as _,
+                        size: 8,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate8to16 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate8to16() as _,
+                        size: 2,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate8to32 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate8to32() as _,
+                        size: 4,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate8to64 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate8to64() as _,
+                        size: 8,
+                    },
+                );
+                v0
+            }
+            OpKind::Immediate32to64 => {
+                self.emit(
+                    v0,
+                    mil::Insn::Const {
+                        value: insn.immediate32to64() as _,
+                        size: 8,
+                    },
+                );
+                v0
+            }
 
             OpKind::MemorySegSI
             | OpKind::MemorySegESI
@@ -1067,7 +1102,8 @@ impl<'a> Builder<'a> {
                     offset: 0,
                     size: reg.size().try_into().unwrap(),
                 },
-            )
+            );
+            dest
         }
     }
 
@@ -1457,9 +1493,8 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Reg {
-        self.pb.push(dest, insn);
-        dest
+    fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Index {
+        self.pb.push(dest, insn)
     }
 }
 

@@ -111,8 +111,9 @@ fn unpack_param(
         .pull_arg()
         .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
     let arg_value = bld.tmp_gen();
-    bld.init_ancestral(arg_value, param_anc, mil::RegType::Bytes(sz));
-    bld.set_ancestral_tyid(param_anc, tyid);
+
+    let anc_ndx = bld.init_ancestral(arg_value, param_anc, mil::RegType::Bytes(sz));
+    bld.set_value_type(anc_ndx, tyid);
 
     match mode {
         PassMode::Regs(regs) => {

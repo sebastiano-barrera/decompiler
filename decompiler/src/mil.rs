@@ -20,7 +20,8 @@ pub struct Program {
     insns: Vec<Cell<Insn>>,
     dests: Vec<Cell<Reg>>,
     addrs: Vec<u64>,
-    ancestral_tyids: HashMap<AncestralName, ty::TypeID>,
+    /// Initial partial assignment of TypeID's to each instruction
+    tyids: Vec<Option<ty::TypeID>>,
 
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
@@ -381,7 +382,7 @@ impl Program {
             dests: Vec::new(),
             addrs: Vec::new(),
             cur_input_addr: 0,
-            ancestral_tyids: HashMap::new(),
+            tyids: Vec::new(),
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
             mil_of_input_addr: HashMap::new(),
@@ -450,20 +451,8 @@ impl Program {
         self.dests.push(Cell::new(dest));
         self.insns.push(Cell::new(insn));
         self.addrs.push(self.cur_input_addr);
+        self.tyids.push(None);
         self.len() - 1
-    }
-
-    /// Associate the given type ID to the given ancestral name.
-    ///
-    /// It's forbidden to call this function twice with the same ancestral name.
-    /// (Panics on violation of this rule.)
-    pub fn set_ancestral_tyid(&mut self, anc_name: AncestralName, tyid: ty::TypeID) {
-        let prev = self.ancestral_tyids.insert(anc_name, tyid);
-        assert!(
-            prev.is_none(),
-            "type assigned multiple times to same ancestral: {:?}",
-            anc_name
-        );
     }
 
     /// Associate the instructions emitted via the following calls to `emit_*` to the given
@@ -487,9 +476,11 @@ impl Program {
     }
 
     fn assert_invariants(&self) {
-        assert_eq!(self.init_checked_count, self.dests.len(), "Not all instructions have been checked for use-after-init. Call tmp_reset() at the end of each assembly instruction.");
-        assert_eq!(self.dests.len(), self.insns.len());
-        assert_eq!(self.dests.len(), self.addrs.len());
+        let count = self.dests.len();
+        assert_eq!(self.init_checked_count, count, "Not all instructions have been checked for use-after-init. Call tmp_reset() at the end of each assembly instruction.");
+        assert_eq!(count, self.insns.len());
+        assert_eq!(count, self.addrs.len());
+        assert_eq!(count, self.tyids.len());
         assert!(!self
             .insns
             .iter()
@@ -588,8 +579,18 @@ impl Program {
         (0..self.len()).filter_map(|ndx| self.get(ndx))
     }
 
-    pub fn ancestor_type(&self, anc_name: AncestralName) -> Option<ty::TypeID> {
-        self.ancestral_tyids.get(&anc_name).copied()
+    pub fn value_type(&self, index: Index) -> Option<ty::TypeID> {
+        self.tyids.get(index as usize).copied().flatten()
+    }
+
+    /// Set the value type (TypeID) for the result of the instruction located at
+    /// the given index.
+    ///
+    /// This operation must not be done twice for the same instruction (index).
+    /// This function panics on violation of this rule.
+    pub fn set_value_type(&mut self, index: Index, tyid: ty::TypeID) {
+        let prev = std::mem::replace(&mut self.tyids[index as usize], Some(tyid));
+        assert!(prev.is_none());
     }
 
     pub fn unwrap(self) -> ProgramCore {
@@ -597,7 +598,7 @@ impl Program {
             insns: self.insns.into_iter().map(Cell::into_inner).collect(),
             dests: self.dests.into_iter().map(Cell::into_inner).collect(),
             addrs: self.addrs,
-            ancestral_tyids: self.ancestral_tyids,
+            tyids: self.tyids,
         }
     }
 }
@@ -610,7 +611,7 @@ pub struct ProgramCore {
     pub insns: Vec<Insn>,
     pub dests: Vec<Reg>,
     pub addrs: Vec<u64>,
-    pub ancestral_tyids: HashMap<AncestralName, ty::TypeID>,
+    pub tyids: Vec<Option<ty::TypeID>>,
 }
 
 pub struct InsnView<'a> {

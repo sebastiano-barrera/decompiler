@@ -186,19 +186,11 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
 
     // convert into plain data, fully accessible form
     let program = program.unwrap();
-    let tyids = program
-        .insns
-        .iter()
-        .map(|insn| match insn {
-            mil::Insn::Ancestral { anc_name, .. } => program.ancestral_tyids.get(anc_name).copied(),
-            _ => None,
-        })
-        .collect();
 
     let ssa = Program {
         insns: program.insns.into_iter().map(Cell::new).collect(),
         addrs: program.addrs,
-        tyids,
+        tyids: program.tyids,
         schedule,
         cfg,
     };
