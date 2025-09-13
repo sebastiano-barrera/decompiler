@@ -31,41 +31,9 @@ pub fn unpack_params(
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
     let mut report = Report { ok_count: 0 };
-
     let mut state = ParamPassing::default();
 
-    // We need to check whether the return type is allocated to memory or to a
-    // register. In case it's memory (stack space, typically), the address is
-    // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &*bld.types.get(ret_tyid).unwrap() {
-        // we're fine, just let's go
-        ty::Ty::Void => {}
-        ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
-            panic!("invalid type for a function return value: {:?}", ret_ty);
-        }
-        ty::Ty::Unknown => {
-            // nothing better to do in this case...
-            event!(
-                Level::ERROR,
-                "unknown return type (remaining parameters can't be mapped)"
-            );
-            return Ok(report);
-        }
-        _ => {
-            let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, &bld.types, ret_tyid, 0)?;
-            // pass a copy of state: we just want to predict the outcome of
-            // pack_return_value, we don't want to actually pull regs yet
-            let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
-            match pass_mode {
-                PassMode::Regs(_) => {}
-                // one-big-sse is the same as memory
-                PassMode::OneBigSse { .. } | PassMode::Memory => {
-                    let _ = state.pull_integer_reg().unwrap();
-                }
-            }
-        }
-    }
+    prepare_for_return_value(bld, ret_tyid, &mut state)?;
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
         let param_ty = bld.types.get(param_tyid).unwrap();
@@ -197,6 +165,70 @@ fn unpack_param(
                 );
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
                 bld.emit(addr, Insn::StoreMem { addr, value: eb });
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Determine whether a "hidden argument" is passed to a function with return
+/// type identified by `ret_tyid`, and if so, allocate it into `state` (so that
+/// the rest of the parameter passing can be "decoded" transparently, with the
+/// hidden argument already accounted for).
+///
+/// # Context
+///
+/// This function helps this code follow rule #2 from the following excerpt of
+/// "System V ABI 1.0 - AMD64 Supplement" (page 28):
+///
+/// > The returning of values is done according to the following algorithm:
+/// >
+/// > 1. Classify the return type with the classification algorithm.
+/// >
+/// > 2. If the type has class MEMORY, then the caller provides space for the
+/// > return value and passes the address of this storage in %rdi as if it were
+/// > the first argument to the function. In effect, this address becomes a
+/// > “hidden” first argument. This storage must not overlap any data visible to
+/// > the callee through other names than this argument.
+/// >
+/// > On return %rax will contain the address that has been passed in by the caller in %rdi.
+/// >
+/// > [... continues with more rules, but those aren't relevant for this function...]
+fn prepare_for_return_value(
+    bld: &mut Builder,
+    ret_tyid: ty::TypeID,
+    state: &mut ParamPassing,
+) -> anyhow::Result<()> {
+    // We need to check whether the return type is allocated to memory or to a
+    // register. In case it's memory (stack space, typically), the address is
+    // going to be passed in as RDI, so we have to skip *that* for parameters.
+    match &*bld.types.get(ret_tyid).unwrap() {
+        ty::Ty::Void => {
+            // we're fine: no storage is used for this value, so `state` is already OK
+        }
+        ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
+            panic!("invalid type for a function return value: {:?}", ret_ty);
+        }
+        ty::Ty::Unknown => {
+            // nothing better to do in this case...
+            return Err(anyhow::anyhow!(
+                "unknown return type (remaining parameters can't be mapped)"
+            ));
+        }
+        _ => {
+            let mut eb_set = EightbytesSet::new_regs();
+            classify_eightbytes(&mut eb_set, &bld.types, ret_tyid, 0)?;
+            // pass a copy of state: in this step, we just want to predict the
+            // outcome of pack_return_value, we don't want to actually pull
+            // regs yet
+            let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
+            match pass_mode {
+                PassMode::OneBigSse { .. } | PassMode::Regs(_) => {}
+                PassMode::Memory => {
+                    // ok, *now* we know that the hidden argument is there
+                    let _ = state.pull_integer_reg().unwrap();
+                }
             }
         }
     }
@@ -340,46 +372,12 @@ pub fn pack_params(
     let param_types = &subr_ty.param_tyids;
     let ret_tyid = subr_ty.return_tyid;
 
-    let param_count = param_types.len();
-
     let mut report = Report { ok_count: 0 };
-
     let mut state = ParamPassing::default();
+    prepare_for_return_value(bld, ret_tyid, &mut state)?;
+
+    let param_count = param_types.len();
     let mut param_regs: Vec<mil::Reg> = Vec::with_capacity(param_count);
-
-    // We need to check whether the return type is allocated to memory or to a
-    // register. In case it's memory (stack space, typically), the address is
-    // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &*bld.types.get(ret_tyid).unwrap() {
-        // we're fine, just let's go
-        ty::Ty::Void => {}
-        ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
-            panic!("invalid type for a function return value: {:?}", ret_ty);
-        }
-        ty::Ty::Unknown => {
-            // nothing better to do in this case...
-            event!(
-                Level::ERROR,
-                "unknown return type (remaining parameters can't be mapped)"
-            );
-            return Ok((report, param_regs));
-        }
-        _ => {
-            let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, bld.types, ret_tyid, 0)?;
-            // pass a copy of state: we just want to predict the outcome of
-            // pack_return_value, we don't want to actually pull regs yet
-            let pass_mode = eightbytes_to_pass_mode(eb_set, &mut state.clone());
-            match pass_mode {
-                PassMode::Regs(_) => {}
-                // one-big-sse is the same as memory
-                PassMode::OneBigSse { .. } | PassMode::Memory => {
-                    let _ = state.pull_integer_reg().unwrap();
-                }
-            }
-        }
-    }
-
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
         let param_ty = bld.types.get(param_tyid).unwrap();
 

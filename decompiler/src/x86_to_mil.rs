@@ -165,9 +165,7 @@ impl<'a> Builder<'a> {
                     * movaps Rxmm, Mem
                     * movaps Rxmm, Rxmm
                     * movups Mem, Rxmm
-                    * movd   Rxmm, Rint
                     * movss  Rxmm, Mem
-                    * movzx  Rint, Mem
                 */
                 M::Nop => {}
 
@@ -250,6 +248,19 @@ impl<'a> Builder<'a> {
                     // and destination operands
                     let (value, sz) = self.emit_read(&insn, 1);
                     self.emit_write(&insn, 0, value, sz);
+                }
+
+                M::Movd => {
+                    let (value, _sz) = self.emit_read(&insn, 1);
+                    self.emit(
+                        value,
+                        mil::Insn::Part {
+                            src: value,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    self.emit_write(&insn, 0, value, 4);
                 }
 
                 M::Add => {

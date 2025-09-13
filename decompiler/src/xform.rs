@@ -448,6 +448,8 @@ fn apply_type_selection(
         }
     };
 
+    event!(Level::TRACE, ?offset, ?size, "type selected");
+
     if path.len() == 0 {
         // this is what TypeSet::select returns when the required byte range precisely matches src
         return Insn::Get(src);
