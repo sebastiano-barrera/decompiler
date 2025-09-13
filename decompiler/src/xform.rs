@@ -321,11 +321,26 @@ fn fold_part_widen(insn: Insn, prog: &ssa::Program) -> Insn {
     {
         if let Insn::Widen {
             reg,
-            target_size,
+            target_size: _,
             sign,
         } = prog.get(part_src).unwrap()
         {
-            if part_size < target_size {
+            // TODO convert to error
+            let orig_size = prog.reg_type(reg).bytes_size().unwrap().try_into().unwrap();
+
+            if part_size < orig_size {
+                // skip the widen, as it does nothing; directly Part the orig. reg
+                return Insn::Part {
+                    src: reg,
+                    offset: 0,
+                    size: part_size,
+                };
+            } else if part_size == orig_size {
+                // skip the widen, as it does nothing; use the reg directly,
+                // we're not even really Part'ing it
+                return Insn::Get(reg);
+            } else {
+                // widen to a smaller size
                 return Insn::Widen {
                     reg,
                     target_size: part_size,
@@ -343,7 +358,7 @@ fn fold_widen_const(insn: Insn, prog: &ssa::Program) -> Insn {
     if let Insn::Widen {
         reg,
         target_size,
-        sign: true,
+        sign: _,
     } = insn
     {
         if let Insn::Const { value, size } = prog.get(reg).unwrap() {
@@ -384,6 +399,33 @@ fn fold_part_null(insn: Insn, prog: &ssa::Program) -> Insn {
         if let RegType::Bytes(src_size) = prog.reg_type(src) {
             if src_size == size as usize {
                 return Insn::Get(src);
+            }
+        }
+    }
+
+    insn
+}
+
+fn fold_shr_part(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn {
+    if let Insn::ArithK(ArithOp::Shr, reg, shift_len) = insn {
+        if shift_len >= 0 && shift_len % 8 == 0 {
+            if let Insn::Part { src, offset, size } = prog.get(reg).unwrap() {
+                let shift_bytes: u16 = (shift_len / 8).try_into().unwrap();
+                let smaller_part = prog.append_new(
+                    bid,
+                    Insn::Part {
+                        src,
+                        offset: offset + shift_bytes,
+                        size: size - shift_bytes,
+                    },
+                );
+
+                // widen back to original size
+                return Insn::Widen {
+                    reg: smaller_part,
+                    target_size: size,
+                    sign: false,
+                };
             }
         }
     }
@@ -523,6 +565,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_widen_const(insn, &prog);
                 insn = fold_bitops(insn, &prog);
                 insn = fold_constants(insn, &mut prog, bid);
+                insn = fold_shr_part(insn, &mut prog, bid);
                 insn = apply_type_selection(insn, &mut prog, bid, types);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
