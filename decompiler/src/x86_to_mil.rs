@@ -250,7 +250,7 @@ impl<'a> Builder<'a> {
                     self.emit_write(&insn, 0, value, sz);
                 }
 
-                M::Movd => {
+                M::Movd | M::Movss => {
                     let (value, _sz) = self.emit_read(&insn, 1);
                     self.emit(
                         value,
