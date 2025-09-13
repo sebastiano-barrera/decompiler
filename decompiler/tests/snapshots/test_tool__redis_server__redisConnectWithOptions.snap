@@ -46,7 +46,7 @@ program  759 instrs
    39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
    40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
    41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
-   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+   42 r45 <- FuncArgument { index: 0, reg_type: Bytes(8) }
    43 r14 <- Get(r45)
 0x595210:
    44 r12 <- ArithK(Add, r12, -8)
@@ -896,7 +896,7 @@ ssa program  772 instrs
   (  2)  r15 <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
          r16 <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
   (  2)  r17 <- Ancestral { anc_name: AncestralName("RDX"), reg_type: Bytes(8) }
-  ( 15)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+  ( 15)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
   (  2)  r44 <- ArithK(Add, r10, -8)
          r45 <- StoreMem { addr: r44, value: r9 }
          r46 <- Const { value: 272, size: 4 }
@@ -1358,7 +1358,7 @@ ssa program  772 instrs
   (  2)  r15 <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
          r16 <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
          r17 <- Ancestral { anc_name: AncestralName("RDX"), reg_type: Bytes(8) }
-  ( 15)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+  ( 15)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
          r44 <- ArithK(Add, r10, -8)
          r45 <- StoreMem { addr: r44, value: r9 }
          r46 <- Const { value: 272, size: 4 }
@@ -1626,9 +1626,10 @@ ssa program  772 instrs
  --- ast
 
 T0: {
+  let r42: Bytes(8) = $arg0;
   [pre:RSP - 8]:* := pre:RBP;
   [pre:RSP - 16]:* := pre:RBX;
-  [[7837800]:8]:8(pre:arg0[8 .. 4] ++ 1,
+  [[7837800]:8]:8(r42[8 .. 4] ++ 1,
                   pre:RSI[8 .. 4] ++ 272,
                   pre:RDX,
                   pre:RCX);
@@ -1651,7 +1652,7 @@ T0: {
   if IsZero (r117) {
     goto T32
   }
-  let r159: Bytes(4) = [pre:arg0 + 4]:4;
+  let r159: Bytes(4) = [r42 + 4]:4;
   ;
   if ! IsZero (r159[1 .. 0] & 1) {
     goto T5
@@ -1694,9 +1695,9 @@ T0: {
             [7837936]:* := [7837936]:4 | 4096;
             goto T15
             T15: {
-              let r315: Bytes(8) = [pre:arg0 + 64]:8;
+              let r315: Bytes(8) = [r42 + 64]:8;
               ;
-              r759 := [pre:arg0 + 64]:8;
+              r759 := [r42 + 64]:8;
               if IsZero (r315) {
                 ;
                 if ! IsZero (r159[1 .. 0] & 8) {
@@ -1714,35 +1715,35 @@ T0: {
               }
               
               T17: {
-                [7838032]:* := [pre:arg0 + 48]:8;
-                [7838040]:* := [pre:arg0 + 56]:8;
+                [7838032]:* := [r42 + 48]:8;
+                [7838040]:* := [r42 + 56]:8;
                 let r371: Bytes(8) = 5842752(7837792,
-                                             [pre:arg0 + 8]:8);
+                                             [r42 + 8]:8);
                 ;
                 if ! IsZero (r371[4 .. 0] & r371[4 .. 0]) {
                   goto T28
                 }
                 let r406: Bytes(8) = 5844704(7837792,
-                                             [pre:arg0 + 16]:8);
+                                             [r42 + 16]:8);
                 ;
                 if ! IsZero (r406[4 .. 0] & r406[4 .. 0]) {
                   goto T28
                 }
-                let r431: Bytes(4) = [pre:arg0]:4;
+                let r431: Bytes(4) = [r42]:4;
                 ;
                 if IsZero (r431) {
                   5845184(7837792,
-                          [pre:arg0 + 32]:8,
-                          [pre:arg0 + 40]:4,
-                          [pre:arg0 + 8]:8,
-                          [pre:arg0 + 24]:8);
+                          [r42 + 32]:8,
+                          [r42 + 40]:4,
+                          [r42 + 8]:8,
+                          [r42 + 24]:8);
                   goto T23
                 }
                 ;
                 if IsZero (r431 - 1) {
                   5845200(7837792,
-                          [pre:arg0 + 24]:8,
-                          [pre:arg0 + 8]:8);
+                          [r42 + 24]:8,
+                          [r42 + 8]:8);
                   goto T23
                 }
                 ;
@@ -1764,7 +1765,7 @@ T0: {
                     goto T29
                   }
                   ;
-                  if IsZero ([pre:arg0 + 16]:8) {
+                  if IsZero ([r42 + 16]:8) {
                     goto T29
                   }
                   ;

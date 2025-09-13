@@ -1552,15 +1552,3 @@ define_ancestral_name!(ANC_ZMM12, "ZMM12");
 define_ancestral_name!(ANC_ZMM13, "ZMM13");
 define_ancestral_name!(ANC_ZMM14, "ZMM14");
 define_ancestral_name!(ANC_ZMM15, "ZMM15");
-
-define_ancestral_name!(ANC_ARG0, "arg0");
-define_ancestral_name!(ANC_ARG1, "arg1");
-define_ancestral_name!(ANC_ARG2, "arg2");
-define_ancestral_name!(ANC_ARG3, "arg3");
-define_ancestral_name!(ANC_ARG4, "arg4");
-define_ancestral_name!(ANC_ARG5, "arg5");
-define_ancestral_name!(ANC_ARG6, "arg6");
-define_ancestral_name!(ANC_ARG7, "arg7");
-const ANC_ARGS: [mil::AncestralName; 8] = [
-    ANC_ARG0, ANC_ARG1, ANC_ARG2, ANC_ARG3, ANC_ARG4, ANC_ARG5, ANC_ARG6, ANC_ARG7,
-];

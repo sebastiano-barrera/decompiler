@@ -46,7 +46,7 @@ program  236 instrs
    39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
    40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
    41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
-   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(16) }
+   42 r45 <- FuncArgument { index: 0, reg_type: Bytes(16) }
    43 r46 <- Part { src: r45, offset: 0, size: 8 }
    44 r14 <- Get(r46)
    45 r47 <- Part { src: r45, offset: 8, size: 8 }
@@ -283,7 +283,7 @@ ssa program  242 instrs
 .B0:    ;;  → Always(Block(BlockID(5))).
          r9 <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
          r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  2)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(16) }
+  (  2)  r42 <- FuncArgument { index: 0, reg_type: Bytes(16) }
   (  2)  r43 <- Part { src: r42, offset: 0, size: 8 }
   (  2)  r45 <- Part { src: r42, offset: 8, size: 8 }
   ( 21)  r47 <- ArithK(Add, r10, -8)
@@ -423,12 +423,12 @@ ssa program  242 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(5))) [r9, r10, r42, r43, r45, r47, r48, r58, r59, r61, r62, r63, r65, r66, r67, r69, r70]
+  BlockID(0) -> Always(Block(BlockID(5))) [r9, r10, r42, r242, r45, r47, r48, r58, r59, r61, r62, r63, r65, r66, r67, r69, r70]
   BlockID(1) -> Always(Block(BlockID(3))) [r72, r74, r75]
-  BlockID(2) -> Always(Block(BlockID(3))) [r273, r278, r90, r119, r120, r121, r122, r128, r138, r147, r148, r159, r161, r162]
-  BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r258, r179, r181, r185, r186, r187]
+  BlockID(2) -> Always(Block(BlockID(3))) [r306, r90, r119, r120, r121, r122, r128, r138, r147, r148, r159, r161, r162]
+  BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r305, r179, r181, r185, r186, r187]
   BlockID(4) -> Always(Block(BlockID(5))) [r193, r195, r196]
-  BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r243, r213, r215, r219, r220, r221]
+  BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r304, r213, r215, r219, r220, r221]
   BlockID(6) -> Always(Return) [r234]
   domtree:
     BlockID(0)
@@ -440,17 +440,17 @@ ssa program  242 instrs
 |  |  BlockID(6)
 
  --- ssa
-ssa program  302 instrs
+ssa program  307 instrs
 .B0:    ;;  → Always(Block(BlockID(5))).
          r9 <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
   (  9)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  5)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(16) }
-  (  2)  r43 <- StructGetMember { struct_value: r42, name: "numbers", size: 16 }
+  (  5)  r42 <- FuncArgument { index: 0, reg_type: Bytes(16) }
+  (  2)  r242 <- StructGetMember { struct_value: r42, name: "numbers", size: 8 }
          r45 <- Part { src: r42, offset: 8, size: 8 }
          r47 <- ArithK(Add, r10, -8)
          r48 <- StoreMem { addr: r47, value: r9 }
          r58 <- ArithK(Add, r10, -40)
-         r59 <- StoreMem { addr: r58, value: r43 }
+         r59 <- StoreMem { addr: r58, value: r242 }
          r61 <- ArithK(Add, r10, -32)
          r62 <- StoreMem { addr: r61, value: r45 }
   (  2)  r63 <- Const { value: 0, size: 4 }
@@ -460,9 +460,9 @@ ssa program  302 instrs
          r69 <- ArithK(Add, r10, -16)
          r70 <- StoreMem { addr: r69, value: r67 }
 .B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
-  (  2)  r243 <- Part { src: r42, offset: 8, size: 4 }
-         r213 <- OverflowOf(r243)
-         r215 <- SignOf(r243)
+  (  2)  r304 <- StructGetMember { struct_value: r42, name: "rows", size: 4 }
+         r213 <- OverflowOf(r304)
+         r215 <- SignOf(r304)
          r219 <- Cmp(EQ, r215, r213)
          r220 <- Not(r219)
          r221 <- SetJumpCondition(r220)
@@ -473,9 +473,9 @@ ssa program  302 instrs
          r74 <- ArithK(Add, r10, -20)
          r75 <- StoreMem { addr: r74, value: r72 }
 .B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
-  (  2)  r258 <- Part { src: r42, offset: 12, size: 4 }
-         r179 <- OverflowOf(r258)
-         r181 <- SignOf(r258)
+  (  2)  r305 <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
+         r179 <- OverflowOf(r305)
+         r181 <- SignOf(r305)
          r185 <- Cmp(EQ, r181, r179)
          r186 <- Not(r185)
          r187 <- SetJumpCondition(r186)
@@ -484,14 +484,13 @@ ssa program  302 instrs
          r195 <- ArithK(Add, r10, -16)
          r196 <- StoreMem { addr: r195, value: r193 }
 .B2:    ;; preds:B3  → Always(Block(BlockID(3))).
-         r273 <- Part { src: r43, offset: 0, size: 8 }
-         r278 <- Part { src: r42, offset: 12, size: 4 }
-         r90 <- ArithK(Mul, r278, 0)
+         r306 <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
+         r90 <- ArithK(Mul, r306, 0)
          r119 <- Widen { reg: r90, target_size: 8, sign: true }
          r120 <- Const { value: 2, size: 1 }
          r121 <- Widen { reg: r120, target_size: 8, sign: false }
          r122 <- Arith(Shl, r119, r121)
-         r128 <- Arith(Add, r122, r273)
+         r128 <- Arith(Add, r122, r242)
          r138 <- LoadMem { addr: r128, size: 4 }
          r147 <- ArithK(Add, r10, -12)
          r148 <- StoreMem { addr: r147, value: r138 }
@@ -503,24 +502,25 @@ ssa program  302 instrs
  --- ast
 
 T0: {
-  let r43: Bytes(16) = pre:arg0.numbers;
+  let r42: Bytes(16) = $arg0;
+  let r242: Bytes(8) = r42.numbers;
   [pre:RSP - 8]:* := pre:RBP;
-  [pre:RSP - 40]:* := r43;
-  [pre:RSP - 32]:* := pre:arg0[16 .. 8];
+  [pre:RSP - 40]:* := r242;
+  [pre:RSP - 32]:* := r42[16 .. 8];
   [pre:RSP - 12]:* := 0;
   [pre:RSP - 16]:* := 0;
   goto T5
   T5: {
-    let r243: Bytes(4) = pre:arg0[12 .. 8];
+    let r304: Bytes(4) = r42.rows;
     ;
-    if ! (SignOf (r243) EQ OverflowOf (r243)) {
+    if ! (SignOf (r304) EQ OverflowOf (r304)) {
       [pre:RSP - 20]:* := 0;
       goto T3
       T3: {
-        let r258: Bytes(4) = pre:arg0[16 .. 12];
+        let r305: Bytes(4) = r42.cols;
         ;
-        if ! (SignOf (r258) EQ OverflowOf (r258)) {
-          [pre:RSP - 12]:* := [(pre:arg0[16 .. 12] * 0) as i64 << 2 as u64 + r43[8 .. 0]]:4;
+        if ! (SignOf (r305) EQ OverflowOf (r305)) {
+          [pre:RSP - 12]:* := [(r42.cols * 0) as i64 << 2 as u64 + r242]:4;
           [pre:RSP - 20]:* := 1;
           loop T3
         }

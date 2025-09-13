@@ -46,7 +46,7 @@ program  98 instrs
    39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
    40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
    41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
-   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+   42 r45 <- FuncArgument { index: 0, reg_type: Bytes(8) }
    43 r14 <- Get(r45)
 0x4110b0:
    44 r46 <- Const { value: 0, size: 8 }
@@ -120,7 +120,7 @@ program  98 instrs
 ssa program  98 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
          r17 <- Ancestral { anc_name: AncestralName("RDX"), reg_type: Bytes(8) }
-  (  4)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+  (  4)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
          r44 <- Const { value: 0, size: 8 }
          r45 <- Arith(Add, r44, r42)
   (  2)  r46 <- LoadMem { addr: r45, size: 8 }
@@ -179,7 +179,7 @@ ssa program  98 instrs
  --- ssa
 ssa program  98 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
-  (  4)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+  (  4)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
   (  5)  r46 <- LoadMem { addr: r42, size: 8 }
          r50 <- IsZero(r46)
          r55 <- SetJumpCondition(r50)
@@ -204,17 +204,18 @@ ssa program  98 instrs
  --- ast
 
 T0: {
-  let r46: Bytes(8) = [pre:arg0]:8;
+  let r42: Bytes(8) = $arg0;
+  let r46: Bytes(8) = [r42]:8;
   ;
   if IsZero (r46) {
     goto T4
   }
   ;
-  if ! IsZero ([pre:arg0 + 8]:4) {
-    [pre:arg0]:* := [r46]:8;
+  if ! IsZero ([r42 + 8]:4) {
+    [r42]:* := [r46]:8;
     goto T4
   }
-  [pre:arg0]:* := [r46 + 8]:8;
+  [r42]:* := [r46 + 8]:8;
   ;
   return r46
   T4: {

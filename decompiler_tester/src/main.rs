@@ -1974,6 +1974,11 @@ mod ast_view {
                     anchor: Some(Anchor::Reg(reg)),
                     role: TextRole::RegRef,
                 }),
+                Insn::FuncArgument { index, .. } => ExprTree::Term(Term {
+                    text: format!("$arg{}", index),
+                    anchor: Some(Anchor::Reg(reg)),
+                    role: TextRole::RegRef,
+                }),
 
                 Insn::StoreMem { addr, value } => Seq::new()
                     .with_anchor(anchor)
@@ -2200,6 +2205,7 @@ mod ast_view {
                 Insn::UndefinedBool => "UndefinedBool",
                 Insn::UndefinedBytes { .. } => "UndefinedBytes",
                 Insn::Ancestral { .. } => "Ancestral",
+                Insn::FuncArgument { .. } => "FuncArgument",
                 Insn::Phi => "Phi",
                 Insn::Upsilon { .. } => "Upsilon",
             }

@@ -429,6 +429,9 @@ impl<'a> Ast<'a> {
             Insn::CArg { .. } => {
                 unreachable!("CArg should be handled via the Call it belongs to!")
             }
+            Insn::FuncArgument { index, .. } => {
+                write!(pp, "$arg{}", index)?;
+            }
         };
 
         if self_prec < parent_prec {
@@ -559,6 +562,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::UndefinedBool
         | Insn::UndefinedBytes { .. }
         | Insn::Ancestral { .. }
+        | Insn::FuncArgument { .. }
         | Insn::Phi
         | Insn::StructGetMember { .. }
         | Insn::ArrayGetElement { .. }

@@ -46,7 +46,7 @@ program  95 instrs
    39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
    40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
    41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
-   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(24) }
+   42 r45 <- FuncArgument { index: 0, reg_type: Bytes(24) }
    43 r47 <- Part { src: r45, offset: 0, size: 8 }
    44 r46 <- ArithK(Add, r12, 8)
    45 r46 <- StoreMem { addr: r46, value: r47 }
@@ -113,7 +113,7 @@ ssa program  101 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
   (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
   (  3)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
-  (  3)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(24) }
+  (  3)  r42 <- FuncArgument { index: 0, reg_type: Bytes(24) }
          r43 <- Part { src: r42, offset: 0, size: 8 }
          r44 <- ArithK(Add, r10, 8)
          r45 <- StoreMem { addr: r44, value: r43 }
@@ -169,14 +169,14 @@ ssa program  103 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
   (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
   (  3)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
-  (  3)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(24) }
+  (  3)  r42 <- FuncArgument { index: 0, reg_type: Bytes(24) }
          r43 <- Part { src: r42, offset: 0, size: 8 }
          r44 <- ArithK(Add, r10, 8)
          r45 <- StoreMem { addr: r44, value: r43 }
-         r101 <- StructGetMember { struct_value: r42, name: "prev", size: 24 }
+         r101 <- StructGetMember { struct_value: r42, name: "prev", size: 8 }
          r47 <- ArithK(Add, r10, 16)
          r48 <- StoreMem { addr: r47, value: r101 }
-         r102 <- StructGetMember { struct_value: r42, name: "next", size: 24 }
+         r102 <- StructGetMember { struct_value: r42, name: "next", size: 8 }
          r50 <- ArithK(Add, r10, 24)
          r51 <- StoreMem { addr: r50, value: r102 }
          r52 <- Part { src: r14, offset: 0, size: 4 }
@@ -208,9 +208,10 @@ ssa program  103 instrs
  --- ast
 
 T0: {
-  [pre:RSP + 8]:* := pre:arg0[8 .. 0];
-  [pre:RSP + 16]:* := pre:arg0.prev;
-  [pre:RSP + 24]:* := pre:arg0.next;
+  let r42: Bytes(24) = $arg0;
+  [pre:RSP + 8]:* := r42[8 .. 0];
+  [pre:RSP + 16]:* := r42.prev;
+  [pre:RSP + 24]:* := r42.next;
   r95 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
   r96 := pre:RSP + 8;
   goto T1

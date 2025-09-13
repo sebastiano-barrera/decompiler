@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::{
-    mil::{self, AncestralName, ArithOp, Insn},
+    mil::{self, ArithOp, Insn},
     ty,
 };
 
@@ -107,13 +107,19 @@ fn unpack_param(
     // .unwrap(): classify_eightbytes already checks that size is known
     let sz = bld.types.bytes_size(tyid).unwrap();
 
-    let param_anc = state
-        .pull_arg()
-        .ok_or_else(|| anyhow!("not enough arg ancestrals!"))?;
     let arg_value = bld.tmp_gen();
 
-    let anc_ndx = bld.init_ancestral(arg_value, param_anc, mil::RegType::Bytes(sz));
-    bld.set_value_type(anc_ndx, tyid);
+    {
+        let arg_ndx = state.pull_arg();
+        let arg_insn_ndx = bld.emit(
+            arg_value,
+            Insn::FuncArgument {
+                index: arg_ndx,
+                reg_type: mil::RegType::Bytes(sz),
+            },
+        );
+        bld.set_value_type(arg_insn_ndx, tyid);
+    }
 
     match mode {
         PassMode::Regs(regs) => {
@@ -877,7 +883,7 @@ static SSE_REGS: [iced_x86::Register; 16] = [
 struct ParamPassing {
     int_regs: std::slice::Iter<'static, iced_x86::Register>,
     sse_regs: std::slice::Iter<'static, iced_x86::Register>,
-    args: std::slice::Iter<'static, AncestralName>,
+    args_processed_count: u16,
     stack_eb_ndx: usize,
 }
 impl ParamPassing {
@@ -889,8 +895,10 @@ impl ParamPassing {
         self.sse_regs.next().copied()
     }
 
-    fn pull_arg(&mut self) -> Option<AncestralName> {
-        self.args.next().copied()
+    fn pull_arg(&mut self) -> u16 {
+        let arg_ndx = self.args_processed_count;
+        self.args_processed_count += 1;
+        arg_ndx
     }
 
     /// Get the "current" offset into the stack, and advance it of one eightbyte.
@@ -912,7 +920,7 @@ impl Default for ParamPassing {
         ParamPassing {
             int_regs: INTEGER_REGS.as_slice().iter(),
             sse_regs: SSE_REGS.as_slice().iter(),
-            args: super::ANC_ARGS.as_slice().iter(),
+            args_processed_count: 0,
             stack_eb_ndx: 1,
         }
     }

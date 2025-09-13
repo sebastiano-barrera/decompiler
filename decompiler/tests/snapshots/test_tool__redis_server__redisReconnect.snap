@@ -46,7 +46,7 @@ program  568 instrs
    39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
    40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
    41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
-   42 r45 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+   42 r45 <- FuncArgument { index: 0, reg_type: Bytes(8) }
    43 r14 <- Get(r45)
 0x595020:
    44 r12 <- ArithK(Add, r12, -8)
@@ -675,7 +675,7 @@ ssa program  581 instrs
   (  3)  r13 <- Ancestral { anc_name: AncestralName("RSI"), reg_type: Bytes(8) }
          r15 <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
   (  2)  r16 <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
-  ( 27)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+  ( 27)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
   (  2)  r44 <- ArithK(Add, r10, -8)
          r45 <- StoreMem { addr: r44, value: r9 }
          r46 <- Const { value: 12, size: 8 }
@@ -966,7 +966,7 @@ ssa program  581 instrs
   (  3)  r13 <- Ancestral { anc_name: AncestralName("RSI"), reg_type: Bytes(8) }
          r15 <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
   (  2)  r16 <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
-  ( 27)  r42 <- Ancestral { anc_name: AncestralName("arg0"), reg_type: Bytes(8) }
+  ( 27)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
          r44 <- ArithK(Add, r10, -8)
          r45 <- StoreMem { addr: r44, value: r9 }
   (  6)  r47 <- ArithK(Add, r42, 12)
@@ -1138,22 +1138,23 @@ ssa program  581 instrs
  --- ast
 
 T0: {
+  let r42: Bytes(8) = $arg0;
   [pre:RSP - 8]:* := pre:RBP;
-  let r47: Bytes(8) = pre:arg0 + 12;
+  let r47: Bytes(8) = r42 + 12;
   [pre:RSP - 16]:* := pre:RBX;
-  [pre:arg0 + 8]:* := 0;
+  [r42 + 8]:* := 0;
   4199136(r47);
   let r86: Bytes(8) = pre:RSI[8 .. 4] ++ (pre:RSI[4 .. 0] ^ pre:RSI[4 .. 0]);
   4199488();
-  let r107: Bytes(8) = [pre:arg0 + 256]:8;
+  let r107: Bytes(8) = [r42 + 256]:8;
   ;
   if IsZero (r107) {
     goto T3
   }
-  let r120: Bytes(8) = [pre:arg0]:8;
+  let r120: Bytes(8) = [r42]:8;
   let r124: Bytes(8) = [r120 + 8]:8;
   ;
-  r568 := [pre:arg0]:8;
+  r568 := [r42]:8;
   if IsZero (r124) {
     goto T4
   }
@@ -1161,12 +1162,12 @@ T0: {
        r86,
        r124,
        pre:RCX);
-  [pre:arg0 + 256]:* := 0;
+  [r42 + 256]:* := 0;
   goto T3
   T3: {
-    let r156: Bytes(8) = [pre:arg0]:8;
+    let r156: Bytes(8) = [r42]:8;
     ;
-    r568 := [pre:arg0]:8;
+    r568 := [r42]:8;
     if IsZero (r156) {
       goto T6
     }
@@ -1180,7 +1181,7 @@ T0: {
     if IsZero (r169) {
       goto T6
     }
-    r169(pre:arg0,
+    r169(r42,
          r86,
          4199136(r47),
          pre:RCX);
@@ -1188,56 +1189,56 @@ T0: {
   }
   
   T6: {
-    5857392([pre:arg0 + 152]:8);
-    5871760([pre:arg0 + 160]:8);
+    5857392([r42 + 152]:8);
+    5871760([r42 + 160]:8);
     5857232();
-    [pre:arg0 + 152]:* := 5857232();
+    [r42 + 152]:* := 5857232();
     let r248: Bytes(8) = 5852912();
-    [pre:arg0 + 160]:* := r248;
+    [r42 + 160]:* := r248;
     ;
-    if IsZero ([pre:arg0 + 152]:8) {
+    if IsZero ([r42 + 152]:8) {
       goto T18
     }
     ;
     if IsZero (r248) {
       goto T18
     }
-    let r286: Bytes(4) = [pre:arg0 + 168]:4;
+    let r286: Bytes(4) = [r42 + 168]:4;
     ;
     if IsZero (r286) {
-      5845184(pre:arg0,
-              [pre:arg0 + 192]:8,
-              [pre:arg0 + 208]:4,
-              [pre:arg0 + 176]:8,
-              [pre:arg0 + 200]:8);
+      5845184(r42,
+              [r42 + 192]:8,
+              [r42 + 208]:4,
+              [r42 + 176]:8,
+              [r42 + 200]:8);
       goto T11
     }
     ;
     if IsZero (r286 - 1) {
-      5845200(pre:arg0,
-              [pre:arg0 + 216]:8,
-              [pre:arg0 + 176]:8);
+      5845200(r42,
+              [r42 + 216]:8,
+              [r42 + 176]:8);
       goto T11
     }
-    5852656(pre:arg0,
+    5852656(r42,
             2,
             (pre:RIP + 7007800));
     goto T11
     T11: {
       ;
-      r569 := pre:arg0 + 12;
-      if IsZero ([pre:arg0 + 184]:8) {
+      r569 := r42 + 12;
+      if IsZero ([r42 + 184]:8) {
         goto T14
       }
       ;
-      r569 := pre:arg0 + 12;
-      if IsZero ([pre:arg0 + 144]:1 & 1) {
+      r569 := r42 + 12;
+      if IsZero ([r42 + 144]:1 & 1) {
         goto T14
       }
       ;
-      r569 := pre:arg0 + 12;
-      if ! IsZero ([pre:arg0 + 140]:4 + 1) {
-        5844800(pre:arg0);
+      r569 := r42 + 12;
+      if ! IsZero ([r42 + 140]:4 + 1) {
+        5844800(r42);
         ;
         return r47[4 .. 0]
       }
@@ -1251,7 +1252,7 @@ T0: {
     }
     
     T18: {
-      5852656(pre:arg0,
+      5852656(r42,
               5,
               (pre:RIP + 6951854));
       r569 := r47[8 .. 4] ++ 4294967295;

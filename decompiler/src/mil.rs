@@ -216,6 +216,11 @@ pub enum Insn {
     UndefinedBytes {
         size: u32,
     },
+
+    FuncArgument {
+        index: u16,
+        reg_type: RegType,
+    },
     Ancestral {
         anc_name: AncestralName,
         reg_type: RegType,
