@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'shellwords'
+require 'erb'
 
 module Model
   class Type
@@ -8,17 +9,43 @@ module Model
     def declaration = ""
   end
 
-  class Scalar < Type
-    def initialize(c_repr)
-      super()
-      @c_repr = c_repr
-    end
-
-    attr_reader :c_repr
-
+  class Void < Type
+    def decorate_var(decl) = "void #{decl}"
     def builtin? = true
-    def decorate_var(decl) = "#{@c_repr} #{decl}"
+    def each_part; end
+  end
+
+  class Scalar < Type
+    def builtin? = true
     def each_part = yield access_self
+  end
+  class VoidStar < Scalar
+    def decorate_var(decl) = "void *#{decl}"
+    def c_example_value = "NULL"
+    def ssa_example_pattern = Pattern.new(:Const, {value: 0, size: 8})
+  end
+  class Float < Scalar
+    def value = 123.456
+    def decorate_var(decl) = "float #{decl}"
+    def c_example_value = format('%.3ff', self.value)
+    def ssa_example_pattern = Pattern.new(:Const, {value: self.value})
+  end
+  class Double < Scalar
+    def value = 987.321
+    def decorate_var(decl) = "double #{decl}"
+    def c_example_value = format('%f', self.value)
+    def ssa_example_pattern = Pattern.new(:Const, {value: self.value})
+  end
+  class UInt < Scalar
+    def initialize(bytes_size)
+      super()
+      raise ValueError.new unless [1, 2, 4, 8].include?(bytes_size)
+      @bytes_size = bytes_size
+    end
+    def bit_size = @bytes_size * 8
+    def decorate_var(decl) = "uint#{bit_size}_t #{decl}"
+    def c_example_value = format('%d', (rand * 2**@bytes_size).to_i)
+    def ssa_example_pattern = Pattern.new(:Const, {value: @value, size: @bytes_size})
   end
 
   class Struct < Type
@@ -51,6 +78,11 @@ module Model
       end
       yield access_self
     end
+
+    def c_example_value
+      fields = @members.map { |m| ".#{m.name} = #{m.type.c_example_value}" }
+      "(struct #{@name}){ #{fields.join(', ')} }"
+    end
   end
 
   class Array < Type
@@ -63,14 +95,20 @@ module Model
     def decorate_var(var) = @element_type.decorate_var("#{var}[#{@length}]")
     def builtin? = false
 
+    def indices = (0..@length - 1)
     def each_part
-      (0..@length - 1).each do |ndx|
+      indices.each do |ndx|
         element_a = AccessIndex.new(index: ndx, type: @element_type)
         @element_type.each_part do |part_a|
           yield element_a.and_then(part_a)
         end
       end
       yield access_self
+    end
+    def c_example_value
+      elm_values = indices.map { @element_type.c_example_value }
+      ty_s = @element_type.decorate_var("[#{@length}]")
+      "{ #{elm_values.join(', ')} }"
     end
   end
 
@@ -214,14 +252,30 @@ class TestCase
              .map { |ty, ndx| ty.decorate_var(arg_name(ndx)) }
              .join(', ')
 
-    [
-      target_type.decorate_var("#{name_in}(#{args_s})")+ " {",
-      "  return #{@access_path.c_expression target_arg_name};",
-      "}",
-      TY_VOID.decorate_var("#{name_out}()")+ " {",
-      "}",
-      "",
-    ].join("\n")
+    example_value = target_type.c_example_value
+
+    in_declarator = target_type.decorate_var("__attribute__ ((noinline)) #{name_in}(#{args_s})")
+
+    tmpl = <<-'EOF'
+    <%= in_declarator %> {
+      return <%= @access_path.c_expression(target_arg_name) %>;
+    }
+
+    <%= target_type.decorate_var(name_out + '()') %> {
+      <% @param_types.each_with_index do |ty, ndx| %>
+        <%= ty.decorate_var("example_value#{ndx}") %> = <%= ty.c_example_value %>;
+      <% end %>
+      return <%= @name_prefix %>_in(
+        <%= @param_types
+          .each_with_index
+          .map { |_, ndx| "example_value#{ndx}" }
+          .join(', ')
+        %>
+      );
+    }
+EOF
+
+    ERB.new(tmpl).result(binding)
   end
 
   def rs_test_code
@@ -241,37 +295,37 @@ class TestCase
   end
 end
 
-class InvalidTestCase < Exception; end
+class InvalidTestCase < StandardError; end
 
-TY_VOID = Model::Scalar.new('void')
+TY_VOID = Model::Void.new
 
 TY_SCALAR_TYPES = [
-    Model::Scalar.new('uint8_t'),
-    Model::Scalar.new('uint16_t'),
-    Model::Scalar.new('uint32_t'),
-    Model::Scalar.new('uint64_t'),
-    Model::Scalar.new('void*'),
-    Model::Scalar.new('float'),
-    Model::Scalar.new('double'),
+    Model::UInt.new(1),
+    Model::UInt.new(2),
+    Model::UInt.new(4),
+    Model::UInt.new(8),
+    Model::VoidStar.new,
+    Model::Float.new,
+    Model::Double.new,
 ]
 
 TY_SMALL_STRUCT = Model::Struct.new 'small', [
-  Model::Scalar.new('void*'),
-  Model::Scalar.new('float'),
-  Model::Scalar.new('uint8_t'),
+  Model::VoidStar.new,
+  Model::Float.new,
+  Model::UInt.new(1),
 ]
 
 TY_SMALL_STRUCT_FLOATS = Model::Struct.new 'small_xmms', [
-  Model::Scalar.new('float'),
-  Model::Scalar.new('double'),
+  Model::Float.new,
+  Model::Double.new,
 ]
 
 TY_BIG_STRUCT = Model::Struct.new 'big', [
-  Model::Scalar.new('float'),
-  Model::Scalar.new('double'),
-  Model::Scalar.new('void*'),
-  Model::Scalar.new('uint8_t'),
-  Model::Array.new(3, Model::Scalar.new('uint8_t')),
+  Model::Float.new,
+  Model::Double.new,
+  Model::VoidStar.new,
+  Model::UInt.new(1),
+  Model::Array.new(3, Model::UInt.new(1)),
 ]
 
 TY_TAILS = TY_SCALAR_TYPES + [
@@ -288,7 +342,7 @@ TY_TAILS = TY_SCALAR_TYPES + [
 # testcase has a specific function that exercise a specific case, and code path
 # in the decompiler).
 def generate_cases_incoming(&block)
-  void_star = Model::Scalar.new('void*')
+  void_star = Model::VoidStar.new
 
   (1..8).each do |length|
     fillers = [void_star] * (length - 1)
@@ -322,6 +376,8 @@ def run(c_out_filename:, rs_out_filename:)
   out_c.puts <<EOF
   // This file is generated by #{$PROGRAM_NAME} -- do not edit
   #include <stdint.h>
+
+  #define NULL ((void*) 0)
 
   // [limitation--no-relocatable] due to a known limitation, we can't process
   // relocatable executables (we can't run relocations at all).

@@ -17,7 +17,9 @@ fn main() {
     // don't use the `cc` crate because we really want to use GCC and this
     // specific set of flags
     Command::new("gcc")
-        .arg("-Os")
+        // higher levels of optimizations completely hide the calling
+        // conventions
+        .arg("-O1")
         .arg("-gdwarf")
         .arg("-o")
         .arg("test-data/x86_64_callconv")
