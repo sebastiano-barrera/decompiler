@@ -5,8 +5,8 @@ use test_log::test;
 use utils::dataflow::*;
 
 #[test]
-fn func000() {
-    let data_flow = compute_data_flow("func000");
+fn func000_in() {
+    let data_flow = compute_data_flow("func000_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -15,8 +15,8 @@ fn func000() {
     });
 }
 #[test]
-fn func001() {
-    let data_flow = compute_data_flow("func001");
+fn func001_in() {
+    let data_flow = compute_data_flow("func001_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -25,8 +25,8 @@ fn func001() {
     });
 }
 #[test]
-fn func002() {
-    let data_flow = compute_data_flow("func002");
+fn func002_in() {
+    let data_flow = compute_data_flow("func002_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -35,8 +35,8 @@ fn func002() {
     });
 }
 #[test]
-fn func003() {
-    let data_flow = compute_data_flow("func003");
+fn func003_in() {
+    let data_flow = compute_data_flow("func003_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -45,8 +45,8 @@ fn func003() {
     });
 }
 #[test]
-fn func004() {
-    let data_flow = compute_data_flow("func004");
+fn func004_in() {
+    let data_flow = compute_data_flow("func004_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -55,8 +55,8 @@ fn func004() {
     });
 }
 #[test]
-fn func005() {
-    let data_flow = compute_data_flow("func005");
+fn func005_in() {
+    let data_flow = compute_data_flow("func005_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -65,8 +65,8 @@ fn func005() {
     });
 }
 #[test]
-fn func006() {
-    let data_flow = compute_data_flow("func006");
+fn func006_in() {
+    let data_flow = compute_data_flow("func006_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -75,8 +75,8 @@ fn func006() {
     });
 }
 #[test]
-fn func007() {
-    let data_flow = compute_data_flow("func007");
+fn func007_in() {
+    let data_flow = compute_data_flow("func007_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -97,8 +97,8 @@ fn func007() {
     );
 }
 #[test]
-fn func008() {
-    let data_flow = compute_data_flow("func008");
+fn func008_in() {
+    let data_flow = compute_data_flow("func008_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -119,8 +119,8 @@ fn func008() {
     );
 }
 #[test]
-fn func009() {
-    let data_flow = compute_data_flow("func009");
+fn func009_in() {
+    let data_flow = compute_data_flow("func009_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -141,8 +141,8 @@ fn func009() {
     );
 }
 #[test]
-fn func010() {
-    let data_flow = compute_data_flow("func010");
+fn func010_in() {
+    let data_flow = compute_data_flow("func010_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -163,8 +163,8 @@ fn func010() {
     );
 }
 #[test]
-fn func011() {
-    let data_flow = compute_data_flow("func011");
+fn func011_in() {
+    let data_flow = compute_data_flow("func011_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -185,8 +185,8 @@ fn func011() {
     );
 }
 #[test]
-fn func012() {
-    let data_flow = compute_data_flow("func012");
+fn func012_in() {
+    let data_flow = compute_data_flow("func012_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -207,8 +207,8 @@ fn func012() {
     );
 }
 #[test]
-fn func013() {
-    let data_flow = compute_data_flow("func013");
+fn func013_in() {
+    let data_flow = compute_data_flow("func013_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -229,8 +229,8 @@ fn func013() {
     );
 }
 #[test]
-fn func014() {
-    let data_flow = compute_data_flow("func014");
+fn func014_in() {
+    let data_flow = compute_data_flow("func014_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -251,8 +251,8 @@ fn func014() {
     );
 }
 #[test]
-fn func015() {
-    let data_flow = compute_data_flow("func015");
+fn func015_in() {
+    let data_flow = compute_data_flow("func015_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -273,8 +273,8 @@ fn func015() {
     );
 }
 #[test]
-fn func016() {
-    let data_flow = compute_data_flow("func016");
+fn func016_in() {
+    let data_flow = compute_data_flow("func016_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -299,8 +299,8 @@ fn func016() {
     });
 }
 #[test]
-fn func017() {
-    let data_flow = compute_data_flow("func017");
+fn func017_in() {
+    let data_flow = compute_data_flow("func017_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -325,8 +325,8 @@ fn func017() {
     });
 }
 #[test]
-fn func018() {
-    let data_flow = compute_data_flow("func018");
+fn func018_in() {
+    let data_flow = compute_data_flow("func018_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -351,8 +351,8 @@ fn func018() {
     });
 }
 #[test]
-fn func019() {
-    let data_flow = compute_data_flow("func019");
+fn func019_in() {
+    let data_flow = compute_data_flow("func019_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -361,8 +361,8 @@ fn func019() {
     });
 }
 #[test]
-fn func020() {
-    let data_flow = compute_data_flow("func020");
+fn func020_in() {
+    let data_flow = compute_data_flow("func020_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -371,8 +371,8 @@ fn func020() {
     });
 }
 #[test]
-fn func021() {
-    let data_flow = compute_data_flow("func021");
+fn func021_in() {
+    let data_flow = compute_data_flow("func021_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -381,8 +381,8 @@ fn func021() {
     });
 }
 #[test]
-fn func022() {
-    let data_flow = compute_data_flow("func022");
+fn func022_in() {
+    let data_flow = compute_data_flow("func022_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -391,8 +391,8 @@ fn func022() {
     });
 }
 #[test]
-fn func023() {
-    let data_flow = compute_data_flow("func023");
+fn func023_in() {
+    let data_flow = compute_data_flow("func023_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -401,8 +401,8 @@ fn func023() {
     });
 }
 #[test]
-fn func024() {
-    let data_flow = compute_data_flow("func024");
+fn func024_in() {
+    let data_flow = compute_data_flow("func024_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -411,8 +411,8 @@ fn func024() {
     });
 }
 #[test]
-fn func025() {
-    let data_flow = compute_data_flow("func025");
+fn func025_in() {
+    let data_flow = compute_data_flow("func025_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -421,8 +421,8 @@ fn func025() {
     });
 }
 #[test]
-fn func026() {
-    let data_flow = compute_data_flow("func026");
+fn func026_in() {
+    let data_flow = compute_data_flow("func026_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -443,8 +443,8 @@ fn func026() {
     );
 }
 #[test]
-fn func027() {
-    let data_flow = compute_data_flow("func027");
+fn func027_in() {
+    let data_flow = compute_data_flow("func027_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -465,8 +465,8 @@ fn func027() {
     );
 }
 #[test]
-fn func028() {
-    let data_flow = compute_data_flow("func028");
+fn func028_in() {
+    let data_flow = compute_data_flow("func028_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -487,8 +487,8 @@ fn func028() {
     );
 }
 #[test]
-fn func029() {
-    let data_flow = compute_data_flow("func029");
+fn func029_in() {
+    let data_flow = compute_data_flow("func029_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -509,8 +509,8 @@ fn func029() {
     );
 }
 #[test]
-fn func030() {
-    let data_flow = compute_data_flow("func030");
+fn func030_in() {
+    let data_flow = compute_data_flow("func030_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -531,8 +531,8 @@ fn func030() {
     );
 }
 #[test]
-fn func031() {
-    let data_flow = compute_data_flow("func031");
+fn func031_in() {
+    let data_flow = compute_data_flow("func031_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -553,8 +553,8 @@ fn func031() {
     );
 }
 #[test]
-fn func032() {
-    let data_flow = compute_data_flow("func032");
+fn func032_in() {
+    let data_flow = compute_data_flow("func032_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -575,8 +575,8 @@ fn func032() {
     );
 }
 #[test]
-fn func033() {
-    let data_flow = compute_data_flow("func033");
+fn func033_in() {
+    let data_flow = compute_data_flow("func033_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -597,8 +597,8 @@ fn func033() {
     );
 }
 #[test]
-fn func034() {
-    let data_flow = compute_data_flow("func034");
+fn func034_in() {
+    let data_flow = compute_data_flow("func034_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -619,8 +619,8 @@ fn func034() {
     );
 }
 #[test]
-fn func035() {
-    let data_flow = compute_data_flow("func035");
+fn func035_in() {
+    let data_flow = compute_data_flow("func035_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -645,8 +645,8 @@ fn func035() {
     });
 }
 #[test]
-fn func036() {
-    let data_flow = compute_data_flow("func036");
+fn func036_in() {
+    let data_flow = compute_data_flow("func036_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -671,8 +671,8 @@ fn func036() {
     });
 }
 #[test]
-fn func037() {
-    let data_flow = compute_data_flow("func037");
+fn func037_in() {
+    let data_flow = compute_data_flow("func037_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -697,8 +697,8 @@ fn func037() {
     });
 }
 #[test]
-fn func038() {
-    let data_flow = compute_data_flow("func038");
+fn func038_in() {
+    let data_flow = compute_data_flow("func038_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -707,8 +707,8 @@ fn func038() {
     });
 }
 #[test]
-fn func039() {
-    let data_flow = compute_data_flow("func039");
+fn func039_in() {
+    let data_flow = compute_data_flow("func039_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -717,8 +717,8 @@ fn func039() {
     });
 }
 #[test]
-fn func040() {
-    let data_flow = compute_data_flow("func040");
+fn func040_in() {
+    let data_flow = compute_data_flow("func040_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -727,8 +727,8 @@ fn func040() {
     });
 }
 #[test]
-fn func041() {
-    let data_flow = compute_data_flow("func041");
+fn func041_in() {
+    let data_flow = compute_data_flow("func041_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -737,8 +737,8 @@ fn func041() {
     });
 }
 #[test]
-fn func042() {
-    let data_flow = compute_data_flow("func042");
+fn func042_in() {
+    let data_flow = compute_data_flow("func042_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -747,8 +747,8 @@ fn func042() {
     });
 }
 #[test]
-fn func043() {
-    let data_flow = compute_data_flow("func043");
+fn func043_in() {
+    let data_flow = compute_data_flow("func043_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -757,8 +757,8 @@ fn func043() {
     });
 }
 #[test]
-fn func044() {
-    let data_flow = compute_data_flow("func044");
+fn func044_in() {
+    let data_flow = compute_data_flow("func044_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -767,8 +767,8 @@ fn func044() {
     });
 }
 #[test]
-fn func045() {
-    let data_flow = compute_data_flow("func045");
+fn func045_in() {
+    let data_flow = compute_data_flow("func045_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -789,8 +789,8 @@ fn func045() {
     );
 }
 #[test]
-fn func046() {
-    let data_flow = compute_data_flow("func046");
+fn func046_in() {
+    let data_flow = compute_data_flow("func046_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -811,8 +811,8 @@ fn func046() {
     );
 }
 #[test]
-fn func047() {
-    let data_flow = compute_data_flow("func047");
+fn func047_in() {
+    let data_flow = compute_data_flow("func047_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -833,8 +833,8 @@ fn func047() {
     );
 }
 #[test]
-fn func048() {
-    let data_flow = compute_data_flow("func048");
+fn func048_in() {
+    let data_flow = compute_data_flow("func048_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -855,8 +855,8 @@ fn func048() {
     );
 }
 #[test]
-fn func049() {
-    let data_flow = compute_data_flow("func049");
+fn func049_in() {
+    let data_flow = compute_data_flow("func049_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -877,8 +877,8 @@ fn func049() {
     );
 }
 #[test]
-fn func050() {
-    let data_flow = compute_data_flow("func050");
+fn func050_in() {
+    let data_flow = compute_data_flow("func050_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -899,8 +899,8 @@ fn func050() {
     );
 }
 #[test]
-fn func051() {
-    let data_flow = compute_data_flow("func051");
+fn func051_in() {
+    let data_flow = compute_data_flow("func051_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -921,8 +921,8 @@ fn func051() {
     );
 }
 #[test]
-fn func052() {
-    let data_flow = compute_data_flow("func052");
+fn func052_in() {
+    let data_flow = compute_data_flow("func052_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -943,8 +943,8 @@ fn func052() {
     );
 }
 #[test]
-fn func053() {
-    let data_flow = compute_data_flow("func053");
+fn func053_in() {
+    let data_flow = compute_data_flow("func053_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -965,8 +965,8 @@ fn func053() {
     );
 }
 #[test]
-fn func054() {
-    let data_flow = compute_data_flow("func054");
+fn func054_in() {
+    let data_flow = compute_data_flow("func054_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -991,8 +991,8 @@ fn func054() {
     });
 }
 #[test]
-fn func055() {
-    let data_flow = compute_data_flow("func055");
+fn func055_in() {
+    let data_flow = compute_data_flow("func055_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1017,8 +1017,8 @@ fn func055() {
     });
 }
 #[test]
-fn func056() {
-    let data_flow = compute_data_flow("func056");
+fn func056_in() {
+    let data_flow = compute_data_flow("func056_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1043,8 +1043,8 @@ fn func056() {
     });
 }
 #[test]
-fn func057() {
-    let data_flow = compute_data_flow("func057");
+fn func057_in() {
+    let data_flow = compute_data_flow("func057_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1053,8 +1053,8 @@ fn func057() {
     });
 }
 #[test]
-fn func058() {
-    let data_flow = compute_data_flow("func058");
+fn func058_in() {
+    let data_flow = compute_data_flow("func058_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1063,8 +1063,8 @@ fn func058() {
     });
 }
 #[test]
-fn func059() {
-    let data_flow = compute_data_flow("func059");
+fn func059_in() {
+    let data_flow = compute_data_flow("func059_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1073,8 +1073,8 @@ fn func059() {
     });
 }
 #[test]
-fn func060() {
-    let data_flow = compute_data_flow("func060");
+fn func060_in() {
+    let data_flow = compute_data_flow("func060_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1083,8 +1083,8 @@ fn func060() {
     });
 }
 #[test]
-fn func061() {
-    let data_flow = compute_data_flow("func061");
+fn func061_in() {
+    let data_flow = compute_data_flow("func061_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1093,8 +1093,8 @@ fn func061() {
     });
 }
 #[test]
-fn func062() {
-    let data_flow = compute_data_flow("func062");
+fn func062_in() {
+    let data_flow = compute_data_flow("func062_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1103,8 +1103,8 @@ fn func062() {
     });
 }
 #[test]
-fn func063() {
-    let data_flow = compute_data_flow("func063");
+fn func063_in() {
+    let data_flow = compute_data_flow("func063_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1113,8 +1113,8 @@ fn func063() {
     });
 }
 #[test]
-fn func064() {
-    let data_flow = compute_data_flow("func064");
+fn func064_in() {
+    let data_flow = compute_data_flow("func064_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1135,8 +1135,8 @@ fn func064() {
     );
 }
 #[test]
-fn func065() {
-    let data_flow = compute_data_flow("func065");
+fn func065_in() {
+    let data_flow = compute_data_flow("func065_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1157,8 +1157,8 @@ fn func065() {
     );
 }
 #[test]
-fn func066() {
-    let data_flow = compute_data_flow("func066");
+fn func066_in() {
+    let data_flow = compute_data_flow("func066_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1179,8 +1179,8 @@ fn func066() {
     );
 }
 #[test]
-fn func067() {
-    let data_flow = compute_data_flow("func067");
+fn func067_in() {
+    let data_flow = compute_data_flow("func067_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1201,8 +1201,8 @@ fn func067() {
     );
 }
 #[test]
-fn func068() {
-    let data_flow = compute_data_flow("func068");
+fn func068_in() {
+    let data_flow = compute_data_flow("func068_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1223,8 +1223,8 @@ fn func068() {
     );
 }
 #[test]
-fn func069() {
-    let data_flow = compute_data_flow("func069");
+fn func069_in() {
+    let data_flow = compute_data_flow("func069_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1245,8 +1245,8 @@ fn func069() {
     );
 }
 #[test]
-fn func070() {
-    let data_flow = compute_data_flow("func070");
+fn func070_in() {
+    let data_flow = compute_data_flow("func070_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1267,8 +1267,8 @@ fn func070() {
     );
 }
 #[test]
-fn func071() {
-    let data_flow = compute_data_flow("func071");
+fn func071_in() {
+    let data_flow = compute_data_flow("func071_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1289,8 +1289,8 @@ fn func071() {
     );
 }
 #[test]
-fn func072() {
-    let data_flow = compute_data_flow("func072");
+fn func072_in() {
+    let data_flow = compute_data_flow("func072_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1311,8 +1311,8 @@ fn func072() {
     );
 }
 #[test]
-fn func073() {
-    let data_flow = compute_data_flow("func073");
+fn func073_in() {
+    let data_flow = compute_data_flow("func073_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1337,8 +1337,8 @@ fn func073() {
     });
 }
 #[test]
-fn func074() {
-    let data_flow = compute_data_flow("func074");
+fn func074_in() {
+    let data_flow = compute_data_flow("func074_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1363,8 +1363,8 @@ fn func074() {
     });
 }
 #[test]
-fn func075() {
-    let data_flow = compute_data_flow("func075");
+fn func075_in() {
+    let data_flow = compute_data_flow("func075_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1389,8 +1389,8 @@ fn func075() {
     });
 }
 #[test]
-fn func076() {
-    let data_flow = compute_data_flow("func076");
+fn func076_in() {
+    let data_flow = compute_data_flow("func076_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1399,8 +1399,8 @@ fn func076() {
     });
 }
 #[test]
-fn func077() {
-    let data_flow = compute_data_flow("func077");
+fn func077_in() {
+    let data_flow = compute_data_flow("func077_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1409,8 +1409,8 @@ fn func077() {
     });
 }
 #[test]
-fn func078() {
-    let data_flow = compute_data_flow("func078");
+fn func078_in() {
+    let data_flow = compute_data_flow("func078_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1419,8 +1419,8 @@ fn func078() {
     });
 }
 #[test]
-fn func079() {
-    let data_flow = compute_data_flow("func079");
+fn func079_in() {
+    let data_flow = compute_data_flow("func079_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1429,8 +1429,8 @@ fn func079() {
     });
 }
 #[test]
-fn func080() {
-    let data_flow = compute_data_flow("func080");
+fn func080_in() {
+    let data_flow = compute_data_flow("func080_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1439,8 +1439,8 @@ fn func080() {
     });
 }
 #[test]
-fn func081() {
-    let data_flow = compute_data_flow("func081");
+fn func081_in() {
+    let data_flow = compute_data_flow("func081_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1449,8 +1449,8 @@ fn func081() {
     });
 }
 #[test]
-fn func082() {
-    let data_flow = compute_data_flow("func082");
+fn func082_in() {
+    let data_flow = compute_data_flow("func082_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1459,8 +1459,8 @@ fn func082() {
     });
 }
 #[test]
-fn func083() {
-    let data_flow = compute_data_flow("func083");
+fn func083_in() {
+    let data_flow = compute_data_flow("func083_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1481,8 +1481,8 @@ fn func083() {
     );
 }
 #[test]
-fn func084() {
-    let data_flow = compute_data_flow("func084");
+fn func084_in() {
+    let data_flow = compute_data_flow("func084_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1503,8 +1503,8 @@ fn func084() {
     );
 }
 #[test]
-fn func085() {
-    let data_flow = compute_data_flow("func085");
+fn func085_in() {
+    let data_flow = compute_data_flow("func085_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1525,8 +1525,8 @@ fn func085() {
     );
 }
 #[test]
-fn func086() {
-    let data_flow = compute_data_flow("func086");
+fn func086_in() {
+    let data_flow = compute_data_flow("func086_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1547,8 +1547,8 @@ fn func086() {
     );
 }
 #[test]
-fn func087() {
-    let data_flow = compute_data_flow("func087");
+fn func087_in() {
+    let data_flow = compute_data_flow("func087_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1569,8 +1569,8 @@ fn func087() {
     );
 }
 #[test]
-fn func088() {
-    let data_flow = compute_data_flow("func088");
+fn func088_in() {
+    let data_flow = compute_data_flow("func088_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1591,8 +1591,8 @@ fn func088() {
     );
 }
 #[test]
-fn func089() {
-    let data_flow = compute_data_flow("func089");
+fn func089_in() {
+    let data_flow = compute_data_flow("func089_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1613,8 +1613,8 @@ fn func089() {
     );
 }
 #[test]
-fn func090() {
-    let data_flow = compute_data_flow("func090");
+fn func090_in() {
+    let data_flow = compute_data_flow("func090_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1635,8 +1635,8 @@ fn func090() {
     );
 }
 #[test]
-fn func091() {
-    let data_flow = compute_data_flow("func091");
+fn func091_in() {
+    let data_flow = compute_data_flow("func091_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1657,8 +1657,8 @@ fn func091() {
     );
 }
 #[test]
-fn func092() {
-    let data_flow = compute_data_flow("func092");
+fn func092_in() {
+    let data_flow = compute_data_flow("func092_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1683,8 +1683,8 @@ fn func092() {
     });
 }
 #[test]
-fn func093() {
-    let data_flow = compute_data_flow("func093");
+fn func093_in() {
+    let data_flow = compute_data_flow("func093_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1709,8 +1709,8 @@ fn func093() {
     });
 }
 #[test]
-fn func094() {
-    let data_flow = compute_data_flow("func094");
+fn func094_in() {
+    let data_flow = compute_data_flow("func094_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -1735,8 +1735,8 @@ fn func094() {
     });
 }
 #[test]
-fn func095() {
-    let data_flow = compute_data_flow("func095");
+fn func095_in() {
+    let data_flow = compute_data_flow("func095_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1745,8 +1745,8 @@ fn func095() {
     });
 }
 #[test]
-fn func096() {
-    let data_flow = compute_data_flow("func096");
+fn func096_in() {
+    let data_flow = compute_data_flow("func096_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1755,8 +1755,8 @@ fn func096() {
     });
 }
 #[test]
-fn func097() {
-    let data_flow = compute_data_flow("func097");
+fn func097_in() {
+    let data_flow = compute_data_flow("func097_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1765,8 +1765,8 @@ fn func097() {
     });
 }
 #[test]
-fn func098() {
-    let data_flow = compute_data_flow("func098");
+fn func098_in() {
+    let data_flow = compute_data_flow("func098_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1775,8 +1775,8 @@ fn func098() {
     });
 }
 #[test]
-fn func099() {
-    let data_flow = compute_data_flow("func099");
+fn func099_in() {
+    let data_flow = compute_data_flow("func099_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1785,8 +1785,8 @@ fn func099() {
     });
 }
 #[test]
-fn func100() {
-    let data_flow = compute_data_flow("func100");
+fn func100_in() {
+    let data_flow = compute_data_flow("func100_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1795,8 +1795,8 @@ fn func100() {
     });
 }
 #[test]
-fn func101() {
-    let data_flow = compute_data_flow("func101");
+fn func101_in() {
+    let data_flow = compute_data_flow("func101_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -1805,8 +1805,8 @@ fn func101() {
     });
 }
 #[test]
-fn func102() {
-    let data_flow = compute_data_flow("func102");
+fn func102_in() {
+    let data_flow = compute_data_flow("func102_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1827,8 +1827,8 @@ fn func102() {
     );
 }
 #[test]
-fn func103() {
-    let data_flow = compute_data_flow("func103");
+fn func103_in() {
+    let data_flow = compute_data_flow("func103_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1849,8 +1849,8 @@ fn func103() {
     );
 }
 #[test]
-fn func104() {
-    let data_flow = compute_data_flow("func104");
+fn func104_in() {
+    let data_flow = compute_data_flow("func104_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1871,8 +1871,8 @@ fn func104() {
     );
 }
 #[test]
-fn func105() {
-    let data_flow = compute_data_flow("func105");
+fn func105_in() {
+    let data_flow = compute_data_flow("func105_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1893,8 +1893,8 @@ fn func105() {
     );
 }
 #[test]
-fn func106() {
-    let data_flow = compute_data_flow("func106");
+fn func106_in() {
+    let data_flow = compute_data_flow("func106_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1915,8 +1915,8 @@ fn func106() {
     );
 }
 #[test]
-fn func107() {
-    let data_flow = compute_data_flow("func107");
+fn func107_in() {
+    let data_flow = compute_data_flow("func107_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1937,8 +1937,8 @@ fn func107() {
     );
 }
 #[test]
-fn func108() {
-    let data_flow = compute_data_flow("func108");
+fn func108_in() {
+    let data_flow = compute_data_flow("func108_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1959,8 +1959,8 @@ fn func108() {
     );
 }
 #[test]
-fn func109() {
-    let data_flow = compute_data_flow("func109");
+fn func109_in() {
+    let data_flow = compute_data_flow("func109_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -1981,8 +1981,8 @@ fn func109() {
     );
 }
 #[test]
-fn func110() {
-    let data_flow = compute_data_flow("func110");
+fn func110_in() {
+    let data_flow = compute_data_flow("func110_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2003,8 +2003,8 @@ fn func110() {
     );
 }
 #[test]
-fn func111() {
-    let data_flow = compute_data_flow("func111");
+fn func111_in() {
+    let data_flow = compute_data_flow("func111_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2029,8 +2029,8 @@ fn func111() {
     });
 }
 #[test]
-fn func112() {
-    let data_flow = compute_data_flow("func112");
+fn func112_in() {
+    let data_flow = compute_data_flow("func112_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2055,8 +2055,8 @@ fn func112() {
     });
 }
 #[test]
-fn func113() {
-    let data_flow = compute_data_flow("func113");
+fn func113_in() {
+    let data_flow = compute_data_flow("func113_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2081,8 +2081,8 @@ fn func113() {
     });
 }
 #[test]
-fn func114() {
-    let data_flow = compute_data_flow("func114");
+fn func114_in() {
+    let data_flow = compute_data_flow("func114_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2091,8 +2091,8 @@ fn func114() {
     });
 }
 #[test]
-fn func115() {
-    let data_flow = compute_data_flow("func115");
+fn func115_in() {
+    let data_flow = compute_data_flow("func115_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2101,8 +2101,8 @@ fn func115() {
     });
 }
 #[test]
-fn func116() {
-    let data_flow = compute_data_flow("func116");
+fn func116_in() {
+    let data_flow = compute_data_flow("func116_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2111,8 +2111,8 @@ fn func116() {
     });
 }
 #[test]
-fn func117() {
-    let data_flow = compute_data_flow("func117");
+fn func117_in() {
+    let data_flow = compute_data_flow("func117_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2121,8 +2121,8 @@ fn func117() {
     });
 }
 #[test]
-fn func118() {
-    let data_flow = compute_data_flow("func118");
+fn func118_in() {
+    let data_flow = compute_data_flow("func118_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2131,8 +2131,8 @@ fn func118() {
     });
 }
 #[test]
-fn func119() {
-    let data_flow = compute_data_flow("func119");
+fn func119_in() {
+    let data_flow = compute_data_flow("func119_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2141,8 +2141,8 @@ fn func119() {
     });
 }
 #[test]
-fn func120() {
-    let data_flow = compute_data_flow("func120");
+fn func120_in() {
+    let data_flow = compute_data_flow("func120_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2151,8 +2151,8 @@ fn func120() {
     });
 }
 #[test]
-fn func121() {
-    let data_flow = compute_data_flow("func121");
+fn func121_in() {
+    let data_flow = compute_data_flow("func121_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2173,8 +2173,8 @@ fn func121() {
     );
 }
 #[test]
-fn func122() {
-    let data_flow = compute_data_flow("func122");
+fn func122_in() {
+    let data_flow = compute_data_flow("func122_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2195,8 +2195,8 @@ fn func122() {
     );
 }
 #[test]
-fn func123() {
-    let data_flow = compute_data_flow("func123");
+fn func123_in() {
+    let data_flow = compute_data_flow("func123_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2217,8 +2217,8 @@ fn func123() {
     );
 }
 #[test]
-fn func124() {
-    let data_flow = compute_data_flow("func124");
+fn func124_in() {
+    let data_flow = compute_data_flow("func124_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2239,8 +2239,8 @@ fn func124() {
     );
 }
 #[test]
-fn func125() {
-    let data_flow = compute_data_flow("func125");
+fn func125_in() {
+    let data_flow = compute_data_flow("func125_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2261,8 +2261,8 @@ fn func125() {
     );
 }
 #[test]
-fn func126() {
-    let data_flow = compute_data_flow("func126");
+fn func126_in() {
+    let data_flow = compute_data_flow("func126_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2283,8 +2283,8 @@ fn func126() {
     );
 }
 #[test]
-fn func127() {
-    let data_flow = compute_data_flow("func127");
+fn func127_in() {
+    let data_flow = compute_data_flow("func127_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2305,8 +2305,8 @@ fn func127() {
     );
 }
 #[test]
-fn func128() {
-    let data_flow = compute_data_flow("func128");
+fn func128_in() {
+    let data_flow = compute_data_flow("func128_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2327,8 +2327,8 @@ fn func128() {
     );
 }
 #[test]
-fn func129() {
-    let data_flow = compute_data_flow("func129");
+fn func129_in() {
+    let data_flow = compute_data_flow("func129_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2349,8 +2349,8 @@ fn func129() {
     );
 }
 #[test]
-fn func130() {
-    let data_flow = compute_data_flow("func130");
+fn func130_in() {
+    let data_flow = compute_data_flow("func130_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2375,8 +2375,8 @@ fn func130() {
     });
 }
 #[test]
-fn func131() {
-    let data_flow = compute_data_flow("func131");
+fn func131_in() {
+    let data_flow = compute_data_flow("func131_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2401,8 +2401,8 @@ fn func131() {
     });
 }
 #[test]
-fn func132() {
-    let data_flow = compute_data_flow("func132");
+fn func132_in() {
+    let data_flow = compute_data_flow("func132_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2427,8 +2427,8 @@ fn func132() {
     });
 }
 #[test]
-fn func133() {
-    let data_flow = compute_data_flow("func133");
+fn func133_in() {
+    let data_flow = compute_data_flow("func133_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2437,8 +2437,8 @@ fn func133() {
     });
 }
 #[test]
-fn func134() {
-    let data_flow = compute_data_flow("func134");
+fn func134_in() {
+    let data_flow = compute_data_flow("func134_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2447,8 +2447,8 @@ fn func134() {
     });
 }
 #[test]
-fn func135() {
-    let data_flow = compute_data_flow("func135");
+fn func135_in() {
+    let data_flow = compute_data_flow("func135_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2457,8 +2457,8 @@ fn func135() {
     });
 }
 #[test]
-fn func136() {
-    let data_flow = compute_data_flow("func136");
+fn func136_in() {
+    let data_flow = compute_data_flow("func136_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2467,8 +2467,8 @@ fn func136() {
     });
 }
 #[test]
-fn func137() {
-    let data_flow = compute_data_flow("func137");
+fn func137_in() {
+    let data_flow = compute_data_flow("func137_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2477,8 +2477,8 @@ fn func137() {
     });
 }
 #[test]
-fn func138() {
-    let data_flow = compute_data_flow("func138");
+fn func138_in() {
+    let data_flow = compute_data_flow("func138_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2487,8 +2487,8 @@ fn func138() {
     });
 }
 #[test]
-fn func139() {
-    let data_flow = compute_data_flow("func139");
+fn func139_in() {
+    let data_flow = compute_data_flow("func139_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 1);
@@ -2497,8 +2497,8 @@ fn func139() {
     });
 }
 #[test]
-fn func140() {
-    let data_flow = compute_data_flow("func140");
+fn func140_in() {
+    let data_flow = compute_data_flow("func140_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2519,8 +2519,8 @@ fn func140() {
     );
 }
 #[test]
-fn func141() {
-    let data_flow = compute_data_flow("func141");
+fn func141_in() {
+    let data_flow = compute_data_flow("func141_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2541,8 +2541,8 @@ fn func141() {
     );
 }
 #[test]
-fn func142() {
-    let data_flow = compute_data_flow("func142");
+fn func142_in() {
+    let data_flow = compute_data_flow("func142_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2563,8 +2563,8 @@ fn func142() {
     );
 }
 #[test]
-fn func143() {
-    let data_flow = compute_data_flow("func143");
+fn func143_in() {
+    let data_flow = compute_data_flow("func143_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2585,8 +2585,8 @@ fn func143() {
     );
 }
 #[test]
-fn func144() {
-    let data_flow = compute_data_flow("func144");
+fn func144_in() {
+    let data_flow = compute_data_flow("func144_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2607,8 +2607,8 @@ fn func144() {
     );
 }
 #[test]
-fn func145() {
-    let data_flow = compute_data_flow("func145");
+fn func145_in() {
+    let data_flow = compute_data_flow("func145_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2629,8 +2629,8 @@ fn func145() {
     );
 }
 #[test]
-fn func146() {
-    let data_flow = compute_data_flow("func146");
+fn func146_in() {
+    let data_flow = compute_data_flow("func146_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2651,8 +2651,8 @@ fn func146() {
     );
 }
 #[test]
-fn func147() {
-    let data_flow = compute_data_flow("func147");
+fn func147_in() {
+    let data_flow = compute_data_flow("func147_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2673,8 +2673,8 @@ fn func147() {
     );
 }
 #[test]
-fn func148() {
-    let data_flow = compute_data_flow("func148");
+fn func148_in() {
+    let data_flow = compute_data_flow("func148_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 2);
@@ -2695,8 +2695,8 @@ fn func148() {
     );
 }
 #[test]
-fn func149() {
-    let data_flow = compute_data_flow("func149");
+fn func149_in() {
+    let data_flow = compute_data_flow("func149_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2721,8 +2721,8 @@ fn func149() {
     });
 }
 #[test]
-fn func150() {
-    let data_flow = compute_data_flow("func150");
+fn func150_in() {
+    let data_flow = compute_data_flow("func150_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);
@@ -2747,8 +2747,8 @@ fn func150() {
     });
 }
 #[test]
-fn func151() {
-    let data_flow = compute_data_flow("func151");
+fn func151_in() {
+    let data_flow = compute_data_flow("func151_in");
     let insns = data_flow.as_slice();
 
     assert_eq!(insns.len(), 3);

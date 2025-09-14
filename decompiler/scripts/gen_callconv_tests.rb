@@ -3,10 +3,14 @@
 require 'shellwords'
 
 module Model
-  class Type end
+  class Type
+    def access_self = AccessSelf.new(type: self)
+    def declaration = ""
+  end
 
   class Scalar < Type
     def initialize(c_repr)
+      super()
       @c_repr = c_repr
     end
 
@@ -14,20 +18,19 @@ module Model
 
     def builtin? = true
     def decorate_var(decl) = "#{@c_repr} #{decl}"
-    def each_part
-      yield AccessSelf.new(type: self)
-    end
+    def each_part = yield access_self
   end
 
   class Struct < Type
     def initialize(name, member_types)
+      super()
       @name = name
       @members = member_types.each_with_index.map {
         StructMember.new(name: "member#{_2}", type: _1)
       }
     end
 
-    def c_repr
+    def declaration
       lines = ["struct #{@name} {"]
       @members.each do |memb|
         lines << "  #{memb};"
@@ -41,16 +44,18 @@ module Model
 
     def each_part
       @members.each do |member|
-        member_a = AccessMember.new(member.name)
+        member_a = AccessMember.new(name: member.name, type: member.type)
         member.type.each_part do |part_a|
           yield member_a.and_then(part_a)
         end
       end
+      yield access_self
     end
   end
 
   class Array < Type
     def initialize(length, element_type)
+      super()
       @length = length
       @element_type = element_type
     end
@@ -60,11 +65,12 @@ module Model
 
     def each_part
       (0..@length - 1).each do |ndx|
-        element_a = AccessIndex.new(ndx)
+        element_a = AccessIndex.new(index: ndx, type: @element_type)
         @element_type.each_part do |part_a|
           yield element_a.and_then(part_a)
         end
       end
+      yield access_self
     end
   end
 
@@ -88,27 +94,28 @@ module Model
   end
 
 
-
   Reg = ::Struct.new("Reg", :index) do
     def to_s = "R(#{self.index})"
     def to_rs_expr = "R(#{self.index})"
   end
 
   class Access
+    def initialize(type)
+      @type = type
+    end
+    attr_reader :type
     def and_then(other)
       AccessCompose.new(self, other)
     end
   end
   class AccessSelf < Access
-    def initialize(type:)
-      @type = type
-    end
-    attr_reader :type
+    def initialize(type:) = super(type)
     def c_expression(start) = start
     def write_pattern_to(ssa, src) = src
   end
   class AccessMember < Access
-    def initialize(name)
+    def initialize(name:, type:)
+      super(type)
       @name = name
     end
     def c_expression(start) = "#{start}.#{@name}"
@@ -120,7 +127,8 @@ module Model
     end
   end
   class AccessIndex < Access
-    def initialize(index)
+    def initialize(index:, type:)
+      super(type)
       @index = index
     end
     def c_expression(start) = "#{start}[#{@index}]"
@@ -133,10 +141,10 @@ module Model
   end
   class AccessCompose < Access
     def initialize(first, second)
+      super(second.type)
       @first = first
       @second = second
     end
-    def type = @second.type
     def c_expression(start) = @second.c_expression(@first.c_expression(start))
     def write_pattern_to(ssa, src)
       first_ref = @first.write_pattern_to(ssa, src)
@@ -180,32 +188,39 @@ class String
 end
 
 class TestCase
-  def initialize(name:, param_types:, access_path:)
-    @name = name
+  @@counter = 0
+  def initialize(param_types:, access_path:)
+    @name_prefix = "func" + @@counter.to_s.rjust(3, '0')
+    @@counter += 1
+
     @param_types = param_types
     @access_path = access_path
+
+    raise InvalidTestCase.new if not @access_path.type.is_a?(Model::Scalar)
   end
 
   attr_reader :param_types
 
   def target_type = @access_path.type
+  def name_in = "#{@name_prefix}_in"
+  def name_out = "#{@name_prefix}_out"
 
   def arg_name(ndx) = "arg#{ndx}"
   def target_arg_ndx = @param_types.length - 1
   def target_arg_name = arg_name target_arg_ndx
   def c_function_code
     args_s = @param_types
-      .each_with_index
-      .map {|ty, ndx| ty.decorate_var(arg_name ndx) }
-      .join(", ")
-
-    declarator = "#{@name}(#{args_s})"
-    func_header = target_type.decorate_var(declarator)
+             .each_with_index
+             .map { |ty, ndx| ty.decorate_var(arg_name(ndx)) }
+             .join(', ')
 
     [
-      "#{func_header} {",
-      "  return #{@access_path.c_expression(target_arg_name)};",
+      target_type.decorate_var("#{name_in}(#{args_s})")+ " {",
+      "  return #{@access_path.c_expression target_arg_name};",
       "}",
+      TY_VOID.decorate_var("#{name_out}()")+ " {",
+      "}",
+      "",
     ].join("\n")
   end
 
@@ -216,8 +231,8 @@ class TestCase
 
     [
       "#[test]",
-      "fn #{@name}() {",
-      "    let data_flow = compute_data_flow(#{@name.dump});",
+      "fn #{name_in}() {",
+      "    let data_flow = compute_data_flow(#{name_in.dump});",
       "    let insns = data_flow.as_slice();",
       "",
       "    " + ssa.rs_test_code,
@@ -225,6 +240,10 @@ class TestCase
     ].join("\n")
   end
 end
+
+class InvalidTestCase < Exception; end
+
+TY_VOID = Model::Scalar.new('void')
 
 TY_SCALAR_TYPES = [
     Model::Scalar.new('uint8_t'),
@@ -255,31 +274,43 @@ TY_BIG_STRUCT = Model::Struct.new 'big', [
   Model::Array.new(3, Model::Scalar.new('uint8_t')),
 ]
 
-TY_TARGETS = TY_SCALAR_TYPES + [
+TY_TAILS = TY_SCALAR_TYPES + [
   TY_SMALL_STRUCT,
   TY_SMALL_STRUCT_FLOATS,
   TY_BIG_STRUCT,
 ]
 
 
-def generate_cases(&block)
-  counter = 0
+# Generate testcases for "incoming" calls.
+#
+# "Incoming calls" tests are those where we exercise the decoding of argument
+# values and the encoding of return values from within the called function (each
+# testcase has a specific function that exercise a specific case, and code path
+# in the decompiler).
+def generate_cases_incoming(&block)
   void_star = Model::Scalar.new('void*')
+
   (1..8).each do |length|
     fillers = [void_star] * (length - 1)
     fillers[-1] = TY_SMALL_STRUCT if length >= 2
 
-    TY_TARGETS.each do |target_type|
-      param_types = fillers + [target_type]
+    TY_TAILS.each do |tail_type|
+      param_types = fillers + [tail_type]
 
-      target_type.each_part do |access|
-        name = "func" + counter.to_s.rjust(3, '0')
-        counter += 1
-        block.call(TestCase.new(
-          name:,
-          param_types: param_types,
-          access_path: access,
-        ))
+      tail_type.each_part do |access|
+        # aggregate types can't be assigned directly to a single machine
+        # register. we're going to generate test functions that access each
+        # part of the aggregate, anyway.
+        next unless access.type.is_a?(Model::Scalar)
+
+        begin
+          block.call(TestCase.new(
+            param_types: param_types,
+            access_path: access,
+          ))
+        rescue InvalidTestCase
+          next
+        end
       end
     end
   end
@@ -312,16 +343,16 @@ EOF
 
   declared_types = Set.new
 
-  generate_cases do |testcase|
-    # aggregate types can't be assigned directly to a single machine
-    # register. we're going to generate test functions that access each
-    # part of the aggregate, anyway.
-    next unless testcase.target_type.is_a?(Model::Scalar)
+  require 'pry'
 
-    testcase.param_types.each do |ty|
-      next if declared_types.include?(ty) or ty.builtin?
-      out_c.puts ty.c_repr
-      declared_types.add(ty)
+  generate_cases_incoming do |testcase|
+    # declare any type that was not declared yet
+    testcase.param_types.each do |param_ty|
+      param_ty.each_part do |access|
+        next if declared_types.include?(access.type)
+        out_c.puts access.type.declaration
+        declared_types.add(access.type)
+      end
     end
 
     out_c.puts testcase.c_function_code
