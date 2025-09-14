@@ -57,7 +57,7 @@ module Model
     def builtin? = false
 
     def each_part
-      (0..@length).each do |ndx|
+      (0..@length - 1).each do |ndx|
         element_a = AccessIndex.new(ndx)
         @element_type.each_part do |part_a|
           yield element_a.and_then(part_a)
@@ -303,6 +303,7 @@ EOF
   mod utils;
   use utils::dataflow::*;
   use decompiler::{Insn, R};
+  use test_log::test;
 
 EOF
 
