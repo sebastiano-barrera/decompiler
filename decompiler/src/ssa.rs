@@ -169,7 +169,7 @@ impl Program {
             Insn::Arith(_, a, b) => {
                 let at = self.reg_type(a);
                 let bt = self.reg_type(b);
-                assert_eq!(at, bt); // TODO check this some better way
+                debug_assert_eq!(at, bt); // TODO check this some better way
                 at
             }
             Insn::ArithK(_, a, _) => self.reg_type(a),

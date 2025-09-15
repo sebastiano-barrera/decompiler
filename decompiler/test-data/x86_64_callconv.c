@@ -41,7 +41,7 @@
 
     uint32_t func002_out() {
       
-        uint32_t example_value0 = 15;
+        uint32_t example_value0 = 1;
       
       return func002_in(
         example_value0
@@ -54,7 +54,7 @@
 
     uint64_t func003_out() {
       
-        uint64_t example_value0 = 26;
+        uint64_t example_value0 = 90;
       
       return func003_in(
         example_value0
@@ -125,7 +125,7 @@ struct small {
 
     float func008_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
       return func008_in(
         example_value0
@@ -137,7 +137,7 @@ struct small {
 
     uint8_t func009_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
       return func009_in(
         example_value0
@@ -192,7 +192,7 @@ struct big {
 
     float func012_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 1 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 0 } };
       
       return func012_in(
         example_value0
@@ -204,7 +204,7 @@ struct big {
 
     double func013_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 0 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 1 } };
       
       return func013_in(
         example_value0
@@ -216,7 +216,7 @@ struct big {
 
     void *func014_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 1 } };
       
       return func014_in(
         example_value0
@@ -228,7 +228,7 @@ struct big {
 
     uint8_t func015_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 0 } };
       
       return func015_in(
         example_value0
@@ -240,7 +240,7 @@ struct big {
 
     uint8_t func016_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
       
       return func016_in(
         example_value0
@@ -252,7 +252,7 @@ struct big {
 
     uint8_t func017_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 0 } };
       
       return func017_in(
         example_value0
@@ -264,7 +264,7 @@ struct big {
 
     uint8_t func018_out() {
       
-        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
+        struct big example_value0 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 1 } };
       
       return func018_in(
         example_value0
@@ -278,7 +278,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint8_t example_value1 = 1;
+        uint8_t example_value1 = 0;
       
       return func019_in(
         example_value0, example_value1
@@ -292,7 +292,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint16_t example_value1 = 3;
+        uint16_t example_value1 = 2;
       
       return func020_in(
         example_value0, example_value1
@@ -304,9 +304,9 @@ struct big {
 
     uint32_t func021_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint32_t example_value1 = 10;
+        uint32_t example_value1 = 2;
       
       return func021_in(
         example_value0, example_value1
@@ -320,7 +320,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint64_t example_value1 = 65;
+        uint64_t example_value1 = 178;
       
       return func022_in(
         example_value0, example_value1
@@ -388,7 +388,7 @@ struct big {
 
     float func027_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
@@ -404,7 +404,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
       return func028_in(
         example_value0, example_value1
@@ -430,7 +430,7 @@ struct big {
 
     double func030_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct small_xmms example_value1 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -446,7 +446,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 0 } };
+        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
       
       return func031_in(
         example_value0, example_value1
@@ -458,7 +458,7 @@ struct big {
 
     double func032_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
       
@@ -472,9 +472,9 @@ struct big {
 
     void *func033_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 0 } };
+        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
       
       return func033_in(
         example_value0, example_value1
@@ -488,7 +488,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 1 } };
+        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
       
       return func034_in(
         example_value0, example_value1
@@ -502,7 +502,7 @@ struct big {
       
         struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 1 } };
+        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
       
       return func035_in(
         example_value0, example_value1
@@ -514,7 +514,7 @@ struct big {
 
     uint8_t func036_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
       
@@ -528,9 +528,9 @@ struct big {
 
     uint8_t func037_out() {
       
-        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value0 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
+        struct big example_value1 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
       
       return func037_in(
         example_value0, example_value1
@@ -563,7 +563,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint16_t example_value2 = 2;
+        uint16_t example_value2 = 0;
       
       return func039_in(
         example_value0, example_value1, example_value2
@@ -579,7 +579,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint32_t example_value2 = 1;
+        uint32_t example_value2 = 0;
       
       return func040_in(
         example_value0, example_value1, example_value2
@@ -593,9 +593,9 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint64_t example_value2 = 46;
+        uint64_t example_value2 = 6;
       
       return func041_in(
         example_value0, example_value1, example_value2
@@ -609,7 +609,7 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         void *example_value2 = NULL;
       
@@ -675,7 +675,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
       return func046_in(
         example_value0, example_value1, example_value2
@@ -691,7 +691,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
       return func047_in(
         example_value0, example_value1, example_value2
@@ -721,7 +721,7 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct small_xmms example_value2 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -739,7 +739,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 0 } };
       
       return func050_in(
         example_value0, example_value1, example_value2
@@ -753,9 +753,9 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 0 } };
       
       return func051_in(
         example_value0, example_value1, example_value2
@@ -769,9 +769,9 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
       
       return func052_in(
         example_value0, example_value1, example_value2
@@ -787,7 +787,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
       
       return func053_in(
         example_value0, example_value1, example_value2
@@ -801,9 +801,9 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
       
       return func054_in(
         example_value0, example_value1, example_value2
@@ -819,7 +819,7 @@ struct big {
       
         struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
       
       return func055_in(
         example_value0, example_value1, example_value2
@@ -833,9 +833,9 @@ struct big {
       
         void *example_value0 = NULL;
       
-        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value1 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
+        struct big example_value2 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 0 } };
       
       return func056_in(
         example_value0, example_value1, example_value2
@@ -853,7 +853,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint8_t example_value3 = 0;
+        uint8_t example_value3 = 1;
       
       return func057_in(
         example_value0, example_value1, example_value2, example_value3
@@ -871,7 +871,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint16_t example_value3 = 1;
+        uint16_t example_value3 = 2;
       
       return func058_in(
         example_value0, example_value1, example_value2, example_value3
@@ -887,9 +887,9 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint32_t example_value3 = 14;
+        uint32_t example_value3 = 7;
       
       return func059_in(
         example_value0, example_value1, example_value2, example_value3
@@ -905,9 +905,9 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint64_t example_value3 = 203;
+        uint64_t example_value3 = 112;
       
       return func060_in(
         example_value0, example_value1, example_value2, example_value3
@@ -941,7 +941,7 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         float example_value3 = 123.456f;
       
@@ -959,7 +959,7 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         double example_value3 = 987.321000;
       
@@ -979,7 +979,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
       return func064_in(
         example_value0, example_value1, example_value2, example_value3
@@ -997,7 +997,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
       return func065_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1015,7 +1015,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
       return func066_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1031,7 +1031,7 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct small_xmms example_value3 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -1069,7 +1069,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
       
       return func069_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1087,7 +1087,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 1 } };
       
       return func070_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1103,9 +1103,9 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
       
       return func071_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1121,9 +1121,9 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
       
       return func072_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1139,9 +1139,9 @@ struct big {
       
         void *example_value1 = NULL;
       
-        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 0 } };
       
       return func073_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1159,7 +1159,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 0 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
       
       return func074_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1177,7 +1177,7 @@ struct big {
       
         struct small example_value2 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 0 } };
+        struct big example_value3 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
       
       return func075_in(
         example_value0, example_value1, example_value2, example_value3
@@ -1197,7 +1197,7 @@ struct big {
       
         struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint8_t example_value4 = 1;
+        uint8_t example_value4 = 0;
       
       return func076_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1215,9 +1215,9 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint16_t example_value4 = 1;
+        uint16_t example_value4 = 2;
       
       return func077_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1237,7 +1237,7 @@ struct big {
       
         struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint32_t example_value4 = 13;
+        uint32_t example_value4 = 15;
       
       return func078_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1255,9 +1255,9 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint64_t example_value4 = 244;
+        uint64_t example_value4 = 60;
       
       return func079_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1275,7 +1275,7 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         void *example_value4 = NULL;
       
@@ -1295,7 +1295,7 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         float example_value4 = 123.456f;
       
@@ -1315,7 +1315,7 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         double example_value4 = 987.321000;
       
@@ -1335,7 +1335,7 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
@@ -1355,7 +1355,7 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
@@ -1375,9 +1375,9 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
       return func085_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1415,7 +1415,7 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct small_xmms example_value4 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -1435,9 +1435,9 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
       
       return func088_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1457,7 +1457,7 @@ struct big {
       
         struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
       
       return func089_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1477,7 +1477,7 @@ struct big {
       
         struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
       
       return func090_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1497,7 +1497,7 @@ struct big {
       
         struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 0 } };
       
       return func091_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1515,9 +1515,9 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 1 } };
       
       return func092_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1535,9 +1535,9 @@ struct big {
       
         void *example_value2 = NULL;
       
-        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
       
       return func093_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1557,7 +1557,7 @@ struct big {
       
         struct small example_value3 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
+        struct big example_value4 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 1 } };
       
       return func094_in(
         example_value0, example_value1, example_value2, example_value3, example_value4
@@ -1579,7 +1579,7 @@ struct big {
       
         struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint8_t example_value5 = 1;
+        uint8_t example_value5 = 0;
       
       return func095_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1599,9 +1599,9 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint16_t example_value5 = 2;
+        uint16_t example_value5 = 0;
       
       return func096_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1623,7 +1623,7 @@ struct big {
       
         struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint32_t example_value5 = 11;
+        uint32_t example_value5 = 10;
       
       return func097_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1645,7 +1645,7 @@ struct big {
       
         struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint64_t example_value5 = 234;
+        uint64_t example_value5 = 247;
       
       return func098_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1687,7 +1687,7 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         float example_value5 = 123.456f;
       
@@ -1819,7 +1819,7 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct small_xmms example_value5 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -1843,7 +1843,7 @@ struct big {
       
         struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 0 } };
+        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
       
       return func107_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1885,9 +1885,9 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 0 } };
+        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 0 } };
       
       return func109_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1907,9 +1907,9 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
+        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 0 } };
       
       return func110_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1929,9 +1929,9 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
+        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
       
       return func111_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1951,9 +1951,9 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
+        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
       
       return func112_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1973,9 +1973,9 @@ struct big {
       
         void *example_value3 = NULL;
       
-        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value4 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
+        struct big example_value5 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 0 } };
       
       return func113_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5
@@ -1997,9 +1997,9 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint8_t example_value6 = 1;
+        uint8_t example_value6 = 0;
       
       return func114_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2023,7 +2023,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint16_t example_value6 = 1;
+        uint16_t example_value6 = 2;
       
       return func115_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2047,7 +2047,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint32_t example_value6 = 2;
+        uint32_t example_value6 = 11;
       
       return func116_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2071,7 +2071,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint64_t example_value6 = 16;
+        uint64_t example_value6 = 147;
       
       return func117_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2093,7 +2093,7 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         void *example_value6 = NULL;
       
@@ -2141,7 +2141,7 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         double example_value6 = 987.321000;
       
@@ -2165,7 +2165,7 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
@@ -2213,7 +2213,7 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
@@ -2261,7 +2261,7 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct small_xmms example_value6 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -2287,7 +2287,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 1, 1 } };
+        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
       
       return func126_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2309,9 +2309,9 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 0, 0, 1 } };
+        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
       
       return func127_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2335,7 +2335,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
+        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
       
       return func128_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2359,7 +2359,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
+        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
       
       return func129_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2381,7 +2381,7 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
       
@@ -2405,9 +2405,9 @@ struct big {
       
         void *example_value4 = NULL;
       
-        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
+        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
       
       return func131_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2431,7 +2431,7 @@ struct big {
       
         struct small example_value5 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 1 } };
+        struct big example_value6 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 1 } };
       
       return func132_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6
@@ -2455,7 +2455,7 @@ struct big {
       
         void *example_value5 = NULL;
       
-        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         uint8_t example_value7 = 0;
       
@@ -2483,7 +2483,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint16_t example_value7 = 0;
+        uint16_t example_value7 = 3;
       
       return func134_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2509,7 +2509,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        uint32_t example_value7 = 9;
+        uint32_t example_value7 = 8;
       
       return func135_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2535,7 +2535,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        uint64_t example_value7 = 239;
+        uint64_t example_value7 = 21;
       
       return func136_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2585,7 +2585,7 @@ struct big {
       
         void *example_value5 = NULL;
       
-        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
         float example_value7 = 123.456f;
       
@@ -2611,7 +2611,7 @@ struct big {
       
         void *example_value5 = NULL;
       
-        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         double example_value7 = 987.321000;
       
@@ -2715,7 +2715,7 @@ struct big {
       
         void *example_value5 = NULL;
       
-        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct small_xmms example_value7 = (struct small_xmms){ .member0 = 123.456f, .member1 = 987.321000 };
       
@@ -2767,9 +2767,9 @@ struct big {
       
         void *example_value5 = NULL;
       
-        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
+        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 1, 0 } };
+        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
       
       return func145_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2795,7 +2795,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 1 } };
+        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 1, 0 } };
       
       return func146_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2821,7 +2821,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
+        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
       
       return func147_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2847,7 +2847,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
       
-        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 0 } };
+        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
       
       return func148_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2873,7 +2873,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
+        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 0, .member4 = { 1, 0, 1 } };
       
       return func149_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7
@@ -2897,7 +2897,7 @@ struct big {
       
         void *example_value5 = NULL;
       
-        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 0 };
+        struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
         struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 0, 0 } };
       
@@ -2925,7 +2925,7 @@ struct big {
       
         struct small example_value6 = (struct small){ .member0 = NULL, .member1 = 123.456f, .member2 = 1 };
       
-        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 0, 0, 0 } };
+        struct big example_value7 = (struct big){ .member0 = 123.456f, .member1 = 987.321000, .member2 = NULL, .member3 = 1, .member4 = { 1, 1, 1 } };
       
       return func151_in(
         example_value0, example_value1, example_value2, example_value3, example_value4, example_value5, example_value6, example_value7

@@ -121,7 +121,7 @@ impl<'a> Executable<'a> {
     }
 
     #[instrument(skip(self))]
-    pub fn decompile_function(&mut self, function_name: &str) -> Result<DecompiledFunction> {
+    pub fn decompile_function(&self, function_name: &str) -> Result<DecompiledFunction> {
         let coords = self.find_function(function_name)?;
 
         let vm_addr = coords.vm_addr.try_into().unwrap();
@@ -133,7 +133,7 @@ impl<'a> Executable<'a> {
         );
 
         let func_tyid_opt = self.types.get_known_object(vm_addr);
-        let mil_res = x86_to_mil::Builder::new(&mut self.types)
+        let mil_res = x86_to_mil::Builder::new(&self.types)
             .translate(decoder.iter(), func_tyid_opt)
             .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()));
 

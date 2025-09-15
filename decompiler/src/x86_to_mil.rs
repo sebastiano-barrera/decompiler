@@ -17,7 +17,7 @@ pub struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-    pub fn new(types: &'a mut ty::TypeSet) -> Self {
+    pub fn new(types: &'a ty::TypeSet) -> Self {
         let mut bld = Builder {
             pb: mil::Program::new(Self::R_TMP_FIRST),
             types,
