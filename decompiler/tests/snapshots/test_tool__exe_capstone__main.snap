@@ -582,7 +582,7 @@ ssa program  379 instrs
   BlockID(0) -> Conditional { pos: Block(BlockID(8)), neg: Block(BlockID(1)) } [r9, r10, r12, r13, r14, r15, r16, r18, r22, r42, r43, r44, r45, r46, r47, r48, r49, r50, r51, r52, r53, r55, r64, r65, r66, r67, r68, r69, r80, r81, r82, r84, r89, r90]
   BlockID(1) -> Conditional { pos: Block(BlockID(7)), neg: Block(BlockID(2)) } [r93, r94, r97, r99, r100, r101, r102, r103, r111, r112, r113, r114, r115, r116, r117, r118, r119, r120, r133, r134, r135, r136, r137, r138, r139, r153, r158]
   BlockID(2) -> Always(Block(BlockID(3))) [r160, r161, r162, r163, r164, r369, r370, r371]
-  BlockID(3) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) } [r357, r356, r355, r173, r174, r176, r177, r178, r179, r180, r181, r187, r196, r206, r207, r214, r217, r230, r233, r234, r245, r249, r252, r253, r372, r373, r374]
+  BlockID(3) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) } [r357, r356, r355, r173, r174, r176, r177, r178, r181, r187, r196, r206, r207, r214, r217, r230, r233, r234, r245, r249, r252, r253, r372, r373, r374]
   BlockID(4) -> Always(Block(BlockID(5))) [r256, r257, r260, r265, r266, r267, r375, r376, r377, r378]
   BlockID(5) -> Always(Block(BlockID(6))) [r361, r360, r359, r358, r278, r279, r280, r281, r282, r283, r294, r295, r296, r297, r298, r368]
   BlockID(6) -> Always(Return) [r362, r325, r326]
@@ -682,9 +682,7 @@ ssa program  379 instrs
          r176 <- Const { value: 4203193, size: 4 }
          r177 <- Part { src: r356, offset: 4, size: 4 }
   (  2)  r178 <- Concat { lo: r176, hi: r177 }
-         r179 <- Const { value: 5, size: 1 }
-         r180 <- Widen { reg: r179, target_size: 8, sign: false }
-         r181 <- Arith(Shl, r357, r180)
+         r181 <- ArithK(Shl, r357, 5)
          r187 <- Arith(Sub, r181, r357)
   (  2)  r196 <- ArithK(Add, r357, 1)
          r206 <- ArithK(Mul, r187, 8)
@@ -803,7 +801,7 @@ T0: {
     let mut r355: Bytes(8);
     let r178: Bytes(8) = r356[8 .. 4] ++ 4203193;
     let r196: Bytes(8) = r357 + 1;
-    let r207: Bytes(8) = [pre:RSP - 32]:8 + (r357 << 5 as u64 - r357) * 8;
+    let r207: Bytes(8) = [pre:RSP - 32]:8 + (r357 << 5 - r357) * 8;
     4198480(r178);
     let r245: Bytes(8) = r355 - r196;
     ;

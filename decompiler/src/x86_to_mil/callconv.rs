@@ -154,15 +154,30 @@ fn unpack_param(
             for eb_ndx in 0..eb_count {
                 // relies on RSP never being assigned by any instruction emitted in this module
                 let eb_offset = state.pull_stack_eightbyte() as i64;
-                let offset = (eb_ndx * 8).try_into().unwrap();
-                bld.emit(
-                    eb,
+                let offset: u16 = (eb_ndx * 8).try_into().unwrap();
+
+                // the stack slot really always is 8 bytes, so: take an 8-bytes chunk of the
+                // value or widen the "tail" part
+
+                // how much of the value we're "storing" in the stack slot
+                let part_size = (sz - offset).min(8);
+                let eb_init_insn = if part_size < 8 {
+                    Insn::Widen {
+                        reg: arg_value,
+                        target_size: 8,
+                        sign: false,
+                    }
+                } else if part_size == 8 {
                     Insn::Part {
                         src: arg_value,
                         offset,
-                        size: (sz - offset).min(8),
-                    },
-                );
+                        size: 8,
+                    }
+                } else {
+                    unreachable!("part_size can't be > 8");
+                };
+
+                bld.emit(eb, eb_init_insn);
                 bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
                 bld.emit(addr, Insn::StoreMem { addr, value: eb });
             }

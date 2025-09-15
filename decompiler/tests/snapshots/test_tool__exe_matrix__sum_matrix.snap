@@ -425,7 +425,7 @@ ssa program  242 instrs
   entry: BlockID(0)
   BlockID(0) -> Always(Block(BlockID(5))) [r9, r10, r42, r242, r45, r47, r48, r58, r59, r61, r62, r63, r65, r66, r67, r69, r70]
   BlockID(1) -> Always(Block(BlockID(3))) [r72, r74, r75]
-  BlockID(2) -> Always(Block(BlockID(3))) [r306, r90, r119, r120, r121, r122, r128, r138, r147, r148, r159, r161, r162]
+  BlockID(2) -> Always(Block(BlockID(3))) [r306, r90, r119, r122, r128, r138, r147, r148, r159, r161, r162]
   BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r305, r179, r181, r185, r186, r187]
   BlockID(4) -> Always(Block(BlockID(5))) [r193, r195, r196]
   BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r304, r213, r215, r219, r220, r221]
@@ -487,9 +487,7 @@ ssa program  307 instrs
          r306 <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
          r90 <- ArithK(Mul, r306, 0)
          r119 <- Widen { reg: r90, target_size: 8, sign: true }
-         r120 <- Const { value: 2, size: 1 }
-         r121 <- Widen { reg: r120, target_size: 8, sign: false }
-         r122 <- Arith(Shl, r119, r121)
+         r122 <- ArithK(Shl, r119, 2)
          r128 <- Arith(Add, r122, r242)
          r138 <- LoadMem { addr: r128, size: 4 }
          r147 <- ArithK(Add, r10, -12)
@@ -520,7 +518,7 @@ T0: {
         let r305: Bytes(4) = r42.cols;
         ;
         if ! (SignOf (r305) EQ OverflowOf (r305)) {
-          [pre:RSP - 12]:* := [(r42.cols * 0) as i64 << 2 as u64 + r242]:4;
+          [pre:RSP - 12]:* := [(r42.cols * 0) as i64 << 2 + r242]:4;
           [pre:RSP - 20]:* := 1;
           loop T3
         }
