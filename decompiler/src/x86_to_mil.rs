@@ -489,6 +489,8 @@ impl<'a> Builder<'a> {
                             event!(Level::TRACE, ?subr_tyid, ?param_values, "resolved call");
 
                             self.emit_call(callee, param_values, v1);
+                            let callee_ndx = self.last_index_of_value(callee).unwrap();
+                            self.set_value_type(callee_ndx, subr_tyid);
 
                             if let Err(err) =
                                 callconv::unpack_return_value(&mut self, return_tyid, v1)
@@ -1508,6 +1510,21 @@ impl<'a> Builder<'a> {
 
     fn emit(&mut self, dest: mil::Reg, insn: mil::Insn) -> mil::Index {
         self.pb.push(dest, insn)
+    }
+
+    fn last_index_of_value(&self, reg: mil::Reg) -> Option<mil::Index> {
+        self.pb
+            .iter()
+            .enumerate()
+            .filter_map(|(ndx, iv)| {
+                if iv.dest.get() == reg {
+                    Some(ndx)
+                } else {
+                    None
+                }
+            })
+            .last()
+            .map(|ndx| ndx.try_into().unwrap())
     }
 }
 

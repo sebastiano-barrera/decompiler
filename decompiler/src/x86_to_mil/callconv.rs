@@ -504,6 +504,9 @@ fn pack_param(
         );
     }
 
+    let index = bld.last_index_of_value(arg_value).unwrap();
+    bld.set_value_type(index, tyid);
+
     Ok(arg_value)
 }
 

@@ -579,8 +579,8 @@ impl Program {
     }
 
     #[inline(always)]
-    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView<'_>> {
-        (0..self.len()).filter_map(|ndx| self.get(ndx))
+    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = InsnView<'_>> {
+        (0..self.len()).map(|ndx| self.get(ndx).unwrap())
     }
 
     pub fn value_type(&self, index: Index) -> Option<ty::TypeID> {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tracing::{event, span, Level};
+use tracing::{event, instrument, span, Level};
 
 use crate::{
     cfg::BlockID,
@@ -533,6 +533,8 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let mut prog = ssa::OpenProgram::wrap(prog);
     let mut deduper = Deduper::new();
 
+    propagate_call_types(&mut prog, types);
+
     let mut any_change = true;
     while any_change {
         any_change = false;
@@ -594,6 +596,101 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             }
         }
     }
+}
+
+/// For each Insn::Call instruction, use the callee's type to assign types to
+/// the argument values.
+///
+/// # Example
+///
+/// If we have the following SSA:
+///
+/// ```
+/// r10 <- Call {value: r5, first_arg: None}
+/// r11 <- Call {value: r6, first_arg: Some(r10)}
+/// r12 <- Call {value: r7, first_arg: Some(r11)}
+/// r13 <- Call {value: r8, first_arg: Some(r12)}
+/// r14 <- Call {callee: F, first_arg: Some(r13)}
+/// ```
+///
+/// and we have type information for `F`, such that it is a subroutine/function type like
+/// `TRet F(T1, T2, T3, T4)`, then the following type assignments are made:
+///
+/// * r5: T1
+/// * r6: T2
+/// * r7: T3
+/// * r8: T4
+/// * r14: TRet
+#[instrument(skip_all)]
+fn propagate_call_types(prog: &mut ssa::OpenProgram, types: &ty::TypeSet) {
+    let mut tyids_to_set = ssa::RegMap::for_program(prog, None);
+    for (_, reg) in prog.insns_rpo() {
+        let Insn::Call { callee, first_arg } = prog.get(reg).unwrap() else {
+            continue;
+        };
+        let Some(callee_tyid) = prog.value_type(callee) else {
+            continue;
+        };
+        let Some(callee_ty) = types.get_through_alias(callee_tyid) else {
+            event!(
+                Level::ERROR,
+                ?callee,
+                ?callee_tyid,
+                "callee's type ID is invalid"
+            );
+            continue;
+        };
+        let ty::Ty::Subroutine(subr_ty) = callee_ty.as_ref() else {
+            event!(
+                Level::ERROR,
+                ?callee,
+                ?callee_tyid,
+                "callee's type not a subroutine"
+            );
+            continue;
+        };
+
+        if prog.value_type(reg).is_none() {
+            tyids_to_set[reg] = Some(subr_ty.return_tyid);
+        }
+
+        let param_count = subr_ty.param_tyids.len();
+
+        let mut arg_count = 0;
+        if let Some(first_arg) = first_arg {
+            for (arg, arg_tyid) in prog.get_call_args(first_arg).zip(&subr_ty.param_tyids) {
+                if prog.value_type(arg).is_none() {
+                    tyids_to_set[arg] = Some(*arg_tyid);
+                }
+                arg_count += 1;
+            }
+        }
+
+        if arg_count != param_count {
+            event!(
+                Level::ERROR,
+                ?reg,
+                ?callee,
+                ?arg_count,
+                ?param_count,
+                "call site has fewer arguments than subroutine type has parameters"
+            );
+        }
+    }
+
+    let mut count = 0;
+    for (reg, tyid) in tyids_to_set.items() {
+        if let &Some(tyid) = tyid {
+            event!(Level::DEBUG, ?reg, ?tyid, "set type around call site");
+            prog.set_value_type(reg, Some(tyid));
+            count += 1;
+        }
+    }
+    event!(
+        Level::DEBUG,
+        count,
+        "finished type propagation at call sites"
+    );
 }
 
 struct Deduper {

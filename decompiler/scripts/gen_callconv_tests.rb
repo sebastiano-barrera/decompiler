@@ -226,10 +226,14 @@ class String
 end
 
 class TestCase
-  @@counter = 0
+  class << self
+    attr_accessor :counter
+  end
+
   def initialize(param_types:, access_path:)
-    @name_prefix = "func" + @@counter.to_s.rjust(3, '0')
-    @@counter += 1
+    self.class.counter ||= 0
+    @name_prefix = "func" + self.class.counter.to_s.rjust(3, '0')
+    self.class.counter += 1
 
     @param_types = param_types
     @access_path = access_path

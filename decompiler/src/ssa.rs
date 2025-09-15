@@ -101,8 +101,8 @@ impl Program {
         (0..self.reg_count()).map(mil::Reg)
     }
 
-    pub fn get_call_args(&self, arg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        let mut arg = Some(arg);
+    pub fn get_call_args(&self, first_arg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
+        let mut arg = Some(first_arg);
         std::iter::repeat_with(move || {
             let insn = self.get(arg?).unwrap();
             let mil::Insn::CArg { value, next_arg } = insn else {
