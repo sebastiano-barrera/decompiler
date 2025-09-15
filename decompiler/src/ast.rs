@@ -282,6 +282,30 @@ impl<'a> Ast<'a> {
                 self.pp_ref(pp, struct_value, self_prec)?;
                 write!(pp, ".{}", name)?;
             }
+            Insn::Struct {
+                type_name,
+                first_member,
+                ..
+            } => {
+                if let Some(first_member) = first_member {
+                    pp.open_box();
+                    write!(pp, "struct {} {{", type_name)?;
+                    for (name, reg) in self.ssa.get_struct_members(first_member) {
+                        write!(pp, "\n  .{} = ", name)?;
+                        pp.open_box();
+                        self.pp_ref(pp, reg, self_prec)?;
+                        write!(pp, ",")?;
+                        pp.close_box();
+                    }
+                    write!(pp, "\n}}")?;
+                    pp.close_box();
+                } else {
+                    write!(pp, "struct {} {{}}", type_name)?;
+                }
+            }
+            Insn::StructMember { .. } => {
+                unreachable!("CArg should be handled via the Call it belongs to!")
+            }
             Insn::ArrayGetElement {
                 array,
                 index,
@@ -570,10 +594,10 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
 
         Insn::Part { .. } => 254,
         Insn::Concat { .. } => 253,
-
-        Insn::Call { .. } => 251,
-        Insn::CArg { .. } => 251,
-        Insn::Widen { .. } => 249,
+        Insn::Struct { .. } | Insn::StructMember { .. } => 251,
+        Insn::Call { .. } => 250,
+        Insn::CArg { .. } => 250,
+        Insn::Widen { .. } => 248,
 
         Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
             ArithOp::Shl | ArithOp::Shr | ArithOp::BitXor | ArithOp::BitAnd | ArithOp::BitOr => 202,

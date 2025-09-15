@@ -128,10 +128,25 @@ pub enum Insn {
 
     #[assoc(input_regs = array([_struct_value]))]
     StructGetMember {
+        /// Not necessarily a Struct
         struct_value: Reg,
         name: &'static str,
         // larger size are definitely possible
         size: u32,
+    },
+    #[assoc(input_regs = [_first_member.as_mut()].into_iter().flatten().collect())]
+    Struct {
+        // TODO figure out proper memory management for these
+        type_name: &'static str,
+        first_member: Option<Reg>,
+        size: u32,
+    },
+    #[assoc(input_regs = [Some(_value), _next.as_mut()].into_iter().flatten().collect())]
+    StructMember {
+        // TODO figure out proper memory management for these
+        name: &'static str,
+        value: Reg,
+        next: Option<Reg>,
     },
     #[assoc(input_regs = array([_array]))]
     ArrayGetElement {
@@ -579,8 +594,8 @@ impl Program {
     }
 
     #[inline(always)]
-    pub(crate) fn iter(&self) -> impl Iterator<Item = InsnView<'_>> {
-        (0..self.len()).filter_map(|ndx| self.get(ndx))
+    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = InsnView<'_>> {
+        (0..self.len()).map(|ndx| self.get(ndx).unwrap())
     }
 
     pub fn value_type(&self, index: Index) -> Option<ty::TypeID> {

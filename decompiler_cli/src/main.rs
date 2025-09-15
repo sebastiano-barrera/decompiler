@@ -103,12 +103,10 @@ fn main() {
                         println!("{:?}", ssa);
                         println!();
 
-                        if false {
-                            println!(" --- ast");
-                            let mut ast = decompiler::Ast::new(&ssa, exe.types());
-                            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut _out_guard);
-                            ast.pretty_print(pp).unwrap();
-                        }
+                        println!(" --- ast");
+                        let mut ast = decompiler::Ast::new(&ssa, exe.types());
+                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut _out_guard);
+                        ast.pretty_print(pp).unwrap();
                     }
                 }
             });

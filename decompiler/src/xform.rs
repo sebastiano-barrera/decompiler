@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tracing::{event, span, Level};
+use tracing::{event, instrument, span, Level};
 
 use crate::{
     cfg::BlockID,
@@ -533,6 +533,8 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let mut prog = ssa::OpenProgram::wrap(prog);
     let mut deduper = Deduper::new();
 
+    propagate_call_types(&mut prog, types);
+
     let mut any_change = true;
     while any_change {
         any_change = false;
@@ -553,6 +555,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 if let Some(mem_ref_reg) = mem_ref_reg {
                     insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
                 }
+                insn = pack_aggregates(reg, insn, &mut prog, bid, types);
                 insn = fold_get(insn, &prog);
                 insn = fold_subregs(insn, &prog);
                 insn = fold_concat_void(insn, &prog);
@@ -594,6 +597,193 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
             }
         }
     }
+}
+
+/// For each Insn::Call instruction, use the callee's type to assign types to
+/// the argument values.
+///
+/// # Example
+///
+/// If we have the following SSA:
+///
+/// ```
+/// r10 <- Call {value: r5, first_arg: None}
+/// r11 <- Call {value: r6, first_arg: Some(r10)}
+/// r12 <- Call {value: r7, first_arg: Some(r11)}
+/// r13 <- Call {value: r8, first_arg: Some(r12)}
+/// r14 <- Call {callee: F, first_arg: Some(r13)}
+/// ```
+///
+/// and we have type information for `F`, such that it is a subroutine/function type like
+/// `TRet F(T1, T2, T3, T4)`, then the following type assignments are made:
+///
+/// * r5: T1
+/// * r6: T2
+/// * r7: T3
+/// * r8: T4
+/// * r14: TRet
+#[instrument(skip_all)]
+fn propagate_call_types(prog: &mut ssa::OpenProgram, types: &ty::TypeSet) {
+    let mut tyids_to_set = ssa::RegMap::for_program(prog, None);
+    for (_, reg) in prog.insns_rpo() {
+        let Insn::Call { callee, first_arg } = prog.get(reg).unwrap() else {
+            continue;
+        };
+        let Some(callee_tyid) = prog.value_type(callee) else {
+            continue;
+        };
+        let Some(callee_ty) = types.get_through_alias(callee_tyid) else {
+            event!(
+                Level::ERROR,
+                ?callee,
+                ?callee_tyid,
+                "callee's type ID is invalid"
+            );
+            continue;
+        };
+        let ty::Ty::Subroutine(subr_ty) = callee_ty.as_ref() else {
+            event!(
+                Level::ERROR,
+                ?callee,
+                ?callee_tyid,
+                "callee's type not a subroutine"
+            );
+            continue;
+        };
+
+        if prog.value_type(reg).is_none() {
+            tyids_to_set[reg] = Some(subr_ty.return_tyid);
+        }
+
+        let param_count = subr_ty.param_tyids.len();
+
+        let mut arg_count = 0;
+        if let Some(first_arg) = first_arg {
+            for (arg, arg_tyid) in prog.get_call_args(first_arg).zip(&subr_ty.param_tyids) {
+                if prog.value_type(arg).is_none() {
+                    tyids_to_set[arg] = Some(*arg_tyid);
+                }
+                arg_count += 1;
+            }
+        }
+
+        if arg_count != param_count {
+            event!(
+                Level::ERROR,
+                ?reg,
+                ?callee,
+                ?arg_count,
+                ?param_count,
+                "call site has fewer arguments than subroutine type has parameters"
+            );
+        }
+    }
+
+    let mut count = 0;
+    for (reg, tyid) in tyids_to_set.items() {
+        if let &Some(tyid) = tyid {
+            event!(Level::DEBUG, ?reg, ?tyid, "set type around call site");
+            prog.set_value_type(reg, Some(tyid));
+            count += 1;
+        }
+    }
+    event!(
+        Level::DEBUG,
+        count,
+        "finished type propagation at call sites"
+    );
+}
+
+#[instrument(skip(prog, types))]
+fn pack_aggregates(
+    reg: Reg,
+    mut insn: Insn,
+    prog: &mut ssa::OpenProgram,
+    bid: BlockID,
+    types: &ty::TypeSet,
+) -> Insn {
+    let Some(tyid) = prog.value_type(reg) else {
+        return insn;
+    };
+    let Some(tycow) = types.get_through_alias(tyid) else {
+        return insn;
+    };
+
+    if let ty::Ty::Struct(struct_ty) = tycow.as_ref() {
+        // this is a heuristic.
+        //
+        // the idea is that sometimes we want to explicitly spell out how
+        // the struct value is composed (e.g., for a call argument), whereas
+        // sometimes there is no value in doing so (e.g., if the struct value is
+        // a FuncArgument).
+        //
+        // so for now the approximate implementation of this idea is:
+        //
+        //  - spell out the struct (with an Insn::Struct) if the insn has
+        //    arguments, as that would indicate that we're composing a struct
+        //    out of some currently-opaque components (e.g. a Concat of some
+        //    "raw parts").
+        //
+        //  - keep it implicit for insns with no inputs, as that probably
+        //    indicates that the value is an ancestral or some prepackaged value
+        //    that has clear meaning from context (e.g., FuncArgument).
+        //
+        let has_inputs = insn.input_regs().len() > 0;
+        if !matches!(insn, Insn::Struct { .. }) && has_inputs {
+            // copy the instruction to a new value -- it will act as the "raw"
+            // value of the struct, to be formally sectioned into fields
+            let src = prog.append_new(bid, insn);
+
+            let mut member_reg = None;
+
+            for member in struct_ty.members.iter().rev() {
+                let Some(size) = types.bytes_size(member.tyid) else {
+                    event!(
+                        Level::ERROR,
+                        struct_tyid = ?tyid,
+                        name = member.name.to_string(),
+                        member_tyid = ?member.tyid,
+                        "struct member type has no size; skipped"
+                    );
+                    continue;
+                };
+                // TODO figure out proper memory management
+                let name = member.name.to_string().leak();
+                let value = prog.append_new(
+                    bid,
+                    Insn::Part {
+                        src,
+                        offset: member.offset.try_into().unwrap(),
+                        size: size.try_into().unwrap(),
+                    },
+                );
+
+                member_reg = Some(prog.append_new(
+                    bid,
+                    Insn::StructMember {
+                        name,
+                        value,
+                        next: member_reg,
+                    },
+                ));
+            }
+
+            insn = Insn::Struct {
+                type_name: types
+                    .name(tyid)
+                    .map(|s| s.to_string().leak() as &str)
+                    .unwrap_or("?"),
+                first_member: member_reg,
+                size: struct_ty.size.try_into().unwrap(),
+            };
+
+            // NOTE that, although `src` points to a copy of Insn, it has no
+            // type info; the type info is instead kept in the new Insn::Struct,
+            // assigned to the original register (agg_reg)
+        }
+    }
+
+    insn
 }
 
 struct Deduper {

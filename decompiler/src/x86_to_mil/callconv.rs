@@ -153,7 +153,7 @@ fn unpack_param(
 
             for eb_ndx in 0..eb_count {
                 // relies on RSP never being assigned by any instruction emitted in this module
-                let eb_offset = state.pull_stack_eightbyte() as i64;
+                let eb_offset = state.pull_stack_eightbyte(1) as i64;
                 let offset: u16 = (eb_ndx * 8).try_into().unwrap();
 
                 // the stack slot really always is 8 bytes, so: take an 8-bytes chunk of the
@@ -480,7 +480,7 @@ fn pack_param(
 
             // read all eightbytes in a single 'operation'
             let addr = bld.tmp_gen();
-            let eb_offset = state.pull_stack_eightbyte() as i64;
+            let eb_offset = state.pull_stack_eightbyte(eb_count) as i64;
             bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
             bld.emit(
                 arg_value,
@@ -503,6 +503,9 @@ fn pack_param(
             },
         );
     }
+
+    let index = bld.last_index_of_value(arg_value).unwrap();
+    bld.set_value_type(index, tyid);
 
     Ok(arg_value)
 }
@@ -914,16 +917,17 @@ impl ParamPassing {
         arg_ndx
     }
 
-    /// Get the "current" offset into the stack, and advance it of one eightbyte.
+    /// Get the "current" offset into the stack, and advance it `eb_count`
+    /// eightbytes forward.
     ///
     /// The first value returned is 8, as `dword ptr [rsp]` is the return
     /// address (and no parameter is stored there).
     ///
     /// Returns: the stack offset, expressed in byte offest from the value
     /// of RSP at the beginning of the function. Always aligned to 8.
-    fn pull_stack_eightbyte(&mut self) -> usize {
+    fn pull_stack_eightbyte(&mut self, eb_count: usize) -> usize {
         let ofs = self.stack_eb_ndx * 8;
-        self.stack_eb_ndx += 1;
+        self.stack_eb_ndx += eb_count;
         ofs
     }
 }
