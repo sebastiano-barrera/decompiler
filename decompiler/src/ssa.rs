@@ -6,6 +6,8 @@
 //! > A Simple, Fast Dominance Algorithm.
 //! > Rice University, CS Technical Report 06-33870.
 
+use tracing::{event, Level};
+
 use crate::{cfg, mil, pp, ty};
 use std::{cell::Cell, io::Write};
 
@@ -505,6 +507,7 @@ impl<'a> OpenProgram<'a> {
     pub fn append_new(&mut self, bid: cfg::BlockID, insn: mil::Insn) -> mil::Reg {
         let reg = self.add_insn(insn);
         self.program.schedule.append(reg.reg_index(), bid);
+        event!(Level::TRACE, ?bid, ?insn, ?reg, "append_new");
         reg
     }
     /// Append an existing instruction (identified by the given [Reg]) at the end

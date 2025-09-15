@@ -74,12 +74,15 @@ or logically)
 
 */
 
+use tracing::{event, Level};
+
 use crate::{
     cfg,
     mil::{self, Insn, Reg},
     ssa,
 };
 
+#[tracing::instrument(skip(prog))]
 pub fn fold_load_store(
     prog: &mut ssa::OpenProgram,
     ref_reg: mil::Reg,
@@ -154,10 +157,12 @@ pub fn fold_load_store(
     let mid_left = prog.append_new(bid, Insn::Concat { lo: mid, hi: left });
 
     // replace the load with the final replacement value (the outermost Concat)
-    Insn::Concat {
+    let ret = Insn::Concat {
         lo: right,
         hi: mid_left,
-    }
+    };
+    event!(Level::TRACE, insn = ?ret, "return");
+    ret
 }
 
 struct LoadInt {

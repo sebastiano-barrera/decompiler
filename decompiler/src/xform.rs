@@ -575,7 +575,9 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 prog.set(reg, insn);
                 prog.append_existing(bid, reg);
 
-                event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
+                if insn != orig_insn {
+                    event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
+                }
 
                 let final_has_fx = insn.has_side_effects();
                 if final_has_fx != orig_has_fx {
