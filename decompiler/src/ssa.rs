@@ -114,6 +114,22 @@ impl Program {
         .map_while(|x| x)
     }
 
+    pub(crate) fn get_struct_members(
+        &self,
+        first_member: mil::Reg,
+    ) -> impl '_ + Iterator<Item = (&'static str, mil::Reg)> {
+        let mut memb = Some(first_member);
+        std::iter::repeat_with(move || {
+            let insn = self.get(memb?).unwrap();
+            let mil::Insn::StructMember { name, value, next } = insn else {
+                panic!("StructMember must be chained to other StructMembers only")
+            };
+            memb = next;
+            Some((name, value))
+        })
+        .map_while(|x| x)
+    }
+
     pub fn insns_rpo(&self) -> impl '_ + DoubleEndedIterator<Item = (cfg::BlockID, mil::Reg)> {
         self.cfg
             .block_ids_rpo()
@@ -209,6 +225,8 @@ impl Program {
             Insn::Ancestral { reg_type, .. } => reg_type,
             Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
+            Insn::Struct { size, .. } => RegType::Bytes(size as usize),
+            Insn::StructMember { value, .. } => self.reg_type(value),
         }
     }
 
@@ -347,7 +365,8 @@ impl Program {
     }
 
     fn assert_no_circular_refs(&self) {
-        // kahn's algorithm for topological sorting, but we don't actually store the topological order
+        // kahn's algorithm for topological sorting, but we don't actually store
+        // the topological order
 
         let mut rdr_count = count_readers_with_dead(self);
         let mut queue: Vec<_> = rdr_count

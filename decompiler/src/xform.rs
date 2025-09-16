@@ -555,6 +555,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 if let Some(mem_ref_reg) = mem_ref_reg {
                     insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
                 }
+                insn = pack_aggregates(reg, insn, &mut prog, bid, types);
                 insn = fold_get(insn, &prog);
                 insn = fold_subregs(insn, &prog);
                 insn = fold_concat_void(insn, &prog);
@@ -691,6 +692,79 @@ fn propagate_call_types(prog: &mut ssa::OpenProgram, types: &ty::TypeSet) {
         count,
         "finished type propagation at call sites"
     );
+}
+
+#[instrument(skip(prog, types))]
+fn pack_aggregates(
+    reg: Reg,
+    mut insn: Insn,
+    prog: &mut ssa::OpenProgram,
+    bid: BlockID,
+    types: &ty::TypeSet,
+) -> Insn {
+    let Some(tyid) = prog.value_type(reg) else {
+        return insn;
+    };
+    let Some(tycow) = types.get_through_alias(tyid) else {
+        return insn;
+    };
+
+    if let ty::Ty::Struct(struct_ty) = tycow.as_ref() {
+        if !matches!(insn, Insn::Struct { .. }) {
+            // copy the instruction to a new value -- it will act as the "raw"
+            // value of the struct, to be formally sectioned into fields
+            let src = prog.append_new(bid, insn);
+
+            let mut member_reg = None;
+
+            for member in struct_ty.members.iter().rev() {
+                let Some(size) = types.bytes_size(member.tyid) else {
+                    event!(
+                        Level::ERROR,
+                        struct_tyid = ?tyid,
+                        name = member.name.to_string(),
+                        member_tyid = ?member.tyid,
+                        "struct member type has no size; skipped"
+                    );
+                    continue;
+                };
+                // TODO figure out proper memory management
+                let name = member.name.to_string().leak();
+                let value = prog.append_new(
+                    bid,
+                    Insn::Part {
+                        src,
+                        offset: member.offset.try_into().unwrap(),
+                        size: size.try_into().unwrap(),
+                    },
+                );
+
+                member_reg = Some(prog.append_new(
+                    bid,
+                    Insn::StructMember {
+                        name,
+                        value,
+                        next: member_reg,
+                    },
+                ));
+            }
+
+            insn = Insn::Struct {
+                type_name: types
+                    .name(tyid)
+                    .map(|s| s.to_string().leak() as &str)
+                    .unwrap_or("?"),
+                first_member: member_reg,
+                size: struct_ty.size.try_into().unwrap(),
+            };
+
+            // NOTE that, although `src` points to a copy of Insn, it has no
+            // type info; the type info is instead kept in the new Insn::Struct,
+            // assigned to the original register (agg_reg)
+        }
+    }
+
+    insn
 }
 
 struct Deduper {

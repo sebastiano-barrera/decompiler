@@ -2,6 +2,19 @@
 - now: proceed without gui, power up CLI/textual interface if needed
 
 - [ ] precise testing of calling convention
+    - [ ] outgoing calls
+        - workshopping the xform pass by using decompiler_cli
+            - current test case: func097_out
+            - [ ] why is `void *x = NULL` compiled to a 32-bit register set?
+                    (e.g. `mov esi,0` instead of `mov rsi,0`)
+            - [ ] fix: infinite loop when compiling with -O0
+                cmd: gcc -O0 -gdwarf -masm=intel -o decompiler/test-data/x86_64_callconv decompiler/test-data/x86_64_callconv.c
+                cmd: cargo run --bin decompiler_cli -- --exe decompiler/test-data/x86_64_callconv --func func097_out
+            - [ ] wrong connection of struct members to values?
+
+        - [ ] transform into proper generated tests, like for incoming calls
+
+- [ ] float literals
 
 - [ ] large scale testing and tracking
 
