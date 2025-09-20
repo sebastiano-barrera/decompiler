@@ -44,8 +44,9 @@ module Model
     end
     def bit_size = @bytes_size * 8
     def decorate_var(decl) = "uint#{bit_size}_t #{decl}"
-    def c_example_value = format('%d', (rand * 2**@bytes_size).to_i)
-    def ssa_example_pattern = Pattern.new(:Const, {value: @value, size: @bytes_size})
+    def value = 329875028435 % (2 ** self.bit_size)
+    def c_example_value = format('%d', self.value)
+    def ssa_example_pattern = Pattern.new(:Const, {value: self.value, size: @bytes_size})
   end
 
   class Struct < Type
@@ -402,8 +403,6 @@ EOF
 
 
   declared_types = Set.new
-
-  require 'pry'
 
   generate_cases_incoming do |testcase|
     # declare any type that was not declared yet
