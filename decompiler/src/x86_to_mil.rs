@@ -1210,6 +1210,35 @@ impl<'a> Builder<'a> {
         let full_size = full_dest_reg.size().try_into().unwrap();
         let full_dest = Builder::xlat_reg(full_dest_reg);
 
+        // Intel 64 Software Developer's Manual,
+        // 3.4.1.1 "General-Purpose Registers in 64-Bit Mode":
+        //
+        // >  When in 64-bit mode, operand size determines the
+        // >  number of valid bits in the destination general-purpose
+        // >  register:
+        // >
+        // >  * 64-bit operands generate a 64-bit result in the
+        // >    destination general-purpose register.
+        // >
+        // >  * 8-bit and 16-bit operands generate an 8-bit or 16-bit
+        // >    result. The upper 56 bits or 48 bits (respectively)
+        // >    of the destination general-purpose register are not
+        // >    modified by the operation. If the result of an 8-bit
+        // >    or 16-bit operation is intended for 64-bit address
+        // >    calculation, explicitly sign-extend the register to the
+        // >    full 64-bits.
+        // >
+        // >  * 32-bit operands generate a 32-bit result, zero-extended
+        // >    to a 64-bit result in the destination general-purpose
+        // >    register.
+        // >
+        let (value, value_size) = if value_size == 4 && full_size == 8 {
+            self.extend_zero(value, value_size, full_size);
+            (value, 8)
+        } else {
+            (value, value_size)
+        };
+
         if value_size == full_size {
             self.emit(full_dest, mil::Insn::Get(value));
             return;

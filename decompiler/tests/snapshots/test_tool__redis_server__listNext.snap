@@ -68,8 +68,8 @@ program  98 instrs
    57 r46 <- Const { value: 8, size: 8 }
    58 r46 <- Arith(Add, r46, r14)
    59 r45 <- LoadMem { addr: r46, size: 4 }
-   60 r47 <- Part { src: r19, offset: 4, size: 4 }
-   61 r19 <- Concat { lo: r45, hi: r47 }
+   60 r45 <- Widen { reg: r45, target_size: 8, sign: false }
+   61 r19 <- Get(r45)
 0x4110bb:
    62 r46 <- Part { src: r19, offset: 0, size: 4 }
    63 r48 <- Part { src: r19, offset: 0, size: 4 }
@@ -119,7 +119,6 @@ program  98 instrs
  --- ssa pre-xform
 ssa program  98 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
-         r17 <- Ancestral { anc_name: AncestralName("RDX"), reg_type: Bytes(8) }
   (  4)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
          r44 <- Const { value: 0, size: 8 }
          r45 <- Arith(Add, r44, r42)
@@ -131,10 +130,9 @@ ssa program  98 instrs
          r57 <- Const { value: 8, size: 8 }
          r58 <- Arith(Add, r57, r42)
          r59 <- LoadMem { addr: r58, size: 4 }
-         r60 <- Part { src: r17, offset: 4, size: 4 }
-  (  2)  r61 <- Concat { lo: r59, hi: r60 }
-         r62 <- Part { src: r61, offset: 0, size: 4 }
-         r63 <- Part { src: r61, offset: 0, size: 4 }
+  (  2)  r60 <- Widen { reg: r59, target_size: 8, sign: false }
+         r62 <- Part { src: r60, offset: 0, size: 4 }
+         r63 <- Part { src: r60, offset: 0, size: 4 }
          r64 <- Arith(BitAnd, r62, r63)
          r66 <- IsZero(r64)
          r71 <- Not(r66)

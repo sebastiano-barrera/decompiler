@@ -60,14 +60,14 @@ program  95 instrs
    52 r46 <- Part { src: r16, offset: 0, size: 4 }
    53 r48 <- Part { src: r16, offset: 0, size: 4 }
    54 r46 <- Arith(BitXor, r46, r48)
-   55 r49 <- Part { src: r16, offset: 4, size: 4 }
-   56 r16 <- Concat { lo: r46, hi: r49 }
+   55 r46 <- Widen { reg: r46, target_size: 8, sign: false }
+   56 r16 <- Get(r46)
    57 r10 <- False
    58 r2 <- False
    59 r6 <- SignOf(r46)
    60 r5 <- IsZero(r46)
-   61 r50 <- Part { src: r46, offset: 0, size: 1 }
-   62 r3 <- Parity(r50)
+   61 r49 <- Part { src: r46, offset: 0, size: 1 }
+   62 r3 <- Parity(r49)
 0x1122:
    63 r45 <- Const { value: 8, size: 8 }
    64 r45 <- Arith(Add, r45, r12)
@@ -75,14 +75,14 @@ program  95 instrs
 0x1130:
    66 r46 <- Part { src: r16, offset: 0, size: 4 }
    67 r46 <- ArithK(Add, r46, 1)
-   68 r47 <- Part { src: r16, offset: 4, size: 4 }
-   69 r16 <- Concat { lo: r46, hi: r47 }
+   68 r46 <- Widen { reg: r46, target_size: 8, sign: false }
+   69 r16 <- Get(r46)
    70 r10 <- False
    71 r2 <- False
    72 r6 <- SignOf(r46)
    73 r5 <- IsZero(r46)
-   74 r48 <- Part { src: r46, offset: 0, size: 1 }
-   75 r3 <- Parity(r48)
+   74 r47 <- Part { src: r46, offset: 0, size: 1 }
+   75 r3 <- Parity(r47)
 0x1132:
    76 r46 <- Const { value: 16, size: 8 }
    77 r46 <- Arith(Add, r46, r18)
@@ -112,7 +112,7 @@ program  95 instrs
 ssa program  101 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
   (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  3)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
+  (  2)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
   (  3)  r42 <- FuncArgument { index: 0, reg_type: Bytes(24) }
          r43 <- Part { src: r42, offset: 0, size: 8 }
          r44 <- ArithK(Add, r10, 8)
@@ -126,19 +126,17 @@ ssa program  101 instrs
          r52 <- Part { src: r14, offset: 0, size: 4 }
          r53 <- Part { src: r14, offset: 0, size: 4 }
          r54 <- Arith(BitXor, r52, r53)
-         r55 <- Part { src: r14, offset: 4, size: 4 }
-         r56 <- Concat { lo: r54, hi: r55 }
+         r55 <- Widen { reg: r54, target_size: 8, sign: false }
          r63 <- Const { value: 8, size: 8 }
          r64 <- Arith(Add, r63, r10)
-         r97 <- Upsilon { value: r56, phi_ref: r95 }
+         r97 <- Upsilon { value: r55, phi_ref: r95 }
          r98 <- Upsilon { value: r64, phi_ref: r96 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
          r96 <- Phi
-  (  2)  r95 <- Phi
+         r95 <- Phi
          r66 <- Part { src: r95, offset: 0, size: 4 }
          r67 <- ArithK(Add, r66, 1)
-         r68 <- Part { src: r95, offset: 4, size: 4 }
-  (  2)  r69 <- Concat { lo: r67, hi: r68 }
+  (  2)  r68 <- Widen { reg: r67, target_size: 8, sign: false }
          r76 <- Const { value: 16, size: 8 }
          r77 <- Arith(Add, r76, r96)
   (  2)  r78 <- LoadMem { addr: r77, size: 8 }
@@ -146,18 +144,18 @@ ssa program  101 instrs
          r82 <- IsZero(r80)
          r87 <- Not(r82)
          r88 <- SetJumpCondition(r87)
-         r99 <- Upsilon { value: r69, phi_ref: r95 }
+         r99 <- Upsilon { value: r68, phi_ref: r95 }
          r100 <- Upsilon { value: r80, phi_ref: r96 }
 .B2:    ;; preds:B1  → Always(Return).
-         r91 <- Concat { lo: r90, hi: r69 }
+         r91 <- Concat { lo: r90, hi: r68 }
          r92 <- Part { src: r91, offset: 0, size: 4 }
          r93 <- SetReturnValue(r92)
 
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(1))) [r10, r14, r42, r43, r44, r45, r101, r47, r48, r102, r50, r51, r52, r53, r54, r55, r56, r64, r97, r98]
-  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r96, r95, r66, r67, r68, r69, r77, r78, r82, r87, r88, r99, r100]
+  BlockID(0) -> Always(Block(BlockID(1))) [r10, r14, r42, r43, r44, r45, r101, r47, r48, r102, r50, r51, r52, r53, r54, r55, r64, r97, r98]
+  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r96, r95, r66, r67, r68, r77, r78, r82, r87, r88, r99, r100]
   BlockID(2) -> Always(Return) [r93]
   domtree:
     BlockID(0)
@@ -168,7 +166,7 @@ ssa program  101 instrs
 ssa program  103 instrs
 .B0:    ;;  → Always(Block(BlockID(1))).
   (  4)  r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  3)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
+  (  2)  r14 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
   (  3)  r42 <- FuncArgument { index: 0, reg_type: Bytes(24) }
          r43 <- Part { src: r42, offset: 0, size: 8 }
          r44 <- ArithK(Add, r10, 8)
@@ -182,24 +180,22 @@ ssa program  103 instrs
          r52 <- Part { src: r14, offset: 0, size: 4 }
          r53 <- Part { src: r14, offset: 0, size: 4 }
          r54 <- Arith(BitXor, r52, r53)
-         r55 <- Part { src: r14, offset: 4, size: 4 }
-         r56 <- Concat { lo: r54, hi: r55 }
+         r55 <- Widen { reg: r54, target_size: 8, sign: false }
          r64 <- ArithK(Add, r10, 8)
-         r97 <- Upsilon { value: r56, phi_ref: r95 }
+         r97 <- Upsilon { value: r55, phi_ref: r95 }
          r98 <- Upsilon { value: r64, phi_ref: r96 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
          r96 <- Phi
-  (  2)  r95 <- Phi
+         r95 <- Phi
          r66 <- Part { src: r95, offset: 0, size: 4 }
   (  2)  r67 <- ArithK(Add, r66, 1)
-         r68 <- Part { src: r95, offset: 4, size: 4 }
-         r69 <- Concat { lo: r67, hi: r68 }
+         r68 <- Widen { reg: r67, target_size: 8, sign: false }
          r77 <- ArithK(Add, r96, 16)
   (  2)  r78 <- LoadMem { addr: r77, size: 8 }
          r82 <- IsZero(r78)
          r87 <- Not(r82)
          r88 <- SetJumpCondition(r87)
-         r99 <- Upsilon { value: r69, phi_ref: r95 }
+         r99 <- Upsilon { value: r68, phi_ref: r95 }
          r100 <- Upsilon { value: r78, phi_ref: r96 }
 .B2:    ;; preds:B1  → Always(Return).
          r93 <- SetReturnValue(r67)
@@ -212,7 +208,7 @@ T0: {
   [pre:RSP + 8]:* := r42[8 .. 0];
   [pre:RSP + 16]:* := r42.prev;
   [pre:RSP + 24]:* := r42.next;
-  r95 := pre:RAX[8 .. 4] ++ (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]);
+  r95 := (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]) as u64;
   r96 := pre:RSP + 8;
   goto T1
   T1: {
@@ -221,7 +217,7 @@ T0: {
     let r67: Bytes(4) = r95[4 .. 0] + 1;
     let r78: Bytes(8) = [r96 + 16]:8;
     ;
-    r95 := r95[8 .. 4] ++ r67;
+    r95 := r67 as u64;
     r96 := [r96 + 16]:8;
     if ! IsZero (r78) {
       goto T1

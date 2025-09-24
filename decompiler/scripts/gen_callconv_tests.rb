@@ -288,15 +288,18 @@ EOF
     root = ssa.add(Pattern.new(:FuncArgument, { :index => target_arg_ndx }))
     @access_path.write_pattern_to(ssa, root)
 
-    [
-      "#[test]",
-      "fn #{name_in}() {",
-      "    let data_flow = compute_data_flow(#{name_in.dump});",
-      "    let insns = data_flow.as_slice();",
-      "",
-      "    " + ssa.rs_test_code,
-      "}",
-    ].join("\n")
+
+    tmpl = <<-'EOF'
+    #[test]
+    fn <%= name_in %>() {
+        let data_flow = compute_data_flow(<%= name_in.dump %>);
+        let insns = data_flow.as_slice();
+
+        <%= ssa.rs_test_code %>
+    }
+EOF
+
+    ERB.new(tmpl).result(binding)
   end
 end
 

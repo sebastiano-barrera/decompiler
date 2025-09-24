@@ -606,7 +606,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 ///
 /// If we have the following SSA:
 ///
-/// ```
+/// ```ignore
 /// r10 <- Call {value: r5, first_arg: None}
 /// r11 <- Call {value: r6, first_arg: Some(r10)}
 /// r12 <- Call {value: r7, first_arg: Some(r11)}
