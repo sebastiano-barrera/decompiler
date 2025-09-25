@@ -30,7 +30,7 @@ impl<'a> Ast<'a> {
                 || (*count > 1
                     && !matches!(insn, Insn::StoreMem { .. })
                     && !matches!(insn, Insn::Ancestral { .. })
-                    && !matches!(insn, Insn::Const { .. }))
+                    && !matches!(insn, Insn::Int { .. }))
         });
 
         Ast {
@@ -253,8 +253,29 @@ impl<'a> Ast<'a> {
             Insn::Void => write!(pp, "void")?,
             Insn::True => write!(pp, "true")?,
             Insn::False => write!(pp, "false")?,
-            Insn::Const { value, size: _ } => {
+            Insn::Int { value, .. } => {
                 write!(pp, "{}", value)?;
+            }
+            Insn::ReinterpretFloat32(src) => {
+                write!(pp, "<f32>(")?;
+                self.pp_ref(pp, src, self_prec)?;
+                write!(pp, ")")?;
+            }
+            Insn::ReinterpretFloat64(src) => {
+                write!(pp, "<f64>(")?;
+                self.pp_ref(pp, src, self_prec)?;
+                write!(pp, ")")?;
+            }
+
+            Insn::Bytes(bytes) => {
+                write!(pp, "0x<")?;
+                for (ndx, byte) in bytes.as_slice().iter().enumerate() {
+                    if ndx > 0 {
+                        write!(pp, " ")?;
+                    }
+                    write!(pp, "{:02x}", byte)?;
+                }
+                write!(pp, ">")?;
             }
 
             Insn::Get(arg) => {
@@ -439,7 +460,7 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
             }
             Insn::Upsilon { value, phi_ref } => match self.ssa.reg_type(value) {
-                mil::RegType::Bool | mil::RegType::Bytes(_) => {
+                mil::RegType::Bool | mil::RegType::Bytes(_) | mil::RegType::Float { .. } => {
                     write!(pp, "r{} := ", phi_ref.reg_index())?;
                     pp.open_box();
                     self.pp_def(pp, value, 0)?;
@@ -582,7 +603,10 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::Void
         | Insn::True
         | Insn::False
-        | Insn::Const { .. }
+        | Insn::Int { .. }
+        | Insn::Bytes(..)
+        | Insn::ReinterpretFloat32(_)
+        | Insn::ReinterpretFloat64(_)
         | Insn::UndefinedBool
         | Insn::UndefinedBytes { .. }
         | Insn::Ancestral { .. }

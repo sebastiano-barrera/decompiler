@@ -50,13 +50,13 @@ program  90 instrs
    42 r12 <- ArithK(Add, r12, -8)
    43 r46 <- StoreMem { addr: r12, value: r11 }
 0x50c4d1:
-   44 r45 <- Const { value: 24, size: 4 }
+   44 r45 <- Int { value: 24, size: 4 }
    45 r45 <- Widen { reg: r45, target_size: 8, sign: false }
    46 r14 <- Get(r45)
 0x50c4d6:
    47 r11 <- Get(r12)
 0x50c4d9:
-   48 r45 <- Const { value: 4433936, size: 8 }
+   48 r45 <- Int { value: 4433936, size: 8 }
    49 r47 <- Void
    50 r47 <- Get(r14)
    51 r46 <- CArg { value: r47, next_arg: None }
@@ -84,13 +84,13 @@ program  90 instrs
    72 r50 <- Part { src: r46, offset: 0, size: 1 }
    73 r3 <- Parity(r50)
 0x50c4e2:
-   74 r45 <- Const { value: 0, size: 8 }
-   75 r46 <- Const { value: 0, size: 8 }
+   74 r45 <- Int { value: 0, size: 8 }
+   75 r46 <- Int { value: 0, size: 8 }
    76 r46 <- Arith(Add, r46, r16)
    77 r46 <- StoreMem { addr: r46, value: r45 }
 0x50c4e9:
    78 r46 <- Part { src: r28, offset: 0, size: 16 }
-   79 r47 <- Const { value: 8, size: 8 }
+   79 r47 <- Int { value: 8, size: 8 }
    80 r47 <- Arith(Add, r47, r16)
    81 r47 <- StoreMem { addr: r47, value: r46 }
 0x50c4ed:
@@ -113,9 +113,9 @@ ssa program  90 instrs
   (  3)  r26 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
          r42 <- ArithK(Add, r10, -8)
          r43 <- StoreMem { addr: r42, value: r9 }
-         r44 <- Const { value: 24, size: 4 }
+         r44 <- Int { value: 24, size: 4 }
          r45 <- Widen { reg: r44, target_size: 8, sign: false }
-         r48 <- Const { value: 4433936, size: 8 }
+         r48 <- Int { value: 4433936, size: 8 }
          r51 <- CArg { value: r45, next_arg: None }
          r52 <- Call { callee: r48, first_arg: Some(r51) }
   (  3)  r62 <- Part { src: r52, offset: 0, size: 8 }
@@ -124,12 +124,12 @@ ssa program  90 instrs
          r65 <- Arith(BitXor, r63, r64)
          r66 <- Part { src: r26, offset: 16, size: 48 }
          r67 <- Concat { lo: r65, hi: r66 }
-         r74 <- Const { value: 0, size: 8 }
-         r75 <- Const { value: 0, size: 8 }
+         r74 <- Int { value: 0, size: 8 }
+         r75 <- Int { value: 0, size: 8 }
          r76 <- Arith(Add, r75, r62)
          r77 <- StoreMem { addr: r76, value: r74 }
          r78 <- Part { src: r67, offset: 0, size: 16 }
-         r79 <- Const { value: 8, size: 8 }
+         r79 <- Int { value: 8, size: 8 }
          r80 <- Arith(Add, r79, r62)
          r81 <- StoreMem { addr: r80, value: r78 }
          r86 <- Concat { lo: r85, hi: r62 }
@@ -151,14 +151,14 @@ ssa program  90 instrs
   (  2)  r26 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
          r42 <- ArithK(Add, r10, -8)
          r43 <- StoreMem { addr: r42, value: r9 }
-         r45 <- Const { value: 24, size: 8 }
-         r48 <- Const { value: 4433936, size: 8 }
+         r45 <- Int { value: 24, size: 8 }
+         r48 <- Int { value: 4433936, size: 8 }
          r51 <- CArg { value: r45, next_arg: None }
   (  3)  r52 <- Call { callee: r48, first_arg: Some(r51) }
          r63 <- Part { src: r26, offset: 0, size: 16 }
          r64 <- Part { src: r26, offset: 0, size: 16 }
          r65 <- Arith(BitXor, r63, r64)
-         r74 <- Const { value: 0, size: 8 }
+         r74 <- Int { value: 0, size: 8 }
          r77 <- StoreMem { addr: r52, value: r74 }
          r80 <- ArithK(Add, r52, 8)
          r81 <- StoreMem { addr: r80, value: r65 }

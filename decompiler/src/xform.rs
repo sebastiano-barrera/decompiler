@@ -62,7 +62,7 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
             let ri = prog.get(rr).unwrap();
 
             // ensure the const is on the right
-            if let Insn::Const { .. } = li {
+            if let Insn::Int { .. } = li {
                 (op, rr, ri, li)
             } else {
                 (op, lr, li, ri)
@@ -72,17 +72,17 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
             op,
             a,
             prog.get(a).unwrap(),
-            Insn::Const { value: bk, size: 8 },
+            Insn::Int { value: bk, size: 8 },
         ),
         _ => return insn,
     };
 
     // if there is a Const, it's on the right (or they are both Const)
-    assert!(matches!(ri, Insn::Const { .. }) || !matches!(li, Insn::Const { .. }));
+    assert!(matches!(ri, Insn::Int { .. }) || !matches!(li, Insn::Int { .. }));
 
     // convert sub to add to increase the probability of applying the following rules
     if op == ArithOp::Sub {
-        if let Insn::Const { value, .. } = &mut ri {
+        if let Insn::Int { value, .. } = &mut ri {
             op = ArithOp::Add;
             *value = -*value;
         } else if let Insn::ArithK(ArithOp::Add, _, r_k) = &mut ri {
@@ -99,29 +99,29 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
             if let Some(k) = assoc_const(op, lk, rk) {
                 li = fold_constants(Insn::Arith(op, llr, rlr), prog, bid);
                 lr = prog.append_new(bid, li);
-                ri = Insn::Const { value: k, size: 8 };
+                ri = Insn::Int { value: k, size: 8 };
             }
         }
         // (a op ka) op kb === a op (ka op kb)  (if op is associative)
-        (Insn::ArithK(l_op, llr, lk), Insn::Const { value: rk, .. }) if l_op == op => {
+        (Insn::ArithK(l_op, llr, lk), Insn::Int { value: rk, .. }) if l_op == op => {
             if let Some(k) = assoc_const(op, lk, rk) {
                 li = prog.get(llr).unwrap();
                 lr = llr;
-                ri = Insn::Const { value: k, size: 8 };
+                ri = Insn::Int { value: k, size: 8 };
             }
         }
         _ => {}
     }
 
     match (op, li, ri) {
-        (op, Insn::Const { value: ka, .. }, Insn::Const { value: kb, .. }) => Insn::Const {
+        (op, Insn::Int { value: ka, .. }, Insn::Int { value: kb, .. }) => Insn::Int {
             value: eval_const(op, ka, kb),
             size: 8,
         },
-        (ArithOp::Add, _, Insn::Const { value: 0, .. }) => Insn::Get(lr),
-        (ArithOp::Mul, _, Insn::Const { value: 1, .. }) => Insn::Get(lr),
+        (ArithOp::Add, _, Insn::Int { value: 0, .. }) => Insn::Get(lr),
+        (ArithOp::Mul, _, Insn::Int { value: 1, .. }) => Insn::Get(lr),
 
-        (op, _, Insn::Const { value: kr, .. }) => Insn::ArithK(op, lr, kr),
+        (op, _, Insn::Int { value: kr, .. }) => Insn::ArithK(op, lr, kr),
         _ => {
             // dang it, we couldn't hack it
             insn
@@ -215,7 +215,7 @@ fn fold_concat_void(insn: Insn, prog: &ssa::Program) -> Insn {
 fn fold_bitops(insn: Insn, prog: &ssa::Program) -> Insn {
     match insn {
         // TODO put the appropriate size
-        Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Const {
+        Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Int {
             value: 0,
             size: prog.reg_type(a).bytes_size().unwrap().try_into().unwrap(),
         },
@@ -361,9 +361,9 @@ fn fold_widen_const(insn: Insn, prog: &ssa::Program) -> Insn {
         sign: _,
     } = insn
     {
-        if let Insn::Const { value, size } = prog.get(reg).unwrap() {
+        if let Insn::Int { value, size } = prog.get(reg).unwrap() {
             assert!(target_size > size);
-            return Insn::Const {
+            return Insn::Int {
                 value,
                 size: target_size,
             };
@@ -455,6 +455,13 @@ fn fold_part_void(insn: Insn) -> Insn {
     insn
 }
 
+/// If the given instruction is `Insn::Part { src, offset, size }`, and we know
+/// the type of `src`, then use the type information to replace it with a chain
+/// of instructions that extract the relevant part of `src` (e.g. named struct
+/// members, array element access by index).
+///
+/// Doesn't do anything for other types of instructions or when no type info is
+/// available.
 fn apply_type_selection(
     insn: Insn,
     prog: &mut ssa::OpenProgram,
@@ -510,6 +517,53 @@ fn apply_type_selection(
     // on the register corresponding to its result (`append_new` is done by
     // `canonical`). so, Insn::Get it is
     Insn::Get(last_reg)
+}
+
+/// Add cast instructions wherever high level type information indicates that it might be valuable to do so.
+///
+/// Typical example is: a value with HLL ty::Ty::Float but RegType::Bytes. In
+/// this case, `Insn::ReinterpretFloat` (RegType::Float) can be inserted, which
+/// may (in combination with constant folding), produce a proper float literal
+/// in the final decompiled output.
+fn add_cast_for_type(
+    insn: Insn,
+    reg: Reg,
+    prog: &mut ssa::OpenProgram,
+    bid: BlockID,
+    types: &ty::TypeSet,
+) -> Insn {
+    let Some(tyid) = prog.value_type(reg) else {
+        return insn;
+    };
+    let Some(ty) = types.get_through_alias(tyid) else {
+        return insn;
+    };
+
+    let rt = prog.reg_type(reg);
+
+    match (rt, &*ty) {
+        (RegType::Bytes(_), ty::Ty::Float(float_ty)) => {
+            // move the original insn to a different register, without copying
+            // type info! (or we go in an infinite loop)
+            let new_reg = prog.append_new(bid, insn);
+
+            match float_ty.size {
+                4 => Insn::ReinterpretFloat32(new_reg),
+                8 => Insn::ReinterpretFloat64(new_reg),
+                _ => {
+                    event!(
+                        Level::WARN,
+                        ?reg,
+                        ?tyid,
+                        ?float_ty,
+                        "cannot add cast for float type of unsupported size"
+                    );
+                    return insn;
+                }
+            }
+        }
+        _ => insn,
+    }
 }
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
@@ -570,6 +624,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_constants(insn, &mut prog, bid);
                 insn = fold_shr_part(insn, &mut prog, bid);
                 insn = apply_type_selection(insn, &mut prog, bid, types);
+                insn = add_cast_for_type(insn, reg, &mut prog, bid, types);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
@@ -596,6 +651,8 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 }
             }
         }
+
+        event!(Level::TRACE, prog = ? &*prog, "ssa after xform cycle");
     }
 }
 
@@ -828,10 +885,13 @@ fn find_mem_ref(prog: &ssa::Program) -> Option<Reg> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        mil::{self, Control},
+        mil::{self, Control, R},
         ssa, ty,
+        util::Bytes,
     };
     use mil::{ArithOp, Insn, Reg};
+
+    use super::canonical;
 
     mod constant_folding {
         use crate::{
@@ -850,8 +910,8 @@ mod tests {
                     reg_type: mil::RegType::Bytes(8),
                 },
             );
-            prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
-            prog.push(Reg(2), Insn::Const { value: 44, size: 8 });
+            prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
+            prog.push(Reg(2), Insn::Int { value: 44, size: 8 });
             prog.push(Reg(0), Insn::Arith(ArithOp::Add, Reg(1), Reg(0)));
             prog.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
             prog.push(Reg(4), Insn::Arith(ArithOp::Add, Reg(2), Reg(1)));
@@ -862,7 +922,7 @@ mod tests {
                     value: Reg(3),
                 },
             );
-            prog.push(Reg(3), Insn::Const { value: 0, size: 8 });
+            prog.push(Reg(3), Insn::Int { value: 0, size: 8 });
             prog.push(
                 Reg(4),
                 Insn::Ancestral {
@@ -882,10 +942,7 @@ mod tests {
                 prog.get(Reg(4)).unwrap(),
                 Insn::ArithK(ArithOp::Add, Reg(0), 10)
             );
-            assert_eq!(
-                prog.get(Reg(5)).unwrap(),
-                Insn::Const { value: 49, size: 8 }
-            );
+            assert_eq!(prog.get(Reg(5)).unwrap(), Insn::Int { value: 49, size: 8 });
             assert_eq!(
                 prog.get(Reg(8)).unwrap(),
                 Insn::Ancestral {
@@ -906,12 +963,12 @@ mod tests {
                     reg_type: mil::RegType::Bytes(8),
                 },
             );
-            prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
-            prog.push(Reg(2), Insn::Const { value: 44, size: 8 });
+            prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
+            prog.push(Reg(2), Insn::Int { value: 44, size: 8 });
             prog.push(Reg(0), Insn::Arith(ArithOp::Mul, Reg(1), Reg(0)));
             prog.push(Reg(3), Insn::Arith(ArithOp::Mul, Reg(0), Reg(1)));
             prog.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(2), Reg(3)));
-            prog.push(Reg(3), Insn::Const { value: 1, size: 8 });
+            prog.push(Reg(3), Insn::Int { value: 1, size: 8 });
             prog.push(
                 Reg(0),
                 Insn::StoreMem {
@@ -1189,8 +1246,8 @@ mod tests {
         // earlier transform
 
         let mut prog = mil::Program::new(Reg(0));
-        prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
-        prog.push(Reg(2), Insn::Const { value: 44, size: 8 });
+        prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
+        prog.push(Reg(2), Insn::Int { value: 44, size: 8 });
 
         // removed by fold_bitops
         prog.push(Reg(1), Insn::Arith(ArithOp::BitAnd, Reg(1), Reg(1)));
@@ -1209,10 +1266,37 @@ mod tests {
         assert_eq!(prog.insns_rpo().count(), 2);
         assert_eq!(
             prog.get(Reg(4)).unwrap(),
-            Insn::Const {
+            Insn::Int {
                 value: 5 * 44,
                 size: 8
             }
         );
+    }
+
+    #[test]
+    fn add_cast_float() {
+        let a_float_value: f64 = 3.14159;
+        let float_as_bytes = Bytes::from_slice(a_float_value.to_le_bytes().as_slice()).unwrap();
+
+        let mut types = ty::TypeSet::new();
+        const TYID_F64: ty::TypeID = ty::TypeID(123);
+        types.set(TYID_F64, ty::Ty::Float(ty::Float { size: 8 }));
+
+        let mut prog = mil::Program::new(Reg(0));
+        prog.push(Reg(0), Insn::Bytes(float_as_bytes));
+
+        let mut prog = ssa::Program::from_mil(prog);
+        let mut prog = ssa::OpenProgram::wrap(&mut prog);
+        prog.set_value_type(Reg(0), Some(TYID_F64));
+
+        let bid = prog.cfg().entry_block_id();
+        prog.clear_block_schedule(bid);
+        let orig_insn = prog.get(Reg(0)).unwrap();
+        let insn = super::add_cast_for_type(orig_insn, R(0), &mut prog, bid, &types);
+
+        let Insn::ReinterpretFloat64(src) = insn else {
+            panic!("wrong insn: {insn:?}")
+        };
+        assert_eq!(prog.get(src).unwrap(), orig_insn);
     }
 }

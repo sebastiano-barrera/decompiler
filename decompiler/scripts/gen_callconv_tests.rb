@@ -29,12 +29,14 @@ module Model
     def decorate_var(decl) = "float #{decl}"
     def c_example_value = format('%.3ff', self.value)
     def ssa_example_pattern = Pattern.new(:Const, {value: self.value})
+    def access_self = AccessViaPattern.new(type: self) { |src| PatternTuple.new(:ReinterpretFloat32, [[:src, src]]) }
   end
   class Double < Scalar
     def value = 987.321
     def decorate_var(decl) = "double #{decl}"
     def c_example_value = format('%f', self.value)
     def ssa_example_pattern = Pattern.new(:Const, {value: self.value})
+    def access_self = AccessViaPattern.new(type: self) { |src| PatternTuple.new(:ReinterpretFloat64, [[:src, src]]) }
   end
   class UInt < Scalar
     def initialize(bytes_size)
@@ -178,6 +180,14 @@ module Model
       }))
     end
   end
+  class AccessViaPattern < Access
+    def initialize(type:, &block)
+      super(type)
+      @block = block
+    end
+    def c_expression(start) = "#{start}"
+    def write_pattern_to(ssa, src) = ssa.add(@block.call(src))
+  end
   class AccessCompose < Access
     def initialize(first, second)
       super(second.type)
@@ -199,22 +209,36 @@ class Pattern
   end
 
   def rs_test_code(ndx)
-    lines = [
-      "assert_matches!(",
-      "    &insns[#{ndx}],",
-      "    Insn::#{@opcode} { #{@args.keys.join(", ")}, .. },",
-      "    {",
-    ]
+    ERB.new('
+      assert_matches!(
+          &insns[<%= ndx %>],
+          Insn::<%= @opcode %> { <%= @args.keys.join(", ") %>, .. },
+          {
+            <% @args.map do |field_name, value_pat| %>
+              assert_eq!(*<%= field_name %>, <%= value_pat.to_rs_expr %>);
+            <% end %>
+          }
+      );
+    ').result(binding)
+  end
+end
 
-    lines += @args.map do |field_name, value_pat|
-      "         assert_eq!(*#{field_name}, #{value_pat.to_rs_expr});"
-    end
-
-    lines += [
-      "    }",
-      ");",
-    ]
-    lines.join("\n")
+class PatternTuple < Pattern
+  def rs_test_code(ndx)
+    ERB.new('
+      assert_matches!(
+          &insns[<%= ndx %>],
+          Insn::<%= @opcode %>(<%= @args.map{ |tup| tup[0] }.join(", ") %>),
+          {
+            <%
+              @args.map do |tup|
+                field_name, value_pat = tup
+            %>
+              assert_eq!(*<%= field_name %>, <%= value_pat.to_rs_expr %>);
+            <% end %>
+          }
+      );
+    ').result(binding)
   end
 end
 

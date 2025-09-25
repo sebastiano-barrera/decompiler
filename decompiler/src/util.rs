@@ -114,3 +114,44 @@ pub fn common_ancestor<T: NumberedTree>(
 
     Some(ka)
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, facet::Facet)]
+pub struct Bytes {
+    data: [u8; Bytes::CAPACITY],
+    len: u8,
+}
+
+impl Bytes {
+    pub const CAPACITY: usize = 8;
+
+    pub fn empty() -> Self {
+        Self {
+            data: [0u8; Bytes::CAPACITY],
+            len: 0,
+        }
+    }
+
+    pub fn from_slice(slice: &[u8]) -> Option<Self> {
+        if slice.len() > Self::CAPACITY {
+            return None;
+        }
+        let mut data = [0u8; Self::CAPACITY];
+        data[0..slice.len()].copy_from_slice(slice);
+        Some(Self {
+            data,
+            len: slice.len().try_into().unwrap(),
+        })
+    }
+
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.data[0..self.len()]
+    }
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
+        let len = self.len();
+        &mut self.data[0..len]
+    }
+}

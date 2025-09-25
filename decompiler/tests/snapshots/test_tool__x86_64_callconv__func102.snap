@@ -73,25 +73,25 @@ program  101 instrs
 0x401301:
    66 r16 <- Get(r14)
 0x401304:
-   67 r46 <- Const { value: 8, size: 8 }
+   67 r46 <- Int { value: 8, size: 8 }
    68 r46 <- Arith(Add, r46, r12)
    69 r45 <- LoadMem { addr: r46, size: 16 }
    70 r47 <- Part { src: r28, offset: 16, size: 48 }
    71 r28 <- Concat { lo: r45, hi: r47 }
 0x401309:
-   72 r46 <- Const { value: 24, size: 8 }
+   72 r46 <- Int { value: 24, size: 8 }
    73 r46 <- Arith(Add, r46, r12)
    74 r45 <- LoadMem { addr: r46, size: 16 }
    75 r47 <- Part { src: r29, offset: 16, size: 48 }
    76 r29 <- Concat { lo: r45, hi: r47 }
 0x40130e:
    77 r46 <- Part { src: r29, offset: 0, size: 16 }
-   78 r47 <- Const { value: 16, size: 8 }
+   78 r47 <- Int { value: 16, size: 8 }
    79 r47 <- Arith(Add, r47, r14)
    80 r47 <- StoreMem { addr: r47, value: r46 }
 0x401312:
    81 r46 <- Part { src: r28, offset: 0, size: 16 }
-   82 r47 <- Const { value: 0, size: 8 }
+   82 r47 <- Int { value: 0, size: 8 }
    83 r47 <- Arith(Add, r47, r14)
    84 r47 <- StoreMem { addr: r47, value: r46 }
 0x401315:
@@ -133,22 +133,22 @@ ssa program  101 instrs
          r63 <- Part { src: r53, offset: 24, size: 8 }
          r64 <- ArithK(Add, r10, 32)
          r65 <- StoreMem { addr: r64, value: r63 }
-         r67 <- Const { value: 8, size: 8 }
+         r67 <- Int { value: 8, size: 8 }
          r68 <- Arith(Add, r67, r10)
          r69 <- LoadMem { addr: r68, size: 16 }
          r70 <- Part { src: r26, offset: 16, size: 48 }
          r71 <- Concat { lo: r69, hi: r70 }
-         r72 <- Const { value: 24, size: 8 }
+         r72 <- Int { value: 24, size: 8 }
          r73 <- Arith(Add, r72, r10)
          r74 <- LoadMem { addr: r73, size: 16 }
          r75 <- Part { src: r27, offset: 16, size: 48 }
          r76 <- Concat { lo: r74, hi: r75 }
          r77 <- Part { src: r76, offset: 0, size: 16 }
-         r78 <- Const { value: 16, size: 8 }
+         r78 <- Int { value: 16, size: 8 }
          r79 <- Arith(Add, r78, r12)
          r80 <- StoreMem { addr: r79, value: r77 }
          r81 <- Part { src: r71, offset: 0, size: 16 }
-         r82 <- Const { value: 0, size: 8 }
+         r82 <- Int { value: 0, size: 8 }
          r83 <- Arith(Add, r82, r12)
          r84 <- StoreMem { addr: r83, value: r81 }
          r86 <- ArithK(Add, r12, 0)

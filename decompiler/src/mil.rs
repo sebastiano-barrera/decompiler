@@ -5,7 +5,7 @@ use facet_reflect::HasFields;
 // coming
 use std::{cell::Cell, collections::HashMap};
 
-use crate::ty;
+use crate::{ty, util::Bytes};
 
 /// A MIL program.
 ///
@@ -46,6 +46,14 @@ pub struct Program {
     /// Number of instructions that have already been checked for correct
     /// use-after-init. See `check_use_after_init`.
     init_checked_count: usize,
+
+    /// Machine endianness.
+    ///
+    /// This needs to be specified in order to keep the code really
+    /// machine-independent.
+    ///
+    /// The default is Little Endian.
+    endianness: Endianness,
 }
 
 /// Register ID
@@ -78,6 +86,7 @@ pub type Index = u16;
 #[repr(u8)]
 pub enum RegType {
     Bytes(usize),
+    Float { bytes_size: usize },
     Bool,
     Effect,
 }
@@ -85,6 +94,7 @@ impl RegType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
             RegType::Bytes(sz) => Some(*sz),
+            RegType::Float { bytes_size } => Some(*bytes_size),
             RegType::Bool => None,
             RegType::Effect => None,
         }
@@ -97,6 +107,12 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
     items.into_iter().collect()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Endianness {
+    Little,
+    Big,
+}
+
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet)]
 #[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
@@ -107,10 +123,16 @@ pub enum Insn {
     Void,
     True,
     False,
-    Const {
+    Bytes(Bytes),
+    Int {
         value: i64,
         size: u16,
     },
+    #[assoc(input_regs = array([_0]))]
+    ReinterpretFloat32(Reg),
+    #[assoc(input_regs = array([_0]))]
+    ReinterpretFloat64(Reg),
+
     #[assoc(input_regs = array([_0]))]
     Get(Reg),
 
@@ -405,7 +427,15 @@ impl Program {
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
             mil_of_input_addr: HashMap::new(),
+            endianness: Endianness::Little,
         }
+    }
+
+    pub fn endianness(&self) -> Endianness {
+        self.endianness
+    }
+    pub fn set_endianness(&mut self, endianness: Endianness) {
+        self.endianness = endianness;
     }
 
     /// Generate a new temporary register.

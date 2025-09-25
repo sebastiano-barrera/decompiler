@@ -75,7 +75,7 @@ program  82 instrs
    68 r53 <- ArithK(Add, r12, 48)
    69 r53 <- StoreMem { addr: r53, value: r54 }
 0x40139b:
-   70 r46 <- Const { value: 16, size: 8 }
+   70 r46 <- Int { value: 16, size: 8 }
    71 r46 <- Arith(Add, r46, r12)
    72 r45 <- LoadMem { addr: r46, size: 8 }
    73 r45 <- Widen { reg: r45, target_size: 16, sign: false }
@@ -115,7 +115,7 @@ ssa program  82 instrs
          r67 <- Part { src: r57, offset: 24, size: 8 }
          r68 <- ArithK(Add, r10, 48)
          r69 <- StoreMem { addr: r68, value: r67 }
-         r70 <- Const { value: 16, size: 8 }
+         r70 <- Int { value: 16, size: 8 }
          r71 <- Arith(Add, r70, r10)
          r72 <- LoadMem { addr: r71, size: 8 }
          r73 <- Widen { reg: r72, target_size: 16, sign: false }

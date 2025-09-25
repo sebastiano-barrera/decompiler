@@ -58,6 +58,14 @@ pub struct Program {
 /// that the &mut Program is wrapped in a temporary [OpenProgram], which is the
 /// only type provding editing APIs.
 impl Program {
+    pub fn empty() -> Self {
+        // I know this looks weird, but it's the easiest way to get all the cfg
+        // structures properly initialized without having to think too much
+        // about it.
+        let mil_empty = mil::Program::new(mil::Reg(0));
+        Self::from_mil(mil_empty)
+    }
+
     pub fn from_mil(mil: mil::Program) -> Self {
         cons::mil_to_ssa(mil)
     }
@@ -169,7 +177,10 @@ impl Program {
             Insn::Void => RegType::Bytes(0), // TODO better choice here?
             Insn::True => RegType::Bool,
             Insn::False => RegType::Bool,
-            Insn::Const { size, .. } => RegType::Bytes(size as usize),
+            Insn::Int { size, .. } => RegType::Bytes(size as usize),
+            Insn::Bytes(bytes) => RegType::Bytes(bytes.len()),
+            Insn::ReinterpretFloat32(_) => RegType::Float { bytes_size: 4 },
+            Insn::ReinterpretFloat64(_) => RegType::Float { bytes_size: 8 },
             Insn::Part { size, .. } => RegType::Bytes(size as usize),
             Insn::Get(arg) => self.reg_type(arg),
             Insn::Concat { lo, hi } => {
@@ -307,9 +318,7 @@ impl Program {
                     assert!(!block_visited[bid]);
                     block_visited[bid] = true;
 
-                    for &ndx in self.schedule.of_block(bid) {
-                        let reg = mil::Reg(ndx);
-
+                    for reg in self.block_regs(bid) {
                         let mut insn = self.get(reg).unwrap();
                         for &mut input in insn.input_regs_iter() {
                             let Some(def_block_input) = def_block[input] else {
@@ -332,8 +341,7 @@ impl Program {
                     }
                 }
                 Cmd::End(bid) => {
-                    for &ndx in self.schedule.of_block(bid) {
-                        let reg = mil::Reg(ndx);
+                    for reg in self.block_regs(bid) {
                         def_block[reg] = None;
                     }
                 }
@@ -606,7 +614,7 @@ fn test_assert_no_circular_refs() {
     prog.set_input_addr(0xf0);
     prog.push(
         Reg(0),
-        Insn::Const {
+        Insn::Int {
             value: 123,
             size: 8,
         },
@@ -723,8 +731,8 @@ mod input_chain_tests {
 
     fn mk_simple_program() -> Program {
         let mut prog = mil::Program::new(R(20));
-        prog.push(R(0), mil::Insn::Const { value: 8, size: 8 });
-        prog.push(R(1), mil::Insn::Const { value: 9, size: 8 });
+        prog.push(R(0), mil::Insn::Int { value: 8, size: 8 });
+        prog.push(R(1), mil::Insn::Int { value: 9, size: 8 });
         prog.push(R(0), mil::Insn::Arith(mil::ArithOp::Mul, R(0), R(0)));
         prog.push(
             R(0),
@@ -767,7 +775,7 @@ mod tests {
         prog.set_input_addr(0xf0);
         prog.push(
             Reg(0),
-            Insn::Const {
+            Insn::Int {
                 value: 123,
                 size: 8,
             },
@@ -776,11 +784,11 @@ mod tests {
         prog.push(Reg(1), Insn::Control(Control::JmpExtIf(0xf2)));
 
         prog.set_input_addr(0xf1);
-        prog.push(Reg(2), Insn::Const { value: 4, size: 1 });
+        prog.push(Reg(2), Insn::Int { value: 4, size: 1 });
         prog.push(Reg(1), Insn::Control(Control::JmpExt(0xf3)));
 
         prog.set_input_addr(0xf2);
-        prog.push(Reg(2), Insn::Const { value: 8, size: 1 });
+        prog.push(Reg(2), Insn::Int { value: 8, size: 1 });
 
         prog.set_input_addr(0xf3);
         prog.push(Reg(4), Insn::ArithK(ArithOp::Add, Reg(2), 456));
@@ -815,8 +823,8 @@ mod tests {
 
     fn make_prog_no_cycles() -> super::Program {
         let mut prog = mil::Program::new(Reg(0));
-        prog.push(Reg(0), Insn::Const { value: 5, size: 8 });
-        prog.push(Reg(1), Insn::Const { value: 5, size: 8 });
+        prog.push(Reg(0), Insn::Int { value: 5, size: 8 });
+        prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
         prog.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
         prog.push(Reg(0), Insn::SetReturnValue(Reg(0)));
         prog.push(Reg(0), Insn::Control(Control::Ret));

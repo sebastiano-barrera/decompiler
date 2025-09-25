@@ -5,14 +5,14 @@ expression: logbuf
 -- mil:
 program  9 instrs
 0xf0:
-    0 r0: TypeID(2v1) <- Const { value: 123, size: 8 }
+    0 r0: TypeID(2v1) <- Int { value: 123, size: 8 }
     1 r1: TypeID(2v1) <- SetJumpCondition(r0)
     2 r1: TypeID(2v1) <- Control(JmpIf(5))
 0xf1:
-    3 r2: TypeID(2v1) <- Const { value: 4, size: 1 }
+    3 r2: TypeID(2v1) <- Int { value: 4, size: 1 }
     4 r1: TypeID(2v1) <- Control(Jmp(6))
 0xf2:
-    5 r2: TypeID(2v1) <- Const { value: 8, size: 1 }
+    5 r2: TypeID(2v1) <- Int { value: 8, size: 1 }
 0xf3:
     6 r4: TypeID(2v1) <- ArithK(Add, r2, 456)
     7 r5: TypeID(2v1) <- SetReturnValue(r4)
@@ -21,15 +21,15 @@ program  9 instrs
 -- ssa:
 ssa program  12 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(1)) }.
-         r0: ? <- Const { value: 123, size: 8 }
+         r0: ? <- Int { value: 123, size: 8 }
          r1: ? <- SetJumpCondition(r0)
          r2: ? <- Control(JmpIf(5))
 .B1:    ;; preds:B0  → Always(Block(BlockID(3))).
-         r3: ? <- Const { value: 4, size: 1 }
+         r3: ? <- Int { value: 4, size: 1 }
          r4: ? <- Control(Jmp(6))
          r11: ? <- Upsilon { value: r3, phi_ref: r9 }
 .B2:    ;; preds:B0  → Always(Block(BlockID(3))).
-         r5: ? <- Const { value: 8, size: 1 }
+         r5: ? <- Int { value: 8, size: 1 }
          r10: ? <- Upsilon { value: r5, phi_ref: r9 }
 .B3:    ;; preds:B1,B2  → Always(Return).
          r9: ? <- Phi

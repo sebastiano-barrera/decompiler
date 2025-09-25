@@ -71,12 +71,12 @@ program  80 instrs
    64 r54 <- ArithK(Add, r12, 32)
    65 r54 <- StoreMem { addr: r54, value: r55 }
 0x4013d2:
-   66 r46 <- Const { value: 24, size: 8 }
+   66 r46 <- Int { value: 24, size: 8 }
    67 r46 <- Arith(Add, r46, r12)
    68 r45 <- LoadMem { addr: r46, size: 8 }
    69 r16 <- Get(r45)
 0x4013d7:
-   70 r46 <- Const { value: 32, size: 8 }
+   70 r46 <- Int { value: 32, size: 8 }
    71 r46 <- Arith(Add, r46, r12)
    72 r45 <- LoadMem { addr: r46, size: 8 }
    73 r19 <- Get(r45)
@@ -107,10 +107,10 @@ ssa program  80 instrs
          r63 <- Part { src: r59, offset: 8, size: 8 }
          r64 <- ArithK(Add, r10, 32)
          r65 <- StoreMem { addr: r64, value: r63 }
-         r66 <- Const { value: 24, size: 8 }
+         r66 <- Int { value: 24, size: 8 }
          r67 <- Arith(Add, r66, r10)
          r68 <- LoadMem { addr: r67, size: 8 }
-         r70 <- Const { value: 32, size: 8 }
+         r70 <- Int { value: 32, size: 8 }
          r71 <- Arith(Add, r70, r10)
          r72 <- LoadMem { addr: r71, size: 8 }
          r75 <- Concat { lo: r74, hi: r68 }

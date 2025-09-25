@@ -450,7 +450,7 @@ impl<'a> Builder<'a> {
                                 let k = self.pb.tmp_gen();
                                 self.emit(
                                     k,
-                                    mil::Insn::Const {
+                                    mil::Insn::Int {
                                         value: imm64,
                                         size: 8,
                                     },
@@ -954,7 +954,7 @@ impl<'a> Builder<'a> {
             OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.near_branch_target() as i64,
                         size: 8,
                     },
@@ -968,7 +968,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate8 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate8() as _,
                         size: 1,
                     },
@@ -978,7 +978,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate8_2nd => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate8_2nd() as _,
                         size: 1,
                     },
@@ -988,7 +988,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate16 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate16() as _,
                         size: 2,
                     },
@@ -998,7 +998,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate32 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate32() as _,
                         size: 4,
                     },
@@ -1008,7 +1008,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate64 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate64() as _,
                         size: 8,
                     },
@@ -1018,7 +1018,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate8to16 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate8to16() as _,
                         size: 2,
                     },
@@ -1028,7 +1028,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate8to32 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate8to32() as _,
                         size: 4,
                     },
@@ -1038,7 +1038,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate8to64 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate8to64() as _,
                         size: 8,
                     },
@@ -1048,7 +1048,7 @@ impl<'a> Builder<'a> {
             OpKind::Immediate32to64 => {
                 self.emit(
                     v0,
-                    mil::Insn::Const {
+                    mil::Insn::Int {
                         value: insn.immediate32to64() as _,
                         size: 8,
                     },
@@ -1277,7 +1277,7 @@ impl<'a> Builder<'a> {
 
         self.pb.push(
             dest,
-            mil::Insn::Const {
+            mil::Insn::Int {
                 value: insn.memory_displacement64() as i64,
                 size: 8,
             },

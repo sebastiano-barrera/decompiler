@@ -63,52 +63,52 @@ program  236 instrs
 0x4011d3:
    52 r16 <- Get(r16)
 0x4011d6:
-   53 r45 <- Const { value: 0, size: 4 }
+   53 r45 <- Int { value: 0, size: 4 }
    54 r45 <- Widen { reg: r45, target_size: 8, sign: false }
    55 r19 <- Get(r45)
 0x4011db:
    56 r19 <- Get(r18)
 0x4011de:
-   57 r46 <- Const { value: -32, size: 8 }
+   57 r46 <- Int { value: -32, size: 8 }
    58 r46 <- Arith(Add, r46, r11)
    59 r46 <- StoreMem { addr: r46, value: r16 }
 0x4011e2:
-   60 r46 <- Const { value: -24, size: 8 }
+   60 r46 <- Int { value: -24, size: 8 }
    61 r46 <- Arith(Add, r46, r11)
    62 r46 <- StoreMem { addr: r46, value: r19 }
 0x4011e6:
-   63 r45 <- Const { value: 0, size: 4 }
-   64 r46 <- Const { value: -4, size: 8 }
+   63 r45 <- Int { value: 0, size: 4 }
+   64 r46 <- Int { value: -4, size: 8 }
    65 r46 <- Arith(Add, r46, r11)
    66 r46 <- StoreMem { addr: r46, value: r45 }
 0x4011ed:
-   67 r45 <- Const { value: 0, size: 4 }
-   68 r46 <- Const { value: -8, size: 8 }
+   67 r45 <- Int { value: 0, size: 4 }
+   68 r46 <- Int { value: -8, size: 8 }
    69 r46 <- Arith(Add, r46, r11)
    70 r46 <- StoreMem { addr: r46, value: r45 }
 0x4011f4:
    71 r45 <- Control(JmpExt(4198959))
 0x4011f6:
-   72 r45 <- Const { value: 0, size: 4 }
-   73 r46 <- Const { value: -12, size: 8 }
+   72 r45 <- Int { value: 0, size: 4 }
+   73 r46 <- Int { value: -12, size: 8 }
    74 r46 <- Arith(Add, r46, r11)
    75 r46 <- StoreMem { addr: r46, value: r45 }
 0x4011fd:
    76 r45 <- Control(JmpExt(4198947))
 0x4011ff:
-   77 r46 <- Const { value: -32, size: 8 }
+   77 r46 <- Int { value: -32, size: 8 }
    78 r46 <- Arith(Add, r46, r11)
    79 r45 <- LoadMem { addr: r46, size: 8 }
    80 r19 <- Get(r45)
 0x401203:
-   81 r46 <- Const { value: -20, size: 8 }
+   81 r46 <- Int { value: -20, size: 8 }
    82 r46 <- Arith(Add, r46, r11)
    83 r45 <- LoadMem { addr: r46, size: 4 }
    84 r45 <- Widen { reg: r45, target_size: 8, sign: false }
    85 r16 <- Get(r45)
 0x401206:
    86 r46 <- Part { src: r16, offset: 0, size: 4 }
-   87 r48 <- Const { value: -8, size: 8 }
+   87 r48 <- Int { value: -8, size: 8 }
    88 r48 <- Arith(Add, r48, r11)
    89 r47 <- LoadMem { addr: r48, size: 4 }
    90 r49 <- Arith(Mul, r46, r47)
@@ -125,7 +125,7 @@ program  236 instrs
   100 r46 <- Widen { reg: r46, target_size: 8, sign: false }
   101 r18 <- Get(r46)
 0x40120c:
-  102 r46 <- Const { value: -12, size: 8 }
+  102 r46 <- Int { value: -12, size: 8 }
   103 r46 <- Arith(Add, r46, r11)
   104 r45 <- LoadMem { addr: r46, size: 4 }
   105 r45 <- Widen { reg: r45, target_size: 8, sign: false }
@@ -146,7 +146,7 @@ program  236 instrs
   118 r45 <- Part { src: r16, offset: 0, size: 4 }
   119 r16 <- Widen { reg: r45, target_size: 8, sign: true }
 0x401213:
-  120 r46 <- Const { value: 2, size: 1 }
+  120 r46 <- Int { value: 2, size: 1 }
   121 r46 <- Widen { reg: r46, target_size: 8, sign: false }
   122 r16 <- Arith(Shl, r16, r46)
   123 r16 <- Get(r16)
@@ -164,18 +164,18 @@ program  236 instrs
   134 r47 <- Part { src: r16, offset: 0, size: 1 }
   135 r3 <- Parity(r47)
 0x40121a:
-  136 r46 <- Const { value: 0, size: 8 }
+  136 r46 <- Int { value: 0, size: 8 }
   137 r46 <- Arith(Add, r46, r16)
   138 r45 <- LoadMem { addr: r46, size: 4 }
   139 r45 <- Widen { reg: r45, target_size: 8, sign: false }
   140 r16 <- Get(r45)
 0x40121c:
-  141 r46 <- Const { value: -4, size: 8 }
+  141 r46 <- Int { value: -4, size: 8 }
   142 r46 <- Arith(Add, r46, r11)
   143 r45 <- LoadMem { addr: r46, size: 4 }
   144 r48 <- Part { src: r16, offset: 0, size: 4 }
   145 r45 <- Arith(Add, r45, r48)
-  146 r49 <- Const { value: -4, size: 8 }
+  146 r49 <- Int { value: -4, size: 8 }
   147 r49 <- Arith(Add, r49, r11)
   148 r49 <- StoreMem { addr: r49, value: r45 }
   149 r10 <- OverflowOf(r45)
@@ -185,12 +185,12 @@ program  236 instrs
   153 r50 <- Part { src: r45, offset: 0, size: 1 }
   154 r3 <- Parity(r50)
 0x40121f:
-  155 r46 <- Const { value: -12, size: 8 }
+  155 r46 <- Int { value: -12, size: 8 }
   156 r46 <- Arith(Add, r46, r11)
   157 r45 <- LoadMem { addr: r46, size: 4 }
-  158 r47 <- Const { value: 1, size: 4 }
+  158 r47 <- Int { value: 1, size: 4 }
   159 r45 <- Arith(Add, r45, r47)
-  160 r48 <- Const { value: -12, size: 8 }
+  160 r48 <- Int { value: -12, size: 8 }
   161 r48 <- Arith(Add, r48, r11)
   162 r48 <- StoreMem { addr: r48, value: r45 }
   163 r10 <- OverflowOf(r45)
@@ -200,13 +200,13 @@ program  236 instrs
   167 r49 <- Part { src: r45, offset: 0, size: 1 }
   168 r3 <- Parity(r49)
 0x401223:
-  169 r46 <- Const { value: -20, size: 8 }
+  169 r46 <- Int { value: -20, size: 8 }
   170 r46 <- Arith(Add, r46, r11)
   171 r45 <- LoadMem { addr: r46, size: 4 }
   172 r45 <- Widen { reg: r45, target_size: 8, sign: false }
   173 r16 <- Get(r45)
 0x401226:
-  174 r46 <- Const { value: -12, size: 8 }
+  174 r46 <- Int { value: -12, size: 8 }
   175 r46 <- Arith(Add, r46, r11)
   176 r45 <- LoadMem { addr: r46, size: 4 }
   177 r48 <- Part { src: r16, offset: 0, size: 4 }
@@ -223,12 +223,12 @@ program  236 instrs
   187 r46 <- SetJumpCondition(r45)
   188 r46 <- Control(JmpExtIf(4198911))
 0x40122b:
-  189 r46 <- Const { value: -8, size: 8 }
+  189 r46 <- Int { value: -8, size: 8 }
   190 r46 <- Arith(Add, r46, r11)
   191 r45 <- LoadMem { addr: r46, size: 4 }
-  192 r47 <- Const { value: 1, size: 4 }
+  192 r47 <- Int { value: 1, size: 4 }
   193 r45 <- Arith(Add, r45, r47)
-  194 r48 <- Const { value: -8, size: 8 }
+  194 r48 <- Int { value: -8, size: 8 }
   195 r48 <- Arith(Add, r48, r11)
   196 r48 <- StoreMem { addr: r48, value: r45 }
   197 r10 <- OverflowOf(r45)
@@ -238,13 +238,13 @@ program  236 instrs
   201 r49 <- Part { src: r45, offset: 0, size: 1 }
   202 r3 <- Parity(r49)
 0x40122f:
-  203 r46 <- Const { value: -24, size: 8 }
+  203 r46 <- Int { value: -24, size: 8 }
   204 r46 <- Arith(Add, r46, r11)
   205 r45 <- LoadMem { addr: r46, size: 4 }
   206 r45 <- Widen { reg: r45, target_size: 8, sign: false }
   207 r16 <- Get(r45)
 0x401232:
-  208 r46 <- Const { value: -8, size: 8 }
+  208 r46 <- Int { value: -8, size: 8 }
   209 r46 <- Arith(Add, r46, r11)
   210 r45 <- LoadMem { addr: r46, size: 4 }
   211 r48 <- Part { src: r16, offset: 0, size: 4 }
@@ -261,7 +261,7 @@ program  236 instrs
   221 r46 <- SetJumpCondition(r45)
   222 r46 <- Control(JmpExtIf(4198902))
 0x401237:
-  223 r46 <- Const { value: -4, size: 8 }
+  223 r46 <- Int { value: -4, size: 8 }
   224 r46 <- Arith(Add, r46, r11)
   225 r45 <- LoadMem { addr: r46, size: 4 }
   226 r45 <- Widen { reg: r45, target_size: 8, sign: false }
@@ -288,26 +288,26 @@ ssa program  236 instrs
          r45 <- Part { src: r42, offset: 8, size: 8 }
   ( 21)  r47 <- ArithK(Add, r10, -8)
          r48 <- StoreMem { addr: r47, value: r9 }
-         r57 <- Const { value: -32, size: 8 }
+         r57 <- Int { value: -32, size: 8 }
          r58 <- Arith(Add, r57, r47)
          r59 <- StoreMem { addr: r58, value: r43 }
-         r60 <- Const { value: -24, size: 8 }
+         r60 <- Int { value: -24, size: 8 }
          r61 <- Arith(Add, r60, r47)
          r62 <- StoreMem { addr: r61, value: r45 }
-         r63 <- Const { value: 0, size: 4 }
-         r64 <- Const { value: -4, size: 8 }
+         r63 <- Int { value: 0, size: 4 }
+         r64 <- Int { value: -4, size: 8 }
          r65 <- Arith(Add, r64, r47)
          r66 <- StoreMem { addr: r65, value: r63 }
-         r67 <- Const { value: 0, size: 4 }
-         r68 <- Const { value: -8, size: 8 }
+         r67 <- Int { value: 0, size: 4 }
+         r68 <- Int { value: -8, size: 8 }
          r69 <- Arith(Add, r68, r47)
          r70 <- StoreMem { addr: r69, value: r67 }
 .B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
-         r203 <- Const { value: -24, size: 8 }
+         r203 <- Int { value: -24, size: 8 }
          r204 <- Arith(Add, r203, r47)
          r205 <- LoadMem { addr: r204, size: 4 }
          r206 <- Widen { reg: r205, target_size: 8, sign: false }
-         r208 <- Const { value: -8, size: 8 }
+         r208 <- Int { value: -8, size: 8 }
          r209 <- Arith(Add, r208, r47)
          r210 <- LoadMem { addr: r209, size: 4 }
          r211 <- Part { src: r206, offset: 0, size: 4 }
@@ -318,7 +318,7 @@ ssa program  236 instrs
          r220 <- Not(r219)
          r221 <- SetJumpCondition(r220)
 .B6:    ;; preds:B5  → Always(Return).
-         r223 <- Const { value: -4, size: 8 }
+         r223 <- Int { value: -4, size: 8 }
          r224 <- Arith(Add, r223, r47)
          r225 <- LoadMem { addr: r224, size: 4 }
          r226 <- Widen { reg: r225, target_size: 8, sign: false }
@@ -326,16 +326,16 @@ ssa program  236 instrs
          r233 <- Part { src: r232, offset: 0, size: 4 }
          r234 <- SetReturnValue(r233)
 .B1:    ;; preds:B5  → Always(Block(BlockID(3))).
-         r72 <- Const { value: 0, size: 4 }
-         r73 <- Const { value: -12, size: 8 }
+         r72 <- Int { value: 0, size: 4 }
+         r73 <- Int { value: -12, size: 8 }
          r74 <- Arith(Add, r73, r47)
          r75 <- StoreMem { addr: r74, value: r72 }
 .B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
-         r169 <- Const { value: -20, size: 8 }
+         r169 <- Int { value: -20, size: 8 }
          r170 <- Arith(Add, r169, r47)
          r171 <- LoadMem { addr: r170, size: 4 }
          r172 <- Widen { reg: r171, target_size: 8, sign: false }
-         r174 <- Const { value: -12, size: 8 }
+         r174 <- Int { value: -12, size: 8 }
          r175 <- Arith(Add, r174, r47)
          r176 <- LoadMem { addr: r175, size: 4 }
          r177 <- Part { src: r172, offset: 0, size: 4 }
@@ -346,31 +346,31 @@ ssa program  236 instrs
          r186 <- Not(r185)
          r187 <- SetJumpCondition(r186)
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
-         r189 <- Const { value: -8, size: 8 }
+         r189 <- Int { value: -8, size: 8 }
          r190 <- Arith(Add, r189, r47)
          r191 <- LoadMem { addr: r190, size: 4 }
-         r192 <- Const { value: 1, size: 4 }
+         r192 <- Int { value: 1, size: 4 }
          r193 <- Arith(Add, r191, r192)
-         r194 <- Const { value: -8, size: 8 }
+         r194 <- Int { value: -8, size: 8 }
          r195 <- Arith(Add, r194, r47)
          r196 <- StoreMem { addr: r195, value: r193 }
 .B2:    ;; preds:B3  → Always(Block(BlockID(3))).
-         r77 <- Const { value: -32, size: 8 }
+         r77 <- Int { value: -32, size: 8 }
          r78 <- Arith(Add, r77, r47)
          r79 <- LoadMem { addr: r78, size: 8 }
-         r81 <- Const { value: -20, size: 8 }
+         r81 <- Int { value: -20, size: 8 }
          r82 <- Arith(Add, r81, r47)
          r83 <- LoadMem { addr: r82, size: 4 }
          r84 <- Widen { reg: r83, target_size: 8, sign: false }
          r86 <- Part { src: r84, offset: 0, size: 4 }
-         r87 <- Const { value: -8, size: 8 }
+         r87 <- Int { value: -8, size: 8 }
          r88 <- Arith(Add, r87, r47)
          r89 <- LoadMem { addr: r88, size: 4 }
          r90 <- Arith(Mul, r86, r89)
          r91 <- Widen { reg: r90, target_size: 8, sign: false }
          r99 <- Part { src: r91, offset: 0, size: 4 }
          r100 <- Widen { reg: r99, target_size: 8, sign: false }
-         r102 <- Const { value: -12, size: 8 }
+         r102 <- Int { value: -12, size: 8 }
          r103 <- Arith(Add, r102, r47)
          r104 <- LoadMem { addr: r103, size: 4 }
          r105 <- Widen { reg: r104, target_size: 8, sign: false }
@@ -380,28 +380,28 @@ ssa program  236 instrs
          r110 <- Widen { reg: r109, target_size: 8, sign: false }
          r118 <- Part { src: r110, offset: 0, size: 4 }
          r119 <- Widen { reg: r118, target_size: 8, sign: true }
-         r120 <- Const { value: 2, size: 1 }
+         r120 <- Int { value: 2, size: 1 }
          r121 <- Widen { reg: r120, target_size: 8, sign: false }
          r122 <- Arith(Shl, r119, r121)
          r128 <- Arith(Add, r122, r79)
-         r136 <- Const { value: 0, size: 8 }
+         r136 <- Int { value: 0, size: 8 }
          r137 <- Arith(Add, r136, r128)
          r138 <- LoadMem { addr: r137, size: 4 }
          r139 <- Widen { reg: r138, target_size: 8, sign: false }
-         r141 <- Const { value: -4, size: 8 }
+         r141 <- Int { value: -4, size: 8 }
          r142 <- Arith(Add, r141, r47)
          r143 <- LoadMem { addr: r142, size: 4 }
          r144 <- Part { src: r139, offset: 0, size: 4 }
          r145 <- Arith(Add, r143, r144)
-         r146 <- Const { value: -4, size: 8 }
+         r146 <- Int { value: -4, size: 8 }
          r147 <- Arith(Add, r146, r47)
          r148 <- StoreMem { addr: r147, value: r145 }
-         r155 <- Const { value: -12, size: 8 }
+         r155 <- Int { value: -12, size: 8 }
          r156 <- Arith(Add, r155, r47)
          r157 <- LoadMem { addr: r156, size: 4 }
-         r158 <- Const { value: 1, size: 4 }
+         r158 <- Int { value: 1, size: 4 }
          r159 <- Arith(Add, r157, r158)
-         r160 <- Const { value: -12, size: 8 }
+         r160 <- Int { value: -12, size: 8 }
          r161 <- Arith(Add, r160, r47)
          r162 <- StoreMem { addr: r161, value: r159 }
 
@@ -438,10 +438,10 @@ ssa program  300 instrs
          r59 <- StoreMem { addr: r58, value: r236 }
          r61 <- ArithK(Add, r10, -32)
          r62 <- StoreMem { addr: r61, value: r45 }
-  (  2)  r63 <- Const { value: 0, size: 4 }
+  (  2)  r63 <- Int { value: 0, size: 4 }
          r65 <- ArithK(Add, r10, -12)
          r66 <- StoreMem { addr: r65, value: r63 }
-         r67 <- Const { value: 0, size: 4 }
+         r67 <- Int { value: 0, size: 4 }
          r69 <- ArithK(Add, r10, -16)
          r70 <- StoreMem { addr: r69, value: r67 }
 .B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
@@ -454,7 +454,7 @@ ssa program  300 instrs
 .B6:    ;; preds:B5  → Always(Return).
          r234 <- SetReturnValue(r63)
 .B1:    ;; preds:B5  → Always(Block(BlockID(3))).
-         r72 <- Const { value: 0, size: 4 }
+         r72 <- Int { value: 0, size: 4 }
          r74 <- ArithK(Add, r10, -20)
          r75 <- StoreMem { addr: r74, value: r72 }
 .B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
@@ -465,7 +465,7 @@ ssa program  300 instrs
          r186 <- Not(r185)
          r187 <- SetJumpCondition(r186)
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
-         r193 <- Const { value: 1, size: 8 }
+         r193 <- Int { value: 1, size: 8 }
          r195 <- ArithK(Add, r10, -16)
          r196 <- StoreMem { addr: r195, value: r193 }
 .B2:    ;; preds:B3  → Always(Block(BlockID(3))).
@@ -477,7 +477,7 @@ ssa program  300 instrs
          r138 <- LoadMem { addr: r128, size: 4 }
          r147 <- ArithK(Add, r10, -12)
          r148 <- StoreMem { addr: r147, value: r138 }
-         r159 <- Const { value: 1, size: 8 }
+         r159 <- Int { value: 1, size: 8 }
          r161 <- ArithK(Add, r10, -20)
          r162 <- StoreMem { addr: r161, value: r159 }
 

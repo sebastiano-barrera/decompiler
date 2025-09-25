@@ -65,7 +65,7 @@ program  69 instrs
    58 r52 <- ArithK(Add, r12, 16)
    59 r52 <- StoreMem { addr: r52, value: r53 }
 0x4012e9:
-   60 r46 <- Const { value: 8, size: 8 }
+   60 r46 <- Int { value: 8, size: 8 }
    61 r46 <- Arith(Add, r46, r12)
    62 r45 <- LoadMem { addr: r46, size: 8 }
    63 r16 <- Get(r45)
@@ -88,7 +88,7 @@ ssa program  69 instrs
          r57 <- Part { src: r53, offset: 8, size: 8 }
          r58 <- ArithK(Add, r10, 16)
          r59 <- StoreMem { addr: r58, value: r57 }
-         r60 <- Const { value: 8, size: 8 }
+         r60 <- Int { value: 8, size: 8 }
          r61 <- Arith(Add, r60, r10)
          r62 <- LoadMem { addr: r61, size: 8 }
          r65 <- Concat { lo: r64, hi: r62 }

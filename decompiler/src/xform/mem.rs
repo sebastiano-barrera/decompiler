@@ -277,7 +277,7 @@ mod tests {
     fn single_bb_direct() {
         for size in [1, 2, 4, 5, 8] {
             let mut program = mil::Program::new(Reg(10_000));
-            program.push(Reg(0), Insn::Const { size, value: -123 });
+            program.push(Reg(0), Insn::Int { size, value: -123 });
             program.push(
                 Reg(1),
                 Insn::Ancestral {
@@ -317,7 +317,7 @@ mod tests {
         let mut program = mil::Program::new(Reg(10_000));
         program.push(
             Reg(0),
-            Insn::Const {
+            Insn::Int {
                 size: 8,
                 value: -123,
             },
@@ -372,7 +372,7 @@ mod tests {
         let mut program = mil::Program::new(Reg(10_000));
         program.push(
             Reg(0),
-            Insn::Const {
+            Insn::Int {
                 size: 8,
                 value: -123,
             },

@@ -63,7 +63,7 @@ program  70 instrs
 0x40127d:
    56 r16 <- Get(r21)
 0x401280:
-   57 r46 <- Const { value: 32, size: 1 }
+   57 r46 <- Int { value: 32, size: 1 }
    58 r46 <- Widen { reg: r46, target_size: 8, sign: false }
    59 r16 <- Arith(Shr, r16, r46)
    60 r16 <- Get(r16)
@@ -84,7 +84,7 @@ ssa program  70 instrs
 .B0:    ;;  → Always(Return).
          r51 <- Ancestral { anc_name: AncestralName("arg3"), reg_type: Bytes(16) }
          r54 <- Part { src: r51, offset: 8, size: 8 }
-         r57 <- Const { value: 32, size: 1 }
+         r57 <- Int { value: 32, size: 1 }
          r58 <- Widen { reg: r57, target_size: 8, sign: false }
          r59 <- Arith(Shr, r54, r58)
          r66 <- Concat { lo: r65, hi: r59 }
@@ -103,7 +103,7 @@ ssa program  70 instrs
 .B0:    ;;  → Always(Return).
          r51 <- Ancestral { anc_name: AncestralName("arg3"), reg_type: Bytes(16) }
          r54 <- Part { src: r51, offset: 8, size: 8 }
-         r57 <- Const { value: 32, size: 1 }
+         r57 <- Int { value: 32, size: 1 }
          r58 <- Widen { reg: r57, target_size: 8, sign: false }
          r59 <- Arith(Shr, r54, r58)
          r67 <- Part { src: r59, offset: 0, size: 1 }

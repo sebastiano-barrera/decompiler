@@ -1750,7 +1750,7 @@ mod ast_view {
             let rdr_count = decompiler::count_readers(ssa);
             let value_mode = rdr_count.map(|reg, rdr_count| {
                 let insn = ssa.get(reg).unwrap();
-                if matches!(insn, Insn::Ancestral { .. } | Insn::Const { .. }) {
+                if matches!(insn, Insn::Ancestral { .. } | Insn::Int { .. }) {
                     ValueMode::Inline
                 } else if matches!(insn, Insn::Phi) || *rdr_count > 1 {
                     ValueMode::NamedStmt
@@ -1965,7 +1965,8 @@ mod ast_view {
                 ),
 
                 Insn::Phi => self.transform_regular_insn(reg, "Phi", std::iter::empty()),
-                Insn::Const { value, size: _ } => mk_lit(format!("{}", value).into()),
+                Insn::Int { value, size: _ } => mk_lit(format!("{}", value).into()),
+                Insn::Bytes(bytes) => mk_lit(format!("{:?}", bytes.as_slice()).into()),
 
                 Insn::Ancestral {
                     anc_name: aname, ..
@@ -2176,7 +2177,7 @@ mod ast_view {
                 Insn::Void => "Void",
                 Insn::True => "True",
                 Insn::False => "False",
-                Insn::Const { .. } => "Const",
+                Insn::Int { .. } => "Const",
                 Insn::Get(_) => "Get",
                 Insn::Part { .. } => "Part",
                 Insn::Concat { .. } => "Concat",
