@@ -458,8 +458,8 @@ fn pack_param(
                     bld.emit(
                         arg_value,
                         mil::Insn::Concat {
-                            lo: eb_value,
-                            hi: arg_value,
+                            lo: arg_value,
+                            hi: eb_value,
                         },
                     );
                 } else {

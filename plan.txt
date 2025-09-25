@@ -14,7 +14,12 @@
 
         - [ ] transform into proper generated tests, like for incoming calls
 
-- [ ] float literals
+- [ ] separate raw bytes from typed consts
+    - approach:
+        - change Insn::Const into Insn::Bytes, Insn::ConstInt
+        - introduce Insn::Cast?
+
+    - [ ] float literals
 
 - [ ] large scale testing and tracking
 
