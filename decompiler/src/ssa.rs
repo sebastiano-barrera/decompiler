@@ -14,7 +14,7 @@ use crate::{
     pp, ty,
     util::Bytes,
 };
-use std::{cell::Cell, io::Write, ops::Shl};
+use std::{cell::Cell, io::Write};
 
 mod cons;
 

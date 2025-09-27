@@ -459,44 +459,62 @@ fn fold_part_void(insn: Insn) -> Insn {
 
 fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
     if let Insn::Part { src, offset, size } = insn {
-        if let Insn::Int {
-            value: src_value,
-            size: src_size,
-        } = prog.get(src).unwrap()
-        {
-            if src_size < size {
-                event!(
-                    Level::ERROR,
-                    part_size = size,
-                    src_size,
-                    "Part: part size smaller than source size"
-                );
-                return insn;
+        match prog.get(src).unwrap() {
+            Insn::Int {
+                value: src_value,
+                size: src_size,
+            } => {
+                if src_size < size {
+                    event!(
+                        Level::ERROR,
+                        ?src,
+                        part_size = size,
+                        src_size,
+                        "Part: part size smaller than source size"
+                    );
+                    return insn;
+                }
+                let src_bytes = prog.int_bytes(src_value, src_size);
+                let src_bytes = src_bytes.as_slice();
+                let offset = offset as usize;
+                let size = size as usize;
+                let part_bytes = &src_bytes[offset..offset + size];
+                let value = match prog.endianness() {
+                    Endianness::Little => {
+                        let mut result_bytes = [0u8; 8];
+                        result_bytes[..size].copy_from_slice(part_bytes);
+                        i64::from_le_bytes(result_bytes)
+                    }
+                    Endianness::Big => {
+                        let mut result_bytes = [0u8; 8];
+                        result_bytes[8 - size..].copy_from_slice(part_bytes);
+                        i64::from_be_bytes(result_bytes)
+                    }
+                };
+                return Insn::Int {
+                    value,
+                    size: size.try_into().unwrap(),
+                };
             }
-
-            let src_bytes = prog.int_bytes(src_value, src_size);
-            let src_bytes = src_bytes.as_slice();
-            let offset = offset as usize;
-            let size = size as usize;
-            let part_bytes = &src_bytes[offset..offset + size];
-
-            let value = match prog.endianness() {
-                Endianness::Little => {
-                    let mut result_bytes = [0u8; 8];
-                    result_bytes[..size].copy_from_slice(part_bytes);
-                    i64::from_le_bytes(result_bytes)
+            Insn::Bytes(src_bytes) => {
+                if src_bytes.len() < size as usize {
+                    event!(
+                        Level::ERROR,
+                        ?src,
+                        part_size = size,
+                        src_size = src_bytes.len(),
+                        "Part: part size smaller than source size"
+                    );
+                    return insn;
                 }
-                Endianness::Big => {
-                    let mut result_bytes = [0u8; 8];
-                    result_bytes[8 - size..].copy_from_slice(part_bytes);
-                    i64::from_be_bytes(result_bytes)
-                }
-            };
 
-            return Insn::Int {
-                value,
-                size: size.try_into().unwrap(),
-            };
+                let offset = offset as usize;
+                let size = size as usize;
+                let part_bytes = &src_bytes.as_slice()[offset..offset + size];
+
+                return Insn::Bytes(Bytes::from_slice(part_bytes).unwrap());
+            }
+            _ => {}
         }
     }
 
@@ -504,40 +522,38 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
 }
 
 fn fold_cast_const(insn: Insn, prog: &ssa::Program) -> Insn {
-    match insn {
-        Insn::ReinterpretFloat32(src) => {
-            let Insn::Bytes(src_bytes) = prog.get(src).unwrap() else {
-                return insn;
-            };
+    let (float_size, src) = match insn {
+        Insn::ReinterpretFloat32(src) => (4, src),
+        Insn::ReinterpretFloat64(src) => (8, src),
+        _ => return insn,
+    };
 
-            let src_bytes = src_bytes.as_slice();
-            if src_bytes.len() != 4 {
-                event!(
-                    Level::ERROR,
-                    ?src,
-                    len = src_bytes.len(),
-                    "ReinterpretFloat32 has Bytes source with wrong length"
-                );
-                return insn;
-            }
+    let src_insn = prog.get(src).unwrap();
+    let src_bytes = match src_insn {
+        Insn::Bytes(src_bytes) => src_bytes,
+        Insn::Int { value, size } => prog.int_bytes(value, size),
+        _ => {
+            return insn;
+        }
+    };
+    let src_bytes = src_bytes.as_slice();
+
+    if src_bytes.len() != float_size {
+        event!(
+            Level::ERROR,
+            ?src,
+            len = src_bytes.len(),
+            "ReinterpretFloat32/64 has Bytes source with wrong length"
+        );
+        return insn;
+    }
+
+    match insn {
+        Insn::ReinterpretFloat32(_) => {
             let src_bytes: [u8; 4] = src_bytes.try_into().unwrap();
             Insn::Float32(Float32Bytes::from_bytes(src_bytes, prog.endianness()))
         }
-        Insn::ReinterpretFloat64(src) => {
-            let Insn::Bytes(src_bytes) = prog.get(src).unwrap() else {
-                return insn;
-            };
-
-            let src_bytes = src_bytes.as_slice();
-            if src_bytes.len() != 8 {
-                event!(
-                    Level::ERROR,
-                    ?src,
-                    len = src_bytes.len(),
-                    "ReinterpretFloat64 has Bytes source with wrong length"
-                );
-                return insn;
-            }
+        Insn::ReinterpretFloat64(_) => {
             let src_bytes: [u8; 8] = src_bytes.try_into().unwrap();
             Insn::Float64(Float64Bytes::from_bytes(src_bytes, prog.endianness()))
         }

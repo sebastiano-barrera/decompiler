@@ -1,8 +1,8 @@
 
 - now: proceed without gui, power up CLI/textual interface if needed
 
-- [ ] precise testing of calling convention
-    - [ ] outgoing calls
+- [x] precise testing of calling convention
+    - [x] outgoing calls
         - workshopping the xform pass by using decompiler_cli
             - current test case: func097_out
             - [x] why is `void *x = NULL` compiled to a 32-bit register set?
@@ -13,23 +13,23 @@
                 cmd: cargo run --bin decompiler_cli -- --exe decompiler/test-data/x86_64_callconv --func func097_out
             - [x] wrong connection of struct members to values?
 
-        - [ ] transform into proper generated tests, like for incoming calls
+        - [x] transform into proper generated tests, like for incoming calls
 
-- [ ] separate raw bytes from typed consts
+- [x] separate raw bytes from typed consts
     - why though?
     - approach:
         - change Insn::Const into Insn::Bytes, Insn::ConstInt
         - introduce Insn::Cast?
 
-    - [ ] float literals
+    - [x] float literals
 
 - [ ] large scale testing and tracking
 
 - [ ] use type info
-    - [ ] struct member accesses
+    - [x] struct member accesses
     - [ ] show in ast
     - [ ] function prototype
-    - [ ] ssa: value types
+    - [x] ssa: value types
     - [ ] ast: value types
     - [ ] enum values
         - initialize with DWARF, allow user edits
