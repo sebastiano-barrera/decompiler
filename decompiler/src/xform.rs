@@ -695,12 +695,17 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
     propagate_call_types(&mut prog, types);
 
-    let mut any_change = true;
-    while any_change {
-        any_change = false;
+    let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
+    for bid in bids {
+        // the block is passed 3 times so that:
+        //
+        // - instructions added by any of the transforms have a chance to be
+        // seen/processed by the other passes;
+        //
+        // - the process does continue indefinitely, and instead always
+        // terminates
 
-        let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
-        for bid in bids {
+        for _ in 0..3 {
             // clear the block's schedule, then reconstruct it.
             // existing instruction are processed and replaced to keep using the memory they already occupy
             for reg in prog.clear_block_schedule(bid) {
@@ -753,15 +758,11 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                         final: side fx: {final_has_fx:?} insn: {insn:?}"
                     );
                 }
-
-                if insn != orig_insn || prog.block_len(bid) != orig_block_len + 1 {
-                    any_change = true;
-                }
             }
         }
-
-        event!(Level::TRACE, prog = ? &*prog, "ssa after xform cycle");
     }
+
+    event!(Level::TRACE, prog = ? &*prog, "ssa after xform cycle");
 }
 
 /// For each Insn::Call instruction, use the callee's type to assign types to

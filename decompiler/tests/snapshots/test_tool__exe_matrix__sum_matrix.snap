@@ -411,9 +411,9 @@ ssa program  236 instrs
   BlockID(0) -> Always(Block(BlockID(5))) [r9, r10, r42, r236, r45, r47, r48, r58, r59, r61, r62, r63, r65, r66, r67, r69, r70]
   BlockID(1) -> Always(Block(BlockID(3))) [r72, r74, r75]
   BlockID(2) -> Always(Block(BlockID(3))) [r299, r90, r119, r122, r128, r138, r147, r148, r159, r161, r162]
-  BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r298, r179, r181, r185, r186, r187]
+  BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r263, r179, r181, r185, r186, r187]
   BlockID(4) -> Always(Block(BlockID(5))) [r193, r195, r196]
-  BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r297, r213, r215, r219, r220, r221]
+  BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r247, r213, r215, r219, r220, r221]
   BlockID(6) -> Always(Return) [r234]
   domtree:
     BlockID(0)
@@ -445,9 +445,9 @@ ssa program  300 instrs
          r69 <- ArithK(Add, r10, -16)
          r70 <- StoreMem { addr: r69, value: r67 }
 .B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
-  (  2)  r297 <- StructGetMember { struct_value: r42, name: "rows", size: 4 }
-         r213 <- OverflowOf(r297)
-         r215 <- SignOf(r297)
+  (  2)  r247 <- StructGetMember { struct_value: r42, name: "rows", size: 4 }
+         r213 <- OverflowOf(r247)
+         r215 <- SignOf(r247)
          r219 <- Cmp(EQ, r215, r213)
          r220 <- Not(r219)
          r221 <- SetJumpCondition(r220)
@@ -458,9 +458,9 @@ ssa program  300 instrs
          r74 <- ArithK(Add, r10, -20)
          r75 <- StoreMem { addr: r74, value: r72 }
 .B3:    ;; preds:B1,B2  → Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) }.
-  (  2)  r298 <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
-         r179 <- OverflowOf(r298)
-         r181 <- SignOf(r298)
+  (  2)  r263 <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
+         r179 <- OverflowOf(r263)
+         r181 <- SignOf(r263)
          r185 <- Cmp(EQ, r181, r179)
          r186 <- Not(r185)
          r187 <- SetJumpCondition(r186)
@@ -494,15 +494,15 @@ T0: {
   [pre:RSP - 16]:* := 0;
   goto T5
   T5: {
-    let r297: Bytes(4) = r42.rows;
+    let r247: Bytes(4) = r42.rows;
     ;
-    if ! (SignOf (r297) EQ OverflowOf (r297)) {
+    if ! (SignOf (r247) EQ OverflowOf (r247)) {
       [pre:RSP - 20]:* := 0;
       goto T3
       T3: {
-        let r298: Bytes(4) = r42.cols;
+        let r263: Bytes(4) = r42.cols;
         ;
-        if ! (SignOf (r298) EQ OverflowOf (r298)) {
+        if ! (SignOf (r263) EQ OverflowOf (r263)) {
           [pre:RSP - 12]:* := [(r42.cols * 0) as i64 << 2 + r236]:4;
           [pre:RSP - 20]:* := 1;
           loop T3
