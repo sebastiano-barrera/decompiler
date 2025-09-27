@@ -66,7 +66,7 @@ fn main() {
                     .expect("decompiling function");
 
                 if !opts.quiet {
-                    let mut _out_guard = std::io::stdout().lock();
+                    let mut stdout = std::io::stdout().lock();
 
                     println!(" --- asm");
                     let decoder = df.disassemble(&exe);
@@ -80,9 +80,10 @@ fn main() {
                     }
 
                     if let Some(ssa) = df.ssa_pre_xform() {
+                        let mut buf = String::new();
+                        ssa.dump(&mut buf, Some(exe.types())).unwrap();
                         println!(" --- ssa pre-xform");
-                        println!("{:?}", ssa);
-                        println!();
+                        println!("{buf}");
                     }
 
                     if let Some(ssa) = df.ssa() {
@@ -95,17 +96,19 @@ fn main() {
                         }
                         print!("  domtree:\n    ");
 
-                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut _out_guard);
+                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut stdout);
                         cfg.dom_tree().dump(pp).unwrap();
                         println!();
 
                         println!(" --- ssa");
-                        println!("{:?}", ssa);
+                        let mut buf = String::new();
+                        ssa.dump(&mut buf, Some(exe.types())).unwrap();
+                        println!("{buf}");
                         println!();
 
                         println!(" --- ast");
                         let mut ast = decompiler::Ast::new(&ssa, exe.types());
-                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut _out_guard);
+                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut stdout);
                         ast.pretty_print(pp).unwrap();
                     }
                 }

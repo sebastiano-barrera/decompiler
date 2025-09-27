@@ -422,7 +422,7 @@ impl Program {
         }
     }
 
-    fn dump<S: std::fmt::Write>(
+    pub fn dump<S: std::fmt::Write>(
         &self,
         mut f: S,
         types: Option<&ty::TypeSet>,
