@@ -1282,7 +1282,7 @@ ssa program  775 instrs
   BlockID(25) -> Conditional { pos: Block(BlockID(29)), neg: Block(BlockID(26)) } [r529, r530, r534, r539]
   BlockID(26) -> Conditional { pos: Block(BlockID(29)), neg: Block(BlockID(27)) } [r542, r543, r545, r547, r552]
   BlockID(27) -> Always(Block(BlockID(29))) [r563, r566, r567]
-  BlockID(28) -> Always(Block(BlockID(29))) [r580, r583, r586, r591, r594, r595, r596, r597]
+  BlockID(28) -> Always(Block(BlockID(29))) [r580, r586, r591, r594, r595, r596, r597]
   BlockID(29) -> Always(Return) [r626]
   BlockID(30) -> Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(31)) } [r628, r630, r632, r637, r638]
   BlockID(31) -> Always(Block(BlockID(16))) [r641, r774]
@@ -1567,9 +1567,8 @@ ssa program  775 instrs
          r567 <- Call { callee: r563, first_arg: Some(r566) }
 .B28:    ;; preds:B17,B18  → Always(Block(BlockID(29))).
          r580 <- ArithK(Add, r11, 6951854)
-         r583 <- Int { value: 5, size: 8 }
          r586 <- Int { value: 5852656, size: 8 }
-         r591 <- Part { src: r583, offset: 0, size: 4 }
+         r591 <- Bytes(Bytes { data: [5, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r594 <- CArg { value: r580, next_arg: None }
          r595 <- CArg { value: r591, next_arg: Some(r594) }
          r596 <- CArg { value: r64, next_arg: Some(r595) }
@@ -1745,7 +1744,7 @@ T0: {
                 
                 T28: {
                   __redisSetError(7837792,
-                                  5[4 .. 0],
+                                  0x<05 00 00 00>,
                                   (pre:RIP + 6951854));
                   goto T29
                 }

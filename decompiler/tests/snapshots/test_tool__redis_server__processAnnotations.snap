@@ -938,22 +938,22 @@ ssa program  625 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(1)) } [r9, r10, r11, r15, r22, r23, r24, r25, r42, r46, r49, r50, r52, r53, r54, r55, r56, r57, r59, r60, r64, r65, r76, r79, r80, r92, r96, r99, r100, r101, r106, r109, r110, r111, r112, r125, r130]
+  BlockID(0) -> Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(1)) } [r9, r10, r11, r15, r22, r23, r24, r25, r42, r46, r49, r50, r52, r53, r54, r55, r56, r57, r59, r60, r64, r65, r76, r79, r80, r92, r99, r100, r101, r106, r109, r110, r111, r112, r125, r130]
   BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r133, r134, r137, r141, r146, r616]
   BlockID(2) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(3)) } [r149, r150, r152, r156, r159, r617]
   BlockID(3) -> Always(Return) [r605, r170, r194]
-  BlockID(4) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(5)) } [r196, r197, r209, r212, r215, r217, r220, r222, r229, r230, r231, r232, r233, r246, r247, r253, r258, r259]
+  BlockID(4) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(5)) } [r196, r197, r209, r215, r217, r220, r222, r229, r230, r231, r232, r233, r246, r247, r253, r258, r259]
   BlockID(5) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(6)) } [r262, r263, r267, r269, r273, r276, r277]
   BlockID(6) -> Conditional { pos: Block(BlockID(11)), neg: Block(BlockID(7)) } [r279, r280, r282, r286, r287]
   BlockID(7) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(8)) } [r290, r291, r295, r300]
   BlockID(8) -> Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(9)) } [r306, r311]
   BlockID(9) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(10)) } [r315, r316, r317, r320, r321, r339, r345, r346, r347, r360, r364, r367, r368, r624]
-  BlockID(10) -> Always(Block(BlockID(11))) [r371, r386, r389, r390, r402, r404, r407, r408, r409]
+  BlockID(10) -> Always(Block(BlockID(11))) [r371, r386, r389, r390, r404, r407, r408, r409]
   BlockID(11) -> Always(Block(BlockID(3))) [r420, r618]
-  BlockID(12) -> Always(Block(BlockID(13))) [r424, r427, r430, r431, r443, r445, r448, r449, r450]
-  BlockID(13) -> Always(Block(BlockID(14))) [r463, r464, r475, r477, r480, r481, r482]
-  BlockID(14) -> Always(Block(BlockID(15))) [r493, r508, r511, r512, r524, r526, r529, r530, r531]
-  BlockID(15) -> Always(Undefined) [r545, r558, r561, r562, r576, r577, r588, r590, r593, r594, r595]
+  BlockID(12) -> Always(Block(BlockID(13))) [r424, r427, r430, r431, r445, r448, r449, r450]
+  BlockID(13) -> Always(Block(BlockID(14))) [r463, r464, r477, r480, r481, r482]
+  BlockID(14) -> Always(Block(BlockID(15))) [r493, r508, r511, r512, r526, r529, r530, r531]
+  BlockID(15) -> Always(Undefined) [r545, r558, r561, r562, r576, r577, r590, r593, r594, r595]
   domtree:
     BlockID(0)
 |  BlockID(1)
@@ -1001,11 +1001,10 @@ ssa program  630 instrs
          r79 <- CArg { value: r42, next_arg: None }
          r80 <- Call { callee: r76, first_arg: Some(r79) }
          r92 <- ArithK(Add, r10, -1080)
-         r96 <- Int { value: 1024, size: 8 }
          r99 <- ArithK(Add, r11, 7968376)
          r100 <- StoreMem { addr: r99, value: r80 }
          r101 <- Int { value: 4201776, size: 8 }
-         r106 <- Part { src: r96, offset: 0, size: 4 }
+         r106 <- Bytes(Bytes { data: [0, 4, 0, 0, 0, 0, 0, 0], len: 4 })
          r109 <- CArg { value: r42, next_arg: None }
          r110 <- CArg { value: r106, next_arg: Some(r109) }
          r111 <- CArg { value: r92, next_arg: Some(r110) }
@@ -1030,12 +1029,11 @@ ssa program  630 instrs
          r196 <- Int { value: 4198464, size: 8 }
   (  2)  r197 <- Call { callee: r196, first_arg: None }
          r209 <- ArithK(Add, r10, -1088)
-         r212 <- Int { value: 10, size: 8 }
          r215 <- ArithK(Add, r10, -1076)
          r217 <- Int { value: 0, size: 4 }
          r220 <- StoreMem { addr: r197, value: r217 }
          r222 <- Int { value: 4202480, size: 8 }
-         r229 <- Part { src: r212, offset: 0, size: 4 }
+         r229 <- Bytes(Bytes { data: [10, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r230 <- CArg { value: r229, next_arg: None }
          r231 <- CArg { value: r209, next_arg: Some(r230) }
          r232 <- CArg { value: r215, next_arg: Some(r231) }
@@ -1087,9 +1085,8 @@ ssa program  630 instrs
          r386 <- Int { value: 4198480, size: 8 }
          r389 <- CArg { value: r371, next_arg: None }
          r390 <- Call { callee: r386, first_arg: Some(r389) }
-         r402 <- Int { value: 1, size: 8 }
          r404 <- Int { value: 4200816, size: 8 }
-         r407 <- Part { src: r402, offset: 0, size: 4 }
+         r407 <- Bytes(Bytes { data: [1, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r408 <- CArg { value: r407, next_arg: None }
          r409 <- Call { callee: r404, first_arg: Some(r408) }
 .B11:    ;; preds:B6,B10  → Always(Block(BlockID(3))).
@@ -1104,17 +1101,15 @@ ssa program  630 instrs
          r427 <- Int { value: 4198480, size: 8 }
          r430 <- CArg { value: r424, next_arg: None }
          r431 <- Call { callee: r427, first_arg: Some(r430) }
-         r443 <- Int { value: 1, size: 8 }
          r445 <- Int { value: 4200816, size: 8 }
-         r448 <- Part { src: r443, offset: 0, size: 4 }
+         r448 <- Bytes(Bytes { data: [1, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r449 <- CArg { value: r448, next_arg: None }
          r450 <- Call { callee: r445, first_arg: Some(r449) }
 .B13:    ;; preds:B4,B5,B12  → Always(Block(BlockID(14))).
          r463 <- Int { value: 4201744, size: 8 }
          r464 <- Call { callee: r463, first_arg: None }
-         r475 <- Int { value: 1, size: 8 }
          r477 <- Int { value: 4200816, size: 8 }
-         r480 <- Part { src: r475, offset: 0, size: 4 }
+         r480 <- Bytes(Bytes { data: [1, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r481 <- CArg { value: r480, next_arg: None }
          r482 <- Call { callee: r477, first_arg: Some(r481) }
 .B14:    ;; preds:B7,B13  → Always(Block(BlockID(15))).
@@ -1122,9 +1117,8 @@ ssa program  630 instrs
          r508 <- Int { value: 4198480, size: 8 }
          r511 <- CArg { value: r493, next_arg: None }
          r512 <- Call { callee: r508, first_arg: Some(r511) }
-         r524 <- Int { value: 1, size: 8 }
          r526 <- Int { value: 4200816, size: 8 }
-         r529 <- Part { src: r524, offset: 0, size: 4 }
+         r529 <- Bytes(Bytes { data: [1, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r530 <- CArg { value: r529, next_arg: None }
          r531 <- Call { callee: r526, first_arg: Some(r530) }
 .B15:    ;; preds:B8,B14  → Always(Undefined).
@@ -1134,9 +1128,8 @@ ssa program  630 instrs
          r562 <- Call { callee: r558, first_arg: Some(r561) }
          r576 <- Int { value: 4201744, size: 8 }
          r577 <- Call { callee: r576, first_arg: None }
-         r588 <- Int { value: 1, size: 8 }
          r590 <- Int { value: 4200816, size: 8 }
-         r593 <- Part { src: r588, offset: 0, size: 4 }
+         r593 <- Bytes(Bytes { data: [1, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r594 <- CArg { value: r593, next_arg: None }
          r595 <- Call { callee: r590, first_arg: Some(r594) }
 
@@ -1154,14 +1147,14 @@ T0: {
   <?>4201696(r42);
   [pre:RIP + 7968376]:* := <?>4201696(r42);
   <?>4201776((pre:RSP - 1080),
-             1024[4 .. 0],
+             0x<00 04 00 00>,
              r42);
   ;
   if IsZero (<?>4201776((pre:RSP - 1080),
-                        1024[4 .. 0],
+                        0x<00 04 00 00>,
                         r42)) {
     <?>4198480(7161960);
-    <?>4200816(1[4 .. 0]);
+    <?>4200816(0x<01 00 00 00>);
     goto T13
   }
   let r134: Bytes(8) = [pre:RIP + 7967296]:8;
@@ -1177,7 +1170,7 @@ T0: {
     [r197]:* := 0;
     <?>4202480((pre:RSP - 1076),
                (pre:RSP - 1088),
-               10[4 .. 0]);
+               0x<0a 00 00 00>);
     let r246: Bytes(4) = [r197]:4;
     ;
     if ! IsZero (r246) {
@@ -1189,7 +1182,7 @@ T0: {
     }
     let r279: Bytes(8) = r134 - <?>4202480((pre:RSP - 1076),
                                            (pre:RSP - 1088),
-                                           10[4 .. 0]);
+                                           0x<0a 00 00 00>);
     ;
     if SignOf (r279) EQ OverflowOf (r279) {
       goto T11
@@ -1214,7 +1207,7 @@ T0: {
       goto T3
     }
     <?>4198480(7162352);
-    <?>4200816(1[4 .. 0]);
+    <?>4200816(0x<01 00 00 00>);
     goto T11
     T11: {
       r605 := 1;
@@ -1231,20 +1224,20 @@ T0: {
   
   T13: {
     __builtin_puts();
-    <?>4200816(1[4 .. 0]);
+    <?>4200816(0x<01 00 00 00>);
     goto T14
   }
   
   T14: {
     <?>4198480(7162016);
-    <?>4200816(1[4 .. 0]);
+    <?>4200816(0x<01 00 00 00>);
     goto T15
   }
   
   T15: {
     <?>4198480(7162072);
     __builtin_puts();
-    <?>4200816(1[4 .. 0]);
+    <?>4200816(0x<01 00 00 00>);
     goto undefined /* warning: due to decompiler bug or limitation */
   }
 

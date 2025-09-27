@@ -81,6 +81,10 @@ impl Program {
         &self.cfg
     }
 
+    pub fn endianness(&self) -> Endianness {
+        self.endianness
+    }
+
     /// Get the defining instruction for the given register.
     ///
     /// (Note that it's not allowed to fetch instructions by position.)
@@ -192,6 +196,8 @@ impl Program {
             Insn::True => RegType::Bool,
             Insn::False => RegType::Bool,
             Insn::Int { size, .. } => RegType::Bytes(size as usize),
+            Insn::Float32(_) => RegType::Float { bytes_size: 4 },
+            Insn::Float64(_) => RegType::Float { bytes_size: 8 },
             Insn::Bytes(bytes) => RegType::Bytes(bytes.len()),
             Insn::ReinterpretFloat32(_) => RegType::Float { bytes_size: 4 },
             Insn::ReinterpretFloat64(_) => RegType::Float { bytes_size: 8 },

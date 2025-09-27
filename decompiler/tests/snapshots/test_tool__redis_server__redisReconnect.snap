@@ -913,7 +913,7 @@ ssa program  576 instrs
   BlockID(7) -> Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(8)) } [r277, r282]
   BlockID(8) -> Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(9)) } [r285, r286, r293, r298]
   BlockID(9) -> Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(10)) } [r302, r306, r309]
-  BlockID(10) -> Always(Block(BlockID(11))) [r312, r315, r321, r326, r329, r330, r331, r332]
+  BlockID(10) -> Always(Block(BlockID(11))) [r312, r321, r326, r329, r330, r331, r332]
   BlockID(11) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(12)) } [r343, r344, r348, r353, r571]
   BlockID(12) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(13)) } [r356, r357, r359, r361, r366, r572]
   BlockID(13) -> Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(14)) } [r369, r370, r372, r376, r379, r380, r573]
@@ -921,7 +921,7 @@ ssa program  576 instrs
   BlockID(15) -> Always(Block(BlockID(11))) [r406, r407, r410, r411, r414, r421, r422, r423, r424]
   BlockID(16) -> Always(Block(BlockID(11))) [r440, r441, r444, r445, r450, r451, r454, r455, r457, r469, r470, r471, r472, r473, r474]
   BlockID(17) -> Always(Return) [r498, r501, r502, r522, r534]
-  BlockID(18) -> Always(Block(BlockID(14))) [r537, r540, r544, r546, r551, r554, r555, r556, r557, r570]
+  BlockID(18) -> Always(Block(BlockID(14))) [r537, r544, r546, r551, r554, r555, r556, r557, r570]
   domtree:
     BlockID(0)
 |  BlockID(1)
@@ -1043,9 +1043,8 @@ ssa program  576 instrs
          r309 <- SetJumpCondition(r306)
 .B10:    ;; preds:B9  → Always(Block(BlockID(11))).
          r312 <- ArithK(Add, r11, 7007800)
-         r315 <- Int { value: 2, size: 8 }
          r321 <- Int { value: 5852656, size: 8 }
-         r326 <- Part { src: r315, offset: 0, size: 4 }
+         r326 <- Bytes(Bytes { data: [2, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r329 <- CArg { value: r312, next_arg: None }
          r330 <- CArg { value: r326, next_arg: Some(r329) }
          r331 <- CArg { value: r42, next_arg: Some(r330) }
@@ -1105,10 +1104,9 @@ ssa program  576 instrs
          r534 <- SetReturnValue(r522)
 .B18:    ;; preds:B6,B7  → Always(Block(BlockID(14))).
          r537 <- ArithK(Add, r11, 6951854)
-         r540 <- Int { value: 5, size: 8 }
          r544 <- Int { value: 4294967295, size: 8 }
          r546 <- Int { value: 5852656, size: 8 }
-         r551 <- Part { src: r540, offset: 0, size: 4 }
+         r551 <- Bytes(Bytes { data: [5, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r554 <- CArg { value: r537, next_arg: None }
          r555 <- CArg { value: r551, next_arg: Some(r554) }
          r556 <- CArg { value: r42, next_arg: Some(r555) }
@@ -1206,7 +1204,7 @@ T0: {
       goto T11
     }
     __redisSetError(r42,
-                    2[4 .. 0],
+                    0x<02 00 00 00>,
                     (pre:RIP + 7007800));
     goto T11
     T11: {
@@ -1238,7 +1236,7 @@ T0: {
     
     T18: {
       __redisSetError(r42,
-                      5[4 .. 0],
+                      0x<05 00 00 00>,
                       (pre:RIP + 6951854));
       r569 := 4294967295;
       goto T14

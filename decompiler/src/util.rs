@@ -1,3 +1,5 @@
+use crate::mil::Endianness;
+
 #[derive(Default)]
 pub struct Warnings(Vec<Box<dyn std::error::Error>>);
 
@@ -153,5 +155,51 @@ impl Bytes {
     pub fn as_slice_mut(&mut self) -> &mut [u8] {
         let len = self.len();
         &mut self.data[0..len]
+    }
+}
+
+/// A data structure storing a f32 as raw bytes, so that it is Hash, PartialEq, Eq.
+///
+/// The endianness in which the f32 value is expressed is also tracked.
+///
+/// The stored f32 value can be retrieved via [Float32Bytes::value].
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+pub struct Float32Bytes {
+    bytes: [u8; 4],
+    endianness: Endianness,
+}
+
+impl Float32Bytes {
+    pub fn from_bytes(bytes: [u8; 4], endianness: Endianness) -> Self {
+        Self { bytes, endianness }
+    }
+    pub fn value(&self) -> f32 {
+        match self.endianness {
+            Endianness::Little => f32::from_le_bytes(self.bytes),
+            Endianness::Big => f32::from_be_bytes(self.bytes),
+        }
+    }
+}
+
+/// A data structure storing a f64 as raw bytes, so that it is Hash, PartialEq, Eq.
+///
+/// The endianness in which the f64 value is expressed is also tracked.
+///
+/// The stored f64 value can be retrieved via [Float64Bytes::value].
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+pub struct Float64Bytes {
+    bytes: [u8; 8],
+    endianness: Endianness,
+}
+
+impl Float64Bytes {
+    pub fn from_bytes(bytes: [u8; 8], endianness: Endianness) -> Self {
+        Self { bytes, endianness }
+    }
+    pub fn value(&self) -> f64 {
+        match self.endianness {
+            Endianness::Little => f64::from_le_bytes(self.bytes),
+            Endianness::Big => f64::from_be_bytes(self.bytes),
+        }
     }
 }

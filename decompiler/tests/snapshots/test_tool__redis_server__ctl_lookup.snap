@@ -2558,7 +2558,7 @@ ssa program  1539 instrs
   BlockID(27) -> Conditional { pos: Block(BlockID(43)), neg: Block(BlockID(28)) } [r772, r775, r778, r779, r780, r785, r786, r787, r788, r802, r807]
   BlockID(28) -> Conditional { pos: Block(BlockID(44)), neg: Block(BlockID(29)) } [r819, r837, r838, r840, r845, r846]
   BlockID(29) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(30)) } [r850, r851, r855, r861, r864, r865, r1492, r1493, r1494]
-  BlockID(30) -> Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(31)) } [r1471, r1470, r871, r872, r873, r874, r883, r886, r887, r888, r895, r896, r897, r898, r899, r915, r919, r923]
+  BlockID(30) -> Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(31)) } [r1471, r1470, r871, r872, r873, r874, r886, r887, r888, r895, r896, r897, r898, r899, r915, r919, r923]
   BlockID(31) -> Conditional { pos: Ext(4206915), neg: Block(BlockID(32)) } [r926, r927, r930, r931, r934, r940, r943, r944]
   BlockID(32) -> Conditional { pos: Block(BlockID(42)), neg: Block(BlockID(33)) } [r960, r965, r966, r967, r968, r969, r970, r971, r972, r986, r991]
   BlockID(33) -> Conditional { pos: Block(BlockID(26)), neg: Block(BlockID(34)) } [r998, r999, r1005, r1010, r1011, r1012, r1015, r1016, r1017, r1018, r1019, r1488, r1489]
@@ -2662,7 +2662,7 @@ ssa program  1729 instrs
          r43 <- StoreMem { addr: r42, value: r25 }
          r44 <- ArithK(Add, r10, -16)
          r45 <- StoreMem { addr: r44, value: r24 }
-  (  2)  r48 <- Int { value: 46, size: 8 }
+         r48 <- Int { value: 46, size: 8 }
          r50 <- ArithK(Add, r10, -24)
          r51 <- StoreMem { addr: r50, value: r23 }
          r52 <- ArithK(Add, r10, -32)
@@ -2680,7 +2680,7 @@ ssa program  1729 instrs
          r79 <- ArithK(Add, r10, -112)
          r80 <- StoreMem { addr: r79, value: r19 }
          r81 <- Int { value: 4199040, size: 8 }
-         r86 <- Part { src: r48, offset: 0, size: 4 }
+         r86 <- Bytes(Bytes { data: [46, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r87 <- CArg { value: r86, next_arg: None }
          r88 <- CArg { value: r17, next_arg: Some(r87) }
   (  3)  r89 <- Call { callee: r81, first_arg: Some(r88) }
@@ -3006,11 +3006,11 @@ ssa program  1729 instrs
          r769 <- SetJumpCondition(r764)
 .B27:    ;; preds:B26  → Conditional { pos: Block(BlockID(43)), neg: Block(BlockID(28)) }.
   (  2)  r772 <- ArithK(Add, r1453, 1)
-  (  2)  r775 <- Int { value: 46, size: 8 }
+         r775 <- Int { value: 46, size: 8 }
          r778 <- ArithK(Add, r10, -136)
          r779 <- StoreMem { addr: r778, value: r772 }
          r780 <- Int { value: 4199040, size: 8 }
-         r785 <- Part { src: r775, offset: 0, size: 4 }
+         r785 <- Bytes(Bytes { data: [46, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r786 <- CArg { value: r785, next_arg: None }
          r787 <- CArg { value: r772, next_arg: Some(r786) }
   (  2)  r788 <- Call { callee: r780, first_arg: Some(r787) }
@@ -3059,11 +3059,10 @@ ssa program  1729 instrs
          r872 <- Part { src: r1470, offset: 0, size: 4 }
          r873 <- Arith(BitXor, r871, r872)
          r874 <- Widen { reg: r873, target_size: 8, sign: false }
-         r883 <- Int { value: 10, size: 8 }
          r886 <- ArithK(Add, r10, -128)
          r887 <- StoreMem { addr: r886, value: r1471 }
          r888 <- Int { value: 6451424, size: 8 }
-         r895 <- Part { src: r883, offset: 0, size: 4 }
+         r895 <- Bytes(Bytes { data: [10, 0, 0, 0, 0, 0, 0, 0], len: 4 })
          r896 <- CArg { value: r895, next_arg: None }
          r897 <- CArg { value: r874, next_arg: Some(r896) }
          r898 <- CArg { value: r17, next_arg: Some(r897) }
@@ -3166,10 +3165,10 @@ T0: {
   [pre:RSP - 136]:* := pre:RDX;
   [pre:RSP - 112]:* := pre:R9;
   let r89: Bytes(8) = strchr(pre:RDX,
-                             46[4 .. 0]);
+                             0x<2e 00 00 00>);
   ;
   r1453 := strchr(pre:RDX,
-                  46[4 .. 0]);
+                  0x<2e 00 00 00>);
   if IsZero (r89) {
     __builtin_strlen();
     r1453 := pre:RDX + r89;
@@ -3481,7 +3480,7 @@ T0: {
       let r772: Bytes(8) = r1453 + 1;
       [pre:RSP - 136]:* := r772;
       let r788: Bytes(8) = strchr(r772,
-                                  46[4 .. 0]);
+                                  0x<2e 00 00 00>);
       ;
       if IsZero (r788) {
         __builtin_strlen();
@@ -3501,7 +3500,7 @@ T0: {
         r1454 := pre:R13;
         r1470 := 46;
         r1471 := strchr(r772,
-                        46[4 .. 0]);
+                        0x<2e 00 00 00>);
         if ! IsZero ([[pre:R13 + 24]:8]:1) {
           goto T4
         }
@@ -3521,7 +3520,7 @@ T0: {
       [pre:RSP - 128]:* := r1471;
       let r899: Bytes(8) = je_malloc_strtoumax(pre:RDX,
                                                ((r1470[4 .. 0] ^ r1470[4 .. 0]) as u64),
-                                               10[4 .. 0]);
+                                               0x<0a 00 00 00>);
       let r915: Bytes(8) = r899 + 1;
       ;
       if IsZero (r915) {

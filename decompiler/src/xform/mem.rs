@@ -268,7 +268,9 @@ fn find_dominating_conflicting_store(
 mod tests {
     use crate::{
         mil::{self, ArithOp, Control, Insn, Reg},
-        ssa, ty, x86_to_mil, xform,
+        ssa, ty,
+        util::Bytes,
+        x86_to_mil, xform,
     };
 
     define_ancestral_name!(ANC_MEM, "memory");
@@ -357,14 +359,10 @@ mod tests {
             panic!()
         };
 
-        assert!(matches!(
-            program.get(ret_val).unwrap(),
-            Insn::Part {
-                src: Reg(0),
-                offset: 2,
-                size: 3
-            }
-        ));
+        let Insn::Bytes(bytes) = program.get(ret_val).unwrap() else {
+            panic!();
+        };
+        assert_eq!(bytes, Bytes::from_slice(&[0xff, 0xff, 0xff]).unwrap());
     }
 
     #[test]
@@ -414,11 +412,7 @@ mod tests {
             panic!()
         };
         assert_eq!(
-            Insn::Part {
-                src: Reg(0),
-                offset: 2,
-                size: 6
-            },
+            Insn::Bytes(Bytes::from_slice(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff]).unwrap()),
             program.get(hi).unwrap()
         );
 

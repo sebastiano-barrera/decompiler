@@ -4,9 +4,9 @@ use tracing::{event, instrument, span, Level};
 
 use crate::{
     cfg::BlockID,
-    mil::{ArithOp, Insn, Reg, RegType},
+    mil::{ArithOp, Endianness, Insn, Reg, RegType},
     ssa, ty,
-    util::Bytes,
+    util::{Bytes, Float32Bytes, Float64Bytes},
     x86_to_mil,
 };
 
@@ -476,6 +476,48 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
     insn
 }
 
+fn fold_cast_const(insn: Insn, prog: &ssa::Program) -> Insn {
+    match insn {
+        Insn::ReinterpretFloat32(src) => {
+            let Insn::Bytes(src_bytes) = prog.get(src).unwrap() else {
+                return insn;
+            };
+
+            let src_bytes = src_bytes.as_slice();
+            if src_bytes.len() != 4 {
+                event!(
+                    Level::ERROR,
+                    ?src,
+                    len = src_bytes.len(),
+                    "ReinterpretFloat32 has Bytes source with wrong length"
+                );
+                return insn;
+            }
+            let src_bytes: [u8; 4] = src_bytes.try_into().unwrap();
+            Insn::Float32(Float32Bytes::from_bytes(src_bytes, prog.endianness()))
+        }
+        Insn::ReinterpretFloat64(src) => {
+            let Insn::Bytes(src_bytes) = prog.get(src).unwrap() else {
+                return insn;
+            };
+
+            let src_bytes = src_bytes.as_slice();
+            if src_bytes.len() != 8 {
+                event!(
+                    Level::ERROR,
+                    ?src,
+                    len = src_bytes.len(),
+                    "ReinterpretFloat64 has Bytes source with wrong length"
+                );
+                return insn;
+            }
+            let src_bytes: [u8; 8] = src_bytes.try_into().unwrap();
+            Insn::Float64(Float64Bytes::from_bytes(src_bytes, prog.endianness()))
+        }
+        _ => insn,
+    }
+}
+
 /// If the given instruction is `Insn::Part { src, offset, size }`, and we know
 /// the type of `src`, then use the type information to replace it with a chain
 /// of instructions that extract the relevant part of `src` (e.g. named struct
@@ -640,6 +682,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_part_null(insn, &prog);
                 insn = fold_part_void(insn);
                 insn = fold_part_const(insn, &prog);
+                insn = fold_cast_const(insn, &prog);
                 insn = fold_widen_null(insn, &prog);
                 insn = fold_widen_const(insn, &prog);
                 insn = fold_bitops(insn, &prog);

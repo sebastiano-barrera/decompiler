@@ -5,7 +5,10 @@ use facet_reflect::HasFields;
 // coming
 use std::{cell::Cell, collections::HashMap};
 
-use crate::{ty, util::Bytes};
+use crate::{
+    ty,
+    util::{Bytes, Float32Bytes, Float64Bytes},
+};
 
 /// A MIL program.
 ///
@@ -107,7 +110,8 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
     items.into_iter().collect()
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, facet::Facet)]
+#[repr(u8)]
 pub enum Endianness {
     Little,
     Big,
@@ -128,6 +132,9 @@ pub enum Insn {
         value: i64,
         size: u16,
     },
+    Float32(Float32Bytes),
+    Float64(Float64Bytes),
+
     #[assoc(input_regs = array([_0]))]
     ReinterpretFloat32(Reg),
     #[assoc(input_regs = array([_0]))]
