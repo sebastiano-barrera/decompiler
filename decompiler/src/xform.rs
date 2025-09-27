@@ -791,7 +791,7 @@ fn pack_aggregates(
             // value of the struct, to be formally sectioned into fields
             let src = prog.append_new(bid, insn);
 
-            let mut member_reg = None;
+            let mut first_member_reg = None;
 
             for member in struct_ty.members.iter().rev() {
                 let Some(size) = types.bytes_size(member.tyid) else {
@@ -814,13 +814,14 @@ fn pack_aggregates(
                         size: size.try_into().unwrap(),
                     },
                 );
+                prog.set_value_type(value, Some(member.tyid));
 
-                member_reg = Some(prog.append_new(
+                first_member_reg = Some(prog.append_new(
                     bid,
                     Insn::StructMember {
                         name,
                         value,
-                        next: member_reg,
+                        next: first_member_reg,
                     },
                 ));
             }
@@ -830,7 +831,7 @@ fn pack_aggregates(
                     .name(tyid)
                     .map(|s| s.to_string().leak() as &str)
                     .unwrap_or("?"),
-                first_member: member_reg,
+                first_member: first_member_reg,
                 size: struct_ty.size.try_into().unwrap(),
             };
 
