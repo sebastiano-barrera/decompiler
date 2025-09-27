@@ -2680,7 +2680,7 @@ ssa program  1729 instrs
          r79 <- ArithK(Add, r10, -112)
          r80 <- StoreMem { addr: r79, value: r19 }
          r81 <- Int { value: 4199040, size: 8 }
-         r86 <- Bytes(Bytes { data: [46, 0, 0, 0, 0, 0, 0, 0], len: 4 })
+         r86 <- Int { value: 46, size: 4 }
          r87 <- CArg { value: r86, next_arg: None }
          r88 <- CArg { value: r17, next_arg: Some(r87) }
   (  3)  r89 <- Call { callee: r81, first_arg: Some(r88) }
@@ -3010,7 +3010,7 @@ ssa program  1729 instrs
          r778 <- ArithK(Add, r10, -136)
          r779 <- StoreMem { addr: r778, value: r772 }
          r780 <- Int { value: 4199040, size: 8 }
-         r785 <- Bytes(Bytes { data: [46, 0, 0, 0, 0, 0, 0, 0], len: 4 })
+         r785 <- Int { value: 46, size: 4 }
          r786 <- CArg { value: r785, next_arg: None }
          r787 <- CArg { value: r772, next_arg: Some(r786) }
   (  2)  r788 <- Call { callee: r780, first_arg: Some(r787) }
@@ -3062,7 +3062,7 @@ ssa program  1729 instrs
          r886 <- ArithK(Add, r10, -128)
          r887 <- StoreMem { addr: r886, value: r1471 }
          r888 <- Int { value: 6451424, size: 8 }
-         r895 <- Bytes(Bytes { data: [10, 0, 0, 0, 0, 0, 0, 0], len: 4 })
+         r895 <- Int { value: 10, size: 4 }
          r896 <- CArg { value: r895, next_arg: None }
          r897 <- CArg { value: r874, next_arg: Some(r896) }
          r898 <- CArg { value: r17, next_arg: Some(r897) }
@@ -3165,10 +3165,10 @@ T0: {
   [pre:RSP - 136]:* := pre:RDX;
   [pre:RSP - 112]:* := pre:R9;
   let r89: Bytes(8) = strchr(pre:RDX,
-                             0x<2e 00 00 00>);
+                             46);
   ;
   r1453 := strchr(pre:RDX,
-                  0x<2e 00 00 00>);
+                  46);
   if IsZero (r89) {
     __builtin_strlen();
     r1453 := pre:RDX + r89;
@@ -3480,7 +3480,7 @@ T0: {
       let r772: Bytes(8) = r1453 + 1;
       [pre:RSP - 136]:* := r772;
       let r788: Bytes(8) = strchr(r772,
-                                  0x<2e 00 00 00>);
+                                  46);
       ;
       if IsZero (r788) {
         __builtin_strlen();
@@ -3500,7 +3500,7 @@ T0: {
         r1454 := pre:R13;
         r1470 := 46;
         r1471 := strchr(r772,
-                        0x<2e 00 00 00>);
+                        46);
         if ! IsZero ([[pre:R13 + 24]:8]:1) {
           goto T4
         }
@@ -3520,7 +3520,7 @@ T0: {
       [pre:RSP - 128]:* := r1471;
       let r899: Bytes(8) = je_malloc_strtoumax(pre:RDX,
                                                ((r1470[4 .. 0] ^ r1470[4 .. 0]) as u64),
-                                               0x<0a 00 00 00>);
+                                               10);
       let r915: Bytes(8) = r899 + 1;
       ;
       if IsZero (r915) {

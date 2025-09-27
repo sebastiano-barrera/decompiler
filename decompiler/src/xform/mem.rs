@@ -359,10 +359,13 @@ mod tests {
             panic!()
         };
 
-        let Insn::Bytes(bytes) = program.get(ret_val).unwrap() else {
-            panic!();
-        };
-        assert_eq!(bytes, Bytes::from_slice(&[0xff, 0xff, 0xff]).unwrap());
+        assert_eq!(
+            program.get(ret_val).unwrap(),
+            Insn::Int {
+                value: 0xff_ff_ff,
+                size: 3,
+            }
+        );
     }
 
     #[test]
@@ -411,8 +414,12 @@ mod tests {
         let Insn::Concat { hi, lo } = program.get(ret_val).unwrap() else {
             panic!()
         };
+
         assert_eq!(
-            Insn::Bytes(Bytes::from_slice(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff]).unwrap()),
+            Insn::Int {
+                value: 0xff_ff_ff_ff_ff_ff,
+                size: 6
+            },
             program.get(hi).unwrap()
         );
 

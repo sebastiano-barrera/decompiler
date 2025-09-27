@@ -464,12 +464,39 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
             size: src_size,
         } = prog.get(src).unwrap()
         {
-            let src_bytes = prog.int_bytes(src_value, src_size);
+            if src_size < size {
+                event!(
+                    Level::ERROR,
+                    part_size = size,
+                    src_size,
+                    "Part: part size smaller than source size"
+                );
+                return insn;
+            }
 
+            let src_bytes = prog.int_bytes(src_value, src_size);
+            let src_bytes = src_bytes.as_slice();
             let offset = offset as usize;
             let size = size as usize;
-            let cut = &src_bytes.as_slice()[offset..offset + size];
-            return Insn::Bytes(Bytes::from_slice(cut).unwrap());
+            let part_bytes = &src_bytes[offset..offset + size];
+
+            let value = match prog.endianness() {
+                Endianness::Little => {
+                    let mut result_bytes = [0u8; 8];
+                    result_bytes[..size].copy_from_slice(part_bytes);
+                    i64::from_le_bytes(result_bytes)
+                }
+                Endianness::Big => {
+                    let mut result_bytes = [0u8; 8];
+                    result_bytes[8 - size..].copy_from_slice(part_bytes);
+                    i64::from_be_bytes(result_bytes)
+                }
+            };
+
+            return Insn::Int {
+                value,
+                size: size.try_into().unwrap(),
+            };
         }
     }
 

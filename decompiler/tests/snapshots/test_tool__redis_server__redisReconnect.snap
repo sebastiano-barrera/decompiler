@@ -1044,7 +1044,7 @@ ssa program  576 instrs
 .B10:    ;; preds:B9  → Always(Block(BlockID(11))).
          r312 <- ArithK(Add, r11, 7007800)
          r321 <- Int { value: 5852656, size: 8 }
-         r326 <- Bytes(Bytes { data: [2, 0, 0, 0, 0, 0, 0, 0], len: 4 })
+         r326 <- Int { value: 2, size: 4 }
          r329 <- CArg { value: r312, next_arg: None }
          r330 <- CArg { value: r326, next_arg: Some(r329) }
          r331 <- CArg { value: r42, next_arg: Some(r330) }
@@ -1106,7 +1106,7 @@ ssa program  576 instrs
          r537 <- ArithK(Add, r11, 6951854)
          r544 <- Int { value: 4294967295, size: 8 }
          r546 <- Int { value: 5852656, size: 8 }
-         r551 <- Bytes(Bytes { data: [5, 0, 0, 0, 0, 0, 0, 0], len: 4 })
+         r551 <- Int { value: 5, size: 4 }
          r554 <- CArg { value: r537, next_arg: None }
          r555 <- CArg { value: r551, next_arg: Some(r554) }
          r556 <- CArg { value: r42, next_arg: Some(r555) }
@@ -1204,7 +1204,7 @@ T0: {
       goto T11
     }
     __redisSetError(r42,
-                    0x<02 00 00 00>,
+                    2,
                     (pre:RIP + 7007800));
     goto T11
     T11: {
@@ -1236,7 +1236,7 @@ T0: {
     
     T18: {
       __redisSetError(r42,
-                      0x<05 00 00 00>,
+                      5,
                       (pre:RIP + 6951854));
       r569 := 4294967295;
       goto T14

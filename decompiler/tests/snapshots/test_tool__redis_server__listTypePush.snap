@@ -1228,7 +1228,7 @@ ssa program  676 instrs
          r630 <- Int { value: 6979771, size: 8 }
          r636 <- Int { value: 6982459, size: 8 }
          r649 <- Int { value: 4990320, size: 8 }
-         r654 <- Bytes(Bytes { data: [165, 0, 0, 0, 0, 0, 0, 0], len: 4 })
+         r654 <- Int { value: 165, size: 4 }
          r657 <- CArg { value: r630, next_arg: None }
          r658 <- CArg { value: r654, next_arg: Some(r657) }
          r659 <- CArg { value: r636, next_arg: Some(r658) }
@@ -1330,7 +1330,7 @@ T0: {
   ;
   if ! IsZero (r67[1 .. 0] - 176) {
     <?>4990320(6982459,
-               0x<a5 00 00 00>,
+               165,
                6979771);
     goto undefined /* warning: due to decompiler bug or limitation */
   }
