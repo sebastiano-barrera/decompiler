@@ -648,6 +648,7 @@ impl Program {
             dests: self.dests.into_iter().map(Cell::into_inner).collect(),
             addrs: self.addrs,
             tyids: self.tyids,
+            endianness: self.endianness,
         }
     }
 }
@@ -661,6 +662,7 @@ pub struct ProgramCore {
     pub dests: Vec<Reg>,
     pub addrs: Vec<u64>,
     pub tyids: Vec<Option<ty::TypeID>>,
+    pub endianness: Endianness,
 }
 
 pub struct InsnView<'a> {

@@ -8,8 +8,13 @@
 
 use tracing::{event, Level};
 
-use crate::{cfg, mil, pp, ty};
-use std::{cell::Cell, io::Write};
+use crate::{
+    cfg,
+    mil::{self, Endianness},
+    pp, ty,
+    util::Bytes,
+};
+use std::{cell::Cell, io::Write, ops::Shl};
 
 mod cons;
 
@@ -49,6 +54,8 @@ pub struct Program {
 
     schedule: cfg::Schedule,
     cfg: cfg::Graph,
+
+    endianness: Endianness,
 }
 
 /// Correctness relies on a few invariants.
@@ -83,6 +90,13 @@ impl Program {
         self.insns
             .get(reg.reg_index() as usize)
             .map(|cell| cell.get())
+    }
+
+    /// Return the bytes represented by an `Insn::Int {value, size}`.
+    ///
+    /// Depends on the source machine's endianness.
+    pub fn int_bytes(&self, value: i64, size: u16) -> Bytes {
+        int_bytes(value, size, self.endianness)
     }
 
     /// Set the defining instruction for the given register.
@@ -282,6 +296,43 @@ impl Program {
         self.assert_consistent_phis();
         self.assert_carg_chain();
     }
+}
+
+fn int_bytes(value: i64, size: u16, endianness: Endianness) -> Bytes {
+    let size = size as usize;
+    assert!(size <= 8);
+
+    // although `value` can store integer values of up to 8 bytes, we should
+    // treat it as an integer of exactly `size` bytes.
+    //
+    // to fit the two things together, we (1) mask the value
+    let value = if size == 8 {
+        value
+    } else {
+        value & ((1 << (8 * size)) - 1)
+    };
+
+    // (2) convert to 8 bytes (of the right endianness)
+    // (3) cut `size` bytes (on the right side of the 8 byte sequence), and return it
+    match endianness {
+        Endianness::Little => {
+            let bytes = value.to_le_bytes();
+            Bytes::from_slice(&bytes[0..size]).unwrap()
+        }
+        Endianness::Big => {
+            let bytes = value.to_be_bytes();
+            Bytes::from_slice(&bytes[8 - size..]).unwrap()
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_int_bytes() {
+    assert_eq!(
+        int_bytes(0xaabb, 2, Endianness::Little).as_slice(),
+        &[0xbb, 0xaa]
+    );
 }
 
 /// Internal API

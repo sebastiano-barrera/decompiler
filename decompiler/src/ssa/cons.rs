@@ -193,6 +193,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         tyids: program.tyids,
         schedule,
         cfg,
+        endianness: program.endianness,
     };
     event!(Level::TRACE, ?ssa, "ssa constructed");
     ssa.assert_invariants();

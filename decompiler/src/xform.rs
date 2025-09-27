@@ -5,7 +5,9 @@ use tracing::{event, instrument, span, Level};
 use crate::{
     cfg::BlockID,
     mil::{ArithOp, Insn, Reg, RegType},
-    ssa, ty, x86_to_mil,
+    ssa, ty,
+    util::Bytes,
+    x86_to_mil,
 };
 
 mod mem;
@@ -455,6 +457,25 @@ fn fold_part_void(insn: Insn) -> Insn {
     insn
 }
 
+fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
+    if let Insn::Part { src, offset, size } = insn {
+        if let Insn::Int {
+            value: src_value,
+            size: src_size,
+        } = prog.get(src).unwrap()
+        {
+            let src_bytes = prog.int_bytes(src_value, src_size);
+
+            let offset = offset as usize;
+            let size = size as usize;
+            let cut = &src_bytes.as_slice()[offset..offset + size];
+            return Insn::Bytes(Bytes::from_slice(cut).unwrap());
+        }
+    }
+
+    insn
+}
+
 /// If the given instruction is `Insn::Part { src, offset, size }`, and we know
 /// the type of `src`, then use the type information to replace it with a chain
 /// of instructions that extract the relevant part of `src` (e.g. named struct
@@ -618,6 +639,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_part_concat(insn, &prog);
                 insn = fold_part_null(insn, &prog);
                 insn = fold_part_void(insn);
+                insn = fold_part_const(insn, &prog);
                 insn = fold_widen_null(insn, &prog);
                 insn = fold_widen_const(insn, &prog);
                 insn = fold_bitops(insn, &prog);
