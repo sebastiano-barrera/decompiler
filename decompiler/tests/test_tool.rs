@@ -30,12 +30,40 @@ macro_rules! case {
 macro_rules! tests_in_binary {
     ($group:ident, $exe_path:expr; $($funcs:ident),* $(,)?) => {
         mod $group {
-            use crate::Exe;
+            use crate::{Exe, test_decompile_all_no_panic};
+            use test_log::test;
             static EXE: Exe = Exe::new($exe_path);
+
+            #[test]
+            fn no_panic() {
+                let exe = EXE.get_or_init();
+                test_decompile_all_no_panic(&*exe);
+            }
 
             $(case!($funcs, EXE, $funcs);)*
         }
     };
+}
+
+fn test_decompile_all_no_panic(exe: &decompiler::Executable) {
+    // I prefer having a deterministic order so that I don't have to keep track
+    // of which function specifically I have to fix nor create specific test
+    // cases. I just repeat the test every time, and get the same error every
+    // time until it's fixed.
+    let mut names: Vec<_> = exe.function_names().collect();
+    names.sort();
+
+    // TODO parallelize
+    for func_name in names {
+        // discard result
+        //
+        // we don't care if we got any errors; we only want to check that all
+        // functions can be decompiled without panicking.
+        //
+        // more specific tests are covered by test cases associated with
+        // specific functions.
+        let _ = exe.decompile_function(func_name);
+    }
 }
 
 struct Exe {
@@ -63,7 +91,7 @@ impl Exe {
     fn process_function(&self, function_name: &str) -> String {
         use std::fmt::Write;
 
-        let mut exe = self.get_or_init();
+        let exe = self.get_or_init();
 
         let df = exe
             .decompile_function(function_name)

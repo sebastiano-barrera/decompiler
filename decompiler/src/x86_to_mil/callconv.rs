@@ -223,7 +223,10 @@ fn prepare_for_return_value(
             // we're fine: no storage is used for this value, so `state` is already OK
         }
         ret_ty @ (ty::Ty::Bool(_) | ty::Ty::Subroutine(_)) => {
-            panic!("invalid type for a function return value: {:?}", ret_ty);
+            return Err(anyhow::anyhow!(
+                "invalid type for a function return value: {:?}",
+                ret_ty
+            ));
         }
         ty::Ty::Unknown => {
             // nothing better to do in this case...

@@ -16,16 +16,22 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
     use crate::mil::ArithOp;
 
     /// Evaluate expression (ak (op) bk)
-    fn eval_const(op: ArithOp, ak: i64, bk: i64) -> i64 {
+    fn eval_const(op: ArithOp, ak: i64, bk: i64) -> Option<i64> {
         match op {
-            ArithOp::Add => ak + bk,
-            ArithOp::Sub => ak - bk,
-            ArithOp::Mul => ak * bk,
-            ArithOp::Shl => ak << bk,
-            ArithOp::Shr => ak >> bk,
-            ArithOp::BitXor => ak ^ bk,
-            ArithOp::BitAnd => ak & bk,
-            ArithOp::BitOr => ak | bk,
+            ArithOp::Add => Some(ak + bk),
+            ArithOp::Sub => Some(ak - bk),
+            ArithOp::Mul => Some(ak * bk),
+            ArithOp::Shl => {
+                let bk = bk.try_into().ok()?;
+                ak.checked_shl(bk)
+            }
+            ArithOp::Shr => {
+                let bk = bk.try_into().ok()?;
+                ak.checked_shr(bk)
+            }
+            ArithOp::BitXor => Some(ak ^ bk),
+            ArithOp::BitAnd => Some(ak & bk),
+            ArithOp::BitOr => Some(ak | bk),
         }
     }
 
@@ -116,10 +122,12 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
     }
 
     match (op, li, ri) {
-        (op, Insn::Int { value: ka, .. }, Insn::Int { value: kb, .. }) => Insn::Int {
-            value: eval_const(op, ka, kb),
-            size: 8,
-        },
+        (op, Insn::Int { value: ka, .. }, Insn::Int { value: kb, .. }) => {
+            match eval_const(op, ka, kb) {
+                Some(value) => Insn::Int { value, size: 8 },
+                None => insn,
+            }
+        }
         (ArithOp::Add, _, Insn::Int { value: 0, .. }) => Insn::Get(lr),
         (ArithOp::Mul, _, Insn::Int { value: 1, .. }) => Insn::Get(lr),
 
@@ -149,7 +157,16 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
     let end = offset + size;
 
     let src_sz = prog.reg_type(src).bytes_size().unwrap();
-    assert!(end as usize <= src_sz);
+    if end as usize > src_sz {
+        event!(
+            Level::ERROR,
+            end,
+            src_sz,
+            ?insn,
+            "insn invalid: end > src_sz"
+        );
+        return insn;
+    }
 
     let src_insn = prog.get(src).unwrap();
     match src_insn {
@@ -712,7 +729,6 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 let span = span!(Level::TRACE, "processing", ?reg);
                 let _enter = span.enter();
 
-                let orig_block_len = prog.block_len(bid);
                 let orig_insn = prog.get(reg).unwrap();
                 let orig_has_fx = orig_insn.has_side_effects();
 

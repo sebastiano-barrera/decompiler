@@ -156,7 +156,8 @@ impl<'a> Builder<'a> {
 
             let mut output = String::new();
             formatter.format(&insn, &mut output);
-            let _ = span!(Level::TRACE, "translating instruction", insn = output).enter();
+            let _insn_span = span!(Level::TRACE, "translating instruction", insn = output);
+            let _insn_span_entered = _insn_span.enter();
 
             use iced_x86::Mnemonic as M;
             match insn.mnemonic() {
@@ -245,12 +246,26 @@ impl<'a> Builder<'a> {
                 //
                 // Note that movaps, movapd are not the same as their AVX
                 // versions vmovaps, vmovapd
-                M::Mov | M::Movsd | M::Movaps | M::Movapd | M::Movups | M::Movzx => {
+                M::Mov | M::Movaps | M::Movapd | M::Movups | M::Movzx => {
                     // movzx is implicitly handled by emit_write.
                     // the other opcodes are requried to have same-size source
                     // and destination operands
                     let (value, sz) = self.emit_read(&insn, 1);
                     self.emit_write(&insn, 0, value, sz);
+                }
+                M::Movsd => {
+                    // correct because the set of valid/encodable x86_64
+                    // instruction is already restricted to valid cases
+                    let (value, _sz) = self.emit_read(&insn, 1);
+                    self.emit(
+                        value,
+                        mil::Insn::Part {
+                            src: value,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    self.emit_write(&insn, 0, value, 8);
                 }
                 M::Movd | M::Movss => {
                     let (value, _sz) = self.emit_read(&insn, 1);
@@ -440,13 +455,12 @@ impl<'a> Builder<'a> {
                             self.emit(result, mil::Insn::Arith(mil::ArithOp::Mul, a, b));
 
                             if op_count == 3 {
-                                let imm64 = match insn.op_kind(2) {
-                                    OpKind::Immediate8 => insn.immediate8() as i8 as i64,
-                                    OpKind::Immediate16 => insn.immediate16() as i16 as i64,
-                                    OpKind::Immediate32 => insn.immediate32() as i32 as i64,
-                                    OpKind::Immediate64 => insn.immediate64() as i64,
-                                    other => panic!("imul: invalid 3rd operand: {other:?}"),
-                                };
+                                // this panics if the 3rd operand is not an
+                                // immediate, but there is no such case in
+                                // x86_64. if this actually panics in the wild,
+                                // it's probably a bug in iced_x86, but I bet
+                                // it won't.
+                                let imm64 = insn.immediate(2) as i64;
                                 let k = self.pb.tmp_gen();
                                 self.emit(
                                     k,
@@ -1160,7 +1174,7 @@ impl<'a> Builder<'a> {
                 panic!("invalid mov dest operand: {:?}", insn.op0_kind())
             }
 
-            OpKind::MemorySegSI
+            op_kind @ (OpKind::MemorySegSI
             | OpKind::MemorySegESI
             | OpKind::MemorySegRSI
             | OpKind::MemorySegDI
@@ -1168,16 +1182,20 @@ impl<'a> Builder<'a> {
             | OpKind::MemorySegRDI
             | OpKind::MemoryESDI
             | OpKind::MemoryESEDI
-            | OpKind::MemoryESRDI => {
-                todo!("mov: segment-relative memory destination operands are not supported")
+            | OpKind::MemoryESRDI) => {
+                todo!("mov: segment-relative memory destination operands are not supported ({op_kind:?})")
             }
 
             OpKind::Memory => {
-                assert_eq!(
-                    value_size as usize,
-                    insn.memory_size().size(),
-                    "destination memory operand is not the same size as the value"
-                );
+                if value_size as usize != insn.memory_size().size() {
+                    event!(
+                        Level::ERROR,
+                        value_size,
+                        memory_size = ?insn.memory_size(),
+                        "destination memory operand is not the same size as the value",
+                    );
+                    panic!();
+                }
 
                 let addr = self.pb.tmp_gen();
                 self.emit_compute_address_into(insn, addr);
@@ -1269,11 +1287,13 @@ impl<'a> Builder<'a> {
         v0
     }
     fn emit_compute_address_into(&mut self, insn: &iced_x86::Instruction, dest: mil::Reg) {
-        assert_eq!(
-            insn.segment_prefix(),
-            Register::None,
-            "emit_compute_address_into: segment-relative memory address operands are not supported",
-        );
+        if insn.segment_prefix() != Register::None {
+            event!(
+                Level::WARN,
+                segment_prefix = ?insn.segment_prefix(),
+                "segment-relative memory address operands are not supported. assuming it is 0"
+            );
+        }
 
         self.pb.push(
             dest,

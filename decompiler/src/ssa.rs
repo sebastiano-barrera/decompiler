@@ -190,6 +190,7 @@ impl Program {
     }
 
     pub fn reg_type(&self, reg: mil::Reg) -> mil::RegType {
+        event!(Level::TRACE, ?reg, "reg_type");
         use mil::{Insn, RegType};
         match self.get(reg).unwrap() {
             Insn::Void => RegType::Bytes(0), // TODO better choice here?
@@ -216,10 +217,20 @@ impl Program {
             Insn::Arith(_, a, b) => {
                 let at = self.reg_type(a);
                 let bt = self.reg_type(b);
-                debug_assert_eq!(at, bt); // TODO check this some better way
+                // TODO check this some better way
+                if at != bt {
+                    event!(
+                        Level::WARN,
+                        ?at,
+                        ?bt,
+                        ?reg,
+                        "different reg types for operands in {reg:?}"
+                    );
+                }
                 at
             }
             Insn::ArithK(_, a, _) => self.reg_type(a),
+
             Insn::Cmp(_, _, _) => RegType::Bool,
             Insn::Bool(_, _, _) => RegType::Bool,
             Insn::Not(_) => RegType::Bool,
