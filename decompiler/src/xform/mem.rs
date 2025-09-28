@@ -192,6 +192,7 @@ fn load_or_void(addr: Reg, size: u32) -> Insn {
 /// load instruction (indirectly described by `load`) as its last instruction.
 ///
 /// This is what normally happens.
+#[tracing::instrument(skip_all)]
 fn find_dominating_conflicting_store(
     prog: &ssa::Program,
     ref_reg: mil::Reg,
@@ -222,10 +223,14 @@ fn find_dominating_conflicting_store(
             return None;
         }
 
-        let size_s = prog
-            .reg_type(value_s)
-            .bytes_size()
-            .expect("StoreMem: value with unsized type?!");
+        let Some(size_s) = prog.reg_type(value_s).bytes_size() else {
+            event!(
+                Level::WARN,
+                value_reg = ?value_s,
+                "StoreMem has unsized value; bailing out"
+            );
+            return None;
+        };
         let end_s = start_s + size_s as i64;
 
         if start_s < load.end && end_s > load.start {

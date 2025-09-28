@@ -156,7 +156,9 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
 
     let end = offset + size;
 
-    let src_sz = prog.reg_type(src).bytes_size().unwrap();
+    let Some(src_sz) = prog.reg_type(src).bytes_size() else {
+        return insn;
+    };
     if end as usize > src_sz {
         event!(
             Level::ERROR,
@@ -1016,8 +1018,6 @@ mod tests {
         util::Bytes,
     };
     use mil::{ArithOp, Insn, Reg};
-
-    use super::canonical;
 
     mod constant_folding {
         use crate::{

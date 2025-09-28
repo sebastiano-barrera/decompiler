@@ -23,6 +23,9 @@
 
     - [x] float literals
 
+- [ ] either support arbitrarily sized integer literals (Insn::Int), or find a
+suitable alternative
+
 - [ ] large scale testing and tracking
 
     - I expect that large-scale is correlated with lower-value/significance
