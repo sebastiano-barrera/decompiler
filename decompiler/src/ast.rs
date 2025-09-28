@@ -466,16 +466,16 @@ impl<'a> Ast<'a> {
                 self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
             }
             Insn::Upsilon { value, phi_ref } => match self.ssa.reg_type(value) {
-                mil::RegType::Bool | mil::RegType::Bytes(_) | mil::RegType::Float { .. } => {
+                // `value` doesn't need to be printed here, as it's already been
+                // printed (has side effect) and the target phi register's value
+                // is not significant
+                mil::RegType::Effect => {}
+                _ => {
                     write!(pp, "r{} := ", phi_ref.reg_index())?;
                     pp.open_box();
                     self.pp_def(pp, value, 0)?;
                     pp.close_box();
                 }
-                // `value` doesn't need to be printed here, as it's already been
-                // printed (has side effect) and the target phi register's value
-                // is not significant
-                mil::RegType::Effect => {}
             },
             Insn::CArg { .. } => {
                 unreachable!("CArg should be handled via the Call it belongs to!")

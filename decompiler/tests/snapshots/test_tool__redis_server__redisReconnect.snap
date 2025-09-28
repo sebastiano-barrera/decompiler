@@ -903,7 +903,7 @@ ssa program  576 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(1)) } [r9, r10, r11, r13, r15, r16, r42, r44, r45, r47, r49, r50, r61, r63, r64, r66, r69, r70, r82, r83, r84, r85, r94, r95, r106, r107, r111, r116]
+  BlockID(0) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(1)) } [r9, r10, r11, r13, r15, r16, r42, r44, r45, r47, r49, r50, r61, r63, r64, r66, r69, r70, r82, r83, r84, r94, r95, r106, r107, r111, r116]
   BlockID(1) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(2)) } [r120, r123, r124, r128, r133, r575]
   BlockID(2) -> Always(Block(BlockID(3))) [r135, r136, r137, r138, r139, r150, r152, r153]
   BlockID(3) -> Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(4)) } [r156, r160, r165, r574]
@@ -966,8 +966,7 @@ ssa program  576 instrs
          r70 <- Call { callee: r66, first_arg: Some(r69) }
          r82 <- Part { src: r13, offset: 0, size: 4 }
          r83 <- Part { src: r13, offset: 0, size: 4 }
-         r84 <- Arith(BitXor, r82, r83)
-  (  2)  r85 <- Widen { reg: r84, target_size: 8, sign: false }
+  (  2)  r84 <- Arith(BitXor, r82, r83)
          r94 <- Int { value: 4199488, size: 8 }
          r95 <- Call { callee: r94, first_arg: None }
          r106 <- ArithK(Add, r42, 256)
@@ -984,7 +983,7 @@ ssa program  576 instrs
 .B2:    ;; preds:B1  → Always(Block(BlockID(3))).
          r135 <- CArg { value: r16, next_arg: None }
          r136 <- CArg { value: r124, next_arg: Some(r135) }
-         r137 <- CArg { value: r85, next_arg: Some(r136) }
+         r137 <- CArg { value: r84, next_arg: Some(r136) }
          r138 <- CArg { value: r107, next_arg: Some(r137) }
          r139 <- Call { callee: r124, first_arg: Some(r138) }
          r150 <- Int { value: 0, size: 8 }
@@ -1003,7 +1002,7 @@ ssa program  576 instrs
 .B5:    ;; preds:B4  → Always(Block(BlockID(6))).
          r181 <- CArg { value: r16, next_arg: None }
          r182 <- CArg { value: r70, next_arg: Some(r181) }
-         r183 <- CArg { value: r85, next_arg: Some(r182) }
+         r183 <- CArg { value: r84, next_arg: Some(r182) }
          r184 <- CArg { value: r42, next_arg: Some(r183) }
          r185 <- Call { callee: r169, first_arg: Some(r184) }
 .B6:    ;; preds:B3,B4,B5  → Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(7)) }.
@@ -1127,7 +1126,7 @@ T0: {
   [pre:RSP - 16]:* := pre:RBX;
   [r42 + 8]:* := 0;
   strlen(r47);
-  let r85: Bytes(8) = (pre:RSI[4 .. 0] ^ pre:RSI[4 .. 0]) as u64;
+  let r84: Bytes(8) = pre:RSI[4 .. 0] ^ pre:RSI[4 .. 0];
   __builtin_memset();
   let r107: Bytes(8) = [r42 + 256]:8;
   ;
@@ -1142,7 +1141,7 @@ T0: {
     goto T4
   }
   r124(r107,
-       r85,
+       r84,
        r124,
        pre:RCX);
   [r42 + 256]:* := 0;
@@ -1165,7 +1164,7 @@ T0: {
       goto T6
     }
     r169(r42,
-         r85,
+         r84,
          strlen(r47),
          pre:RCX);
     goto T6

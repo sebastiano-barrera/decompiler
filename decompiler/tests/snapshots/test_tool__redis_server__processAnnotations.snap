@@ -1180,9 +1180,9 @@ T0: {
     if ! IsZero ([[pre:RSP - 1088]:8]:1 - 13) {
       goto T13
     }
-    let r279: Bytes(8) = r134 - <?>4202480((pre:RSP - 1076),
-                                           (pre:RSP - 1088),
-                                           10);
+    let r279: Bytes(16) = r134 - <?>4202480((pre:RSP - 1076),
+                                            (pre:RSP - 1088),
+                                            10);
     ;
     if SignOf (r279) EQ OverflowOf (r279) {
       goto T11

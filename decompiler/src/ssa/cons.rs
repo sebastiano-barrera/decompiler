@@ -187,16 +187,29 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     // convert into plain data, fully accessible form
     let program = program.unwrap();
 
-    let ssa = Program {
+    // infer_reg_types has to work here and also for new instructions added
+    // later via OpenProgram; so, initialize it with RegType::Error, then
+    // call infer_reg_type on all registers the same way clients do
+    let reg_types = program.insns.iter().map(|_| mil::RegType::Error).collect();
+
+    let mut ssa = Program {
         insns: program.insns.into_iter().map(Cell::new).collect(),
         addrs: program.addrs,
         tyids: program.tyids,
+        reg_types,
         schedule,
         cfg,
         endianness: program.endianness,
     };
     event!(Level::TRACE, ?ssa, "ssa constructed");
     ssa.assert_invariants();
+
+    // TODO this allocation should be avoidable
+    let insns_rpo: Vec<_> = ssa.insns_rpo().collect();
+    for (_, reg) in insns_rpo {
+        ssa.refresh_reg_type(reg);
+    }
+
     ssa
 }
 

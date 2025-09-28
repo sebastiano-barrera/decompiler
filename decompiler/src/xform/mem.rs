@@ -268,12 +268,8 @@ fn find_dominating_conflicting_store(
 mod tests {
     use crate::{
         mil::{self, ArithOp, Control, Insn, Reg},
-        ssa, ty,
-        util::Bytes,
-        x86_to_mil, xform,
+        ssa, ty, x86_to_mil, xform,
     };
-
-    define_ancestral_name!(ANC_MEM, "memory");
 
     #[test]
     fn single_bb_direct() {

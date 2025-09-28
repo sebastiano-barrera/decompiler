@@ -139,7 +139,7 @@ ssa program  90 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r9, r10, r26, r42, r43, r45, r48, r51, r52, r63, r64, r65, r74, r77, r80, r81, r88]
+  BlockID(0) -> Always(Return) [r9, r10, r26, r42, r43, r45, r48, r51, r52, r63, r64, r65, r74, r77, r78, r80, r81, r88]
   domtree:
     BlockID(0)
 
@@ -160,8 +160,9 @@ ssa program  90 instrs
          r65 <- Arith(BitXor, r63, r64)
          r74 <- Int { value: 0, size: 8 }
          r77 <- StoreMem { addr: r52, value: r74 }
+         r78 <- Part { src: r65, offset: 0, size: 16 }
          r80 <- ArithK(Add, r52, 8)
-         r81 <- StoreMem { addr: r80, value: r65 }
+         r81 <- StoreMem { addr: r80, value: r78 }
          r88 <- SetReturnValue(r52)
 
 
@@ -171,7 +172,7 @@ T0: {
   [pre:RSP - 8]:* := pre:RBP;
   let r52: Bytes(8) = <?>4433936(24);
   [r52]:* := 0;
-  [r52 + 8]:* := pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0];
+  [r52 + 8]:* := (pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0])[16 .. 0];
   ;
   return r52
 }
