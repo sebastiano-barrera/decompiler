@@ -299,7 +299,7 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
                             RegClass::Sse => {
                                 let sse_reg = *sse_regs.next().expect("bug: not enough sse regs!");
                                 let mut eb_count = 1;
-                                while let Some(RegClass::SseUp) = clss.peek() {
+                                while clss.next_if_eq(&&RegClass::SseUp).is_some() {
                                     eb_count += 1;
                                 }
 

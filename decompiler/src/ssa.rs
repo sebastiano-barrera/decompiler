@@ -541,14 +541,19 @@ fn infer_reg_type(reg: mil::Reg, prog: &Program) -> mil::RegType {
         Insn::Arith(_, a, b) => {
             let at = prog.reg_type(a);
             let bt = prog.reg_type(b);
-            // TODO check this some better way
+            // TODO check this some better way?
             if at != bt {
                 RegType::Error
+            } else if let RegType::Bytes(sz) = at {
+                RegType::Bytes(sz * 2)
             } else {
-                at
+                RegType::Error
             }
         }
-        Insn::ArithK(_, a, _) => prog.reg_type(a),
+        Insn::ArithK(_, a, _) => match prog.reg_type(a) {
+            RegType::Bytes(sz) => RegType::Bytes(sz * 2),
+            _ => RegType::Error,
+        },
 
         Insn::Cmp(_, _, _) => RegType::Bool,
         Insn::Bool(_, _, _) => RegType::Bool,

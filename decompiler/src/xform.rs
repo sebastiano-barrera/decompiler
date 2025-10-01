@@ -179,7 +179,11 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
         } => {
             let up_end = up_offset + up_size;
             let up_src_sz = prog.reg_type(up_src).bytes_size().unwrap();
-            assert!(up_end as usize <= up_src_sz);
+            let up_insn = prog.get(up_src).unwrap();
+            assert!(
+                up_end as usize <= up_src_sz,
+                "insn={insn:?} -> src_insn={src_insn:?} -> up_insn={up_insn:?} -- up_end={up_end} > up_src_sz={up_src_sz}"
+            );
 
             Insn::Part {
                 src: up_src,
@@ -656,7 +660,8 @@ fn apply_type_selection(
     Insn::Get(last_reg)
 }
 
-/// Add cast instructions wherever high level type information indicates that it might be valuable to do so.
+/// Add cast instructions wherever high level type information indicates that it
+/// might be valuable to do so.
 ///
 /// Typical example is: a value with HLL ty::Ty::Float but RegType::Bytes. In
 /// this case, `Insn::ReinterpretFloat` (RegType::Float) can be inserted, which
@@ -767,7 +772,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_constants(insn, &mut prog, bid);
                 insn = fold_shr_part(insn, &mut prog, bid);
                 insn = apply_type_selection(insn, &mut prog, bid, types);
-                insn = add_cast_for_type(insn, reg, &mut prog, bid, types);
+                // insn = add_cast_for_type(insn, reg, &mut prog, bid, types);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
