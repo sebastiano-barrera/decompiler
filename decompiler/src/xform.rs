@@ -236,10 +236,14 @@ fn fold_concat_void(insn: Insn, prog: &ssa::Program) -> Insn {
 fn fold_bitops(insn: Insn, prog: &ssa::Program) -> Insn {
     match insn {
         // TODO put the appropriate size
-        Insn::Arith(ArithOp::BitXor, a, b) if a == b => Insn::Int {
-            value: 0,
-            size: prog.reg_type(a).bytes_size().unwrap().try_into().unwrap(),
-        },
+        Insn::Arith(ArithOp::BitXor, a, b) if a == b => {
+            let size = prog.reg_type(a).bytes_size().unwrap().try_into().unwrap();
+            if size <= 8 {
+                Insn::Int { value: 0, size }
+            } else {
+                insn
+            }
+        }
         Insn::Arith(ArithOp::BitAnd, a, b) if a == b => Insn::Get(a),
         Insn::Arith(ArithOp::BitOr, a, b) if a == b => Insn::Get(a),
         _ => insn,
@@ -382,12 +386,14 @@ fn fold_widen_const(insn: Insn, prog: &ssa::Program) -> Insn {
         sign: _,
     } = insn
     {
-        if let Insn::Int { value, size } = prog.get(reg).unwrap() {
-            assert!(target_size > size);
-            return Insn::Int {
-                value,
-                size: target_size,
-            };
+        if target_size <= 8 {
+            if let Insn::Int { value, size } = prog.get(reg).unwrap() {
+                assert!(target_size > size);
+                return Insn::Int {
+                    value,
+                    size: target_size,
+                };
+            }
         }
     }
     insn
@@ -493,10 +499,16 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
                     );
                     return insn;
                 }
+
                 let src_bytes = prog.int_bytes(src_value, src_size);
                 let src_bytes = src_bytes.as_slice();
                 let offset = offset as usize;
                 let size = size as usize;
+                if size > 8 {
+                    // too large! can't represent this as a single Insn::Int
+                    return insn;
+                }
+
                 let part_bytes = &src_bytes[offset..offset + size];
                 let value = match prog.endianness() {
                     Endianness::Little => {

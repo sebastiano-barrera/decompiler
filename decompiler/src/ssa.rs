@@ -234,7 +234,15 @@ impl Program {
         chain
     }
 
+    /// Check that each single instruction is (independently) valid.
+    fn assert_insns_valid(&self) {
+        for insn in &self.insns {
+            insn.get().assert_valid();
+        }
+    }
+
     pub fn assert_invariants(&self) {
+        self.assert_insns_valid();
         self.assert_consistent_arrays_len();
         self.assert_no_circular_refs();
         self.assert_inputs_visible_scheduled();
@@ -646,6 +654,7 @@ impl<'a> OpenProgram<'a> {
     ///
     /// Returns the register corresponding to the new value.
     pub fn append_new(&mut self, bid: cfg::BlockID, insn: mil::Insn) -> mil::Reg {
+        insn.assert_valid();
         let reg = self.add_insn(insn);
         self.program.schedule.append(reg.reg_index(), bid);
         event!(Level::TRACE, ?bid, ?insn, ?reg, "append_new");

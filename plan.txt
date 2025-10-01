@@ -31,17 +31,16 @@ suitable alternative
     - I expect that large-scale is correlated with lower-value/significance
     tests; high-value tests are more likely to be highly specific
 
-    - what could be some good large-scale tests?
+    - what could be some good large-scale tests? decompile every function and 
+    chack that...
 
-        - decompile every function and check that the decompiler does not panic
-        on any of them
+        - [ ] the decompiler does not panic on any of them
 
             - in particular, for debug builds (which is what integration tests
             use), also check a few additional invariants for the SSA code (after
             construction and again after transforms)
 
-        - decompile every function and check that no there are no unsupported
-        asm instructions
+        - [ ] there are no unsupported asm instructions
 
             - this only makes sense for a reference application that was
             explicitly selected as "normal enough" (close to our target).

@@ -402,6 +402,15 @@ impl Insn {
     pub fn input_regs_iter(&mut self) -> impl Iterator<Item = &mut Reg> {
         self.input_regs().into_iter()
     }
+
+    pub fn assert_valid(&self) {
+        match *self {
+            Insn::Int { value: _, size } => {
+                assert!(size <= 8);
+            }
+            _ => {}
+        }
+    }
 }
 
 impl std::fmt::Debug for Program {
