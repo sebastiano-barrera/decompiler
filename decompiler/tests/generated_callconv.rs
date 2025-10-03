@@ -64,14 +64,10 @@ fn func005_in() {
     let data_flow = compute_data_flow("func005_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -79,14 +75,10 @@ fn func006_in() {
     let data_flow = compute_data_flow("func006_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -119,7 +111,7 @@ fn func008_in() {
     let data_flow = compute_data_flow("func008_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
@@ -138,10 +130,6 @@ fn func008_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func009_in() {
@@ -173,7 +161,7 @@ fn func010_in() {
     let data_flow = compute_data_flow("func010_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
@@ -192,17 +180,13 @@ fn func010_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func011_in() {
     let data_flow = compute_data_flow("func011_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
@@ -221,17 +205,13 @@ fn func011_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func012_in() {
     let data_flow = compute_data_flow("func012_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
@@ -250,17 +230,13 @@ fn func012_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func013_in() {
     let data_flow = compute_data_flow("func013_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 0);
@@ -279,10 +255,6 @@ fn func013_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func014_in() {
@@ -487,14 +459,10 @@ fn func024_in() {
     let data_flow = compute_data_flow("func024_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -502,14 +470,10 @@ fn func025_in() {
     let data_flow = compute_data_flow("func025_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -542,7 +506,7 @@ fn func027_in() {
     let data_flow = compute_data_flow("func027_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
@@ -561,10 +525,6 @@ fn func027_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func028_in() {
@@ -596,7 +556,7 @@ fn func029_in() {
     let data_flow = compute_data_flow("func029_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
@@ -615,17 +575,13 @@ fn func029_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func030_in() {
     let data_flow = compute_data_flow("func030_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
@@ -644,17 +600,13 @@ fn func030_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func031_in() {
     let data_flow = compute_data_flow("func031_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
@@ -673,17 +625,13 @@ fn func031_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func032_in() {
     let data_flow = compute_data_flow("func032_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 1);
@@ -702,10 +650,6 @@ fn func032_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func033_in() {
@@ -910,14 +854,10 @@ fn func043_in() {
     let data_flow = compute_data_flow("func043_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -925,14 +865,10 @@ fn func044_in() {
     let data_flow = compute_data_flow("func044_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -965,7 +901,7 @@ fn func046_in() {
     let data_flow = compute_data_flow("func046_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
@@ -984,10 +920,6 @@ fn func046_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func047_in() {
@@ -1019,7 +951,7 @@ fn func048_in() {
     let data_flow = compute_data_flow("func048_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
@@ -1038,17 +970,13 @@ fn func048_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func049_in() {
     let data_flow = compute_data_flow("func049_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
@@ -1067,17 +995,13 @@ fn func049_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func050_in() {
     let data_flow = compute_data_flow("func050_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
@@ -1096,17 +1020,13 @@ fn func050_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func051_in() {
     let data_flow = compute_data_flow("func051_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 2);
@@ -1125,10 +1045,6 @@ fn func051_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func052_in() {
@@ -1333,14 +1249,10 @@ fn func062_in() {
     let data_flow = compute_data_flow("func062_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -1348,14 +1260,10 @@ fn func063_in() {
     let data_flow = compute_data_flow("func063_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -1388,7 +1296,7 @@ fn func065_in() {
     let data_flow = compute_data_flow("func065_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
@@ -1407,10 +1315,6 @@ fn func065_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func066_in() {
@@ -1442,7 +1346,7 @@ fn func067_in() {
     let data_flow = compute_data_flow("func067_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
@@ -1461,17 +1365,13 @@ fn func067_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func068_in() {
     let data_flow = compute_data_flow("func068_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
@@ -1490,17 +1390,13 @@ fn func068_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func069_in() {
     let data_flow = compute_data_flow("func069_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
@@ -1519,17 +1415,13 @@ fn func069_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func070_in() {
     let data_flow = compute_data_flow("func070_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 3);
@@ -1548,10 +1440,6 @@ fn func070_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func071_in() {
@@ -1756,14 +1644,10 @@ fn func081_in() {
     let data_flow = compute_data_flow("func081_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -1771,14 +1655,10 @@ fn func082_in() {
     let data_flow = compute_data_flow("func082_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -1811,7 +1691,7 @@ fn func084_in() {
     let data_flow = compute_data_flow("func084_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
@@ -1830,10 +1710,6 @@ fn func084_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func085_in() {
@@ -1865,7 +1741,7 @@ fn func086_in() {
     let data_flow = compute_data_flow("func086_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
@@ -1884,17 +1760,13 @@ fn func086_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func087_in() {
     let data_flow = compute_data_flow("func087_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
@@ -1913,17 +1785,13 @@ fn func087_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func088_in() {
     let data_flow = compute_data_flow("func088_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
@@ -1942,17 +1810,13 @@ fn func088_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func089_in() {
     let data_flow = compute_data_flow("func089_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 4);
@@ -1971,10 +1835,6 @@ fn func089_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func090_in() {
@@ -2179,14 +2039,10 @@ fn func100_in() {
     let data_flow = compute_data_flow("func100_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -2194,14 +2050,10 @@ fn func101_in() {
     let data_flow = compute_data_flow("func101_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -2234,7 +2086,7 @@ fn func103_in() {
     let data_flow = compute_data_flow("func103_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
@@ -2253,10 +2105,6 @@ fn func103_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func104_in() {
@@ -2288,7 +2136,7 @@ fn func105_in() {
     let data_flow = compute_data_flow("func105_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
@@ -2307,17 +2155,13 @@ fn func105_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func106_in() {
     let data_flow = compute_data_flow("func106_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
@@ -2336,17 +2180,13 @@ fn func106_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func107_in() {
     let data_flow = compute_data_flow("func107_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
@@ -2365,17 +2205,13 @@ fn func107_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func108_in() {
     let data_flow = compute_data_flow("func108_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 5);
@@ -2394,10 +2230,6 @@ fn func108_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func109_in() {
@@ -2602,14 +2434,10 @@ fn func119_in() {
     let data_flow = compute_data_flow("func119_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -2617,14 +2445,10 @@ fn func120_in() {
     let data_flow = compute_data_flow("func120_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -2657,7 +2481,7 @@ fn func122_in() {
     let data_flow = compute_data_flow("func122_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
@@ -2676,10 +2500,6 @@ fn func122_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func123_in() {
@@ -2711,7 +2531,7 @@ fn func124_in() {
     let data_flow = compute_data_flow("func124_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
@@ -2730,17 +2550,13 @@ fn func124_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func125_in() {
     let data_flow = compute_data_flow("func125_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
@@ -2759,17 +2575,13 @@ fn func125_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func126_in() {
     let data_flow = compute_data_flow("func126_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
@@ -2788,17 +2600,13 @@ fn func126_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func127_in() {
     let data_flow = compute_data_flow("func127_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 6);
@@ -2817,10 +2625,6 @@ fn func127_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func128_in() {
@@ -3025,14 +2829,10 @@ fn func138_in() {
     let data_flow = compute_data_flow("func138_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -3040,14 +2840,10 @@ fn func139_in() {
     let data_flow = compute_data_flow("func139_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 2);
+    assert_eq!(insns.len(), 1);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
-    });
-
-    assert_matches!(&insns[1], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(0));
     });
 }
 #[test]
@@ -3080,7 +2876,7 @@ fn func141_in() {
     let data_flow = compute_data_flow("func141_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
@@ -3099,10 +2895,6 @@ fn func141_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func142_in() {
@@ -3134,7 +2926,7 @@ fn func143_in() {
     let data_flow = compute_data_flow("func143_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
@@ -3153,17 +2945,13 @@ fn func143_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func144_in() {
     let data_flow = compute_data_flow("func144_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
@@ -3182,17 +2970,13 @@ fn func144_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func145_in() {
     let data_flow = compute_data_flow("func145_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
@@ -3211,17 +2995,13 @@ fn func145_in() {
             assert_eq!(*name, "member0");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat32(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func146_in() {
     let data_flow = compute_data_flow("func146_in");
     let insns = data_flow.as_slice();
 
-    assert_eq!(insns.len(), 3);
+    assert_eq!(insns.len(), 2);
 
     assert_matches!(&insns[0], Insn::FuncArgument { index, .. }, {
         assert_eq!(*index, 7);
@@ -3240,10 +3020,6 @@ fn func146_in() {
             assert_eq!(*name, "member1");
         }
     );
-
-    assert_matches!(&insns[2], Insn::ReinterpretFloat64(src), {
-        assert_eq!(*src, R(1));
-    });
 }
 #[test]
 fn func147_in() {

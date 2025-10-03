@@ -41,6 +41,12 @@ pub enum Error {
 
     #[error("while applying clarifying transformations: {0}")]
     XformError(String),
+
+    #[error("function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})", func_range.0, func_range.1, text_range.0, text_range.1)]
+    InvalidRange {
+        func_range: (usize, usize),
+        text_range: (usize, usize),
+    },
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -199,13 +205,15 @@ impl<'a> Executable<'a> {
             .ok_or(Error::NoTextSection)?;
         let vm_range = text_section.vm_range();
         if vm_range.start > vm_addr || vm_range.end < func_end {
-            event!(
-                Level::WARN,
-                "function memory range (0x{:x}-0x{:x}) out of .text section vm range (0x{:x}-0x{:x})",
-                vm_addr, func_end, vm_range.start, vm_range.end,
-            );
+            // error: we can't compute offset in text section in this case
+            return Err(Error::InvalidRange {
+                func_range: (vm_addr, func_end),
+                text_range: (vm_range.start, vm_range.end),
+            });
         }
+
         let text_section_offset = vm_addr - vm_range.start;
+
         let file_offset = text_section.sh_offset as usize + text_section_offset;
         Ok(FuncCoords {
             text_section_offset,

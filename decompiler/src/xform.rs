@@ -6,7 +6,7 @@ use crate::{
     cfg::BlockID,
     mil::{ArithOp, Endianness, Insn, Reg, RegType},
     ssa, ty,
-    util::{Bytes, Float32Bytes, Float64Bytes},
+    util::Bytes,
     x86_to_mil,
 };
 
@@ -139,6 +139,7 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
     // operators that matter here are:
     // - subrange: src[a..b]
@@ -178,12 +179,29 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
             size: up_size,
         } => {
             let up_end = up_offset + up_size;
-            let up_src_sz = prog.reg_type(up_src).bytes_size().unwrap();
+            let Some(up_src_sz) = prog.reg_type(up_src).bytes_size() else {
+                event!(
+                    Level::ERROR,
+                    ?insn,
+                    ?src_insn,
+                    ?up_src,
+                    "bug in SSA code. up_src has no size",
+                );
+                return insn;
+            };
+
             let up_insn = prog.get(up_src).unwrap();
-            assert!(
-                up_end as usize <= up_src_sz,
-                "insn={insn:?} -> src_insn={src_insn:?} -> up_insn={up_insn:?} -- up_end={up_end} > up_src_sz={up_src_sz}"
-            );
+            if up_end as usize > up_src_sz {
+                event!(
+                    Level::ERROR,
+                    ?insn,
+                    ?src_insn,
+                    ?up_insn,
+                    up_end,
+                    up_src_sz,
+                    "bug in SSA code. up_end > up_src_sz",
+                );
+            }
 
             Insn::Part {
                 src: up_src,
@@ -342,44 +360,57 @@ fn fold_part_widen(insn: Insn, prog: &ssa::Program) -> Insn {
     //  r2 <- Widen r0 to size plen
     // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-    if let Insn::Part {
+    let Insn::Part {
         src: part_src,
         offset: 0,
         size: part_size,
     } = insn
-    {
-        if let Insn::Widen {
-            reg,
-            target_size: _,
-            sign,
-        } = prog.get(part_src).unwrap()
-        {
-            // TODO convert to error
-            let orig_size = prog.reg_type(reg).bytes_size().unwrap().try_into().unwrap();
+    else {
+        return insn;
+    };
+    let part_src_insn = prog.get(part_src).unwrap();
 
-            if part_size < orig_size {
-                // skip the widen, as it does nothing; directly Part the orig. reg
-                return Insn::Part {
-                    src: reg,
-                    offset: 0,
-                    size: part_size,
-                };
-            } else if part_size == orig_size {
-                // skip the widen, as it does nothing; use the reg directly,
-                // we're not even really Part'ing it
-                return Insn::Get(reg);
-            } else {
-                // widen to a smaller size
-                return Insn::Widen {
-                    reg,
-                    target_size: part_size,
-                    sign,
-                };
-            }
+    let Insn::Widen {
+        reg,
+        target_size: _,
+        sign,
+    } = part_src_insn
+    else {
+        return insn;
+    };
+
+    // TODO convert to error
+    let Some(orig_size) = prog.reg_type(reg).bytes_size() else {
+        event!(
+            Level::ERROR,
+            ?insn,
+            ?part_src_insn,
+            ?reg,
+            "bug. fold_part_widen: reg has no size"
+        );
+        return insn;
+    };
+    let orig_size = orig_size.try_into().unwrap();
+
+    if part_size < orig_size {
+        // skip the widen, as it does nothing; directly Part the orig. reg
+        Insn::Part {
+            src: reg,
+            offset: 0,
+            size: part_size,
+        }
+    } else if part_size == orig_size {
+        // skip the widen, as it does nothing; use the reg directly,
+        // we're not even really Part'ing it
+        Insn::Get(reg)
+    } else {
+        // widen to a smaller size
+        Insn::Widen {
+            reg,
+            target_size: part_size,
+            sign,
         }
     }
-
-    insn
 }
 
 fn fold_widen_const(insn: Insn, prog: &ssa::Program) -> Insn {
@@ -493,27 +524,29 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
                 value: src_value,
                 size: src_size,
             } => {
-                if src_size < size {
-                    event!(
-                        Level::ERROR,
-                        ?src,
-                        part_size = size,
-                        src_size,
-                        "Part: part size smaller than source size"
-                    );
-                    return insn;
-                }
-
                 let src_bytes = prog.int_bytes(src_value, src_size);
                 let src_bytes = src_bytes.as_slice();
+
                 let offset = offset as usize;
                 let size = size as usize;
+                let end = offset + size;
+
                 if size > 8 {
                     // too large! can't represent this as a single Insn::Int
                     return insn;
                 }
+                if end > src_bytes.len() {
+                    event!(
+                        Level::ERROR,
+                        ?insn,
+                        src_value,
+                        src_size,
+                        "bug. Part: part offset/size invalid for source int"
+                    );
+                    return insn;
+                }
 
-                let part_bytes = &src_bytes[offset..offset + size];
+                let part_bytes = &src_bytes[offset..end];
                 let value = match prog.endianness() {
                     Endianness::Little => {
                         let mut result_bytes = [0u8; 8];
@@ -538,7 +571,7 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
                         ?src,
                         part_size = size,
                         src_size = src_bytes.len(),
-                        "Part: part size smaller than source size"
+                        "bug. Part: part size smaller than source size"
                     );
                     return insn;
                 }
@@ -554,46 +587,6 @@ fn fold_part_const(insn: Insn, prog: &ssa::Program) -> Insn {
     }
 
     insn
-}
-
-fn fold_cast_const(insn: Insn, prog: &ssa::Program) -> Insn {
-    let (float_size, src) = match insn {
-        Insn::ReinterpretFloat32(src) => (4, src),
-        Insn::ReinterpretFloat64(src) => (8, src),
-        _ => return insn,
-    };
-
-    let src_insn = prog.get(src).unwrap();
-    let src_bytes = match src_insn {
-        Insn::Bytes(src_bytes) => src_bytes,
-        Insn::Int { value, size } => prog.int_bytes(value, size),
-        _ => {
-            return insn;
-        }
-    };
-    let src_bytes = src_bytes.as_slice();
-
-    if src_bytes.len() != float_size {
-        event!(
-            Level::ERROR,
-            ?src,
-            len = src_bytes.len(),
-            "ReinterpretFloat32/64 has Bytes source with wrong length"
-        );
-        return insn;
-    }
-
-    match insn {
-        Insn::ReinterpretFloat32(_) => {
-            let src_bytes: [u8; 4] = src_bytes.try_into().unwrap();
-            Insn::Float32(Float32Bytes::from_bytes(src_bytes, prog.endianness()))
-        }
-        Insn::ReinterpretFloat64(_) => {
-            let src_bytes: [u8; 8] = src_bytes.try_into().unwrap();
-            Insn::Float64(Float64Bytes::from_bytes(src_bytes, prog.endianness()))
-        }
-        _ => insn,
-    }
 }
 
 /// If the given instruction is `Insn::Part { src, offset, size }`, and we know
@@ -660,54 +653,6 @@ fn apply_type_selection(
     Insn::Get(last_reg)
 }
 
-/// Add cast instructions wherever high level type information indicates that it
-/// might be valuable to do so.
-///
-/// Typical example is: a value with HLL ty::Ty::Float but RegType::Bytes. In
-/// this case, `Insn::ReinterpretFloat` (RegType::Float) can be inserted, which
-/// may (in combination with constant folding), produce a proper float literal
-/// in the final decompiled output.
-fn add_cast_for_type(
-    insn: Insn,
-    reg: Reg,
-    prog: &mut ssa::OpenProgram,
-    bid: BlockID,
-    types: &ty::TypeSet,
-) -> Insn {
-    let Some(tyid) = prog.value_type(reg) else {
-        return insn;
-    };
-    let Some(ty) = types.get_through_alias(tyid) else {
-        return insn;
-    };
-
-    let rt = prog.reg_type(reg);
-
-    match (rt, &*ty) {
-        (RegType::Bytes(_), ty::Ty::Float(float_ty)) => {
-            // move the original insn to a different register, without copying
-            // type info! (or we go in an infinite loop)
-            let new_reg = prog.append_new(bid, insn);
-
-            match float_ty.size {
-                4 => Insn::ReinterpretFloat32(new_reg),
-                8 => Insn::ReinterpretFloat64(new_reg),
-                _ => {
-                    event!(
-                        Level::WARN,
-                        ?reg,
-                        ?tyid,
-                        ?float_ty,
-                        "cannot add cast for float type of unsupported size"
-                    );
-                    return insn;
-                }
-            }
-        }
-        _ => insn,
-    }
-}
-
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 #[tracing::instrument(skip_all)]
 pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
@@ -765,14 +710,12 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_part_null(insn, &prog);
                 insn = fold_part_void(insn);
                 insn = fold_part_const(insn, &prog);
-                insn = fold_cast_const(insn, &prog);
                 insn = fold_widen_null(insn, &prog);
                 insn = fold_widen_const(insn, &prog);
                 insn = fold_bitops(insn, &prog);
                 insn = fold_constants(insn, &mut prog, bid);
                 insn = fold_shr_part(insn, &mut prog, bid);
                 insn = apply_type_selection(insn, &mut prog, bid, types);
-                // insn = add_cast_for_type(insn, reg, &mut prog, bid, types);
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
@@ -783,15 +726,6 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
                 if insn != orig_insn {
                     event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
-                }
-
-                let final_has_fx = insn.has_side_effects();
-                if final_has_fx != orig_has_fx {
-                    panic!(
-                        " --- bug:\n\
-                        orig: side fx: {orig_has_fx:?} insn: {orig_insn:?}\n\
-                        final: side fx: {final_has_fx:?} insn: {insn:?}"
-                    );
                 }
             }
         }
@@ -1414,32 +1348,5 @@ mod tests {
                 size: 8
             }
         );
-    }
-
-    #[test]
-    fn add_cast_float() {
-        let a_float_value: f64 = 3.14159;
-        let float_as_bytes = Bytes::from_slice(a_float_value.to_le_bytes().as_slice()).unwrap();
-
-        let mut types = ty::TypeSet::new();
-        const TYID_F64: ty::TypeID = ty::TypeID(123);
-        types.set(TYID_F64, ty::Ty::Float(ty::Float { size: 8 }));
-
-        let mut prog = mil::Program::new(Reg(0));
-        prog.push(Reg(0), Insn::Bytes(float_as_bytes));
-
-        let mut prog = ssa::Program::from_mil(prog);
-        let mut prog = ssa::OpenProgram::wrap(&mut prog);
-        prog.set_value_type(Reg(0), Some(TYID_F64));
-
-        let bid = prog.cfg().entry_block_id();
-        prog.clear_block_schedule(bid);
-        let orig_insn = prog.get(Reg(0)).unwrap();
-        let insn = super::add_cast_for_type(orig_insn, R(0), &mut prog, bid, &types);
-
-        let Insn::ReinterpretFloat64(src) = insn else {
-            panic!("wrong insn: {insn:?}")
-        };
-        assert_eq!(prog.get(src).unwrap(), orig_insn);
     }
 }

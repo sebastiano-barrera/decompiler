@@ -48,10 +48,14 @@ fn main() {
         Ok(exe) => exe,
     };
 
-    let function_names: Vec<_> = match opts.function_name {
+    let mut function_names: Vec<_> = match opts.function_name {
         Some(name) => vec![name],
         None => exe.function_names().map(|s| s.to_string()).collect(),
     };
+
+    // a stable ordering is often useful when re-running this program over and
+    // over while tracking some issue
+    function_names.sort();
 
     function_names
         // TODO ready to change to .into_par_iter()

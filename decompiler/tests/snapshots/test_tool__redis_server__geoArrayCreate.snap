@@ -108,33 +108,33 @@ program  90 instrs
  --- ssa pre-xform
 ssa program  90 instrs
 .B0:    ;;  → Always(Return).
-         r9 <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
-         r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  3)  r26 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
-         r42 <- ArithK(Add, r10, -8)
-         r43 <- StoreMem { addr: r42, value: r9 }
-         r44 <- Int { value: 24, size: 4 }
-         r45 <- Widen { reg: r44, target_size: 8, sign: false }
-         r48 <- Int { value: 4433936, size: 8 }
-         r51 <- CArg { value: r45, next_arg: None }
-         r52 <- Call { callee: r48, first_arg: Some(r51) }
-  (  3)  r62 <- Part { src: r52, offset: 0, size: 8 }
-         r63 <- Part { src: r26, offset: 0, size: 16 }
-         r64 <- Part { src: r26, offset: 0, size: 16 }
-         r65 <- Arith(BitXor, r63, r64)
-         r66 <- Part { src: r26, offset: 16, size: 48 }
-         r67 <- Concat { lo: r65, hi: r66 }
-         r74 <- Int { value: 0, size: 8 }
-         r75 <- Int { value: 0, size: 8 }
-         r76 <- Arith(Add, r75, r62)
-         r77 <- StoreMem { addr: r76, value: r74 }
-         r78 <- Part { src: r67, offset: 0, size: 16 }
-         r79 <- Int { value: 8, size: 8 }
-         r80 <- Arith(Add, r79, r62)
-         r81 <- StoreMem { addr: r80, value: r78 }
-         r86 <- Concat { lo: r85, hi: r62 }
-         r87 <- Part { src: r86, offset: 0, size: 8 }
-         r88 <- SetReturnValue(r87)
+         r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
+         r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
+  (  3)  r26: Bytes(64) <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
+         r42: Bytes(16) <- ArithK(Add, r10, -8)
+         r43: Effect <- StoreMem { addr: r42, value: r9 }
+         r44: Bytes(4) <- Int { value: 24, size: 4 }
+         r45: Bytes(8) <- Widen { reg: r44, target_size: 8, sign: false }
+         r48: Bytes(8) <- Int { value: 4433936, size: 8 }
+         r51: Bytes(8) <- CArg { value: r45, next_arg: None }
+         r52: Bytes(8) <- Call { callee: r48, first_arg: Some(r51) }
+  (  3)  r62: Bytes(8) <- Part { src: r52, offset: 0, size: 8 }
+         r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
+         r64: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
+         r65: Bytes(32) <- Arith(BitXor, r63, r64)
+         r66: Bytes(48) <- Part { src: r26, offset: 16, size: 48 }
+         r67: Bytes(80) <- Concat { lo: r65, hi: r66 }
+         r74: Bytes(8) <- Int { value: 0, size: 8 }
+         r75: Bytes(8) <- Int { value: 0, size: 8 }
+         r76: Bytes(16) <- Arith(Add, r75, r62)
+         r77: Effect <- StoreMem { addr: r76, value: r74 }
+         r78: Bytes(16) <- Part { src: r67, offset: 0, size: 16 }
+         r79: Bytes(8) <- Int { value: 8, size: 8 }
+         r80: Bytes(16) <- Arith(Add, r79, r62)
+         r81: Effect <- StoreMem { addr: r80, value: r78 }
+         r86: Bytes(8) <- Concat { lo: r85, hi: r62 }
+         r87: Bytes(8) <- Part { src: r86, offset: 0, size: 8 }
+         r88: Effect <- SetReturnValue(r87)
 
 
  --- cfg
@@ -146,24 +146,24 @@ ssa program  90 instrs
  --- ssa
 ssa program  90 instrs
 .B0:    ;;  → Always(Return).
-         r9 <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
-         r10 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  2)  r26 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
-         r42 <- ArithK(Add, r10, -8)
-         r43 <- StoreMem { addr: r42, value: r9 }
-         r45 <- Int { value: 24, size: 8 }
-         r48 <- Int { value: 4433936, size: 8 }
-         r51 <- CArg { value: r45, next_arg: None }
-  (  3)  r52 <- Call { callee: r48, first_arg: Some(r51) }
-         r63 <- Part { src: r26, offset: 0, size: 16 }
-         r64 <- Part { src: r26, offset: 0, size: 16 }
-         r65 <- Arith(BitXor, r63, r64)
-         r74 <- Int { value: 0, size: 8 }
-         r77 <- StoreMem { addr: r52, value: r74 }
-         r78 <- Part { src: r65, offset: 0, size: 16 }
-         r80 <- ArithK(Add, r52, 8)
-         r81 <- StoreMem { addr: r80, value: r78 }
-         r88 <- SetReturnValue(r52)
+         r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
+         r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
+  (  2)  r26: Bytes(64) <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
+         r42: Bytes(16) <- ArithK(Add, r10, -8)
+         r43: Effect <- StoreMem { addr: r42, value: r9 }
+         r45: Bytes(8) <- Int { value: 24, size: 8 }
+         r48: Bytes(8) <- Int { value: 4433936, size: 8 }
+         r51: Bytes(8) <- CArg { value: r45, next_arg: None }
+  (  3)  r52: Bytes(8) <- Call { callee: r48, first_arg: Some(r51) }
+         r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
+         r64: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
+         r65: Bytes(32) <- Arith(BitXor, r63, r64)
+         r74: Bytes(8) <- Int { value: 0, size: 8 }
+         r77: Effect <- StoreMem { addr: r52, value: r74 }
+         r78: Bytes(16) <- Part { src: r65, offset: 0, size: 16 }
+         r80: Bytes(16) <- ArithK(Add, r52, 8)
+         r81: Effect <- StoreMem { addr: r80, value: r78 }
+         r88: Effect <- SetReturnValue(r52)
 
 
  --- ast

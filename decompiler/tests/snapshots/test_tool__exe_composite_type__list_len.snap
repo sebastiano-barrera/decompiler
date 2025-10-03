@@ -115,32 +115,32 @@ ssa program  101 instrs
   (  2)  r14: Bytes(8) <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
   (  3)  r42: Bytes(24) <- FuncArgument { index: 0, reg_type: Bytes(24) }
          r43: Bytes(8) <- Part { src: r42, offset: 0, size: 8 }
-         r44: Bytes(8) <- ArithK(Add, r10, 8)
+         r44: Bytes(16) <- ArithK(Add, r10, 8)
          r45: Effect <- StoreMem { addr: r44, value: r43 }
          r46: Bytes(8) <- Part { src: r42, offset: 8, size: 8 }
-         r47: Bytes(8) <- ArithK(Add, r10, 16)
+         r47: Bytes(16) <- ArithK(Add, r10, 16)
          r48: Effect <- StoreMem { addr: r47, value: r46 }
          r49: Bytes(8) <- Part { src: r42, offset: 16, size: 8 }
-         r50: Bytes(8) <- ArithK(Add, r10, 24)
+         r50: Bytes(16) <- ArithK(Add, r10, 24)
          r51: Effect <- StoreMem { addr: r50, value: r49 }
          r52: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
          r53: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
-         r54: Bytes(4) <- Arith(BitXor, r52, r53)
+         r54: Bytes(8) <- Arith(BitXor, r52, r53)
          r55: Bytes(8) <- Widen { reg: r54, target_size: 8, sign: false }
          r63: Bytes(8) <- Int { value: 8, size: 8 }
-         r64: Bytes(8) <- Arith(Add, r63, r10)
+         r64: Bytes(16) <- Arith(Add, r63, r10)
          r97: Effect <- Upsilon { value: r55, phi_ref: r95 }
          r98: Effect <- Upsilon { value: r64, phi_ref: r96 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
          r96: Error <- Phi
          r95: Error <- Phi
          r66: Bytes(4) <- Part { src: r95, offset: 0, size: 4 }
-         r67: Bytes(4) <- ArithK(Add, r66, 1)
+         r67: Bytes(8) <- ArithK(Add, r66, 1)
   (  2)  r68: Bytes(8) <- Widen { reg: r67, target_size: 8, sign: false }
          r76: Bytes(8) <- Int { value: 16, size: 8 }
          r77: Error <- Arith(Add, r76, r96)
   (  2)  r78: Bytes(8) <- LoadMem { addr: r77, size: 8 }
-  (  2)  r80: Bytes(8) <- Arith(BitAnd, r78, r78)
+  (  2)  r80: Bytes(16) <- Arith(BitAnd, r78, r78)
          r82: Bool <- IsZero(r80)
          r87: Bool <- Not(r82)
          r88: Effect <- SetJumpCondition(r87)
@@ -154,9 +154,9 @@ ssa program  101 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(1))) [r10, r14, r42, r43, r44, r45, r101, r47, r48, r102, r50, r51, r52, r53, r54, r55, r64, r97, r98]
-  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r96, r95, r66, r67, r68, r77, r78, r82, r87, r88, r99, r100]
-  BlockID(2) -> Always(Return) [r93]
+  BlockID(0) -> Always(Block(BlockID(1))) [r10, r14, r42, r43, r44, r45, r101, r47, r48, r102, r50, r51, r52, r53, r54, r64, r97, r98]
+  BlockID(1) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) } [r96, r95, r66, r67, r77, r78, r82, r87, r88, r99, r100]
+  BlockID(2) -> Always(Return) [r92, r93]
   domtree:
     BlockID(0)
 |  BlockID(1)
@@ -169,36 +169,35 @@ ssa program  103 instrs
   (  2)  r14: Bytes(8) <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
   (  3)  r42: Bytes(24) <- FuncArgument { index: 0, reg_type: Bytes(24) }
          r43: Bytes(8) <- Part { src: r42, offset: 0, size: 8 }
-         r44: Bytes(8) <- ArithK(Add, r10, 8)
+         r44: Bytes(16) <- ArithK(Add, r10, 8)
          r45: Effect <- StoreMem { addr: r44, value: r43 }
          r101: Bytes(8) <- StructGetMember { struct_value: r42, name: "prev", size: 8 }
-         r47: Bytes(8) <- ArithK(Add, r10, 16)
+         r47: Bytes(16) <- ArithK(Add, r10, 16)
          r48: Effect <- StoreMem { addr: r47, value: r101 }
          r102: Bytes(8) <- StructGetMember { struct_value: r42, name: "next", size: 8 }
-         r50: Bytes(8) <- ArithK(Add, r10, 24)
+         r50: Bytes(16) <- ArithK(Add, r10, 24)
          r51: Effect <- StoreMem { addr: r50, value: r102 }
          r52: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
          r53: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
-         r54: Bytes(4) <- Arith(BitXor, r52, r53)
-         r55: Bytes(8) <- Widen { reg: r54, target_size: 8, sign: false }
-         r64: Bytes(8) <- ArithK(Add, r10, 8)
-         r97: Effect <- Upsilon { value: r55, phi_ref: r95 }
+         r54: Bytes(8) <- Arith(BitXor, r52, r53)
+         r64: Bytes(16) <- ArithK(Add, r10, 8)
+         r97: Effect <- Upsilon { value: r54, phi_ref: r95 }
          r98: Effect <- Upsilon { value: r64, phi_ref: r96 }
 .B1:    ;; preds:B0,B1  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(2)) }.
-         r96: Bytes(8) <- Phi
+         r96: Error <- Phi
          r95: Bytes(8) <- Phi
          r66: Bytes(4) <- Part { src: r95, offset: 0, size: 4 }
-  (  2)  r67: Bytes(4) <- ArithK(Add, r66, 1)
-         r68: Bytes(8) <- Widen { reg: r67, target_size: 8, sign: false }
-         r77: Bytes(8) <- ArithK(Add, r96, 16)
+  (  2)  r67: Bytes(8) <- ArithK(Add, r66, 1)
+         r77: Error <- ArithK(Add, r96, 16)
   (  2)  r78: Bytes(8) <- LoadMem { addr: r77, size: 8 }
          r82: Bool <- IsZero(r78)
          r87: Bool <- Not(r82)
          r88: Effect <- SetJumpCondition(r87)
-         r99: Effect <- Upsilon { value: r68, phi_ref: r95 }
+         r99: Effect <- Upsilon { value: r67, phi_ref: r95 }
          r100: Effect <- Upsilon { value: r78, phi_ref: r96 }
 .B2:    ;; preds:B1  → Always(Return).
-         r93: Effect <- SetReturnValue(r67)
+         r92: Bytes(4) <- Part { src: r67, offset: 0, size: 4 }
+         r93: Effect <- SetReturnValue(r92)
 
 
  --- ast
@@ -208,22 +207,22 @@ T0: {
   [pre:RSP + 8]:* := r42[8 .. 0];
   [pre:RSP + 16]:* := r42.prev;
   [pre:RSP + 24]:* := r42.next;
-  r95 := (pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0]) as u64;
+  r95 := pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0];
   r96 := pre:RSP + 8;
   goto T1
   T1: {
-    let mut r96: Bytes(8);
+    let mut r96: Error;
     let mut r95: Bytes(8);
-    let r67: Bytes(4) = r95[4 .. 0] + 1;
+    let r67: Bytes(8) = r95[4 .. 0] + 1;
     let r78: Bytes(8) = [r96 + 16]:8;
     ;
-    r95 := r67 as u64;
+    r95 := r95[4 .. 0] + 1;
     r96 := [r96 + 16]:8;
     if ! IsZero (r78) {
       goto T1
     }
     ;
-    return r67
+    return r67[4 .. 0]
   }
 
 }

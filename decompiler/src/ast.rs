@@ -253,25 +253,14 @@ impl<'a> Ast<'a> {
             Insn::Void => write!(pp, "void")?,
             Insn::True => write!(pp, "true")?,
             Insn::False => write!(pp, "false")?,
-            Insn::Int { value, .. } => {
-                write!(pp, "{}", value)?;
-            }
-            Insn::Float32(fb) => {
-                write!(pp, "{}", fb.value())?;
-            }
-            Insn::Float64(fb) => {
-                write!(pp, "{}", fb.value())?;
-            }
-            Insn::ReinterpretFloat32(src) => {
-                write!(pp, "<f32>(")?;
-                self.pp_ref(pp, src, self_prec)?;
-                write!(pp, ")")?;
-            }
-            Insn::ReinterpretFloat64(src) => {
-                write!(pp, "<f64>(")?;
-                self.pp_ref(pp, src, self_prec)?;
-                write!(pp, ")")?;
-            }
+            Insn::Int { value, .. } => match self.ssa.as_float_const(reg, self.types) {
+                Some(value) => {
+                    write!(pp, "{}", value)?;
+                }
+                _ => {
+                    write!(pp, "{}", value)?;
+                }
+            },
 
             Insn::Bytes(bytes) => {
                 write!(pp, "0x<")?;
@@ -610,11 +599,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::True
         | Insn::False
         | Insn::Int { .. }
-        | Insn::Float32(_)
-        | Insn::Float64(_)
         | Insn::Bytes(..)
-        | Insn::ReinterpretFloat32(_)
-        | Insn::ReinterpretFloat64(_)
         | Insn::UndefinedBool
         | Insn::UndefinedBytes { .. }
         | Insn::Ancestral { .. }

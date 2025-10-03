@@ -944,9 +944,8 @@ impl<'a> Builder<'a> {
             | OpKind::MemorySegRDI
             | OpKind::MemoryESDI
             | OpKind::MemoryESEDI
-            | OpKind::MemoryESRDI => todo!("not supported: segment-relative memory operands"),
-
-            OpKind::Memory => insn.memory_size().size().try_into().unwrap(),
+            | OpKind::MemoryESRDI
+            | OpKind::Memory => insn.memory_size().size().try_into().unwrap(),
         }
     }
 
@@ -1078,7 +1077,13 @@ impl<'a> Builder<'a> {
             | OpKind::MemorySegRDI
             | OpKind::MemoryESDI
             | OpKind::MemoryESEDI
-            | OpKind::MemoryESRDI => todo!("not supported: segment-relative memory operands"),
+            | OpKind::MemoryESRDI => {
+                self.emit(
+                    v0,
+                    mil::Insn::NotYetImplemented("segment-relative memory operands"),
+                );
+                v0
+            }
 
             OpKind::Memory => {
                 use iced_x86::MemorySize;
@@ -1182,11 +1187,8 @@ impl<'a> Builder<'a> {
             | OpKind::MemorySegRDI
             | OpKind::MemoryESDI
             | OpKind::MemoryESEDI
-            | OpKind::MemoryESRDI) => {
-                todo!("mov: segment-relative memory destination operands are not supported ({op_kind:?})")
-            }
-
-            OpKind::Memory => {
+            | OpKind::MemoryESRDI
+            | OpKind::Memory) => {
                 if value_size as usize != insn.memory_size().size() {
                     event!(
                         Level::ERROR,
@@ -1194,13 +1196,20 @@ impl<'a> Builder<'a> {
                         memory_size = ?insn.memory_size(),
                         "destination memory operand is not the same size as the value",
                     );
-                    panic!();
                 }
 
                 let addr = self.pb.tmp_gen();
-                self.emit_compute_address_into(insn, addr);
-                assert_ne!(value, addr);
 
+                if op_kind == OpKind::Memory {
+                    self.emit_compute_address_into(insn, addr);
+                } else {
+                    self.emit(
+                        addr,
+                        mil::Insn::NotYetImplemented("segment-relative memory operand"),
+                    );
+                }
+
+                assert_ne!(value, addr);
                 self.emit(addr, mil::Insn::StoreMem { addr, value });
             }
         }

@@ -50,7 +50,7 @@ macro_rules! assert_matches {
 }
 
 pub fn compute_data_flow(func_name: &str) -> DataFlow {
-    let mut exe = get_exe();
+    let exe = get_exe();
     let df = exe.decompile_function(func_name).unwrap();
 
     println!("---- mil");

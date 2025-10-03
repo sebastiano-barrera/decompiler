@@ -5,10 +5,7 @@ use facet_reflect::HasFields;
 // coming
 use std::{cell::Cell, collections::HashMap};
 
-use crate::{
-    ty,
-    util::{Bytes, Float32Bytes, Float64Bytes},
-};
+use crate::{ty, util::Bytes};
 
 /// A MIL program.
 ///
@@ -89,7 +86,6 @@ pub type Index = u16;
 #[repr(u8)]
 pub enum RegType {
     Bytes(usize),
-    Float { bytes_size: usize },
     Bool,
     Effect,
     Error,
@@ -98,7 +94,6 @@ impl RegType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
             RegType::Bytes(sz) => Some(*sz),
-            RegType::Float { bytes_size } => Some(*bytes_size),
             RegType::Bool => None,
             RegType::Effect => None,
             RegType::Error => None,
@@ -134,15 +129,9 @@ pub enum Insn {
         value: i64,
         size: u16,
     },
-    Float32(Float32Bytes),
-    Float64(Float64Bytes),
 
     #[assoc(input_regs = array([_0]))]
-    ReinterpretFloat32(Reg),
-    #[assoc(input_regs = array([_0]))]
-    ReinterpretFloat64(Reg),
-
-    #[assoc(input_regs = array([_0]))]
+    #[assoc(is_repr_transparent = *_0)]
     Get(Reg),
 
     #[assoc(input_regs = array([_src]))]

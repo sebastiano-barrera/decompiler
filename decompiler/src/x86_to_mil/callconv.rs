@@ -267,7 +267,10 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
             bld.emit(ret_val, Insn::UndefinedBytes { size: 0 });
         }
         ty::Ty::Bool(_) | ty::Ty::Subroutine(_) => {
-            panic!("invalid type for a function return value: {:?}", ret_ty);
+            return Err(anyhow::anyhow!(
+                "invalid type for a function return value: {:?}",
+                ret_ty
+            ));
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
@@ -563,7 +566,7 @@ pub fn unpack_return_value(
                             RegClass::Sse => {
                                 let sse_reg = *sse_regs.next().expect("bug: not enough sse regs!");
                                 let mut eb_count = 1;
-                                while let Some(RegClass::SseUp) = clss.peek() {
+                                while clss.next_if_eq(&&RegClass::SseUp).is_some() {
                                     eb_count += 1;
                                 }
                                 (sse_reg, eb_count)

@@ -29,14 +29,14 @@ module Model
     def decorate_var(decl) = "float #{decl}"
     def c_example_value = format('%.3ff', self.value)
     def ssa_example_pattern = Pattern.new(:Const, {value: self.value})
-    def access_self = AccessViaPattern.new(type: self) { |src| PatternTuple.new(:ReinterpretFloat32, [[:src, src]]) }
+    def access_self = AccessSelf.new(type: self)
   end
   class Double < Scalar
     def value = 987.321
     def decorate_var(decl) = "double #{decl}"
     def c_example_value = format('%f', self.value)
     def ssa_example_pattern = Pattern.new(:Const, {value: self.value})
-    def access_self = AccessViaPattern.new(type: self) { |src| PatternTuple.new(:ReinterpretFloat64, [[:src, src]]) }
+    def access_self = AccessSelf.new(type: self)
   end
   class UInt < Scalar
     def initialize(bytes_size)
