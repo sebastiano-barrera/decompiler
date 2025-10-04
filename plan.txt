@@ -23,24 +23,32 @@
 
     - [x] float literals
 
-- [ ] either support arbitrarily sized integer literals (Insn::Int), or find a
+- [x] either support arbitrarily sized integer literals (Insn::Int), or find a
 suitable alternative
 
-- [ ] large scale testing and tracking
+    - the suitable alternative, turns out, is to just ignore this. Large (> 8
+    bytes) values are represented as whatever (maybe a Struct, or a Concat chain
+    of multiple large parts), while small values are fine with Int literals.
+    In both cases, Part/Widen/Concat chains can be collapsed and extract a Const
+    if it's at all possible to do so.
+
+- [x] large scale testing and tracking
 
     - I expect that large-scale is correlated with lower-value/significance
     tests; high-value tests are more likely to be highly specific
 
-    - what could be some good large-scale tests? decompile every function and 
+    - what could be some good large-scale tests? decompile every function and
     chack that...
 
-        - [ ] the decompiler does not panic on any of them
+        - [x] the decompiler does not panic on any of them
 
             - in particular, for debug builds (which is what integration tests
             use), also check a few additional invariants for the SSA code (after
             construction and again after transforms)
 
-        - [ ] there are no unsupported asm instructions
+        - [~] there are no unsupported asm instructions
+
+            - (delayed; just list insns for now) 
 
             - this only makes sense for a reference application that was
             explicitly selected as "normal enough" (close to our target).
@@ -50,7 +58,37 @@ suitable alternative
             processing application. maybe a driver for a specific bit of
             hardware? would be cool to target low-level applications like those.
 
+            - would be cool to do this sort of "search" tasks by making the
+            output structured and then doing the search with external tools
+            (e.g. jq).
 
+- [ ] structured output (to plug the decompiler into other things)
+    - JSON?
+    - graphviz for CFG?
+    - SQLite?
+
+    - this is very important for me to 'live into' the product, so I can find bugs 
+    and prioritize them based on how much they affect the output; also, invent and 
+    prioritize new features.
+
+    - any UI must be based on this data-based representation. I don't want to work 
+    on both things independently. 
+
+        - if the UI is written in Rust, a Rust API for the data structure might be
+        sufficient.
+
+        - if the UI is to be written into something else, then the data-based
+        representation might also be *the* input representation to be transformed
+        into a GUI
+
+- [ ] gui: restore
+    - evaluate HTML/web interface approach. (I'm thinking: better suited to our 
+    output, which is fundamentally text, with more or less interactivity added on top)
+
+- [ ] cache type info
+
+    - any particular logic to invalidate the cache across different (but potentially 
+    compatible) build?
 
 - [ ] use type info
     - [x] struct member accesses
@@ -63,8 +101,6 @@ suitable alternative
 
 - [ ] string literals
 
-- [ ] gui: restore
-    - evaluate HTML/web interface approach. (I'm thinking: better suited to our output, which is fundamentally text, with more or less interactivity added on top)
 
 --- The following are to be prioritized and grouped
 

@@ -1,0 +1,493 @@
+adc r9,0
+adc rdx,0
+addsd xmm0,xmm0
+addsd xmm0,xmm1
+addss xmm0,xmm0
+addss xmm0,xmm1
+addss xmm1,xmm1
+bsr r8,rdi
+bsr rax,rdx
+bsr rcx,rax
+bsr rcx,rdx
+bswap eax
+bswap esi
+bswap r10d
+bswap r11d
+bswap r8d
+bswap r9d
+bswap rax
+bswap rdi
+bswap rsi
+bt rax,rcx
+bt rcx,rax
+bt rdx,2Fh
+btr r8,34h
+btr rax,34h
+btr rdx,2Fh
+bt rsi,rcx
+bts qword ptr [r14+8],29h
+bts qword ptr [r14+8],2Ch
+bts qword ptr [r14+8],31h
+bts qword ptr [r15+8],2Fh
+bts qword ptr [rbx+8],28h
+bts qword ptr [rbx+8],2Fh
+bts qword ptr [rdi+8],28h
+bts rax,30h
+bts rcx,35h
+cmova eax,ecx
+cmova eax,edx
+cmovae rax,r8
+cmovae rax,rdi
+cmovae rax,rdx
+cmova esi,eax
+cmova r12d,ebx
+cmovb ebx,eax
+cmovbe r12,rax
+cmovbe rbx,rax
+cmovbe rdx,r12
+cmovbe rsi,rdx
+cmovb rsi,rdi
+cmove eax,[rdx+918h]
+cmove edx,eax
+cmove edx,ecx
+cmove r12d,eax
+cmove r12,r15
+cmove r12,rax
+cmove rax,r12
+cmove rax,rcx
+cmove rax,rdx
+cmove rbx,r14
+cmove rbx,r15
+cmove rbx,rax
+cmove rcx,rax
+cmove rdi,rax
+cmove rdx,rax
+cmove rsi,rax
+cmovg eax,edx
+cmovg ecx,eax
+cmovge eax,edx
+cmovge r13d,r15d
+cmovge rax,rdx
+cmovg r13d,ebx
+cmovg r15d,eax
+cmovl eax,esi
+cmovl ecx,eax
+cmovl edx,eax
+cmovle ecx,eax
+cmovle esi,edx
+cmovle esi,r13d
+cmovl r15d,eax
+cmovne eax,ecx
+cmovne eax,edi
+cmovne eax,edx
+cmovne eax,r15d
+cmovne ecx,eax
+cmovne ecx,edx
+cmovne edx,eax
+cmovne edx,ecx
+cmovne edx,r12d
+cmovne r12d,eax
+cmovne r13d,ecx
+cmovne r15d,eax
+cmovne rax,rbx
+cmovne rdi,rbx
+cmovne rdx,rax
+cmovne rsi,[77A3A0h]
+cmovne rsi,rax
+cmovne rsi,rbx
+cmovns eax,ecx
+cmovns eax,edx
+cmovns rax,rbx
+cmovns rax,rdx
+cmovns rdx,rdi
+cmovs rax,rdx
+comisd xmm0,xmm1
+comisd xmm1,xmm0
+comisd xmm1,xmm2
+comiss xmm0,[682F88h]
+cvtsi2sd xmm0,dword ptr [78F944h]
+cvtsi2sd xmm0,qword ptr [rdi+8]
+cvtsi2sd xmm0,rax
+cvtsi2sd xmm0,rdi
+cvtsi2sd xmm1,eax
+cvtsi2sd xmm2,eax
+cvtsi2ss xmm0,rax
+cvtsi2ss xmm0,rdx
+cvtsi2ss xmm1,r13
+cvtsi2ss xmm1,rax
+cvtsi2ss xmm1,rcx
+cvtsi2ss xmm1,rdx
+div rcx
+div rdi
+divsd xmm0,[rsi*8+6E32A0h]
+divsd xmm1,xmm0
+divsd xmm2,[69E4B0h]
+divss xmm0,xmm1
+fld st,tbyte ptr [rbp+10h]
+fld st,tbyte ptr [rbp-30h]
+fldz
+fstp st(0),st
+fstp tbyte ptr [rbp+10h],st
+idiv dword ptr [78E634h]
+lock xadd [779E90h],rax
+lock xadd [779E90h],rcx
+lock xadd [779E90h],rdx
+movdqa xmm0,[6DD150h]
+movdqa xmm0,[6DD180h]
+movdqa xmm0,[6DD190h]
+movdqa xmm0,[6DD1A0h]
+movdqa xmm0,[6DD200h]
+movdqa xmm0,[75EE60h]
+movdqa xmm0,[75EE80h]
+movdqa xmm0,[75EE90h]
+movdqa xmm0,[75EEA0h]
+movdqa xmm0,[rbp-140h]
+movdqa xmm0,[rbp-160h]
+movdqa xmm0,[rbp-20h]
+movdqa xmm0,[rbp-40h]
+movdqa xmm0,xmm1
+movdqa xmm0,xmm2
+movdqa xmm1,[6DD200h]
+movdqa xmm1,[75EE50h]
+movdqa xmm1,[rbp-40h]
+movdqa xmm1,xmm0
+movdqa xmm1,xmm3
+movdqa xmm2,[75EE40h]
+movdqa xmm2,xmm1
+movdqa xmm3,xmm0
+movdqu xmm0,[r10]
+movdqu xmm0,[r11]
+movdqu xmm0,[r12+28h]
+movdqu xmm0,[r12+38h]
+movdqu xmm0,[r12+60h]
+movdqu xmm0,[r12+80h]
+movdqu xmm0,[r14+18h]
+movdqu xmm0,[r14+28h]
+movdqu xmm0,[r14+38h]
+movdqu xmm0,[r14+48h]
+movdqu xmm0,[r14+58h]
+movdqu xmm0,[r14+68h]
+movdqu xmm0,[r14+78h]
+movdqu xmm0,[r14+8]
+movdqu xmm0,[r9]
+movdqu xmm0,[rax+18h]
+movdqu xmm0,[rax+8]
+movdqu xmm0,[rbx]
+movdqu xmm0,[rbx+14h]
+movdqu xmm0,[rbx+30h]
+movdqu xmm0,[rcx]
+movdqu xmm0,[rdi+18h]
+movdqu xmm0,[rdx]
+movdqu xmm0,[rdx+18h]
+movdqu xmm0,[rdx+rax*2]
+movdqu xmm0,[rsi]
+movdqu xmm0,[rsi+10h]
+movdqu xmm0,[rsi+20h]
+movdqu xmm0,[rsi+30h]
+movdqu xmm1,[r12+18h]
+movdqu xmm1,[r12+50h]
+movdqu xmm1,[r12+70h]
+movdqu xmm1,[rdx]
+movdqu xmm2,[r12+8]
+movdqu xmm3,[rdx+rax*2+10h]
+movhlps xmm1,xmm0
+movhps xmm0,[68DD80h]
+movhps xmm0,[68DD90h]
+movhps xmm0,[68DDA0h]
+movhps xmm0,[68DDB0h]
+movhps xmm0,[68DDC0h]
+movhps xmm0,[68DDD0h]
+movhps xmm0,[68DDE0h]
+movhps xmm0,[68DDF0h]
+movhps xmm0,[68DE00h]
+movhps xmm0,[69E158h]
+movhps xmm0,[69E168h]
+movhps xmm0,[69F7C0h]
+movhps xmm0,[69F7D0h]
+movhps xmm0,[69F7E0h]
+movhps xmm0,[r14+8]
+movhps xmm0,[rax+20h]
+movhps xmm0,[rax-30h]
+movhps xmm0,[rbp-140h]
+movhps xmm0,[rbx*8+799760h]
+movhps xmm1,[69F7D0h]
+movq r12,xmm0
+movq r15,xmm1
+movq r9,xmm0
+movq rax,xmm0
+movq rax,xmm1
+movq rdi,xmm1
+movq xmm0,[68DD78h]
+movq xmm0,[68DD88h]
+movq xmm0,[68DD98h]
+movq xmm0,[68DDA8h]
+movq xmm0,[68DDB8h]
+movq xmm0,[68DDC8h]
+movq xmm0,[68DDD8h]
+movq xmm0,[68DDE8h]
+movq xmm0,[68DDF8h]
+movq xmm0,[69E150h]
+movq xmm0,[69E160h]
+movq xmm0,[69F7B8h]
+movq xmm0,[69F7C8h]
+movq xmm0,[69F7D8h]
+movq xmm0,r12
+movq xmm0,[r12]
+movq xmm0,r13
+movq xmm0,r14
+movq xmm0,[r14+8]
+movq xmm0,r15
+movq xmm0,rax
+movq xmm0,[rax+8]
+movq xmm0,rbx
+movq xmm0,rdx
+movq xmm1,[69F7C8h]
+movq xmm1,r12
+movq xmm1,[r12+8]
+movq xmm1,r15
+movq xmm1,rax
+movq xmm1,rbx
+movq xmm1,[rbx+8]
+movq xmm2,r13
+movq xmm3,rbx
+movq xmm4,r13
+movsxd r12,r12d
+movsxd r12,[rax+58h]
+movsxd r12,[rbp+4Ch]
+movsxd r12,[rbp+54h]
+movsxd r13,eax
+movsxd r13,ebx
+movsxd r13,edx
+movsxd r13,r13d
+movsxd r13,r14d
+movsxd r13,r15d
+movsxd r13,[rbp-104h]
+movsxd r14,eax
+movsxd r14,ebx
+movsxd r14,[rbp-104h]
+movsxd r14,[rbp-74h]
+movsxd r14,[rsi+0D0h]
+movsxd r15,eax
+movsxd r15,r12d
+movsxd r15,[rbp+10h]
+movsxd r8,r12d
+movsxd r8,r8d
+movsxd r9,r9d
+movsxd rax,ecx
+movsxd rax,edx
+movsxd rax,esi
+movsxd rax,r10d
+movsxd rax,[r12+18h]
+movsxd rax,[r12+50h]
+movsxd rax,r12d
+movsxd rax,[r13]
+movsxd rax,[r13+18h]
+movsxd rax,r13d
+movsxd rax,[r14]
+movsxd rax,r14d
+movsxd rax,[r15]
+movsxd rax,r15d
+movsxd rax,r9d
+movsxd rax,[rax*4+6832C0h]
+movsxd rax,[rbp-0C0h]
+movsxd rax,[rbp-44h]
+movsxd rax,[rbp-78h]
+movsxd rax,[rbx]
+movsxd rax,[rdx*4+6832C0h]
+movsxd rbx,ebx
+movsxd rbx,esi
+movsxd rcx,[78F948h]
+movsxd rcx,ebp
+movsxd rcx,ecx
+movsxd rcx,esi
+movsxd rcx,r10d
+movsxd rdi,[78F948h]
+movsxd rdi,eax
+movsxd rdi,ebp
+movsxd rdi,edi
+movsxd rdi,esi
+movsxd rdi,r12d
+movsxd rdi,[r13+rbx*8+4]
+movsxd rdi,[r9+0D0h]
+movsxd rdi,[rbp-60h]
+movsxd rdx,[78E730h]
+movsxd rdx,eax
+movsxd rdx,ebp
+movsxd rdx,ebx
+movsxd rdx,edx
+movsxd rdx,r10d
+movsxd rdx,r12d
+movsxd rdx,r13d
+movsxd rdx,[r14+0D0h]
+movsxd rdx,r8d
+movsxd rdx,r9d
+movsxd rdx,[rbp-10Ch]
+movsxd rdx,[rbx]
+movsxd rdx,[rbx+40h]
+movsxd rdx,[rdx+0D0h]
+movsxd rsi,eax
+movsxd rsi,edi
+movsxd rsi,edx
+movsxd rsi,esi
+movsxd rsi,r13d
+movsxd rsi,[r14+2F8h]
+movsxd rsi,[r15+0D0h]
+movsxd rsi,r8d
+movsxd rsi,[rax+0D0h]
+movsx eax,byte ptr [r11]
+movsx eax,byte ptr [rsi]
+movsx edx,byte ptr [rax]
+movsx edx,byte ptr [rsi]
+movsx esi,byte ptr [r15]
+movsx esi,byte ptr [r15+1]
+movsx esi,byte ptr [r15+2]
+movsx esi,byte ptr [r15+3]
+movsx esi,byte ptr [r15+4]
+movsx esi,byte ptr [r15+5]
+movsx esi,byte ptr [r15+6]
+movsx esi,byte ptr [r15+7]
+movsx esi,byte ptr [r15+8]
+movsx esi,byte ptr [rbx]
+movsx esi,byte ptr [rbx+1]
+movsx esi,byte ptr [rbx+2]
+movsx esi,byte ptr [rbx+3]
+movsx esi,byte ptr [rbx+4]
+movsx esi,byte ptr [rbx+5]
+movsx esi,byte ptr [rbx+6]
+movsx esi,byte ptr [rbx+7]
+movsx esi,byte ptr [rbx+8]
+movsx rax,byte ptr [rdx+32h]
+movsx rax,byte ptr [rdx+33h]
+movsx rdx,byte ptr [r12+rax]
+movsx rdx,byte ptr [rdi]
+mul qword ptr [r13*8+6E0920h]
+mul qword ptr [r9*8+6E0920h]
+mul qword ptr [rsp+20h]
+mul r10
+mul r11
+mul r12
+mul r13
+mul r14
+mul r8
+mul rcx
+mul rdi
+mul rdx
+mul rsi
+mulsd xmm0,[rsi*8+6E32A0h]
+mulsd xmm0,xmm1
+neg eax
+neg edx
+neg r13
+neg rax
+neg rcx
+neg rdi
+neg rdx
+neg rsi
+not eax
+not ecx
+not esi
+not r14
+not rax
+not rcx
+not rdx
+not rsi
+paddq xmm0,xmm1
+pcmpeqd xmm0,xmm0
+pcmpeqd xmm2,xmm2
+por xmm0,xmm1
+por xmm1,xmm0
+psrldq xmm0,8
+psrldq xmm1,8
+psrld xmm2,10h
+psrld xmm3,8
+punpckldq xmm0,xmm3
+punpckldq xmm1,xmm0
+punpckldq xmm1,xmm2
+punpcklqdq xmm0,xmm0
+punpcklqdq xmm0,xmm1
+punpcklqdq xmm0,xmm2
+punpcklqdq xmm0,xmm3
+punpcklqdq xmm0,xmm4
+rep movsq [rdi],[rsi]
+rep stosq [rdi]
+rol eax,1
+rol eax,5
+rol ebx,1
+rol ebx,5
+rol ecx,1
+rol ecx,5
+rol edi,1
+rol edi,5
+rol edx,1
+rol edx,5
+rol esi,1
+rol esi,5
+rol r10d,1
+rol r10d,5
+rol r11d,1
+rol r11d,5
+rol r12d,1
+rol r12d,5
+rol r13d,1
+rol r14d,1
+rol r14d,5
+rol r15d,1
+rol r15d,5
+rol r8d,1
+rol r8d,5
+rol r9d,1
+rol r9d,5
+ror eax,2
+ror ebx,2
+ror ecx,2
+ror edi,2
+ror edx,2
+ror esi,2
+ror r10d,2
+ror r11d,2
+ror r12d,2
+ror r13d,2
+ror r14d,2
+ror r15d,2
+ror r8d,2
+ror r9d,2
+sar eax,10h
+sar ecx,0Fh
+sar ecx,8
+sar edi,1
+sar edi,8
+sar edx,10h
+sar esi,10h
+sar r8,3Fh
+sar rax,5
+sar rcx,12h
+sar rcx,3Fh
+sar rdi,3Fh
+sar rdx,0Eh
+sar rdx,12h
+sar rdx,3Fh
+sar rdx,5
+sar rdx,7
+sar rsi,3Fh
+sbb eax,0FFFFFFFFh
+sbb ebx,0FFFFFFFFh
+sbb edx,edx
+sbb esi,0FFFFFFFFh
+sbb r13,0FFFFFFFFFFFFFFFFh
+sbb r13d,r13d
+sbb r14,0FFFFFFFFFFFFFFFFh
+sbb rax,0
+sbb rax,0FFFFFFFFFFFFFFFFh
+sbb rax,rax
+sbb rdi,rdi
+shld rax,r10,8
+shld rax,rcx,34h
+shufps xmm0,xmm3,88h
+subss xmm2,xmm0
+ucomiss xmm2,xmm0
+ud2
+unpcklpd xmm0,xmm1
+xchg [77A2C0h],rax
+xchg [77A2D8h],eax
+xchg [r13],rax
+xorpd xmm0,[6DD0B0h]

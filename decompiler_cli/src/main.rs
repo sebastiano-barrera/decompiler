@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use iced_x86::Formatter;
 
 pub struct CliOptions {
@@ -57,71 +57,86 @@ fn main() {
     // over while tracking some issue
     function_names.sort();
 
+    let quiet = opts.quiet;
+
     function_names
         // TODO ready to change to .into_par_iter()
         // (but first I have to pass large-scale testing)
         .into_iter()
         .enumerate()
         .for_each(|(ndx, function_name)| {
+            let ndx = ndx;
+            let function_name = function_name;
             eprintln!("------ function #{}: {}", ndx + 1, function_name);
-            let res = std::panic::catch_unwind(|| {
-                let df = exe
-                    .decompile_function(&function_name)
-                    .expect("decompiling function");
 
-                if !opts.quiet {
-                    let mut stdout = std::io::stdout().lock();
+            let df = exe
+                .decompile_function(&function_name)
+                .expect("decompiling function");
 
-                    println!(" --- asm");
-                    let decoder = df.disassemble(&exe);
-                    dump_assembly(decoder, df.machine_code(&exe));
-                    println!();
-
-                    if let Some(mil) = df.mil() {
-                        println!(" --- mil");
-                        println!("{:?}", mil);
-                        println!();
-                    }
-
-                    if let Some(ssa) = df.ssa_pre_xform() {
-                        let mut buf = String::new();
-                        ssa.dump(&mut buf, Some(exe.types())).unwrap();
-                        println!(" --- ssa pre-xform");
-                        println!("{buf}");
-                    }
-
-                    if let Some(ssa) = df.ssa() {
-                        println!(" --- cfg");
-                        let cfg = ssa.cfg();
-                        println!("  entry: {:?}", cfg.direct().entry_bid());
-                        for bid in cfg.block_ids() {
-                            let regs: Vec<_> = ssa.block_regs(bid).collect();
-                            println!("  {:?} -> {:?} {:?}", bid, cfg.block_cont(bid), regs);
-                        }
-                        print!("  domtree:\n    ");
-
-                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut stdout);
-                        cfg.dom_tree().dump(pp).unwrap();
-                        println!();
-
-                        println!(" --- ssa");
-                        let mut buf = String::new();
-                        ssa.dump(&mut buf, Some(exe.types())).unwrap();
-                        println!("{buf}");
-                        println!();
-
-                        println!(" --- ast");
-                        let mut ast = decompiler::Ast::new(&ssa, exe.types());
-                        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut stdout);
-                        ast.pretty_print(pp).unwrap();
-                    }
+            if !quiet {
+                let res = dump_df(&exe, &df);
+                if let Err(err) = res {
+                    eprintln!("error: {}", err);
                 }
-            });
-
-            if let Err(err) = res {
-                eprintln!("PANIC: while decompiling [{}]: {:?}", function_name, err);
             }
         });
+}
+
+fn dump_df(
+    exe: &decompiler::Executable<'_>,
+    df: &decompiler::DecompiledFunction,
+) -> anyhow::Result<()> {
+    let mut stdout = std::io::stdout().lock();
+
+    println!(" --- asm");
+    let decoder = df.disassemble(&exe);
+    dump_assembly(decoder, df.machine_code(&exe));
+    println!();
+
+    if let Some(mil) = df.mil() {
+        println!(" --- mil");
+        println!("{:?}", mil);
+        println!();
+    }
+
+    if let Some(ssa) = df.ssa_pre_xform() {
+        let mut buf = String::new();
+        ssa.dump(&mut buf, Some(exe.types()))
+            .context("Failed to dump SSA pre-transformation")?;
+        println!(" --- ssa pre-xform");
+        println!("{buf}");
+    }
+
+    if let Some(ssa) = df.ssa() {
+        println!(" --- cfg");
+        let cfg = ssa.cfg();
+        println!("  entry: {:?}", cfg.direct().entry_bid());
+        for bid in cfg.block_ids() {
+            let regs: Vec<_> = ssa.block_regs(bid).collect();
+            println!("  {:?} -> {:?} {:?}", bid, cfg.block_cont(bid), regs);
+        }
+        print!("  domtree:\n    ");
+
+        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut stdout);
+        cfg.dom_tree()
+            .dump(pp)
+            .context("Failed to dump dominance tree")?;
+        println!();
+
+        println!(" --- ssa");
+        let mut buf = String::new();
+        ssa.dump(&mut buf, Some(exe.types()))
+            .context("Failed to dump SSA")?;
+        println!("{buf}");
+        println!();
+
+        println!(" --- ast");
+        let mut ast = decompiler::Ast::new(&ssa, exe.types());
+        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut stdout);
+        ast.pretty_print(pp).context("Failed to pretty print AST")?;
+    }
+
+    Ok(())
 }
 
 fn dump_assembly(decoder: iced_x86::Decoder<'_>, func_text: &[u8]) {
