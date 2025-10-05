@@ -1,7 +1,11 @@
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 
 use thiserror::Error;
 
+use crate::lru_cache_dir;
 use crate::{mil, ssa, ty, x86_to_mil, xform};
 
 pub use crate::ast::{precedence, Ast, PrecedenceLevel};
@@ -87,6 +91,35 @@ struct FuncCoords {
     code_size: usize,
 }
 
+static TYPESET_CACHE: OnceLock<Mutex<Box<dyn lru_cache_dir::Cache<ty::TypeSet> + Send>>> =
+    OnceLock::new();
+
+fn create_typeset_cache() -> Box<dyn lru_cache_dir::Cache<ty::TypeSet> + Send> {
+    let mut dir = std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from);
+
+    if dir.is_none() {
+        dir = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .map(|p| p.join(".cache"));
+    }
+
+    let Some(mut dir) = dir else {
+        return Box::new(lru_cache_dir::NullCache::new());
+    };
+
+    dir = dir.join("decompiler");
+
+    Box::new(lru_cache_dir::FileSystemCache::new(dir, 3))
+}
+
+fn with_typeset_cache<R>(
+    action: impl FnOnce(&mut dyn lru_cache_dir::Cache<ty::TypeSet>) -> R,
+) -> R {
+    let typeset_cache = TYPESET_CACHE.get_or_init(|| Mutex::new(create_typeset_cache()));
+    let mut typeset_cache = typeset_cache.lock().unwrap();
+    action(&mut **typeset_cache)
+}
+
 impl<'a> Executable<'a> {
     #[instrument(skip_all)]
     pub fn parse(raw_binary: &'a [u8]) -> Result<Self> {
@@ -103,8 +136,21 @@ impl<'a> Executable<'a> {
             })
             .collect();
 
-        let mut types = ty::TypeSet::new();
-        let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+        // the bet is that the binary's hash is unique enough as a key
+
+        let cache_key = {
+            let mut hasher = std::hash::DefaultHasher::new();
+            raw_binary.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        let types = with_typeset_cache(|cache| {
+            cache.get_or_insert_with(cache_key, &mut || {
+                let mut types = ty::TypeSet::new();
+                let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+                types
+            })
+        });
 
         Ok(Executable {
             raw_binary,

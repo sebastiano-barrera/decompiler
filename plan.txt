@@ -62,6 +62,11 @@ suitable alternative
             output structured and then doing the search with external tools
             (e.g. jq).
 
+- [x] cache type info
+
+    - any particular logic to invalidate the cache across different (but potentially 
+    compatible) build?
+
 - [ ] structured output (to plug the decompiler into other things)
     - JSON?
     - graphviz for CFG?
@@ -84,11 +89,6 @@ suitable alternative
 - [ ] gui: restore
     - evaluate HTML/web interface approach. (I'm thinking: better suited to our 
     output, which is fundamentally text, with more or less interactivity added on top)
-
-- [ ] cache type info
-
-    - any particular logic to invalidate the cache across different (but potentially 
-    compatible) build?
 
 - [ ] use type info
     - [x] struct member accesses

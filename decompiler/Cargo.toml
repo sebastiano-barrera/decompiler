@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 trace = []
+file_lock = []
 
 [dependencies]
 anyhow = "1.0.89"
@@ -25,6 +26,8 @@ facet = "=0.27.0"
 facet-derive = "=0.27.0"
 facet-reflect = "=0.27.0"
 tracing = "0.1.41"
+serde = { version = "1.0.228", features = ["derive", "rc"] }
+rmp-serde = "1.3.0"
 
 [dependencies.iced-x86]
 version = "1.21.0"

@@ -11,7 +11,9 @@ use crate::{
     pp::{self, PP},
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct TypeID(pub usize);
 
 impl std::fmt::Debug for TypeID {
@@ -40,6 +42,7 @@ pub enum Error {
 ///
 /// This is the only public API in `ty`. Data about types can be retrieved and
 /// manipulated via this API.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct TypeSet {
     types: HashMap<TypeID, Ty>,
     name_of_tyid: HashMap<TypeID, String>,
@@ -486,7 +489,7 @@ pub struct CallSiteKey {
     pub target: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Ty {
     Flag,
     Int(Int),
@@ -503,7 +506,7 @@ pub enum Ty {
     Alias(TypeID),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Int {
     pub size: u8,
     pub signed: Signedness,
@@ -513,18 +516,18 @@ impl Int {
         self.size
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Signedness {
     Signed,
     Unsigned,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Bool {
     size: u8,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Float {
     pub size: u8,
 }
@@ -535,13 +538,13 @@ impl Float {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Enum {
     pub variants: Vec<EnumVariant>,
     pub base_type: Int,
 }
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct EnumVariant {
     pub value: i64,
     pub name: Arc<String>,
@@ -551,24 +554,24 @@ pub struct EnumVariant {
 ///
 /// Unions may be represented by adding overlapping members. All members'
 /// occupied byte range must fit into the structure's size.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Struct {
     pub members: Vec<StructMember>,
     pub size: usize,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StructMember {
     pub offset: usize,
     pub name: Arc<String>,
     pub tyid: TypeID,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Array {
     pub element_tyid: TypeID,
     pub index_subrange: Subrange,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Subrange {
     pub lo: i64,
     pub hi: Option<i64>,
@@ -580,7 +583,7 @@ impl Subrange {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Subroutine {
     pub return_tyid: TypeID,
     pub param_names: Vec<Option<Arc<String>>>,
@@ -663,10 +666,12 @@ fn dump_types<W: pp::PP>(
     Ok(())
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct CallSites {
     by_return_pc: HashMap<u64, CallSite>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct CallSite {
     pub tyid: TypeID,
 }

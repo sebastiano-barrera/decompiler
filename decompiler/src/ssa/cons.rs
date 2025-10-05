@@ -304,7 +304,7 @@ impl VarMap {
 
     fn check_invariants(&self) {
         for elem in &self.stack {
-            assert_eq!(elem.len(), self.count.into());
+            assert_eq!(elem.len(), self.count as usize);
         }
     }
 
