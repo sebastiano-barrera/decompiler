@@ -67,7 +67,7 @@ suitable alternative
     - any particular logic to invalidate the cache across different (but potentially 
     compatible) build?
 
-- [ ] structured output (to plug the decompiler into other things)
+- [x] structured output (to plug the decompiler into other things)
     - JSON?
     - graphviz for CFG?
     - SQLite?
@@ -90,6 +90,8 @@ suitable alternative
     - evaluate HTML/web interface approach. (I'm thinking: better suited to our 
     output, which is fundamentally text, with more or less interactivity added on top)
 
+-- from here on, user-facing features have a gui version and a cli version
+
 - [ ] use type info
     - [x] struct member accesses
     - [ ] show in ast
@@ -108,6 +110,8 @@ suitable alternative
 
     - does it make sense for decompiler_cli?
 
+- [ ] gui: user-editable identifiers/names
+
 - [ ] ast: clickable marker for inline values
     - in general, it should be possible to see ANY correspondence between AST parts and
     SSA insns
@@ -123,8 +127,6 @@ suitable alternative
     - increased code complexity is not worth it. can be paid to higher benefit later
 
 - [ ] attach errors/warnings to ssa instructions wherever applicable
-
-- [ ] gui: user-editable identifiers/names
 
 - [ ] gui: multiple functions (tabs?)
 

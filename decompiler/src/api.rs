@@ -9,7 +9,7 @@ use crate::lru_cache_dir;
 use crate::{mil, ssa, ty, x86_to_mil, xform};
 
 pub use crate::ast::{precedence, Ast, PrecedenceLevel};
-pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest};
+pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest, Graph};
 pub use crate::mil::{
     to_expanded, AncestralName, ExpandedInsn, ExpandedValue, Insn, Reg, RegType, R,
 };

@@ -119,7 +119,7 @@ impl std::fmt::Debug for Edges {
 ///
 /// Describes where control flow may continue to after running through a specific basic
 /// block (i.e. the block's successors).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum BlockCont {
     /// Jump to the associated destination unconditionally.
     Always(Dest),
@@ -134,7 +134,7 @@ impl Default for BlockCont {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum Dest {
     /// A machine address, external to the program/function
     Ext(u64),
@@ -243,7 +243,7 @@ impl Schedule {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone, Hash)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone, Hash, serde::Serialize)]
 pub struct BlockID(u16);
 
 impl BlockID {

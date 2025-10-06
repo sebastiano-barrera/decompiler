@@ -8,3 +8,5 @@ iced-x86 = "1.21.0"
 tracing-subscriber = "0.3.19"
 decompiler = { path = "../decompiler", features = ["trace"] }
 anyhow = "1.0.99"
+serde = "1.0.228"
+serde_json = "1.0.145"

@@ -1,0 +1,5140 @@
+{
+  "mil": {
+    "body": [
+      {
+        "addr": 0,
+        "dest": 12,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "stack_bottom",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 3,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "PF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 4,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "AF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 5,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 6,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "SF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 7,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "TF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 8,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "IF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 9,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "DF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 10,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "OF",
+            "reg_type": "Bool"
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 11,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RBP",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 12,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RSP",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 13,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RIP",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 14,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RDI",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 15,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RSI",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 16,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RAX",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 17,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RBX",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 18,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RCX",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 19,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "RDX",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 20,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R8",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 21,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R9",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 22,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R10",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 23,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R11",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 24,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R12",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 25,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R13",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 26,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R14",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 27,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "R15",
+            "reg_type": {
+              "Bytes": 8
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 28,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM0",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 29,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM1",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 30,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM2",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 31,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM3",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 32,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM4",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 33,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM5",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 34,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM6",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 35,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM7",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 36,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM8",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 37,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM9",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 38,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM10",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 39,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM11",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 40,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM12",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 41,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM13",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 42,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM14",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 0,
+        "dest": 43,
+        "insn": {
+          "Ancestral": {
+            "anc_name": "ZMM15",
+            "reg_type": {
+              "Bytes": 64
+            }
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744512,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            -8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744512,
+        "dest": 46,
+        "insn": {
+          "StoreMem": {
+            "addr": 12,
+            "value": 11
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744513,
+        "dest": 11,
+        "insn": {
+          "Get": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744516,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            -8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744516,
+        "dest": 46,
+        "insn": {
+          "StoreMem": {
+            "addr": 12,
+            "value": 25
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744518,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            -8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744518,
+        "dest": 46,
+        "insn": {
+          "StoreMem": {
+            "addr": 12,
+            "value": 24
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744520,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            -8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744520,
+        "dest": 46,
+        "insn": {
+          "StoreMem": {
+            "addr": 12,
+            "value": 17
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744521,
+        "dest": 17,
+        "insn": {
+          "Get": 14
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744524,
+        "dest": 14,
+        "insn": {
+          "Get": 15
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 12,
+        "insn": {
+          "Arith": [
+            "Sub",
+            12,
+            46
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 12,
+        "insn": {
+          "Get": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 6,
+        "insn": {
+          "SignOf": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 5,
+        "insn": {
+          "IsZero": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 12,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744527,
+        "dest": 3,
+        "insn": {
+          "Parity": 47
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744531,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 0,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744531,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            17
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744531,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744531,
+        "dest": 16,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744534,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 0,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744534,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            16
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744534,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744534,
+        "dest": 24,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 4575568,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 47,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 47,
+        "insn": {
+          "Get": 14
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 47,
+            "next_arg": null
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 46,
+        "insn": {
+          "Call": {
+            "callee": 45,
+            "first_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 2,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 3,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 4,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 5,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 6,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 7,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 8,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 9,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 10,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744537,
+        "dest": 16,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744542,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744542,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            16
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744542,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744542,
+        "dest": 15,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744546,
+        "dest": 25,
+        "insn": {
+          "Get": 16
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744549,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": -1,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744549,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            15
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744549,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744549,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744549,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744549,
+        "dest": 18,
+        "insn": {
+          "Concat": {
+            "lo": 45,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744553,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744553,
+        "dest": 46,
+        "insn": {
+          "Widen": {
+            "reg": 46,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744553,
+        "dest": 16,
+        "insn": {
+          "Get": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 47,
+        "insn": {
+          "Int": {
+            "value": 7,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "BitAnd",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 46,
+        "insn": {
+          "Widen": {
+            "reg": 46,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 16,
+        "insn": {
+          "Get": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 10,
+        "insn": "False",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 2,
+        "insn": "False",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744555,
+        "dest": 3,
+        "insn": {
+          "Parity": 48
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 47,
+        "insn": {
+          "Int": {
+            "value": 4,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Sub",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744558,
+        "dest": 3,
+        "insn": {
+          "Parity": 48
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744560,
+        "dest": 45,
+        "insn": {
+          "Not": 6
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744560,
+        "dest": 46,
+        "insn": {
+          "Not": 5
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744560,
+        "dest": 45,
+        "insn": {
+          "Bool": [
+            "And",
+            45,
+            46
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744560,
+        "dest": 47,
+        "insn": {
+          "SetJumpCondition": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744560,
+        "dest": 47,
+        "insn": {
+          "Control": {
+            "JmpExtIf": 4203618
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744566,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744566,
+        "dest": 46,
+        "insn": {
+          "Widen": {
+            "reg": 46,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744566,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744566,
+        "dest": 16,
+        "insn": {
+          "Concat": {
+            "lo": 46,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744569,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 6851792,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744569,
+        "dest": 47,
+        "insn": {
+          "ArithK": [
+            "Mul",
+            16,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744569,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744569,
+        "dest": 46,
+        "insn": {
+          "SetJumpTarget": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744569,
+        "dest": 45,
+        "insn": {
+          "Control": "JmpIndirect"
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744576,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": -9,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744576,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            15
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744576,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744576,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744576,
+        "dest": 18,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744579,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 0,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744579,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            17
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744579,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744579,
+        "dest": 19,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744582,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744582,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            19
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744582,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744582,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744582,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744582,
+        "dest": 16,
+        "insn": {
+          "Concat": {
+            "lo": 45,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 47,
+        "insn": {
+          "Int": {
+            "value": 9,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Sub",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744586,
+        "dest": 3,
+        "insn": {
+          "Parity": 48
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744588,
+        "dest": 45,
+        "insn": {
+          "SetJumpCondition": 5
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744588,
+        "dest": 45,
+        "insn": {
+          "Control": {
+            "JmpExtIf": 4744672
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 47,
+        "insn": {
+          "Int": {
+            "value": 11,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Sub",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744590,
+        "dest": 3,
+        "insn": {
+          "Parity": 48
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744592,
+        "dest": 45,
+        "insn": {
+          "Not": 5
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744592,
+        "dest": 46,
+        "insn": {
+          "SetJumpCondition": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744592,
+        "dest": 46,
+        "insn": {
+          "Control": {
+            "JmpExtIf": 4744731
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 12,
+        "insn": {
+          "Arith": [
+            "Sub",
+            12,
+            46
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 12,
+        "insn": {
+          "Get": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 6,
+        "insn": {
+          "SignOf": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 5,
+        "insn": {
+          "IsZero": 12
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 12,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744598,
+        "dest": 3,
+        "insn": {
+          "Parity": 47
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744602,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744602,
+        "dest": 45,
+        "insn": {
+          "Arith": [
+            "Add",
+            45,
+            17
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744602,
+        "dest": 16,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744606,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744606,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            24
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744606,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744606,
+        "dest": 14,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 19,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 19,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "BitXor",
+            46,
+            48
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 46,
+        "insn": {
+          "Widen": {
+            "reg": 46,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 19,
+        "insn": {
+          "Get": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 10,
+        "insn": "False",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 2,
+        "insn": "False",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 49,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744611,
+        "dest": 3,
+        "insn": {
+          "Parity": 49
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744613,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            -8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744613,
+        "dest": 46,
+        "insn": {
+          "StoreMem": {
+            "addr": 12,
+            "value": 16
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744614,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744614,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            17
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744614,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744614,
+        "dest": 20,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744618,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 2,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744618,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744618,
+        "dest": 21,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 5624160,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 47,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 47,
+        "insn": {
+          "Get": 14
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 48,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 48,
+        "insn": {
+          "Get": 15
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 49,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 49,
+        "insn": {
+          "Get": 19
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 50,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 50,
+        "insn": {
+          "Get": 18
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 50,
+        "insn": {
+          "Part": {
+            "src": 50,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 51,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 51,
+        "insn": {
+          "Get": 20
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 52,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 52,
+        "insn": {
+          "Get": 21
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 52,
+        "insn": {
+          "Part": {
+            "src": 52,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 53,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 54,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 53,
+        "insn": {
+          "LoadMem": {
+            "addr": 54,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 53,
+            "next_arg": null
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 52,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 51,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 50,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 49,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 48,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 47,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 46,
+        "insn": {
+          "Call": {
+            "callee": 45,
+            "first_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 2,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 3,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 4,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 5,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 6,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 7,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 8,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 9,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 10,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744624,
+        "dest": 16,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744629,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744629,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            24
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744629,
+        "dest": 46,
+        "insn": {
+          "StoreMem": {
+            "addr": 46,
+            "value": 16
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744634,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 12,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744634,
+        "dest": 16,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744634,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744635,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 12,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744635,
+        "dest": 19,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744635,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744636,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": -24,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744636,
+        "dest": 45,
+        "insn": {
+          "Arith": [
+            "Add",
+            45,
+            11
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744636,
+        "dest": 12,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744640,
+        "dest": 14,
+        "insn": {
+          "Get": 25
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744643,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 12,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744643,
+        "dest": 17,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744643,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744644,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 12,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744644,
+        "dest": 24,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744644,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744646,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 12,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744646,
+        "dest": 25,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744646,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744648,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 12,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744648,
+        "dest": 11,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744648,
+        "dest": 12,
+        "insn": {
+          "ArithK": [
+            "Add",
+            12,
+            8
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744649,
+        "dest": 45,
+        "insn": {
+          "Control": {
+            "JmpExt": 4577184
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744656,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 0,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744656,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            17
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744656,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744656,
+        "dest": 19,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744659,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": -17,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744659,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            15
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744659,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744659,
+        "dest": 18,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744663,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 8,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744663,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            19
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744663,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744663,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744663,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744663,
+        "dest": 16,
+        "insn": {
+          "Concat": {
+            "lo": 45,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 47,
+        "insn": {
+          "Int": {
+            "value": 9,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Sub",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744667,
+        "dest": 3,
+        "insn": {
+          "Parity": 48
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744669,
+        "dest": 45,
+        "insn": {
+          "Not": 5
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744669,
+        "dest": 46,
+        "insn": {
+          "SetJumpCondition": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744669,
+        "dest": 46,
+        "insn": {
+          "Control": {
+            "JmpExtIf": 4744590
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744672,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 24,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744672,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            19
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744672,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744672,
+        "dest": 14,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": 16,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 17,
+        "insn": {
+          "Arith": [
+            "Add",
+            17,
+            46
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 17,
+        "insn": {
+          "Get": 17
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 10,
+        "insn": {
+          "OverflowOf": 17
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 2,
+        "insn": {
+          "CarryOf": 17
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 6,
+        "insn": {
+          "SignOf": 17
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 5,
+        "insn": {
+          "IsZero": 17
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 17,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744676,
+        "dest": 3,
+        "insn": {
+          "Parity": 47
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744680,
+        "dest": 19,
+        "insn": {
+          "Get": 15
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744683,
+        "dest": 15,
+        "insn": {
+          "Get": 17
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 4299888,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 47,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 47,
+        "insn": {
+          "Get": 14
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 48,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 48,
+        "insn": {
+          "Get": 15
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 49,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 49,
+        "insn": {
+          "Get": 19
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 50,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 50,
+        "insn": {
+          "Get": 18
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 50,
+            "next_arg": null
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 49,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 48,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 47,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 46,
+        "insn": {
+          "Call": {
+            "callee": 45,
+            "first_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 2,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 3,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 4,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 5,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 6,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 7,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 8,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 9,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744686,
+        "dest": 10,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744691,
+        "dest": 45,
+        "insn": {
+          "Control": {
+            "JmpExt": 4744636
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744696,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": -3,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744696,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            15
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744696,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744696,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744696,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744696,
+        "dest": 18,
+        "insn": {
+          "Concat": {
+            "lo": 45,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744700,
+        "dest": 45,
+        "insn": {
+          "Control": {
+            "JmpExt": 4744579
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744704,
+        "dest": 46,
+        "insn": {
+          "Int": {
+            "value": -5,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744704,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Add",
+            46,
+            15
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744704,
+        "dest": 45,
+        "insn": {
+          "LoadMem": {
+            "addr": 46,
+            "size": 2
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744704,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744704,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 2,
+            "size": 6
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744704,
+        "dest": 18,
+        "insn": {
+          "Concat": {
+            "lo": 45,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744708,
+        "dest": 45,
+        "insn": {
+          "Control": {
+            "JmpExt": 4744579
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 47,
+        "insn": {
+          "Int": {
+            "value": 3,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "Shr",
+            46,
+            47
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 18,
+        "insn": {
+          "Concat": {
+            "lo": 46,
+            "hi": 48
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 49,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744720,
+        "dest": 3,
+        "insn": {
+          "Parity": 49
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744723,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744723,
+        "dest": 46,
+        "insn": {
+          "Widen": {
+            "reg": 46,
+            "target_size": 4,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744723,
+        "dest": 47,
+        "insn": {
+          "Part": {
+            "src": 18,
+            "offset": 1,
+            "size": 7
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744723,
+        "dest": 18,
+        "insn": {
+          "Concat": {
+            "lo": 46,
+            "hi": 47
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744726,
+        "dest": 45,
+        "insn": {
+          "Control": {
+            "JmpExt": 4744579
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744731,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 6979771,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744731,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744731,
+        "dest": 19,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744736,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 352,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744736,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744736,
+        "dest": 15,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744741,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 6982459,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744741,
+        "dest": 45,
+        "insn": {
+          "Widen": {
+            "reg": 45,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744741,
+        "dest": 14,
+        "insn": {
+          "Get": 45
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 46,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 16,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 46,
+        "insn": {
+          "Arith": [
+            "BitXor",
+            46,
+            48
+          ]
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 46,
+        "insn": {
+          "Widen": {
+            "reg": 46,
+            "target_size": 8,
+            "sign": false
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 16,
+        "insn": {
+          "Get": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 10,
+        "insn": "False",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 2,
+        "insn": "False",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 6,
+        "insn": {
+          "SignOf": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 5,
+        "insn": {
+          "IsZero": 46
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 49,
+        "insn": {
+          "Part": {
+            "src": 46,
+            "offset": 0,
+            "size": 1
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744746,
+        "dest": 3,
+        "insn": {
+          "Parity": 49
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 45,
+        "insn": {
+          "Int": {
+            "value": 4990320,
+            "size": 8
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 47,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 47,
+        "insn": {
+          "Get": 14
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 48,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 48,
+        "insn": {
+          "Get": 15
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 48,
+        "insn": {
+          "Part": {
+            "src": 48,
+            "offset": 0,
+            "size": 4
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 49,
+        "insn": "Void",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 49,
+        "insn": {
+          "Get": 19
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 49,
+            "next_arg": null
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 48,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 46,
+        "insn": {
+          "CArg": {
+            "value": 47,
+            "next_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 46,
+        "insn": {
+          "Call": {
+            "callee": 45,
+            "first_arg": 46
+          }
+        },
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 2,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 3,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 4,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 5,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 6,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 7,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 8,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 9,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      },
+      {
+        "addr": 4744748,
+        "dest": 10,
+        "insn": "UndefinedBool",
+        "tyid": null,
+        "reg_type": null
+      }
+    ]
+  },
+  "ssa": {
+    "blocks": {
+      "7": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 293,
+            "insn": {
+              "SetJumpCondition": 45
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          }
+        ],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "12": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 393,
+            "insn": {
+              "Call": {
+                "callee": 45,
+                "first_arg": 46
+              }
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          }
+        ],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "1": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 124,
+            "insn": {
+              "Part": {
+                "src": 101,
+                "offset": 0,
+                "size": 1
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 1
+            }
+          },
+          {
+            "addr": null,
+            "dest": 125,
+            "insn": {
+              "Widen": {
+                "reg": 124,
+                "target_size": 4,
+                "sign": false
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 4
+            }
+          },
+          {
+            "addr": null,
+            "dest": 126,
+            "insn": {
+              "Part": {
+                "src": 101,
+                "offset": 1,
+                "size": 7
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 7
+            }
+          },
+          {
+            "addr": null,
+            "dest": 127,
+            "insn": {
+              "Concat": {
+                "lo": 125,
+                "hi": 126
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 11
+            }
+          },
+          {
+            "addr": null,
+            "dest": 129,
+            "insn": {
+              "ArithK": [
+                "Mul",
+                127,
+                8
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 22
+            }
+          },
+          {
+            "addr": null,
+            "dest": 130,
+            "insn": {
+              "ArithK": [
+                "Add",
+                129,
+                6851792
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 44
+            }
+          },
+          {
+            "addr": null,
+            "dest": 131,
+            "insn": {
+              "SetJumpTarget": 130
+            },
+            "tyid": null,
+            "reg_type": "Effect"
+          }
+        ],
+        "cont": {
+          "Always": "Indirect"
+        }
+      },
+      "5": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 199,
+            "insn": {
+              "StoreMem": {
+                "addr": 12,
+                "value": 16
+              }
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          },
+          {
+            "addr": null,
+            "dest": 232,
+            "insn": {
+              "Call": {
+                "callee": 45,
+                "first_arg": 46
+              }
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          },
+          {
+            "addr": null,
+            "dest": 245,
+            "insn": {
+              "StoreMem": {
+                "addr": 46,
+                "value": 16
+              }
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          }
+        ],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "6": {
+        "body": [],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "10": {
+        "body": [],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "8": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 323,
+            "insn": {
+              "Call": {
+                "callee": 45,
+                "first_arg": 46
+              }
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          }
+        ],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "11": {
+        "body": [],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "3": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 157,
+            "insn": {
+              "SetJumpCondition": 5
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          }
+        ],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "0": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 5,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "TF",
+                "reg_type": "Bool"
+              }
+            },
+            "tyid": null,
+            "reg_type": "Bool"
+          },
+          {
+            "addr": null,
+            "dest": 9,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "RBP",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 10,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "RSP",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 12,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "RDI",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 13,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "RSI",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": 2338212,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 15,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "RBX",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 16,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "RCX",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 22,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "R12",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 23,
+            "insn": {
+              "Ancestral": {
+                "anc_name": "R13",
+                "reg_type": {
+                  "Bytes": 8
+                }
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 42,
+            "insn": {
+              "ArithK": [
+                "Add",
+                10,
+                -8
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 16
+            }
+          },
+          {
+            "addr": null,
+            "dest": 43,
+            "insn": {
+              "StoreMem": {
+                "addr": 42,
+                "value": 9
+              }
+            },
+            "tyid": null,
+            "reg_type": "Effect"
+          },
+          {
+            "addr": null,
+            "dest": 45,
+            "insn": {
+              "ArithK": [
+                "Add",
+                10,
+                -16
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 16
+            }
+          },
+          {
+            "addr": null,
+            "dest": 46,
+            "insn": {
+              "StoreMem": {
+                "addr": 45,
+                "value": 23
+              }
+            },
+            "tyid": null,
+            "reg_type": "Effect"
+          },
+          {
+            "addr": null,
+            "dest": 47,
+            "insn": {
+              "ArithK": [
+                "Add",
+                10,
+                -24
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 16
+            }
+          },
+          {
+            "addr": null,
+            "dest": 48,
+            "insn": {
+              "StoreMem": {
+                "addr": 47,
+                "value": 22
+              }
+            },
+            "tyid": null,
+            "reg_type": "Effect"
+          },
+          {
+            "addr": null,
+            "dest": 49,
+            "insn": {
+              "ArithK": [
+                "Add",
+                10,
+                -32
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 16
+            }
+          },
+          {
+            "addr": null,
+            "dest": 50,
+            "insn": {
+              "StoreMem": {
+                "addr": 49,
+                "value": 15
+              }
+            },
+            "tyid": null,
+            "reg_type": "Effect"
+          },
+          {
+            "addr": null,
+            "dest": 70,
+            "insn": {
+              "Int": {
+                "value": 4575568,
+                "size": 8
+              }
+            },
+            "tyid": 617493,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 73,
+            "insn": {
+              "CArg": {
+                "value": 13,
+                "next_arg": null
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 74,
+            "insn": {
+              "Call": {
+                "callee": 70,
+                "first_arg": 73
+              }
+            },
+            "tyid": 2338212,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 86,
+            "insn": {
+              "ArithK": [
+                "Add",
+                74,
+                8
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 16
+            }
+          },
+          {
+            "addr": null,
+            "dest": 87,
+            "insn": {
+              "LoadMem": {
+                "addr": 86,
+                "size": 8
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 91,
+            "insn": {
+              "ArithK": [
+                "Add",
+                87,
+                -1
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 16
+            }
+          },
+          {
+            "addr": null,
+            "dest": 92,
+            "insn": {
+              "LoadMem": {
+                "addr": 91,
+                "size": 1
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 1
+            }
+          },
+          {
+            "addr": null,
+            "dest": 96,
+            "insn": {
+              "Widen": {
+                "reg": 92,
+                "target_size": 4,
+                "sign": false
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 4
+            }
+          },
+          {
+            "addr": null,
+            "dest": 101,
+            "insn": {
+              "ArithK": [
+                "BitAnd",
+                96,
+                7
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 8
+            }
+          },
+          {
+            "addr": null,
+            "dest": 110,
+            "insn": {
+              "Part": {
+                "src": 101,
+                "offset": 0,
+                "size": 1
+              }
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 1
+            }
+          },
+          {
+            "addr": null,
+            "dest": 112,
+            "insn": {
+              "ArithK": [
+                "Add",
+                110,
+                -4
+              ]
+            },
+            "tyid": null,
+            "reg_type": {
+              "Bytes": 2
+            }
+          },
+          {
+            "addr": null,
+            "dest": 115,
+            "insn": {
+              "SignOf": 112
+            },
+            "tyid": null,
+            "reg_type": "Bool"
+          },
+          {
+            "addr": null,
+            "dest": 116,
+            "insn": {
+              "IsZero": 112
+            },
+            "tyid": null,
+            "reg_type": "Bool"
+          },
+          {
+            "addr": null,
+            "dest": 119,
+            "insn": {
+              "Not": 115
+            },
+            "tyid": null,
+            "reg_type": "Bool"
+          },
+          {
+            "addr": null,
+            "dest": 120,
+            "insn": {
+              "Not": 116
+            },
+            "tyid": null,
+            "reg_type": "Bool"
+          },
+          {
+            "addr": null,
+            "dest": 121,
+            "insn": {
+              "Bool": [
+                "And",
+                119,
+                120
+              ]
+            },
+            "tyid": null,
+            "reg_type": "Bool"
+          },
+          {
+            "addr": null,
+            "dest": 122,
+            "insn": {
+              "SetJumpCondition": 121
+            },
+            "tyid": null,
+            "reg_type": "Effect"
+          }
+        ],
+        "cont": {
+          "Conditional": {
+            "pos": {
+              "Ext": 4203618
+            },
+            "neg": {
+              "Block": 1
+            }
+          }
+        }
+      },
+      "2": {
+        "body": [],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "9": {
+        "body": [],
+        "cont": {
+          "Always": "Undefined"
+        }
+      },
+      "4": {
+        "body": [
+          {
+            "addr": null,
+            "dest": 169,
+            "insn": {
+              "SetJumpCondition": 45
+            },
+            "tyid": null,
+            "reg_type": "Error"
+          }
+        ],
+        "cont": {
+          "Always": "Undefined"
+        }
+      }
+    }
+  }
+}

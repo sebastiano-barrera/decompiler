@@ -60,7 +60,7 @@ pub struct Program {
 ///
 /// The language admits as many registers as a u16 can represent (2**16). They're
 /// abstract, so we don't pay for them!
-#[derive(Clone, Copy, PartialEq, Eq, Hash, facet::Facet)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, facet::Facet, serde::Serialize, serde::Deserialize)]
 pub struct Reg(pub u16);
 
 /// Ergonomic short-hand for the mil::Reg constructor
@@ -82,7 +82,7 @@ impl std::fmt::Debug for Reg {
 
 pub type Index = u16;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, facet::Facet)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, facet::Facet, serde::Serialize)]
 #[repr(u8)]
 pub enum RegType {
     Bytes(usize),
@@ -114,7 +114,7 @@ pub enum Endianness {
     Big,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet, serde::Serialize)]
 #[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
@@ -274,6 +274,7 @@ pub enum Insn {
 // TODO Match/unify Control and cfg::BlockCont?
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
 #[repr(u8)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum Control {
     /// Return to the calling function.
     ///
@@ -304,6 +305,7 @@ pub enum Control {
 /// Binary comparison operators. Inputs are integers; the output is a boolean.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
 #[repr(u8)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum CmpOp {
     EQ,
     LT,
@@ -320,6 +322,7 @@ impl CmpOp {
 /// Binary boolean operators. Inputs and outputs are booleans.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
 #[repr(u8)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum BoolOp {
     Or,
     And,
@@ -333,7 +336,9 @@ impl BoolOp {
     }
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+#[derive(
+    Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet, serde::Serialize, serde::Deserialize,
+)]
 #[repr(u8)]
 pub enum ArithOp {
     Add,
@@ -365,7 +370,9 @@ impl ArithOp {
 /// that represents the pre-existing value of a machine register at the time
 /// the function started execution.  Mostly useful to allow the decompilation to
 /// proceed forward even when somehting is out of place.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet)]
+#[derive(
+    Clone, Copy, Hash, PartialEq, Eq, Debug, facet::Facet, serde::Serialize, serde::Deserialize,
+)]
 pub struct AncestralName(&'static str);
 
 impl AncestralName {
