@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
   "decompiler"
-, "decompiler_cli", "decompiler_tester"]
+, "decompiler_cli", "decompiler_gui", "decompiler_tester"]
 
 [profile.dev.package]
 gimli.opt-level = 3

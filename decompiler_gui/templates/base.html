@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>{% block title %}decompiler{% endblock %}</title>
+
+        <link rel="stylesheet" href="/style.css">
+        <style>
+                @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap');
+        </style>
+
+        <script src="https://cdn.jsdelivr.net/npm/unpoly@3.12.0/unpoly.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/unpoly@3.12.0/unpoly.min.css">
+
+        <script>
+                function filterElementsVisibility(query, elements) {
+                        for (const elm of elements) {
+                                elm.style["display"] = elm.innerText.includes(query) ? "block" : "none";
+                        }
+                }
+
+                up.link.config.followSelectors.push('a[href]');
+                up.link.config.instantSelectors.push('a[href]');
+        </script>
+</head>
+
+<body>
+        <div id="app">
+                <div class="topbar">
+                        {% block topbar %}<a href="/"><code>{{ exe.name }}</code></a>{% endblock %}
+                </div>
+                <div id="main-area">
+                        {% block main_area %}{% endblock %}
+                </div>
+        </div>
+</body>
+
+</html>

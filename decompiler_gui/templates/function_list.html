@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ super() }} -- Functions{% endblock %}
+
+{% block topbar %}
+{{ super() }} 🞂 Functions
+{% endblock %}
+
+{% block main_area %}
+<div class="function-list">
+        <input id="query" type="text" placeholder="Search function by name..."
+                oninput="filterElementsVisibility(this.value, this.parentElement.querySelectorAll('li'))">
+        <div>
+                <span>{{ exe.functions|length }} functions</span>
+        </div>
+        <ul>
+                {% for name in exe.functions %}
+                <li><a href="/functions/{{name|urlencode}}">{{name}}</a></li>
+                {% endfor %}
+        </ul>
+</div>
+
+{% endblock %}

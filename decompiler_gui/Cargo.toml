@@ -1,0 +1,16 @@
+[package]
+name = "decompiler_gui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+decompiler = { path = "../decompiler" }
+
+actix-web = "4.11.0"
+anyhow = "1.0.100"
+serde = "1.0.228"
+serde_json = "1.0.145"
+env_logger = "0.10"
+actix-files = "0.6.8"
+minijinja = { version = "2.12.0", features = ["loader", "urlencode"] }
+minijinja-autoreload = "2.12.0"
