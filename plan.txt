@@ -86,7 +86,7 @@ suitable alternative
         representation might also be *the* input representation to be transformed
         into a GUI
 
-- [ ] gui: restore
+- [x] gui: restore
     - evaluate HTML/web interface approach. (I'm thinking: better suited to our 
     output, which is fundamentally text, with more or less interactivity added on top)
 
@@ -94,12 +94,16 @@ suitable alternative
 
 - [ ] use type info
     - [x] struct member accesses
+    - [ ] ssa: value types
+        - [x] cli
+        - [ ] gui
+    - [ ] ast: value types
     - [ ] show in ast
     - [ ] function prototype
-    - [x] ssa: value types
-    - [ ] ast: value types
+    - [ ] show type (the type itself: details, name, structure, links, etc.)
     - [ ] enum values
         - initialize with DWARF, allow user edits
+
 
 - [ ] string literals
 
@@ -127,6 +131,8 @@ suitable alternative
     - increased code complexity is not worth it. can be paid to higher benefit later
 
 - [ ] attach errors/warnings to ssa instructions wherever applicable
+    - reasonable approximation: create a panel for tracing that allows searching, 
+    also based on language elements (registers, types, etc.)
 
 - [ ] gui: multiple functions (tabs?)
 

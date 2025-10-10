@@ -1,13 +1,76 @@
 {% extends "base.html" %}
+
 {% block title %}{{ super() }} -- {{ func.name }}{% endblock %}
 
-{% block topbar %}
-{{ super() }} 🞂 <code>{{ func.name }}</code>
-{% endblock %}
+{% block topbar %} {{ super() }} 🞂 <code>{{ func.name }}</code>{% endblock %}
 
 {% block main_area %}
 <div class="function">
-        Function representation goes here
+    <!-- phase 1: ssa -->
+    <div class="bb-ssa">
+        <ul>
+            <li>insn -- block0</li>
+            <li>insn -- block0</li>
+        </ul>
+    </div>
+
+    <!-- phase 2: the block's own statements -->
+
+    <div class="bb-ast" data-indent-level="0">
+        <p>let x = 12;</p>
+        <p>let y = some_function(&x, 13);</p>
+        <!--
+            note that, because:
+                * B3 follows B2 directly in the block order,
+                * B3 is the positive successor of B2,
+                * B3 dominates B2,
+            then it's possible to represent the conditional jump as
+            an if statement with B3 "wrapped" in its consequent.
+            -->
+        if y &gt; 10 {
+    </div>
+
+    <!-- phase 3: dominated blocks -->
+
+    <div class="bb-ssa">
+        <ul>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+            <li>insn -- block1</li>
+        </ul>
+    </div>
+
+    <div class="bb-ast" data-indent-level="1">
+        <p>block {</p>
+    </div>
+
+    <div class="bb-ssa">
+        <ul>
+            <li>insn -- block0</li>
+            <li>insn -- block0</li>
+        </ul>
+    </div>
+
+    <div class="bb-ast" data-indent-level="2">
+        <p>block {</p>
+        <p>}</p>
+    </div>
+
+    <div class="bb-ssa"></div>
+
+    <div class="bb-ast" data-indent-level="1">}</div>
+
+    <div class="bb-ast" data-indent-level="0">}</div>
 </div>
 
 {% endblock %}

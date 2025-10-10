@@ -101,3 +101,32 @@ a {
         }
 }
 
+.function {
+        --ssa-width: 60mm;
+        
+        display: grid;
+        grid-template-columns: var(--ssa-width) 1fr;
+        
+        .bb-ssa, .bb-ast {
+                margin: 0;
+                padding: 2mm;
+        }
+        
+        .bb-ssa {
+                overflow-y: hidden;
+        }
+        
+        .bb-ast {
+                margin-left: calc(1cm * attr(data-indent-level));
+                
+                * {
+                        margin-top: 1mm;
+                        margin-bottom: 0;
+                }
+        }
+        
+        ul {
+                margin-top: 0;
+        }
+}
+
