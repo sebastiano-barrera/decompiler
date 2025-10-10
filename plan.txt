@@ -92,6 +92,23 @@ suitable alternative
 
 -- from here on, user-facing features have a gui version and a cli version
 
+- [x] feasibility study: web app general structure (with edit API requests AND ALSO localized edits) (and also learn Solid.js): 
+    - [x] decide what the editable data structure looks like (for the experiment)
+        - needs to have some part that is editable AND appears in multiple places
+
+    - [x] basic server
+    - [x] view API
+    - [x] edit API
+    - [x] frontend boilerplate with Preact
+    - [x] view 
+    - [x] edit workflow:
+        - [x] localized
+        - [x] call edit API + refresh
+
+- [ ] data oriented interface
+    - [ ] standardized serde-able output
+    - [ ] standardized serde-able input parameters (other than the executable itself)
+
 - [ ] use type info
     - [x] struct member accesses
     - [ ] ssa: value types
@@ -103,7 +120,6 @@ suitable alternative
     - [ ] show type (the type itself: details, name, structure, links, etc.)
     - [ ] enum values
         - initialize with DWARF, allow user edits
-
 
 - [ ] string literals
 
