@@ -89,7 +89,7 @@ fn dump_functions(
 
         match output_format {
             OutputFormat::JSON => {
-                let doc = proto::Document::from(&df);
+                let doc = proto::Function::from(&df);
                 serde_json::to_writer_pretty(stdout, &doc)?;
             }
             OutputFormat::Text => {
@@ -129,7 +129,7 @@ fn write_cfg_dot<W: std::io::Write>(cfg: &decompiler::Graph, mut wrt: W) -> anyh
     Ok(())
 }
 
-fn write_text<W: std::io::Write>(doc: &proto::Document, mut wrt: W) -> std::io::Result<()> {
+fn write_text<W: std::io::Write>(doc: &proto::Function, mut wrt: W) -> std::io::Result<()> {
     let mut last_addr = None;
     match doc.mil.as_ref() {
         Some(mil) => {

@@ -5,8 +5,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use actix_web::{App, HttpServer, Responder, web};
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 use anyhow::Context;
+use decompiler::proto;
 
 #[actix_web::main]
 async fn main() {
@@ -38,9 +39,7 @@ async fn anyhow_main() -> anyhow::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(Arc::clone(&shared)))
-            .service(web::redirect("/", "/functions"))
-            .service(get_function_list)
-            .service(get_function)
+            .service(get_exe)
             .service(actix_files::Files::new("/", "./static/").index_file("index.html"))
     })
     .bind(("127.0.0.1", 1993))?
@@ -50,19 +49,10 @@ async fn anyhow_main() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[actix_web::get("/functions")]
-async fn get_function_list(shared: web::Data<Arc<Mutex<SharedState>>>) -> impl Responder {
+#[actix_web::get("/exe")]
+async fn get_exe(shared: web::Data<Arc<Mutex<SharedState>>>) -> impl Responder {
     let shared = shared.lock().unwrap();
-    let tmpl_env = shared.tmpl_env();
-    let tmpl = tmpl_env
-        .get_template("function_list.html")
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    tmpl.render(minijinja::context! {
-        exe => shared.exe_data,
-    })
-    .map(web::Html::new)
-    .map_err(actix_web::error::ErrorInternalServerError)
+    HttpResponse::Ok().json(&shared.exe_data)
 }
 
 #[actix_web::get("/functions/{name}")]
@@ -91,33 +81,18 @@ async fn get_function(
     .map_err(actix_web::error::ErrorInternalServerError)
 }
 
-mod page_data {
+mod proto_web {
     #[derive(serde::Serialize)]
     pub struct Exe {
         pub name: String,
         pub functions: Vec<String>,
     }
-
-    #[derive(serde::Serialize)]
-    pub struct DecompiledFunction {
-        pub name: String,
-        pub mil: Vec<Insn>,
-    }
-
-    #[derive(serde::Serialize)]
-    pub struct Insn {
-        pub addr: Option<u64>,
-        pub dest: u16,
-        pub insn: decompiler::Insn,
-        pub tyid: Option<decompiler::ty::TypeID>,
-        pub reg_type: Option<decompiler::RegType>,
-    }
 }
 
 struct SharedState {
     exe: decompiler::Executable<'static>,
-    exe_data: page_data::Exe,
-    df_by_name: HashMap<String, Arc<Mutex<page_data::DecompiledFunction>>>,
+    exe_data: proto_web::Exe,
+    df_by_name: HashMap<String, Arc<Mutex<proto::Function>>>,
     autoreloader: minijinja_autoreload::AutoReloader,
 }
 
@@ -136,7 +111,7 @@ impl SharedState {
         SharedState {
             autoreloader,
             exe,
-            exe_data: page_data::Exe {
+            exe_data: proto_web::Exe {
                 name: exe_name,
                 functions,
             },
@@ -151,34 +126,15 @@ impl SharedState {
     fn get_or_create(
         &mut self,
         function_name: &str,
-    ) -> anyhow::Result<Arc<Mutex<page_data::DecompiledFunction>>> {
+    ) -> anyhow::Result<Arc<Mutex<proto::Function>>> {
         if let Some(df_data) = self.df_by_name.get(function_name) {
             return Ok(Arc::clone(df_data));
         }
 
         let df = self.exe.decompile_function(&function_name)?;
+        let df = proto::Function::from(&df);
+        let df = Arc::new(Mutex::new(df));
 
-        let mil = if let Some(mil) = df.mil() {
-            (0..mil.len())
-                .map(|ndx| {
-                    let iv = mil.get(ndx).unwrap();
-                    page_data::Insn {
-                        addr: Some(iv.addr),
-                        dest: iv.dest.get().reg_index(),
-                        insn: iv.insn.get(),
-                        tyid: None,
-                        reg_type: None,
-                    }
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
-
-        let df = Arc::new(Mutex::new(page_data::DecompiledFunction {
-            name: function_name.to_string(),
-            mil,
-        }));
         self.df_by_name
             .insert(function_name.to_string(), Arc::clone(&df));
         Ok(df)

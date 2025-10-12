@@ -11,15 +11,15 @@ pub use crate::ty::TypeID;
 pub use crate::ExpandedInsn;
 
 #[derive(Debug, serde::Serialize)]
-pub struct Document {
+pub struct Function {
     pub mil: Option<MIL>,
     pub ssa: Option<SSA>,
 }
-impl From<&crate::DecompiledFunction> for Document {
+impl From<&crate::DecompiledFunction> for Function {
     fn from(df: &crate::DecompiledFunction) -> Self {
         let mil: Option<MIL> = df.mil().map(Into::into);
         let ssa: Option<SSA> = df.ssa().map(Into::into);
-        Document { mil, ssa }
+        Function { mil, ssa }
     }
 }
 
