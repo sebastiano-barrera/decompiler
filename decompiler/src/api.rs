@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 use thiserror::Error;
+use tracing::*;
 
 use crate::lru_cache_dir;
 use crate::{mil, ssa, ty, x86_to_mil, xform};
@@ -15,7 +16,7 @@ pub use crate::mil::{
 };
 pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap};
 
-use tracing::*;
+pub mod proto;
 
 #[derive(Debug, Error)]
 pub enum Error {

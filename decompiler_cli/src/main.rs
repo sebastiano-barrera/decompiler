@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fs::File, io::Read};
+use decompiler::api::proto;
+use std::{fs::File, io::Read};
 
 struct CliOptions {
     exe: String,
@@ -88,11 +89,14 @@ fn dump_functions(
 
         match output_format {
             OutputFormat::JSON => {
-                let doc = df_to_doc(&df);
+                let doc = proto::Document::from(&df);
                 serde_json::to_writer_pretty(stdout, &doc)?;
             }
             OutputFormat::Text => {
-                let doc = df_to_doc(&df);
+                let doc = {
+                    let df: &decompiler::DecompiledFunction = &df;
+                    df.into()
+                };
                 write_text(&doc, stdout)?;
             }
             OutputFormat::DOT => {
@@ -125,89 +129,7 @@ fn write_cfg_dot<W: std::io::Write>(cfg: &decompiler::Graph, mut wrt: W) -> anyh
     Ok(())
 }
 
-#[derive(serde::Serialize)]
-struct Document {
-    mil: Option<MIL>,
-    ssa: Option<SSA>,
-}
-
-#[derive(serde::Serialize)]
-struct MIL {
-    body: Vec<Insn>,
-}
-
-#[derive(serde::Serialize)]
-struct SSA {
-    blocks: HashMap<decompiler::BlockID, SSABlock>,
-}
-
-#[derive(serde::Serialize)]
-struct SSABlock {
-    body: Vec<Insn>,
-    cont: decompiler::BlockCont,
-}
-
-#[derive(serde::Serialize)]
-struct Insn {
-    addr: Option<u64>,
-    dest: u16,
-    insn: decompiler::Insn,
-    tyid: Option<decompiler::ty::TypeID>,
-    reg_type: Option<decompiler::RegType>,
-}
-
-fn df_to_doc(df: &decompiler::DecompiledFunction) -> Document {
-    let mil = 'mil: {
-        let Some(mil) = df.mil() else {
-            break 'mil None;
-        };
-
-        let mut body = Vec::new();
-        for ndx in 0..mil.len() {
-            let iv = mil.get(ndx).unwrap();
-            body.push(Insn {
-                addr: Some(iv.addr),
-                dest: iv.dest.get().reg_index(),
-                insn: iv.insn.get(),
-                tyid: None,
-                reg_type: None,
-            });
-        }
-
-        Some(MIL { body })
-    };
-
-    let ssa = 'ssa: {
-        let Some(ssa) = df.ssa() else { break 'ssa None };
-
-        let mut body_of_block = HashMap::new();
-
-        for bid in ssa.cfg().block_ids() {
-            let cont = ssa.cfg().block_cont(bid);
-
-            let mut body = Vec::new();
-            for reg in ssa.block_regs(bid) {
-                body.push(Insn {
-                    addr: None,
-                    dest: reg.reg_index(),
-                    insn: ssa.get(reg).unwrap(),
-                    tyid: ssa.value_type(reg),
-                    reg_type: Some(ssa.reg_type(reg)),
-                });
-            }
-
-            body_of_block.insert(bid, SSABlock { body, cont });
-        }
-
-        Some(SSA {
-            blocks: body_of_block,
-        })
-    };
-
-    Document { mil, ssa }
-}
-
-fn write_text<W: std::io::Write>(doc: &Document, mut wrt: W) -> std::io::Result<()> {
+fn write_text<W: std::io::Write>(doc: &proto::Document, mut wrt: W) -> std::io::Result<()> {
     let mut last_addr = None;
     match doc.mil.as_ref() {
         Some(mil) => {
@@ -246,7 +168,7 @@ fn write_text<W: std::io::Write>(doc: &Document, mut wrt: W) -> std::io::Result<
 fn write_text_insn<W: std::io::Write>(
     wrt: &mut W,
     last_addr: &mut Option<u64>,
-    insn: &Insn,
+    insn: &proto::Insn,
 ) -> std::io::Result<()> {
     if *last_addr != insn.addr {
         if let Some(addr) = insn.addr {
@@ -262,7 +184,13 @@ fn write_text_insn<W: std::io::Write>(
         Some(decompiler::RegType::Error) => write!(wrt, ":    !!! ")?,
         None => write!(wrt, ":      ? ")?,
     }
-    write!(wrt, " <- {:?}", insn.insn)?;
+    write!(wrt, " <- {:10} ", insn.insn.opcode)?;
+    for (name, arg) in insn.insn.fields.iter() {
+        match arg {
+            decompiler::ExpandedValue::Reg(reg) => write!(wrt, "{}:r{}  ", name, reg.0)?,
+            decompiler::ExpandedValue::Generic(s) => write!(wrt, "{}:{}  ", name, s)?,
+        }
+    }
     if let Some(tyid) = insn.tyid {
         write!(wrt, "  ;; {:?}", tyid)?;
     }

@@ -1100,7 +1100,7 @@ fn show_ssa(
                                 // TODO use label_reg for parts of the instruction as well
                                 ui.label(" <- ");
 
-                                ui.label(insnx.variant_name);
+                                ui.label(insnx.opcode);
                                 ui.label("(");
                                 for (name, value) in insnx.fields.iter() {
                                     ui.label(*name);

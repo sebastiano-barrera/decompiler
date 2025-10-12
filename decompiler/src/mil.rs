@@ -1,5 +1,6 @@
 use enum_assoc::Assoc;
 use facet_reflect::HasFields;
+use serde::ser::SerializeSeq;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
@@ -686,10 +687,13 @@ pub struct InsnView<'a> {
     pub addr: u64,
 }
 
+#[derive(Debug, serde::Serialize)]
 pub struct ExpandedInsn {
-    pub variant_name: &'static str,
+    pub opcode: &'static str,
+    #[serde(serialize_with = "serialize_expanded_insn_fields")]
     pub fields: arrayvec::ArrayVec<(&'static str, ExpandedValue), 3>,
 }
+#[derive(Debug, serde::Serialize)]
 pub enum ExpandedValue {
     Reg(Reg),
     Generic(String),
@@ -726,9 +730,20 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
         .collect();
 
     ExpandedInsn {
-        variant_name,
+        opcode: variant_name,
         fields,
     }
+}
+
+fn serialize_expanded_insn_fields<S: serde::Serializer>(
+    fields: &arrayvec::ArrayVec<(&'static str, ExpandedValue), 3>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let mut seq_serializer = serializer.serialize_seq(Some(fields.len()))?;
+    for value in fields {
+        seq_serializer.serialize_element(value)?;
+    }
+    seq_serializer.end()
 }
 
 #[derive(Clone)]
