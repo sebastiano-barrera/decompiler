@@ -40,7 +40,9 @@ async fn anyhow_main() -> anyhow::Result<()> {
         App::new()
             .app_data(web::Data::new(Arc::clone(&shared)))
             .service(get_exe)
-            .service(actix_files::Files::new("/", "./static/").index_file("index.html"))
+            .service(web::redirect("/", "/p/"))
+            .service(pages)
+            .service(actix_files::Files::new("/assets/", "./assets/").index_file("index.html"))
     })
     .bind(("127.0.0.1", 1993))?
     .run()
@@ -53,6 +55,19 @@ async fn anyhow_main() -> anyhow::Result<()> {
 async fn get_exe(shared: web::Data<Arc<Mutex<SharedState>>>) -> impl Responder {
     let shared = shared.lock().unwrap();
     HttpResponse::Ok().json(&shared.exe_data)
+}
+
+#[actix_web::get("/p/{tail:.*}")]
+async fn pages() -> impl Responder {
+    // serve index.html for every page. the frontend router will do the rest
+    std::fs::File::open("./assets/index.html")
+        .and_then(|mut f| {
+            let mut buf = String::new();
+            f.read_to_string(&mut buf)?;
+            Ok(buf)
+        })
+        .map(|content| HttpResponse::Ok().body(content))
+        .unwrap_or_else(HttpResponse::from_error)
 }
 
 #[actix_web::get("/functions/{name}")]
