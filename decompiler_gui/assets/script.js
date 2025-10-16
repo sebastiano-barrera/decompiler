@@ -78,17 +78,23 @@ function Page_FunctionList({ exe }) {
   return html`<${ToplevelLayout} topBar="${topBar}" mainArea="${mainArea}" />`;
 }
 
-function Page_Function({}) {
-  const { params } = useRoute();
-  const functionName = params.name;
+function Page_Function({ exe }) {
+  const {
+    params: { name: functionName },
+  } = useRoute();
+  const [func, setFunc] = useState(null);
 
-  return html`
-    <div>Function here!</div>
-    <div>
-      function:
-      <pre>${functionName}</pre>
-    </div>
-  `;
+  useEffect(async () => {
+    const res = await fetch("/functions/" + encodeURIComponent(functionName));
+    const data = await res.json();
+    setFunc(data);
+  }, []);
+
+  const topBar = html` ${exe.name} 🢒 <a href="/p/functions">Functions</a> 🢒
+    <code>${functionName}</code>`;
+  const mainArea = html`<div>function here!</div>`;
+
+  return html`<${ToplevelLayout} topBar="${topBar}" mainArea="${mainArea}" />`;
 }
 
 function Page_NotFound() {

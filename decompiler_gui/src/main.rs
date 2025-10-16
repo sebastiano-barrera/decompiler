@@ -40,6 +40,7 @@ async fn anyhow_main() -> anyhow::Result<()> {
         App::new()
             .app_data(web::Data::new(Arc::clone(&shared)))
             .service(get_exe)
+            .service(get_function)
             .service(web::redirect("/", "/p/"))
             .service(pages)
             .service(actix_files::Files::new("/assets/", "./assets/").index_file("index.html"))
@@ -78,22 +79,15 @@ async fn get_function(
     let function_name = path.into_inner();
 
     let mut shared = shared.lock().unwrap();
-    let df = shared
-        .get_or_create(&function_name)
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+    let df = match shared.get_or_create(&function_name) {
+        Ok(df) => df,
+        Err(err) => {
+            return HttpResponse::InternalServerError().body(err.to_string());
+        }
+    };
     let df = df.lock().unwrap();
 
-    let tmpl_env = shared.tmpl_env();
-    let tmpl = tmpl_env
-        .get_template("function.html")
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    tmpl.render(minijinja::context! {
-        exe => &shared.exe_data,
-        func => &*df,
-    })
-    .map(web::Html::new)
-    .map_err(actix_web::error::ErrorInternalServerError)
+    HttpResponse::Ok().json(&*df)
 }
 
 mod proto_web {
