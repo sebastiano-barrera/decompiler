@@ -14,12 +14,14 @@ pub use crate::ExpandedInsn;
 pub struct Function {
     pub mil: Option<MIL>,
     pub ssa: Option<SSA>,
+    pub ast: Option<AST>,
 }
 impl From<&crate::DecompiledFunction> for Function {
     fn from(df: &crate::DecompiledFunction) -> Self {
         let mil: Option<MIL> = df.mil().map(Into::into);
         let ssa: Option<SSA> = df.ssa().map(Into::into);
-        Function { mil, ssa }
+        let ast: Option<AST> = df.ast().map(Into::into);
+        Function { mil, ssa, ast }
     }
 }
 
@@ -91,10 +93,13 @@ pub struct SSABlock {
 
 #[derive(Debug, serde::Serialize)]
 pub struct Insn {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub addr: Option<u64>,
     pub dest: u16,
     pub insn: ExpandedInsn,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tyid: Option<TypeID>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reg_type: Option<RegType>,
 }
 
@@ -132,6 +137,24 @@ impl From<crate::cfg::Dest> for Dest {
             crate::cfg::Dest::Indirect => Dest::Indirect,
             crate::cfg::Dest::Return => Dest::Return,
             crate::cfg::Dest::Undefined => Dest::Undefined,
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct AST {
+    // currently this is exactly the same as crate::ast:Ast, but I want to have
+    // a distinct copy here to manage the API compatibility
+    nodes: Vec<crate::ast::Stmt>,
+    // is_named: HashMap<Reg, bool>,
+    block_order: Vec<crate::cfg::BlockID>,
+}
+
+impl From<&crate::ast::Ast> for AST {
+    fn from(ast: &crate::ast::Ast) -> Self {
+        AST {
+            nodes: ast.stmt_ids().map(|sid| ast.get(sid).clone()).collect(),
+            block_order: ast.block_order().to_vec(),
         }
     }
 }

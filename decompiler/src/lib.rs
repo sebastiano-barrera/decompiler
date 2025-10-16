@@ -1,4 +1,4 @@
-mod ast;
+pub mod ast;
 mod cfg;
 mod elf;
 #[macro_use]

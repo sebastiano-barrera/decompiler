@@ -7,9 +7,10 @@ use thiserror::Error;
 use tracing::*;
 
 use crate::lru_cache_dir;
+
 use crate::{mil, ssa, ty, x86_to_mil, xform};
 
-pub use crate::ast::{precedence, Ast, PrecedenceLevel};
+pub use crate::ast::{precedence, Ast, AstBuilder, PrecedenceLevel};
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest, Graph};
 pub use crate::mil::{
     to_expanded, AncestralName, ExpandedInsn, ExpandedValue, Insn, Reg, RegType, R,
@@ -196,6 +197,7 @@ impl<'a> Executable<'a> {
             mil: None,
             ssa_pre_xform: None,
             ssa: None,
+            ast: None,
             error: None,
             warnings: Vec::new(),
         };
@@ -227,6 +229,8 @@ impl<'a> Executable<'a> {
         df.ssa_pre_xform = Some(ssa.clone());
 
         xform::canonical(&mut ssa, &self.types);
+        let ast = AstBuilder::new(&ssa, &self.types).build();
+        df.ast = Some(ast);
         df.ssa = Some(ssa);
 
         Ok(df)
@@ -296,6 +300,7 @@ pub struct DecompiledFunction {
     mil: Option<mil::Program>,
     ssa_pre_xform: Option<crate::ssa::Program>,
     ssa: Option<crate::ssa::Program>,
+    ast: Option<crate::ast::Ast>,
 
     error: Option<Error>,
     warnings: Vec<Error>,
@@ -337,5 +342,9 @@ impl DecompiledFunction {
 
     pub fn ssa(&self) -> Option<&crate::ssa::Program> {
         self.ssa.as_ref()
+    }
+
+    pub fn ast(&self) -> Option<&crate::ast::Ast> {
+        self.ast.as_ref()
     }
 }

@@ -1,26 +1,119 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::{collections::HashSet, result::Result};
+
+use thiserror::Error;
 
 use crate::{
     cfg,
-    mil::{self, ArithOp, BoolOp, CmpOp, Insn, Reg},
-    pp::PP,
-    ssa, ty,
+    mil::{ArithOp, Insn, Reg},
+    ssa, ty, RegMap,
 };
 
-#[derive(Debug)]
-pub struct Ast<'a> {
-    ssa: &'a ssa::Program,
-    types: &'a ty::TypeSet,
-    printed: HashSet<Reg>,
-    is_named: ssa::RegMap<bool>,
+// TODO intern strings? (check performance gain)
+#[derive(serde::Serialize, Debug, Clone)]
+#[serde(tag = "stmt", content = "arg")]
+pub enum Stmt {
+    // TODO add a table to Ast for assigning custom names to blocks (and use
+    // them in labels)
+    NamedBlock {
+        bid: cfg::BlockID,
+        body: StmtID,
+    },
+    Let {
+        name: String,
+        value: Reg,
+        body: StmtID,
+    },
+    LetPhi {
+        name: String,
+        body: StmtID,
+    },
+    Seq {
+        first: StmtID,
+        then: StmtID,
+    },
+    Eval(Reg),
 
-    block_printed: cfg::BlockMap<bool>,
+    /// An "If" statement.
+    ///
+    /// Note that the "consequent" (statements to run if the condition
+    /// expression is **true**) is implicitly the one directly following this.
+    ///
+    /// `alt` is the "alternate" (the "else block/continuation").
+    ///
+    /// `cond` is only `None` if the condition value could not be located in the
+    /// input SSA (which is a bug, but one that AST is robust against).
+    If {
+        cond: Option<Reg>,
+        cons: StmtID,
+        alt: StmtID,
+    },
+
+    Return(Reg),
+    JumpUndefined,
+    JumpExternal(u64),
+    JumpIndirect(Reg),
+    Loop(cfg::BlockID),
+    Jump(cfg::BlockID),
 }
 
-impl<'a> Ast<'a> {
+#[derive(Clone, Copy, serde::Serialize, Debug, PartialEq, Eq)]
+#[serde(transparent)]
+pub struct StmtID(usize);
+
+#[derive(Debug)]
+pub struct Ast {
+    /// All statements in the AST, indexed by [StmtID].
+    nodes: Vec<Stmt>,
+    is_named: RegMap<bool>,
+    block_order: Vec<cfg::BlockID>,
+}
+impl Ast {
+    pub fn root(&self) -> StmtID {
+        StmtID(self.nodes.len() - 1)
+    }
+
+    pub fn stmt_ids(&self) -> impl Iterator<Item = StmtID> {
+        (0..self.nodes.len()).map(StmtID)
+    }
+
+    pub fn get(&self, sid: StmtID) -> &Stmt {
+        &self.nodes[sid.0]
+    }
+
+    pub fn is_value_named(&self, reg: Reg) -> bool {
+        self.is_named[reg]
+    }
+
+    pub fn block_order(&self) -> &[cfg::BlockID] {
+        &self.block_order
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("block order contains duplicates")]
+    BlockOrderHasDuplicates,
+}
+
+pub struct AstBuilder<'a> {
+    // inputs
+    ssa: &'a ssa::Program,
+    block_order_rev: Vec<cfg::BlockID>,
+
+    // input, state & output
+    is_named: ssa::RegMap<bool>,
+
+    // state variables
+    let_emitted: HashSet<Reg>,
+    block_printed: cfg::BlockMap<bool>,
+
+    // output
+    nodes: Vec<Stmt>,
+}
+
+impl<'a> AstBuilder<'a> {
     pub fn new(ssa: &'a ssa::Program, types: &'a ty::TypeSet) -> Self {
         let rdr_count = ssa::count_readers(ssa);
-
         let is_named = rdr_count.map(|reg, count| {
             let Some(insn) = ssa.get(reg) else {
                 return false;
@@ -33,111 +126,122 @@ impl<'a> Ast<'a> {
                     && !matches!(insn, Insn::Int { .. }))
         });
 
-        Ast {
+        let mut builder = AstBuilder {
             ssa,
-            types,
-            printed: HashSet::new(),
             is_named,
+            block_order_rev: Vec::new(),
+            let_emitted: HashSet::new(),
             block_printed: cfg::BlockMap::new(ssa.cfg(), false),
+            nodes: Vec::new(),
+        };
+
+        // default block order: reverse postorder
+        // TODO replace with dominator tree walked in reverse postorder
+        builder
+            .set_block_order(ssa.cfg().block_ids_rpo().collect())
+            .unwrap();
+
+        builder
+    }
+
+    pub fn set_block_order(&mut self, mut block_order: Vec<cfg::BlockID>) -> Result<(), Error> {
+        let mut count_of_bid = cfg::BlockMap::new(self.ssa.cfg(), 0);
+
+        for &bid in &block_order {
+            count_of_bid[bid] += 1;
         }
+
+        for (_, &count) in count_of_bid.items() {
+            if count > 1 {
+                return Err(Error::BlockOrderHasDuplicates);
+            }
+        }
+
+        // NOTE: reversed so that we can "peek" into it by inspecting the last
+        // element and/or doing .pop() to advance
+        block_order.reverse();
+        self.block_order_rev = block_order;
+        Ok(())
     }
 
     fn is_named(&self, reg: Reg) -> bool {
         self.is_named[reg]
     }
 
-    pub fn pretty_print<W: PP + ?Sized>(&mut self, pp: &mut W) -> std::io::Result<()> {
-        let cfg = self.ssa.cfg();
-        let entry_bid = cfg.entry_block_id();
-        self.pp_block_labeled(pp, entry_bid)
-    }
-
-    fn pp_block_labeled<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        bid: cfg::BlockID,
-    ) -> std::io::Result<()> {
-        write!(pp, "\nT{}: {{\n  ", bid.as_number())?;
-        pp.open_box();
-
-        self.pp_block_inner(pp, bid)?;
-
-        pp.close_box();
-        writeln!(pp, "\n}}")
-    }
-
-    fn pp_block_inner<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        bid: cfg::BlockID,
-    ) -> std::io::Result<()> {
-        assert!(!self.block_printed[bid]);
-        self.block_printed[bid] = true;
-
-        for reg in self.ssa.block_regs(bid) {
-            if self.is_named(reg) || self.ssa.get(reg).unwrap().has_side_effects() {
-                self.pp_stmt(pp, reg)?;
-            }
+    pub fn build(mut self) -> Ast {
+        for (_, value) in self.block_printed.items_mut() {
+            *value = false;
         }
 
-        match self.ssa.cfg().block_cont(bid) {
-            cfg::BlockCont::Always(tgt) => {
-                self.pp_continuation(pp, bid, tgt)?;
-            }
+        let block_order = {
+            let mut ord = self.block_order_rev.clone();
+            ord.reverse();
+            ord
+        };
+
+        let mut block_heads = Vec::with_capacity(self.block_order_rev.len());
+        while let Some(bid) = self.block_order_rev.pop() {
+            block_heads.push(self.build_block(bid));
+        }
+
+        block_heads
+            .into_iter()
+            .fold(None, |sid, block_sid| match sid {
+                Some(sid) => Some(self.push_stmt(Stmt::Seq {
+                    first: sid,
+                    then: block_sid,
+                })),
+                None => Some(block_sid),
+            });
+
+        Ast {
+            nodes: self.nodes,
+            is_named: self.is_named,
+            block_order,
+        }
+    }
+
+    fn build_block(&mut self, bid: cfg::BlockID) -> StmtID {
+        let cfg = self.ssa.cfg();
+
+        let end_sid: StmtID = match cfg.block_cont(bid) {
+            cfg::BlockCont::Always(tgt) => self.build_continuation(bid, tgt),
             cfg::BlockCont::Conditional { pos, neg } => {
                 let cond = self.ssa.find_last_matching(bid, |insn| match insn {
                     Insn::SetJumpCondition(value) => Some(value),
                     _ => None,
                 });
+                let cons = self.build_continuation(bid, pos);
+                let alt = self.build_continuation(bid, neg);
 
-                match cond {
-                    Some(cond) => {
-                        write!(pp, "if ")?;
-                        self.pp_ref(pp, cond, 0)?;
-                    }
-                    None => {
-                        write!(pp, "if ???")?;
-                    }
-                }
+                self.push_stmt(Stmt::If { cond, cons, alt })
+            }
+        };
 
-                write!(pp, " {{\n  ")?;
-                pp.open_box();
-                self.pp_continuation(pp, bid, pos)?;
-                pp.close_box();
-                write!(pp, "\n}}\n")?;
-
-                self.pp_continuation(pp, bid, neg)?;
+        let mut sid = end_sid;
+        for reg in self.ssa.block_regs(bid).rev() {
+            if self.is_named(reg) || self.ssa.get(reg).unwrap().has_side_effects() {
+                sid = self.build_stmt(reg, sid);
             }
         }
 
-        for &child in self.ssa.cfg().dom_tree().children_of(bid) {
-            if self.ssa.cfg().block_preds(child).len() > 1 {
-                self.pp_block_labeled(pp, child)?;
-            }
-        }
-
-        Ok(())
+        // if cfg.block_preds(bid).len() == 1 {
+        self.push_stmt(Stmt::NamedBlock { bid, body: sid })
+        // } else {
+        //     sid
+        // }
     }
 
-    fn pp_continuation<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        src_bid: cfg::BlockID,
-        tgt: cfg::Dest,
-    ) -> std::io::Result<()> {
-        let cfg = self.ssa.cfg();
-
+    fn build_continuation(&mut self, src_bid: cfg::BlockID, tgt: cfg::Dest) -> StmtID {
         match tgt {
-            cfg::Dest::Ext(addr) => {
-                write!(pp, "goto ext 0x{:x}", addr)?;
-            }
+            cfg::Dest::Ext(addr) => self.push_stmt(Stmt::JumpExternal(addr)),
             cfg::Dest::Block(tgt_bid) => {
-                if cfg.block_preds(tgt_bid).len() == 1 {
-                    self.pp_block_inner(pp, tgt_bid)?;
+                if self.block_order_rev.last().copied() == Some(tgt_bid) {
+                    self.block_order_rev.pop();
+                    self.build_block(tgt_bid)
                 } else {
-                    let looping_back = cfg.dom_tree().imm_doms(src_bid).any(|i| i == tgt_bid);
-                    let keyword = if looping_back { "loop" } else { "goto" };
-                    write!(pp, "{keyword} T{}", tgt_bid.as_number())?;
+                    // TODO emit Stmt::Loop instead if we know we're looping back to an open block
+                    self.push_stmt(Stmt::Jump(tgt_bid))
                 }
             }
             cfg::Dest::Indirect => {
@@ -147,16 +251,10 @@ impl<'a> Ast<'a> {
                 });
 
                 match target {
-                    Some(target) => {
-                        write!(pp, "goto (")?;
-                        self.pp_ref(pp, target, 0)?;
-                        write!(pp, ").*")?;
-                    }
+                    Some(target) => self.push_stmt(Stmt::JumpIndirect(target)),
                     None => {
-                        write!(
-                            pp,
-                            "goto (???).* /* internal bug: unspecified jump target */"
-                        )?;
+                        // TODO: report a bug: "internal bug: unspecified jump target"
+                        self.push_stmt(Stmt::JumpUndefined)
                     }
                 }
             }
@@ -167,410 +265,66 @@ impl<'a> Ast<'a> {
                 });
 
                 match ret_val {
-                    Some(ret_val) => {
-                        write!(pp, "return ")?;
-                        self.pp_ref(pp, ret_val, 0)?;
-                    }
+                    Some(ret_val) => self.push_stmt(Stmt::Return(ret_val)),
                     None => {
-                        write!(
-                            pp,
-                            "return undefined /* actually unspecified in source program! */"
-                        )?;
+                        // TODO: report a bug: "actually unspecified in source program!"
+                        self.push_stmt(Stmt::JumpUndefined)
                     }
                 }
             }
             cfg::Dest::Undefined => {
-                write!(
-                    pp,
-                    "goto undefined /* warning: due to decompiler bug or limitation */"
-                )?;
+                // TODO: report a bug: "warning: due to decompiler bug or limitation"
+                self.push_stmt(Stmt::JumpUndefined)
             }
         }
-
-        Ok(())
     }
 
     /// Prints a single "statement line" in a block.
     ///
     /// Named instructions are wrapped in a `let x = ...;`.
-    fn pp_stmt<W: PP + ?Sized>(&mut self, pp: &mut W, reg: Reg) -> std::io::Result<()> {
-        // NOTE unlike pp_def, this function is called only when printing the
+    fn build_stmt(&mut self, reg: Reg, sid: StmtID) -> StmtID {
+        // NOTE unlike build_def, this function is called only when printing the
         // "toplevel" definition of a named or effectful instruction;
         //
         // This is called by pp_labeled_inputs
 
-        if self.printed.contains(&reg) {
-            return Ok(());
-        }
-        self.printed.insert(reg);
+        // Check: named values are converted to a single let stmt, never twice
+        assert!(!self.let_emitted.contains(&reg));
+        self.let_emitted.insert(reg);
 
-        let reg_type = self.ssa.reg_type(reg);
-        let should_print_semicolon = if let Insn::Phi = self.ssa.get(reg).unwrap() {
-            write!(pp, "let mut r{}: {:?}", reg.reg_index(), reg_type)?;
-            true
-        } else if self.is_named(reg) {
-            write!(pp, "let r{}: {:?} = ", reg.reg_index(), reg_type)?;
-            self.pp_def(pp, reg, 0)?
-        } else {
-            self.pp_def(pp, reg, 0)?
-        };
-
-        if should_print_semicolon {
-            writeln!(pp, ";")?;
-        }
-
-        Ok(())
-    }
-
-    /// Prints the instruction defining the given register.
-    ///
-    /// Inline (unnamed) inputs to the instruction will be printed inline. For
-    /// named inputs, register references (`r##`) will be used (the function
-    /// panics if the corresponding `let` has not been printed yet).
-    fn pp_def<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        reg: Reg,
-        parent_prec: u8,
-    ) -> std::io::Result<bool> {
-        // NOTE this function is called in both cases:
-        //  - printing the "toplevel" definition of a named or effectful instruction;
-        //  - printing an instruction definition inline as part of the 1 dependent instruction
-        // (For this reason, we can't pp_labeled_inputs here)
-        let mut insn = self.ssa.get(reg).unwrap();
-
-        if let Insn::Get(x) = insn {
-            return self.pp_def(pp, x, parent_prec);
-        }
-
-        let self_prec = precedence(&insn);
-
-        if self_prec < parent_prec {
-            write!(pp, "(")?;
-        }
-
-        match insn {
-            Insn::Void => write!(pp, "void")?,
-            Insn::True => write!(pp, "true")?,
-            Insn::False => write!(pp, "false")?,
-            Insn::Int { value, .. } => match self.ssa.as_float_const(reg, self.types) {
-                Some(value) => {
-                    write!(pp, "{}", value)?;
-                }
-                _ => {
-                    write!(pp, "{}", value)?;
-                }
-            },
-
-            Insn::Bytes(bytes) => {
-                write!(pp, "0x<")?;
-                for (ndx, byte) in bytes.as_slice().iter().enumerate() {
-                    if ndx > 0 {
-                        write!(pp, " ")?;
-                    }
-                    write!(pp, "{:02x}", byte)?;
-                }
-                write!(pp, ">")?;
-            }
-
-            Insn::Get(arg) => {
-                write!(pp, "/* warning: residual Get */ ")?;
-                self.pp_def(pp, arg, parent_prec)?;
-            }
-
-            Insn::Control(ctl_insn) => {
-                // any effect on control-flow should be encoded only in the CFG.
-                // by the time we get here, it should have been patched out and
-                // *replaced* by the CFG's BlockConts. Still, we can cope by
-                // treating Control as a normal instruction and only trust the
-                // CFG to understand control flow structure.
-                write!(pp, "/* warning: unexpected Control */ {:?}", ctl_insn)?;
-            }
-
-            // nothing to do: handled in this block's BlockCont (see pp_block_inner)
-            Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) | Insn::SetReturnValue(_) => {}
-
-            Insn::StructGetMember {
-                struct_value,
-                name,
-                size: _,
-            } => {
-                self.pp_ref(pp, struct_value, self_prec)?;
-                write!(pp, ".{}", name)?;
-            }
-            Insn::Struct {
-                type_name,
-                first_member,
-                ..
-            } => {
-                if let Some(first_member) = first_member {
-                    pp.open_box();
-                    write!(pp, "struct {} {{", type_name)?;
-                    for (name, reg) in self.ssa.get_struct_members(first_member) {
-                        write!(pp, "\n  .{} = ", name)?;
-                        pp.open_box();
-                        self.pp_ref(pp, reg, self_prec)?;
-                        write!(pp, ",")?;
-                        pp.close_box();
-                    }
-                    write!(pp, "\n}}")?;
-                    pp.close_box();
-                } else {
-                    write!(pp, "struct {} {{}}", type_name)?;
-                }
-            }
-            Insn::StructMember { .. } => {
-                unreachable!("CArg should be handled via the Call it belongs to!")
-            }
-            Insn::ArrayGetElement {
-                array,
-                index,
-                size: _,
-            } => {
-                self.pp_ref(pp, array, self_prec)?;
-                write!(pp, "[{}]", index)?;
-            }
-            Insn::Part { src, offset, size } => {
-                self.pp_ref(pp, src, self_prec)?;
-                // syntax is [end..start] because it's more intuitive with concatenation, e.g.:
-                //   r13[8 .. 4] ++ r12[4 .. 0]
-                write!(pp, "[{} .. {}]", offset + size, offset,)?;
-            }
-            Insn::Concat { lo, hi } => {
-                self.pp_bin_op(pp, hi, lo, "++", self_prec)?;
-            }
-            Insn::Widen {
-                reg: arg,
-                target_size,
-                sign,
-            } => {
-                self.pp_ref(pp, arg, self_prec)?;
-                let ch = if sign { 'i' } else { 'u' };
-                write!(pp, " as {}{}", ch, 8 * target_size)?;
-            }
-            Insn::Arith(arith_op, a, b) => {
-                self.pp_bin_op(pp, a, b, arith_op_str(arith_op), self_prec)?;
-            }
-            Insn::ArithK(arith_op, a, k) => {
-                // trick: it's convenient to prefer ArithOp::Add to ArithOp::Sub
-                // in SSA, even with a negative constant (because + is
-                // associative, which makes constant folding easier), but it's
-                // unsightly to see a bunch of `[r11 + -42]:8` in AST. so we
-                // make a replacement just here, just for this purpose.
-                self.pp_ref(pp, a, self_prec)?;
-                if arith_op == ArithOp::Add && k < 0 {
-                    write!(pp, " - {}", -k)?;
-                } else {
-                    write!(pp, " {} {}", arith_op_str(arith_op), k)?;
-                }
-            }
-            Insn::Cmp(cmp_op, a, b) => {
-                let op_s = match cmp_op {
-                    CmpOp::EQ => "EQ",
-                    CmpOp::LT => "LT",
-                };
-                self.pp_bin_op(pp, a, b, op_s, self_prec)?;
-            }
-            Insn::Bool(bool_op, a, b) => {
-                let op_s = match bool_op {
-                    BoolOp::Or => "OR",
-                    BoolOp::And => "AND",
-                };
-                self.pp_bin_op(pp, a, b, op_s, self_prec)?;
-            }
-            Insn::Not(operand) => {
-                write!(pp, "! ")?;
-                self.pp_ref(pp, operand, self_prec)?;
-            }
-            Insn::Call { callee, first_arg } => {
-                if let Some(tyid) = self.ssa.value_type(callee) {
-                    // Not quite correct (why would we print the type name?) but
-                    // happens to be always correct for well formed programs
-                    if let Some(name) = self.types.name(tyid) {
-                        write!(pp, "{}", name)?;
-                    } else {
-                        write!(pp, "<?>")?;
-                        self.pp_ref(pp, callee, self_prec)?;
-                    }
-                } else {
-                    self.pp_ref(pp, callee, self_prec)?;
-                }
-
-                write!(pp, "(")?;
-                pp.open_box();
-                if let Some(first_arg) = first_arg {
-                    for (ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
-                        if ndx > 0 {
-                            writeln!(pp, ",")?;
-                        }
-                        self.pp_ref(pp, arg, self_prec)?;
-                    }
-                }
-                pp.close_box();
-                write!(pp, ")")?;
-            }
-            Insn::NotYetImplemented(msg) => {
-                write!(pp, "TODO /* {} */", msg)?;
-            }
-            Insn::LoadMem { addr, size } => {
-                let sz = size.try_into().unwrap();
-                self.pp_load_mem(pp, addr, sz)?;
-            }
-            Insn::StoreMem { addr, value } => {
-                write!(pp, "[")?;
-                pp.open_box();
-                self.pp_ref(pp, addr, self_prec)?;
-                write!(pp, "]:* := ")?;
-                pp.open_box();
-                self.pp_ref(pp, value, self_prec)?;
-                pp.close_box();
-                pp.close_box();
-            }
-            Insn::OverflowOf(_) => {
-                self.pp_def_default(pp, "OverflowOf".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::CarryOf(_) => {
-                self.pp_def_default(pp, "CarryOf".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::SignOf(_) => {
-                self.pp_def_default(pp, "SignOf".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::IsZero(_) => {
-                self.pp_def_default(pp, "IsZero".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::Parity(_) => {
-                self.pp_def_default(pp, "Parity".into(), insn.input_regs(), self_prec)?;
-            }
-            Insn::UndefinedBool => {
-                write!(pp, "undefined_bool")?;
-            }
-            Insn::UndefinedBytes { size } => {
-                write!(pp, "undefined_bytes({})", size)?;
-            }
-            Insn::Ancestral { anc_name, .. } => {
-                write!(pp, "pre:{}", anc_name.name())?;
-            }
-
+        match self.ssa.get(reg).unwrap() {
+            // These are managed in the handling of if/return/etc.
+            Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) | Insn::SetReturnValue(_) => sid,
             Insn::Phi => {
-                self.pp_def_default(pp, "phi".into(), insn.input_regs(), self_prec)?;
+                let name = format!("r{}", reg.reg_index());
+                self.push_stmt(Stmt::LetPhi { name, body: sid })
             }
-            Insn::Upsilon { value, phi_ref } => match self.ssa.reg_type(value) {
-                // `value` doesn't need to be printed here, as it's already been
-                // printed (has side effect) and the target phi register's value
-                // is not significant
-                mil::RegType::Effect => {}
-                _ => {
-                    write!(pp, "r{} := ", phi_ref.reg_index())?;
-                    pp.open_box();
-                    self.pp_def(pp, value, 0)?;
-                    pp.close_box();
-                }
-            },
-            Insn::CArg { .. } => {
-                unreachable!("CArg should be handled via the Call it belongs to!")
+            _ if self.is_named(reg) => {
+                let name = format!("r{}", reg.reg_index());
+                self.push_stmt(Stmt::Let {
+                    name,
+                    value: reg,
+                    body: sid,
+                })
             }
-            Insn::FuncArgument { index, .. } => {
-                write!(pp, "$arg{}", index)?;
-            }
-        };
-
-        if self_prec < parent_prec {
-            write!(pp, ")")?;
-        }
-        Ok(true)
-    }
-
-    fn pp_bin_op<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        a: Reg,
-        b: Reg,
-        op_str: &str,
-        self_prec: u8,
-    ) -> std::io::Result<()> {
-        let (asz, bsz) = self.operands_sizes(a, b);
-
-        self.pp_ref(pp, a, self_prec)?;
-        if let Some(asz) = asz {
-            write!(pp, " as i{}", asz)?;
-        }
-
-        write!(pp, " {} ", op_str)?;
-
-        self.pp_ref(pp, b, self_prec)?;
-        if let Some(bsz) = bsz {
-            write!(pp, " as i{}", bsz)?;
-        }
-
-        Ok(())
-    }
-
-    fn operands_sizes(&self, a: Reg, b: Reg) -> (Option<usize>, Option<usize>) {
-        let at = self.ssa.reg_type(a);
-        let bt = self.ssa.reg_type(b);
-        if let (Some(asz), Some(bsz)) = (at.bytes_size(), bt.bytes_size()) {
-            if asz != bsz {
-                return (Some(asz), Some(bsz));
+            _ => {
+                let eval = self.push_stmt(Stmt::Eval(reg));
+                self.push_stmt(Stmt::Seq {
+                    first: eval,
+                    then: sid,
+                })
             }
         }
-
-        (None, None)
     }
 
-    fn pp_def_default<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        op_s: Cow<'_, str>,
-        args: mil::ArgsMut,
-        self_prec: u8,
-    ) -> Result<(), std::io::Error> {
-        write!(pp, "{} (", op_s)?;
-        for (arg_ndx, arg) in args.into_iter().enumerate() {
-            if arg_ndx > 0 {
-                write!(pp, ", ")?;
-            }
-            self.pp_ref(pp, *arg, self_prec)?;
-        }
-        write!(pp, ")")?;
-        Ok(())
+    fn next_stmt_id(&mut self) -> StmtID {
+        StmtID(self.nodes.len())
     }
 
-    fn pp_load_mem<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        addr: Reg,
-        sz: i32,
-    ) -> std::io::Result<()> {
-        write!(pp, "[")?;
-        pp.open_box();
-
-        // we're writing parens in this function, so no need to print more
-        // parens
-        let parent_prec = 0;
-        self.pp_ref(pp, addr, parent_prec)?;
-
-        pp.close_box();
-        write!(pp, "]:{}", sz)
-    }
-
-    fn pp_ref<W: PP + ?Sized>(
-        &mut self,
-        pp: &mut W,
-        arg: Reg,
-        parent_prec: u8,
-    ) -> std::io::Result<()> {
-        if self.is_named(arg) {
-            assert!(
-                self.printed.contains(&arg),
-                "arg needs let but not yet printed: {:?}",
-                arg
-            );
-            write!(pp, "r{}", arg.reg_index())
-        } else {
-            let anything_printed = self.pp_def(pp, arg, parent_prec)?;
-            assert!(anything_printed);
-            Ok(())
-        }
+    fn push_stmt(&mut self, stmt: Stmt) -> StmtID {
+        let sid = self.next_stmt_id();
+        self.nodes.push(stmt);
+        sid
     }
 }
 
@@ -641,5 +395,586 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,
         // Insn::CArg { .. } => panic!("CArg undefined precedence"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::define_ancestral_name;
+
+    #[test]
+    fn test() {
+        let ssa = sample_program();
+        let types = crate::ty::TypeSet::new();
+
+        let ast = AstBuilder::new(&ssa, &types).build();
+        println!("ast = {:#?}", ast);
+        panic!();
+    }
+
+    // fakes of the ones in x86_to_mil, to avoid having a dependency
+    define_ancestral_name!(ANC_PF, "PF");
+    define_ancestral_name!(ANC_AF, "AF");
+    define_ancestral_name!(ANC_ZF, "ZF");
+    define_ancestral_name!(ANC_SF, "SF");
+    define_ancestral_name!(ANC_TF, "TF");
+    define_ancestral_name!(ANC_IF, "IF");
+    define_ancestral_name!(ANC_DF, "DF");
+    define_ancestral_name!(ANC_OF, "OF");
+    define_ancestral_name!(ANC_RBP, "RBP");
+    define_ancestral_name!(ANC_RSP, "RSP");
+    define_ancestral_name!(ANC_RIP, "RIP");
+    define_ancestral_name!(ANC_RDI, "RDI");
+    define_ancestral_name!(ANC_RSI, "RSI");
+    define_ancestral_name!(ANC_RAX, "RAX");
+    define_ancestral_name!(ANC_RBX, "RBX");
+    define_ancestral_name!(ANC_RCX, "RCX");
+    define_ancestral_name!(ANC_RDX, "RDX");
+    define_ancestral_name!(ANC_R8, "R8");
+    define_ancestral_name!(ANC_R9, "R9");
+    define_ancestral_name!(ANC_R10, "R10");
+    define_ancestral_name!(ANC_R11, "R11");
+    define_ancestral_name!(ANC_R12, "R12");
+    define_ancestral_name!(ANC_R13, "R13");
+    define_ancestral_name!(ANC_R14, "R14");
+    define_ancestral_name!(ANC_R15, "R15");
+
+    #[rustfmt::skip]
+    fn sample_program() -> crate::SSAProgram {
+        // Extracted from an actual program
+        //
+        // Chosen because the control flow (and the set of instructions "called" here)
+        // is varied enough to test for many things
+
+        use crate::mil::{self, Insn, ArithOp, BoolOp, CmpOp, Reg};
+
+        let mut prog = mil::Program::new(Reg(0));
+
+        // 0x0: Ancestral registers
+        prog.push(Reg(3), Insn::Ancestral { anc_name: ANC_PF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(4), Insn::Ancestral { anc_name: ANC_AF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(5), Insn::Ancestral { anc_name: ANC_ZF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(6), Insn::Ancestral { anc_name: ANC_SF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(7), Insn::Ancestral { anc_name: ANC_TF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(8), Insn::Ancestral { anc_name: ANC_IF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(9), Insn::Ancestral { anc_name: ANC_DF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(10), Insn::Ancestral { anc_name: ANC_OF, reg_type: mil::RegType::Bool });
+        prog.push(Reg(11), Insn::Ancestral { anc_name: ANC_RBP, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(12), Insn::Ancestral { anc_name: ANC_RSP, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(13), Insn::Ancestral { anc_name: ANC_RIP, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(14), Insn::Ancestral { anc_name: ANC_RDI, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(15), Insn::Ancestral { anc_name: ANC_RSI, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(16), Insn::Ancestral { anc_name: ANC_RAX, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(17), Insn::Ancestral { anc_name: ANC_RBX, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(18), Insn::Ancestral { anc_name: ANC_RCX, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(19), Insn::Ancestral { anc_name: ANC_RDX, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(20), Insn::Ancestral { anc_name: ANC_R8, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(21), Insn::Ancestral { anc_name: ANC_R9, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(22), Insn::Ancestral { anc_name: ANC_R10, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(23), Insn::Ancestral { anc_name: ANC_R11, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(24), Insn::Ancestral { anc_name: ANC_R12, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(25), Insn::Ancestral { anc_name: ANC_R13, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(26), Insn::Ancestral { anc_name: ANC_R14, reg_type: mil::RegType::Bytes(8) });
+        prog.push(Reg(27), Insn::Ancestral { anc_name: ANC_R15, reg_type: mil::RegType::Bytes(8) });
+
+        // 0x486540
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), -8));
+        prog.push(Reg(46), Insn::StoreMem { addr: Reg(12), value: Reg(11) });
+
+        // 0x486541
+        prog.push(Reg(11), Insn::Get(Reg(12)));
+
+        // 0x486544
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), -8));
+        prog.push(Reg(46), Insn::StoreMem { addr: Reg(12), value: Reg(25) });
+
+        // 0x486546
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), -8));
+        prog.push(Reg(46), Insn::StoreMem { addr: Reg(12), value: Reg(24) });
+
+        // 0x486548
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), -8));
+        prog.push(Reg(46), Insn::StoreMem { addr: Reg(12), value: Reg(17) });
+
+        // 0x486549
+        prog.push(Reg(17), Insn::Get(Reg(14)));
+
+        // 0x48654c
+        prog.push(Reg(14), Insn::Get(Reg(15)));
+
+        // 0x48654f
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(12), Insn::Arith(ArithOp::Sub, Reg(12), Reg(46)));
+        prog.push(Reg(12), Insn::Get(Reg(12)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(12)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(12)));
+        prog.push(Reg(6), Insn::SignOf(Reg(12)));
+        prog.push(Reg(5), Insn::IsZero(Reg(12)));
+        prog.push(Reg(47), Insn::Part { src: Reg(12), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(47)));
+
+        // 0x486553
+        prog.push(Reg(46), Insn::Int { value: 0, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(17)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(16), Insn::Get(Reg(45)));
+
+        // 0x486556
+        prog.push(Reg(46), Insn::Int { value: 0, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(16)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(24), Insn::Get(Reg(45)));
+
+        // 0x486559
+        prog.push(Reg(45), Insn::Int { value: 4575568, size: 8 });
+        prog.push(Reg(47), Insn::Void);
+        prog.push(Reg(47), Insn::Get(Reg(14)));
+        prog.push(Reg(46), Insn::CArg { value: Reg(47), next_arg: None });
+        prog.push(Reg(46), Insn::Call { callee: Reg(45), first_arg: Some(Reg(46)) });
+        prog.push(Reg(2), Insn::UndefinedBool);
+        prog.push(Reg(3), Insn::UndefinedBool);
+        prog.push(Reg(4), Insn::UndefinedBool);
+        prog.push(Reg(5), Insn::UndefinedBool);
+        prog.push(Reg(6), Insn::UndefinedBool);
+        prog.push(Reg(7), Insn::UndefinedBool);
+        prog.push(Reg(8), Insn::UndefinedBool);
+        prog.push(Reg(9), Insn::UndefinedBool);
+        prog.push(Reg(10), Insn::UndefinedBool);
+        prog.push(Reg(16), Insn::Part { src: Reg(46), offset: 0, size: 8 });
+
+        // 0x48655e
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(16)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(15), Insn::Get(Reg(45)));
+
+        // 0x486562
+        prog.push(Reg(25), Insn::Get(Reg(16)));
+
+        // 0x486565
+        prog.push(Reg(46), Insn::Int { value: -1, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(15)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 1 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(18), offset: 1, size: 7 });
+        prog.push(Reg(18), Insn::Concat { lo: Reg(45), hi: Reg(47) });
+
+        // 0x486569
+        prog.push(Reg(46), Insn::Part { src: Reg(18), offset: 0, size: 4 });
+        prog.push(Reg(46), Insn::Widen { reg: Reg(46), target_size: 8, sign: false });
+        prog.push(Reg(16), Insn::Get(Reg(46)));
+
+        // 0x48656b
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 4 });
+        prog.push(Reg(47), Insn::Int { value: 7, size: 4 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::BitAnd, Reg(46), Reg(47)));
+        prog.push(Reg(46), Insn::Widen { reg: Reg(46), target_size: 8, sign: false });
+        prog.push(Reg(16), Insn::Get(Reg(46)));
+        prog.push(Reg(10), Insn::False);
+        prog.push(Reg(2), Insn::False);
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(48), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(48)));
+
+        // 0x48656e
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 1 });
+        prog.push(Reg(47), Insn::Int { value: 4, size: 1 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Sub, Reg(46), Reg(47)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(46)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(46)));
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(48), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(48)));
+
+        // 0x486570
+        prog.push(Reg(45), Insn::Not(Reg(6)));
+        prog.push(Reg(46), Insn::Not(Reg(5)));
+        prog.push(Reg(45), Insn::Bool(BoolOp::And, Reg(45), Reg(46)));
+        prog.push(Reg(47), Insn::SetJumpCondition(Reg(45)));
+        prog.push(Reg(47), Insn::Control(mil::Control::JmpExtIf(4203618)));
+
+        // 0x486576
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 1 });
+        prog.push(Reg(46), Insn::Widen { reg: Reg(46), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(16), offset: 1, size: 7 });
+        prog.push(Reg(16), Insn::Concat { lo: Reg(46), hi: Reg(47) });
+
+        // 0x486579
+        prog.push(Reg(46), Insn::Int { value: 6851792, size: 8 });
+        prog.push(Reg(47), Insn::ArithK(ArithOp::Mul, Reg(16), 8));
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(47)));
+        prog.push(Reg(46), Insn::SetJumpTarget(Reg(46)));
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpIndirect));
+
+        // 0x486580
+        prog.push(Reg(46), Insn::Int { value: -9, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(15)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 4 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 8, sign: false });
+        prog.push(Reg(18), Insn::Get(Reg(45)));
+
+        // 0x486583
+        prog.push(Reg(46), Insn::Int { value: 0, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(17)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(19), Insn::Get(Reg(45)));
+
+        // 0x486586
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(19)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 1 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(16), offset: 1, size: 7 });
+        prog.push(Reg(16), Insn::Concat { lo: Reg(45), hi: Reg(47) });
+
+        // 0x48658a
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 1 });
+        prog.push(Reg(47), Insn::Int { value: 9, size: 1 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Sub, Reg(46), Reg(47)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(46)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(46)));
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(48), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(48)));
+
+        // 0x48658c
+        prog.push(Reg(45), Insn::SetJumpCondition(Reg(5)));
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpExtIf(4744672)));
+
+        // 0x48658e
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 1 });
+        prog.push(Reg(47), Insn::Int { value: 11, size: 1 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Sub, Reg(46), Reg(47)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(46)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(46)));
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(48), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(48)));
+
+        // 0x486590
+        prog.push(Reg(45), Insn::Not(Reg(5)));
+        prog.push(Reg(46), Insn::SetJumpCondition(Reg(45)));
+        prog.push(Reg(46), Insn::Control(mil::Control::JmpExtIf(4744731)));
+
+        // 0x486596
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(12), Insn::Arith(ArithOp::Sub, Reg(12), Reg(46)));
+        prog.push(Reg(12), Insn::Get(Reg(12)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(12)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(12)));
+        prog.push(Reg(6), Insn::SignOf(Reg(12)));
+        prog.push(Reg(5), Insn::IsZero(Reg(12)));
+        prog.push(Reg(47), Insn::Part { src: Reg(12), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(47)));
+
+        // 0x48659a
+        prog.push(Reg(45), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(45), Insn::Arith(ArithOp::Add, Reg(45), Reg(17)));
+        prog.push(Reg(16), Insn::Get(Reg(45)));
+
+        // 0x48659e
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(24)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(14), Insn::Get(Reg(45)));
+
+        // 0x4865a3
+        prog.push(Reg(46), Insn::Part { src: Reg(19), offset: 0, size: 4 });
+        prog.push(Reg(48), Insn::Part { src: Reg(19), offset: 0, size: 4 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::BitXor, Reg(46), Reg(48)));
+        prog.push(Reg(46), Insn::Widen { reg: Reg(46), target_size: 8, sign: false });
+        prog.push(Reg(19), Insn::Get(Reg(46)));
+        prog.push(Reg(10), Insn::False);
+        prog.push(Reg(2), Insn::False);
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(49), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(49)));
+
+        // 0x4865a5
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), -8));
+        prog.push(Reg(46), Insn::StoreMem { addr: Reg(12), value: Reg(16) });
+
+        // 0x4865a6
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(17)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(20), Insn::Get(Reg(45)));
+
+        // 0x4865aa
+        prog.push(Reg(45), Insn::Int { value: 2, size: 4 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 8, sign: false });
+        prog.push(Reg(21), Insn::Get(Reg(45)));
+
+        // 0x4865b0
+        prog.push(Reg(45), Insn::Int { value: 5624160, size: 8 });
+        prog.push(Reg(47), Insn::Void);
+        prog.push(Reg(47), Insn::Get(Reg(14)));
+        prog.push(Reg(48), Insn::Void);
+        prog.push(Reg(48), Insn::Get(Reg(15)));
+        prog.push(Reg(49), Insn::Void);
+        prog.push(Reg(49), Insn::Get(Reg(19)));
+        prog.push(Reg(50), Insn::Void);
+        prog.push(Reg(50), Insn::Get(Reg(18)));
+        prog.push(Reg(50), Insn::Part { src: Reg(50), offset: 0, size: 4 });
+        prog.push(Reg(51), Insn::Void);
+        prog.push(Reg(51), Insn::Get(Reg(20)));
+        prog.push(Reg(52), Insn::Void);
+        prog.push(Reg(52), Insn::Get(Reg(21)));
+        prog.push(Reg(52), Insn::Part { src: Reg(52), offset: 0, size: 4 });
+        prog.push(Reg(53), Insn::Void);
+        prog.push(Reg(54), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+        prog.push(Reg(53), Insn::LoadMem { addr: Reg(54), size: 8 });
+        prog.push(Reg(46), Insn::CArg { value: Reg(53), next_arg: None });
+        prog.push(Reg(46), Insn::CArg { value: Reg(52), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(51), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(50), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(49), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(48), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(47), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::Call { callee: Reg(45), first_arg: Some(Reg(46)) });
+        prog.push(Reg(2), Insn::UndefinedBool);
+        prog.push(Reg(3), Insn::UndefinedBool);
+        prog.push(Reg(4), Insn::UndefinedBool);
+        prog.push(Reg(5), Insn::UndefinedBool);
+        prog.push(Reg(6), Insn::UndefinedBool);
+        prog.push(Reg(7), Insn::UndefinedBool);
+        prog.push(Reg(8), Insn::UndefinedBool);
+        prog.push(Reg(9), Insn::UndefinedBool);
+        prog.push(Reg(10), Insn::UndefinedBool);
+        prog.push(Reg(16), Insn::Part { src: Reg(46), offset: 0, size: 8 });
+
+        // 0x4865b5
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(24)));
+        prog.push(Reg(46), Insn::StoreMem { addr: Reg(46), value: Reg(16) });
+
+        // 0x4865ba
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(12), size: 8 });
+        prog.push(Reg(16), Insn::Get(Reg(45)));
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+
+        // 0x4865bb
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(12), size: 8 });
+        prog.push(Reg(19), Insn::Get(Reg(45)));
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+
+        // 0x4865bc
+        prog.push(Reg(45), Insn::Int { value: -24, size: 8 });
+        prog.push(Reg(45), Insn::Arith(ArithOp::Add, Reg(45), Reg(11)));
+        prog.push(Reg(12), Insn::Get(Reg(45)));
+
+        // 0x4865c0
+        prog.push(Reg(14), Insn::Get(Reg(25)));
+
+        // 0x4865c3
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(12), size: 8 });
+        prog.push(Reg(17), Insn::Get(Reg(45)));
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+
+        // 0x4865c4
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(12), size: 8 });
+        prog.push(Reg(24), Insn::Get(Reg(45)));
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+
+        // 0x4865c6
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(12), size: 8 });
+        prog.push(Reg(25), Insn::Get(Reg(45)));
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+
+        // 0x4865c8
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(12), size: 8 });
+        prog.push(Reg(11), Insn::Get(Reg(45)));
+        prog.push(Reg(12), Insn::ArithK(ArithOp::Add, Reg(12), 8));
+
+        // 0x4865c9
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpExt(4577184)));
+
+        // 0x4865d0
+        prog.push(Reg(46), Insn::Int { value: 0, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(17)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(19), Insn::Get(Reg(45)));
+
+        // 0x4865d3
+        prog.push(Reg(46), Insn::Int { value: -17, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(15)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(18), Insn::Get(Reg(45)));
+
+        // 0x4865d7
+        prog.push(Reg(46), Insn::Int { value: 8, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(19)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 1 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(16), offset: 1, size: 7 });
+        prog.push(Reg(16), Insn::Concat { lo: Reg(45), hi: Reg(47) });
+
+        // 0x4865db
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 1 });
+        prog.push(Reg(47), Insn::Int { value: 9, size: 1 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Sub, Reg(46), Reg(47)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(46)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(46)));
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(48), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(48)));
+
+        // 0x4865dd
+        prog.push(Reg(45), Insn::Not(Reg(5)));
+        prog.push(Reg(46), Insn::SetJumpCondition(Reg(45)));
+        prog.push(Reg(46), Insn::Control(mil::Control::JmpExtIf(4744590)));
+
+        // 0x4865e0
+        prog.push(Reg(46), Insn::Int { value: 24, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(19)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 8 });
+        prog.push(Reg(14), Insn::Get(Reg(45)));
+
+        // 0x4865e4
+        prog.push(Reg(46), Insn::Int { value: 16, size: 8 });
+        prog.push(Reg(17), Insn::Arith(ArithOp::Add, Reg(17), Reg(46)));
+        prog.push(Reg(17), Insn::Get(Reg(17)));
+        prog.push(Reg(10), Insn::OverflowOf(Reg(17)));
+        prog.push(Reg(2), Insn::CarryOf(Reg(17)));
+        prog.push(Reg(6), Insn::SignOf(Reg(17)));
+        prog.push(Reg(5), Insn::IsZero(Reg(17)));
+        prog.push(Reg(47), Insn::Part { src: Reg(17), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(47)));
+
+        // 0x4865e8
+        prog.push(Reg(19), Insn::Get(Reg(15)));
+
+        // 0x4865eb
+        prog.push(Reg(15), Insn::Get(Reg(17)));
+
+        // 0x4865ee
+        prog.push(Reg(45), Insn::Int { value: 4299888, size: 8 });
+        prog.push(Reg(47), Insn::Void);
+        prog.push(Reg(47), Insn::Get(Reg(14)));
+        prog.push(Reg(48), Insn::Void);
+        prog.push(Reg(48), Insn::Get(Reg(15)));
+        prog.push(Reg(49), Insn::Void);
+        prog.push(Reg(49), Insn::Get(Reg(19)));
+        prog.push(Reg(50), Insn::Void);
+        prog.push(Reg(50), Insn::Get(Reg(18)));
+        prog.push(Reg(46), Insn::CArg { value: Reg(50), next_arg: None });
+        prog.push(Reg(46), Insn::CArg { value: Reg(49), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(48), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(47), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::Call { callee: Reg(45), first_arg: Some(Reg(46)) });
+        prog.push(Reg(2), Insn::UndefinedBool);
+        prog.push(Reg(3), Insn::UndefinedBool);
+        prog.push(Reg(4), Insn::UndefinedBool);
+        prog.push(Reg(5), Insn::UndefinedBool);
+        prog.push(Reg(6), Insn::UndefinedBool);
+        prog.push(Reg(7), Insn::UndefinedBool);
+        prog.push(Reg(8), Insn::UndefinedBool);
+        prog.push(Reg(9), Insn::UndefinedBool);
+        prog.push(Reg(10), Insn::UndefinedBool);
+
+        // 0x4865f3
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpExt(4744636)));
+
+        // 0x4865f8
+        prog.push(Reg(46), Insn::Int { value: -3, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(15)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 1 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(18), offset: 1, size: 7 });
+        prog.push(Reg(18), Insn::Concat { lo: Reg(45), hi: Reg(47) });
+
+        // 0x4865fc
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpExt(4744579)));
+
+        // 0x486600
+        prog.push(Reg(46), Insn::Int { value: -5, size: 8 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Add, Reg(46), Reg(15)));
+        prog.push(Reg(45), Insn::LoadMem { addr: Reg(46), size: 2 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(18), offset: 2, size: 6 });
+        prog.push(Reg(18), Insn::Concat { lo: Reg(45), hi: Reg(47) });
+
+        // 0x486604
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpExt(4744579)));
+
+        // 0x486610
+        prog.push(Reg(46), Insn::Part { src: Reg(18), offset: 0, size: 1 });
+        prog.push(Reg(47), Insn::Int { value: 3, size: 1 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::Shr, Reg(46), Reg(47)));
+        prog.push(Reg(48), Insn::Part { src: Reg(18), offset: 1, size: 7 });
+        prog.push(Reg(18), Insn::Concat { lo: Reg(46), hi: Reg(48) });
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(49), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(49)));
+
+        // 0x486613
+        prog.push(Reg(46), Insn::Part { src: Reg(18), offset: 0, size: 1 });
+        prog.push(Reg(46), Insn::Widen { reg: Reg(46), target_size: 4, sign: false });
+        prog.push(Reg(47), Insn::Part { src: Reg(18), offset: 1, size: 7 });
+        prog.push(Reg(18), Insn::Concat { lo: Reg(46), hi: Reg(47) });
+
+        // 0x486616
+        prog.push(Reg(45), Insn::Control(mil::Control::JmpExt(4744579)));
+
+        // 0x48661b
+        prog.push(Reg(45), Insn::Int { value: 6979771, size: 4 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 8, sign: false });
+        prog.push(Reg(19), Insn::Get(Reg(45)));
+
+        // 0x486620
+        prog.push(Reg(45), Insn::Int { value: 352, size: 4 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 8, sign: false });
+        prog.push(Reg(15), Insn::Get(Reg(45)));
+
+        // 0x486625
+        prog.push(Reg(45), Insn::Int { value: 6982459, size: 4 });
+        prog.push(Reg(45), Insn::Widen { reg: Reg(45), target_size: 8, sign: false });
+        prog.push(Reg(14), Insn::Get(Reg(45)));
+
+        // 0x48662a
+        prog.push(Reg(46), Insn::Part { src: Reg(16), offset: 0, size: 4 });
+        prog.push(Reg(48), Insn::Part { src: Reg(16), offset: 0, size: 4 });
+        prog.push(Reg(46), Insn::Arith(ArithOp::BitXor, Reg(46), Reg(48)));
+        prog.push(Reg(46), Insn::Widen { reg: Reg(46), target_size: 8, sign: false });
+        prog.push(Reg(16), Insn::Get(Reg(46)));
+        prog.push(Reg(10), Insn::False);
+        prog.push(Reg(2), Insn::False);
+        prog.push(Reg(6), Insn::SignOf(Reg(46)));
+        prog.push(Reg(5), Insn::IsZero(Reg(46)));
+        prog.push(Reg(49), Insn::Part { src: Reg(46), offset: 0, size: 1 });
+        prog.push(Reg(3), Insn::Parity(Reg(49)));
+
+        // 0x48662c
+        prog.push(Reg(45), Insn::Int { value: 4990320, size: 8 });
+        prog.push(Reg(47), Insn::Void);
+        prog.push(Reg(47), Insn::Get(Reg(14)));
+        prog.push(Reg(48), Insn::Void);
+        prog.push(Reg(48), Insn::Get(Reg(15)));
+        prog.push(Reg(48), Insn::Part { src: Reg(48), offset: 0, size: 4 });
+        prog.push(Reg(49), Insn::Void);
+        prog.push(Reg(49), Insn::Get(Reg(19)));
+        prog.push(Reg(46), Insn::CArg { value: Reg(49), next_arg: None });
+        prog.push(Reg(46), Insn::CArg { value: Reg(48), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::CArg { value: Reg(47), next_arg: Some(Reg(46)) });
+        prog.push(Reg(46), Insn::Call { callee: Reg(45), first_arg: Some(Reg(46)) });
+        prog.push(Reg(2), Insn::UndefinedBool);
+        prog.push(Reg(3), Insn::UndefinedBool);
+        prog.push(Reg(4), Insn::UndefinedBool);
+        prog.push(Reg(5), Insn::UndefinedBool);
+        prog.push(Reg(6), Insn::UndefinedBool);
+        prog.push(Reg(7), Insn::UndefinedBool);
+        prog.push(Reg(8), Insn::UndefinedBool);
+        prog.push(Reg(9), Insn::UndefinedBool);
+        prog.push(Reg(10), Insn::UndefinedBool);
+
+        crate::ssa::Program::from_mil(prog)
     }
 }

@@ -2161,6 +2161,8 @@ mod ast_view {
                     Self::opcode_name(&insn),
                     insn.input_regs_iter().map(|x| *x),
                 ),
+
+                _ => mk_kw("???".into()),
             };
 
             if let ExprTree::Seq(seq) = &mut expr {

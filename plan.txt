@@ -48,7 +48,7 @@ suitable alternative
 
         - [~] there are no unsupported asm instructions
 
-            - (delayed; just list insns for now) 
+            - (delayed; just list insns for now)
 
             - this only makes sense for a reference application that was
             explicitly selected as "normal enough" (close to our target).
@@ -64,7 +64,7 @@ suitable alternative
 
 - [x] cache type info
 
-    - any particular logic to invalidate the cache across different (but potentially 
+    - any particular logic to invalidate the cache across different (but potentially
     compatible) build?
 
 - [x] structured output (to plug the decompiler into other things)
@@ -72,12 +72,12 @@ suitable alternative
     - graphviz for CFG?
     - SQLite?
 
-    - this is very important for me to 'live into' the product, so I can find bugs 
-    and prioritize them based on how much they affect the output; also, invent and 
+    - this is very important for me to 'live into' the product, so I can find bugs
+    and prioritize them based on how much they affect the output; also, invent and
     prioritize new features.
 
-    - any UI must be based on this data-based representation. I don't want to work 
-    on both things independently. 
+    - any UI must be based on this data-based representation. I don't want to work
+    on both things independently.
 
         - if the UI is written in Rust, a Rust API for the data structure might be
         sufficient.
@@ -87,12 +87,12 @@ suitable alternative
         into a GUI
 
 - [x] gui: restore
-    - evaluate HTML/web interface approach. (I'm thinking: better suited to our 
+    - evaluate HTML/web interface approach. (I'm thinking: better suited to our
     output, which is fundamentally text, with more or less interactivity added on top)
 
 -- from here on, user-facing features have a gui version and a cli version
 
-- [x] feasibility study: web app general structure (with edit API requests AND ALSO localized edits) (and also learn Solid.js): 
+- [x] feasibility study: web app general structure (with edit API requests AND ALSO localized edits) (and also learn Solid.js):
     - [x] decide what the editable data structure looks like (for the experiment)
         - needs to have some part that is editable AND appears in multiple places
 
@@ -100,7 +100,7 @@ suitable alternative
     - [x] view API
     - [x] edit API
     - [x] frontend boilerplate with Preact
-    - [x] view 
+    - [x] view
     - [x] edit workflow:
         - [x] localized
         - [x] call edit API + refresh
@@ -115,7 +115,6 @@ suitable alternative
         - [x] cli
         - [ ] gui
     - [ ] ast: value types
-    - [ ] show in ast
     - [ ] function prototype
     - [ ] show type (the type itself: details, name, structure, links, etc.)
     - [ ] enum values
@@ -147,7 +146,7 @@ suitable alternative
     - increased code complexity is not worth it. can be paid to higher benefit later
 
 - [ ] attach errors/warnings to ssa instructions wherever applicable
-    - reasonable approximation: create a panel for tracing that allows searching, 
+    - reasonable approximation: create a panel for tracing that allows searching,
     also based on language elements (registers, types, etc.)
 
 - [ ] gui: multiple functions (tabs?)
