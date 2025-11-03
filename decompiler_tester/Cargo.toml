@@ -18,3 +18,4 @@ iced-x86 = "1.21.0"
 arrayvec = "0.7.6"
 rfd = "0.15.3"
 slotmap = { version = "1.0.7", features = ["serde"] }
+tracing-subscriber = "0.3.20"

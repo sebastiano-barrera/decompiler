@@ -3,7 +3,7 @@ use std::{
     collections::BTreeMap,
     fs::File,
     path::{Path, PathBuf},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
@@ -12,14 +12,14 @@ use egui::TextBuffer;
 use ouroboros::self_referencing;
 
 fn main() {
-    let mut args = std::env::args();
-    let self_name = args.next().unwrap();
-    let Some(exe_filename) = args.next() else {
-        eprintln!("Usage: {} EXE_FILENAME", self_name);
-        std::process::exit(1)
-    };
+    tracing_subscriber::fmt::fmt()
+        .with_writer(std::io::stderr)
+        .init();
 
-    let exe_filename: PathBuf = exe_filename.into();
+    let mut args = std::env::args();
+    let _self_name = args.next().unwrap();
+
+    let exe_filename_opt: Option<PathBuf> = args.next().map(Into::into);
 
     let res = eframe::run_native(
         "decompiler test app",
@@ -27,14 +27,16 @@ fn main() {
         Box::new(|cctx| {
             let mut app = Box::new(App::new());
 
-            if let Some(storage) = cctx.storage {
+            let time_load_start = Instant::now();
+            if let Some(exe_filename) = exe_filename_opt {
+                // TODO: remove, take this from the app state, allow picking exe from gui
+                app.open_executable(&exe_filename);
+            } else if let Some(storage) = cctx.storage {
                 app.load(storage);
             }
 
-            if !app.is_exe_loaded(&exe_filename) {
-                // TODO: remove, take this from the app state, allow picking exe from gui
-                app.open_executable(&exe_filename);
-            }
+            let load_time = Instant::now().duration_since(time_load_start);
+            eprintln!("state and data loaded in {:?}", load_time);
 
             cctx.egui_ctx.set_theme(app.theme_preference);
 
@@ -57,19 +59,11 @@ struct Exe {
     exe: Executable<'this>,
 }
 
-const TREE_ID_STAGES_EXE: &'static str = "tree_id_stages_exe";
-
 struct App {
     theme_preference: egui::ThemePreference,
     status: StatusView,
-    stages_exe: slotmap::SlotMap<ExeID, StageExeFallible>,
-    stages_exe_tree: egui_tiles::Tree<ExeID>,
+    stage_exe: Option<StageExeFallible>,
 }
-
-slotmap::new_key_type! {
-    struct ExeID;
-}
-
 struct StageExeFallible {
     path: PathBuf,
     stage_exe: Result<StageExe>,
@@ -338,7 +332,7 @@ mod persistence {
     #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
     pub struct File {
         pub theme_preference: egui::ThemePreference,
-        pub exes: Vec<Exe>,
+        pub exe: Option<Exe>,
     }
     #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
     pub struct Exe {
@@ -354,7 +348,7 @@ mod persistence {
         fn default() -> Self {
             File {
                 theme_preference: egui::ThemePreference::System,
-                exes: Vec::new(),
+                exe: None,
             }
         }
     }
@@ -365,8 +359,7 @@ impl App {
         App {
             theme_preference: egui::ThemePreference::Light,
             status: StatusView::default(),
-            stages_exe: slotmap::SlotMap::with_key(),
-            stages_exe_tree: egui_tiles::Tree::empty(TREE_ID_STAGES_EXE),
+            stage_exe: None,
         }
     }
 
@@ -390,9 +383,7 @@ impl App {
             }
         };
 
-        let mut panes = Vec::with_capacity(restore_file.exes.len());
-
-        for restore_exe in restore_file.exes {
+        if let Some(restore_exe) = restore_file.exe {
             let exe_res = load_executable(&restore_exe.filename);
             let stage_exe = exe_res.map(|mut exe| {
                 let stages_func = restore_exe
@@ -413,18 +404,10 @@ impl App {
                 stage_exe,
             };
 
-            let key = self.stages_exe.insert(stage_exe_fallible);
-            panes.push(key);
+            self.stage_exe = Some(stage_exe_fallible);
         }
 
-        self.stages_exe_tree = egui_tiles::Tree::new_tabs(TREE_ID_STAGES_EXE, panes);
         self.theme_preference = restore_file.theme_preference;
-    }
-
-    fn is_exe_loaded(&self, path: &Path) -> bool {
-        self.stages_exe
-            .values()
-            .any(|stage_exe_flbl| stage_exe_flbl.path == path)
     }
 
     fn open_executable(&mut self, path: &Path) {
@@ -434,12 +417,10 @@ impl App {
             function_selector: None,
             stages_func: Vec::new(),
         });
-        let stage_exe_fallible = StageExeFallible {
+        self.stage_exe = Some(StageExeFallible {
             path: path.to_path_buf(),
             stage_exe,
-        };
-        let key = self.stages_exe.insert(stage_exe_fallible);
-        self.stages_exe_tree = egui_tiles::Tree::new_tabs(TREE_ID_STAGES_EXE, vec![key]);
+        });
     }
 }
 
@@ -450,16 +431,10 @@ impl eframe::App for App {
             .resizable(false)
             .show_separator_line(false)
             .show(ctx, |ui| {
-                let stage_exe_flbl = self
-                    .stages_exe_tree
-                    .active_tiles()
-                    .first()
-                    .and_then(|tile_id| self.stages_exe_tree.tiles.get_pane(tile_id))
-                    .and_then(|exe_id| self.stages_exe.get_mut(*exe_id));
                 if let Some(StageExeFallible {
                     stage_exe: Ok(stage_exe),
                     ..
-                }) = stage_exe_flbl
+                }) = &mut self.stage_exe
                 {
                     stage_exe.show_status(ui);
                 }
@@ -467,53 +442,82 @@ impl eframe::App for App {
                 self.status.show(ui);
             });
 
-        if self.stages_exe_tree.is_empty() {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                ui.label("No executable loaded. Load one using File > Open.")
-            });
-        } else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0))
-                .show(ctx, |ui| {
-                    let stages_exe = &mut self.stages_exe;
-                    let mut beh = ExeTabsBehavior {
-                        exes: stages_exe,
-                        theme_preference: &mut self.theme_preference,
-                    };
-                    self.stages_exe_tree.ui(&mut beh, ui);
+        match self.stage_exe.as_mut() {
+            Some(stage_exe_fallible) => {
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0))
+                    .show(ctx, |ui| {
+                        ui.horizontal(|ui| {
+                            if let Ok(stage_exe) = &mut stage_exe_fallible.stage_exe {
+                                stage_exe.show_topbar(ui);
+                            }
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                                if ui.button("Quit").clicked() {
+                                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                                }
+
+                                let (label, value) = match self.theme_preference {
+                                    // not super correct, but whatever
+                                    egui::ThemePreference::System | egui::ThemePreference::Dark => {
+                                        ("Light mode", egui::ThemePreference::Light)
+                                    }
+                                    egui::ThemePreference::Light => {
+                                        ("Dark mode", egui::ThemePreference::Dark)
+                                    }
+                                };
+
+                                if ui.button(label).clicked() {
+                                    self.theme_preference = value;
+                                    ui.ctx().set_theme(value);
+                                }
+                            });
+                        });
+
+                        match &mut stage_exe_fallible.stage_exe {
+                            Ok(stage_exe) => {
+                                stage_exe.show_central(ui);
+                            }
+                            Err(err) => {
+                                // TODO avoid alloc / cache?
+                                ui.label(format!("Error loading this exe: {:?}", err));
+                            }
+                        }
+                    });
+            }
+            None => {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label("No executable loaded. Load one using File > Open.")
                 });
+            }
         }
     }
+
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         let restore_file = persistence::File {
             theme_preference: self.theme_preference,
-            exes: self
-                .stages_exe
-                .iter()
-                .map(|(_, stage_exe_fallible)| {
-                    let funcs = match &stage_exe_fallible.stage_exe {
-                        // If the executable loaded successfully, collect its functions
-                        Ok(stage_exe) => {
-                            stage_exe
-                                .stages_func
-                                .iter()
-                                // Only save successfully loaded functions
-                                .filter_map(|stage_func_res| stage_func_res.as_ref().ok())
-                                .map(|stage_func| persistence::Func {
-                                    name: stage_func.df.df.name().to_string(),
-                                })
-                                .collect()
-                        }
-                        // If the executable failed to load, save an empty list of functions
-                        Err(_) => Vec::new(),
-                    };
-
-                    persistence::Exe {
-                        filename: stage_exe_fallible.path.clone(),
-                        funcs,
+            exe: self.stage_exe.as_ref().map(|stage_exe_fallible| {
+                let funcs = match &stage_exe_fallible.stage_exe {
+                    // If the executable loaded successfully, collect its functions
+                    Ok(stage_exe) => {
+                        stage_exe
+                            .stages_func
+                            .iter()
+                            // Only save successfully loaded functions
+                            .filter_map(|stage_func_res| stage_func_res.as_ref().ok())
+                            .map(|stage_func| persistence::Func {
+                                name: stage_func.df.df.name().to_string(),
+                            })
+                            .collect()
                     }
-                })
-                .collect(),
+                    // If the executable failed to load, save an empty list of functions
+                    Err(_) => Vec::new(),
+                };
+
+                persistence::Exe {
+                    filename: stage_exe_fallible.path.clone(),
+                    funcs,
+                }
+            }),
         };
 
         match ron::to_string(&restore_file) {
@@ -547,95 +551,6 @@ fn load_function(exe: &mut Exe, function_name: &str) -> Result<StageFunc, decomp
     }
 
     stage_func
-}
-
-trait ExeGetter {
-    fn exe_mut(&mut self, exe_id: ExeID) -> Option<&mut StageExeFallible>;
-}
-impl ExeGetter for slotmap::SlotMap<ExeID, StageExeFallible> {
-    fn exe_mut(&mut self, exe_id: ExeID) -> Option<&mut StageExeFallible> {
-        self.get_mut(exe_id)
-    }
-}
-
-/// Ephemeral struct, wrapping a pointer to an ExeGetter.
-///
-/// Just enough data and impl to render the UI for an Exe.
-struct ExeTabsBehavior<'a, G: ExeGetter> {
-    exes: &'a mut G,
-    theme_preference: &'a mut egui::ThemePreference,
-}
-
-impl<G: ExeGetter> egui_tiles::Behavior<ExeID> for ExeTabsBehavior<'_, G> {
-    fn pane_ui(
-        &mut self,
-        ui: &mut egui::Ui,
-        _tile_id: egui_tiles::TileId,
-        key: &mut ExeID,
-    ) -> egui_tiles::UiResponse {
-        let Some(stage_exe_fallible) = self.exes.exe_mut(*key) else {
-            ui.label("BUG: invalid ExeID");
-            return egui_tiles::UiResponse::None;
-        };
-
-        match &mut stage_exe_fallible.stage_exe {
-            Ok(stage_exe) => {
-                ui.horizontal(|ui| {
-                    stage_exe.show_topbar(ui);
-                });
-                stage_exe.show_central(ui);
-            }
-            Err(err) => {
-                // TODO avoid alloc / cache?
-                ui.label(format!("Error loading this exe: {:?}", err));
-            }
-        }
-
-        egui_tiles::UiResponse::None
-    }
-
-    fn tab_title_for_pane(&mut self, key: &ExeID) -> egui::WidgetText {
-        // TODO shorten tab filenames
-        match self.exes.exe_mut(*key) {
-            Some(StageExeFallible { path, stage_exe: _ }) => path.to_string_lossy().into(),
-            None => "???".into(),
-        }
-    }
-
-    fn top_bar_right_ui(
-        &mut self,
-        _tiles: &egui_tiles::Tiles<ExeID>,
-        ui: &mut egui::Ui,
-        _tile_id: egui_tiles::TileId,
-        _tabs: &egui_tiles::Tabs,
-        _scroll_offset: &mut f32,
-    ) {
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-            if ui.button("Quit").clicked() {
-                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
-            }
-
-            let (label, value) = match self.theme_preference {
-                // not super correct, but whatever
-                egui::ThemePreference::System | egui::ThemePreference::Dark => {
-                    ("Light mode", egui::ThemePreference::Light)
-                }
-                egui::ThemePreference::Light => ("Dark mode", egui::ThemePreference::Dark),
-            };
-
-            if ui.button(label).clicked() {
-                *self.theme_preference = value;
-                ui.ctx().set_theme(value);
-            }
-        });
-    }
-
-    fn simplification_options(&self) -> egui_tiles::SimplificationOptions {
-        egui_tiles::SimplificationOptions {
-            all_panes_must_have_tabs: true,
-            ..Default::default()
-        }
-    }
 }
 
 impl StageExe {
