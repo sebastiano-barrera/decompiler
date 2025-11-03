@@ -35,11 +35,6 @@ pub enum Stmt {
 
     /// An "If" statement.
     ///
-    /// Note that the "consequent" (statements to run if the condition
-    /// expression is **true**) is implicitly the one directly following this.
-    ///
-    /// `alt` is the "alternate" (the "else block/continuation").
-    ///
     /// `cond` is only `None` if the condition value could not be located in the
     /// input SSA (which is a bug, but one that AST is robust against).
     If {

@@ -106,7 +106,7 @@ suitable alternative
         - [x] call edit API + refresh
 
 - [ ] data oriented interface
-    - [ ] standardized serde-able output
+    - [x] standardized serde-able output
     - [ ] standardized serde-able input parameters (other than the executable itself)
 
 - [ ] use type info
@@ -119,6 +119,9 @@ suitable alternative
     - [ ] show type (the type itself: details, name, structure, links, etc.)
     - [ ] enum values
         - initialize with DWARF, allow user edits
+
+- [ ] faster load from executable cache
+    - link: https://github.com/rkyv/rkyv
 
 - [ ] string literals
 

@@ -686,6 +686,7 @@ impl StageFunc {
                 ui.allocate_space(ui.available_size());
             },
         );
+        ui.label("View:");
         ui.checkbox(&mut self.is_ssa_visible, "SSA");
     }
 

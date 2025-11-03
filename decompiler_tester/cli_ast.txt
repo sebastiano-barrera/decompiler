@@ -1,0 +1,197 @@
+# block order: B0, B1, B2, B20, B21, B22, B23, B3, B4, B5, B6, B15, B7, B8, B9, B16, B25, B17, B18, B10, B11, B24, B12, B13, B19, B14
+.B0: {
+  let r42 = FuncArgument 0 Bytes(8);
+  let r44 = FuncArgument 1 Bytes(8);
+  let r46 = FuncArgument 2 Bytes(4);
+  let r49 = FuncArgument 3 Bytes(8);
+  let r51 = FuncArgument 4 Bytes(4);
+  let r54 = FuncArgument 5 Bytes(8);
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R15") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("R14") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Ancestral AncestralName("R13") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) (Ancestral AncestralName("R12") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -48) (Ancestral AncestralName("RBX") Bytes(8));
+  let r87 = ArithK Add (Arith Add r51 r46) 3;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -80) r44;
+  NotYetImplemented "unsupported: cmova eax,r8d";
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -88) r49;
+  let r127 = Part r87 0 4;
+  let r128 = Widen r127 8 false;
+  let r132 = ArithK Add (Part r87 0 4) 4;
+  NotYetImplemented "unsupported: cmova r14d,eax";
+  if IsZero r54
+  then  jump .B20
+  else  .B1: {
+          StoreMem r54 (Int 0 4);
+          let r185 = Call (Int 4427696 8) (CArg r42 (CArg r44 (CArg r46 (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) None))));
+          if IsZero r185
+          then  jump .B21
+          else  .B2: {
+                  StoreMem r54 (Int 1 4);
+                  Upsilon r185 r1123;
+                  Upsilon r185 r1124;
+                  jump .B3
+                }
+        }
+};
+.B20: {
+  let r801 = Call (Int 4427696 8) (CArg r42 (CArg r44 (CArg r46 (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) None))));
+  Upsilon r801 r1123;
+  Upsilon r801 r1124;
+  if Not (IsZero r801)
+  then  jump .B3
+  else  .B21: {
+          let r832 = Arith Add r128 (Widen (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) 4) 8 false);
+          let r833 = Widen r832 8 false;
+          let r843 = Call (Int 4437008 8) (CArg r42 (CArg r833 None));
+          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) (Part r832 0 4);
+          StoreMem (Arith Add r843 (Widen (ArithK Add r833 -1) 8 false)) (Int 255 1);
+          let r871 = LoadMem r843 1;
+          let r882 = ArithK Add r871 -253;
+          if Bool And (Not (SignOf r882)) (Not (IsZero r882))
+          then  jump .B23
+          else  .B22: {
+                  StoreMem r843 (Part (ArithK Add (Widen r871 4 false) 1) 0 1);
+                  .B23: {
+                    jump .B10
+                  }
+                }
+        }
+};
+.B3: {
+  r1124: phi;
+  r1123: phi;
+  let r212 = LoadMem r1124 1;
+  let r221 = ArithK Add (Widen r212 4 false) -253;
+  Upsilon (Concat (Widen r212 4 false) (Part r1123 1 7)) r1125;
+  Upsilon (Int 1 8) r1126;
+  if Bool Or (CarryOf r221) (IsZero r221)
+  then  jump .B5
+  else  .B4: {
+          NotYetImplemented "unsupported: sbb edx,edx";
+          Upsilon (Widen (LoadMem (ArithK Add r1124 1) 4) 8 false) r1125;
+          Upsilon (Int 5 8) r1126;
+          .B5: {
+            r1126: phi;
+            r1125: phi;
+            let r270 = Arith Add (Part r1126 0 4) (Part r1125 0 4);
+            let r280 = Arith Add r270 r1124;
+            let r290 = LoadMem r280 1;
+            let r296 = ArithK Add (Widen r290 4 false) -253;
+            if Bool Or (CarryOf r296) (IsZero r296)
+            then  jump .B7
+            else  .B6: {
+                    let r308 = LoadMem (ArithK Add r280 1) 4;
+                    let r313 = ArithK Add r308 -253;
+                    if Bool And (Not (SignOf r313)) (Not (IsZero r313))
+                    then  .B15: {
+                            Upsilon (Int 5 8) r1127;
+                            Upsilon (Widen r308 8 false) r1128;
+                            Upsilon (Int 5 8) r1129;
+                            jump .B8
+                          }
+                    else  .B7: {
+                            Upsilon (Int 1 8) r1127;
+                            Upsilon (Concat (Widen r290 4 false) (Part r44 1 7)) r1128;
+                            Upsilon (Int 1 8) r1129;
+                            .B8: {
+                              r1129: phi;
+                              r1128: phi;
+                              r1127: phi;
+                              let r341 = LoadMem (Arith Add r280 r1127) 1;
+                              let r358 = Arith Add (Part (Arith Add (Part (Widen (Arith Add (ArithK Add r270 1) r1129) 8 false) 0 4) (Part r1128 0 4)) 0 4) (Widen r341 4 false);
+                              if CarryOf (Arith Sub (Part r358 0 4) r127)
+                              then  jump .B25
+                              else  .B9: {
+                                      let r394 = ArithK Add (Part (Arith Sub (Part r358 0 4) r127) 0 4) -3;
+                                      if Bool And (Not (SignOf r394)) (Not (IsZero r394))
+                                      then  .B16: {
+                                              let r558 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) 4;
+                                              let r568 = Arith Sub r1124 r42;
+                                              StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) (Part r358 0 4);
+                                              StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -100) r558;
+                                              Call (Int 4201920 8) (CArg (Arith Add (Widen r127 8 false) r1124) (CArg (Arith Add (Widen (Part r358 0 4) 8 false) r1124) (CArg (Arith Sub (Part (Arith Sub (Part (ArithK Add (Widen r558 8 false) -1) 0 4) (Part r568 0 4)) 0 4) (Part r358 0 4)) None)));
+                                              let r678 = Part (Arith Sub (Part (Arith Add (Widen r558 8 false) r128) 0 4) (Part r358 0 4)) 0 4;
+                                              let r679 = Widen r678 8 false;
+                                              StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) r678;
+                                              let r693 = Call (Int 4437008 8) (CArg r42 (CArg r679 None));
+                                              StoreMem (Arith Add r693 (Widen (ArithK Add r679 -1) 8 false)) (Int 255 1);
+                                              Upsilon (Arith Add r693 (Widen (Part r568 0 4) 8 false)) r1134;
+                                              jump .B17
+                                            }
+                                      else  jump .B10
+                                    }
+                            }
+                          }
+                  }
+          }
+        }
+};
+.B25: {
+  let r941 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) 4;
+  let r944 = Arith Sub r1124 r42;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) (Part r358 0 4);
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -112) r944;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -100) r941;
+  let r972 = Arith Sub (Part (Arith Add (Widen r941 8 false) r128) 0 4) (Part r358 0 4);
+  let r991 = Call (Int 4437008 8) (CArg r42 (CArg (Widen (Part r972 0 4) 8 false) None));
+  let r1185 = Part r358 0 4;
+  StoreMem (Arith Add r991 (Widen (ArithK Add r972 -1) 8 false)) (Int 255 1);
+  let r1044 = Arith Add (Widen (Part r944 0 4) 8 false) r991;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) r1044;
+  Call (Int 4201920 8) (CArg (Arith Add (Widen r127 8 false) r1044) (CArg (Arith Add (Widen r1185 8 false) r1044) (CArg (Arith Sub (Part (Arith Sub (Part (ArithK Add r941 -1) 0 4) (Part r944 0 4)) 0 4) r1185) None)));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) (Part r972 0 4);
+  Upsilon (Part r1044 0 8) r1134;
+  .B17: {
+    r1134: phi;
+    if Not (IsZero r1134)
+    then  jump .B10
+    else  .B18: {
+            NotYetImplemented "unsupported: sbb rcx,rcx";
+            Upsilon (Concat (Widen r341 4 false) (Part r270 1 7)) r1130;
+            jump .B12
+          }
+  }
+};
+.B10: {
+  let r408 = ArithK Add r46 -253;
+  if Bool And (Not (SignOf r408)) (Not (IsZero r408))
+  then  jump .B24
+  else  .B11: {
+          StoreMem r49 (Part r46 0 1);
+          Upsilon r132 r1130;
+          jump .B12
+        }
+};
+.B24: {
+  StoreMem r49 (Int 254 1);
+  StoreMem (ArithK Add r49 1) r46;
+  Upsilon r132 r1130;
+  .B12: {
+    r1130: phi;
+    Call (Int 4199968 8) None;
+    let r451 = Arith Add r1130 (Widen r46 8 false);
+    let r461 = ArithK Add r51 -253;
+    if Bool And (Not (SignOf r461)) (Not (IsZero r461))
+    then  jump .B19
+    else  .B13: {
+            Upsilon (Int 1 8) r1132;
+            Upsilon (Widen r51 8 false) r1133;
+            jump .B14
+          }
+  }
+};
+.B19: {
+  StoreMem (ArithK Add r451 1) r51;
+  Upsilon (Int 5 8) r1132;
+  Upsilon (Int 4294967294 8) r1133;
+  .B14: {
+    r1133: phi;
+    r1132: phi;
+    StoreMem r451 (Part r1133 0 1);
+    StoreMem (Arith Add r451 r1132) (Part (Ancestral AncestralName("R15") Bytes(8)) 0 1);
+    Call (Int 4199968 8) None;
+    return r42
+  }
+}
