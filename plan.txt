@@ -109,6 +109,26 @@ suitable alternative
     - [x] standardized serde-able output
     - [ ] standardized serde-able input parameters (other than the executable itself)
 
+- [x] decompiler_tester: remove save file
+- [ ] improve ui design (and internals)
+    - [ ] remove block labels
+        - not all labels are going to be required, plus the new Stmt API already handles explicit placement of these where useful
+    - [ ] clicking/hovering on an element sets the "cursor"
+        - [ ] show information about the "thing" under the cursor
+            - specialized by type
+            - for value:
+                - links to uses
+                - AST parent?
+                - related log messages
+            - for block/label:
+                - predecessors
+                - continuation type
+                - successors
+                - related log messages
+
+    - [ ] context menu on things (right-click)
+        - [ ] select parent AST node (corresponding value etc.)
+
 - [ ] use type info
     - [x] struct member accesses
     - [ ] ssa: value types
@@ -122,6 +142,7 @@ suitable alternative
 
 - [ ] faster load from executable cache
     - link: https://github.com/rkyv/rkyv
+    - link: https://crates.io/crates/epserde
 
 - [ ] string literals
 

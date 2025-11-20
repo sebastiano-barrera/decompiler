@@ -17,28 +17,24 @@ fn main() {
         .init();
 
     let mut args = std::env::args();
-    let _self_name = args.next().unwrap();
-
-    let exe_filename_opt: Option<PathBuf> = args.next().map(Into::into);
+    let self_name = args.next().unwrap();
+    let Some(exe_filename) = args.next() else {
+        eprintln!(
+            "usage: {} EXE_NAME\n\nOpens the given executable in the decompiler GUI",
+            self_name
+        );
+        std::process::exit(1);
+    };
+    let exe_filename: PathBuf = exe_filename.into();
 
     let res = eframe::run_native(
         "decompiler test app",
         eframe::NativeOptions::default(),
         Box::new(|cctx| {
+            cctx.egui_ctx.set_theme(egui::ThemePreference::System);
+
             let mut app = Box::new(App::new());
-
-            let time_load_start = Instant::now();
-            if let Some(exe_filename) = exe_filename_opt {
-                // TODO: remove, take this from the app state, allow picking exe from gui
-                app.open_executable(&exe_filename);
-            } else if let Some(storage) = cctx.storage {
-                app.load(storage);
-            }
-
-            let load_time = Instant::now().duration_since(time_load_start);
-            eprintln!("state and data loaded in {:?}", load_time);
-
-            cctx.egui_ctx.set_theme(app.theme_preference);
+            app.open_executable(&exe_filename);
 
             Ok(app)
         }),
@@ -60,7 +56,6 @@ struct Exe {
 }
 
 struct App {
-    theme_preference: egui::ThemePreference,
     status: StatusView,
     stage_exe: Option<StageExeFallible>,
 }
@@ -357,60 +352,14 @@ mod persistence {
 impl App {
     fn new() -> Self {
         App {
-            theme_preference: egui::ThemePreference::Light,
             status: StatusView::default(),
             stage_exe: None,
         }
     }
 
-    const SK_STATE: &'static str = "state";
-
-    fn load(&mut self, storage: &dyn eframe::Storage) {
-        let Some(serial) = storage.get_string(Self::SK_STATE) else {
-            return;
-        };
-
-        let restore_file: persistence::File = match ron::from_str(&serial) {
-            Ok(rf) => rf,
-            Err(err) => {
-                let text = format!("unable to parse application state file: {:?}", err).into();
-                self.status.push(StatusMessage {
-                    text,
-                    category: StatusCategory::Error,
-                    ..Default::default()
-                });
-                return;
-            }
-        };
-
-        if let Some(restore_exe) = restore_file.exe {
-            let exe_res = load_executable(&restore_exe.filename);
-            let stage_exe = exe_res.map(|mut exe| {
-                let stages_func = restore_exe
-                    .funcs
-                    .into_iter()
-                    .map(|restore_func| load_function(&mut exe, &restore_func.name))
-                    .collect();
-
-                StageExe {
-                    exe,
-                    function_selector: None,
-                    stages_func,
-                }
-            });
-            // We "hope" that the keys here resemble the
-            let stage_exe_fallible = StageExeFallible {
-                path: (&restore_exe.filename).to_path_buf(),
-                stage_exe,
-            };
-
-            self.stage_exe = Some(stage_exe_fallible);
-        }
-
-        self.theme_preference = restore_file.theme_preference;
-    }
-
     fn open_executable(&mut self, path: &Path) {
+        let time_load_start = Instant::now();
+
         let exe_res = load_executable(path);
         let stage_exe = exe_res.map(|exe| StageExe {
             exe,
@@ -421,6 +370,9 @@ impl App {
             path: path.to_path_buf(),
             stage_exe,
         });
+
+        let load_time = Instant::now().duration_since(time_load_start);
+        eprintln!("exe loaded in {:?}", load_time);
     }
 }
 
@@ -452,24 +404,7 @@ impl eframe::App for App {
                                 stage_exe.show_topbar(ui);
                             }
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                                if ui.button("Quit").clicked() {
-                                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
-                                }
-
-                                let (label, value) = match self.theme_preference {
-                                    // not super correct, but whatever
-                                    egui::ThemePreference::System | egui::ThemePreference::Dark => {
-                                        ("Light mode", egui::ThemePreference::Light)
-                                    }
-                                    egui::ThemePreference::Light => {
-                                        ("Dark mode", egui::ThemePreference::Dark)
-                                    }
-                                };
-
-                                if ui.button(label).clicked() {
-                                    self.theme_preference = value;
-                                    ui.ctx().set_theme(value);
-                                }
+                                egui::widgets::global_theme_preference_switch(ui);
                             });
                         });
 
@@ -492,50 +427,17 @@ impl eframe::App for App {
         }
     }
 
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        let restore_file = persistence::File {
-            theme_preference: self.theme_preference,
-            exe: self.stage_exe.as_ref().map(|stage_exe_fallible| {
-                let funcs = match &stage_exe_fallible.stage_exe {
-                    // If the executable loaded successfully, collect its functions
-                    Ok(stage_exe) => {
-                        stage_exe
-                            .stages_func
-                            .iter()
-                            // Only save successfully loaded functions
-                            .filter_map(|stage_func_res| stage_func_res.as_ref().ok())
-                            .map(|stage_func| persistence::Func {
-                                name: stage_func.df.df.name().to_string(),
-                            })
-                            .collect()
-                    }
-                    // If the executable failed to load, save an empty list of functions
-                    Err(_) => Vec::new(),
-                };
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        // NOTE: a bright gray makes the shadows of the windows look weird.
+        // We use a bit of transparency so that if the user switches on the
+        // `transparent()` option they get immediate results.
+        egui::Color32::from_rgba_unmultiplied(12, 12, 12, 180).to_normalized_gamma_f32()
 
-                persistence::Exe {
-                    filename: stage_exe_fallible.path.clone(),
-                    funcs,
-                }
-            }),
-        };
+        // _visuals.window_fill() would also be a natural choice
+    }
 
-        match ron::to_string(&restore_file) {
-            Ok(payload) => {
-                storage.set_string(Self::SK_STATE, payload);
-                self.status.push(StatusMessage {
-                    text: "State saved successfully.".into(),
-                    ..Default::default()
-                });
-            }
-            Err(err) => {
-                self.status.push(StatusMessage {
-                    text: format!("while saving application state: {}", err).into(),
-                    category: StatusCategory::Error,
-                    ..Default::default()
-                });
-            }
-        }
+    fn persist_egui_memory(&self) -> bool {
+        true
     }
 }
 
@@ -1601,9 +1503,10 @@ mod ast_view {
             for stmt in &ast.plan {
                 if let Stmt::BlockLabel(_) = stmt {
                     col_uis.clear();
-                    for ndx in 0..col_uis.count() {
-                        col_uis.ui(ndx).separator();
-                    }
+                    // for ndx in 0..col_uis.count() {
+                    //     col_uis.ui(ndx).separator();
+                    // }
+                    col_uis.ui(1).separator();
                 }
 
                 for (ndx, col) in columns.iter_mut().enumerate() {
