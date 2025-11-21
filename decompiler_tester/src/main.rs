@@ -1,14 +1,12 @@
 use std::{
-    borrow::Cow,
     collections::BTreeMap,
     fs::File,
     path::{Path, PathBuf},
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use anyhow::{Context, Result};
 use decompiler::Executable;
-use egui::TextBuffer;
 use ouroboros::self_referencing;
 
 fn main() {
@@ -27,15 +25,18 @@ fn main() {
     };
     let exe_filename: PathBuf = exe_filename.into();
 
+    let app = match App::new(&exe_filename) {
+        Ok(app) => Box::new(app),
+        Err(err) => {
+            eprintln!("could not load executable: {:?}", err);
+            std::process::exit(1);
+        }
+    };
     let res = eframe::run_native(
         "decompiler test app",
         eframe::NativeOptions::default(),
-        Box::new(|cctx| {
+        Box::new(move |cctx| {
             cctx.egui_ctx.set_theme(egui::ThemePreference::System);
-
-            let mut app = Box::new(App::new());
-            app.open_executable(&exe_filename);
-
             Ok(app)
         }),
     );
@@ -56,22 +57,13 @@ struct Exe {
 }
 
 struct App {
-    status: StatusView,
-    stage_exe: Option<StageExeFallible>,
-}
-struct StageExeFallible {
-    path: PathBuf,
-    stage_exe: Result<StageExe>,
-}
-struct StageExe {
     exe: Exe,
     function_selector: Option<FunctionSelector>,
-    stages_func: Vec<Result<StageFunc, decompiler::Error>>,
+    stage_func: Option<Result<StageFunc, decompiler::Error>>,
 }
 struct StageFunc {
     df: DecompiledFunction,
     is_warnings_visible: bool,
-    is_ssa_visible: bool,
 }
 struct DecompiledFunction {
     df: decompiler::DecompiledFunction,
@@ -80,30 +72,9 @@ struct DecompiledFunction {
     problems_error: Option<String>,
 
     assembly: Assembly,
-    mil_lines: Vec<String>,
-    ssa_vcache: SSAViewCache,
-    ssa_px_vcache: SSAViewCache,
     ast: ast_view::Ast,
 
     hl: hl::Highlight,
-}
-
-struct SSAViewCache {
-    height_of_block: decompiler::BlockMap<Option<f32>>,
-}
-impl SSAViewCache {
-    fn new(ssa: &decompiler::SSAProgram) -> Self {
-        let height_of_block = decompiler::BlockMap::new(ssa.cfg(), None);
-        SSAViewCache { height_of_block }
-    }
-    fn new_from_option(ssa: Option<&decompiler::SSAProgram>) -> Self {
-        match ssa {
-            Some(ssa) => Self::new(ssa),
-            None => SSAViewCache {
-                height_of_block: decompiler::BlockMap::empty(),
-            },
-        }
-    }
 }
 
 mod hl {
@@ -113,20 +84,6 @@ mod hl {
         pub(super) reg: Item<decompiler::Reg>,
         pub(super) block: Item<decompiler::BlockID>,
         pub(super) asm_line_ndx: Item<usize>,
-    }
-
-    impl Highlight {
-        pub(super) fn update(&mut self, ssa: &decompiler::SSAProgram, asm: &super::Assembly) {
-            // TODO update dependent values from user-tracking stuff
-            // NOTE not short-circuiting!
-            let is_dirty =
-                self.reg.tick_frame() | self.block.tick_frame() | self.asm_line_ndx.tick_frame();
-            if !is_dirty {
-                return;
-            }
-
-            // TODO eliminate this function
-        }
     }
 
     #[derive(PartialEq, Eq)]
@@ -321,110 +278,22 @@ mod hl {
     }
 }
 
-mod persistence {
-    use std::path::PathBuf;
-
-    #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-    pub struct File {
-        pub theme_preference: egui::ThemePreference,
-        pub exe: Option<Exe>,
-    }
-    #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-    pub struct Exe {
-        pub filename: PathBuf,
-        pub funcs: Vec<Func>,
-    }
-    #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-    pub struct Func {
-        pub name: String,
-    }
-
-    impl Default for File {
-        fn default() -> Self {
-            File {
-                theme_preference: egui::ThemePreference::System,
-                exe: None,
-            }
-        }
-    }
-}
-
-impl App {
-    fn new() -> Self {
-        App {
-            status: StatusView::default(),
-            stage_exe: None,
-        }
-    }
-
-    fn open_executable(&mut self, path: &Path) {
-        let time_load_start = Instant::now();
-
-        let exe_res = load_executable(path);
-        let stage_exe = exe_res.map(|exe| StageExe {
-            exe,
-            function_selector: None,
-            stages_func: Vec::new(),
-        });
-        self.stage_exe = Some(StageExeFallible {
-            path: path.to_path_buf(),
-            stage_exe,
-        });
-
-        let load_time = Instant::now().duration_since(time_load_start);
-        eprintln!("exe loaded in {:?}", load_time);
-    }
-}
-
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::bottom("statusbar")
-            .exact_height(20.)
-            .resizable(false)
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                if let Some(StageExeFallible {
-                    stage_exe: Ok(stage_exe),
-                    ..
-                }) = &mut self.stage_exe
-                {
-                    stage_exe.show_status(ui);
-                }
-
-                self.status.show(ui);
-            });
-
-        match self.stage_exe.as_mut() {
-            Some(stage_exe_fallible) => {
-                egui::CentralPanel::default()
-                    .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0))
-                    .show(ctx, |ui| {
-                        ui.horizontal(|ui| {
-                            if let Ok(stage_exe) = &mut stage_exe_fallible.stage_exe {
-                                stage_exe.show_topbar(ui);
-                            }
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                                egui::widgets::global_theme_preference_switch(ui);
-                            });
-                        });
-
-                        match &mut stage_exe_fallible.stage_exe {
-                            Ok(stage_exe) => {
-                                stage_exe.show_central(ui);
-                            }
-                            Err(err) => {
-                                // TODO avoid alloc / cache?
-                                ui.label(format!("Error loading this exe: {:?}", err));
-                            }
-                        }
-                    });
-            }
-            None => {
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.label("No executable loaded. Load one using File > Open.")
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                self.show_topbar(ui);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                    egui::widgets::global_theme_preference_switch(ui);
                 });
-            }
-        }
+            });
+        });
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0))
+            .show(ctx, |ui| {
+                self.show_central(ui);
+            });
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
@@ -441,34 +310,30 @@ impl eframe::App for App {
     }
 }
 
-fn load_function(exe: &mut Exe, function_name: &str) -> Result<StageFunc, decompiler::Error> {
-    let mut stage_func = exe.with_exe_mut(|exe| {
-        let df = exe.decompile_function(function_name)?;
-        Ok(StageFunc::new(df, exe))
-    });
+impl App {
+    fn new(path: &Path) -> Result<Self> {
+        let time_load_start = Instant::now();
 
-    if let Ok(stage_func) = &mut stage_func {
-        stage_func.df.problems_is_visible =
-            stage_func.df.df.error().is_some() || !stage_func.df.df.warnings().is_empty();
+        let exe = load_executable(path)?;
+
+        let load_time = Instant::now().duration_since(time_load_start);
+        eprintln!("exe loaded in {:?}", load_time);
+
+        let mut app = App {
+            exe,
+            function_selector: None,
+            stage_func: None,
+        };
+        app.start_function_selector();
+        Ok(app)
     }
 
-    stage_func
-}
-
-impl StageExe {
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
         if ui.button("Load function…").clicked() {
-            let mut all_names: Vec<_> = self
-                .exe
-                .borrow_exe()
-                .function_names()
-                .map(|s| s.to_owned())
-                .collect();
-            all_names.sort();
-            self.function_selector = Some(FunctionSelector::new("modal load function", all_names));
+            self.start_function_selector();
         }
 
-        match self.stages_func.last_mut() {
+        match self.stage_func.as_mut() {
             Some(Ok(stage_func)) => {
                 stage_func.show_topbar(ui);
             }
@@ -481,8 +346,19 @@ impl StageExe {
         }
     }
 
+    fn start_function_selector(&mut self) {
+        let mut all_names: Vec<_> = self
+            .exe
+            .borrow_exe()
+            .function_names()
+            .map(|s| s.to_owned())
+            .collect();
+        all_names.sort();
+        self.function_selector = Some(FunctionSelector::new("modal load function", all_names));
+    }
+
     fn show_central(&mut self, ui: &mut egui::Ui) {
-        match self.stages_func.last_mut() {
+        match self.stage_func.as_mut() {
             Some(Ok(stage_func)) => {
                 stage_func.show(ui);
             }
@@ -500,25 +376,12 @@ impl StageExe {
 
         if let Some(function_selector) = &mut self.function_selector {
             let res = function_selector.show(ui.ctx());
-            if let Some(function_name) = res.inner.cloned() {
-                let stage_func_or_err = load_function(&mut self.exe, &function_name);
-                self.add_function(stage_func_or_err);
+            if let Some(function_name) = res.inner {
+                let stage_func_or_err = load_function(&mut self.exe, function_name);
+                self.stage_func = Some(stage_func_or_err);
                 self.function_selector = None;
             } else if res.should_close() {
                 self.function_selector = None;
-            }
-        }
-    }
-
-    fn add_function(&mut self, stage_func_or_err: Result<StageFunc, decompiler::Error>) {
-        // TODO make this plural
-        self.stages_func.push(stage_func_or_err);
-    }
-
-    fn show_status(&mut self, ui: &mut egui::Ui) {
-        for stage_func in &mut self.stages_func {
-            if let Ok(stage_func) = stage_func {
-                stage_func.show_status(ui);
             }
         }
     }
@@ -536,25 +399,6 @@ impl StageFunc {
         let decoder = df.disassemble(exe);
         let assembly = Assembly::from_decoder(decoder);
 
-        let mil_lines = {
-            let mut lines = Vec::new();
-
-            match df.mil() {
-                None => {
-                    lines.push("No MIL generated!".to_string());
-                }
-                Some(mil) => {
-                    let buf = format!("{:?}", mil);
-                    lines.extend(buf.lines().map(|line| line.to_string()))
-                }
-            }
-
-            lines
-        };
-
-        let ssa_vcache = SSAViewCache::new_from_option(df.ssa());
-        let ssa_px_vcache = SSAViewCache::new_from_option(df.ssa_pre_xform());
-
         let ast = match df.ssa() {
             Some(ssa) => ast_view::Ast::from_ssa(ssa, exe.types()),
             None => ast_view::Ast::empty(),
@@ -567,30 +411,16 @@ impl StageFunc {
                 problems_title: title,
                 problems_error: error_label,
                 assembly,
-                mil_lines,
-                ssa_vcache,
-                ssa_px_vcache,
                 ast,
                 hl: hl::Highlight::default(),
             },
             is_warnings_visible: false,
-            is_ssa_visible: true,
         }
     }
 
     /// Show widgets specific for this function to be laid out on the top bar
     /// (which is visually located at the executable level).
-    fn show_topbar(&mut self, ui: &mut egui::Ui) {
-        ui.allocate_ui(
-            egui::vec2(300.0, ui.text_style_height(&egui::TextStyle::Body)),
-            |ui| {
-                ui.label(self.df.df.name());
-                ui.allocate_space(ui.available_size());
-            },
-        );
-        ui.label("View:");
-        ui.checkbox(&mut self.is_ssa_visible, "SSA");
-    }
+    fn show_topbar(&mut self, ui: &mut egui::Ui) {}
 
     fn show(&mut self, ui: &mut egui::Ui) {
         self.show_panels(ui);
@@ -602,10 +432,6 @@ impl StageFunc {
     ///
     /// To be called before `show_central`.
     fn show_panels(&mut self, ui: &mut egui::Ui) {
-        if let Some(ssa) = self.df.df.ssa() {
-            self.df.hl.update(ssa, &self.df.assembly);
-        }
-
         if self.df.problems_is_visible {
             egui::TopBottomPanel::bottom("func_errors")
                 .resizable(true)
@@ -632,10 +458,6 @@ impl StageFunc {
                         });
                 });
         }
-    }
-
-    fn show_status(&mut self, ui: &mut egui::Ui) {
-        ui.toggle_value(&mut self.df.problems_is_visible, &self.df.problems_title);
     }
 
     /// Show the widgets to be laid out in the central/main area assigned to this function.
@@ -667,23 +489,11 @@ impl StageFunc {
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
         let ast = &self.df.ast;
-        let mut col_ssa = self.df.df.ssa().map(|ssa| SSAColumn::new(ssa));
-        let mut col_blk = BlockIDColumn;
         let mut col_ast = ast_view::AstColumn::new(ast);
-
-        let widths = &[300.0, 80.0, columns::EXPANDING_WIDTH];
-        let visible = &[self.is_ssa_visible, true, true];
-
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                ast_view::show(
-                    ui,
-                    ast,
-                    visible,
-                    widths,
-                    &mut [&mut col_ssa.as_mut(), &mut col_blk, &mut col_ast],
-                );
+                ast_view::show(ui, ast, &mut col_ast);
             });
     }
 }
@@ -778,202 +588,7 @@ impl DecompiledFunction {
                 }
             });
     }
-
-    fn ui_tab_mil(&mut self, ui: &mut egui::Ui) {
-        let height = ui.text_style_height(&egui::TextStyle::Monospace);
-        egui::ScrollArea::both()
-            .auto_shrink([false, false])
-            .show_rows(ui, height, self.mil_lines.len(), |ui, ndxs| {
-                for ndx in ndxs {
-                    ui.add(
-                        egui::Label::new(egui::RichText::new(&self.mil_lines[ndx]).monospace())
-                            .extend(),
-                    );
-                }
-            });
-    }
-
-    fn ui_tab_ssa(&mut self, ui: &mut egui::Ui) {
-        match self.df.ssa() {
-            Some(ssa) => {
-                show_ssa(ui, ssa, &mut self.ssa_vcache, &mut self.hl);
-            }
-            None => {
-                ui.label("No SSA generated");
-            }
-        };
-    }
-
-    fn ui_tab_ssa_px(&mut self, ui: &mut egui::Ui) {
-        match self.df.ssa_pre_xform() {
-            Some(ssa) => {
-                show_ssa(ui, ssa, &mut self.ssa_px_vcache, &mut self.hl);
-            }
-            None => {
-                ui.label("No SSA generated");
-            }
-        };
-    }
 }
-
-fn show_ssa(
-    ui: &mut egui::Ui,
-    ssa: &decompiler::SSAProgram,
-    vcache: &mut SSAViewCache,
-    hl: &mut hl::Highlight,
-) {
-    use decompiler::{BlockCont, Dest};
-    fn show_dest(ui: &mut egui::Ui, dest: &Dest, hl: &mut hl::Highlight) {
-        match dest {
-            Dest::Block(bid) => {
-                label_block_ref(ui, *bid, hl, format!("{:?}", *bid).into());
-            }
-            Dest::Ext(addr) => {
-                ui.label(format!("ext @ 0x{:x}", addr));
-            }
-            Dest::Indirect => {
-                ui.label("<at runtime>");
-            }
-            Dest::Return => {
-                ui.label("<return>");
-            }
-            Dest::Undefined => {
-                ui.label("<undefined>");
-            }
-        }
-    }
-    fn show_continuation(ui: &mut egui::Ui, cont: &BlockCont, hl: &mut hl::Highlight) {
-        ui.horizontal(|ui| {
-            ui.label("⮩");
-            match cont {
-                BlockCont::Always(dest) => show_dest(ui, dest, hl),
-                BlockCont::Conditional { pos, neg } => {
-                    ui.label("if ... then");
-                    show_dest(ui, pos, hl);
-                    ui.label("else");
-                    show_dest(ui, neg, hl);
-                }
-            }
-        });
-    }
-
-    egui::ScrollArea::both()
-        .auto_shrink([false, false])
-        .show_viewport(ui, |ui, viewport_rect| {
-            let mut cur_y = 0.0;
-            for bid in ssa.cfg().block_ids_rpo() {
-                if let &Some(height) = &vcache.height_of_block[bid] {
-                    if viewport_rect.min.y > cur_y + height || viewport_rect.max.y < cur_y {
-                        let size = egui::Vec2 {
-                            x: viewport_rect.width(),
-                            y: height,
-                        };
-                        ui.allocate_exact_size(size, egui::Sense::empty());
-                        cur_y += height;
-                        continue;
-                    }
-                }
-
-                const HL_BORDER_SIZE: f32 = 3.0;
-
-                let block_res = ui.horizontal(|ui| {
-                    ui.add_space(HL_BORDER_SIZE + 2.0);
-                    ui.vertical(|ui| {
-                        ui.separator();
-
-                        label_block_def(
-                            ui,
-                            bid,
-                            hl,
-                            format!(" -- block B{}", bid.as_number()).into(),
-                        );
-                        ui.horizontal(|ui| {
-                            ui.label("from:");
-                            for &pred in ssa.cfg().block_preds(bid) {
-                                label_block_ref(
-                                    ui,
-                                    pred,
-                                    hl,
-                                    format!("B{}", pred.as_number()).into(),
-                                );
-                            }
-                        });
-
-                        for reg in ssa.block_regs(bid) {
-                            let insn = ssa.get(reg).unwrap();
-                            if insn == decompiler::Insn::Void {
-                                continue;
-                            }
-
-                            let insnx = decompiler::to_expanded(&insn);
-                            ui.horizontal(|ui| {
-                                let label_res =
-                                    label_reg_def(ui, reg, hl, format!("{:?}", reg).into());
-                                if hl.reg.pinned() == Some(&reg) && hl.reg.did_pinned_just_change()
-                                {
-                                    label_res.scroll_to_me(Some(egui::Align::Center));
-                                }
-
-                                // TODO show type information
-                                // TODO use label_reg for parts of the instruction as well
-                                ui.label(" <- ");
-
-                                ui.label(insnx.opcode);
-                                ui.label("(");
-                                for (name, value) in insnx.fields.iter() {
-                                    ui.label(*name);
-                                    ui.label(":");
-                                    match value {
-                                        decompiler::ExpandedValue::Reg(reg) => {
-                                            label_reg_ref(
-                                                ui,
-                                                *reg,
-                                                hl,
-                                                format!("{:?}", *reg).into(),
-                                            );
-                                        }
-                                        decompiler::ExpandedValue::Generic(debug_str) => {
-                                            ui.label(debug_str);
-                                        }
-                                    }
-                                }
-                                ui.label(")");
-                            });
-                        }
-
-                        show_continuation(ui, &ssa.cfg().block_cont(bid), hl);
-                    })
-                });
-
-                let block_rect = block_res.response.rect;
-                let mut hl_rect = block_rect;
-                hl_rect.set_width(HL_BORDER_SIZE);
-
-                if hl.block.pinned() == Some(&bid) {
-                    ui.painter().rect_filled(hl_rect, 0.0, hl::COLOR_GREEN_DARK);
-                } else if hl.block.hovered() == Some(&bid) {
-                    ui.painter().rect_stroke(
-                        hl_rect,
-                        0.0,
-                        egui::Stroke {
-                            color: hl::COLOR_GREEN_DARK,
-                            width: 1.0,
-                        },
-                        egui::StrokeKind::Inside,
-                    );
-                }
-
-                let height = block_rect.height();
-                vcache.height_of_block[bid] = Some(height);
-                cur_y += height;
-            }
-
-            ui.separator();
-            ui.label(format!("{} instructions/registers", ssa.reg_count()));
-        });
-}
-
-// TODO Move these to an `ssa` module (when the refactoring happens)
 
 fn label_reg_def(
     ui: &mut egui::Ui,
@@ -1039,6 +654,20 @@ fn load_executable(path: &Path) -> Result<Exe> {
         exe_builder: |exe_bytes| Executable::parse(exe_bytes).context("parsing executable"),
     }
     .try_build()
+}
+
+fn load_function(exe: &mut Exe, function_name: &str) -> Result<StageFunc, decompiler::Error> {
+    let mut stage_func = exe.with_exe_mut(|exe| {
+        let df = exe.decompile_function(function_name)?;
+        Ok(StageFunc::new(df, exe))
+    });
+
+    if let Ok(stage_func) = &mut stage_func {
+        stage_func.df.problems_is_visible =
+            stage_func.df.df.error().is_some() || !stage_func.df.df.warnings().is_empty();
+    }
+
+    stage_func
 }
 
 struct FunctionSelector {
@@ -1109,48 +738,6 @@ impl FunctionSelector {
 
             response_inner
         })
-    }
-}
-
-#[derive(Default)]
-struct StatusView {
-    cur_msg: Option<StatusMessage>,
-}
-
-impl StatusView {
-    fn push(&mut self, msg: StatusMessage) {
-        eprintln!("status: {:?}", msg);
-        self.cur_msg = Some(msg);
-    }
-
-    fn show(&mut self, ui: &mut egui::Ui) {
-        if let Some(msg) = &self.cur_msg {
-            ui.horizontal(|ui| {
-                ui.label("Status:");
-                ui.label(msg.text.as_str());
-            });
-        }
-    }
-}
-
-#[derive(Debug)]
-struct StatusMessage {
-    text: Cow<'static, str>,
-    category: StatusCategory,
-    timeout: Duration,
-}
-#[derive(Debug)]
-enum StatusCategory {
-    Info,
-    Error,
-}
-impl Default for StatusMessage {
-    fn default() -> Self {
-        StatusMessage {
-            text: "".into(),
-            category: StatusCategory::Info,
-            timeout: Duration::from_secs(5),
-        }
     }
 }
 
@@ -1268,10 +855,7 @@ mod ast_view {
     use std::sync::Arc;
 
     use anyhow::anyhow;
-    use arrayvec::ArrayVec;
     use decompiler::{BlockID, Insn};
-
-    use crate::columns;
 
     use super::TextRole;
 
@@ -1483,39 +1067,10 @@ mod ast_view {
     }
 
     /// Renders the AST within the provided egui UI.
-    pub fn show(
-        ui: &mut egui::Ui,
-        ast: &Ast,
-        visible: &[bool],
-        widths: &[f32],
-        columns: &mut [&mut dyn Column],
-    ) {
-        assert_eq!(visible.len(), widths.len());
-        assert_eq!(visible.len(), columns.len());
-
-        let widths_masked: ArrayVec<f32, 16> = widths
-            .into_iter()
-            .zip(visible.into_iter())
-            .map(|(&w, &is_visible)| if is_visible { w } else { 0.0 })
-            .collect();
-
-        columns::show(ui, &widths_masked, |col_uis| {
-            for stmt in &ast.plan {
-                if let Stmt::BlockLabel(_) = stmt {
-                    col_uis.clear();
-                    // for ndx in 0..col_uis.count() {
-                    //     col_uis.ui(ndx).separator();
-                    // }
-                    col_uis.ui(1).separator();
-                }
-
-                for (ndx, col) in columns.iter_mut().enumerate() {
-                    if visible[ndx] {
-                        col.push_stmt(col_uis.ui(ndx), stmt);
-                    }
-                }
-            }
-        });
+    pub fn show(ui: &mut egui::Ui, ast: &Ast, column: &mut dyn Column) {
+        for stmt in &ast.plan {
+            column.push_stmt(ui, stmt);
+        }
     }
 
     /// The `Builder` is responsible for transforming the SSAProgram into the `Ast`'s flat `Vec<Node>` representation.
@@ -2156,88 +1711,5 @@ mod ast_view {
             text,
             role: TextRole::Error,
         })
-    }
-}
-
-mod columns {
-    use arrayvec::ArrayVec;
-
-    pub const EXPANDING_WIDTH: f32 = f32::INFINITY;
-
-    /// Sets up a multi-column layout where each column can be filled
-    /// independently by the given closure.
-    ///
-    /// The desired width for each column is set via the `width` array (also
-    /// determines the number of columns). Use `EXPANDING_WIDTH` for columns
-    /// that should take up the remaining available space equally.
-    ///
-    /// The `add_contents` closure is given an array of [`Column`], allowing
-    /// access to a separate `egui::Ui` for each column.
-    pub fn show(ui: &mut egui::Ui, widths: &[f32], add_contents: impl FnOnce(&mut Columns)) {
-        ui.horizontal(move |ui| {
-            let width_fixed: f32 = widths.into_iter().filter(|w| w.is_finite()).sum();
-            let width_expanding_count = widths.into_iter().filter(|w| w.is_infinite()).count();
-            let width_available = ui.available_width();
-            let width_expanding_each: f32 =
-                (width_available - width_fixed) / width_expanding_count as f32;
-
-            let uis: ArrayVec<_, MAX_COUNT> = widths
-                .into_iter()
-                .map(|width| {
-                    let width = match *width {
-                        w if w.is_infinite() => width_expanding_each,
-                        other => other,
-                    };
-
-                    let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
-                    let col_ui = ui.new_child(
-                        egui::UiBuilder::new()
-                            .max_rect(col_rect)
-                            .layout(egui::Layout::top_down(egui::Align::TOP)),
-                    );
-                    ui.advance_cursor_after_rect(col_rect);
-
-                    col_ui
-                })
-                .collect();
-
-            let mut columns = Columns { uis };
-
-            add_contents(&mut columns);
-
-            for col in columns.uis {
-                // we're doing a custom layout, so we have to do this where egui
-                // would have done this automatically
-                ui.expand_to_include_rect(col.min_rect());
-            }
-        });
-    }
-
-    const MAX_COUNT: usize = 16;
-
-    pub struct Columns {
-        uis: ArrayVec<egui::Ui, MAX_COUNT>,
-    }
-    impl Columns {
-        pub fn ui(&mut self, ndx: usize) -> &mut egui::Ui {
-            &mut self.uis[ndx]
-        }
-
-        pub fn count(&self) -> usize {
-            self.uis.len()
-        }
-
-        pub fn clear(&mut self) {
-            let y_clear = self
-                .uis
-                .iter()
-                .map(|ui| ui.min_rect().max.y)
-                .reduce(|ay, by| ay.max(by))
-                .unwrap();
-
-            for col in &mut self.uis {
-                col.advance_cursor_after_rect(col.cursor().with_max_y(y_clear));
-            }
-        }
     }
 }
