@@ -55,8 +55,15 @@ pub enum Stmt {
 #[serde(transparent)]
 pub struct StmtID(usize);
 
+/// The abstract syntax tree, as finally output by the decompiler.
+///
+/// [Ast] values are created via [AstBuilder], which allows customizing certain
+/// aspects of the AST, such as the block order.
 #[derive(Debug)]
 pub struct Ast {
+    // Actually, this data structure only contains enough data to *pretend* that
+    // there is a full AST inside. The public APIs are supposed to create the
+    // illusion of operating on a typed AST that is actually a tree.
     /// All statements in the AST, indexed by [StmtID].
     nodes: Vec<Stmt>,
     is_named: RegMap<bool>,
@@ -366,9 +373,9 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         Insn::Widen { .. } => 248,
 
         Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
-            ArithOp::Shl | ArithOp::Shr | ArithOp::BitXor | ArithOp::BitAnd | ArithOp::BitOr => 202,
-            ArithOp::Add | ArithOp::Sub => 200,
-            ArithOp::Mul => 201,
+            ArithOp::Shl | ArithOp::Shr | ArithOp::BitXor | ArithOp::BitAnd | ArithOp::BitOr => 212,
+            ArithOp::Add | ArithOp::Sub => 210,
+            ArithOp::Mul => 211,
         },
         Insn::OverflowOf(_) => 200,
         Insn::CarryOf(_) => 200,

@@ -72,9 +72,9 @@ struct DecompiledFunction {
     problems_error: Option<String>,
 
     assembly: Assembly,
-    ast: ast_view::Ast,
 
     hl: hl::Highlight,
+    ast: Option<decompiler::Ast>,
 }
 
 mod hl {
@@ -399,10 +399,10 @@ impl StageFunc {
         let decoder = df.disassemble(exe);
         let assembly = Assembly::from_decoder(decoder);
 
-        let ast = match df.ssa() {
-            Some(ssa) => ast_view::Ast::from_ssa(ssa, exe.types()),
-            None => ast_view::Ast::empty(),
-        };
+        let ast = df
+            .ssa()
+            .as_ref()
+            .map(|ssa| decompiler::AstBuilder::new(ssa, exe.types()).build());
 
         StageFunc {
             df: DecompiledFunction {
@@ -462,67 +462,23 @@ impl StageFunc {
 
     /// Show the widgets to be laid out in the central/main area assigned to this function.
     fn show_central(&mut self, ui: &mut egui::Ui) {
-        {
-            let warnings = self.df.ast.warnings();
-            if warnings.len() > 0 {
-                let text = format!("AST generation: {} warnings", warnings.len());
-                ui.toggle_value(&mut self.is_warnings_visible, text);
-                if self.is_warnings_visible {
-                    egui::Window::new("AST warnings")
-                        .open(&mut self.is_warnings_visible)
-                        .show(ui.ctx(), |ui| {
-                            egui::ScrollArea::vertical().show(ui, |ui| {
-                                for warning in warnings {
-                                    ui.horizontal(|ui| {
-                                        ui.label(" - ");
-                                        ui.add(egui::Label::new(warning.to_string()).wrap());
-                                    });
-                                }
-                            });
-                        });
-                }
-            }
-        }
-
-        self.show_integrated_ast(ui);
-    }
-
-    fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
-        let ast = &self.df.ast;
-        let mut col_ast = ast_view::AstColumn::new(ast);
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                ast_view::show(ui, ast, &mut col_ast);
+                self.show_integrated_ast(ui);
             });
     }
-}
 
-pub struct SSAColumn<'a> {
-    ssa: &'a decompiler::SSAProgram,
-}
-impl<'a> SSAColumn<'a> {
-    pub fn new(ssa: &'a decompiler::SSAProgram) -> Self {
-        SSAColumn { ssa }
-    }
-}
-impl ast_view::Column for SSAColumn<'_> {
-    fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &ast_view::Stmt) {
-        if let &ast_view::Stmt::BlockLabel(block_id) = stmt {
-            for reg in self.ssa.block_regs(block_id) {
-                let insn = self.ssa.get(reg).unwrap();
-                ui.label(format!("{:?} <- {:?}", reg, insn));
+    fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
+        match (self.df.df.ssa(), self.df.ast.as_ref()) {
+            (Some(ssa), Some(ast)) => {
+                ast::render(ui, ast, ssa);
             }
-            ui.label(format!("{:?}", self.ssa.cfg().block_cont(block_id)));
-        }
-    }
-}
-
-pub struct BlockIDColumn;
-impl ast_view::Column for BlockIDColumn {
-    fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &ast_view::Stmt) {
-        if let &ast_view::Stmt::BlockLabel(block_id) = stmt {
-            ui.label(format!("B{}", block_id.as_number()));
+            _ => {
+                ui.centered_and_justified(|ui| {
+                    ui.label("- No AST -");
+                });
+            }
         }
     }
 }
@@ -842,7 +798,403 @@ impl TextRole {
     }
 }
 
-mod ast_view {
+mod ast {
+    use decompiler::{
+        BlockID, Insn,
+        ast::{Stmt, StmtID},
+    };
+
+    pub(crate) fn render(ui: &mut egui::Ui, ast: &decompiler::Ast, ssa: &decompiler::SSAProgram) {
+        render_stmt(ui, ast, ast.root(), ssa)
+    }
+
+    fn render_stmt(
+        ui: &mut egui::Ui,
+        ast: &decompiler::Ast,
+        sid: StmtID,
+        ssa: &decompiler::SSAProgram,
+    ) {
+        // TODO replace tail-calls with a loop continue (or similar)
+        ui.vertical(|ui| match ast.get(sid) {
+            Stmt::NamedBlock { bid, body } => {
+                ui.horizontal(|ui| {
+                    print_block_id(ui, *bid);
+                    render_stmt(ui, ast, *body, ssa);
+                });
+            }
+            Stmt::Let { name, value, body } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "let");
+                    print_ident(ui, name);
+                    print_kw(ui, "=");
+                    render_expr_def(ui, ast, ssa, *value, 0);
+                    print_kw(ui, "in");
+                });
+                render_stmt(ui, ast, *body, ssa);
+            }
+            Stmt::LetPhi { name, body } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "letphi");
+                    print_ident(ui, name);
+                });
+                render_stmt(ui, ast, *body, ssa);
+            }
+            Stmt::Seq { first, then } => {
+                render_stmt(ui, ast, *first, ssa);
+                render_stmt(ui, ast, *then, ssa);
+            }
+            Stmt::Eval(reg) => {
+                ui.horizontal(|ui| {
+                    render_expr_def(ui, ast, ssa, *reg, 0);
+                });
+            }
+            Stmt::If { cond, cons, alt } => {
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, "if");
+                        match *cond {
+                            Some(cond) => {
+                                render_expr_def(ui, ast, ssa, cond, 0);
+                            }
+                            None => {
+                                print_error_tag(ui, "undefined condition");
+                            }
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        print_kw(ui, "then");
+                        render_stmt(ui, ast, *cons, ssa);
+                    });
+                    ui.horizontal(|ui| {
+                        print_kw(ui, "else");
+                        render_stmt(ui, ast, *alt, ssa);
+                    });
+                });
+            }
+            Stmt::Return(reg) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "return");
+                    render_expr_def(ui, ast, ssa, *reg, 0);
+                });
+            }
+            Stmt::JumpUndefined => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "goto");
+                    print_kw(ui, "undefined");
+                });
+            }
+            Stmt::JumpExternal(addr) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "goto");
+                    ui.label(format!("0x{:x}", *addr));
+                });
+            }
+            Stmt::JumpIndirect(reg) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "goto");
+                    ui.label("(");
+                    render_expr_def(ui, ast, ssa, *reg, 0);
+                    ui.label(").*");
+                });
+            }
+            Stmt::Loop(block_id) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "loop");
+                    print_block_id(ui, *block_id);
+                });
+            }
+            Stmt::Jump(block_id) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "goto");
+                    print_block_id(ui, *block_id);
+                });
+            }
+        });
+    }
+
+    fn print_error_tag(ui: &mut egui::Ui, text: &str) {
+        ui.label(egui::RichText::new(text).color(egui::Color32::DARK_RED));
+    }
+
+    fn render_expr(
+        ui: &mut egui::Ui,
+        ast: &decompiler::Ast,
+        ssa: &decompiler::SSAProgram,
+        reg: decompiler::Reg,
+        parent_prec: decompiler::PrecedenceLevel,
+    ) {
+        if ast.is_value_named(reg) {
+            ui.label(format!("r{}", reg.reg_index()));
+        } else {
+            render_expr_def(ui, ast, ssa, reg, parent_prec);
+        }
+    }
+
+    fn render_expr_def(
+        ui: &mut egui::Ui,
+        ast: &decompiler::Ast,
+        ssa: &decompiler::SSAProgram,
+        reg: decompiler::Reg,
+        parent_prec: decompiler::PrecedenceLevel,
+    ) {
+        let Some(insn) = ssa.get(reg) else {
+            print_error_tag(ui, "invalid reg");
+            return;
+        };
+
+        let my_prec = decompiler::precedence(&insn);
+        if my_prec < parent_prec {
+            print_kw(ui, "(");
+        }
+        match insn {
+            Insn::Void => {
+                print_kw(ui, "void");
+            }
+            Insn::True => {
+                print_kw(ui, "true");
+            }
+            Insn::False => {
+                print_kw(ui, "false");
+            }
+            Insn::Bytes(bytes) => {
+                ui.label(format!("{:?}", bytes.as_slice()));
+            }
+            Insn::Int { value, size: _ } => {
+                ui.label(format!("{}", value));
+            }
+            Insn::Get(r) => {
+                render_expr(ui, ast, ssa, r, my_prec);
+            }
+            Insn::Part { src, offset, size } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, src, my_prec);
+                    ui.label(format!("[{} .. {}]", offset, offset + size));
+                });
+            }
+            Insn::Concat { lo, hi } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, hi, my_prec);
+                    print_kw(ui, "++");
+                    render_expr(ui, ast, ssa, lo, my_prec);
+                });
+            }
+            Insn::StructGetMember {
+                struct_value,
+                name,
+                size: _,
+            } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, struct_value, my_prec);
+                    print_kw(ui, ".");
+                    print_ident(ui, name);
+                });
+            }
+            Insn::Struct {
+                type_name,
+                first_member,
+                size: _,
+            } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "struct");
+                    print_ident(ui, type_name);
+                    if let Some(first) = first_member {
+                        render_expr(ui, ast, ssa, first, my_prec);
+                    } else {
+                        ui.label("(no members)");
+                    }
+                });
+            }
+            Insn::StructMember { name, value, next } => {
+                ui.horizontal(|ui| {
+                    print_ident(ui, name);
+                    print_kw(ui, ":");
+                    render_expr(ui, ast, ssa, value, my_prec);
+                    print_kw(ui, ";");
+                });
+                if let Some(next_val) = next {
+                    render_expr(ui, ast, ssa, next_val, my_prec);
+                }
+            }
+            Insn::ArrayGetElement {
+                array,
+                index,
+                size: _,
+            } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, array, my_prec);
+                    ui.label(format!("[{}]", index));
+                });
+            }
+            Insn::Widen {
+                reg: inner,
+                target_size,
+                sign: _,
+            } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, inner, my_prec);
+                    print_kw(ui, "as");
+                    ui.label(format!("i{}", target_size * 8));
+                });
+            }
+            Insn::Arith(arith_op, a, b) => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, a, my_prec);
+                    print_kw(ui, arith_op.symbol());
+                    render_expr(ui, ast, ssa, b, my_prec);
+                });
+            }
+            Insn::ArithK(arith_op, a, k) => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, a, my_prec);
+                    print_kw(ui, arith_op.symbol());
+                    ui.label(format!("{}", k));
+                });
+            }
+            Insn::Cmp(cmp_op, a, b) => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, a, my_prec);
+                    print_kw(ui, cmp_op.symbol());
+                    render_expr(ui, ast, ssa, b, my_prec);
+                });
+            }
+            Insn::Bool(bool_op, a, b) => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, a, my_prec);
+                    print_kw(ui, bool_op.symbol());
+                    render_expr(ui, ast, ssa, b, my_prec);
+                });
+            }
+            Insn::Not(a) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "!");
+                    render_expr(ui, ast, ssa, a, my_prec);
+                });
+            }
+            Insn::Call { callee, first_arg } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, callee, my_prec);
+                    print_kw(ui, "(");
+                    if let Some(arg) = first_arg {
+                        // show call args rendered as expressions
+                        for (ndx, a) in ssa.get_call_args(arg).enumerate() {
+                            if ndx > 0 {
+                                print_kw(ui, ",");
+                            }
+                            render_expr(ui, ast, ssa, a, my_prec);
+                        }
+                    }
+                    print_kw(ui, ")");
+                });
+            }
+            Insn::LoadMem { addr, size } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, addr, my_prec);
+                    print_kw(ui, ".*");
+                    print_kw(ui, &format!(".i{}", size));
+                });
+            }
+            Insn::StoreMem { addr, value } => {
+                ui.horizontal(|ui| {
+                    ui.label("(");
+                    render_expr(ui, ast, ssa, addr, my_prec);
+                    ui.label(")");
+                    print_kw(ui, ".*");
+                    print_kw(ui, ":=");
+                    render_expr(ui, ast, ssa, value, my_prec);
+                });
+            }
+            Insn::OverflowOf(r) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "overflow_of");
+                    render_expr(ui, ast, ssa, r, my_prec);
+                });
+            }
+            Insn::CarryOf(r) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "carry_of");
+                    render_expr(ui, ast, ssa, r, my_prec);
+                });
+            }
+            Insn::SignOf(r) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "sign_of");
+                    render_expr(ui, ast, ssa, r, my_prec);
+                });
+            }
+            Insn::IsZero(r) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "is_zero");
+                    render_expr(ui, ast, ssa, r, my_prec);
+                });
+            }
+            Insn::Parity(r) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "parity");
+                    render_expr(ui, ast, ssa, r, my_prec);
+                });
+            }
+            Insn::UndefinedBool => {
+                print_kw(ui, "undefined");
+                print_kw(ui, "bool");
+            }
+            Insn::UndefinedBytes { size } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, "undefined");
+                    ui.label(format!("bytes({})", size));
+                });
+            }
+            Insn::FuncArgument { index, reg_type: _ } => {
+                print_ident(ui, &format!("$arg{}", index));
+            }
+            Insn::Ancestral {
+                anc_name,
+                reg_type: _,
+            } => {
+                print_kw(ui, anc_name.name());
+            }
+            Insn::Phi => {
+                print_kw(ui, "phi");
+            }
+            Insn::Upsilon { value, phi_ref } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, ast, ssa, phi_ref, my_prec);
+                    print_kw(ui, ":=");
+                    render_expr(ui, ast, ssa, value, my_prec);
+                });
+            }
+
+            Insn::CArg { .. }
+            | Insn::Control(_)
+            | Insn::SetReturnValue(_)
+            | Insn::SetJumpCondition(_)
+            | Insn::SetJumpTarget(_) => {
+                print_error_tag(ui, &format!("unexpected as expr: {:?}", insn));
+            }
+
+            Insn::NotYetImplemented(msg) => {
+                print_error_tag(ui, &format!("not yet implemented: {:?}", insn));
+            }
+        }
+
+        if my_prec < parent_prec {
+            print_kw(ui, ")");
+        }
+    }
+
+    fn print_ident(ui: &mut egui::Ui, ident: &str) {
+        ui.label(ident);
+    }
+
+    fn print_kw(ui: &mut egui::Ui, kw: &str) {
+        ui.label(egui::RichText::new(kw).strong());
+    }
+
+    fn print_block_id(ui: &mut egui::Ui, bid: BlockID) {
+        ui.label(format!("♦{}", bid.as_number()));
+    }
+}
+
+mod ast_view_old {
     // This module is responsible for generating and displaying the Abstract Syntax Tree (AST)
     // from the SSA (Static Single Assignment) form of the decompiled code.
     // It focuses on creating a structured, navigable, and highlightable representation

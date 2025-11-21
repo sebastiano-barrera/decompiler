@@ -114,7 +114,7 @@ suitable alternative
     - [x] remove block labels (and everything else)
         - not all labels are going to be required, plus the new Stmt API already handles explicit placement of these where useful
 
-    - [ ] use the new Stmt API to render to interactive text
+    - [x] use the new Stmt API to render to interactive text
     - [ ] export to non-interactive text
 
     - [ ] clicking/hovering on an element sets the "cursor"
@@ -138,9 +138,17 @@ suitable alternative
     - [ ] context menu on things (right-click)
         - [ ] select parent AST node (corresponding value etc.)
 
+- [ ] restore "AST cleanup" features
+    - [ ] remove gotos that "look like they just jump to the next block"
+    - [ ] hide unused block labels
+
+
 - [ ] faster load from executable cache
     - link: https://github.com/rkyv/rkyv
     - link: https://crates.io/crates/epserde
+
+- [ ] AST edit cmd: invert if
+- [ ] AST edit cmd: change block order
 
 - [ ] use type info
     - [x] struct member accesses
@@ -158,15 +166,14 @@ suitable alternative
 
 --- The following are to be prioritized and grouped
 
-- [ ] custom block ordering
+- [x] custom block ordering
 
     - does it make sense for decompiler_cli?
 
-- [ ] gui: user-editable identifiers/names
+- [x] go back to single executable, single function at a time
+    - increased code complexity is not worth it. can be paid to higher benefit later
 
-- [ ] ast: clickable marker for inline values
-    - in general, it should be possible to see ANY correspondence between AST parts and
-    SSA insns
+- [ ] gui: user-editable identifiers/names
 
 - [ ] gui: add ASM view
     - make it possible to show/hide
@@ -175,25 +182,19 @@ suitable alternative
     - [ ] make ASM, SSA toggleable
         - [ ] refactor: make views more independent from each other and from the "column allocation"
 
-- [ ] go back to single executable, single function at a time
-    - increased code complexity is not worth it. can be paid to higher benefit later
-
 - [ ] attach errors/warnings to ssa instructions wherever applicable
     - reasonable approximation: create a panel for tracing that allows searching,
     also based on language elements (registers, types, etc.)
 
 - [ ] gui: multiple functions (tabs?)
 
-- [ ] fully data-driven asm->mil?
-
 - [ ] remove horizontal padding/margin in ast's Flow seqs
+
+- [ ] multiple views over the same function?
+    - cross-view highlighting or highlight per view?
+        - when hovering a register/block, highlight every corresponding item in every view (both same view and the others)
 
 - [ ] better syntax for deref
 
-- [ ] cross-view highlighting
-    - when hovering a register/block, highlight every corresponding item in every view (both same view and the others)
-
-- [ ] highlight full blocks, too
-
-- [ ] arbitrary block ordering for AST
-    - eventually going to become user-editable
+- [-] fully data-driven asm->mil?
+    - out of scope, too difficult right now (plus LLMs cover many gaps)
