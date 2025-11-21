@@ -238,7 +238,11 @@ impl<'a> AstBuilder<'a> {
         match tgt {
             cfg::Dest::Ext(addr) => self.push_stmt(Stmt::JumpExternal(addr)),
             cfg::Dest::Block(tgt_bid) => {
-                if self.block_order_rev.last().copied() == Some(tgt_bid) {
+                if self.block_order_rev.last().copied() == Some(tgt_bid) &&
+                    // tgt has only one predecessor (then it must be us)
+                    self.ssa.cfg().block_preds(tgt_bid).len() == 1
+                {
+                    debug_assert_eq!(self.ssa.cfg().block_preds(tgt_bid), &[src_bid]);
                     self.block_order_rev.pop();
                     self.build_block(tgt_bid)
                 } else {
