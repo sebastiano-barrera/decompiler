@@ -815,6 +815,10 @@ impl<T: Clone> RegMap<T> {
         RegMap(inner)
     }
 
+    pub fn empty() -> Self {
+        RegMap(Vec::new())
+    }
+
     pub fn reg_count(&self) -> u16 {
         self.0.len().try_into().unwrap()
     }
@@ -838,6 +842,40 @@ impl<T: Clone> RegMap<T> {
         let elements: Vec<_> = self.items().map(|(reg, value)| f(reg, value)).collect();
         assert_eq!(elements.len(), self.0.len());
         RegMap(elements)
+    }
+}
+// unit tests for empty RegMap:
+#[cfg(test)]
+mod regmap_tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_regmap() {
+        let regmap: RegMap<usize> = RegMap::empty();
+        assert_eq!(regmap.reg_count(), 0);
+        let mapped = regmap.map(|reg, val| (reg, *val));
+        assert_eq!(mapped.reg_count(), 0);
+    }
+
+    #[test]
+    fn test_empty_map_fill_and_items() {
+        let mut regmap: RegMap<i32> = RegMap::empty();
+        // fill should be a no-op and must not panic on empty map
+        regmap.fill(42);
+        assert_eq!(regmap.reg_count(), 0);
+        assert_eq!(regmap.items().count(), 0);
+        assert!(regmap.items().next().is_none());
+    }
+
+    #[test]
+    fn test_empty_map_map_and_clone() {
+        let regmap: RegMap<usize> = RegMap::empty();
+        let mapped: RegMap<(mil::Reg, usize)> = regmap.map(|reg, val| (reg, *val));
+        assert_eq!(mapped.reg_count(), 0);
+
+        // cloning an empty RegMap preserves emptiness
+        let cloned = regmap.clone();
+        assert_eq!(cloned.reg_count(), 0);
     }
 }
 

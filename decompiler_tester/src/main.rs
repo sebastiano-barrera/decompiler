@@ -59,13 +59,9 @@ struct Exe {
 struct App {
     exe: Exe,
     function_selector: Option<FunctionSelector>,
-    stage_func: Option<Result<StageFunc, decompiler::Error>>,
+    stage_func: Option<Result<FunctionView, decompiler::Error>>,
 }
-struct StageFunc {
-    df: DecompiledFunction,
-    is_warnings_visible: bool,
-}
-struct DecompiledFunction {
+struct FunctionView {
     df: decompiler::DecompiledFunction,
     problems_is_visible: bool,
     problems_title: String,
@@ -73,209 +69,8 @@ struct DecompiledFunction {
 
     assembly: Assembly,
 
-    hl: hl::Highlight,
+    hl: hl::State,
     ast: Option<decompiler::Ast>,
-}
-
-mod hl {
-    #[derive(Default)]
-    pub(crate) struct Highlight {
-        // directly tracking user input (mouse hover, clicks)
-        pub(super) reg: Item<decompiler::Reg>,
-        pub(super) block: Item<decompiler::BlockID>,
-        pub(super) asm_line_ndx: Item<usize>,
-    }
-
-    #[derive(PartialEq, Eq)]
-    pub(crate) struct Item<T> {
-        pinned: Option<T>,
-        is_pinned_dirty: bool,
-        // used for "scroll to"
-        was_pinned_just_cleared: bool,
-        // `get` reads `hovered`, while `set` writes to `hovered_next_frame`
-        // This allows to easily detect:
-        //
-        // 1. whether the hovered selection has changed (and update dependent
-        // data as a consequence);
-        //
-        // 2. whether the mouse is currently not hovering anything (because
-        // that's on the *absence* of mousehover events, but we still need to
-        // know what happened on the last frame!)
-        hovered: Option<T>,
-        hovered_next_frame: Option<T>,
-    }
-    impl<T> Default for Item<T> {
-        fn default() -> Self {
-            Item {
-                pinned: None,
-                is_pinned_dirty: false,
-                was_pinned_just_cleared: false,
-                hovered: None,
-                hovered_next_frame: None,
-            }
-        }
-    }
-    impl<T: PartialEq + Eq> Item<T> {
-        pub(super) fn pinned(&self) -> Option<&T> {
-            self.pinned.as_ref()
-        }
-        pub(super) fn did_pinned_just_change(&self) -> bool {
-            self.was_pinned_just_cleared
-        }
-        pub(super) fn set_pinned(&mut self, value: Option<T>) {
-            self.pinned = value;
-            self.is_pinned_dirty = true;
-        }
-        pub(super) fn hovered(&self) -> Option<&T> {
-            self.hovered.as_ref()
-        }
-        pub(super) fn set_hovered(&mut self, value: Option<T>) {
-            self.hovered_next_frame = value;
-        }
-        fn tick_frame(&mut self) -> bool {
-            let is_pinned_dirty = self.is_pinned_dirty;
-            self.is_pinned_dirty = false;
-            self.was_pinned_just_cleared = is_pinned_dirty;
-
-            let next_value = self.hovered_next_frame.take();
-            let is_hovered_dirty = self.hovered != next_value;
-            self.hovered = next_value;
-
-            is_pinned_dirty || is_hovered_dirty
-        }
-        pub fn colors_for(&self, value: &T, colors: &Colors) -> FrameColors {
-            let is_pinned = self.pinned() == Some(value);
-            let is_hovered = self.hovered() == Some(value);
-
-            let background = if is_pinned {
-                colors.background_pinned
-            } else {
-                colors.background
-            };
-
-            let text = if is_pinned {
-                Some(colors.text_pinned)
-            } else {
-                colors.text
-            };
-
-            let border = if is_hovered {
-                colors.border_hovered
-            } else if is_pinned {
-                colors.border_pinned
-            } else {
-                egui::Color32::TRANSPARENT
-            };
-
-            FrameColors {
-                background,
-                text,
-                border,
-            }
-        }
-    }
-
-    #[derive(Default, Clone, Copy, PartialEq, Eq)]
-    pub struct AsmLineRelation {
-        /// True iff the assembly insn in this line is related to the selected
-        /// (pinned) SSA instruction.
-        pub ssa: bool,
-        /// True iff the assembly insn in this line is in the same control-flow
-        /// graph block as the selected (pinned) block.
-        pub block: bool,
-    }
-
-    pub struct Colors {
-        pub background: egui::Color32,
-        pub background_pinned: egui::Color32,
-        /// Text color. Set to `None` to keep the default text color.
-        pub text: Option<egui::Color32>,
-        pub text_pinned: egui::Color32,
-        pub border_hovered: egui::Color32,
-        pub border_pinned: egui::Color32,
-    }
-
-    impl Default for Colors {
-        fn default() -> Self {
-            Colors {
-                background: egui::Color32::TRANSPARENT,
-                background_pinned: egui::Color32::BLACK,
-                text: None,
-                text_pinned: egui::Color32::WHITE,
-                border_hovered: egui::Color32::TRANSPARENT,
-                border_pinned: egui::Color32::TRANSPARENT,
-            }
-        }
-    }
-
-    pub const COLOR_BLUE_LIGHT: egui::Color32 = egui::Color32::from_rgb(166, 206, 227);
-    pub const COLOR_BLUE_DARK: egui::Color32 = egui::Color32::from_rgb(31, 120, 180);
-    pub const COLOR_GREEN_LIGHT: egui::Color32 = egui::Color32::from_rgb(178, 223, 138);
-    pub const COLOR_GREEN_DARK: egui::Color32 = egui::Color32::from_rgb(51, 160, 44);
-    pub const COLOR_RED_LIGHT: egui::Color32 = egui::Color32::from_rgb(251, 154, 153);
-    pub const COLOR_RED_DARK: egui::Color32 = egui::Color32::from_rgb(227, 26, 28);
-    pub const COLOR_ORANGE_LIGHT: egui::Color32 = egui::Color32::from_rgb(253, 191, 111);
-    pub const COLOR_ORANGE_DARK: egui::Color32 = egui::Color32::from_rgb(255, 127, 0);
-    pub const COLOR_PURPLE_LIGHT: egui::Color32 = egui::Color32::from_rgb(202, 178, 214);
-    pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
-    pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
-    pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
-
-    /// Colors of a specific link in a specific frame.
-    ///
-    /// Given that a single value is pinned/hovered at any given time, a link
-    /// has a specific background, text, and border color.
-    pub struct FrameColors {
-        pub background: egui::Color32,
-        /// Optional text override color.
-        ///
-        /// When None, use egui's default.
-        pub text: Option<egui::Color32>,
-        pub border: egui::Color32,
-    }
-
-    pub fn highlight<T: PartialEq + Eq + Clone>(
-        ui: &mut egui::Ui,
-        value: &T,
-        hli: &mut Item<T>,
-        colors: &Colors,
-        add_contents: impl FnOnce(&mut egui::Ui) -> egui::Response,
-    ) -> egui::Response {
-        let colors = hli.colors_for(value, colors);
-        let res = egui::Frame::new()
-            .fill(colors.background)
-            .stroke(egui::Stroke {
-                width: 1.0,
-                color: colors.border,
-            })
-            .show(ui, |ui| {
-                ui.visuals_mut().override_text_color = colors.text;
-                add_contents(ui)
-            })
-            .inner;
-
-        anchor_interaction(ui, value, hli, &res);
-
-        res
-    }
-
-    pub fn anchor_interaction<T: PartialEq + Eq + Clone>(
-        ui: &mut egui::Ui,
-        value: &T,
-        hli: &mut Item<T>,
-        res: &egui::Response,
-    ) {
-        let is_pinned = hli.pinned() == Some(value);
-        if res.clicked() {
-            // toggle selection (TODO refactor into 'toggle' method)
-            hli.set_pinned(if is_pinned { None } else { Some(value.clone()) });
-        }
-        if res.hovered() {
-            // toggle selection
-            hli.set_hovered(Some(value.clone()));
-            ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
-        }
-    }
 }
 
 impl eframe::App for App {
@@ -387,7 +182,7 @@ impl App {
     }
 }
 
-impl StageFunc {
+impl FunctionView {
     fn new(df: decompiler::DecompiledFunction, exe: &Executable) -> Self {
         let title = format!(
             "{}{} warnings",
@@ -401,32 +196,32 @@ impl StageFunc {
 
         let ast = df
             .ssa()
-            .as_ref()
             .map(|ssa| decompiler::AstBuilder::new(ssa, exe.types()).build());
 
-        StageFunc {
-            df: DecompiledFunction {
-                df,
-                problems_is_visible: false,
-                problems_title: title,
-                problems_error: error_label,
-                assembly,
-                ast,
-                hl: hl::Highlight::default(),
-            },
-            is_warnings_visible: false,
+        FunctionView {
+            df,
+            problems_is_visible: false,
+            problems_title: title,
+            problems_error: error_label,
+            assembly,
+            ast,
+            hl: hl::State::empty(),
         }
     }
 
-    /// Show widgets specific for this function to be laid out on the top bar
+    /// Show widgets specific for this function to be laid outj on the top bar
     /// (which is visually located at the executable level).
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
-        ui.label(self.df.df.name());
+        ui.label(self.df.name());
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
+        self.hl.frame_started();
         self.show_panels(ui);
         self.show_central(ui);
+        if !self.hl.hovered.was_set_this_frame() {
+            self.hl.hovered.set_focus(None);
+        }
     }
 
     /// Show the side panels (top, bottom, right, left) to be laid out around
@@ -434,7 +229,7 @@ impl StageFunc {
     ///
     /// To be called before `show_central`.
     fn show_panels(&mut self, ui: &mut egui::Ui) {
-        if self.df.problems_is_visible {
+        if self.problems_is_visible {
             egui::TopBottomPanel::bottom("func_errors")
                 .resizable(true)
                 .default_height(ui.text_style_height(&egui::TextStyle::Body) * 10.0)
@@ -443,15 +238,15 @@ impl StageFunc {
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             // TODO cache
-                            ui.heading(&self.df.problems_title);
+                            ui.heading(&self.problems_title);
 
-                            if let Some(error_label) = &self.df.problems_error {
+                            if let Some(error_label) = &self.problems_error {
                                 ui.label(
                                     egui::RichText::new(error_label).color(egui::Color32::DARK_RED),
                                 );
                             }
 
-                            for warn in self.df.df.warnings() {
+                            for warn in self.df.warnings() {
                                 // TODO cache
                                 ui.label(warn.to_string());
                             }
@@ -472,9 +267,9 @@ impl StageFunc {
     }
 
     fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
-        match (self.df.df.ssa(), self.df.ast.as_ref()) {
+        match (self.df.ssa(), self.ast.as_ref()) {
             (Some(ssa), Some(ast)) => {
-                ast::render(ui, ast, ssa);
+                ast::render(ui, ast, ssa, &mut self.hl);
             }
             _ => {
                 ui.centered_and_justified(|ui| {
@@ -485,7 +280,8 @@ impl StageFunc {
     }
 }
 
-impl DecompiledFunction {
+impl FunctionView {
+    #[cfg(any())]
     fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
         egui::ScrollArea::both()
@@ -548,58 +344,6 @@ impl DecompiledFunction {
     }
 }
 
-fn label_reg_def(
-    ui: &mut egui::Ui,
-    reg: decompiler::Reg,
-    hl: &mut hl::Highlight,
-    text: egui::WidgetText,
-) -> egui::Response {
-    hl::highlight(ui, &reg, &mut hl.reg, &TextRole::RegDef.colors(), |ui| {
-        ui.label(text)
-    })
-}
-
-fn label_reg_ref(
-    ui: &mut egui::Ui,
-    reg: decompiler::Reg,
-    hl: &mut hl::Highlight,
-    text: egui::WidgetText,
-) -> egui::Response {
-    hl::highlight(ui, &reg, &mut hl.reg, &TextRole::RegRef.colors(), |ui| {
-        ui.label(text)
-    })
-}
-
-fn label_block_def(
-    ui: &mut egui::Ui,
-    bid: decompiler::BlockID,
-    hl: &mut hl::Highlight,
-    text: egui::WidgetText,
-) -> egui::Response {
-    hl::highlight(
-        ui,
-        &bid,
-        &mut hl.block,
-        &TextRole::BlockDef.colors(),
-        |ui| ui.label(text),
-    )
-}
-
-fn label_block_ref(
-    ui: &mut egui::Ui,
-    bid: decompiler::BlockID,
-    hl: &mut hl::Highlight,
-    text: egui::WidgetText,
-) -> egui::Response {
-    hl::highlight(
-        ui,
-        &bid,
-        &mut hl.block,
-        &TextRole::BlockRef.colors(),
-        |ui| ui.label(text),
-    )
-}
-
 fn load_executable(path: &Path) -> Result<Exe> {
     use std::io::Read as _;
 
@@ -614,15 +358,15 @@ fn load_executable(path: &Path) -> Result<Exe> {
     .try_build()
 }
 
-fn load_function(exe: &mut Exe, function_name: &str) -> Result<StageFunc, decompiler::Error> {
+fn load_function(exe: &mut Exe, function_name: &str) -> Result<FunctionView, decompiler::Error> {
     let mut stage_func = exe.with_exe_mut(|exe| {
         let df = exe.decompile_function(function_name)?;
-        Ok(StageFunc::new(df, exe))
+        Ok(FunctionView::new(df, exe))
     });
 
-    if let Ok(stage_func) = &mut stage_func {
-        stage_func.df.problems_is_visible =
-            stage_func.df.df.error().is_some() || !stage_func.df.df.warnings().is_empty();
+    if let Ok(func_view) = &mut stage_func {
+        func_view.problems_is_visible =
+            func_view.df.error().is_some() || !func_view.df.warnings().is_empty();
     }
 
     stage_func
@@ -738,225 +482,174 @@ impl Assembly {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum TextRole {
-    Generic,
-    RegRef, // TODO Rename to 'RegRef'
-    RegDef,
-    BlockDef,
-    BlockRef,
-    Literal, // TODO Rename to 'Literal'
-    Kw,      // TODO Rename to 'keyword'
-    Error,
-    Ident,
-}
-impl TextRole {
-    fn colors(&self) -> hl::Colors {
-        match self {
-            TextRole::Generic => hl::Colors::default(),
-            TextRole::Ident => hl::Colors {
-                text: Some(hl::COLOR_ORANGE_DARK),
-                ..Default::default()
-            },
-            TextRole::RegRef => hl::Colors {
-                background_pinned: hl::COLOR_BLUE_LIGHT,
-                text_pinned: egui::Color32::BLACK,
-                border_hovered: hl::COLOR_BLUE_LIGHT,
-                ..Default::default()
-            },
-            TextRole::RegDef => hl::Colors {
-                background_pinned: hl::COLOR_BLUE_DARK,
-                border_hovered: hl::COLOR_BLUE_DARK,
-                ..Default::default()
-            },
-            TextRole::BlockRef => hl::Colors {
-                background_pinned: hl::COLOR_GREEN_LIGHT,
-                text_pinned: egui::Color32::BLACK,
-                border_hovered: hl::COLOR_GREEN_LIGHT,
-                ..Default::default()
-            },
-            TextRole::BlockDef => hl::Colors {
-                background_pinned: hl::COLOR_GREEN_DARK,
-                border_hovered: hl::COLOR_GREEN_DARK,
-                ..Default::default()
-            },
-            TextRole::Literal => hl::Colors {
-                text: Some(hl::COLOR_GREEN_DARK),
-                ..Default::default()
-            },
-            TextRole::Kw => hl::Colors {
-                background_pinned: egui::Color32::WHITE,
-                text_pinned: egui::Color32::BLACK,
-                border_hovered: egui::Color32::BLACK,
-                border_pinned: egui::Color32::BLACK,
-                ..Default::default()
-            },
-            TextRole::Error => hl::Colors {
-                background: hl::COLOR_RED_DARK,
-                text: Some(egui::Color32::WHITE),
-                ..Default::default()
-            },
-        }
-    }
-}
-
 mod ast {
     use decompiler::{
         BlockID, Insn,
         ast::{Stmt, StmtID},
     };
 
-    pub(crate) fn render(ui: &mut egui::Ui, ast: &decompiler::Ast, ssa: &decompiler::SSAProgram) {
-        render_stmt(ui, ast, ast.root(), ssa)
-    }
-
-    fn render_stmt(
+    use super::hl;
+    use crate::theme::{self, Colors};
+    pub fn render(
         ui: &mut egui::Ui,
         ast: &decompiler::Ast,
-        sid: StmtID,
         ssa: &decompiler::SSAProgram,
+        hl: &mut hl::State,
     ) {
+        let mut s = State { ast, ssa, hl };
+        render_stmt(ui, &mut s, ast.root())
+    }
+
+    struct State<'a> {
+        ast: &'a decompiler::Ast,
+        ssa: &'a decompiler::SSAProgram,
+        hl: &'a mut hl::State,
+    }
+
+    fn render_stmt(ui: &mut egui::Ui, s: &mut State<'_>, sid: StmtID) {
         // TODO replace tail-calls with a loop continue (or similar)
-        ui.vertical(|ui| match ast.get(sid) {
-            Stmt::NamedBlock { bid, body } => {
-                ui.horizontal(|ui| {
-                    print_block_id(ui, *bid);
-                    render_stmt(ui, ast, *body, ssa);
-                });
-            }
-            Stmt::Let { name, value, body } => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "let");
-                    print_ident(ui, name);
-                    print_kw(ui, "=");
-                    render_expr_def(ui, ast, ssa, *value, 0);
-                    print_kw(ui, "in");
-                });
-                render_stmt(ui, ast, *body, ssa);
-            }
-            Stmt::LetPhi { name, body } => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "letphi");
-                    print_ident(ui, name);
-                });
-                render_stmt(ui, ast, *body, ssa);
-            }
-            Stmt::Seq { first, then } => {
-                render_stmt(ui, ast, *first, ssa);
-                render_stmt(ui, ast, *then, ssa);
-            }
-            Stmt::Eval(reg) => {
-                ui.horizontal(|ui| {
-                    render_expr_def(ui, ast, ssa, *reg, 0);
-                });
-            }
-            Stmt::If { cond, cons, alt } => {
-                ui.vertical(|ui| {
+        ui.vertical(|ui| {
+            match s.ast.get(sid) {
+                Stmt::NamedBlock { bid, body } => {
                     ui.horizontal(|ui| {
-                        print_kw(ui, "if");
-                        match *cond {
-                            Some(cond) => {
-                                render_expr_def(ui, ast, ssa, cond, 0);
+                        print_block_def(ui, s, *bid);
+                        render_stmt(ui, s, *body);
+                    });
+                }
+                Stmt::Let { name, value, body } => {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "let");
+                        print_ident_def(ui, s, name, hl::Focus::Reg(*value));
+                        print_kw(ui, s, "=");
+                        render_expr_def(ui, s, *value, 0);
+                        print_kw(ui, s, "in");
+                    });
+                    render_stmt(ui, s, *body);
+                }
+                Stmt::LetPhi { name, body } => {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "letphi");
+                        // no reg available here in the AST node; use a placeholder reg index 0
+                        print_ident_def(ui, s, name, hl::Focus::Reg(decompiler::Reg(0)));
+                    });
+                    render_stmt(ui, s, *body);
+                }
+                Stmt::Seq { first, then } => {
+                    render_stmt(ui, s, *first);
+                    render_stmt(ui, s, *then);
+                }
+                Stmt::Eval(reg) => {
+                    ui.horizontal(|ui| {
+                        render_expr_def(ui, s, *reg, 0);
+                    });
+                }
+                Stmt::If { cond, cons, alt } => {
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            print_kw(ui, s, "if");
+                            match *cond {
+                                Some(cond) => {
+                                    render_expr_def(ui, s, cond, 0);
+                                }
+                                None => {
+                                    print_error_tag(ui, s, "undefined condition");
+                                }
                             }
-                            None => {
-                                print_error_tag(ui, "undefined condition");
-                            }
-                        }
+                        });
+                        ui.horizontal(|ui| {
+                            print_kw(ui, s, "then");
+                            render_stmt(ui, s, *cons);
+                        });
+                        ui.horizontal(|ui| {
+                            print_kw(ui, s, "else");
+                            render_stmt(ui, s, *alt);
+                        });
                     });
+                }
+                Stmt::Return(reg) => {
                     ui.horizontal(|ui| {
-                        print_kw(ui, "then");
-                        render_stmt(ui, ast, *cons, ssa);
+                        print_kw(ui, s, "return");
+                        render_expr_def(ui, s, *reg, 0);
                     });
+                }
+                Stmt::JumpUndefined => {
                     ui.horizontal(|ui| {
-                        print_kw(ui, "else");
-                        render_stmt(ui, ast, *alt, ssa);
+                        print_kw(ui, s, "goto");
+                        print_kw(ui, s, "undefined");
                     });
-                });
-            }
-            Stmt::Return(reg) => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "return");
-                    render_expr_def(ui, ast, ssa, *reg, 0);
-                });
-            }
-            Stmt::JumpUndefined => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "goto");
-                    print_kw(ui, "undefined");
-                });
-            }
-            Stmt::JumpExternal(addr) => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "goto");
-                    ui.label(format!("0x{:x}", *addr));
-                });
-            }
-            Stmt::JumpIndirect(reg) => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "goto");
-                    ui.label("(");
-                    render_expr_def(ui, ast, ssa, *reg, 0);
-                    ui.label(").*");
-                });
-            }
-            Stmt::Loop(block_id) => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "loop");
-                    print_block_id(ui, *block_id);
-                });
-            }
-            Stmt::Jump(block_id) => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, "goto");
-                    print_block_id(ui, *block_id);
-                });
+                }
+                Stmt::JumpExternal(addr) => {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "goto");
+                        ui.label(format!("0x{:x}", *addr));
+                    });
+                }
+                Stmt::JumpIndirect(reg) => {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "goto");
+                        ui.label("(");
+                        render_expr_def(ui, s, *reg, 0);
+                        ui.label(").*");
+                    });
+                }
+                Stmt::Loop(block_id) => {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "loop");
+                        print_block_ref(ui, s, *block_id);
+                    });
+                }
+                Stmt::Jump(block_id) => {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "goto");
+                        print_block_ref(ui, s, *block_id);
+                    });
+                }
             }
         });
     }
 
-    fn print_error_tag(ui: &mut egui::Ui, text: &str) {
+    fn print_error_tag(ui: &mut egui::Ui, s: &mut State<'_>, text: &str) {
         ui.label(egui::RichText::new(text).color(egui::Color32::DARK_RED));
     }
 
     fn render_expr(
         ui: &mut egui::Ui,
-        ast: &decompiler::Ast,
-        ssa: &decompiler::SSAProgram,
+        s: &mut State<'_>,
         reg: decompiler::Reg,
         parent_prec: decompiler::PrecedenceLevel,
     ) {
-        if ast.is_value_named(reg) {
-            ui.label(format!("r{}", reg.reg_index()));
+        if s.ast.is_value_named(reg) {
+            let text = format!("r{}", reg.reg_index());
+            print_ident_ref(ui, s, &text, hl::Focus::Reg(reg));
         } else {
-            render_expr_def(ui, ast, ssa, reg, parent_prec);
+            render_expr_def(ui, s, reg, parent_prec);
         }
     }
 
     fn render_expr_def(
         ui: &mut egui::Ui,
-        ast: &decompiler::Ast,
-        ssa: &decompiler::SSAProgram,
+        s: &mut State<'_>,
         reg: decompiler::Reg,
         parent_prec: decompiler::PrecedenceLevel,
     ) {
-        let Some(insn) = ssa.get(reg) else {
-            print_error_tag(ui, "invalid reg");
+        let Some(insn) = s.ssa.get(reg) else {
+            print_error_tag(ui, s, "invalid reg");
             return;
         };
 
         let my_prec = decompiler::precedence(&insn);
         if my_prec < parent_prec {
-            print_kw(ui, "(");
+            print_kw(ui, s, "(");
         }
         match insn {
             Insn::Void => {
-                print_kw(ui, "void");
+                print_kw(ui, s, "void");
             }
             Insn::True => {
-                print_kw(ui, "true");
+                print_kw(ui, s, "true");
             }
             Insn::False => {
-                print_kw(ui, "false");
+                print_kw(ui, s, "false");
             }
             Insn::Bytes(bytes) => {
                 ui.label(format!("{:?}", bytes.as_slice()));
@@ -965,19 +658,19 @@ mod ast {
                 ui.label(format!("{}", value));
             }
             Insn::Get(r) => {
-                render_expr(ui, ast, ssa, r, my_prec);
+                render_expr(ui, s, r, my_prec);
             }
             Insn::Part { src, offset, size } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, src, my_prec);
+                    render_expr(ui, s, src, my_prec);
                     ui.label(format!("[{} .. {}]", offset, offset + size));
                 });
             }
             Insn::Concat { lo, hi } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, hi, my_prec);
-                    print_kw(ui, "++");
-                    render_expr(ui, ast, ssa, lo, my_prec);
+                    render_expr(ui, s, hi, my_prec);
+                    print_kw(ui, s, "++");
+                    render_expr(ui, s, lo, my_prec);
                 });
             }
             Insn::StructGetMember {
@@ -986,9 +679,9 @@ mod ast {
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, struct_value, my_prec);
-                    print_kw(ui, ".");
-                    print_ident(ui, name);
+                    render_expr(ui, s, struct_value, my_prec);
+                    print_kw(ui, s, ".");
+                    print_ident(ui, s, name);
                 });
             }
             Insn::Struct {
@@ -997,10 +690,10 @@ mod ast {
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "struct");
-                    print_ident(ui, type_name);
+                    print_kw(ui, s, "struct");
+                    print_ident(ui, s, type_name);
                     if let Some(first) = first_member {
-                        render_expr(ui, ast, ssa, first, my_prec);
+                        render_expr(ui, s, first, my_prec);
                     } else {
                         ui.label("(no members)");
                     }
@@ -1008,13 +701,13 @@ mod ast {
             }
             Insn::StructMember { name, value, next } => {
                 ui.horizontal(|ui| {
-                    print_ident(ui, name);
-                    print_kw(ui, ":");
-                    render_expr(ui, ast, ssa, value, my_prec);
-                    print_kw(ui, ";");
+                    print_ident(ui, s, name);
+                    print_kw(ui, s, ":");
+                    render_expr(ui, s, value, my_prec);
+                    print_kw(ui, s, ";");
                 });
                 if let Some(next_val) = next {
-                    render_expr(ui, ast, ssa, next_val, my_prec);
+                    render_expr(ui, s, next_val, my_prec);
                 }
             }
             Insn::ArrayGetElement {
@@ -1023,7 +716,7 @@ mod ast {
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, array, my_prec);
+                    render_expr(ui, s, array, my_prec);
                     ui.label(format!("[{}]", index));
                 });
             }
@@ -1033,135 +726,135 @@ mod ast {
                 sign: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, inner, my_prec);
-                    print_kw(ui, "as");
+                    render_expr(ui, s, inner, my_prec);
+                    print_kw(ui, s, "as");
                     ui.label(format!("i{}", target_size * 8));
                 });
             }
             Insn::Arith(arith_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, a, my_prec);
-                    print_kw(ui, arith_op.symbol());
-                    render_expr(ui, ast, ssa, b, my_prec);
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s, arith_op.symbol());
+                    render_expr(ui, s, b, my_prec);
                 });
             }
             Insn::ArithK(arith_op, a, k) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, a, my_prec);
-                    print_kw(ui, arith_op.symbol());
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s, arith_op.symbol());
                     ui.label(format!("{}", k));
                 });
             }
             Insn::Cmp(cmp_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, a, my_prec);
-                    print_kw(ui, cmp_op.symbol());
-                    render_expr(ui, ast, ssa, b, my_prec);
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s, cmp_op.symbol());
+                    render_expr(ui, s, b, my_prec);
                 });
             }
             Insn::Bool(bool_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, a, my_prec);
-                    print_kw(ui, bool_op.symbol());
-                    render_expr(ui, ast, ssa, b, my_prec);
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s, bool_op.symbol());
+                    render_expr(ui, s, b, my_prec);
                 });
             }
             Insn::Not(a) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "!");
-                    render_expr(ui, ast, ssa, a, my_prec);
+                    print_kw(ui, s, "!");
+                    render_expr(ui, s, a, my_prec);
                 });
             }
             Insn::Call { callee, first_arg } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, callee, my_prec);
-                    print_kw(ui, "(");
+                    render_expr(ui, s, callee, my_prec);
+                    print_kw(ui, s, "(");
                     if let Some(arg) = first_arg {
                         // show call args rendered as expressions
-                        for (ndx, a) in ssa.get_call_args(arg).enumerate() {
+                        for (ndx, a) in s.ssa.get_call_args(arg).enumerate() {
                             if ndx > 0 {
-                                print_kw(ui, ",");
+                                print_kw(ui, s, ",");
                             }
-                            render_expr(ui, ast, ssa, a, my_prec);
+                            render_expr(ui, s, a, my_prec);
                         }
                     }
-                    print_kw(ui, ")");
+                    print_kw(ui, s, ")");
                 });
             }
             Insn::LoadMem { addr, size } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, addr, my_prec);
-                    print_kw(ui, ".*");
-                    print_kw(ui, &format!(".i{}", size));
+                    render_expr(ui, s, addr, my_prec);
+                    print_kw(ui, s, ".*");
+                    print_kw(ui, s, &format!(".i{}", size));
                 });
             }
             Insn::StoreMem { addr, value } => {
                 ui.horizontal(|ui| {
                     ui.label("(");
-                    render_expr(ui, ast, ssa, addr, my_prec);
+                    render_expr(ui, s, addr, my_prec);
                     ui.label(")");
-                    print_kw(ui, ".*");
-                    print_kw(ui, ":=");
-                    render_expr(ui, ast, ssa, value, my_prec);
+                    print_kw(ui, s, ".*");
+                    print_kw(ui, s, ":=");
+                    render_expr(ui, s, value, my_prec);
                 });
             }
             Insn::OverflowOf(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "overflow_of");
-                    render_expr(ui, ast, ssa, r, my_prec);
+                    print_kw(ui, s, "overflow_of");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
             Insn::CarryOf(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "carry_of");
-                    render_expr(ui, ast, ssa, r, my_prec);
+                    print_kw(ui, s, "carry_of");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
             Insn::SignOf(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "sign_of");
-                    render_expr(ui, ast, ssa, r, my_prec);
+                    print_kw(ui, s, "sign_of");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
             Insn::IsZero(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "is_zero");
-                    render_expr(ui, ast, ssa, r, my_prec);
+                    print_kw(ui, s, "is_zero");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
             Insn::Parity(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "parity");
-                    render_expr(ui, ast, ssa, r, my_prec);
+                    print_kw(ui, s, "parity");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
             Insn::UndefinedBool => {
-                print_kw(ui, "undefined");
-                print_kw(ui, "bool");
+                print_kw(ui, s, "undefined");
+                print_kw(ui, s, "bool");
             }
             Insn::UndefinedBytes { size } => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, "undefined");
+                    print_kw(ui, s, "undefined");
                     ui.label(format!("bytes({})", size));
                 });
             }
             Insn::FuncArgument { index, reg_type: _ } => {
-                print_ident(ui, &format!("$arg{}", index));
+                print_ident(ui, s, &format!("$arg{}", index));
             }
             Insn::Ancestral {
                 anc_name,
                 reg_type: _,
             } => {
-                print_kw(ui, anc_name.name());
+                print_kw(ui, s, anc_name.name());
             }
             Insn::Phi => {
-                print_kw(ui, "phi");
+                print_kw(ui, s, "phi");
             }
             Insn::Upsilon { value, phi_ref } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, ast, ssa, phi_ref, my_prec);
-                    print_kw(ui, ":=");
-                    render_expr(ui, ast, ssa, value, my_prec);
+                    render_expr(ui, s, phi_ref, my_prec);
+                    print_kw(ui, s, ":=");
+                    render_expr(ui, s, value, my_prec);
                 });
             }
 
@@ -1170,900 +863,213 @@ mod ast {
             | Insn::SetReturnValue(_)
             | Insn::SetJumpCondition(_)
             | Insn::SetJumpTarget(_) => {
-                print_error_tag(ui, &format!("unexpected as expr: {:?}", insn));
+                print_error_tag(ui, s, &format!("unexpected as expr: {:?}", insn));
             }
 
             Insn::NotYetImplemented(msg) => {
-                print_error_tag(ui, &format!("not yet implemented: {:?}", insn));
+                print_error_tag(ui, s, &format!("not yet implemented: {:?}", insn));
             }
         }
 
         if my_prec < parent_prec {
-            print_kw(ui, ")");
+            print_kw(ui, s, ")");
         }
     }
 
-    fn print_ident(ui: &mut egui::Ui, ident: &str) {
+    fn print_ident(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str) {
         ui.label(ident);
     }
+    fn print_ident_def(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str, focus: hl::Focus) {
+        let colors = theme::colors(focus, theme::Role::Definition);
+        active_label(ui, s, focus, colors, ident);
+    }
+    fn print_ident_ref(ui: &mut egui::Ui, s: &mut State, ident: &str, focus: hl::Focus) {
+        let colors = theme::colors(focus, theme::Role::Reference);
+        active_label(ui, s, focus, colors, ident);
+    }
 
-    fn print_kw(ui: &mut egui::Ui, kw: &str) {
+    fn print_kw(ui: &mut egui::Ui, s: &mut State<'_>, kw: &str) {
         ui.label(egui::RichText::new(kw).strong());
     }
 
-    fn print_block_id(ui: &mut egui::Ui, bid: BlockID) {
-        ui.label(format!("♦{}", bid.as_number()));
+    fn print_block_def(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
+        let text = format!("♦{}", bid.as_number());
+        let colors = theme::colors(hl::Focus::Block(bid), theme::Role::Definition);
+        active_label(ui, s, hl::Focus::Block(bid), colors, &text);
+    }
+    fn print_block_ref(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
+        let text = format!("♦{}", bid.as_number());
+        let colors = theme::colors(hl::Focus::Block(bid), theme::Role::Reference);
+        active_label(ui, s, hl::Focus::Block(bid), colors, &text);
+    }
+
+    fn active_label(
+        ui: &mut egui::Ui,
+        s: &mut State<'_>,
+        focus: hl::Focus,
+        colors_active: &theme::Colors,
+        text: &str,
+    ) {
+        const TRANSPARENT: egui::Color32 = egui::Color32::TRANSPARENT;
+        let col_text_normal = ui.visuals().text_color();
+
+        let (col_bg, col_border, col_text) = if s.hl.pinned.focus() == Some(focus) {
+            (colors_active.background, TRANSPARENT, colors_active.text)
+        } else if s.hl.hovered.focus() == Some(focus) {
+            (TRANSPARENT, colors_active.background, col_text_normal)
+        } else {
+            (TRANSPARENT, TRANSPARENT, col_text_normal)
+        };
+
+        let res = egui::Frame::new()
+            .stroke(egui::Stroke {
+                width: 1.0,
+                color: col_border,
+            })
+            .show(ui, |ui| {
+                ui.label(
+                    egui::RichText::new(text)
+                        .monospace()
+                        .background_color(col_bg)
+                        .color(col_text),
+                )
+            })
+            .inner;
+
+        if res.clicked() {
+            // toggle pinned state when clicking on something that's already pinned
+            if Some(focus) == s.hl.pinned.focus() {
+                s.hl.pinned.set_focus(None);
+            } else {
+                s.hl.pinned.set_focus(Some(focus));
+            }
+        } else if res.hovered() {
+            s.hl.hovered.set_focus(Some(focus));
+        }
+
+        res.on_hover_cursor(egui::CursorIcon::PointingHand);
     }
 }
 
-mod ast_view_old {
-    // This module is responsible for generating and displaying the Abstract Syntax Tree (AST)
-    // from the SSA (Static Single Assignment) form of the decompiled code.
-    // It focuses on creating a structured, navigable, and highlightable representation
-    // of the code for the user interface.
-
-    use core::str;
-    use std::borrow::Cow;
-    use std::fmt::Debug;
-    use std::iter::Peekable;
-    use std::sync::Arc;
-
-    use anyhow::anyhow;
-    use decompiler::{BlockID, Insn};
-
-    use super::TextRole;
-
-    /// Represents the Abstract Syntax Tree (AST) itself. It holds a flat list of nodes
-    /// that are rendered hierarchically based on `Seq` nodes.
-    pub struct Ast {
-        plan: Vec<Stmt>,
-        warnings: Vec<anyhow::Error>,
+mod hl {
+    pub struct State {
+        pub pinned: Set,
+        pub hovered: Set,
     }
 
-    pub enum Stmt {
-        /// A label marking the start of a block.
-        ///
-        /// The stmts included in block follow this BlockLabel.
-        BlockLabel(BlockID),
-        ExprStmt(ExprTree),
-        NamedStmt {
-            name: Arc<String>,
-            value: ExprTree,
-        },
-        Dedent,
-        Indent,
-        Comment(String),
-    }
-
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    pub enum ExprTree {
-        Seq(Seq),
-        Term(Term),
-        Null,
-    }
-    impl From<Seq> for ExprTree {
-        fn from(value: Seq) -> Self {
-            ExprTree::Seq(value)
+    impl State {
+        pub fn empty() -> Self {
+            Self {
+                pinned: Set::empty(),
+                hovered: Set::empty(),
+            }
         }
-    }
-    impl From<Term> for ExprTree {
-        fn from(value: Term) -> Self {
-            ExprTree::Term(value)
+
+        pub fn frame_started(&mut self) {
+            self.pinned.frame_started();
+            self.hovered.frame_started();
         }
     }
 
-    /// A sequence of AST expression nodes.
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    struct Seq {
-        /// Used for linking and highlighting, often to a specific register or block.
-        anchor: Option<Anchor>,
-        /// Children nodes, intended to be laid out sequentially
-        children: Vec<ExprTree>,
-
-        /// Whether this sequence is wrapped by parentheses (in order to
-        /// maintain correct evaluation order while still respecting operator
-        /// precedence)
-        parentheses: bool,
+    pub struct Set {
+        focus: Option<Focus>,
+        was_changed_this_frame: bool,
+        was_set_this_frame: bool,
     }
 
-    /// Represents a single textual element in the AST.
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    struct Term {
-        /// Optional link to a register or block for highlighting and navigation.
-        anchor: Option<Anchor>,
-        /// The actual string content to be displayed.
-        // TODO this could use some string interning
-        text: String,
-        /// Defines the semantic role of the text (e.g., keyword, register reference, literal)
-        /// which is used to determine its display style (colors).
-        role: TextRole,
-    }
-
-    /// Defines the type of entity an AST element or sequence can be anchored to.
-    /// - `Reg`: Anchored to a specific SSA register.
-    /// - `Block`: Anchored to a specific control flow graph block.
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    enum Anchor {
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    pub enum Focus {
         Reg(decompiler::Reg),
         Block(decompiler::BlockID),
     }
 
-    impl Seq {
-        fn new() -> Self {
-            Seq {
-                anchor: None,
-                children: Vec::new(),
-                parentheses: false,
-            }
-        }
-
-        fn with_anchor(mut self, anchor: Anchor) -> Self {
-            self.anchor = Some(anchor);
-            self
-        }
-
-        fn with_child(mut self, child: ExprTree) -> Self {
-            self.add_child(child);
-            self
-        }
-        fn add_child(&mut self, child: ExprTree) {
-            self.children.push(child);
-        }
-    }
-
-    /// Implementation block for the `Ast` struct, handling AST construction and UI rendering.
-    impl Ast {
-        /// Creates an empty AST.
+    impl Set {
         pub fn empty() -> Self {
-            Ast {
-                plan: Vec::new(),
-                warnings: Vec::new(),
+            Self {
+                focus: None,
+                was_changed_this_frame: false,
+                was_set_this_frame: false,
             }
         }
 
-        /// Constructs an `Ast` from an SSA program using the `Builder`. This is the primary
-        /// entry point for AST generation.
-        pub fn from_ssa(ssa: &decompiler::SSAProgram, types: &decompiler::ty::TypeSet) -> Self {
-            Builder::new(ssa, types).build()
+        pub fn frame_started(&mut self) {
+            self.was_changed_this_frame = false;
+            self.was_set_this_frame = false;
+        }
+        pub fn was_changed_this_frame(&self) -> bool {
+            self.was_changed_this_frame
+        }
+        pub fn was_set_this_frame(&self) -> bool {
+            self.was_set_this_frame
         }
 
-        fn show_expr(&self, ui: &mut egui::Ui, value: &ExprTree) {
-            match value {
-                ExprTree::Null => {}
-                ExprTree::Seq(Seq {
-                    anchor: _,
-                    children,
-                    parentheses,
-                }) => {
-                    if *parentheses {
-                        ui.label("(");
-                    }
-                    for child in children {
-                        self.show_expr(ui, child);
-                    }
-                    if *parentheses {
-                        ui.label(")");
-                    }
-                }
-                ExprTree::Term(Term { anchor, text, role }) => {
-                    if text.trim().is_empty() {
-                        ui.label(format!("{:?}", value));
-                    } else {
-                        ui.label(text);
-                    }
-                }
-            }
+        pub fn focus(&self) -> Option<Focus> {
+            self.focus.clone()
         }
 
-        pub(crate) fn warnings(&self) -> impl ExactSizeIterator<Item = &dyn std::error::Error> {
-            self.warnings.iter().map(|err| err.as_ref())
-        }
-    }
+        pub fn set_focus(&mut self, focus: Option<Focus>) {
+            self.was_set_this_frame = true;
 
-    pub trait Column {
-        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt);
-    }
-    impl<C: Column> Column for Option<&mut C> {
-        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
-            if let Some(c) = self {
-                c.push_stmt(ui, stmt);
+            if focus != self.focus {
+                self.focus = focus;
+                self.was_changed_this_frame = true;
             }
         }
     }
+}
 
-    pub struct AstColumn<'a> {
-        indent_level: usize,
-        ast: &'a Ast,
+mod theme {
+    use crate::hl;
+
+    pub struct Colors {
+        pub background: egui::Color32,
+        pub text: egui::Color32,
     }
-    impl<'a> AstColumn<'a> {
-        pub fn new(ast: &'a Ast) -> Self {
-            AstColumn {
-                indent_level: 0,
-                ast,
+
+    pub enum Role {
+        Definition,
+        Reference,
+    }
+
+    pub fn colors(focus: hl::Focus, role: Role) -> &'static Colors {
+        match (focus, role) {
+            (hl::Focus::Reg(_), Role::Definition) => {
+                &(Colors {
+                    background: COLOR_GREEN_DARK,
+                    text: egui::Color32::WHITE,
+                })
             }
-        }
-    }
-    impl Column for AstColumn<'_> {
-        fn push_stmt(&mut self, ui: &mut egui::Ui, stmt: &Stmt) {
-            match stmt {
-                &Stmt::BlockLabel(_) => {}
-                Stmt::ExprStmt(value_xp) => {
-                    ui.horizontal_top(|ui| {
-                        ui.add_space(self.indent_level as f32 * 20.0);
-                        self.ast.show_expr(ui, value_xp);
-                    });
-                }
-                Stmt::NamedStmt {
-                    name,
-                    value: value_xp,
-                } => {
-                    ui.horizontal_top(|ui| {
-                        ui.add_space(self.indent_level as f32 * 20.0);
-                        ui.label(format!("let {} = ", name));
-                        self.ast.show_expr(ui, value_xp);
-                    });
-                }
-                Stmt::Dedent => {
-                    self.indent_level -= 1;
-                }
-                Stmt::Indent => {
-                    self.indent_level += 1;
-                }
-                Stmt::Comment(comment) => {
-                    ui.horizontal(|ui| {
-                        ui.visuals_mut().override_text_color = Some(egui::Color32::RED);
-                        ui.label("//");
-                        ui.label(comment);
-                    });
-                }
+            (hl::Focus::Reg(_), Role::Reference) => {
+                &(Colors {
+                    background: COLOR_GREEN_LIGHT,
+                    text: egui::Color32::BLACK,
+                })
+            }
+            (hl::Focus::Block(_), Role::Definition) => {
+                &(Colors {
+                    background: COLOR_BLUE_DARK,
+                    text: egui::Color32::WHITE,
+                })
+            }
+            (hl::Focus::Block(_), Role::Reference) => {
+                &(Colors {
+                    background: COLOR_BLUE_LIGHT,
+                    text: COLOR_BLUE_DARK,
+                })
             }
         }
     }
 
-    /// Renders the AST within the provided egui UI.
-    pub fn show(ui: &mut egui::Ui, ast: &Ast, column: &mut dyn Column) {
-        for stmt in &ast.plan {
-            column.push_stmt(ui, stmt);
-        }
-    }
-
-    /// The `Builder` is responsible for transforming the SSAProgram into the `Ast`'s flat `Vec<Node>` representation.
-    /// It traverses the SSA graph, making decisions about how instructions and control flow
-    /// should be represented in the AST (e.g., inline values vs. `let` statements).
-    struct Builder<'a> {
-        block_order: Vec<BlockID>,
-        plan: Vec<Stmt>,
-        ssa: &'a decompiler::SSAProgram,
-        types: &'a decompiler::ty::TypeSet,
-        value_mode: decompiler::RegMap<ValueMode>,
-
-        // just to check that the algo is correct:
-        block_status: decompiler::BlockMap<BlockStatus>,
-        open_stack: Vec<decompiler::BlockID>,
-        let_was_printed: decompiler::RegMap<bool>,
-    }
-    /// Tracks the processing status of a control flow graph block during AST generation.
-    /// - `Pending`: Block has not yet been processed.
-    /// - `Started`: Block processing has begun.
-    /// - `Finished`: Block has been fully processed.
-    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-    enum BlockStatus {
-        Pending,
-        Started,
-        Finished,
-    }
-    /// Determines how a register's value definition is handled in the AST.
-    /// - `Inline`: The value is printed directly where it's used.
-    /// - `NamedStmt`: The value is defined using a `let` statement and then referred to by name.
-    /// - `UnnamedStmt`: The value's definition is printed as a statement, but it's not named (e.g., a call with unused return).
-    #[derive(Clone, Copy)]
-    enum ValueMode {
-        /// Value's definition is printed inline on every use, as part of each
-        /// reader expression.
-        Inline,
-        /// The value is "defined" as a let statement (e.g., `let r123 = ...`)
-        /// before the first use. Every use then refers to it by name (e.g.,
-        /// `r123`).
-        NamedStmt,
-        /// The value is not named, but its definition is still printed as a
-        /// naked statement (e.g., a call whose return value is unused)
-        UnnamedStmt,
-    }
-    /// Implementation block for the `Builder` struct, containing the logic for
-    /// converting SSA form into the AST nodes.
-    impl<'a> Builder<'a> {
-        /// Creates a new `Builder` instance. It initializes the `value_mode` for each register
-        /// based on usage count and instruction type, determining how each value will be represented.
-        fn new(ssa: &'a decompiler::SSAProgram, types: &'a decompiler::ty::TypeSet) -> Self {
-            let rdr_count = decompiler::count_readers(ssa);
-            let value_mode = rdr_count.map(|reg, rdr_count| {
-                let insn = ssa.get(reg).unwrap();
-                if matches!(insn, Insn::Ancestral { .. } | Insn::Int { .. }) {
-                    ValueMode::Inline
-                } else if matches!(insn, Insn::Phi) || *rdr_count > 1 {
-                    ValueMode::NamedStmt
-                } else if *rdr_count == 0 && insn.has_side_effects() {
-                    // even without readers/users, effectful instructions need
-                    // to be printed at their scheduled slot
-                    ValueMode::UnnamedStmt
-                } else {
-                    ValueMode::Inline
-                }
-            });
-            let block_status = decompiler::BlockMap::new(ssa.cfg(), BlockStatus::Pending);
-            let let_was_printed = decompiler::RegMap::for_program(ssa, false);
-            Builder {
-                block_order: ssa.cfg().block_ids_rpo().collect(),
-                plan: Vec::new(),
-                ssa,
-                types,
-                value_mode,
-                block_status,
-                open_stack: Vec::new(),
-                let_was_printed,
-            }
-        }
-
-        /// Builds the `Ast` by starting the transformation process from the entry block
-        /// of the SSA program.
-        fn build(mut self) -> Ast {
-            let block_order = std::mem::replace(&mut self.block_order, Vec::new());
-
-            let mut iter = block_order.iter().copied().peekable();
-            while self.transform_block(&mut iter) {}
-
-            let mut warnings = Vec::new();
-            {
-                let block_order_check: Vec<_> = self
-                    .plan
-                    .iter()
-                    .filter_map(|stmt| match stmt {
-                        &Stmt::BlockLabel(bid) => Some(bid),
-                        _ => None,
-                    })
-                    .collect();
-                if block_order_check != block_order {
-                    warnings.push(anyhow!(
-                        "AST does not cover requested block order:\nrequested={:?};\nvisited={:?}",
-                        block_order,
-                        block_order_check
-                    ));
-                }
-            }
-
-            Ast {
-                plan: self.plan,
-                warnings,
-            }
-        }
-
-        fn if_of_cond(&mut self, bid: BlockID) -> Option<Stmt> {
-            let cond = self.ssa.find_last_matching(bid, |insn| {
-                decompiler::match_get!(insn, decompiler::Insn::SetJumpCondition(cond), cond)
-            })?;
-            let value_xpr = self.transform_value_use(cond, 0);
-            Some(Stmt::ExprStmt(
-                Seq::new()
-                    .with_child(mk_lit("if".into()).into())
-                    .with_child(value_xpr)
-                    .into(),
-            ))
-        }
-
-        /// Transforms a basic block. This is the core of the AST generation for blocks.
-        /// It iterates through scheduled registers, deciding whether to emit `let` statements,
-        /// inline definitions, or unnamed statements. It then handles control flow (jumps, conditionals, returns).
-        /// Finally, it recursively processes dominated blocks that haven't been visited yet.
-        fn transform_block<I>(&mut self, iter: &mut Peekable<I>) -> bool
-        where
-            I: Iterator<Item = decompiler::BlockID>,
-        {
-            let Some(bid) = iter.next() else { return false };
-
-            self.plan.push(Stmt::BlockLabel(bid));
-
-            for reg in self.ssa.block_regs(bid) {
-                match self.value_mode[reg] {
-                    ValueMode::Inline => {
-                        // just skip; reader expressions will pick this up
-                    }
-                    ValueMode::NamedStmt => {
-                        self.let_was_printed[reg] = true;
-                        self.plan.push(Stmt::NamedStmt {
-                            name: Arc::new(format!("{:?}", reg)),
-                            value: self.transform_expr(reg, 0),
-                        })
-                    }
-                    ValueMode::UnnamedStmt => {
-                        self.plan.push(Stmt::ExprStmt(self.transform_expr(reg, 0)))
-                    }
-                }
-            }
-
-            match self.ssa.cfg().block_cont(bid) {
-                decompiler::BlockCont::Always(decompiler::Dest::Block(dest_bid))
-                    if iter.peek() == Some(&dest_bid) =>
-                {
-                    // don't print the 'goto', just 'print' the next block inline
-                    self.transform_block(iter);
-                }
-                decompiler::BlockCont::Always(dest) => {
-                    let dest = self.transform_jump(bid, &dest);
-                    self.plan.push(Stmt::ExprStmt(dest));
-                }
-
-                decompiler::BlockCont::Conditional { pos, neg } => {
-                    let if_header = self.if_of_cond(bid).unwrap_or_else(|| {
-                        Stmt::ExprStmt(mk_error_term("bug: no condition!".to_string()))
-                    });
-                    self.plan.push(if_header);
-
-                    self.plan.push(Stmt::Indent);
-                    match pos {
-                        decompiler::Dest::Block(pos_bid) if iter.peek() == Some(&pos_bid) => {
-                            self.transform_block(iter);
-                        }
-                        _ => {
-                            let jump = self.transform_jump(bid, &pos);
-                            self.plan.push(Stmt::ExprStmt(jump));
-                        }
-                    }
-                    self.plan.push(Stmt::Dedent);
-
-                    self.plan.push(Stmt::ExprStmt(mk_kw("else".into()).into()));
-                    self.plan.push(Stmt::Indent);
-                    match neg {
-                        decompiler::Dest::Block(neg_bid) if iter.peek() == Some(&neg_bid) => {
-                            self.transform_block(iter);
-                        }
-                        _ => {
-                            let jump = self.transform_jump(bid, &neg);
-                            self.plan.push(Stmt::ExprStmt(jump));
-                        }
-                    }
-                    self.plan.push(Stmt::Dedent);
-
-                    self.plan.push(Stmt::ExprStmt(mk_kw("endif".into()).into()));
-                }
-            }
-
-            true
-        }
-
-        /// Transforms a value (SSA register) into its AST representation.
-        /// The representation depends on its `ValueMode` (inline, named statement, or unnamed statement).
-        fn transform_value_use(
-            &self,
-            reg: decompiler::Reg,
-            parent_prec: decompiler::PrecedenceLevel,
-        ) -> ExprTree {
-            // TODO! specific representation of operands
-            match self.value_mode[reg] {
-                ValueMode::Inline => self.transform_expr(reg, parent_prec),
-                ValueMode::NamedStmt => {
-                    let reg_ref = mk_reg_ref(reg);
-                    if self.let_was_printed[reg] {
-                        reg_ref
-                    } else {
-                        Seq::new()
-                            .with_child(mk_error_term("bug:let!".to_string()))
-                            .with_child(reg_ref)
-                            .into()
-                    }
-                }
-                ValueMode::UnnamedStmt => Seq::new()
-                    .with_child(mk_error_term("bug:unnamed-ref!".to_string()))
-                    .with_child(mk_reg_ref(reg))
-                    .into(),
-            }
-        }
-
-        /// Transforms an SSA definition (instruction) into its AST representation.
-        /// This function handles various instruction types and generates corresponding
-        /// AST nodes, including arithmetic operations, memory access, calls, etc.
-        /// It also handles precedence for operators by adding parentheses when necessary.
-        ///
-        /// This function only generates expressions (or fragments of them). It
-        /// never generates a `let _ = ` form.
-        fn transform_expr(
-            &self,
-            reg: decompiler::Reg,
-            parent_prec: decompiler::PrecedenceLevel,
-        ) -> ExprTree {
-            let mut insn = self.ssa.get(reg).unwrap();
-            let prec = decompiler::precedence(&insn);
-
-            let anchor = Anchor::Reg(reg);
-            let mut expr: ExprTree = match insn {
-                Insn::Void => mk_kw("void".into()),
-                Insn::True => mk_kw("true".into()),
-                Insn::False => mk_kw("false".into()),
-                Insn::UndefinedBool => ExprTree::Seq(
-                    Seq::new()
-                        .with_anchor(anchor)
-                        .with_child(mk_kw("undefined".into()).into())
-                        .with_child(mk_kw("bool".into()).into()),
-                ),
-                Insn::UndefinedBytes { size } => ExprTree::Seq(
-                    Seq::new()
-                        .with_anchor(anchor)
-                        .with_child(mk_kw("undefined".into()).into())
-                        .with_child(mk_kw("bytes".into()).into())
-                        .with_child(mk_kw(format!("{}", size).into()).into()),
-                ),
-
-                Insn::Phi => self.transform_regular_insn(reg, "Phi", std::iter::empty()),
-                Insn::Int { value, size: _ } => mk_lit(format!("{}", value).into()),
-                Insn::Bytes(bytes) => mk_lit(format!("{:?}", bytes.as_slice()).into()),
-
-                Insn::Ancestral {
-                    anc_name: aname, ..
-                } => ExprTree::Term(Term {
-                    text: aname.name().to_string(),
-                    anchor: Some(Anchor::Reg(reg)),
-                    role: TextRole::RegRef,
-                }),
-                Insn::FuncArgument { index, .. } => ExprTree::Term(Term {
-                    text: format!("$arg{}", index),
-                    anchor: Some(Anchor::Reg(reg)),
-                    role: TextRole::RegRef,
-                }),
-
-                Insn::StoreMem { addr, value } => Seq::new()
-                    .with_anchor(anchor)
-                    .with_child(self.transform_value_use(addr, 255))
-                    .with_child(mk_kw(".*".into()))
-                    .with_child(ExprTree::Term(Term {
-                        text: ":=".to_string(),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::RegDef,
-                    }))
-                    .with_child(self.transform_value_use(value, prec))
-                    .into(),
-
-                Insn::LoadMem { addr, size: _ } => Seq::new()
-                    .with_anchor(anchor)
-                    .with_child(self.transform_value_use(addr, 0))
-                    .with_child(mk_kw(".*".into()))
-                    .into(),
-
-                Insn::Part { src, offset, size } => Seq::new()
-                    .with_anchor(anchor)
-                    .with_child(self.transform_value_use(src, prec))
-                    .with_child(mk_kw(format!("[{} .. {}]", offset, offset + size).into()))
-                    .into(),
-
-                Insn::Concat { lo, hi } => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(hi, prec))
-                    .with_child(mk_kw("++".into()))
-                    .with_child(self.transform_value_use(lo, prec))
-                    .into(),
-
-                Insn::StructGetMember {
-                    struct_value,
-                    name,
-                    size: _,
-                } => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(struct_value, prec))
-                    .with_child(mk_kw(format!(".{}", name).into()))
-                    .into(),
-                Insn::ArrayGetElement { array, index, size } => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(array, prec))
-                    .with_child(mk_kw(format!("[{}]", index).into()))
-                    .into(),
-
-                Insn::Widen {
-                    reg,
-                    target_size,
-                    sign: _,
-                } => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(reg, prec))
-                    .with_child(mk_kw(format!("as i{}", target_size * 8).into()))
-                    .into(),
-
-                Insn::Arith(op, a, b) => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(a, prec))
-                    .with_child(ExprTree::Term(Term {
-                        text: op.symbol().to_string(),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::Kw,
-                    }))
-                    .with_child(self.transform_value_use(b, prec))
-                    .into(),
-
-                Insn::ArithK(op, a, bk) => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(a, prec))
-                    .with_child(ExprTree::Term(Term {
-                        text: op.symbol().to_string(),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::Kw,
-                    }))
-                    .with_child(ExprTree::Term(Term {
-                        text: format!("{}", bk),
-                        anchor: None,
-                        role: TextRole::Literal,
-                    }))
-                    .into(),
-
-                Insn::Cmp(op, a, b) => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(a, prec))
-                    .with_child(ExprTree::Term(Term {
-                        text: op.symbol().to_string(),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::Kw,
-                    }))
-                    .with_child(self.transform_value_use(b, prec))
-                    .into(),
-
-                Insn::Bool(op, a, b) => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(self.transform_value_use(a, prec))
-                    .with_child(ExprTree::Term(Term {
-                        text: op.symbol().to_string(),
-                        anchor: Some(Anchor::Reg(reg)),
-                        role: TextRole::Kw,
-                    }))
-                    .with_child(self.transform_value_use(b, prec))
-                    .into(),
-
-                Insn::Not(arg) => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(ExprTree::Term(Term {
-                        text: "!".to_string(),
-                        anchor: None,
-                        role: TextRole::Kw,
-                    }))
-                    .with_child(self.transform_value_use(arg, prec))
-                    .into(),
-
-                Insn::NotYetImplemented(msg) => ExprTree::Term(Term {
-                    text: format!("NYI:{}", msg),
-                    anchor: None,
-                    role: TextRole::Kw,
-                }),
-
-                Insn::SetReturnValue(_) | Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) => {
-                    ExprTree::Null
-                }
-
-                Insn::Call { callee, first_arg } => {
-                    let callee_type_name = self
-                        .ssa
-                        .value_type(callee)
-                        .and_then(|tyid| self.types.name(tyid))
-                        .map(|s| s.to_string());
-                    let mut seq = Seq::new().with_anchor(Anchor::Reg(reg));
-
-                    if let Some(name) = callee_type_name {
-                        seq.add_child(ExprTree::Term(Term {
-                            text: name,
-                            anchor: Some(Anchor::Reg(callee)),
-                            role: TextRole::Ident,
-                        }));
-                    } else {
-                        seq.add_child(self.transform_value_use(callee, prec));
-                    }
-
-                    seq.add_child(mk_kw("(".into()));
-
-                    if let Some(first_arg) = first_arg {
-                        for (_ndx, arg) in self.ssa.get_call_args(first_arg).enumerate() {
-                            // if ndx > 0 {
-                            //     seq.add_child(mk_kw(",".into()));
-                            // }
-                            seq.add_child(self.transform_value_use(arg, prec));
-                        }
-                    }
-
-                    seq.with_child(mk_kw(")".into())).into()
-                }
-
-                Insn::CArg { .. } => mk_error_term("<bug:CArg>".into()),
-                Insn::Control(_) => mk_error_term("<bug:Control>".into()),
-
-                Insn::Upsilon { value, phi_ref } => Seq::new()
-                    .with_anchor(Anchor::Reg(reg))
-                    .with_child(ExprTree::Term(Term {
-                        text: format!("{:?}", phi_ref),
-                        anchor: Some(Anchor::Reg(phi_ref)),
-                        role: TextRole::RegRef,
-                    }))
-                    .with_child(mk_kw(":=".into()))
-                    .with_child(self.transform_value_use(value, prec))
-                    .into(),
-
-                Insn::Get(_)
-                | Insn::OverflowOf(_)
-                | Insn::CarryOf(_)
-                | Insn::SignOf(_)
-                | Insn::IsZero(_)
-                | Insn::Parity(_) => self.transform_regular_insn(
-                    reg,
-                    Self::opcode_name(&insn),
-                    insn.input_regs_iter().map(|x| *x),
-                ),
-
-                _ => mk_kw("???".into()),
-            };
-
-            if let ExprTree::Seq(seq) = &mut expr {
-                seq.parentheses = prec < parent_prec;
-            }
-
-            expr
-        }
-
-        /// Returns a static string name for a given SSA instruction opcode.
-        fn opcode_name(insn: &Insn) -> &'static str {
-            // TODO use facet for this!
-            match insn {
-                Insn::Void => "Void",
-                Insn::True => "True",
-                Insn::False => "False",
-                Insn::Int { .. } => "Const",
-                Insn::Bytes(_) => "Bytes",
-                Insn::Struct { .. } => "Struct",
-                Insn::StructMember { .. } => "StructMember",
-                Insn::Get(_) => "Get",
-                Insn::Part { .. } => "Part",
-                Insn::Concat { .. } => "Concat",
-                Insn::StructGetMember { .. } => "StructGetMember",
-                Insn::ArrayGetElement { .. } => "ArrayGetElement",
-                Insn::Widen { .. } => "Widen",
-                Insn::Arith(_, _, _) => "Arith",
-                Insn::ArithK(_, _, _) => "ArithK",
-                Insn::Cmp(_, _, _) => "Cmp",
-                Insn::Bool(_, _, _) => "Bool",
-                Insn::Not(_) => "Not",
-                Insn::Call { .. } => "Call",
-                Insn::CArg { .. } => "CArg",
-                Insn::SetReturnValue(_) => "SetReturnValue",
-                Insn::SetJumpCondition(_) => "SetJumpCondition",
-                Insn::SetJumpTarget(_) => "SetJumpTarget",
-                Insn::Control(_) => "Control",
-                Insn::NotYetImplemented(_) => "NotYetImplemented",
-                Insn::LoadMem { .. } => "LoadMem",
-                Insn::StoreMem { .. } => "StoreMem",
-                Insn::OverflowOf(_) => "OverflowOf",
-                Insn::CarryOf(_) => "CarryOf",
-                Insn::SignOf(_) => "SignOf",
-                Insn::IsZero(_) => "IsZero",
-                Insn::Parity(_) => "Parity",
-                Insn::UndefinedBool => "UndefinedBool",
-                Insn::UndefinedBytes { .. } => "UndefinedBytes",
-                Insn::Ancestral { .. } => "Ancestral",
-                Insn::FuncArgument { .. } => "FuncArgument",
-                Insn::Phi => "Phi",
-                Insn::Upsilon { .. } => "Upsilon",
-            }
-        }
-
-        /// Transforms a generic SSA instruction (opcode and inputs) into a flow-style AST sequence.
-        /// It formats the instruction as `opcode(input1, input2, ...)`
-        fn transform_regular_insn(
-            &self,
-            result: decompiler::Reg,
-            opcode: &'static str,
-            inputs: impl IntoIterator<Item = decompiler::Reg>,
-        ) -> ExprTree {
-            let mut seq = Seq::new()
-                .with_anchor(Anchor::Reg(result))
-                .with_child(ExprTree::Term(Term {
-                    anchor: None,
-                    text: opcode.to_string(),
-                    role: TextRole::Generic,
-                }))
-                .with_child(mk_kw("(".into()));
-
-            for (_ndx, input) in inputs.into_iter().enumerate() {
-                // if ndx > 0 {
-                //     seq.add_child(mk_kw(",".into()));
-                // }
-                seq.add_child(self.transform_value_use(input, 0));
-            }
-
-            seq.add_child(mk_kw(")".into()));
-            seq.into()
-        }
-
-        /// Transforms a control flow destination into its AST representation.
-        /// Handles external jumps, jumps to other blocks (which may be inlined or
-        /// represented as `goto` statements), indirect jumps, and function returns.
-        ///
-        /// `next_bid` is used, when available, as the BlockID that is laid out
-        /// right after `src_bid` in order to lay out certain blocks inline or
-        /// avoid/insert `goto` expression.
-        fn transform_jump(
-            &mut self,
-            src_bid: decompiler::BlockID,
-            dest: &decompiler::Dest,
-        ) -> ExprTree {
-            match dest {
-                decompiler::Dest::Ext(addr) => Seq::new()
-                    .with_child(mk_kw("goto".into()))
-                    .with_child(mk_lit(format!("{}", *addr).into()))
-                    .into(),
-                decompiler::Dest::Block(bid) => Seq::new()
-                    .with_child(mk_kw("goto".into()))
-                    .with_child(
-                        Term {
-                            text: format!("B{}", bid.as_number()),
-                            anchor: Some(Anchor::Block(*bid)),
-                            role: TextRole::BlockRef,
-                        }
-                        .into(),
-                    )
-                    .into(),
-                decompiler::Dest::Indirect => {
-                    let tgt = self.ssa.find_last_matching(src_bid, |insn| {
-                        decompiler::match_get!(insn, decompiler::Insn::SetJumpTarget(tgt), tgt)
-                    });
-
-                    if let Some(tgt) = tgt {
-                        Seq::new()
-                            .with_child(mk_kw("goto".into()))
-                            .with_child(mk_kw("*".into()))
-                            .with_child(self.transform_value_use(tgt, 0))
-                            .into()
-                    } else {
-                        mk_error_term("<bug:no jump target>".into()).into()
-                    }
-                }
-                decompiler::Dest::Return => {
-                    let ret = self.ssa.find_last_matching(src_bid, |insn| {
-                        decompiler::match_get!(insn, decompiler::Insn::SetReturnValue(val), val)
-                    });
-
-                    if let Some(ret) = ret {
-                        Seq::new()
-                            .with_child(mk_kw("return".into()))
-                            .with_child(self.transform_value_use(ret, 0))
-                            .into()
-                    } else {
-                        mk_error_term("<bug:no return value>".into()).into()
-                    }
-                }
-                decompiler::Dest::Undefined => mk_kw("goto undefined".into()).into(),
-            }
-        }
-    }
-
-    fn mk_reg_ref(reg: decompiler::Reg) -> ExprTree {
-        ExprTree::Term(Term {
-            anchor: Some(Anchor::Reg(reg)),
-            text: format!("{:?}", reg),
-            role: TextRole::RegRef,
-        })
-    }
-
-    fn mk_kw(text: Cow<'static, str>) -> ExprTree {
-        ExprTree::Term(Term {
-            anchor: None,
-            text: text.to_string(),
-            role: TextRole::Kw,
-        })
-    }
-
-    fn mk_lit(text: Cow<'static, str>) -> ExprTree {
-        ExprTree::Term(Term {
-            anchor: None,
-            text: text.to_string(),
-            role: TextRole::Literal,
-        })
-    }
-
-    fn mk_error_term(text: String) -> ExprTree {
-        ExprTree::Term(Term {
-            anchor: None,
-            text,
-            role: TextRole::Error,
-        })
-    }
+    pub const COLOR_BLUE_LIGHT: egui::Color32 = egui::Color32::from_rgb(166, 206, 227);
+    pub const COLOR_BLUE_DARK: egui::Color32 = egui::Color32::from_rgb(31, 120, 180);
+    pub const COLOR_GREEN_LIGHT: egui::Color32 = egui::Color32::from_rgb(178, 223, 138);
+    pub const COLOR_GREEN_DARK: egui::Color32 = egui::Color32::from_rgb(51, 160, 44);
+    pub const COLOR_RED_LIGHT: egui::Color32 = egui::Color32::from_rgb(251, 154, 153);
+    pub const COLOR_RED_DARK: egui::Color32 = egui::Color32::from_rgb(227, 26, 28);
+    pub const COLOR_ORANGE_LIGHT: egui::Color32 = egui::Color32::from_rgb(253, 191, 111);
+    pub const COLOR_ORANGE_DARK: egui::Color32 = egui::Color32::from_rgb(255, 127, 0);
+    pub const COLOR_PURPLE_LIGHT: egui::Color32 = egui::Color32::from_rgb(202, 178, 214);
+    pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
+    pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
+    pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
 }
