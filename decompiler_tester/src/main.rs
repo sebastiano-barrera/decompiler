@@ -420,7 +420,9 @@ impl StageFunc {
 
     /// Show widgets specific for this function to be laid out on the top bar
     /// (which is visually located at the executable level).
-    fn show_topbar(&mut self, ui: &mut egui::Ui) {}
+    fn show_topbar(&mut self, ui: &mut egui::Ui) {
+        ui.label(self.df.df.name());
+    }
 
     fn show(&mut self, ui: &mut egui::Ui) {
         self.show_panels(ui);

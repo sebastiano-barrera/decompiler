@@ -90,8 +90,6 @@ suitable alternative
     - evaluate HTML/web interface approach. (I'm thinking: better suited to our
     output, which is fundamentally text, with more or less interactivity added on top)
 
--- from here on, user-facing features have a gui version and a cli version
-
 - [x] feasibility study: web app general structure (with edit API requests AND ALSO localized edits) (and also learn Solid.js):
     - [x] decide what the editable data structure looks like (for the experiment)
         - needs to have some part that is editable AND appears in multiple places
@@ -105,6 +103,13 @@ suitable alternative
         - [x] localized
         - [x] call edit API + refresh
 
+- [x] custom block ordering
+
+    - does it make sense for decompiler_cli?
+
+- [x] go back to single executable, single function at a time
+    - increased code complexity is not worth it. can be paid to higher benefit later
+
 - [ ] data oriented interface
     - [x] standardized serde-able output
     - [ ] standardized serde-able input parameters (other than the executable itself)
@@ -115,6 +120,7 @@ suitable alternative
         - not all labels are going to be required, plus the new Stmt API already handles explicit placement of these where useful
 
     - [x] use the new Stmt API to render to interactive text
+    - [x] fix: show function name
     - [ ] export to non-interactive text
 
     - [ ] clicking/hovering on an element sets the "cursor"
@@ -138,14 +144,18 @@ suitable alternative
     - [ ] context menu on things (right-click)
         - [ ] select parent AST node (corresponding value etc.)
 
+- [ ] faster load from executable cache
+    - link: https://github.com/rkyv/rkyv
+    - link: https://crates.io/crates/epserde
+
 - [ ] restore "AST cleanup" features
     - [ ] remove gotos that "look like they just jump to the next block"
     - [ ] hide unused block labels
 
-
-- [ ] faster load from executable cache
-    - link: https://github.com/rkyv/rkyv
-    - link: https://crates.io/crates/epserde
+- [ ] loops
+    - think about them for a little while
+    - [ ] ui?
+    - [ ] heuristically mark them
 
 - [ ] AST edit cmd: invert if
 - [ ] AST edit cmd: change block order
@@ -162,16 +172,6 @@ suitable alternative
         - initialize with DWARF, allow user edits
 
 - [ ] string literals
-
-
---- The following are to be prioritized and grouped
-
-- [x] custom block ordering
-
-    - does it make sense for decompiler_cli?
-
-- [x] go back to single executable, single function at a time
-    - increased code complexity is not worth it. can be paid to higher benefit later
 
 - [ ] gui: user-editable identifiers/names
 
