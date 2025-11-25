@@ -71,6 +71,30 @@ struct FunctionView {
 
     hl: hl::State,
     ast: Option<decompiler::Ast>,
+
+    pinned_ty: Cache<decompiler::Reg, Option<TypeInfo>>,
+}
+
+struct TypeInfo {
+    tyid: decompiler::ty::TypeID,
+    hl_ty_str: String,
+    ll_ty_str: String,
+}
+impl TypeInfo {
+    fn read(exe: &Executable, ssa: &decompiler::SSAProgram, reg: decompiler::Reg) -> Option<Self> {
+        let ll_ty_str = format!("{:?}", ssa.reg_type(reg));
+
+        let tyid = ssa.value_type(reg)?;
+        let hl_ty_str = decompiler::pp::pp_to_string(|pp| {
+            exe.types().dump_type_ref(pp, tyid).unwrap();
+        });
+
+        Some(TypeInfo {
+            tyid,
+            ll_ty_str,
+            hl_ty_str,
+        })
+    }
 }
 
 impl eframe::App for App {
@@ -155,7 +179,7 @@ impl App {
     fn show_central(&mut self, ui: &mut egui::Ui) {
         match self.stage_func.as_mut() {
             Some(Ok(stage_func)) => {
-                stage_func.show(ui);
+                stage_func.show(ui, self.exe.borrow_exe());
             }
             Some(Err(err)) => {
                 egui::Frame::new().show(ui, |ui| {
@@ -206,6 +230,7 @@ impl FunctionView {
             assembly,
             ast,
             hl: hl::State::empty(),
+            pinned_ty: Cache::default(),
         }
     }
 
@@ -215,9 +240,9 @@ impl FunctionView {
         ui.label(self.df.name());
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
+    fn show(&mut self, ui: &mut egui::Ui, exe: &Executable) {
         self.hl.frame_started();
-        self.show_panels(ui);
+        self.show_panels(ui, exe);
         self.show_central(ui);
         if !self.hl.hovered.was_set_this_frame() {
             self.hl.hovered.set_focus(None);
@@ -228,32 +253,45 @@ impl FunctionView {
     /// the central are, with content specific to this function.
     ///
     /// To be called before `show_central`.
-    fn show_panels(&mut self, ui: &mut egui::Ui) {
-        if self.problems_is_visible {
-            egui::TopBottomPanel::bottom("func_errors")
-                .resizable(true)
-                .default_height(ui.text_style_height(&egui::TextStyle::Body) * 10.0)
-                .show_inside(ui, |ui| {
-                    egui::ScrollArea::vertical()
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            // TODO cache
-                            ui.heading(&self.problems_title);
+    fn show_panels(&mut self, ui: &mut egui::Ui, exe: &Executable) {
+        match self.hl.pinned.focus() {
+            Some(hl::Focus::Reg(reg)) => {
+                let type_info = self
+                    .pinned_ty
+                    .get_or_insert(reg, |&reg| {
+                        let ssa = self.df.ssa()?;
+                        TypeInfo::read(exe, ssa, reg)
+                    })
+                    .as_ref();
+                egui::TopBottomPanel::bottom("details_panel")
+                    .resizable(true)
+                    .show_inside(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.heading(format!("{:?}", reg));
 
-                            if let Some(error_label) = &self.problems_error {
+                            egui::Grid::new("reg_details_grid").show(ui, |ui| {
+                                ui.strong("Low-level type:");
                                 ui.label(
-                                    egui::RichText::new(error_label).color(egui::Color32::DARK_RED),
+                                    type_info.map(|ti| ti.ll_ty_str.as_str()).unwrap_or("???"),
                                 );
-                            }
+                                ui.end_row();
 
-                            for warn in self.df.warnings() {
-                                // TODO cache
-                                ui.label(warn.to_string());
-                            }
-
-                            ui.add_space(50.0);
+                                ui.label(egui::RichText::new("High-level type:").strong());
+                                if let Some(type_info) = type_info {
+                                    if ui.button(type_info.hl_ty_str.as_str()).clicked() {
+                                        println!("open window for type: {:?}", type_info.tyid);
+                                    }
+                                } else {
+                                    ui.label("???");
+                                }
+                                ui.end_row();
+                            });
                         });
-                });
+                    });
+            }
+            _ => {
+                self.pinned_ty.reset();
+            }
         }
     }
 
@@ -261,22 +299,16 @@ impl FunctionView {
     fn show_central(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::both()
             .auto_shrink([false, false])
-            .show(ui, |ui| {
-                self.show_integrated_ast(ui);
+            .show(ui, |ui| match (self.df.ssa(), self.ast.as_ref()) {
+                (Some(ssa), Some(ast)) => {
+                    ast::render(ui, ast, ssa, &mut self.hl);
+                }
+                _ => {
+                    ui.centered_and_justified(|ui| {
+                        ui.label("- No AST -");
+                    });
+                }
             });
-    }
-
-    fn show_integrated_ast(&mut self, ui: &mut egui::Ui) {
-        match (self.df.ssa(), self.ast.as_ref()) {
-            (Some(ssa), Some(ast)) => {
-                ast::render(ui, ast, ssa, &mut self.hl);
-            }
-            _ => {
-                ui.centered_and_justified(|ui| {
-                    ui.label("- No AST -");
-                });
-            }
-        }
     }
 }
 
@@ -1072,4 +1104,36 @@ mod theme {
     pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
     pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
     pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
+}
+
+struct Cache<K, V>(Option<(K, V)>);
+
+impl<K, V> Default for Cache<K, V> {
+    fn default() -> Self {
+        Cache(None)
+    }
+}
+
+impl<K, V> Cache<K, V>
+where
+    K: Clone + PartialEq + std::fmt::Debug,
+{
+    fn get_or_insert(&mut self, key: K, recompute: impl FnOnce(&K) -> V) -> &V {
+        let needs_recompute = match self.0.as_ref() {
+            Some((cur_key, _)) => *cur_key != key,
+            None => true,
+        };
+
+        if needs_recompute {
+            let new_value = recompute(&key);
+            self.0 = Some((key.clone(), new_value));
+        }
+
+        let (_, value_ref) = self.0.as_ref().unwrap();
+        value_ref
+    }
+
+    fn reset(&mut self) {
+        self.0 = None;
+    }
 }

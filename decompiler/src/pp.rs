@@ -97,6 +97,14 @@ impl<W: std::fmt::Write> std::io::Write for FmtAsIoUTF8<W> {
     }
 }
 
+pub fn pp_to_string(action: impl FnOnce(&mut PrettyPrinter<&mut Vec<u8>>)) -> String {
+    let mut bytes = Vec::new();
+    let mut pp = PrettyPrinter::start(&mut bytes);
+    action(&mut pp);
+
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
 pub struct MultiWriter<W>(SmallVec<[W; 4]>);
 
 impl<W> MultiWriter<W> {

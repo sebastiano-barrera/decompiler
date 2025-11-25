@@ -115,7 +115,7 @@ suitable alternative
     - [ ] standardized serde-able input parameters (other than the executable itself)
 
 - [x] decompiler_tester: remove save file
-- [ ] improve ui design (and internals)
+- [x] improve ui design (and internals)
     - [x] remove block labels (and everything else)
         - not all labels are going to be required, plus the new Stmt API already handles explicit placement of these where useful
 
@@ -123,34 +123,37 @@ suitable alternative
     - [x] fix: show function name
 
     - [x] clicking/hovering on an element sets the "cursor"
-    - [ ] show information about the "thing" under the cursor
-        - specialized by type
-        - for value:
-            - links to uses => no. they're already highlighted, makes no sense.
-            - AST expr parent? => could be interesting. in some sense, the most direct user of the result.
-            - type!
-            - related log messages => could be cool, will try
-        - for block/label:
-            - predecessors
-            - continuation type
-            - successors
-            - related log messages
+    - [x] details panel for "thing" under the cursor
+    - [x] details for reg: type
 
-        - for ast node:
-            - ASM insn corresponding to the value(s) (either the whole tree or the root)
+    - [-] details for block/label
+        - actually doesn't make very much sense for block/labels. instead, create a cfg view
 
-    - [ ] restore asm view
 
-    - [ ] context menu on things (right-click)
-        - [ ] select parent AST node (corresponding value etc.)
+- [-] gui: details for reg: AST expr parent?
+    - nah, a dedicated UI is better here
 
 - [ ] faster load from executable cache
     - link: https://github.com/rkyv/rkyv
     - link: https://crates.io/crates/epserde
 
+- [ ] gui: restore asm view
+- [ ] gui: asm view: highlight instructions related to selected block
+- [ ] gui: asm view: highlight instructions related to selected AST node
+
+- [ ] string literals
+
+- [ ] select parent AST node (corresponding value etc.)
+
 - [ ] restore "AST cleanup" features
     - [ ] remove gotos that "look like they just jump to the next block"
     - [ ] hide unused block labels
+
+- [ ] control flow graph view: basic
+- [ ] cfg view: highlight current block, preds/succs
+
+- [ ] gui: related log messages to reg
+- [ ] gui: related log messages to block/label
 
 - [ ] loops
     - think about them for a little while
@@ -170,8 +173,6 @@ suitable alternative
     - [ ] show type (the type itself: details, name, structure, links, etc.)
     - [ ] enum values
         - initialize with DWARF, allow user edits
-
-- [ ] string literals
 
 - [ ] gui: user-editable identifiers/names
 
