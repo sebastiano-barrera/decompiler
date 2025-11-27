@@ -974,7 +974,7 @@ mod tests {
     }
 
     struct TypeIdGen {
-        counter: usize,
+        counter: u64,
     }
 
     impl TypeIdGen {

@@ -1,12 +1,10 @@
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::hash::{Hash, Hasher};
-use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
+use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 use tracing::*;
-
-use crate::lru_cache_dir;
 
 use crate::{mil, ssa, ty, x86_to_mil, xform};
 
@@ -39,6 +37,9 @@ pub enum Error {
     #[error("while parsing DWARF type info: {0}")]
     DwarfTypeParserError(#[from] ty::dwarf::Error),
 
+    #[error("type database error: {0}")]
+    TypeSetError(#[from] ty::Error),
+
     #[error("while compiling to MIL: {0}")]
     FrontendError(String),
 
@@ -53,6 +54,9 @@ pub enum Error {
         func_range: (usize, usize),
         text_range: (usize, usize),
     },
+
+    #[error("runtime envionment error: {0}")]
+    EnvironmentError(String),
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -93,33 +97,55 @@ struct FuncCoords {
     code_size: usize,
 }
 
-static TYPESET_CACHE: OnceLock<Mutex<Box<dyn lru_cache_dir::Cache<ty::TypeSet> + Send>>> =
-    OnceLock::new();
+fn path_of_key(key: u64) -> Result<PathBuf> {
+    use std::fmt::Write;
 
-fn create_typeset_cache() -> Box<dyn lru_cache_dir::Cache<ty::TypeSet> + Send> {
-    let mut dir = std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from);
-
-    if dir.is_none() {
-        dir = std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .map(|p| p.join(".cache"));
-    }
-
-    let Some(mut dir) = dir else {
-        return Box::new(lru_cache_dir::NullCache::new());
-    };
+    let mut dir = std::env::var_os("XDG_CACHE_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .map(|p| p.join(".cache"))
+        })
+        .ok_or(Error::EnvironmentError(
+            "environment variables not set: XDG_CACHE_HOME, HOME".to_string(),
+        ))?;
 
     dir = dir.join("decompiler");
 
-    Box::new(lru_cache_dir::FileSystemCache::new(dir, 3))
+    let mut file_name = OsString::with_capacity(3 * 8);
+    for b in key.to_le_bytes() {
+        write!(file_name, "{:02x}-", b).unwrap();
+    }
+
+    Ok(dir.join(&file_name))
 }
 
-fn with_typeset_cache<R>(
-    action: impl FnOnce(&mut dyn lru_cache_dir::Cache<ty::TypeSet>) -> R,
-) -> R {
-    let typeset_cache = TYPESET_CACHE.get_or_init(|| Mutex::new(create_typeset_cache()));
-    let mut typeset_cache = typeset_cache.lock().unwrap();
-    action(&mut **typeset_cache)
+fn open_typeset(path: &Path) -> ty::Result<(ty::TypeSet, bool)> {
+    let err = match ty::TypeSet::open(ty::Location::File(path)) {
+        Ok(types) => return Ok((types, false)),
+        Err(err @ ty::Error::FileNotFound) => return Err(err),
+        Err(err) => err,
+    };
+
+    event!(
+        Level::WARN,
+        ?err,
+        ?path,
+        "could not open type cache, deleting corrupted cache file"
+    );
+
+    // try again after deleting the file (cache files are intended to be
+    // temporary and expendable!)
+    // we know the file should exist, as the error is not ty::Error::FileNotFound
+
+    if let Err(_) = std::fs::remove_file(path) {
+        return Err(ty::Error::DatabaseError(
+            "could not delete corrupted cache file".to_owned(),
+        ));
+    }
+
+    ty::TypeSet::open(ty::Location::File(path)).map(|types| (types, true))
 }
 
 impl<'a> Executable<'a> {
@@ -138,7 +164,7 @@ impl<'a> Executable<'a> {
             })
             .collect();
 
-        // the bet is that the binary's hash is unique enough as a key
+        // the bet is that the binary's hash is unique enough for a key
 
         let cache_key = {
             let mut hasher = std::hash::DefaultHasher::new();
@@ -146,13 +172,23 @@ impl<'a> Executable<'a> {
             hasher.finish()
         };
 
-        let types = with_typeset_cache(|cache| {
-            cache.get_or_insert_with(cache_key, &mut || {
-                let mut types = ty::TypeSet::new();
-                let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
-                types
-            })
-        });
+        let (mut types, is_new) = path_of_key(cache_key)
+            .and_then(|p| open_typeset(&p).map_err(Error::TypeSetError))
+            .unwrap_or_else(|err| {
+                event!(
+                    Level::WARN,
+                    ?err,
+                    "could not open type cache, using in-memory database"
+                );
+                let types =
+                    ty::TypeSet::open(ty::Location::Memory).expect("creating TypeSet in memory");
+                (types, true)
+            });
+
+        if is_new {
+            event!(Level::INFO, "database is brand new, rescanning executable");
+            let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+        }
 
         Ok(Executable {
             raw_binary,

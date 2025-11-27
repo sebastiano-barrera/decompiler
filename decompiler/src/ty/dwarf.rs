@@ -545,7 +545,7 @@ impl<'a> TypeParser<'a> {
     /// In all cases, the TypeID is returned.
     // TODO Remove the Result<_> from the return type
     fn get_tyid(&mut self, type_unit_offset: DebugInfoOffset) -> Result<ty::TypeID> {
-        let tyid = ty::TypeID(type_unit_offset.0 .0);
+        let tyid = ty::TypeID(type_unit_offset.0 .0.try_into().unwrap());
         self.types.get_or_create(tyid, || ty::Ty::Unknown);
         Ok(tyid)
     }

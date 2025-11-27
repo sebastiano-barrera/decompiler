@@ -3,7 +3,6 @@ mod cfg;
 mod elf;
 #[macro_use]
 mod mil;
-mod lru_cache_dir;
 mod ssa;
 mod tests;
 pub mod ty;

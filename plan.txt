@@ -134,8 +134,28 @@ suitable alternative
     - nah, a dedicated UI is better here
 
 - [ ] faster load from executable cache
-    - link: https://github.com/rkyv/rkyv
-    - link: https://crates.io/crates/epserde
+    - approach: "zero-copy deserialization"
+        - link: https://github.com/rkyv/rkyv
+        - link: https://crates.io/crates/epserde
+
+    - approach: embedded file-based database
+        - ideas
+            - TypeSet is changed so that it always wraps a database, possibly in memory
+            - currently, TypeSet is first created and kept in memory, then saved to/loaded from a file.
+            - but in this approach, TypeSet is always mapped to a file *at
+            construction time* (though copying the entire database from one
+            location to another is perfectly doable.)
+
+                => maybe we could have a TypeSet::transfer(another_location) that transactionally does the following:
+                    1. copies the entire database to another location
+                    2. reconfigures the TypeSet instance to use the new location
+                    3. deletes (or at least detaches from) the old location
+                    => the program continues without any sort of hitch/discontinuity, and you've effectively "saved a file"
+
+        - options:
+            - [ ] simple and new: redb
+            - [ ] simple and old: lmdb
+            - [ ] the good ol' classic: sqlite
 
 - [ ] gui: restore asm view
 - [ ] gui: asm view: highlight instructions related to selected block

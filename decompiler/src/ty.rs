@@ -1,5 +1,6 @@
-use std::{borrow::Cow, collections::HashMap, sync::Arc};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
+use redb::{ReadableTable, ReadableTableMetadata};
 use smallvec::SmallVec;
 use thiserror::Error;
 use tracing::{event, Level};
@@ -14,7 +15,7 @@ use crate::{
 #[derive(
     Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
-pub struct TypeID(pub usize);
+pub struct TypeID(pub u64);
 
 impl std::fmt::Debug for TypeID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -31,6 +32,26 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("change forbidden; the referred type is read-only")]
     ReadOnly,
+
+    #[error("file does not exist")]
+    FileNotFound,
+
+    #[error("internal database error: {0}")]
+    DatabaseError(String),
+}
+
+impl From<redb::DatabaseError> for Error {
+    fn from(err: redb::DatabaseError) -> Self {
+        match err {
+            // this specific error situation is useful to single out
+            redb::DatabaseError::Storage(redb::StorageError::Io(io_err))
+                if io_err.kind() == std::io::ErrorKind::NotFound =>
+            {
+                Error::FileNotFound
+            }
+            _ => Error::DatabaseError(err.to_string()),
+        }
+    }
 }
 
 /// A set of types.
@@ -42,55 +63,168 @@ pub enum Error {
 ///
 /// This is the only public API in `ty`. Data about types can be retrieved and
 /// manipulated via this API.
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct TypeSet {
-    types: HashMap<TypeID, Ty>,
-    name_of_tyid: HashMap<TypeID, String>,
-    known_objects: HashMap<Addr, TypeID>,
-    call_sites: CallSites,
+    db: redb::Database,
+}
+
+//
+// redb tables
+//
+// values are JSON-serialized
+//
+const TABLE_TYPES: redb::TableDefinition<TypeID, Ty> = redb::TableDefinition::new("types");
+const TABLE_NAME_OF_TYPE: redb::TableDefinition<TypeID, String> =
+    redb::TableDefinition::new("name_of_type");
+const TABLE_TYPE_OF_GLOBAL: redb::TableDefinition<Addr, TypeID> =
+    redb::TableDefinition::new("type_of_global");
+const TABLE_TYPE_OF_CALL: redb::TableDefinition<u64, TypeID> =
+    redb::TableDefinition::new("type_of_call");
+
+impl redb::Value for TypeID {
+    type SelfType<'a> = Self;
+    type AsBytes<'a> = <u64 as redb::Value>::AsBytes<'a>;
+
+    fn fixed_width() -> Option<usize> {
+        <u64 as redb::Value>::fixed_width()
+    }
+
+    fn from_bytes<'a>(data: &'a [u8]) -> Self::SelfType<'a>
+    where
+        Self: 'a,
+    {
+        let numeric = <u64 as redb::Value>::from_bytes(data);
+        TypeID(numeric)
+    }
+
+    fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a>
+    where
+        Self: 'b,
+    {
+        <u64 as redb::Value>::as_bytes(&value.0)
+    }
+
+    fn type_name() -> redb::TypeName {
+        redb::TypeName::new("TypeID")
+    }
+}
+
+impl redb::Key for TypeID {
+    fn compare(data1: &[u8], data2: &[u8]) -> std::cmp::Ordering {
+        <u64 as redb::Key>::compare(data1, data2)
+    }
+}
+
+impl redb::Value for Ty {
+    type SelfType<'a> = Self;
+    type AsBytes<'a> = Vec<u8>;
+
+    fn fixed_width() -> Option<usize> {
+        None
+    }
+
+    fn type_name() -> redb::TypeName {
+        redb::TypeName::new("Ty")
+    }
+
+    fn from_bytes<'a>(bytes: &'a [u8]) -> Self::SelfType<'a>
+    where
+        Self: 'a,
+    {
+        rmp_serde::from_slice(bytes).unwrap()
+    }
+
+    fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a>
+    where
+        Self: 'b,
+    {
+        rmp_serde::to_vec(value).unwrap()
+    }
 }
 
 pub type Addr = u64;
 
+pub enum Location<'a> {
+    File(&'a Path),
+    Memory,
+}
+
+fn create_tables(db: &redb::Database) -> redb::Result<(), redb::Error> {
+    let tx = db.begin_write()?;
+    tx.open_table(TABLE_TYPES)?;
+    tx.open_table(TABLE_NAME_OF_TYPE)?;
+    tx.open_table(TABLE_TYPE_OF_GLOBAL)?;
+    tx.open_table(TABLE_TYPE_OF_CALL)?;
+    tx.commit()?;
+    Ok(())
+}
+
 impl TypeSet {
-    const TYID_SHARED_VOID: TypeID = TypeID(usize::MAX);
+    const TYID_SHARED_VOID: TypeID = TypeID(u64::MAX);
 
-    pub(crate) fn new() -> Self {
-        let mut types = HashMap::new();
-        types.insert(Self::TYID_SHARED_VOID, Ty::Void);
+    pub fn new() -> Self {
+        Self::open(Location::Memory).unwrap()
+    }
 
-        let mut name_of_tyid = HashMap::new();
-        name_of_tyid.insert(Self::TYID_SHARED_VOID, "void".to_string());
+    pub fn open(location: Location) -> Result<Self> {
+        let db_res = match location {
+            Location::File(path) => redb::Database::create(path),
+            Location::Memory => redb::Database::builder()
+                .create_with_backend(redb::backends::InMemoryBackend::new()),
+        };
+        let db = db_res?;
 
-        TypeSet {
-            types,
-            name_of_tyid,
-            known_objects: HashMap::new(),
-            call_sites: CallSites::new(),
-        }
+        create_tables(&db).map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        let mut type_set = TypeSet { db };
+        type_set.set(Self::TYID_SHARED_VOID, Ty::Void);
+        type_set.set_name(Self::TYID_SHARED_VOID, "void".to_string());
+        Ok(type_set)
     }
 
     pub fn tyid_shared_void(&self) -> TypeID {
         Self::TYID_SHARED_VOID
     }
 
+    // TODO Handle database errors, expose them as Result<_>
+
     /// Get the name of a type, if it has one.
     ///
     /// Invalid TypeIDs result in None.
-    pub fn name(&self, tyid: TypeID) -> Option<&str> {
-        self.name_of_tyid.get(&tyid).map(|s| s.as_str())
+    pub fn name(&self, tyid: TypeID) -> Option<String> {
+        let tx = self.db.begin_read().expect("begin_read");
+        let table = tx.open_table(TABLE_NAME_OF_TYPE).expect("open_table");
+        let value = table.get(&tyid).expect("get");
+        value.map(|v| v.value().to_string())
     }
     /// Set the name of a type.
     ///
     /// Has no effect on non-stored types (see [TypeID]).
     pub fn set_name(&mut self, tyid: TypeID, name: String) {
-        self.name_of_tyid.insert(tyid, name);
+        let tx = self.db.begin_write().expect("begin_write");
+        {
+            let mut table = tx.open_table(TABLE_NAME_OF_TYPE).expect("open_table");
+            table
+                .insert(&tyid, &name)
+                .expect("insert into name_of_type");
+        }
+        tx.commit().expect("commit");
     }
     /// Removes a custom name on a type, as previously set by [`Self:set_name`]
     ///
     /// Has no effect on non-stored types (see [TypeID]).
     pub fn unset_name(&mut self, tyid: TypeID) {
-        self.name_of_tyid.remove(&tyid);
+        let tx = self.db.begin_write().expect("begin_write");
+        {
+            let mut table = tx.open_table(TABLE_NAME_OF_TYPE).expect("open_table");
+            table.remove(&tyid).expect("remove");
+        }
+        tx.commit().expect("commit");
+    }
+
+    pub fn types_count(&self) -> usize {
+        let tx = self.db.begin_read().expect("begin_read");
+        let table = tx.open_table(TABLE_TYPES).expect("open_table");
+        table.len().expect("table len") as usize
     }
 
     /// Add a type to the database using the given TypeID, or change the type it refers to.
@@ -100,12 +234,24 @@ impl TypeSet {
     /// Non-regular TypeIDs are read-only, so they cannot be redefined (this
     /// function will return an Error::ReadOnly).
     pub fn set(&mut self, tyid: TypeID, ty: Ty) {
-        self.types.insert(tyid, ty);
+        if tyid == Self::TYID_SHARED_VOID {
+            // read-only type
+            return;
+        }
+
+        let tx = self.db.begin_write().expect("begin_write");
+        {
+            let mut table = tx.open_table(TABLE_TYPES).expect("open_table");
+            table.insert(&tyid, &ty).expect("insert into types");
+        }
+        tx.commit().expect("commit");
     }
 
     pub fn get(&self, tyid: TypeID) -> Option<Cow<'_, Ty>> {
-        // TODO remove Cow
-        self.types.get(&tyid).map(Cow::Borrowed)
+        let tx = self.db.begin_read().expect("begin_read");
+        let table = tx.open_table(TABLE_TYPES).expect("open_table");
+        let value = table.get(&tyid).expect("get");
+        value.map(|v| Cow::Owned(v.value().clone()))
     }
 
     pub fn get_through_alias(&self, mut tyid: TypeID) -> Option<Cow<'_, Ty>> {
@@ -243,11 +389,21 @@ impl TypeSet {
 
     pub fn set_known_object(&mut self, addr: Addr, tyid: TypeID) {
         event!(Level::TRACE, addr, ?tyid, "discovered call");
-        self.known_objects.insert(addr, tyid);
+        let tx = self.db.begin_write().expect("begin_write");
+        {
+            let mut table = tx.open_table(TABLE_TYPE_OF_GLOBAL).expect("open_table");
+            table
+                .insert(&addr, &tyid)
+                .expect("insert into type_of_global");
+        }
+        tx.commit().expect("commit");
     }
 
     pub fn get_known_object(&self, addr: Addr) -> Option<TypeID> {
-        self.known_objects.get(&addr).copied()
+        let tx = self.db.begin_read().expect("begin_read");
+        let table = tx.open_table(TABLE_TYPE_OF_GLOBAL).expect("open_table");
+        let value = table.get(&addr).expect("get");
+        value.map(|v| v.value())
     }
 
     pub fn alignment(&self, tyid: TypeID) -> Option<u8> {
@@ -283,16 +439,24 @@ impl TypeSet {
 
     #[allow(dead_code)]
     pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
-        writeln!(out, "TypeSet ({} types) = {{", self.types.len())?;
+        let tx = self.db.begin_read().expect("begin_read");
+        let table = tx.open_table(TABLE_TYPES).expect("open_table");
+
+        let count = table.len().expect("table len");
+        writeln!(out, "TypeSet ({} types) = {{", count)?;
 
         // ensure that the iteration always happens in the same order
-        let tyisd = {
-            let mut keys: Vec<_> = self.types.keys().collect();
+        let tyids = {
+            let mut keys: Vec<_> = table
+                .iter()
+                .expect("table iter")
+                .map(|item| item.unwrap().0.value())
+                .collect();
             keys.sort();
             keys
         };
 
-        for &tyid in tyisd {
+        for tyid in tyids {
             let ty = self.get(tyid).unwrap();
             write!(out, "  <{:?}> = ", tyid)?;
             out.open_box();
@@ -406,13 +570,20 @@ impl TypeSet {
     }
 
     pub(crate) fn call_site_by_return_pc(&self, return_pc: u64) -> Option<TypeID> {
-        self.call_sites
-            .get_by_return_pc(return_pc)
-            .map(|call_site| call_site.tyid)
+        let tx = self.db.begin_read().expect("begin_read");
+        let table = tx.open_table(TABLE_TYPE_OF_CALL).expect("open_table");
+        let value = table.get(&return_pc).expect("get");
+        value.map(|v| v.value())
     }
     pub(crate) fn add_call_site_by_return_pc(&mut self, return_pc: u64, tyid: TypeID) {
-        self.call_sites
-            .add_by_return_pc(return_pc, CallSite { tyid })
+        let tx = self.db.begin_write().expect("begin_write");
+        {
+            let mut table = tx.open_table(TABLE_TYPE_OF_CALL).expect("open_table");
+            table
+                .insert(&return_pc, &tyid)
+                .expect("insert into type_of_call");
+        }
+        tx.commit().expect("commit");
     }
 
     pub fn resolve_call(&self, key: CallSiteKey) -> Option<TypeID> {
@@ -666,32 +837,6 @@ fn dump_types<W: pp::PP>(
     Ok(())
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct CallSites {
-    by_return_pc: HashMap<u64, CallSite>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct CallSite {
-    pub tyid: TypeID,
-}
-
-impl CallSites {
-    pub fn new() -> Self {
-        CallSites {
-            by_return_pc: HashMap::new(),
-        }
-    }
-
-    pub fn add_by_return_pc(&mut self, return_pc: u64, callsite: CallSite) {
-        self.by_return_pc.insert(return_pc, callsite);
-    }
-
-    pub fn get_by_return_pc(&self, return_pc: u64) -> Option<&CallSite> {
-        self.by_return_pc.get(&return_pc)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -711,7 +856,8 @@ mod tests {
 
         // the name is not editable
         types.set_name(tyid_void_1, "whatever".to_string());
-        assert_eq!(types.name(tyid_void_1), Some("whatever"));
+        let name_check = types.name(tyid_void_1);
+        assert_eq!(name_check.as_ref().map(|s| s.as_str()), Some("whatever"));
     }
 
     #[test]
