@@ -33,6 +33,9 @@ pub enum Error {
 
     #[error("no type ID for DIE at {0:?}")]
     BrokenLink(gimli::DebugInfoOffset<usize>),
+
+    #[error("from type database: {0}]")]
+    TypesError(#[from] ty::Error),
 }
 
 pub struct Report {
@@ -75,12 +78,13 @@ pub fn load_dwarf_types(
     while let Some(unit_hdr) = units.next()? {
         is_empty = false;
 
+        let types_wtx = types.write_tx()?;
         let unit = dwarf.unit(unit_hdr)?;
         let parser = TypeParser {
             dwarf: &dwarf,
             errors: RefCell::new(Vec::new()),
             unit: &unit,
-            types,
+            types: types_wtx,
         };
         let unit_errors = parser.load_types()?;
 
@@ -101,7 +105,7 @@ struct TypeParser<'a> {
     dwarf: &'a gimli::Dwarf<ESlice<'a>>,
     errors: RefCell<Errors>,
     unit: &'a gimli::Unit<ESlice<'a>>,
-    types: &'a mut ty::TypeSet,
+    types: ty::WriteTx<'a>,
 }
 type Errors = Vec<(usize, Error)>;
 
@@ -146,6 +150,8 @@ impl<'a> TypeParser<'a> {
         let mut errors = Vec::new();
         let mut self_errors = self.errors.borrow_mut();
         std::mem::swap(&mut errors, &mut *self_errors);
+
+        self.types.commit()?;
         Ok(errors)
     }
 
@@ -221,7 +227,7 @@ impl<'a> TypeParser<'a> {
             Err(err) => {
                 // still ensure that TypeID is associated to a type
                 event!(Level::TRACE, ?err, "error parsing type, assigning Unknown");
-                self.types.set(tyid, ty::Ty::Unknown);
+                self.types.write().set(tyid, ty::Ty::Unknown)?;
                 Err(err)
             }
             Ok((name, ty)) => {
@@ -230,13 +236,13 @@ impl<'a> TypeParser<'a> {
                         let addr = self.dwarf.attr_address(unit, addr_attrvalue)?.ok_or(
                             Error::InvalidValueType(diofs.0, gimli::constants::DW_AT_low_pc),
                         )?;
-                        self.types.set_known_object(addr, tyid);
+                        self.types.write().set_known_object(addr, tyid)?;
                     }
                 }
 
-                self.types.set(tyid, ty);
+                self.types.write().set(tyid, ty)?;
                 if let Some(name) = name {
-                    self.types.set_name(tyid, name);
+                    self.types.write().set_name(tyid, name)?;
                 }
 
                 Ok(tyid)
@@ -267,7 +273,9 @@ impl<'a> TypeParser<'a> {
             .map(|s| s.to_owned())
             .unwrap_or_else(String::new);
         let return_tyid = match self.resolve_type_of(entry) {
-            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => Ok(self.types.tyid_shared_void()),
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => {
+                Ok(self.types.read().tyid_shared_void())
+            }
             res => res,
         }?;
 
@@ -301,7 +309,9 @@ impl<'a> TypeParser<'a> {
 
         // special case: C's `void*` is represented as a DW_TAG_pointer_type without DW_AT_type
         let pointee_tyid = match res {
-            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => self.types.tyid_shared_void(),
+            Err(Error::MissingRequiredAttr(gimli::DW_AT_type)) => {
+                self.types.read().tyid_shared_void()
+            }
             _ => res?,
         };
 
@@ -510,7 +520,9 @@ impl<'a> TypeParser<'a> {
 
         let tyid = self.resolve_reference(call_origin, diofs)?;
 
-        self.types.add_call_site_by_return_pc(return_pc, tyid);
+        self.types
+            .write()
+            .add_call_site_by_return_pc(return_pc, tyid)?;
         Ok(())
     }
 
@@ -546,7 +558,7 @@ impl<'a> TypeParser<'a> {
     // TODO Remove the Result<_> from the return type
     fn get_tyid(&mut self, type_unit_offset: DebugInfoOffset) -> Result<ty::TypeID> {
         let tyid = ty::TypeID(type_unit_offset.0 .0.try_into().unwrap());
-        self.types.get_or_create(tyid, || ty::Ty::Unknown);
+        self.types.write().get_or_create(tyid, || ty::Ty::Unknown)?;
         Ok(tyid)
     }
 

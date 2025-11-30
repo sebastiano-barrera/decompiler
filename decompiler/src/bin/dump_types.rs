@@ -20,5 +20,6 @@ fn main() {
 
     let mut stdout = std::io::stdout();
     let mut pp = decompiler::pp::PrettyPrinter::start(&mut stdout);
-    exe.types().dump(&mut pp).unwrap();
+    let types = exe.types().read_tx().unwrap();
+    types.read().dump(&mut pp).unwrap();
 }

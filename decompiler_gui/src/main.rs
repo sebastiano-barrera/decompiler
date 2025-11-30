@@ -102,7 +102,7 @@ struct SharedState {
     exe: decompiler::Executable<'static>,
     exe_data: proto_web::Exe,
     df_by_name: HashMap<String, Arc<Mutex<proto::Function>>>,
-    autoreloader: minijinja_autoreload::AutoReloader,
+    _autoreloader: minijinja_autoreload::AutoReloader,
 }
 
 impl SharedState {
@@ -118,7 +118,7 @@ impl SharedState {
         functions.sort();
 
         SharedState {
-            autoreloader,
+            _autoreloader: autoreloader,
             exe,
             exe_data: proto_web::Exe {
                 name: exe_name,
@@ -128,9 +128,7 @@ impl SharedState {
         }
     }
 
-    fn tmpl_env(&self) -> impl std::ops::Deref<Target = minijinja::Environment<'static>> {
-        self.autoreloader.acquire_env().unwrap()
-    }
+
 
     fn get_or_create(
         &mut self,

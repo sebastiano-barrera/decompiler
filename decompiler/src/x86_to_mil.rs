@@ -13,11 +13,12 @@ pub mod callconv;
 
 pub struct Builder<'a> {
     pb: mil::Program,
-    types: &'a ty::TypeSet,
+    types: ty::ReadTx<'a>,
 }
 
 impl<'a> Builder<'a> {
-    pub fn new(types: &'a ty::TypeSet) -> Self {
+    pub fn new(types: &'a ty::TypeSet) -> ty::Result<Self> {
+        let types = types.read_tx()?;
         let mut bld = Builder {
             pb: mil::Program::new(Self::R_TMP_FIRST),
             types,
@@ -72,7 +73,7 @@ impl<'a> Builder<'a> {
         bld.init_ancestral(Self::ZMM14, ANC_ZMM14, mil::RegType::Bytes(64));
         bld.init_ancestral(Self::ZMM15, ANC_ZMM15, mil::RegType::Bytes(64));
 
-        bld
+        Ok(bld)
     }
 
     /// Emit an Ancestral instruction for the given AncestralName and assign the
@@ -113,16 +114,19 @@ impl<'a> Builder<'a> {
     ) -> Result<(mil::Program, Warnings)> {
         use iced_x86::{OpKind, Register};
 
-        let func_ty = func_tyid_opt.and_then(|tyid| self.types.get_through_alias(tyid));
-        let func_ty = func_ty.as_ref().and_then(|cow| match cow.as_ref() {
-            ty::Ty::Subroutine(subr_ty) => Some(subr_ty),
-            _ => None,
-        });
+        let mut func_ty = None;
+        if let Some(tyid) = func_tyid_opt {
+            if let Some(cow) = self.types.read().get_through_alias(tyid)? {
+                if let ty::Ty::Subroutine(subr_ty) = cow.into_owned() {
+                    func_ty = Some(subr_ty);
+                }
+            }
+        }
         event!(Level::DEBUG, ?func_ty, "function type resolved");
 
         let mut warnings = Warnings::default();
 
-        if let Some(func_ty) = func_ty {
+        if let Some(func_ty) = &func_ty {
             let param_count = func_ty.param_tyids.len();
             let res = callconv::unpack_params(&mut self, &func_ty.param_tyids, func_ty.return_tyid)
                 .context("while applying the calling convention for parameters");
@@ -227,6 +231,7 @@ impl<'a> Builder<'a> {
                 }
                 M::Ret => {
                     let ret_val = func_ty
+                        .as_ref()
                         .ok_or_else(|| anyhow::anyhow!("no function type"))
                         .and_then(|func_ty| {
                             callconv::pack_return_value(&mut self, func_ty.return_tyid)
@@ -494,10 +499,11 @@ impl<'a> Builder<'a> {
                     );
 
                     let v1 = self.tmp_gen();
-                    match self.resolve_call(&insn) {
+                    match self.resolve_call(&insn)? {
                         Some((subr_tyid, param_values)) => {
                             // .unwrap(): resolve_call() is supposed to check this already
-                            let subr_ty = check_subroutine_type(self.types, subr_tyid).unwrap();
+                            let subr_ty =
+                                check_subroutine_type(self.types.read(), subr_tyid).unwrap();
                             let return_tyid = subr_ty.return_tyid;
 
                             event!(Level::TRACE, ?subr_tyid, ?param_values, "resolved call");
@@ -752,30 +758,31 @@ impl<'a> Builder<'a> {
     fn resolve_call(
         &mut self,
         insn: &iced_x86::Instruction,
-    ) -> Option<(ty::TypeID, Vec<mil::Reg>)> {
+    ) -> Result<Option<(ty::TypeID, Vec<mil::Reg>)>> {
         let target_tyid = match insn.op0_kind() {
             OpKind::NearBranch64 => {
                 let return_pc = insn.next_ip();
                 let target = insn.near_branch_target();
                 self.types
-                    .resolve_call(ty::CallSiteKey { return_pc, target })
+                    .read()
+                    .resolve_call(ty::CallSiteKey { return_pc, target })?
             }
             _ => None,
         };
         let Some(subr_tyid) = target_tyid else {
             event!(Level::WARN, "no type hints for this callsite");
-            return None;
+            return Ok(None);
         };
 
         let param_values = match self.pack_params(subr_tyid) {
             Ok(params) => params,
             Err(err) => {
                 event!(Level::ERROR, ?err, "could not pack params");
-                return None;
+                return Ok(None);
             }
         };
 
-        Some((subr_tyid, param_values))
+        Ok(Some((subr_tyid, param_values)))
     }
 
     fn emit_call(&mut self, callee: mil::Reg, param_values: Vec<mil::Reg>, ret_reg: mil::Reg) {
@@ -1586,11 +1593,11 @@ impl<'a> Builder<'a> {
     }
 }
 
-pub fn check_subroutine_type(
-    types: &ty::TypeSet,
+pub fn check_subroutine_type<'t>(
+    rtx: ty::ReadTxRef<'t>,
     tyid: ty::TypeID,
-) -> Result<Cow<'_, ty::Subroutine>> {
-    let ty = types.get_through_alias(tyid).expect("invalid type ID");
+) -> Result<Cow<'t, ty::Subroutine>> {
+    let ty = rtx.get_through_alias(tyid)?.expect("invalid type ID");
     match ty {
         Cow::Borrowed(ty::Ty::Subroutine(subr_ty)) => Ok(Cow::Borrowed(subr_ty)),
         Cow::Owned(ty::Ty::Subroutine(subr_ty)) => Ok(Cow::Owned(subr_ty)),

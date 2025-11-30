@@ -135,7 +135,7 @@ impl Exe {
             writeln!(log_buf, "{:?}\n", ssa).unwrap();
 
             writeln!(log_buf, " --- ast").unwrap();
-            let ast = decompiler::AstBuilder::new(&ssa, exe.types()).build();
+            let ast = decompiler::AstBuilder::new(&ssa).build();
             // TODO replace this "printer" with something better
             println!("{:#?}", ast);
         }

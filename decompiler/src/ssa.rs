@@ -208,55 +208,6 @@ impl Program {
         self.reg_types[reg.0 as usize]
     }
 
-    /// Return the floating point constant represented by the Insn::Int that
-    /// defines `reg`.
-    ///
-    /// `None` is returned if `reg` is defined by an instruction other than
-    /// `Int`, or if its high-level value type is not a [ty::Ty::Float].
-    ///
-    /// The float value is automatically widened to `f64`.
-    pub fn as_float_const(&self, reg: mil::Reg, types: &ty::TypeSet) -> Option<f64> {
-        let mil::Insn::Int { value, size } = self.get(reg)? else {
-            return None;
-        };
-
-        let tyid = self.value_type(reg)?;
-        let ty = types.get_through_alias(tyid).unwrap();
-        let ty::Ty::Float(float_ty) = ty.as_ref() else {
-            return None;
-        };
-
-        if float_ty.size as u16 != size {
-            event!(
-                Level::DEBUG,
-                int_size = size,
-                ?float_ty,
-                ?reg,
-                "value type size does not match Insn::Int size"
-            );
-            return None;
-        }
-
-        match size {
-            4 => {
-                let value: i32 = value.try_into().unwrap();
-                let value = match self.endianness {
-                    Endianness::Little => f32::from_le_bytes(value.to_le_bytes()),
-                    Endianness::Big => f32::from_be_bytes(value.to_be_bytes()),
-                };
-                Some(value as f64)
-            }
-            8 => {
-                let value = match self.endianness {
-                    Endianness::Little => f64::from_le_bytes(value.to_le_bytes()),
-                    Endianness::Big => f64::from_be_bytes(value.to_be_bytes()),
-                };
-                Some(value)
-            }
-            _ => None,
-        }
-    }
-
     pub fn block_len(&self, bid: cfg::BlockID) -> usize {
         self.schedule.of_block(bid).len()
     }
@@ -527,7 +478,15 @@ impl Program {
                     type_s.clear();
                     let mut pp = pp::PrettyPrinter::start(&mut type_s);
                     write!(pp, ": ").unwrap();
-                    types.dump_type_ref(&mut pp, tyid).unwrap();
+
+                    match types.read_tx() {
+                        Ok(rtx) => {
+                            rtx.read().dump_type_ref(&mut pp, tyid).unwrap();
+                        }
+                        Err(err) => {
+                            write!(pp, "[error: {}]", err).unwrap();
+                        }
+                    }
                 }
             }
 

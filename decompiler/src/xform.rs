@@ -600,7 +600,7 @@ fn apply_type_selection(
     insn: Insn,
     prog: &mut ssa::OpenProgram,
     bid: BlockID,
-    types: &ty::TypeSet,
+    types: ty::ReadTxRef,
 ) -> Insn {
     let Insn::Part { src, offset, size } = insn else {
         return insn;
@@ -674,7 +674,10 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let mut prog = ssa::OpenProgram::wrap(prog);
     let mut deduper = Deduper::new();
 
-    propagate_call_types(&mut prog, types);
+    // TODO propagate this error
+    let rtx = types.read_tx().unwrap();
+
+    propagate_call_types(&mut prog, rtx.read());
 
     let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
     for bid in bids {
@@ -700,7 +703,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 if let Some(mem_ref_reg) = mem_ref_reg {
                     insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
                 }
-                insn = pack_aggregates(reg, insn, &mut prog, bid, types);
+                insn = pack_aggregates(reg, insn, &mut prog, bid, rtx.read());
                 insn = fold_get(insn, &prog);
                 insn = fold_subregs(insn, &prog);
                 insn = fold_concat_void(insn, &prog);
@@ -715,7 +718,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_bitops(insn, &prog);
                 insn = fold_constants(insn, &mut prog, bid);
                 insn = fold_shr_part(insn, &mut prog, bid);
-                insn = apply_type_selection(insn, &mut prog, bid, types);
+                insn = apply_type_selection(insn, &mut prog, bid, rtx.read());
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
@@ -723,6 +726,8 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 }
                 prog.set(reg, insn);
                 prog.append_existing(bid, reg);
+
+                assert_eq!(insn.has_side_effects(), orig_has_fx);
 
                 if insn != orig_insn {
                     event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
@@ -758,7 +763,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 /// * r8: T4
 /// * r14: TRet
 #[instrument(skip_all)]
-fn propagate_call_types(prog: &mut ssa::OpenProgram, types: &ty::TypeSet) {
+fn propagate_call_types<'t>(prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) {
     let mut tyids_to_set = ssa::RegMap::for_program(prog, None);
     for (_, reg) in prog.insns_rpo() {
         let Insn::Call { callee, first_arg } = prog.get(reg).unwrap() else {
@@ -767,7 +772,7 @@ fn propagate_call_types(prog: &mut ssa::OpenProgram, types: &ty::TypeSet) {
         let Some(callee_tyid) = prog.value_type(callee) else {
             continue;
         };
-        let Some(callee_ty) = types.get_through_alias(callee_tyid) else {
+        let Some(callee_ty) = types.get_through_alias(callee_tyid).unwrap() else {
             event!(
                 Level::ERROR,
                 ?callee,
@@ -830,17 +835,17 @@ fn propagate_call_types(prog: &mut ssa::OpenProgram, types: &ty::TypeSet) {
 }
 
 #[instrument(skip(prog, types))]
-fn pack_aggregates(
+fn pack_aggregates<'t>(
     reg: Reg,
     mut insn: Insn,
     prog: &mut ssa::OpenProgram,
     bid: BlockID,
-    types: &ty::TypeSet,
+    types: ty::ReadTxRef,
 ) -> Insn {
     let Some(tyid) = prog.value_type(reg) else {
         return insn;
     };
-    let Some(tycow) = types.get_through_alias(tyid) else {
+    let Some(tycow) = types.get_through_alias(tyid).unwrap() else {
         return insn;
     };
 
@@ -872,7 +877,7 @@ fn pack_aggregates(
             let mut first_member_reg = None;
 
             for member in struct_ty.members.iter().rev() {
-                let Some(size) = types.bytes_size(member.tyid) else {
+                let Some(size) = types.bytes_size(member.tyid).unwrap() else {
                     event!(
                         Level::ERROR,
                         struct_tyid = ?tyid,
@@ -907,6 +912,7 @@ fn pack_aggregates(
             insn = Insn::Struct {
                 type_name: types
                     .name(tyid)
+                    .unwrap()
                     .map(|s| s.to_string().leak() as &str)
                     .unwrap_or("?"),
                 first_member: first_member_reg,
@@ -964,9 +970,8 @@ fn find_mem_ref(prog: &ssa::Program) -> Option<Reg> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        mil::{self, Control, R},
+        mil::{self, Control},
         ssa, ty,
-        util::Bytes,
     };
     use mil::{ArithOp, Insn, Reg};
 

@@ -121,31 +121,10 @@ fn path_of_key(key: u64) -> Result<PathBuf> {
     Ok(dir.join(&file_name))
 }
 
-fn open_typeset(path: &Path) -> ty::Result<(ty::TypeSet, bool)> {
-    let err = match ty::TypeSet::open(ty::Location::File(path)) {
-        Ok(types) => return Ok((types, false)),
-        Err(err @ ty::Error::FileNotFound) => return Err(err),
-        Err(err) => err,
-    };
-
-    event!(
-        Level::WARN,
-        ?err,
-        ?path,
-        "could not open type cache, deleting corrupted cache file"
-    );
-
-    // try again after deleting the file (cache files are intended to be
-    // temporary and expendable!)
-    // we know the file should exist, as the error is not ty::Error::FileNotFound
-
-    if let Err(_) = std::fs::remove_file(path) {
-        return Err(ty::Error::DatabaseError(
-            "could not delete corrupted cache file".to_owned(),
-        ));
-    }
-
-    ty::TypeSet::open(ty::Location::File(path)).map(|types| (types, true))
+fn open_typeset(dir_path: &Path) -> ty::Result<(ty::TypeSet, bool)> {
+    let is_new = !std::fs::exists(&dir_path).unwrap();
+    let types = ty::TypeSet::open(ty::Location::Dir(dir_path))?;
+    Ok((types, is_new))
 }
 
 impl<'a> Executable<'a> {
@@ -190,6 +169,15 @@ impl<'a> Executable<'a> {
             let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
         }
 
+        {
+            let rtx = types.read_tx()?;
+            event!(
+                Level::INFO,
+                types_count = rtx.read().types_count()?,
+                "types loaded"
+            );
+        }
+
         Ok(Executable {
             raw_binary,
             elf,
@@ -222,8 +210,9 @@ impl<'a> Executable<'a> {
             iced_x86::DecoderOptions::NONE,
         );
 
-        let func_tyid_opt = self.types.get_known_object(vm_addr);
-        let mil_res = x86_to_mil::Builder::new(&self.types)
+        let types_rtx = self.types.read_tx()?;
+        let func_tyid_opt = types_rtx.read().get_known_object(vm_addr)?;
+        let mil_res = x86_to_mil::Builder::new(&self.types)?
             .translate(decoder.iter(), func_tyid_opt)
             .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()));
 
@@ -265,7 +254,7 @@ impl<'a> Executable<'a> {
         df.ssa_pre_xform = Some(ssa.clone());
 
         xform::canonical(&mut ssa, &self.types);
-        let ast = AstBuilder::new(&ssa, &self.types).build();
+        let ast = AstBuilder::new(&ssa).build();
         df.ast = Some(ast);
         df.ssa = Some(ssa);
 

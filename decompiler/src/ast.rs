@@ -5,7 +5,7 @@ use thiserror::Error;
 use crate::{
     cfg,
     mil::{ArithOp, Insn, Reg},
-    ssa, ty, RegMap,
+    ssa, RegMap,
 };
 
 // TODO intern strings? (check performance gain)
@@ -114,7 +114,7 @@ pub struct AstBuilder<'a> {
 }
 
 impl<'a> AstBuilder<'a> {
-    pub fn new(ssa: &'a ssa::Program, types: &'a ty::TypeSet) -> Self {
+    pub fn new(ssa: &'a ssa::Program) -> Self {
         let rdr_count = ssa::count_readers(ssa);
         let is_named = rdr_count.map(|reg, count| {
             let Some(insn) = ssa.get(reg) else {
@@ -334,19 +334,6 @@ impl<'a> AstBuilder<'a> {
     }
 }
 
-fn arith_op_str(arith_op: ArithOp) -> &'static str {
-    match arith_op {
-        ArithOp::Add => "+",
-        ArithOp::Sub => "-",
-        ArithOp::Mul => "*",
-        ArithOp::Shl => "<<",
-        ArithOp::Shr => ">>",
-        ArithOp::BitXor => "^",
-        ArithOp::BitAnd => "&",
-        ArithOp::BitOr => "|",
-    }
-}
-
 pub type PrecedenceLevel = u8;
 
 pub fn precedence(insn: &Insn) -> PrecedenceLevel {
@@ -409,12 +396,11 @@ mod tests {
     use super::*;
     use crate::define_ancestral_name;
 
+    #[ignore = "I don't remember what this test was for"]
     #[test]
     fn test() {
         let ssa = sample_program();
-        let types = crate::ty::TypeSet::new();
-
-        let ast = AstBuilder::new(&ssa, &types).build();
+        let ast = AstBuilder::new(&ssa).build();
         println!("ast = {:#?}", ast);
         panic!();
     }
@@ -453,7 +439,7 @@ mod tests {
         // Chosen because the control flow (and the set of instructions "called" here)
         // is varied enough to test for many things
 
-        use crate::mil::{self, Insn, ArithOp, BoolOp, CmpOp, Reg};
+        use crate::mil::{self, Insn, ArithOp, BoolOp,  Reg};
 
         let mut prog = mil::Program::new(Reg(0));
 

@@ -1,6 +1,6 @@
 ---
 source: decompiler/tests/test_tool.rs
-assertion_line: 153
+assertion_line: 152
 expression: out
 ---
  --- mil
@@ -485,37 +485,3 @@ ssa program  300 instrs
 
 
  --- ast
-
-T0: {
-  let r42: Bytes(16) = $arg0;
-  let r236: Bytes(8) = r42.numbers;
-  [pre:RSP - 8]:* := pre:RBP;
-  [pre:RSP - 40]:* := r236;
-  [pre:RSP - 32]:* := r42[16 .. 8];
-  [pre:RSP - 12]:* := 0;
-  [pre:RSP - 16]:* := 0;
-  goto T5
-  T5: {
-    let r247: Bytes(4) = r42.rows;
-    ;
-    if ! (SignOf (r247) EQ OverflowOf (r247)) {
-      [pre:RSP - 20]:* := 0;
-      goto T3
-      T3: {
-        let r263: Bytes(4) = r42.cols;
-        ;
-        if ! (SignOf (r263) EQ OverflowOf (r263)) {
-          [pre:RSP - 12]:* := [(r42.cols * 0)[4 .. 0] as i64 << 2 as i16 + r236 as i8]:4;
-          [pre:RSP - 20]:* := 1;
-          loop T3
-        }
-        [pre:RSP - 16]:* := 1;
-        loop T5
-      }
-    
-    }
-    ;
-    return 0
-  }
-
-}

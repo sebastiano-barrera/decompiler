@@ -61,6 +61,7 @@ pub fn compute_data_flow(func_name: &str) -> DataFlow {
     // (only works in the absence of control flow, which we're going to check
     // later)
     let ssa = df.ssa().unwrap();
+    let types = exe.types().read_tx().unwrap();
 
     // simplifying hypothesis
     assert_eq!(ssa.cfg().block_count(), 1);
@@ -82,7 +83,7 @@ pub fn compute_data_flow(func_name: &str) -> DataFlow {
         println!(" r{:<4} = {:?}", reg.reg_index(), insn);
         match ssa.value_type(reg) {
             Some(tyid) => {
-                let ty = exe.types().get_through_alias(tyid).unwrap();
+                let ty = types.read().get_through_alias(tyid).unwrap();
                 println!("   : {:?}", ty);
             }
             None => {

@@ -36,7 +36,7 @@ pub fn unpack_params(
     prepare_for_return_value(bld, ret_tyid, &mut state)?;
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = bld.types.get(param_tyid).unwrap();
+        let param_ty = bld.types.read().get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
@@ -69,11 +69,11 @@ fn unpack_param(
     tyid: ty::TypeID,
 ) -> anyhow::Result<()> {
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, &bld.types, tyid, 0)?;
+    classify_eightbytes(&mut eb_set, bld.types.read(), tyid, 0)?;
 
     let mode = eightbytes_to_pass_mode(eb_set, state);
     // .unwrap(): classify_eightbytes already checks that size is known
-    let sz = bld.types.bytes_size(tyid).unwrap();
+    let sz = bld.types.read().bytes_size(tyid)?.unwrap();
 
     let arg_value = bld.tmp_gen();
 
@@ -218,7 +218,7 @@ fn prepare_for_return_value(
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &*bld.types.get(ret_tyid).unwrap() {
+    match &*bld.types.read().get(ret_tyid)?.unwrap() {
         ty::Ty::Void => {
             // we're fine: no storage is used for this value, so `state` is already OK
         }
@@ -236,7 +236,7 @@ fn prepare_for_return_value(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, &bld.types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.types.read(), ret_tyid, 0)?;
             // pass a copy of state: in this step, we just want to predict the
             // outcome of pack_return_value, we don't want to actually pull
             // regs yet
@@ -256,8 +256,8 @@ fn prepare_for_return_value(
 
 #[instrument(skip_all)]
 pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
-    let ret_ty = &*bld.types.get(ret_tyid).unwrap();
     let ret_val = bld.tmp_gen();
+    let ret_ty = &*bld.types.read().get(ret_tyid)?.unwrap();
     match &*ret_ty {
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
@@ -274,13 +274,13 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, &bld.types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.types.read(), ret_tyid, 0)?;
             // for return values, no more than 2 registers should be used; if the type
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
             // .unwrap(): classify_eightbytes already checks that size is known
-            let sz = bld.types.bytes_size(ret_tyid).unwrap();
+            let sz = bld.types.read().bytes_size(ret_tyid)?.unwrap();
             assert!(sz > 0);
 
             bld.emit(ret_val, Insn::Void);
@@ -387,10 +387,10 @@ pub fn pack_params(
     bld: &mut Builder,
     subr_tyid: ty::TypeID,
 ) -> anyhow::Result<(Report, Vec<mil::Reg>)> {
-    let Result::Ok(subr_ty) = super::check_subroutine_type(bld.types, subr_tyid) else {
+    let Result::Ok(subr_ty) = super::check_subroutine_type(bld.types.read(), subr_tyid) else {
         return Err(anyhow::anyhow!("could not narrow down to subroutine type"));
     };
-    let param_types = &subr_ty.param_tyids;
+    let param_types = subr_ty.param_tyids.clone();
     let ret_tyid = subr_ty.return_tyid;
 
     let mut report = Report { ok_count: 0 };
@@ -400,7 +400,7 @@ pub fn pack_params(
     let param_count = param_types.len();
     let mut param_regs: Vec<mil::Reg> = Vec::with_capacity(param_count);
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = bld.types.get(param_tyid).unwrap();
+        let param_ty = bld.types.read().get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
@@ -433,13 +433,14 @@ fn pack_param(
     tyid: ty::TypeID,
 ) -> anyhow::Result<mil::Reg> {
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, bld.types, tyid, 0)?;
+    classify_eightbytes(&mut eb_set, bld.types.read(), tyid, 0)?;
     let mode = eightbytes_to_pass_mode(eb_set, state);
     let arg_value = bld.tmp_gen();
 
     let sz = bld
         .types
-        .bytes_size(tyid)
+        .read()
+        .bytes_size(tyid)?
         .ok_or_else(|| anyhow!("type has no size?"))?;
     let eb_count = sz.div_ceil(8);
 
@@ -521,7 +522,7 @@ pub fn unpack_return_value(
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
-    match &*bld.types.get(ret_tyid).unwrap() {
+    match &*bld.types.read().get(ret_tyid)?.unwrap() {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown => {
@@ -539,13 +540,13 @@ pub fn unpack_return_value(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, bld.types, ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.types.read(), ret_tyid, 0)?;
             // for return values, no more than 2 registers should be used; if the type
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
             // .unwrap(): classify_eightbytes already checks that size is known
-            let sz = bld.types.bytes_size(ret_tyid).unwrap();
+            let sz = bld.types.read().bytes_size(ret_tyid)?.unwrap();
             assert!(sz > 0);
 
             match eb_set {
@@ -699,23 +700,23 @@ fn eightbytes_range(offset: usize, size: usize) -> (u8, u8) {
     )
 }
 
-fn classify_eightbytes(
+fn classify_eightbytes<'t>(
     eb_set: &mut EightbytesSet,
-    types: &ty::TypeSet,
+    types: ty::ReadTxRef,
     tyid: ty::TypeID,
     offset: usize,
 ) -> anyhow::Result<()> {
-    let ty = types.get(tyid).unwrap();
+    let ty = types.get(tyid)?.unwrap();
 
     if let ty::Ty::Alias(ref_tyid) = &*ty {
         return classify_eightbytes(eb_set, types, *ref_tyid, offset);
     }
 
     let sz = types
-        .bytes_size(tyid)
+        .bytes_size(tyid)?
         .ok_or_else(|| anyhow!("type has no size?"))?;
     let alignment: usize = types
-        .alignment(tyid)
+        .alignment(tyid)?
         .ok_or_else(|| anyhow!("type has no alignment?"))?
         .into();
     if (offset % alignment) != 0 {
@@ -762,7 +763,7 @@ fn classify_eightbytes(
                 let count: usize = count.try_into().unwrap();
 
                 let element_size = types
-                    .bytes_size(array_ty.element_tyid)
+                    .bytes_size(array_ty.element_tyid)?
                     .ok_or_else(|| anyhow!("array element type has no size"))?;
                 for i in 0..count {
                     classify_eightbytes(eb_set, types, array_ty.element_tyid, i * element_size)?;
@@ -990,33 +991,33 @@ mod tests {
     }
 
     // TOOD share the result (e.g. as a OnceCell)
-    fn make_scalars(types: &mut ty::TypeSet, tyid_gen: &mut TypeIdGen) -> Types {
-        use ty::{Int, Signedness, Ty, TypeSet};
+    fn make_scalars(mut wtx: ty::WriteTxRef, tyid_gen: &mut TypeIdGen) -> Types {
+        use ty::{Int, Signedness, Ty};
 
-        let mut mk_int = |types: &mut TypeSet, name: &str, size: u8| {
+        let mut mk_int = |wtx: &mut ty::WriteTxRef, name: &str, size: u8| {
             let tyid = tyid_gen.next_id();
             let ty = Ty::Int(Int {
                 size,
                 signed: Signedness::Signed,
             });
-            types.set(tyid, ty);
-            types.set_name(tyid, name.to_owned());
+            wtx.set(tyid, ty).unwrap();
+            wtx.set_name(tyid, name.to_owned()).unwrap();
             tyid
         };
 
-        let tyid_i8 = mk_int(types, "i8", 1);
-        let tyid_i16 = mk_int(types, "i16", 2);
-        let tyid_i32 = mk_int(types, "i32", 4);
-        let tyid_i64 = mk_int(types, "i64", 8);
+        let tyid_i8 = mk_int(&mut wtx, "i8", 1);
+        let tyid_i16 = mk_int(&mut wtx, "i16", 2);
+        let tyid_i32 = mk_int(&mut wtx, "i32", 4);
+        let tyid_i64 = mk_int(&mut wtx, "i64", 8);
 
         let tyid_f32 = tyid_gen.next_id();
-        types.set(tyid_f32, Ty::Float(ty::Float { size: 4 }));
-        types.set_name(tyid_f32, "float32".to_owned());
+        wtx.set(tyid_f32, Ty::Float(ty::Float { size: 4 })).unwrap();
+        wtx.set_name(tyid_f32, "float32".to_owned()).unwrap();
 
         let tyid_f64 = tyid_gen.next_id();
-        types.set(tyid_f64, Ty::Float(ty::Float { size: 8 }));
+        wtx.set(tyid_f64, Ty::Float(ty::Float { size: 8 })).unwrap();
 
-        types.set_name(tyid_f64, "float64".to_owned());
+        wtx.set_name(tyid_f64, "float64".to_owned()).unwrap();
 
         Types {
             tyid_i64,
@@ -1031,15 +1032,16 @@ mod tests {
     #[test]
     fn classify_struct_one_int() {
         let mut types = ty::TypeSet::new();
+        let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
-        let scas = make_scalars(&mut types, &mut tyid_gen);
+        let scas = make_scalars(wtx.write(), &mut tyid_gen);
 
         for sca_tyid in [scas.tyid_i8, scas.tyid_i16, scas.tyid_i32, scas.tyid_i64] {
             let struct_tyid = tyid_gen.next_id();
-            make_sample_struct(&mut types, struct_tyid, &[(0, sca_tyid)]);
+            make_sample_struct(wtx.write(), struct_tyid, &[(0, sca_tyid)]);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, wtx.read(), struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -1058,8 +1060,9 @@ mod tests {
     #[test]
     fn classify_struct_ints_fit_1_eb() {
         let mut types = ty::TypeSet::new();
+        let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
-        let scas = make_scalars(&mut types, &mut tyid_gen);
+        let scas = make_scalars(wtx.write(), &mut tyid_gen);
 
         let cases: &[&[_]] = &[
             &[
@@ -1087,10 +1090,10 @@ mod tests {
 
         for &members in cases {
             let struct_tyid = tyid_gen.next_id();
-            make_sample_struct(&mut types, struct_tyid, members);
+            make_sample_struct(wtx.write(), struct_tyid, members);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, wtx.read(), struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -1109,15 +1112,16 @@ mod tests {
     #[test]
     fn classify_struct_one_float() {
         let mut types = ty::TypeSet::new();
+        let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
-        let scas = make_scalars(&mut types, &mut tyid_gen);
+        let scas = make_scalars(wtx.write(), &mut tyid_gen);
 
         for sca_tyid in [scas.tyid_f32, scas.tyid_f64] {
             let struct_tyid = tyid_gen.next_id();
-            make_sample_struct(&mut types, struct_tyid, &[(0, sca_tyid)]);
+            make_sample_struct(wtx.write(), struct_tyid, &[(0, sca_tyid)]);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, wtx.read(), struct_tyid, 0).unwrap();
 
             assert_eq!(
                 &buf,
@@ -1136,8 +1140,9 @@ mod tests {
     #[test]
     fn classify_struct_two_ints() {
         let mut types = ty::TypeSet::new();
+        let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
-        let scas = make_scalars(&mut types, &mut tyid_gen);
+        let scas = make_scalars(wtx.write(), &mut tyid_gen);
 
         let cases: &[&[_]] = &[
             &[(0, scas.tyid_i8), (8, scas.tyid_i8)],
@@ -1155,10 +1160,10 @@ mod tests {
 
         for &members in cases {
             let struct_tyid = tyid_gen.next_id();
-            make_sample_struct(&mut types, struct_tyid, members);
+            make_sample_struct(wtx.write(), struct_tyid, members);
 
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, wtx.read(), struct_tyid, 0).unwrap();
 
             assert_eq!(
                 buf,
@@ -1177,8 +1182,9 @@ mod tests {
     #[test]
     fn classify_struct_larger() {
         let mut types = ty::TypeSet::new();
+        let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
-        let scas = make_scalars(&mut types, &mut tyid_gen);
+        let scas = make_scalars(wtx.write(), &mut tyid_gen);
 
         let cases: &[&[_]] = &[
             &[(0, scas.tyid_i8), (8, scas.tyid_i8), (64, scas.tyid_i8)],
@@ -1194,19 +1200,19 @@ mod tests {
         for &members in cases {
             println!("{:?}", members);
             let struct_tyid = tyid_gen.next_id();
-            make_sample_struct(&mut types, struct_tyid, members);
+            make_sample_struct(wtx.write(), struct_tyid, members);
             let mut buf = EightbytesSet::new_regs();
-            classify_eightbytes(&mut buf, &types, struct_tyid, 0).unwrap();
+            classify_eightbytes(&mut buf, wtx.read(), struct_tyid, 0).unwrap();
             assert_eq!(buf, EightbytesSet::Memory);
         }
     }
 
-    fn make_sample_struct(types: &mut ty::TypeSet, tyid: TypeID, members: &[(usize, TypeID)]) {
+    fn make_sample_struct(mut wtx: ty::WriteTxRef, tyid: TypeID, members: &[(usize, TypeID)]) {
         assert!(members.iter().is_sorted_by_key(|(ofs, _)| ofs));
 
         let struct_sz = {
             let &(ofs, tyid) = members.last().unwrap();
-            let sz = types.bytes_size(tyid).unwrap();
+            let sz = wtx.read().bytes_size(tyid).unwrap().unwrap();
             ofs + sz
         };
         let ty_struct = ty::Ty::Struct(ty::Struct {
@@ -1220,7 +1226,7 @@ mod tests {
                 })
                 .collect(),
         });
-        types.set(tyid, ty_struct);
-        types.set_name(tyid, "SampleStruct".to_owned());
+        wtx.set(tyid, ty_struct).unwrap();
+        wtx.set_name(tyid, "SampleStruct".to_owned()).unwrap();
     }
 }

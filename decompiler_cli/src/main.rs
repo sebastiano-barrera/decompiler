@@ -357,7 +357,7 @@ fn write_ast_expr<W: std::io::Write>(
     let xpinsn = decompiler::to_expanded(&insn);
 
     write!(wrt, "{} ", xpinsn.opcode)?;
-    for (ndx, (key, arg)) in xpinsn.fields.into_iter().enumerate() {
+    for (ndx, (_key, arg)) in xpinsn.fields.into_iter().enumerate() {
         if ndx > 0 {
             write!(wrt, " ")?;
         }

@@ -86,7 +86,8 @@ impl TypeInfo {
 
         let tyid = ssa.value_type(reg)?;
         let hl_ty_str = decompiler::pp::pp_to_string(|pp| {
-            exe.types().dump_type_ref(pp, tyid).unwrap();
+            let rtx = exe.types().read_tx().unwrap();
+            rtx.read().dump_type_ref(pp, tyid).unwrap();
         });
 
         Some(TypeInfo {
@@ -218,9 +219,7 @@ impl FunctionView {
         let decoder = df.disassemble(exe);
         let assembly = Assembly::from_decoder(decoder);
 
-        let ast = df
-            .ssa()
-            .map(|ssa| decompiler::AstBuilder::new(ssa, exe.types()).build());
+        let ast = df.ssa().map(|ssa| decompiler::AstBuilder::new(ssa).build());
 
         FunctionView {
             df,
@@ -521,7 +520,8 @@ mod ast {
     };
 
     use super::hl;
-    use crate::theme::{self, Colors};
+    use crate::theme;
+
     pub fn render(
         ui: &mut egui::Ui,
         ast: &decompiler::Ast,
@@ -640,7 +640,7 @@ mod ast {
         });
     }
 
-    fn print_error_tag(ui: &mut egui::Ui, s: &mut State<'_>, text: &str) {
+    fn print_error_tag(ui: &mut egui::Ui, _s: &mut State<'_>, text: &str) {
         ui.label(egui::RichText::new(text).color(egui::Color32::DARK_RED));
     }
 
@@ -899,7 +899,11 @@ mod ast {
             }
 
             Insn::NotYetImplemented(msg) => {
-                print_error_tag(ui, s, &format!("not yet implemented: {:?}", insn));
+                print_error_tag(
+                    ui,
+                    s,
+                    &format!("/* not yet implemented: {:?}: {} */", insn, msg),
+                );
             }
         }
 
@@ -908,7 +912,7 @@ mod ast {
         }
     }
 
-    fn print_ident(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str) {
+    fn print_ident(ui: &mut egui::Ui, _s: &mut State<'_>, ident: &str) {
         ui.label(ident);
     }
     fn print_ident_def(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str, focus: hl::Focus) {
@@ -920,7 +924,7 @@ mod ast {
         active_label(ui, s, focus, colors, ident);
     }
 
-    fn print_kw(ui: &mut egui::Ui, s: &mut State<'_>, kw: &str) {
+    fn print_kw(ui: &mut egui::Ui, _s: &mut State<'_>, kw: &str) {
         ui.label(egui::RichText::new(kw).strong());
     }
 
