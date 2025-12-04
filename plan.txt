@@ -133,7 +133,7 @@ suitable alternative
 - [-] gui: details for reg: AST expr parent?
     - nah, a dedicated UI is better here
 
-- [ ] faster load from executable cache
+- [x] faster load from executable cache
     - approach: "zero-copy deserialization"
         - link: https://github.com/rkyv/rkyv
         - link: https://crates.io/crates/epserde

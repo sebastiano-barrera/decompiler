@@ -1207,6 +1207,7 @@ dependencies = [
  "rayon",
  "rmp-serde",
  "serde",
+ "sha1",
  "slotmap",
  "smallvec",
  "tempfile",

@@ -3,6 +3,7 @@ use std::ffi::OsString;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
+use sha1::Digest;
 use thiserror::Error;
 use tracing::*;
 
@@ -97,7 +98,7 @@ struct FuncCoords {
     code_size: usize,
 }
 
-fn path_of_key(key: u64) -> Result<PathBuf> {
+fn path_of_key(key: &[u8]) -> Result<PathBuf> {
     use std::fmt::Write;
 
     let mut dir = std::env::var_os("XDG_CACHE_HOME")
@@ -114,8 +115,9 @@ fn path_of_key(key: u64) -> Result<PathBuf> {
     dir = dir.join("decompiler");
 
     let mut file_name = OsString::with_capacity(3 * 8);
-    for b in key.to_le_bytes() {
-        write!(file_name, "{:02x}-", b).unwrap();
+    for (ndx, b) in key.iter().enumerate() {
+        let pfx = if ndx == 0 { "" } else { "-" };
+        write!(file_name, "{}{:02x}", pfx, b).unwrap();
     }
 
     Ok(dir.join(&file_name))
@@ -145,13 +147,13 @@ impl<'a> Executable<'a> {
 
         // the bet is that the binary's hash is unique enough for a key
 
-        let cache_key = {
-            let mut hasher = std::hash::DefaultHasher::new();
-            raw_binary.hash(&mut hasher);
-            hasher.finish()
+        let cache_key: [u8; 20] = {
+            let mut hasher = sha1::Sha1::new();
+            hasher.update(raw_binary);
+            hasher.finalize().into()
         };
 
-        let (mut types, is_new) = path_of_key(cache_key)
+        let (mut types, is_new) = path_of_key(&cache_key)
             .and_then(|p| open_typeset(&p).map_err(Error::TypeSetError))
             .unwrap_or_else(|err| {
                 event!(

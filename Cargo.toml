@@ -9,4 +9,4 @@ gimli.opt-level = 3
 slotmap.opt-level = 3
 insta.opt-level = 3
 egui.opt-level = 3
-
+sha1.opt-level = 3
