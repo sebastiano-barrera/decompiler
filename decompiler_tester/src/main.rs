@@ -67,12 +67,15 @@ struct FunctionView {
     problems_title: String,
     problems_error: Option<String>,
 
-    assembly: Assembly,
-
     hl: hl::State,
     ast: Option<decompiler::Ast>,
 
+    assembly: Assembly,
+
     pinned_ty: Cache<decompiler::Reg, Option<TypeInfo>>,
+
+    is_asm_visible: bool,
+    is_cfg_visible: bool,
 }
 
 struct TypeInfo {
@@ -105,15 +108,24 @@ impl eframe::App for App {
                 self.show_topbar(ui);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
                     egui::widgets::global_theme_preference_switch(ui);
+
+                    if let Some(Ok(func_view)) = &mut self.stage_func {
+                        ui.toggle_value(
+                            &mut func_view.is_cfg_visible,
+                            egui::RichText::new("CFG").monospace(),
+                        );
+                        ui.toggle_value(
+                            &mut func_view.is_asm_visible,
+                            egui::RichText::new("ASM").monospace(),
+                        );
+                    }
                 });
             });
         });
 
-        egui::CentralPanel::default()
-            .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0))
-            .show(ctx, |ui| {
-                self.show_central(ui);
-            });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.show_central(ui);
+        });
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
@@ -216,8 +228,9 @@ impl FunctionView {
         );
         let error_label = df.error().map(|err| err.to_string());
 
-        let decoder = df.disassemble(exe);
-        let assembly = Assembly::from_decoder(decoder);
+        let machine_code = df.machine_code(exe);
+        let base_ip = df.base_ip();
+        let assembly = Assembly::disassemble_x86(machine_code, base_ip);
 
         let ast = df.ssa().map(|ssa| decompiler::AstBuilder::new(ssa).build());
 
@@ -230,6 +243,8 @@ impl FunctionView {
             ast,
             hl: hl::State::empty(),
             pinned_ty: Cache::default(),
+            is_asm_visible: false,
+            is_cfg_visible: false,
         }
     }
 
@@ -253,6 +268,22 @@ impl FunctionView {
     ///
     /// To be called before `show_central`.
     fn show_panels(&mut self, ui: &mut egui::Ui, exe: &Executable) {
+        if self.is_asm_visible {
+            egui::SidePanel::left("asm_panel").show_inside(ui, |ui| {
+                self.show_assembly(ui);
+            });
+        }
+
+        if self.is_cfg_visible {
+            egui::SidePanel::right("cfg_panel").show_inside(ui, |ui| {
+                ui.heading("Control-flow graph");
+            });
+        }
+
+        self.show_hl_details_panel(ui, exe);
+    }
+
+    fn show_hl_details_panel(&mut self, ui: &mut egui::Ui, exe: &Executable<'_>) {
         match self.hl.pinned.focus() {
             Some(hl::Focus::Reg(reg)) => {
                 let type_info = self
@@ -309,11 +340,11 @@ impl FunctionView {
                 }
             });
     }
-}
 
-impl FunctionView {
-    #[cfg(any())]
-    fn ui_tab_assembly(&mut self, ui: &mut egui::Ui) {
+    fn show_assembly(&self, ui: &mut egui::Ui) {
+        ui.label(egui::RichText::new("ASSEMBLY").small().strong());
+        ui.add_space(2.0);
+
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
         egui::ScrollArea::both()
             .auto_shrink([false, false])
@@ -324,46 +355,48 @@ impl FunctionView {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             let text = format!("0x{:x}", asm_line.addr);
 
-                            let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
-                            let (bg, fg) = if is_pinned {
-                                (hl::COLOR_RED_DARK, egui::Color32::WHITE)
-                            } else {
-                                (egui::Color32::TRANSPARENT, ui.visuals().text_color())
-                            };
+                            // let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
+                            // let (bg, fg) = if is_pinned {
+                            //     (hl::COLOR_RED_DARK, egui::Color32::WHITE)
+                            // } else {
+                            //     (egui::Color32::TRANSPARENT, ui.visuals().text_color())
+                            // };
 
-                            let stroke = if self.hl.asm_line_ndx.hovered() == Some(&ndx) {
-                                hl::COLOR_RED_LIGHT
-                            } else {
-                                egui::Color32::TRANSPARENT
-                            };
+                            // let stroke = if self.hl.asm_line_ndx.hovered() == Some(&ndx) {
+                            //     hl::COLOR_RED_LIGHT
+                            // } else {
+                            //     egui::Color32::TRANSPARENT
+                            // };
 
-                            let res = egui::Frame::new()
-                                .stroke(egui::Stroke {
-                                    width: 1.0,
-                                    color: stroke,
-                                })
-                                .show(ui, |ui| {
-                                    ui.label(
-                                        egui::RichText::new(text)
-                                            .monospace()
-                                            .background_color(bg)
-                                            .color(fg),
-                                    )
-                                })
-                                .inner;
+                            // let res = egui::Frame::new()
+                            //     .stroke(egui::Stroke {
+                            //         width: 1.0,
+                            //         color: stroke,
+                            //     })
+                            //     .show(ui, |ui| {
+                            //         ui.label(
+                            //             egui::RichText::new(text)
+                            //                 .monospace()
+                            //                 .background_color(bg)
+                            //                 .color(fg),
+                            //         )
+                            //     })
+                            //     .inner;
 
-                            if res.hovered() {
-                                self.hl.asm_line_ndx.set_hovered(Some(ndx));
-                            }
-                            if res.clicked() {
-                                // TODO refactor this into a "toggle" method
-                                self.hl.asm_line_ndx.set_pinned(
-                                    match self.hl.asm_line_ndx.pinned() {
-                                        Some(&pinned_ndx) if pinned_ndx == ndx => None,
-                                        _ => Some(ndx),
-                                    },
-                                );
-                            }
+                            ui.label(egui::RichText::new(text).monospace());
+
+                            // if res.hovered() {
+                            //     self.hl.asm_line_ndx.set_hovered(Some(ndx));
+                            // }
+                            // if res.clicked() {
+                            //     // TODO refactor this into a "toggle" method
+                            //     self.hl.asm_line_ndx.set_pinned(
+                            //         match self.hl.asm_line_ndx.pinned() {
+                            //             Some(&pinned_ndx) if pinned_ndx == ndx => None,
+                            //             _ => Some(ndx),
+                            //         },
+                            //     );
+                            // }
                         });
                         ui.add(
                             egui::Label::new(egui::RichText::new(&asm_line.text).monospace())
@@ -477,39 +510,51 @@ impl FunctionSelector {
 /// Preprocessed version of the original assembly program, geared towards being
 /// showed on screen.
 struct Assembly {
+    machine_code: Vec<u8>,
     lines: Vec<AssemblyLine>,
     ndx_of_addr: BTreeMap<u64, usize>,
 }
 struct AssemblyLine {
     addr: u64,
-    code_size: u8,
+    machine_code_range: std::ops::Range<usize>,
     text: String,
 }
 
 impl Assembly {
-    fn from_decoder(decoder: iced_x86::Decoder) -> Self {
+    fn disassemble_x86(machine_code: &[u8], base_ip: u64) -> Self {
+        let decoder =
+            iced_x86::Decoder::with_ip(64, machine_code, base_ip, iced_x86::DecoderOptions::NONE);
+
+        let machine_code = machine_code.to_vec();
         let mut lines = Vec::new();
         let mut ndx_of_addr = BTreeMap::new();
 
         let mut formatter = iced_x86::IntelFormatter::new();
-        for instr in decoder {
+        let mut offset = 0;
+        for (ndx, instr) in decoder.into_iter().enumerate() {
             use iced_x86::Formatter as _;
 
             let addr = instr.ip();
-            let code_size: u8 = instr.len().try_into().unwrap();
+            let code_size = instr.len();
+
+            ndx_of_addr.insert(addr, ndx);
+
             let mut text = String::new();
             formatter.format(&instr, &mut text);
-
-            let ndx = lines.len();
-            ndx_of_addr.insert(addr, ndx);
             lines.push(AssemblyLine {
                 addr,
-                code_size,
+                machine_code_range: offset..offset + code_size,
                 text,
             });
+
+            offset += code_size;
         }
 
-        Assembly { lines, ndx_of_addr }
+        Assembly {
+            machine_code,
+            lines,
+            ndx_of_addr,
+        }
     }
 }
 

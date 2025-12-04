@@ -157,7 +157,7 @@ suitable alternative
             - [ ] simple and old: lmdb
             - [ ] the good ol' classic: sqlite
 
-- [ ] gui: restore asm view
+- [x] gui: restore asm view
 - [ ] gui: asm view: highlight instructions related to selected block
 - [ ] gui: asm view: highlight instructions related to selected AST node
 

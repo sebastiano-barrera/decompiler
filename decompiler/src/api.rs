@@ -346,17 +346,19 @@ impl DecompiledFunction {
         self.warnings.as_slice()
     }
 
-    pub fn machine_code<'a>(&self, exe: &Executable<'a>) -> &'a [u8] {
-        exe.machine_code(&self.coords)
-    }
-
     pub fn disassemble<'e>(&self, exe: &'e Executable) -> iced_x86::Decoder<'e> {
         iced_x86::Decoder::with_ip(
             64,
             self.machine_code(exe),
-            self.coords.vm_addr.try_into().unwrap(),
+            self.base_ip(),
             iced_x86::DecoderOptions::NONE,
         )
+    }
+    pub fn machine_code<'a>(&self, exe: &Executable<'a>) -> &'a [u8] {
+        exe.machine_code(&self.coords)
+    }
+    pub fn base_ip(&self) -> u64 {
+        self.coords.vm_addr.try_into().unwrap()
     }
 
     pub fn mil(&self) -> Option<&mil::Program> {
