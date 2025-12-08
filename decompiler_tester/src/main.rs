@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use decompiler::Executable;
+use decompiler::{BlockID, Executable};
 use ouroboros::self_referencing;
 
 fn main() {
@@ -70,7 +70,8 @@ struct FunctionView {
     hl: hl::State,
     ast: Option<decompiler::Ast>,
 
-    assembly: Assembly,
+    asm: Assembly,
+    asm_hl_mask: Cache<BlockID, Vec<bool>>,
 
     pinned_ty: Cache<decompiler::Reg, Option<TypeInfo>>,
 
@@ -230,7 +231,7 @@ impl FunctionView {
 
         let machine_code = df.machine_code(exe);
         let base_ip = df.base_ip();
-        let assembly = Assembly::disassemble_x86(machine_code, base_ip);
+        let asm = Assembly::disassemble_x86(machine_code, base_ip);
 
         let ast = df.ssa().map(|ssa| decompiler::AstBuilder::new(ssa).build());
 
@@ -239,7 +240,8 @@ impl FunctionView {
             problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
-            assembly,
+            asm,
+            asm_hl_mask: Cache::default(),
             ast,
             hl: hl::State::empty(),
             pinned_ty: Cache::default(),
@@ -258,6 +260,7 @@ impl FunctionView {
         self.hl.frame_started();
         self.show_panels(ui, exe);
         self.show_central(ui);
+
         if !self.hl.hovered.was_set_this_frame() {
             self.hl.hovered.set_focus(None);
         }
@@ -288,7 +291,7 @@ impl FunctionView {
             Some(hl::Focus::Reg(reg)) => {
                 let type_info = self
                     .pinned_ty
-                    .get_or_insert(reg, |&reg| {
+                    .get_or_insert(&reg, |_| {
                         let ssa = self.df.ssa()?;
                         TypeInfo::read(exe, ssa, reg)
                     })
@@ -341,63 +344,44 @@ impl FunctionView {
             });
     }
 
-    fn show_assembly(&self, ui: &mut egui::Ui) {
+    fn show_assembly(&mut self, ui: &mut egui::Ui) {
         ui.label(egui::RichText::new("ASSEMBLY").small().strong());
         ui.add_space(2.0);
 
         let height = ui.text_style_height(&egui::TextStyle::Monospace);
+        let mask = if let Some(hl::Focus::Block(bid)) = self.hl.pinned.focus() {
+            let mask = self.asm_hl_mask.get_or_insert(&bid, |&bid| {
+                self.asm.compute_highlight_mask(bid, self.df.ssa())
+            });
+            mask.as_slice()
+        } else {
+            self.asm_hl_mask.reset();
+            &[]
+        };
+
         egui::ScrollArea::both()
             .auto_shrink([false, false])
-            .show_rows(ui, height, self.assembly.lines.len(), |ui, ndxs| {
+            .show_rows(ui, height, self.asm.lines.len(), |ui, ndxs| {
                 for ndx in ndxs {
-                    let asm_line = &self.assembly.lines[ndx];
+                    let asm_line = &self.asm.lines[ndx];
                     ui.horizontal_top(|ui| {
                         ui.allocate_ui(egui::Vec2::new(100.0, 18.0), |ui| {
                             let text = format!("0x{:x}", asm_line.addr);
-
-                            // let is_pinned = self.hl.asm_line_ndx.pinned() == Some(&ndx);
-                            // let (bg, fg) = if is_pinned {
-                            //     (hl::COLOR_RED_DARK, egui::Color32::WHITE)
-                            // } else {
-                            //     (egui::Color32::TRANSPARENT, ui.visuals().text_color())
-                            // };
-
-                            // let stroke = if self.hl.asm_line_ndx.hovered() == Some(&ndx) {
-                            //     hl::COLOR_RED_LIGHT
-                            // } else {
-                            //     egui::Color32::TRANSPARENT
-                            // };
-
-                            // let res = egui::Frame::new()
-                            //     .stroke(egui::Stroke {
-                            //         width: 1.0,
-                            //         color: stroke,
-                            //     })
-                            //     .show(ui, |ui| {
-                            //         ui.label(
-                            //             egui::RichText::new(text)
-                            //                 .monospace()
-                            //                 .background_color(bg)
-                            //                 .color(fg),
-                            //         )
-                            //     })
-                            //     .inner;
-
                             ui.label(egui::RichText::new(text).monospace());
-
-                            // if res.hovered() {
-                            //     self.hl.asm_line_ndx.set_hovered(Some(ndx));
-                            // }
-                            // if res.clicked() {
-                            //     // TODO refactor this into a "toggle" method
-                            //     self.hl.asm_line_ndx.set_pinned(
-                            //         match self.hl.asm_line_ndx.pinned() {
-                            //             Some(&pinned_ndx) if pinned_ndx == ndx => None,
-                            //             _ => Some(ndx),
-                            //         },
-                            //     );
-                            // }
                         });
+
+                        let is_highlighted = mask.get(ndx).copied().unwrap_or(false);
+                        if is_highlighted {
+                            let rect = egui::Rect::from_min_size(
+                                ui.cursor().left_top(),
+                                egui::vec2(4.0, height),
+                            );
+                            ui.painter().rect_filled(rect, 0.0, theme::COLOR_BLUE_DARK);
+                            ui.add_space(8.0);
+                        } else {
+                            ui.add_space(8.0);
+                        }
+
                         ui.add(
                             egui::Label::new(egui::RichText::new(&asm_line.text).monospace())
                                 .extend(),
@@ -555,6 +539,24 @@ impl Assembly {
             lines,
             ndx_of_addr,
         }
+    }
+
+    fn compute_highlight_mask(
+        &self,
+        bid: BlockID,
+        ssa: Option<&decompiler::SSAProgram>,
+    ) -> Vec<bool> {
+        let mut mask = vec![false; self.lines.len()];
+        if let Some(ssa) = ssa {
+            for reg in ssa.block_regs(bid) {
+                if let Some(addr) = ssa.machine_addr(reg) {
+                    if let Some(&ndx) = self.ndx_of_addr.get(&addr) {
+                        mask[ndx] = true;
+                    }
+                }
+            }
+        }
+        mask
     }
 }
 
@@ -1167,9 +1169,9 @@ impl<K, V> Cache<K, V>
 where
     K: Clone + PartialEq + std::fmt::Debug,
 {
-    fn get_or_insert(&mut self, key: K, recompute: impl FnOnce(&K) -> V) -> &V {
+    fn get_or_insert(&mut self, key: &K, recompute: impl FnOnce(&K) -> V) -> &V {
         let needs_recompute = match self.0.as_ref() {
-            Some((cur_key, _)) => *cur_key != key,
+            Some((cur_key, _)) => cur_key != key,
             None => true,
         };
 

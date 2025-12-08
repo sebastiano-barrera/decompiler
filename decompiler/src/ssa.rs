@@ -100,6 +100,11 @@ impl Program {
             .map(|cell| cell.get())
     }
 
+    /// Get the machine-code address for the given register's defining instruction.
+    pub fn machine_addr(&self, reg: mil::Reg) -> Option<u64> {
+        self.addrs.get(reg.reg_index() as usize).copied()
+    }
+
     /// Return the bytes represented by an `Insn::Int {value, size}`.
     ///
     /// Depends on the source machine's endianness.
@@ -999,8 +1004,28 @@ mod tests {
         prog.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
         prog.push(Reg(0), Insn::SetReturnValue(Reg(0)));
         prog.push(Reg(0), Insn::Control(Control::Ret));
-
         // SSA conversion would fail if there was a cycle
         super::Program::from_mil(prog)
+    }
+
+    #[test]
+    fn test_machine_addr() {
+        let mut prog = mil::Program::new(Reg(0));
+
+        prog.set_input_addr(0x1000);
+        prog.push(Reg(0), Insn::Int { value: 42, size: 8 });
+
+        prog.set_input_addr(0x1008);
+        prog.push(Reg(1), Insn::Int { value: 24, size: 8 });
+
+        prog.set_input_addr(0x1010);
+        prog.push(Reg(2), Insn::Arith(mil::ArithOp::Add, Reg(0), Reg(1)));
+
+        let ssa_prog = super::Program::from_mil(prog);
+
+        assert_eq!(ssa_prog.machine_addr(Reg(0)), Some(0x1000));
+        assert_eq!(ssa_prog.machine_addr(Reg(1)), Some(0x1008));
+        assert_eq!(ssa_prog.machine_addr(Reg(2)), Some(0x1010));
+        assert_eq!(ssa_prog.machine_addr(Reg(3)), None); // Invalid reg
     }
 }
