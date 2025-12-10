@@ -158,9 +158,18 @@ suitable alternative
             - [ ] the good ol' classic: sqlite
 
 - [x] gui: restore asm view
-- [ ] gui: asm view: highlight instructions related to selected block
-- [ ] gui: asm view: highlight instructions related to selected AST node
+- [x] gui: asm view: highlight instructions related to selected block
 
+- [ ] use type info
+    - [x] struct member accesses
+    - [x] ssa: value types in cli
+    - [x] function prototype
+    - [ ] ast: named values ("let")
+    - [ ] show type details (the type itself: name, structure, links, etc.)
+    - [ ] enum values
+        - initialize with DWARF, allow user edits
+
+- [ ] gui: asm view: highlight instructions related to selected AST node
 - [ ] string literals
 
 - [ ] select parent AST node (corresponding value etc.)
@@ -182,17 +191,6 @@ suitable alternative
 
 - [ ] AST edit cmd: invert if
 - [ ] AST edit cmd: change block order
-
-- [ ] use type info
-    - [x] struct member accesses
-    - [ ] ssa: value types
-        - [x] cli
-        - [ ] gui
-    - [ ] ast: value types
-    - [ ] function prototype
-    - [ ] show type (the type itself: details, name, structure, links, etc.)
-    - [ ] enum values
-        - initialize with DWARF, allow user edits
 
 - [ ] gui: user-editable identifiers/names
 

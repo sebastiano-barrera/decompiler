@@ -112,6 +112,7 @@ impl<'a> Builder<'a> {
         insns: impl Iterator<Item = iced_x86::Instruction>,
         func_tyid_opt: Option<ty::TypeID>,
     ) -> Result<(mil::Program, Warnings)> {
+        self.pb.set_function_type_id(func_tyid_opt);
         use iced_x86::{OpKind, Register};
 
         let mut func_ty = None;

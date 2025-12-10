@@ -488,14 +488,13 @@ impl<'a> ReadTxRef<'a> {
             .name(tyid)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
         match name_res {
-            Some(name) => write!(out, "{} <{:?}>", name, tyid),
+            Some(name) => write!(out, "{}", name),
             None => self.dump_type(out, tyid, &*typ),
         }
     }
 
     pub fn dump_type<W: PP + ?Sized>(
         &self,
-
         out: &mut W,
         tyid: TypeID,
         ty: &Ty,

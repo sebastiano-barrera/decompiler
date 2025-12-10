@@ -24,6 +24,9 @@ pub struct Program {
     /// Initial partial assignment of TypeID's to each instruction
     tyids: Vec<Option<ty::TypeID>>,
 
+    /// The TypeID of the function this MIL program represents.
+    func_tyid: Option<ty::TypeID>,
+
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
     // instruction back to the original machine code / assembly
@@ -439,6 +442,7 @@ impl Program {
             addrs: Vec::new(),
             cur_input_addr: 0,
             tyids: Vec::new(),
+            func_tyid: None,
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
             mil_of_input_addr: HashMap::new(),
@@ -451,6 +455,14 @@ impl Program {
     }
     pub fn set_endianness(&mut self, endianness: Endianness) {
         self.endianness = endianness;
+    }
+
+    pub fn function_type_id(&self) -> Option<ty::TypeID> {
+        self.func_tyid
+    }
+
+    pub fn set_function_type_id(&mut self, func_tyid: Option<ty::TypeID>) {
+        self.func_tyid = func_tyid;
     }
 
     /// Generate a new temporary register.
@@ -663,6 +675,7 @@ impl Program {
             dests: self.dests.into_iter().map(Cell::into_inner).collect(),
             addrs: self.addrs,
             tyids: self.tyids,
+            func_tyid: self.func_tyid,
             endianness: self.endianness,
         }
     }
@@ -677,6 +690,7 @@ pub struct ProgramCore {
     pub dests: Vec<Reg>,
     pub addrs: Vec<u64>,
     pub tyids: Vec<Option<ty::TypeID>>,
+    pub func_tyid: Option<ty::TypeID>,
     pub endianness: Endianness,
 }
 

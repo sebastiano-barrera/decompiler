@@ -122,6 +122,10 @@ impl eframe::App for App {
                     }
                 });
             });
+
+            if let Some(Ok(stage_func)) = self.stage_func.as_mut() {
+                stage_func.show_topbar_2(ui, self.exe.borrow_exe());
+            }
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -168,7 +172,7 @@ impl App {
 
         match self.stage_func.as_mut() {
             Some(Ok(stage_func)) => {
-                stage_func.show_topbar(ui);
+                ui.label(stage_func.df.name());
             }
             Some(Err(_)) => {
                 // error shown in central area
@@ -250,10 +254,44 @@ impl FunctionView {
         }
     }
 
-    /// Show widgets specific for this function to be laid outj on the top bar
-    /// (which is visually located at the executable level).
-    fn show_topbar(&mut self, ui: &mut egui::Ui) {
-        ui.label(self.df.name());
+    /// Show the "second" top bar, i.e. the are right under the top bar
+    fn show_topbar_2(&mut self, ui: &mut egui::Ui, exe: &decompiler::Executable) {
+        let Some(tyid) = self.df.ssa().and_then(|ssa| ssa.function_type_id()) else {
+            return;
+        };
+
+        let Some(rtx) = exe.types().read_tx().ok() else {
+            return;
+        };
+        let Some(ty) = rtx.read().get_through_alias(tyid).ok().flatten() else {
+            return;
+        };
+        let func_ty = match ty.into_owned() {
+            decompiler::ty::Ty::Subroutine(func_ty) => func_ty,
+            _ => return,
+        };
+
+        ui.horizontal_wrapped(move |ui| {
+            ui.label(egui::RichText::new("RETURN TYPE").small().strong());
+            ui_type_ref(ui, func_ty.return_tyid, &rtx.read());
+
+            ui.add_space(10.0);
+
+            let count = func_ty.param_names.len();
+            let title_label = format!("ARGUMENTS ({})", count);
+            ui.label(egui::RichText::new(title_label).small().strong());
+
+            for (param_name, param_tyid) in func_ty.param_names.iter().zip(&func_ty.param_tyids) {
+                let param_name = param_name
+                    .as_ref()
+                    .map(|arc| arc.as_str())
+                    .unwrap_or("<unnamed>");
+                ui.horizontal(|ui| {
+                    ui.label(format!(" • {}:", param_name));
+                    ui_type_ref(ui, *param_tyid, &rtx.read());
+                });
+            }
+        });
     }
 
     fn show(&mut self, ui: &mut egui::Ui, exe: &Executable) {
@@ -1155,6 +1193,19 @@ mod theme {
     pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
     pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
     pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
+}
+
+fn ui_type_ref(ui: &mut egui::Ui, tyid: decompiler::ty::TypeID, rtx: &decompiler::ty::ReadTxRef) {
+    let text = {
+        let mut bytes = Vec::new();
+        let mut pp = decompiler::pp::PrettyPrinter::start(&mut bytes);
+        rtx.dump_type_ref(&mut pp, tyid)
+            .map(|_| String::from_utf8_lossy(&bytes).into_owned())
+            .unwrap_or_else(|_| "<error in printing>".to_string())
+    };
+
+    let res = ui.button(text);
+    res.on_hover_text(format!("{:?}", tyid));
 }
 
 struct Cache<K, V>(Option<(K, V)>);

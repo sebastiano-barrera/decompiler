@@ -161,3 +161,25 @@ tests_in_binary!(
     redisReconnect,
     redisConnectWithOptions,
 );
+
+#[test_log::test]
+fn test_function_type_id_propagation() {
+    let exe_instance = Exe::new("ty/test_composite_type.so");
+    let exe = exe_instance.get_or_init();
+    let function_name = "list_len";
+
+    let df = exe
+        .decompile_function(function_name)
+        .expect("decompiling function");
+
+    let ssa_program = df.ssa().expect("SSA program should exist");
+
+    // Assuming list_len has a known TypeID in the test_composite_type.so
+    // This TypeID would typically be retrieved from the Executable's type system
+    // For this test, we'll assert it's Some, as the exact ID might vary
+    // based on how the test_composite_type.so is generated and its types are registered.
+    assert!(
+        ssa_program.function_type_id().is_some(),
+        "Function TypeID should be propagated to SSA program"
+    );
+}

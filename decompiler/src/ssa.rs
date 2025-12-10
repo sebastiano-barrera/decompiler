@@ -56,6 +56,9 @@ pub struct Program {
     /// This is intended to be manipulated by specific passes in `xform`.
     tyids: Vec<Option<ty::TypeID>>,
 
+    /// The TypeID of the function this SSA program represents.
+    func_tyid: Option<ty::TypeID>,
+
     schedule: cfg::Schedule,
     cfg: cfg::Graph,
 
@@ -87,6 +90,10 @@ impl Program {
 
     pub fn endianness(&self) -> Endianness {
         self.endianness
+    }
+
+    pub fn function_type_id(&self) -> Option<ty::TypeID> {
+        self.func_tyid
     }
 
     /// Get the defining instruction for the given register.
