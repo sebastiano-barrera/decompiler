@@ -611,8 +611,20 @@ fn apply_type_selection(
 
     // desist if there is no type information for the src value
     let Some(src_tyid) = prog.value_type(src) else {
+        event!(
+            Level::DEBUG,
+            ?src,
+            "source has no type; skipping type selection"
+        );
         return insn;
     };
+    event!(
+        Level::DEBUG,
+        ?src_tyid,
+        ?offset,
+        ?size,
+        "applying type selection"
+    );
     let ty::Selection {
         tyid: selected_tyid,
         path,

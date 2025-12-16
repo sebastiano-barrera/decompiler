@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     collections::BTreeMap,
     fs::File,
     path::{Path, PathBuf},
@@ -9,9 +8,11 @@ use std::{
 use anyhow::{Context, Result};
 use decompiler::{BlockID, Executable};
 use ouroboros::self_referencing;
+use tracing_subscriber::EnvFilter;
 
 fn main() {
     tracing_subscriber::fmt::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
         .init();
 
