@@ -3,26 +3,26 @@ source: decompiler/src/ty/dwarf.rs
 expression: types
 ---
 TypeSet (13 types) = {
-  <TID:39> = "point_init" func (p *point <TID:182>) void <TID:void>
-  <TID:61> = "join" func (a *point <TID:182>,
-                          b *point <TID:182>) void <TID:void>
-  <TID:93> = "list_len" func (p point <TID:182>) int <TID:173>
-  <TID:139> = "name_list_len" func (cur name_item <TID:228>) int <TID:173>
+  <TID:39> = "point_init" func (p *point) void
+  <TID:61> = "join" func (a *point,
+                          b *point) void
+  <TID:93> = "list_len" func (p point) int
+  <TID:139> = "name_list_len" func (cur name_item) int
   <TID:173> = "int" i32
-  <TID:177> = *point <TID:182>
+  <TID:177> = *point
   <TID:182> = "point" struct {
-                  @  0 x float <TID:224>
-                  @  4 y float <TID:224>
-                  @  8 prev *point <TID:182>
-                  @ 16 next *point <TID:182>
+                  @  0 x float
+                  @  4 y float
+                  @  8 prev *point
+                  @ 16 next *point
               }
   <TID:224> = "float" float32
   <TID:228> = "name_item" struct {
-                  @  0 name *char <TID:257>
-                  @  8 next *name_item <TID:228>
+                  @  0 name *char
+                  @  8 next *name_item
               }
-  <TID:252> = *char <TID:257>
+  <TID:252> = *char
   <TID:257> = "char" i8
-  <TID:261> = *name_item <TID:228>
+  <TID:261> = *name_item
   <TID:void> = "void" void
 }

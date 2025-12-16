@@ -178,7 +178,7 @@ impl TypeSet {
         Ok(ReadTx { ts: self, tx })
     }
 
-    pub fn write_tx<'a>(&'a mut self) -> Result<WriteTx<'a>> {
+    pub fn write_tx<'a>(&'a self) -> Result<WriteTx<'a>> {
         let wtx = self.env.write_txn()?;
         Ok(WriteTx { ts: self, tx: wtx })
     }
