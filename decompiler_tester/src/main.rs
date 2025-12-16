@@ -1,5 +1,6 @@
 use std::{
     collections::BTreeMap,
+    f32,
     fs::File,
     path::{Path, PathBuf},
     time::Instant,
@@ -78,29 +79,6 @@ struct FunctionView {
 
     is_asm_visible: bool,
     is_cfg_visible: bool,
-}
-
-struct TypeInfo {
-    tyid: decompiler::ty::TypeID,
-    hl_ty_str: String,
-    ll_ty_str: String,
-}
-impl TypeInfo {
-    fn read(exe: &Executable, ssa: &decompiler::SSAProgram, reg: decompiler::Reg) -> Option<Self> {
-        let ll_ty_str = format!("{:?}", ssa.reg_type(reg));
-
-        let tyid = ssa.value_type(reg)?;
-        let hl_ty_str = decompiler::pp::pp_to_string(|pp| {
-            let rtx = exe.types().read_tx().unwrap();
-            rtx.read().dump_type_ref(pp, tyid).unwrap();
-        });
-
-        Some(TypeInfo {
-            tyid,
-            ll_ty_str,
-            hl_ty_str,
-        })
-    }
 }
 
 struct TypeDetailsWindow {
@@ -365,7 +343,8 @@ impl FunctionView {
             egui::Window::new(&win.title)
                 .id(egui::Id::new(win.tyid))
                 .open(&mut win.is_open)
-                .resizable(true)
+                // this window is NOT resizable; rather, the content occasionally is
+                .resizable(false)
                 .show(ui.ctx(), |ui| {
                     self.show_type_window_content(ui, rtx.read(), win.tyid);
                 });
@@ -462,23 +441,25 @@ impl FunctionView {
                 ui.label(format!("Size: {} bytes", size));
                 ui.add_space(5.0);
                 ui.label("Members:");
-                egui::ScrollArea::vertical()
-                    .min_scrolled_height(300.0)
-                    .show(ui, |ui| {
-                        egui::Grid::new(("struct_members", tyid)).show(ui, |ui| {
-                            ui.strong("Name");
-                            ui.strong("Offset");
-                            ui.strong("Type");
-                            ui.end_row();
-
-                            for member in members {
-                                ui.monospace(member.name.as_str());
-                                ui.label(format!("{}", member.offset));
-                                self.ui_type_ref(ui, member.tyid, &rtx);
+                egui::Resize::default().show(ui, |ui| {
+                    egui::ScrollArea::both()
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            egui::Grid::new(("struct_members", tyid)).show(ui, |ui| {
+                                ui.strong("Name");
+                                ui.strong("Offset");
+                                ui.strong("Type");
                                 ui.end_row();
-                            }
+
+                                for member in members {
+                                    ui.monospace(member.name.as_str());
+                                    ui.label(format!("{}", member.offset));
+                                    self.ui_type_ref(ui, member.tyid, &rtx);
+                                    ui.end_row();
+                                }
+                            });
                         });
-                    });
+                });
             }
             Ty::Array(decompiler::ty::Array {
                 element_tyid,
