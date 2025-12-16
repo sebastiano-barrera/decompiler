@@ -488,8 +488,8 @@ impl<'a> ReadTxRef<'a> {
             .name(tyid)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
         match name_res {
-            Some(name) => write!(out, "{}", name),
-            None => self.dump_type(out, tyid, &*typ),
+            Some(name) if !name.is_empty() => write!(out, "{}", name),
+            _ => self.dump_type(out, tyid, &*typ),
         }
     }
 
@@ -805,7 +805,7 @@ pub enum Signedness {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Bool {
-    size: u8,
+    pub size: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

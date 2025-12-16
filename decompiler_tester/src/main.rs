@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::BTreeMap,
     fs::File,
     path::{Path, PathBuf},
@@ -59,7 +60,7 @@ struct Exe {
 struct App {
     exe: Exe,
     function_selector: Option<FunctionSelector>,
-    stage_func: Option<Result<FunctionView, decompiler::Error>>,
+    func_view: Option<Result<FunctionView, decompiler::Error>>,
 }
 struct FunctionView {
     df: decompiler::DecompiledFunction,
@@ -67,13 +68,12 @@ struct FunctionView {
     problems_title: String,
     problems_error: Option<String>,
 
-    hl: hl::State,
     ast: Option<decompiler::Ast>,
-
     asm: Assembly,
-    asm_hl_mask: Cache<BlockID, Vec<bool>>,
+    type_windows: Vec<TypeDetailsWindow>,
 
-    pinned_ty: Cache<decompiler::Reg, Option<TypeInfo>>,
+    hl: hl::State,
+    asm_hl_mask: Cache<BlockID, Vec<bool>>,
 
     is_asm_visible: bool,
     is_cfg_visible: bool,
@@ -102,6 +102,25 @@ impl TypeInfo {
     }
 }
 
+struct TypeDetailsWindow {
+    tyid: decompiler::ty::TypeID,
+    // window title, cached
+    title: String,
+    is_open: bool,
+}
+impl TypeDetailsWindow {
+    fn new(tyid: decompiler::ty::TypeID, rtx: &decompiler::ty::ReadTxRef<'_>) -> Self {
+        let ty_dump = decompiler::pp::pp_to_string(|pp| {
+            rtx.dump_type_ref(pp, tyid).unwrap();
+        });
+        TypeDetailsWindow {
+            tyid,
+            title: format!("{} ({})", ty_dump, tyid.0),
+            is_open: true,
+        }
+    }
+}
+
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -110,7 +129,7 @@ impl eframe::App for App {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
                     egui::widgets::global_theme_preference_switch(ui);
 
-                    if let Some(Ok(func_view)) = &mut self.stage_func {
+                    if let Some(Ok(func_view)) = &mut self.func_view {
                         ui.toggle_value(
                             &mut func_view.is_cfg_visible,
                             egui::RichText::new("CFG").monospace(),
@@ -123,7 +142,7 @@ impl eframe::App for App {
                 });
             });
 
-            if let Some(Ok(stage_func)) = self.stage_func.as_mut() {
+            if let Some(Ok(stage_func)) = self.func_view.as_mut() {
                 stage_func.show_topbar_2(ui, self.exe.borrow_exe());
             }
         });
@@ -159,7 +178,7 @@ impl App {
         let mut app = App {
             exe,
             function_selector: None,
-            stage_func: None,
+            func_view: None,
         };
         app.start_function_selector();
         Ok(app)
@@ -170,7 +189,7 @@ impl App {
             self.start_function_selector();
         }
 
-        match self.stage_func.as_mut() {
+        match self.func_view.as_mut() {
             Some(Ok(stage_func)) => {
                 ui.label(stage_func.df.name());
             }
@@ -195,7 +214,7 @@ impl App {
     }
 
     fn show_central(&mut self, ui: &mut egui::Ui) {
-        match self.stage_func.as_mut() {
+        match self.func_view.as_mut() {
             Some(Ok(stage_func)) => {
                 stage_func.show(ui, self.exe.borrow_exe());
             }
@@ -215,7 +234,7 @@ impl App {
             let res = function_selector.show(ui.ctx());
             if let Some(function_name) = res.inner {
                 let stage_func_or_err = load_function(&mut self.exe, function_name);
-                self.stage_func = Some(stage_func_or_err);
+                self.func_view = Some(stage_func_or_err);
                 self.function_selector = None;
             } else if res.should_close() {
                 self.function_selector = None;
@@ -244,11 +263,11 @@ impl FunctionView {
             problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
-            asm,
-            asm_hl_mask: Cache::default(),
             ast,
+            asm,
+            type_windows: Vec::new(),
             hl: hl::State::empty(),
-            pinned_ty: Cache::default(),
+            asm_hl_mask: Cache::default(),
             is_asm_visible: false,
             is_cfg_visible: false,
         }
@@ -273,7 +292,7 @@ impl FunctionView {
 
         ui.horizontal_wrapped(move |ui| {
             ui.label(egui::RichText::new("RETURN TYPE").small().strong());
-            ui_type_ref(ui, func_ty.return_tyid, &rtx.read());
+            self.ui_type_ref(ui, func_ty.return_tyid, &rtx.read());
 
             ui.add_space(10.0);
 
@@ -288,10 +307,39 @@ impl FunctionView {
                     .unwrap_or("<unnamed>");
                 ui.horizontal(|ui| {
                     ui.label(format!(" • {}:", param_name));
-                    ui_type_ref(ui, *param_tyid, &rtx.read());
+                    self.ui_type_ref(ui, *param_tyid, &rtx.read());
                 });
             }
         });
+    }
+
+    fn ui_type_ref(
+        &mut self,
+        ui: &mut egui::Ui,
+        tyid: decompiler::ty::TypeID,
+        rtx: &decompiler::ty::ReadTxRef,
+    ) {
+        let text = {
+            let mut bytes = Vec::new();
+            let mut pp = decompiler::pp::PrettyPrinter::start(&mut bytes);
+            rtx.dump_type_ref(&mut pp, tyid)
+                .map(|_| String::from_utf8_lossy(&bytes).into_owned())
+                .unwrap_or_else(|_| "<error in printing>".to_string())
+        };
+
+        let res = ui.button(text);
+        if res.clicked() {
+            if self
+                .type_windows
+                .iter()
+                .find(|win| win.tyid == tyid)
+                .is_none()
+            {
+                self.type_windows.push(TypeDetailsWindow::new(tyid, rtx));
+            }
+        } else {
+            res.on_hover_text(format!("{:?}", tyid));
+        }
     }
 
     fn show(&mut self, ui: &mut egui::Ui, exe: &Executable) {
@@ -301,6 +349,195 @@ impl FunctionView {
 
         if !self.hl.hovered.was_set_this_frame() {
             self.hl.hovered.set_focus(None);
+        }
+
+        self.show_type_details_windows(ui, exe.types());
+    }
+
+    fn show_type_details_windows(&mut self, ui: &mut egui::Ui, types: &decompiler::ty::TypeSet) {
+        let Ok(rtx) = types.read_tx() else {
+            return;
+        };
+
+        let mut type_windows = std::mem::replace(&mut self.type_windows, Vec::new());
+        for win in type_windows.iter_mut() {
+            egui::Window::new(&win.title)
+                .id(egui::Id::new(win.tyid))
+                .open(&mut win.is_open)
+                .resizable(true)
+                .show(ui.ctx(), |ui| {
+                    self.show_type_window_content(ui, rtx.read(), win.tyid);
+                });
+        }
+
+        type_windows.retain(|win| win.is_open);
+        // some windows may have been added in the meantime (during show_type_details_content)
+        type_windows.extend(self.type_windows.drain(..));
+        std::mem::swap(&mut self.type_windows, &mut type_windows);
+    }
+
+    fn show_type_window_content(
+        &mut self,
+        ui: &mut egui::Ui,
+        rtx: decompiler::ty::ReadTxRef<'_>,
+        tyid: decompiler::ty::TypeID,
+    ) {
+        // TODO handle recursive types
+        use decompiler::ty::{Int, Ty};
+
+        let ty = match rtx.get_through_alias(tyid) {
+            Ok(Some(ty)) => ty,
+            Ok(None) => {
+                ui.label("Type not found");
+                return;
+            }
+            Err(err) => {
+                ui.label(format!("Error reading type: {:?}", err));
+                return;
+            }
+        };
+
+        match ty.as_ref() {
+            Ty::Flag => {
+                ui.heading("Flag type");
+                ui.small(
+                    "(like a bool, but does not occupy physical memory/registers; e.g. CPU flags)",
+                );
+            }
+            Ty::Int(Int { size, signed }) => {
+                ui.heading("Integer");
+                show_details_ty_int(ui, ("integer_type", tyid), *size, signed);
+            }
+            Ty::Float(decompiler::ty::Float { size }) => {
+                ui.heading("Floating-point");
+                ui.label(format!("Size: {} bits", size * 8));
+            }
+            Ty::Bool(decompiler::ty::Bool { size }) => {
+                ui.heading("Boolean");
+                ui.label(format!("Size: {} bits", size * 8));
+            }
+            Ty::Enum(decompiler::ty::Enum {
+                variants,
+                base_type,
+            }) => {
+                ui.heading("Enumeration");
+                ui.add_space(5.0);
+
+                ui.horizontal(|ui| {
+                    ui.label("Base type:");
+                    show_details_ty_int(
+                        ui,
+                        ("enum_base_type", tyid),
+                        base_type.size,
+                        &base_type.signed,
+                    );
+                });
+                ui.add_space(5.0);
+
+                ui.label("Variants:");
+                egui::ScrollArea::vertical()
+                    .max_height(200.0)
+                    .show(ui, |ui| {
+                        egui::Grid::new(("enum_variants", tyid)).show(ui, |ui| {
+                            for variant in variants {
+                                ui.monospace(format!("{}", variant.value));
+                                ui.monospace(variant.name.as_str());
+                                ui.end_row();
+                            }
+                        });
+                    });
+            }
+            Ty::Ptr(pointee_tyid) => {
+                ui.horizontal(|ui| {
+                    ui.label("Pointer ☞");
+                    ui.add_space(5.0);
+                    ui.vertical(|ui| {
+                        self.show_type_window_content(ui, rtx, *pointee_tyid);
+                    });
+                });
+            }
+            Ty::Struct(decompiler::ty::Struct { members, size }) => {
+                ui.heading("Struct");
+                ui.label(format!("Size: {} bytes", size));
+                ui.add_space(5.0);
+                ui.label("Members:");
+                egui::ScrollArea::vertical()
+                    .min_scrolled_height(300.0)
+                    .show(ui, |ui| {
+                        egui::Grid::new(("struct_members", tyid)).show(ui, |ui| {
+                            ui.strong("Name");
+                            ui.strong("Offset");
+                            ui.strong("Type");
+                            ui.end_row();
+
+                            for member in members {
+                                ui.monospace(member.name.as_str());
+                                ui.label(format!("{}", member.offset));
+                                self.ui_type_ref(ui, member.tyid, &rtx);
+                                ui.end_row();
+                            }
+                        });
+                    });
+            }
+            Ty::Array(decompiler::ty::Array {
+                element_tyid,
+                index_subrange,
+            }) => {
+                ui.heading("Array");
+
+                egui::Grid::new(("array_details", tyid)).show(ui, |ui| {
+                    ui.label("Indices:");
+                    let decompiler::ty::Subrange { lo, hi } = index_subrange;
+                    if let Some(hi) = hi {
+                        ui.label(format!("{} to {}", lo, hi));
+                    } else {
+                        ui.label(format!("{} onwards (to indefinite length)", lo));
+                    }
+                    ui.end_row();
+
+                    ui.label("Element type:");
+                    self.ui_type_ref(ui, *element_tyid, &rtx);
+                    ui.end_row();
+                });
+            }
+            Ty::Subroutine(decompiler::ty::Subroutine {
+                return_tyid,
+                param_names,
+                param_tyids,
+            }) => {
+                ui.heading("Subroutine");
+                ui.add_space(5.0);
+
+                ui.label("Return type:");
+                self.ui_type_ref(ui, *return_tyid, &rtx);
+                ui.add_space(5.0);
+
+                let count = param_tyids.len();
+                ui.label(format!("Parameters ({}):", count));
+                egui::Grid::new(("subroutine_params", tyid)).show(ui, |ui| {
+                    for (param_name, param_tyid) in param_names.iter().zip(param_tyids) {
+                        let param_name = param_name
+                            .as_ref()
+                            .map(|arc| arc.as_str())
+                            .unwrap_or("<unnamed>");
+                        ui.monospace(param_name);
+                        self.ui_type_ref(ui, *param_tyid, &rtx);
+                        ui.end_row();
+                    }
+                });
+            }
+            Ty::Unknown => {
+                ui.heading("Unknown type");
+                ui.label("No further information is available for this type.");
+            }
+            Ty::Void => {
+                ui.heading("Void type");
+                ui.label("Represents the absence of a value, or a value of an unknown type.");
+            }
+            Ty::Alias(aliasee_tyid) => {
+                ui.heading(format!("Alias to type ID: {:?}", aliasee_tyid));
+                self.show_type_window_content(ui, rtx, *aliasee_tyid);
+            }
         }
     }
 
@@ -325,45 +562,48 @@ impl FunctionView {
     }
 
     fn show_hl_details_panel(&mut self, ui: &mut egui::Ui, exe: &Executable<'_>) {
-        match self.hl.pinned.focus() {
-            Some(hl::Focus::Reg(reg)) => {
-                let type_info = self
-                    .pinned_ty
-                    .get_or_insert(&reg, |_| {
-                        let ssa = self.df.ssa()?;
-                        TypeInfo::read(exe, ssa, reg)
-                    })
-                    .as_ref();
-                egui::TopBottomPanel::bottom("details_panel")
-                    .resizable(true)
-                    .show_inside(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.heading(format!("{:?}", reg));
+        egui::TopBottomPanel::bottom("details_panel")
+            .resizable(true)
+            .show_inside(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let Some(hl::Focus::Reg(reg)) = self.hl.pinned.focus() else {
+                        return;
+                    };
 
-                            egui::Grid::new("reg_details_grid").show(ui, |ui| {
-                                ui.strong("Low-level type:");
-                                ui.label(
-                                    type_info.map(|ti| ti.ll_ty_str.as_str()).unwrap_or("???"),
-                                );
-                                ui.end_row();
+                    ui.heading(format!("{:?}", reg));
 
-                                ui.label(egui::RichText::new("High-level type:").strong());
-                                if let Some(type_info) = type_info {
-                                    if ui.button(type_info.hl_ty_str.as_str()).clicked() {
-                                        println!("open window for type: {:?}", type_info.tyid);
-                                    }
-                                } else {
-                                    ui.label("???");
-                                }
-                                ui.end_row();
-                            });
-                        });
+                    let Some(ssa) = self.df.ssa() else {
+                        ui.label("(Error: No SSA!)");
+                        return;
+                    };
+                    let Some(tyid) = ssa.value_type(reg) else {
+                        ui.label("No Type ID.");
+                        return;
+                    };
+
+                    let rtx = match exe.types().read_tx() {
+                        Ok(rtx) => rtx,
+                        Err(err) => {
+                            ui.label(format!(
+                                "<error while starting read transaction: {:?}>",
+                                err
+                            ));
+                            return;
+                        }
+                    };
+                    let ll_ty_str = format!("{:?}", ssa.reg_type(reg));
+
+                    egui::Grid::new("reg_details_grid").show(ui, |ui| {
+                        ui.strong("Low-level type:");
+                        ui.label(ll_ty_str);
+                        ui.end_row();
+
+                        ui.label(egui::RichText::new("High-level type:").strong());
+                        self.ui_type_ref(ui, tyid, &rtx.read());
+                        ui.end_row();
                     });
-            }
-            _ => {
-                self.pinned_ty.reset();
-            }
-        }
+                });
+            });
     }
 
     /// Show the widgets to be laid out in the central/main area assigned to this function.
@@ -428,6 +668,26 @@ impl FunctionView {
                 }
             });
     }
+}
+
+fn show_details_ty_int(
+    ui: &mut egui::Ui,
+    id: impl std::hash::Hash,
+    size: u8,
+    signedness: &decompiler::ty::Signedness,
+) {
+    egui::Grid::new(id).show(ui, |ui| {
+        ui.label("Size:");
+        ui.label(format!("{} bits", size * 8));
+        ui.end_row();
+
+        ui.label("Signedness:");
+        ui.label(match *signedness {
+            decompiler::ty::Signedness::Signed => "Signed",
+            decompiler::ty::Signedness::Unsigned => "Unsigned",
+        });
+        ui.end_row();
+    });
 }
 
 fn load_executable(path: &Path) -> Result<Exe> {
@@ -1193,19 +1453,6 @@ mod theme {
     pub const COLOR_PURPLE_DARK: egui::Color32 = egui::Color32::from_rgb(106, 61, 154);
     pub const COLOR_BROWN_LIGHT: egui::Color32 = egui::Color32::from_rgb(255, 255, 153);
     pub const COLOR_BROWN_DARK: egui::Color32 = egui::Color32::from_rgb(177, 89, 40);
-}
-
-fn ui_type_ref(ui: &mut egui::Ui, tyid: decompiler::ty::TypeID, rtx: &decompiler::ty::ReadTxRef) {
-    let text = {
-        let mut bytes = Vec::new();
-        let mut pp = decompiler::pp::PrettyPrinter::start(&mut bytes);
-        rtx.dump_type_ref(&mut pp, tyid)
-            .map(|_| String::from_utf8_lossy(&bytes).into_owned())
-            .unwrap_or_else(|_| "<error in printing>".to_string())
-    };
-
-    let res = ui.button(text);
-    res.on_hover_text(format!("{:?}", tyid));
 }
 
 struct Cache<K, V>(Option<(K, V)>);
