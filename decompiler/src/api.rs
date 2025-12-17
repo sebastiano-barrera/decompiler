@@ -168,7 +168,8 @@ impl<'a> Executable<'a> {
 
         if is_new {
             event!(Level::INFO, "database is brand new, rescanning executable");
-            let _report = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types).unwrap();
+            let result = ty::dwarf::load_dwarf_types(&elf, raw_binary, &mut types);
+            event!(Level::WARN, ?result, "failed to parse dwarf types");
         }
 
         {

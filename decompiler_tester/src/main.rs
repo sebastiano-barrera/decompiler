@@ -928,7 +928,7 @@ mod ast {
                 Stmt::Return(reg) => {
                     ui.horizontal(|ui| {
                         print_kw(ui, s, "return");
-                        render_expr_def(ui, s, *reg, 0);
+                        render_expr(ui, s, *reg, 0);
                     });
                 }
                 Stmt::JumpUndefined => {
@@ -1048,14 +1048,23 @@ mod ast {
                 first_member,
                 size: _,
             } => {
-                ui.horizontal(|ui| {
-                    print_kw(ui, s, "struct");
-                    print_ident(ui, s, type_name);
-                    if let Some(first) = first_member {
-                        render_expr(ui, s, first, my_prec);
-                    } else {
-                        ui.label("(no members)");
-                    }
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        print_kw(ui, s, "struct");
+                        print_ident(ui, s, type_name);
+                        print_kw(ui, s, "{");
+                    });
+                    ui.horizontal(|ui| {
+                        ui.add_space(5.0);
+                        ui.vertical(|ui| {
+                            if let Some(first) = first_member {
+                                render_expr(ui, s, first, my_prec);
+                            } else {
+                                ui.label("(no members)");
+                            }
+                        });
+                    });
+                    print_kw(ui, s, "}");
                 });
             }
             Insn::StructMember { name, value, next } => {
@@ -1143,8 +1152,7 @@ mod ast {
             Insn::LoadMem { addr, size } => {
                 ui.horizontal(|ui| {
                     render_expr(ui, s, addr, my_prec);
-                    print_kw(ui, s, ".*");
-                    print_kw(ui, s, &format!(".i{}", size));
+                    print_kw(ui, s, &format!(".* [..{}]", size));
                 });
             }
             Insn::StoreMem { addr, value } => {

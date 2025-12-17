@@ -952,26 +952,7 @@ fn pack_aggregates<'t>(
     };
 
     if let ty::Ty::Struct(struct_ty) = tycow.as_ref() {
-        // this is a heuristic.
-        //
-        // the idea is that sometimes we want to explicitly spell out how
-        // the struct value is composed (e.g., for a call argument), whereas
-        // sometimes there is no value in doing so (e.g., if the struct value is
-        // a FuncArgument).
-        //
-        // so for now the approximate implementation of this idea is:
-        //
-        //  - spell out the struct (with an Insn::Struct) if the insn has
-        //    arguments, as that would indicate that we're composing a struct
-        //    out of some currently-opaque components (e.g. a Concat of some
-        //    "raw parts").
-        //
-        //  - keep it implicit for insns with no inputs, as that probably
-        //    indicates that the value is an ancestral or some prepackaged value
-        //    that has clear meaning from context (e.g., FuncArgument).
-        //
-        let has_inputs = insn.input_regs().len() > 0;
-        if !matches!(insn, Insn::Struct { .. }) && has_inputs {
+        if matches!(insn, Insn::Concat { .. }) {
             // copy the instruction to a new value -- it will act as the "raw"
             // value of the struct, to be formally sectioned into fields
             let src = prog.append_new(bid, insn);
@@ -979,7 +960,7 @@ fn pack_aggregates<'t>(
             let mut first_member_reg = None;
 
             for member in struct_ty.members.iter().rev() {
-                let Some(size) = types.bytes_size(member.tyid).unwrap() else {
+                let Ok(Some(size)) = types.bytes_size(member.tyid) else {
                     event!(
                         Level::ERROR,
                         struct_tyid = ?tyid,

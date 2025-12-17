@@ -38,6 +38,7 @@ pub enum Error {
     TypesError(#[from] ty::Error),
 }
 
+#[derive(Debug)]
 pub struct Report {
     pub errors: Vec<(usize, Error)>,
 }

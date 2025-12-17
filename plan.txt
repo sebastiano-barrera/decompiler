@@ -165,7 +165,7 @@ suitable alternative
     - [x] ssa: value types in cli
     - [x] function prototype
     - [x] ast: named values ("let") (good enough to have it in the small bottom panel)
-    - [ ] show type details (the type itself: name, structure, links, etc.)
+    - [x] show type details (the type itself: name, structure, links, etc.)
     - [ ] enum values
         - initialize with DWARF, allow user edits
 
