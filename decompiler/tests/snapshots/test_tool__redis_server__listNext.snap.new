@@ -1,6 +1,6 @@
 ---
 source: decompiler/tests/test_tool.rs
-assertion_line: 153
+assertion_line: 182
 expression: out
 ---
  --- mil
@@ -163,10 +163,10 @@ ssa program  98 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r42, r46, r50, r55]
-  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r58, r59, r66, r71, r72]
-  BlockID(2) -> Always(Return) [r75, r76, r80, r84]
-  BlockID(3) -> Always(Block(BlockID(4))) [r88, r92]
+  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r42, r101, r99, r50, r55]
+  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r105, r103, r66, r71, r72]
+  BlockID(2) -> Always(Return) [r109, r107, r80, r84]
+  BlockID(3) -> Always(Block(BlockID(4))) [r113, r111, r92]
   BlockID(4) -> Always(Return) [r96]
   domtree:
     BlockID(0)
@@ -176,28 +176,30 @@ ssa program  98 instrs
 |  BlockID(4)
 
  --- ssa
-ssa program  98 instrs
+ssa program  114 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
   (  4)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
-  (  5)  r46: Bytes(8) <- LoadMem { addr: r42, size: 8 }
-         r50: Bool <- IsZero(r46)
+         r101: Bytes(16) <- LoadMem { addr: r42, size: 16 }
+  (  5)  r99: Bytes(8) <- StructGetMember { struct_value: r101, name: "next", size: 8 }
+         r50: Bool <- IsZero(r99)
          r55: Effect <- SetJumpCondition(r50)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
-         r58: Bytes(16) <- ArithK(Add, r42, 8)
-         r59: Bytes(4) <- LoadMem { addr: r58, size: 4 }
-         r66: Bool <- IsZero(r59)
+         r105: Bytes(16) <- LoadMem { addr: r42, size: 16 }
+         r103: Bytes(4) <- StructGetMember { struct_value: r105, name: "direction", size: 4 }
+         r66: Bool <- IsZero(r103)
          r71: Bool <- Not(r66)
          r72: Effect <- SetJumpCondition(r71)
 .B2:    ;; preds:B1  → Always(Return).
-         r75: Bytes(16) <- ArithK(Add, r46, 8)
-         r76: Bytes(8) <- LoadMem { addr: r75, size: 8 }
-         r80: Effect <- StoreMem { addr: r42, value: r76 }
-         r84: Effect <- SetReturnValue(r46)
+         r109: Bytes(24) <- LoadMem { addr: r99, size: 24 }
+         r107: Bytes(8) <- StructGetMember { struct_value: r109, name: "next", size: 8 }
+         r80: Effect <- StoreMem { addr: r42, value: r107 }
+         r84: Effect <- SetReturnValue(r99)
 .B3:    ;; preds:B1  → Always(Block(BlockID(4))).
-         r88: Bytes(8) <- LoadMem { addr: r46, size: 8 }
-         r92: Effect <- StoreMem { addr: r42, value: r88 }
+         r113: Bytes(24) <- LoadMem { addr: r99, size: 24 }
+         r111: Bytes(8) <- StructGetMember { struct_value: r113, name: "prev", size: 8 }
+         r92: Effect <- StoreMem { addr: r42, value: r111 }
 .B4:    ;; preds:B0,B3  → Always(Return).
-         r96: Effect <- SetReturnValue(r46)
+         r96: Effect <- SetReturnValue(r99)
 
 
  --- ast

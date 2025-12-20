@@ -9,6 +9,7 @@ use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
 
 use std::{
+    backtrace::Backtrace,
     path::Path,
     sync::{Mutex, MutexGuard, OnceLock},
 };
@@ -36,6 +37,8 @@ macro_rules! tests_in_binary {
 
             #[test]
             fn no_panic() {
+                // for each executable (= invocation of the tests_in_binary! macro)
+                // add a `no_panic` test
                 let exe = EXE.get_or_init();
                 test_decompile_all_no_panic(&*exe);
             }
@@ -46,6 +49,20 @@ macro_rules! tests_in_binary {
 }
 
 fn test_decompile_all_no_panic(exe: &decompiler::Executable) {
+    use std::cell::RefCell;
+    thread_local! {
+        static CURRENT_FUNC: RefCell<String> = RefCell::new(String::new());
+    }
+    let super_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        let _out_lock = std::io::stdout().lock();
+        CURRENT_FUNC.with_borrow(|cur_func_name| {
+            println!("---- panicked while decompiling: {}", cur_func_name);
+        });
+        super_hook(panic_info);
+        println!("---- end");
+    }));
+
     // I prefer having a deterministic order so that I don't have to keep track
     // of which function specifically I have to fix nor create specific test
     // cases. I just repeat the test every time, and get the same error every
@@ -53,17 +70,29 @@ fn test_decompile_all_no_panic(exe: &decompiler::Executable) {
     let mut names: Vec<_> = exe.function_names().collect();
     names.sort();
 
-    // TODO parallelize
-    for func_name in names {
-        // discard result
-        //
-        // we don't care if we got any errors; we only want to check that all
-        // functions can be decompiled without panicking.
-        //
-        // more specific tests are covered by test cases associated with
-        // specific functions.
-        let _ = exe.decompile_function(func_name);
-    }
+    // TODO get the actual number with `num_cpus`
+    let num_threads = 8;
+
+    std::thread::scope(|s| {
+        for thread_ndx in 0..num_threads {
+            let names = &names;
+            s.spawn(move || {
+                for func_name in names.iter().skip(thread_ndx).step_by(num_threads) {
+                    CURRENT_FUNC.with_borrow_mut(|cur_func_name| {
+                        *cur_func_name = func_name.to_string();
+                    });
+                    // discard result
+                    //
+                    // we don't care if we got any errors; we only want to check
+                    // that all functions can be decompiled without panicking.
+                    //
+                    // more specific tests are covered by test cases associated
+                    // with specific functions.
+                    let _ = exe.decompile_function(func_name);
+                }
+            });
+        }
+    });
 }
 
 struct Exe {

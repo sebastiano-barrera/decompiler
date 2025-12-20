@@ -17,11 +17,13 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
     use crate::mil::ArithOp;
 
     /// Evaluate expression (ak (op) bk)
+    ///
+    /// Overflow/underflow results in `None`.
     fn eval_const(op: ArithOp, ak: i64, bk: i64) -> Option<i64> {
         match op {
-            ArithOp::Add => Some(ak + bk),
-            ArithOp::Sub => Some(ak - bk),
-            ArithOp::Mul => Some(ak * bk),
+            ArithOp::Add => ak.checked_add(bk),
+            ArithOp::Sub => ak.checked_sub(bk),
+            ArithOp::Mul => ak.checked_mul(bk),
             ArithOp::Shl => {
                 let bk = bk.try_into().ok()?;
                 ak.checked_shl(bk)
@@ -43,10 +45,11 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
     ///
     /// Returns None for non-associative operators.
     fn assoc_const(op_in: ArithOp, ak: i64, bk: i64) -> Option<i64> {
+        // arithmetic overflow seems to happen in practice
         match op_in {
-            ArithOp::Add => Some(ak + bk),
-            ArithOp::Mul => Some(ak * bk),
-            ArithOp::Shl => Some(ak + bk),
+            ArithOp::Add => ak.checked_add(bk),
+            ArithOp::Mul => ak.checked_mul(bk),
+            ArithOp::Shl => ak.checked_add(bk),
             _ => None,
         }
     }
@@ -93,10 +96,16 @@ fn fold_constants(insn: Insn, prog: &mut ssa::OpenProgram, bid: BlockID) -> Insn
     if op == ArithOp::Sub {
         if let Insn::Int { value, .. } = &mut ri {
             op = ArithOp::Add;
-            *value = -*value;
+            let Some(value_pos) = value.checked_neg() else {
+                return insn;
+            };
+            *value = value_pos;
         } else if let Insn::ArithK(ArithOp::Add, _, r_k) = &mut ri {
             op = ArithOp::Add;
-            *r_k = -*r_k;
+            let Some(value_pos) = r_k.checked_neg() else {
+                return insn;
+            };
+            *r_k = value_pos;
         }
     }
 

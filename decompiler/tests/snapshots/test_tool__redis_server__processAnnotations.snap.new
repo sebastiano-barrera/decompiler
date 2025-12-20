@@ -1,6 +1,6 @@
 ---
 source: decompiler/tests/test_tool.rs
-assertion_line: 154
+assertion_line: 182
 expression: out
 ---
  --- mil
@@ -943,7 +943,7 @@ ssa program  625 instrs
   BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r133, r134, r137, r141, r146, r616]
   BlockID(2) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(3)) } [r149, r150, r152, r156, r159, r617]
   BlockID(3) -> Always(Return) [r605, r170, r194]
-  BlockID(4) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(5)) } [r196, r197, r209, r215, r217, r220, r222, r229, r230, r231, r232, r233, r246, r247, r253, r258, r259]
+  BlockID(4) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(5)) } [r196, r197, r209, r215, r217, r220, r222, r229, r230, r231, r232, r233, r627, r247, r253, r258, r259]
   BlockID(5) -> Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(6)) } [r262, r263, r267, r269, r273, r276, r277]
   BlockID(6) -> Conditional { pos: Block(BlockID(11)), neg: Block(BlockID(7)) } [r279, r280, r282, r286, r287]
   BlockID(7) -> Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(8)) } [r290, r291, r295, r300]
@@ -974,7 +974,7 @@ ssa program  625 instrs
 |  BlockID(15)
 
  --- ssa
-ssa program  630 instrs
+ssa program  633 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(1)) }.
          r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
   ( 12)  r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
@@ -1039,9 +1039,9 @@ ssa program  630 instrs
          r231: Bytes(16) <- CArg { value: r209, next_arg: Some(r230) }
          r232: Bytes(16) <- CArg { value: r215, next_arg: Some(r231) }
          r233: Bytes(8) <- Call { callee: r222, first_arg: Some(r232) }
-  (  2)  r246: Bytes(4) <- LoadMem { addr: r197, size: 4 }
-         r247: Bytes(8) <- Widen { reg: r246, target_size: 8, sign: false }
-         r253: Bool <- IsZero(r246)
+  (  2)  r627: Bytes(4) <- LoadMem { addr: r197, size: 4 }
+         r247: Bytes(8) <- Widen { reg: r627, target_size: 8, sign: false }
+         r253: Bool <- IsZero(r627)
          r258: Bool <- Not(r253)
          r259: Effect <- SetJumpCondition(r258)
 .B5:    ;; preds:B4  → Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(6)) }.
@@ -1136,110 +1136,3 @@ ssa program  630 instrs
 
 
  --- ast
-
-T0: {
-  let r42: Bytes(8) = $arg0;
-  [pre:RSP - 8]:* := pre:RBP;
-  [pre:RSP - 16]:* := pre:R15;
-  [pre:RSP - 24]:* := pre:R14;
-  [pre:RSP - 32]:* := pre:R13;
-  [pre:RSP - 40]:* := pre:R12;
-  [pre:RSP - 48]:* := pre:RBX;
-  <?>4201696(r42);
-  [pre:RIP + 7968376]:* := <?>4201696(r42);
-  <?>4201776((pre:RSP - 1080),
-             1024,
-             r42);
-  ;
-  if IsZero (<?>4201776((pre:RSP - 1080),
-                        1024,
-                        r42)) {
-    <?>4198480(7161960);
-    <?>4200816(1);
-    goto T13
-  }
-  let r134: Bytes(8) = [pre:RIP + 7967296]:8;
-  ;
-  r605 := 1;
-  if IsZero (r134) {
-    goto T3
-  }
-  ;
-  r605 := 1;
-  if IsZero ([pre:RSP - 1080]:4 - 978539555) {
-    let r197: Bytes(8) = <?>4198464();
-    [r197]:* := 0;
-    <?>4202480((pre:RSP - 1076),
-               (pre:RSP - 1088),
-               10);
-    let r246: Bytes(4) = [r197]:4;
-    ;
-    if ! IsZero (r246) {
-      goto T13
-    }
-    ;
-    if ! IsZero ([[pre:RSP - 1088]:8]:1 - 13) {
-      goto T13
-    }
-    let r279: Bytes(16) = r134 - <?>4202480((pre:RSP - 1076),
-                                            (pre:RSP - 1088),
-                                            10);
-    ;
-    if SignOf (r279) EQ OverflowOf (r279) {
-      goto T11
-    }
-    let r291: Bytes(8) = [pre:RIP + 7968376]:8;
-    ;
-    if IsZero (r291) {
-      goto T14
-    }
-    ;
-    if IsZero ($arg2) {
-      goto T15
-    }
-    [pre:RSP - 1104]:* := r291;
-    <?>4200480(r42);
-    <?>4199184(<?>4200480(r42),
-               r291);
-    ;
-    r605 := r246 as u64;
-    if ! IsZero (<?>4199184(<?>4200480(r42),
-                            r291) + 1) {
-      goto T3
-    }
-    <?>4198480(7162352);
-    <?>4200816(1);
-    goto T11
-    T11: {
-      r605 := 1;
-      goto T3
-    }
-  
-  }
-  goto T3
-  T3: {
-    let mut r605: Bytes(8);
-    ;
-    return r605[4 .. 0]
-  }
-  
-  T13: {
-    __builtin_puts();
-    <?>4200816(1);
-    goto T14
-  }
-  
-  T14: {
-    <?>4198480(7162016);
-    <?>4200816(1);
-    goto T15
-  }
-  
-  T15: {
-    <?>4198480(7162072);
-    __builtin_puts();
-    <?>4200816(1);
-    goto undefined /* warning: due to decompiler bug or limitation */
-  }
-
-}
