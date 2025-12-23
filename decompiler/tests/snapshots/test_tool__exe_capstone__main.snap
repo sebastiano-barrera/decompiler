@@ -625,7 +625,7 @@ ssa program  376 instrs
   (  2)  r112: Bytes(8) <- Int { value: 4096, size: 8 }
   (  2)  r115: Bytes(8) <- Int { value: 8, size: 8 }
   (  2)  r118: Bytes(8) <- Int { value: 4203184, size: 8 }
-         r120: Bytes(8) <- Int { value: 4198496, size: 8 }
+         r120: Bytes(8) <- Global("cs_disasm")
          r133: Bytes(16) <- CArg { value: r97, next_arg: None }
          r134: Bytes(8) <- CArg { value: r101, next_arg: Some(r133) }
          r135: Bytes(8) <- CArg { value: r112, next_arg: Some(r134) }
@@ -654,7 +654,7 @@ ssa program  376 instrs
   (  2)  r207: Error <- Arith(Add, r174, r206)
          r214: Error <- ArithK(Add, r207, 74)
          r217: Error <- ArithK(Add, r207, 42)
-         r230: Bytes(8) <- Int { value: 4198480, size: 8 }
+         r230: Bytes(8) <- Global("printf")
          r233: Bytes(8) <- CArg { value: r177, next_arg: None }
          r234: Bytes(8) <- Call { callee: r230, first_arg: Some(r233) }
   (  4)  r245: Error <- Arith(Sub, r355, r196)
@@ -666,7 +666,7 @@ ssa program  376 instrs
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
          r256: Bytes(16) <- ArithK(Add, r10, -32)
          r257: Bytes(8) <- LoadMem { addr: r256, size: 8 }
-         r260: Bytes(8) <- Int { value: 4198464, size: 8 }
+         r260: Bytes(8) <- Global("cs_free")
          r265: Error <- CArg { value: r245, next_arg: None }
          r266: Bytes(8) <- CArg { value: r257, next_arg: Some(r265) }
          r267: Bytes(8) <- Call { callee: r260, first_arg: Some(r266) }
@@ -675,7 +675,7 @@ ssa program  376 instrs
          r374: Effect <- Upsilon { value: r214, phi_ref: r359 }
          r375: Effect <- Upsilon { value: r217, phi_ref: r360 }
 .B7:    ;; preds:B1  → Always(Block(BlockID(5))).
-         r331: Bytes(8) <- Int { value: 4198448, size: 8 }
+         r331: Bytes(8) <- Global("__builtin_puts")
          r332: Bytes(8) <- Call { callee: r331, first_arg: None }
          r363: Effect <- Upsilon { value: r118, phi_ref: r357 }
          r364: Effect <- Upsilon { value: r139, phi_ref: r358 }
@@ -707,88 +707,68 @@ ssa program  376 instrs
 
 
  --- ast
-
-T0: {
-  [pre:RSP - 8]:* := pre:R12;
-  [pre:RSP - 16]:* := pre:RBP;
-  [pre:RSP - 24]:* := pre:RBX;
-  let r55: Bytes(16) = pre:RSP - 40;
-  4198512(3,
-          8,
-          r55,
-          pre:RCX);
-  ;
-  if ! IsZero (pre:RAX[4 .. 0] & pre:RAX[4 .. 0]) {
-    r361 := pre:RAX[4 .. 0] | -1;
-    goto T6
-  }
-  let r139: Bytes(8) = cs_disasm([pre:RSP - 40]:8,
-                                 4203184,
-                                 8,
-                                 4096,
-                                 (pre:R8[4 .. 0] ^ pre:R8[4 .. 0]),
-                                 (pre:RSP - 32));
-  ;
-  if IsZero (r139) {
-    __builtin_puts();
-    r357 := 4203184;
-    r358 := cs_disasm([pre:RSP - 40]:8,
-                      4203184,
-                      8,
-                      4096,
-                      (pre:R8[4 .. 0] ^ pre:R8[4 .. 0]),
-                      (pre:RSP - 32));
-    r359 := 4096;
-    r360 := 8;
-    goto T5
-  }
-  r355 := cs_disasm([pre:RSP - 40]:8,
-                    4203184,
-                    8,
-                    4096,
-                    (pre:R8[4 .. 0] ^ pre:R8[4 .. 0]),
-                    (pre:RSP - 32));
-  r356 := pre:RBX[4 .. 0] ^ pre:RBX[4 .. 0];
-  goto T3
-  T3: {
-    let mut r356: Error;
-    let mut r355: Error;
-    let r196: Error = r356 + 1;
-    let r207: Error = [pre:RSP - 32]:8 + (r356 << 5 - r356) * 8;
-    printf(4203193);
-    let r245: Error = r355 - r196;
-    ;
-    r355 := r355 - r196;
-    r356 := r356 + 1;
-    if ! IsZero (r245) {
-      goto T3
-    }
-    cs_free([pre:RSP - 32]:8,
-            r245);
-    r357 := r355 - r196;
-    r358 := printf(4203193);
-    r359 := r207 + 74;
-    r360 := r207 + 42;
-    goto T5
-  }
-  
-  T5: {
-    let mut r360: Error;
-    let mut r359: Error;
-    let mut r358: Bytes(8);
-    let mut r357: Error;
-    4198528(r55,
-            r357,
-            r360,
-            r359);
-    r361 := r358[4 .. 0] ^ r358[4 .. 0];
-    goto T6
-  }
-  
-  T6: {
-    let mut r361: Bytes(8);
-    ;
-    return r361[4 .. 0]
-  }
-
+# block order: B0, B1, B2, B3, B4, B7, B5, B8, B6
+.B0: {
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("R12") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBP") Bytes(8));
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("RBX") Bytes(8));
+  let r55 = ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40;
+  Call (Int 4198512 8) (CArg (Int 3 8) (CArg (Int 8 8) (CArg r55 (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
+  if Not (IsZero (Arith BitAnd (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)))
+  then  jump .B8
+  else  .B1: {
+          let r139 = Call (Global "cs_disasm") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) 8) (CArg (Int 4203184 8) (CArg (Int 8 8) (CArg (Int 4096 8) (CArg (Arith BitXor (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4) (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4)) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) None))))));
+          if IsZero r139
+          then  jump .B7
+          else  .B2: {
+                  Upsilon r139 r355;
+                  Upsilon (Arith BitXor (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4)) r356;
+                  jump .B3
+                }
+        }
+};
+.B3: {
+  r356: phi;
+  r355: phi;
+  let r196 = ArithK Add r356 1;
+  let r207 = Arith Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (ArithK Mul (Arith Sub (ArithK Shl r356 5) r356) 8);
+  Call (Global "printf") (CArg (Int 4203193 8) None);
+  let r245 = Arith Sub r355 r196;
+  Upsilon r245 r355;
+  Upsilon r196 r356;
+  if Not (IsZero r245)
+  then  jump .B3
+  else  .B4: {
+          Call (Global "cs_free") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (CArg r245 None));
+          Upsilon r245 r357;
+          Upsilon (Call (Global "printf") (CArg (Int 4203193 8) None)) r358;
+          Upsilon (ArithK Add r207 74) r359;
+          Upsilon (ArithK Add r207 42) r360;
+          jump .B5
+        }
+};
+.B7: {
+  Call (Global "__builtin_puts") None;
+  Upsilon (Int 4203184 8) r357;
+  Upsilon r139 r358;
+  Upsilon (Int 4096 8) r359;
+  Upsilon (Int 8 8) r360;
+  jump .B5
+};
+.B5: {
+  r360: phi;
+  r359: phi;
+  r358: phi;
+  r357: phi;
+  Call (Int 4198528 8) (CArg r55 (CArg r357 (CArg r360 (CArg r359 None))));
+  Upsilon (Arith BitXor (Part r358 0 4) (Part r358 0 4)) r361;
+  jump .B6
+};
+.B8: {
+  Upsilon (ArithK BitOr (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) -1) r361;
+  jump .B6
+};
+.B6: {
+  r361: phi;
+  return Part r361 0 4
 }

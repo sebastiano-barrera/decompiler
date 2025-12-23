@@ -167,8 +167,9 @@ impl Exe {
 
             writeln!(log_buf, " --- ast").unwrap();
             let ast = decompiler::AstBuilder::new(&ssa).build();
-            // TODO replace this "printer" with something better
-            println!("{:#?}", ast);
+            let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
+            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
+            decompiler::write_ast(pp, &ast, ssa, exe.types()).unwrap();
         }
 
         log_buf

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
 use sha1::Digest;
@@ -9,7 +8,7 @@ use tracing::*;
 
 use crate::{mil, ssa, ty, x86_to_mil, xform};
 
-pub use crate::ast::{precedence, Ast, AstBuilder, PrecedenceLevel};
+pub use crate::ast::{precedence, write_ast, Ast, AstBuilder, PrecedenceLevel};
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest, Graph};
 pub use crate::mil::{
     to_expanded, AncestralName, ExpandedInsn, ExpandedValue, Insn, Reg, RegType, R,

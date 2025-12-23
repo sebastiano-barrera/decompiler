@@ -201,28 +201,26 @@ ssa program  103 instrs
 
 
  --- ast
-
-T0: {
-  let r42: Bytes(24) = $arg0;
-  [pre:RSP + 8]:* := r42[8 .. 0];
-  [pre:RSP + 16]:* := r42.prev;
-  [pre:RSP + 24]:* := r42.next;
-  r95 := pre:RAX[4 .. 0] ^ pre:RAX[4 .. 0];
-  r96 := pre:RSP + 8;
-  goto T1
-  T1: {
-    let mut r96: Error;
-    let mut r95: Bytes(8);
-    let r67: Bytes(8) = r95[4 .. 0] + 1;
-    let r78: Bytes(8) = [r96 + 16]:8;
-    ;
-    r95 := r95[4 .. 0] + 1;
-    r96 := [r96 + 16]:8;
-    if ! IsZero (r78) {
-      goto T1
-    }
-    ;
-    return r67[4 .. 0]
-  }
-
+# block order: B0, B1, B2
+.B0: {
+  let r42 = FuncArgument 0 Bytes(24);
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 8) (Part r42 0 8);
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 16) (StructGetMember r42 "prev" 8);
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 24) (StructGetMember r42 "next" 8);
+  Upsilon (Arith BitXor (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)) r95;
+  Upsilon (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 8) r96;
+  jump .B1
+};
+.B1: {
+  r96: phi;
+  r95: phi;
+  let r67 = ArithK Add (Part r95 0 4) 1;
+  let r78 = LoadMem (ArithK Add r96 16) 8;
+  Upsilon r67 r95;
+  Upsilon r78 r96;
+  if Not (IsZero r78)
+  then  jump .B1
+  else  .B2: {
+          return Part r67 0 4
+        }
 }

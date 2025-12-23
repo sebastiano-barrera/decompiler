@@ -152,7 +152,7 @@ ssa program  90 instrs
          r42: Bytes(16) <- ArithK(Add, r10, -8)
          r43: Effect <- StoreMem { addr: r42, value: r9 }
          r45: Bytes(8) <- Int { value: 24, size: 8 }
-         r48: Bytes(8) <- Int { value: 4433936, size: 8 }
+         r48: Bytes(8) <- Global("zmalloc")
          r51: Bytes(8) <- CArg { value: r45, next_arg: None }
   (  3)  r52: Bytes(8) <- Call { callee: r48, first_arg: Some(r51) }
          r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
@@ -167,12 +167,11 @@ ssa program  90 instrs
 
 
  --- ast
-
-T0: {
-  [pre:RSP - 8]:* := pre:RBP;
-  let r52: Bytes(8) = <?>4433936(24);
-  [r52]:* := 0;
-  [r52 + 8]:* := (pre:ZMM0[16 .. 0] ^ pre:ZMM0[16 .. 0])[16 .. 0];
-  ;
+# block order: B0
+.B0: {
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+  let r52 = Call (Global "zmalloc") (CArg (Int 24 8) None);
+  StoreMem r52 (Int 0 8);
+  StoreMem (ArithK Add r52 8) (Part (Arith BitXor (Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16) (Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16)) 0 16);
   return r52
 }

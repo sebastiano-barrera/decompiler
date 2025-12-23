@@ -153,9 +153,9 @@ suitable alternative
                     => the program continues without any sort of hitch/discontinuity, and you've effectively "saved a file"
 
         - options:
-            - [ ] simple and new: redb
-            - [ ] simple and old: lmdb
-            - [ ] the good ol' classic: sqlite
+            - [-] simple and new: redb
+            - [x] simple and old: lmdb
+            - [-] the good ol' classic: sqlite
 
 - [x] gui: restore asm view
 - [x] gui: asm view: highlight instructions related to selected block
@@ -169,10 +169,11 @@ suitable alternative
     - [ ] enum values
         - initialize with DWARF, allow user edits
 
-- [ ] gui: asm view: highlight instructions related to selected AST node
-- [ ] string literals
+- [x] called function name
 
 - [ ] select parent AST node (corresponding value etc.)
+- [ ] gui: asm view: highlight instructions related to selected AST node
+- [ ] string literals
 
 - [ ] restore "AST cleanup" features
     - [ ] remove gotos that "look like they just jump to the next block"

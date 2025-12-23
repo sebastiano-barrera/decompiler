@@ -119,53 +119,53 @@ program  98 instrs
  --- ssa pre-xform
 ssa program  98 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
-  (  4)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
-         r44 <- Int { value: 0, size: 8 }
-         r45 <- Arith(Add, r44, r42)
-  (  2)  r46 <- LoadMem { addr: r45, size: 8 }
-  (  5)  r48 <- Arith(BitAnd, r46, r46)
-         r50 <- IsZero(r48)
-         r55 <- SetJumpCondition(r50)
+  (  4)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
+         r44: Bytes(8) <- Int { value: 0, size: 8 }
+         r45: Bytes(16) <- Arith(Add, r44, r42)
+  (  2)  r46: Bytes(8) <- LoadMem { addr: r45, size: 8 }
+  (  5)  r48: Bytes(16) <- Arith(BitAnd, r46, r46)
+         r50: Bool <- IsZero(r48)
+         r55: Effect <- SetJumpCondition(r50)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
-         r57 <- Int { value: 8, size: 8 }
-         r58 <- Arith(Add, r57, r42)
-         r59 <- LoadMem { addr: r58, size: 4 }
-  (  2)  r60 <- Widen { reg: r59, target_size: 8, sign: false }
-         r62 <- Part { src: r60, offset: 0, size: 4 }
-         r63 <- Part { src: r60, offset: 0, size: 4 }
-         r64 <- Arith(BitAnd, r62, r63)
-         r66 <- IsZero(r64)
-         r71 <- Not(r66)
-         r72 <- SetJumpCondition(r71)
+         r57: Bytes(8) <- Int { value: 8, size: 8 }
+         r58: Bytes(16) <- Arith(Add, r57, r42)
+         r59: Bytes(4) <- LoadMem { addr: r58, size: 4 }
+  (  2)  r60: Bytes(8) <- Widen { reg: r59, target_size: 8, sign: false }
+         r62: Bytes(4) <- Part { src: r60, offset: 0, size: 4 }
+         r63: Bytes(4) <- Part { src: r60, offset: 0, size: 4 }
+         r64: Bytes(8) <- Arith(BitAnd, r62, r63)
+         r66: Bool <- IsZero(r64)
+         r71: Bool <- Not(r66)
+         r72: Effect <- SetJumpCondition(r71)
 .B2:    ;; preds:B1  → Always(Return).
-         r74 <- Int { value: 8, size: 8 }
-         r75 <- Arith(Add, r74, r48)
-         r76 <- LoadMem { addr: r75, size: 8 }
-         r78 <- Int { value: 0, size: 8 }
-         r79 <- Arith(Add, r78, r42)
-         r80 <- StoreMem { addr: r79, value: r76 }
-         r82 <- Concat { lo: r81, hi: r48 }
-         r83 <- Part { src: r82, offset: 0, size: 8 }
-         r84 <- SetReturnValue(r83)
+         r74: Bytes(8) <- Int { value: 8, size: 8 }
+         r75: Error <- Arith(Add, r74, r48)
+         r76: Bytes(8) <- LoadMem { addr: r75, size: 8 }
+         r78: Bytes(8) <- Int { value: 0, size: 8 }
+         r79: Bytes(16) <- Arith(Add, r78, r42)
+         r80: Effect <- StoreMem { addr: r79, value: r76 }
+         r82: Bytes(16) <- Concat { lo: r81, hi: r48 }
+         r83: Bytes(8) <- Part { src: r82, offset: 0, size: 8 }
+         r84: Effect <- SetReturnValue(r83)
 .B3:    ;; preds:B1  → Always(Block(BlockID(4))).
-         r86 <- Int { value: 0, size: 8 }
-         r87 <- Arith(Add, r86, r48)
-         r88 <- LoadMem { addr: r87, size: 8 }
-         r90 <- Int { value: 0, size: 8 }
-         r91 <- Arith(Add, r90, r42)
-         r92 <- StoreMem { addr: r91, value: r88 }
+         r86: Bytes(8) <- Int { value: 0, size: 8 }
+         r87: Error <- Arith(Add, r86, r48)
+         r88: Bytes(8) <- LoadMem { addr: r87, size: 8 }
+         r90: Bytes(8) <- Int { value: 0, size: 8 }
+         r91: Bytes(16) <- Arith(Add, r90, r42)
+         r92: Effect <- StoreMem { addr: r91, value: r88 }
 .B4:    ;; preds:B0,B3  → Always(Return).
-         r94 <- Concat { lo: r93, hi: r48 }
-         r95 <- Part { src: r94, offset: 0, size: 8 }
-         r96 <- SetReturnValue(r95)
+         r94: Bytes(16) <- Concat { lo: r93, hi: r48 }
+         r95: Bytes(8) <- Part { src: r94, offset: 0, size: 8 }
+         r96: Effect <- SetReturnValue(r95)
 
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r42, r46, r50, r55]
-  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r58, r59, r66, r71, r72]
-  BlockID(2) -> Always(Return) [r75, r76, r80, r84]
-  BlockID(3) -> Always(Block(BlockID(4))) [r88, r92]
+  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r42, r101, r99, r50, r55]
+  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r105, r103, r66, r71, r72]
+  BlockID(2) -> Always(Return) [r109, r107, r80, r84]
+  BlockID(3) -> Always(Block(BlockID(4))) [r113, r111, r92]
   BlockID(4) -> Always(Return) [r96]
   domtree:
     BlockID(0)
@@ -175,50 +175,52 @@ ssa program  98 instrs
 |  BlockID(4)
 
  --- ssa
-ssa program  98 instrs
+ssa program  114 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
-  (  4)  r42 <- FuncArgument { index: 0, reg_type: Bytes(8) }
-  (  5)  r46 <- LoadMem { addr: r42, size: 8 }
-         r50 <- IsZero(r46)
-         r55 <- SetJumpCondition(r50)
+  (  4)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
+         r101: Bytes(16) <- LoadMem { addr: r42, size: 16 }
+  (  5)  r99: Bytes(8) <- StructGetMember { struct_value: r101, name: "next", size: 8 }
+         r50: Bool <- IsZero(r99)
+         r55: Effect <- SetJumpCondition(r50)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
-         r58 <- ArithK(Add, r42, 8)
-         r59 <- LoadMem { addr: r58, size: 4 }
-         r66 <- IsZero(r59)
-         r71 <- Not(r66)
-         r72 <- SetJumpCondition(r71)
+         r105: Bytes(16) <- LoadMem { addr: r42, size: 16 }
+         r103: Bytes(4) <- StructGetMember { struct_value: r105, name: "direction", size: 4 }
+         r66: Bool <- IsZero(r103)
+         r71: Bool <- Not(r66)
+         r72: Effect <- SetJumpCondition(r71)
 .B2:    ;; preds:B1  → Always(Return).
-         r75 <- ArithK(Add, r46, 8)
-         r76 <- LoadMem { addr: r75, size: 8 }
-         r80 <- StoreMem { addr: r42, value: r76 }
-         r84 <- SetReturnValue(r46)
+         r109: Bytes(24) <- LoadMem { addr: r99, size: 24 }
+         r107: Bytes(8) <- StructGetMember { struct_value: r109, name: "next", size: 8 }
+         r80: Effect <- StoreMem { addr: r42, value: r107 }
+         r84: Effect <- SetReturnValue(r99)
 .B3:    ;; preds:B1  → Always(Block(BlockID(4))).
-         r88 <- LoadMem { addr: r46, size: 8 }
-         r92 <- StoreMem { addr: r42, value: r88 }
+         r113: Bytes(24) <- LoadMem { addr: r99, size: 24 }
+         r111: Bytes(8) <- StructGetMember { struct_value: r113, name: "prev", size: 8 }
+         r92: Effect <- StoreMem { addr: r42, value: r111 }
 .B4:    ;; preds:B0,B3  → Always(Return).
-         r96 <- SetReturnValue(r46)
+         r96: Effect <- SetReturnValue(r99)
 
 
  --- ast
-
-T0: {
-  let r42: Bytes(8) = $arg0;
-  let r46: Bytes(8) = [r42]:8;
-  ;
-  if IsZero (r46) {
-    goto T4
-  }
-  ;
-  if ! IsZero ([r42 + 8]:4) {
-    [r42]:* := [r46]:8;
-    goto T4
-  }
-  [r42]:* := [r46 + 8]:8;
-  ;
-  return r46
-  T4: {
-    ;
-    return r46
-  }
-
+# block order: B0, B1, B2, B3, B4
+.B0: {
+  let r42 = FuncArgument 0 Bytes(8);
+  let r99 = StructGetMember (LoadMem r42 16) "next" 8;
+  if IsZero r99
+  then  jump .B4
+  else  .B1: {
+          if Not (IsZero (StructGetMember (LoadMem r42 16) "direction" 4))
+          then  jump .B3
+          else  .B2: {
+                  StoreMem r42 (StructGetMember (LoadMem r99 24) "next" 8);
+                  return r99
+                }
+        }
+};
+.B3: {
+  StoreMem r42 (StructGetMember (LoadMem r99 24) "prev" 8);
+  jump .B4
+};
+.B4: {
+  return r99
 }
