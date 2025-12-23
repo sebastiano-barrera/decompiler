@@ -5,11 +5,12 @@
 //! a version-controlled file, just so that it's somewhere easy to diff and hard
 //! to forget updating.
 
+use decompiler::Insn;
 use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
+use test_log::test;
 
 use std::{
-    backtrace::Backtrace,
     path::Path,
     sync::{Mutex, MutexGuard, OnceLock},
 };
@@ -33,7 +34,8 @@ macro_rules! tests_in_binary {
         mod $group {
             use crate::{Exe, test_decompile_all_no_panic};
             use test_log::test;
-            static EXE: Exe = Exe::new($exe_path);
+
+            pub(super) static EXE: Exe = Exe::new($exe_path);
 
             #[test]
             fn no_panic() {
@@ -191,7 +193,7 @@ tests_in_binary!(
     redisConnectWithOptions,
 );
 
-#[test_log::test]
+#[test]
 fn test_function_type_id_propagation() {
     let exe_instance = Exe::new("ty/test_composite_type.so");
     let exe = exe_instance.get_or_init();
@@ -211,4 +213,29 @@ fn test_function_type_id_propagation() {
         ssa_program.function_type_id().is_some(),
         "Function TypeID should be propagated to SSA program"
     );
+}
+
+#[test]
+fn test_named_callee() {
+    let exe = redis_server::EXE.get_or_init();
+    let func = exe.decompile_function("createSortOperation").unwrap();
+    let ssa = func.ssa().unwrap();
+
+    let mut s = String::new();
+    ssa.dump(&mut s, Some(exe.types())).unwrap();
+    println!("{}", s);
+
+    // find the Insn::Call, then check that its callee is a Insn::Global
+    let callee = ssa
+        .registers()
+        .find_map(|reg| {
+            if let Insn::Call { callee, .. } = ssa.get(reg).unwrap() {
+                Some(callee)
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    let callee_insn = ssa.get(callee).unwrap();
+    assert_eq!(Insn::Global("zmalloc"), callee_insn);
 }

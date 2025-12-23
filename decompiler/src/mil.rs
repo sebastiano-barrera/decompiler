@@ -133,6 +133,8 @@ pub enum Insn {
         value: i64,
         size: u16,
     },
+    /// Reference to a global object by its name ("symbol")
+    Global(&'static str),
 
     #[assoc(input_regs = array([_0]))]
     #[assoc(is_repr_transparent = *_0)]

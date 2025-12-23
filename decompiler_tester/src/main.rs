@@ -1013,6 +1013,9 @@ mod ast {
             Insn::Bytes(bytes) => {
                 ui.label(format!("{:?}", bytes.as_slice()));
             }
+            Insn::Global(identifier) => {
+                ui.label(identifier);
+            }
             Insn::Int { value, size: _ } => {
                 ui.label(format!("{}", value));
             }

@@ -610,7 +610,18 @@ impl<'a> ReadTxRef<'a> {
         } else {
             None
         };
-        event!(Level::TRACE, ?tyid, ?typ, "call resolution");
+
+        let name = tyid.map(|tyid| self.name(tyid));
+        event!(
+            Level::TRACE,
+            ?key,
+            ?tyid_from_call_site,
+            ?tyid_from_global,
+            ?tyid,
+            ?typ,
+            ?name,
+            "call resolution"
+        );
 
         Ok(tyid)
     }
@@ -699,7 +710,7 @@ impl WriteTxRef<'_, '_> {
     }
 
     pub fn set_known_object(&mut self, addr: Addr, tyid: TypeID) -> Result<()> {
-        event!(Level::TRACE, addr, ?tyid, "discovered call");
+        event!(Level::TRACE, addr, ?tyid, "discovered known object");
         self.ts
             .db_type_of_global
             .put(self.tx, &addr, &tyid)
@@ -765,6 +776,7 @@ impl ByteRange {
     }
 }
 
+#[derive(Debug)]
 pub struct CallSiteKey {
     pub return_pc: u64,
     pub target: u64,

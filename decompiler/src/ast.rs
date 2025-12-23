@@ -347,6 +347,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::False
         | Insn::Int { .. }
         | Insn::Bytes(..)
+        | Insn::Global(_)
         | Insn::UndefinedBool
         | Insn::UndefinedBytes { .. }
         | Insn::Ancestral { .. }

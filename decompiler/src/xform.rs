@@ -622,6 +622,22 @@ fn select_type_on_part(
     apply_type_selection(insn, prog, bid, types, src, byte_range)
 }
 
+fn pick_callee_name(insn: Insn, prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) -> Insn {
+    if let Insn::Call { callee, .. } = insn {
+        // only do this when the callee is a const int. this is the common case when
+        // calling a globally defined address, and NOT when you do an indirect call.
+        if let Insn::Int { .. } = prog.get(callee).unwrap() {
+            if let Some(callee_tyid) = prog.value_type(callee) {
+                if let Ok(Some(name)) = types.name(callee_tyid) {
+                    prog.set(callee, Insn::Global(name.leak()));
+                }
+            }
+        }
+    }
+
+    insn
+}
+
 fn apply_type_selection(
     insn: Insn,
     prog: &mut ssa::OpenProgram<'_>,
@@ -830,6 +846,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = fold_shr_part(insn, &mut prog, bid);
                 insn = select_type_on_deref_member_read(insn, &mut prog, bid, rtx.read());
                 insn = select_type_on_part(insn, &mut prog, bid, rtx.read());
+                insn = pick_callee_name(insn, &mut prog, rtx.read());
                 if !insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)

@@ -72,10 +72,10 @@ pub fn load_dwarf_types(
     // we only parse .debug_info, not .debug_types
     // an effort is only made to support DWARF5, not DWARF4
     let mut errors = Vec::new();
+    let mut alias_name_fixups = Vec::new();
+    let mut is_empty = true;
 
     let mut units = dwarf.debug_info.units();
-
-    let mut is_empty = true;
     while let Some(unit_hdr) = units.next()? {
         is_empty = false;
 
@@ -86,6 +86,7 @@ pub fn load_dwarf_types(
             errors: RefCell::new(Vec::new()),
             unit: &unit,
             types: types_wtx,
+            alias_name_fixups: &mut alias_name_fixups,
         };
         let unit_errors = parser.load_types()?;
 
@@ -95,6 +96,30 @@ pub fn load_dwarf_types(
     if is_empty {
         return Err(Error::NoCompileUnit);
     }
+
+    // this must be done at the end, after both alias and aliased types have
+    // been parsed (they may be parsed in any order)
+    event!(
+        Level::DEBUG,
+        count = alias_name_fixups.len(),
+        "alias fixups",
+    );
+    let mut types_wtx = types.write_tx()?;
+    for NameFixup { src_tyid, dst_tyid } in alias_name_fixups {
+        let sp = tracing::span!(Level::DEBUG, "copying name to alias", ?src_tyid, ?dst_tyid);
+        let _spg = sp.enter();
+
+        match types_wtx.read().name(src_tyid) {
+            Ok(Some(name)) => {
+                event!(Level::DEBUG, ?name, "copied");
+                types_wtx.write().set_name(dst_tyid, name)?;
+            }
+            other => {
+                event!(Level::ERROR, ?other, "failed");
+            }
+        }
+    }
+    types_wtx.commit()?;
 
     Ok(Report { errors })
 }
@@ -107,6 +132,14 @@ struct TypeParser<'a> {
     errors: RefCell<Errors>,
     unit: &'a gimli::Unit<ESlice<'a>>,
     types: ty::WriteTx<'a>,
+
+    // Vec of type IDs corresponding to ty::Ty::Alias(aliased). We want to copy
+    // the name of (aliased) to these at the end of the conversion
+    alias_name_fixups: &'a mut Vec<NameFixup>,
+}
+struct NameFixup {
+    src_tyid: ty::TypeID,
+    dst_tyid: ty::TypeID,
 }
 type Errors = Vec<(usize, Error)>;
 
@@ -200,18 +233,23 @@ impl<'a> TypeParser<'a> {
             // subprograms (functions, in C) are considered as subroutine types
             // with a only single instance existing in the program.
             gimli::constants::DW_TAG_subprogram | gimli::constants::DW_TAG_subroutine_type => {
-                // Share the same TypeID for all concrete out-of-line abstract instances of a subprogram
+                // Share the same TypeID for all concrete out-of-line instances of a subprogram
                 let attr_value_opt = entry.attr_value(gimli::constants::DW_AT_abstract_origin)?;
 
                 if let (gimli::constants::DW_TAG_subprogram, Some(attr_value)) =
                     (entry.tag(), attr_value_opt)
                 {
-                    let tyid = self.resolve_reference(attr_value, diofs)?;
-                    let name = self.get_name(entry)?.map(|s| s.to_owned());
-                    Ok((name, ty::Ty::Alias(tyid)))
+                    let aliased_tyid = self.resolve_reference(attr_value, diofs)?;
+                    self.alias_name_fixups.push(NameFixup {
+                        src_tyid: aliased_tyid,
+                        dst_tyid: tyid,
+                    });
+                    Ok((None, ty::Ty::Alias(aliased_tyid)))
                 } else {
-                    self.parse_subroutine_type(node)
-                        .map(|(name, ty)| (Some(name), ty))
+                    self.parse_subroutine_type(node).map(|(name, ty)| {
+                        event!(Level::DEBUG, ?name, ?tyid, "subroutine named");
+                        (Some(name), ty)
+                    })
                 }
             }
             gimli::constants::DW_TAG_base_type => self.parse_base_type(node),

@@ -542,6 +542,8 @@ fn infer_reg_type(reg: mil::Reg, prog: &Program) -> mil::RegType {
         Insn::False => RegType::Bool,
         Insn::Int { size, .. } => RegType::Bytes(size as usize),
         Insn::Bytes(bytes) => RegType::Bytes(bytes.len()),
+        // TODO not machine independent, but good enough for now
+        Insn::Global(_) => RegType::Bytes(8),
         Insn::Part { size, .. } => RegType::Bytes(size as usize),
         Insn::Get(arg) => prog.reg_type(arg),
         Insn::Concat { lo, hi } => {
