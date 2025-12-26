@@ -564,14 +564,14 @@ ssa program  376 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Conditional { pos: Block(BlockID(8)), neg: Block(BlockID(1)) } [r9, r10, r14, r15, r16, r18, r22, r42, r43, r45, r48, r50, r51, r52, r53, r55, r64, r65, r66, r67, r68, r69, r80, r81, r82, r84, r89, r90]
-  BlockID(1) -> Conditional { pos: Block(BlockID(7)), neg: Block(BlockID(2)) } [r93, r94, r97, r99, r100, r101, r112, r115, r118, r120, r133, r134, r135, r136, r137, r138, r139, r153, r158]
-  BlockID(2) -> Always(Block(BlockID(3))) [r160, r161, r162, r368, r369]
-  BlockID(3) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) } [r356, r355, r173, r174, r177, r181, r187, r196, r206, r207, r214, r217, r230, r233, r234, r245, r249, r252, r253, r370, r371]
-  BlockID(4) -> Always(Block(BlockID(5))) [r256, r257, r260, r265, r266, r267, r372, r373, r374, r375]
-  BlockID(5) -> Always(Block(BlockID(6))) [r360, r359, r358, r357, r278, r279, r280, r281, r282, r283, r294, r295, r296, r367]
+  BlockID(0) -> Conditional { pos: Block(BlockID(8)), neg: Block(BlockID(1)) } [r9, r10, r14, r15, r16, r22, r42, r43, r45, r48, r50, r51, r52, r53, r55, r64, r65, r66, r67, r68, r69, r80, r84, r89, r90]
+  BlockID(1) -> Conditional { pos: Block(BlockID(7)), neg: Block(BlockID(2)) } [r92, r93, r94, r96, r97, r112, r118, r120, r133, r134, r135, r136, r137, r138, r139, r153, r158]
+  BlockID(2) -> Always(Block(BlockID(3))) [r163, r369]
+  BlockID(3) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) } [r356, r173, r174, r177, r181, r187, r196, r206, r207, r217, r230, r233, r234, r245, r249, r252, r253, r371]
+  BlockID(4) -> Always(Block(BlockID(5))) [r256, r257, r260, r265, r266, r267, r375]
+  BlockID(5) -> Always(Block(BlockID(6))) [r360, r278, r279, r280, r281, r282, r283, r297, r367]
   BlockID(6) -> Always(Return) [r361, r325, r326]
-  BlockID(7) -> Always(Block(BlockID(5))) [r331, r332, r363, r364, r365, r366]
+  BlockID(7) -> Always(Block(BlockID(5))) [r331, r332, r366]
   BlockID(8) -> Always(Block(BlockID(6))) [r343, r345, r362]
   domtree:
     BlockID(0)
@@ -589,10 +589,9 @@ ssa program  376 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(8)), neg: Block(BlockID(1)) }.
          r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
   (  8)  r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  3)  r14: Bytes(8) <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
-  (  3)  r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
+  (  2)  r14: Bytes(8) <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
+         r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
          r16: Bytes(8) <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
-  (  2)  r18: Bytes(8) <- Ancestral { anc_name: AncestralName("R8"), reg_type: Bytes(8) }
          r22: Bytes(8) <- Ancestral { anc_name: AncestralName("R12"), reg_type: Bytes(8) }
          r42: Bytes(16) <- ArithK(Add, r10, -8)
          r43: Effect <- StoreMem { addr: r42, value: r22 }
@@ -610,40 +609,32 @@ ssa program  376 instrs
          r68: Bytes(8) <- CArg { value: r48, next_arg: Some(r67) }
          r69: Bytes(8) <- Call { callee: r64, first_arg: Some(r68) }
          r80: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
-         r81: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
-         r82: Bytes(8) <- Arith(BitAnd, r80, r81)
-         r84: Bool <- IsZero(r82)
+         r84: Bool <- IsZero(r80)
          r89: Bool <- Not(r84)
          r90: Effect <- SetJumpCondition(r89)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(7)), neg: Block(BlockID(2)) }.
+         r92: Bytes(8) <- Int { value: 0, size: 8 }
          r93: Bytes(16) <- ArithK(Add, r10, -40)
          r94: Bytes(8) <- LoadMem { addr: r93, size: 8 }
+  (  2)  r96: Bytes(8) <- Int { value: 8, size: 8 }
          r97: Bytes(16) <- ArithK(Add, r10, -32)
-         r99: Bytes(4) <- Part { src: r18, offset: 0, size: 4 }
-         r100: Bytes(4) <- Part { src: r18, offset: 0, size: 4 }
-         r101: Bytes(8) <- Arith(BitXor, r99, r100)
-  (  2)  r112: Bytes(8) <- Int { value: 4096, size: 8 }
-  (  2)  r115: Bytes(8) <- Int { value: 8, size: 8 }
-  (  2)  r118: Bytes(8) <- Int { value: 4203184, size: 8 }
+         r112: Bytes(8) <- Int { value: 4096, size: 8 }
+         r118: Bytes(8) <- Int { value: 4203184, size: 8 }
          r120: Bytes(8) <- Global("cs_disasm")
          r133: Bytes(16) <- CArg { value: r97, next_arg: None }
-         r134: Bytes(8) <- CArg { value: r101, next_arg: Some(r133) }
+         r134: Bytes(8) <- CArg { value: r92, next_arg: Some(r133) }
          r135: Bytes(8) <- CArg { value: r112, next_arg: Some(r134) }
-         r136: Bytes(8) <- CArg { value: r115, next_arg: Some(r135) }
+         r136: Bytes(8) <- CArg { value: r96, next_arg: Some(r135) }
          r137: Bytes(8) <- CArg { value: r118, next_arg: Some(r136) }
          r138: Bytes(8) <- CArg { value: r94, next_arg: Some(r137) }
-  (  3)  r139: Bytes(8) <- Call { callee: r120, first_arg: Some(r138) }
+         r139: Bytes(8) <- Call { callee: r120, first_arg: Some(r138) }
          r153: Bool <- IsZero(r139)
          r158: Effect <- SetJumpCondition(r153)
 .B2:    ;; preds:B1  → Always(Block(BlockID(3))).
-         r160: Bytes(4) <- Part { src: r15, offset: 0, size: 4 }
-         r161: Bytes(4) <- Part { src: r15, offset: 0, size: 4 }
-         r162: Bytes(8) <- Arith(BitXor, r160, r161)
-         r368: Effect <- Upsilon { value: r139, phi_ref: r355 }
-         r369: Effect <- Upsilon { value: r162, phi_ref: r356 }
+         r163: Bytes(8) <- Int { value: 0, size: 8 }
+         r369: Effect <- Upsilon { value: r163, phi_ref: r356 }
 .B3:    ;; preds:B2,B3  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(4)) }.
-  (  3)  r356: Error <- Phi
-         r355: Error <- Phi
+  (  4)  r356: Error <- Phi
          r173: Bytes(16) <- ArithK(Add, r10, -32)
          r174: Bytes(8) <- LoadMem { addr: r173, size: 8 }
          r177: Bytes(8) <- Int { value: 4203193, size: 8 }
@@ -651,17 +642,15 @@ ssa program  376 instrs
          r187: Error <- Arith(Sub, r181, r356)
   (  2)  r196: Error <- ArithK(Add, r356, 1)
          r206: Error <- ArithK(Mul, r187, 8)
-  (  2)  r207: Error <- Arith(Add, r174, r206)
-         r214: Error <- ArithK(Add, r207, 74)
+         r207: Error <- Arith(Add, r174, r206)
          r217: Error <- ArithK(Add, r207, 42)
          r230: Bytes(8) <- Global("printf")
          r233: Bytes(8) <- CArg { value: r177, next_arg: None }
          r234: Bytes(8) <- Call { callee: r230, first_arg: Some(r233) }
-  (  4)  r245: Error <- Arith(Sub, r355, r196)
+  (  2)  r245: Error <- Arith(Sub, r356, r196)
          r249: Bool <- IsZero(r245)
          r252: Bool <- Not(r249)
          r253: Effect <- SetJumpCondition(r252)
-         r370: Effect <- Upsilon { value: r245, phi_ref: r355 }
          r371: Effect <- Upsilon { value: r196, phi_ref: r356 }
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
          r256: Bytes(16) <- ArithK(Add, r10, -32)
@@ -670,32 +659,21 @@ ssa program  376 instrs
          r265: Error <- CArg { value: r245, next_arg: None }
          r266: Bytes(8) <- CArg { value: r257, next_arg: Some(r265) }
          r267: Bytes(8) <- Call { callee: r260, first_arg: Some(r266) }
-         r372: Effect <- Upsilon { value: r245, phi_ref: r357 }
-         r373: Effect <- Upsilon { value: r234, phi_ref: r358 }
-         r374: Effect <- Upsilon { value: r214, phi_ref: r359 }
          r375: Effect <- Upsilon { value: r217, phi_ref: r360 }
 .B7:    ;; preds:B1  → Always(Block(BlockID(5))).
          r331: Bytes(8) <- Global("__builtin_puts")
          r332: Bytes(8) <- Call { callee: r331, first_arg: None }
-         r363: Effect <- Upsilon { value: r118, phi_ref: r357 }
-         r364: Effect <- Upsilon { value: r139, phi_ref: r358 }
-         r365: Effect <- Upsilon { value: r112, phi_ref: r359 }
-         r366: Effect <- Upsilon { value: r115, phi_ref: r360 }
+         r366: Effect <- Upsilon { value: r96, phi_ref: r360 }
 .B5:    ;; preds:B4,B7  → Always(Block(BlockID(6))).
-         r360: Error <- Phi
-         r359: Error <- Phi
-  (  2)  r358: Bytes(8) <- Phi
-         r357: Error <- Phi
+  (  3)  r360: Error <- Phi
          r278: Bytes(8) <- Int { value: 4198528, size: 8 }
-         r279: Error <- CArg { value: r359, next_arg: None }
+         r279: Error <- CArg { value: r360, next_arg: None }
          r280: Error <- CArg { value: r360, next_arg: Some(r279) }
-         r281: Error <- CArg { value: r357, next_arg: Some(r280) }
+         r281: Error <- CArg { value: r360, next_arg: Some(r280) }
          r282: Bytes(16) <- CArg { value: r55, next_arg: Some(r281) }
          r283: Bytes(8) <- Call { callee: r278, first_arg: Some(r282) }
-         r294: Bytes(4) <- Part { src: r358, offset: 0, size: 4 }
-         r295: Bytes(4) <- Part { src: r358, offset: 0, size: 4 }
-         r296: Bytes(8) <- Arith(BitXor, r294, r295)
-         r367: Effect <- Upsilon { value: r296, phi_ref: r361 }
+         r297: Bytes(8) <- Int { value: 0, size: 8 }
+         r367: Effect <- Upsilon { value: r297, phi_ref: r361 }
 .B8:    ;; preds:B0  → Always(Block(BlockID(6))).
          r343: Bytes(4) <- Part { src: r14, offset: 0, size: 4 }
          r345: Bytes(8) <- ArithK(BitOr, r343, -1)
@@ -713,45 +691,32 @@ StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral A
 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("RBX") Bytes(8));
 let r55 = ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40;
 Call (Int 4198512 8) (CArg (Int 3 8) (CArg (Int 8 8) (CArg r55 (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
-if Not (IsZero (Arith BitAnd (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)))
+if Not (IsZero (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4))
   then  jump .B8;
-let r139 = Call (Global "cs_disasm") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) 8) (CArg (Int 4203184 8) (CArg (Int 8 8) (CArg (Int 4096 8) (CArg (Arith BitXor (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4) (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4)) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) None))))));
-if IsZero r139
+Call (Global "cs_disasm") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) 8) (CArg (Int 4203184 8) (CArg (Int 8 8) (CArg (Int 4096 8) (CArg (Int 0 8) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) None))))));
+if IsZero (Call (Global "cs_disasm") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) 8) (CArg (Int 4203184 8) (CArg (Int 8 8) (CArg (Int 4096 8) (CArg (Int 0 8) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) None)))))))
   then  jump .B7;
-Upsilon r139 r355;
-Upsilon (Arith BitXor (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4)) r356;
+Upsilon (Int 0 8) r356;
 .B3: {
   r356: phi;
-  r355: phi;
   let r196 = ArithK Add r356 1;
-  let r207 = Arith Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (ArithK Mul (Arith Sub (ArithK Shl r356 5) r356) 8);
   Call (Global "printf") (CArg (Int 4203193 8) None);
-  let r245 = Arith Sub r355 r196;
-  Upsilon r245 r355;
+  let r245 = Arith Sub r356 r196;
   Upsilon r196 r356;
   if Not (IsZero r245)
     then  jump .B3;
   Call (Global "cs_free") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (CArg r245 None));
-  Upsilon r245 r357;
-  Upsilon (Call (Global "printf") (CArg (Int 4203193 8) None)) r358;
-  Upsilon (ArithK Add r207 74) r359;
-  Upsilon (ArithK Add r207 42) r360;
+  Upsilon (ArithK Add (Arith Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (ArithK Mul (Arith Sub (ArithK Shl r356 5) r356) 8)) 42) r360;
   jump .B5
 };
 .B7: {
   Call (Global "__builtin_puts") None;
-  Upsilon (Int 4203184 8) r357;
-  Upsilon r139 r358;
-  Upsilon (Int 4096 8) r359;
   Upsilon (Int 8 8) r360
 };
 .B5: {
   r360: phi;
-  r359: phi;
-  r358: phi;
-  r357: phi;
-  Call (Int 4198528 8) (CArg r55 (CArg r357 (CArg r360 (CArg r359 None))));
-  Upsilon (Arith BitXor (Part r358 0 4) (Part r358 0 4)) r361;
+  Call (Int 4198528 8) (CArg r55 (CArg r360 (CArg r360 (CArg r360 None))));
+  Upsilon (Int 0 8) r361;
   jump .B6
 };
 .B8: {

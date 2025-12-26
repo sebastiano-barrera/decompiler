@@ -548,7 +548,9 @@ fn infer_reg_type(reg: mil::Reg, prog: &Program) -> mil::RegType {
         Insn::Get(arg) => prog.reg_type(arg),
         Insn::Concat { lo, hi } => {
             let lo_size = prog.reg_type(lo).bytes_size().unwrap();
-            let hi_size = prog.reg_type(hi).bytes_size().unwrap();
+            let Some(hi_size) = prog.reg_type(hi).bytes_size() else {
+                panic!("infer_reg_type({reg:?}), failed to check bytes_size for {hi:?}");
+            };
             RegType::Bytes(lo_size + hi_size)
         }
         Insn::Widen {

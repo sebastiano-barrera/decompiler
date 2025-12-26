@@ -56,14 +56,7 @@ mod constant_folding {
             Insn::ArithK(ArithOp::Add, Reg(0), 10)
         );
         assert_eq!(prog.get(Reg(5)).unwrap(), Insn::Int { value: 49, size: 8 });
-        assert_eq!(
-            prog.get(Reg(8)).unwrap(),
-            Insn::Ancestral {
-                anc_name: mil::ANC_STACK_BOTTOM,
-                reg_type: mil::RegType::Bytes(8),
-            }
-        );
-        assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(8)));
+        assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(0)));
     }
 
     #[test]
@@ -104,12 +97,15 @@ mod constant_folding {
         xform::canonical(&mut prog, &ty::TypeSet::new());
         ssa::eliminate_dead_code(&mut prog);
 
-        assert_eq!(prog.insns_rpo().count(), 6);
+        println!("{:?}", prog);
+
+        // influenced by insn deduping
+        assert_eq!(prog.insns_rpo().count(), 5);
         assert_eq!(
             prog.get(Reg(5)).unwrap(),
             Insn::ArithK(ArithOp::Mul, Reg(0), 1100)
         );
-        assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(8)));
+        assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(0)));
     }
 }
 
@@ -322,10 +318,20 @@ mod subreg_folding {
 
                             let exp_offset = offs0 + offs1;
                             let exp_size = size1;
+                            println!("{offs0}+{size0}, {offs1}+{size1}");
+                            let ret_val =
+                                prog.find_last_matching(prog.cfg().entry_block_id(), |insn| {
+                                    match insn {
+                                        Insn::SetReturnValue(x) => Some(x),
+                                        _ => None,
+                                    }
+                                })
+                                .unwrap();
                             assert_eq!(
-                                prog.get(Reg(2)).unwrap(),
+                                prog.get(ret_val).unwrap(),
                                 if offs1 == 0 && size1 == src_sz {
-                                    Insn::Get(Reg(0))
+                                    // the full value
+                                    prog.get(Reg(0)).unwrap()
                                 } else {
                                     Insn::Part {
                                         src: Reg(0),

@@ -139,7 +139,7 @@ ssa program  90 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r9, r10, r26, r42, r43, r45, r48, r51, r52, r63, r64, r65, r74, r77, r78, r80, r81, r88]
+  BlockID(0) -> Always(Return) [r9, r10, r26, r42, r43, r45, r48, r51, r52, r63, r65, r74, r77, r78, r80, r81, r88]
   domtree:
     BlockID(0)
 
@@ -148,16 +148,15 @@ ssa program  90 instrs
 .B0:    ;;  → Always(Return).
          r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
          r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  2)  r26: Bytes(64) <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
+         r26: Bytes(64) <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
          r42: Bytes(16) <- ArithK(Add, r10, -8)
          r43: Effect <- StoreMem { addr: r42, value: r9 }
          r45: Bytes(8) <- Int { value: 24, size: 8 }
          r48: Bytes(8) <- Global("zmalloc")
          r51: Bytes(8) <- CArg { value: r45, next_arg: None }
   (  3)  r52: Bytes(8) <- Call { callee: r48, first_arg: Some(r51) }
-         r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
-         r64: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
-         r65: Bytes(32) <- Arith(BitXor, r63, r64)
+  (  2)  r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
+         r65: Bytes(32) <- Arith(BitXor, r63, r63)
          r74: Bytes(8) <- Int { value: 0, size: 8 }
          r77: Effect <- StoreMem { addr: r52, value: r74 }
          r78: Bytes(16) <- Part { src: r65, offset: 0, size: 16 }
@@ -170,6 +169,7 @@ ssa program  90 instrs
 # block order: B0
 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
 let r52 = Call (Global "zmalloc") (CArg (Int 24 8) None);
+let r63 = Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16;
 StoreMem r52 (Int 0 8);
-StoreMem (ArithK Add r52 8) (Part (Arith BitXor (Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16) (Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16)) 0 16);
+StoreMem (ArithK Add r52 8) (Part (Arith BitXor r63 r63) 0 16);
 return r52

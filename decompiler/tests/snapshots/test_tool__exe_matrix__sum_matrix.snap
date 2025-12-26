@@ -408,11 +408,11 @@ ssa program  236 instrs
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Block(BlockID(5))) [r9, r10, r42, r236, r45, r47, r48, r58, r59, r61, r62, r63, r65, r66, r67, r69, r70]
+  BlockID(0) -> Always(Block(BlockID(5))) [r9, r10, r42, r236, r45, r47, r48, r58, r59, r61, r62, r63, r65, r66, r69, r70]
   BlockID(1) -> Always(Block(BlockID(3))) [r72, r74, r75]
-  BlockID(2) -> Always(Block(BlockID(3))) [r299, r90, r118, r119, r122, r128, r138, r147, r148, r159, r161, r162]
+  BlockID(2) -> Always(Block(BlockID(3))) [r294, r90, r99, r103, r119, r122, r128, r138, r142, r148, r159, r162]
   BlockID(3) -> Conditional { pos: Block(BlockID(2)), neg: Block(BlockID(4)) } [r263, r179, r181, r185, r186, r187]
-  BlockID(4) -> Always(Block(BlockID(5))) [r193, r195, r196]
+  BlockID(4) -> Always(Block(BlockID(5))) [r190, r193, r196]
   BlockID(5) -> Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) } [r247, r213, r215, r219, r220, r221]
   BlockID(6) -> Always(Return) [r234]
   domtree:
@@ -438,12 +438,11 @@ ssa program  300 instrs
          r59: Effect <- StoreMem { addr: r58, value: r236 }
          r61: Bytes(16) <- ArithK(Add, r10, -32)
          r62: Effect <- StoreMem { addr: r61, value: r45 }
-  (  2)  r63: Bytes(4) <- Int { value: 0, size: 4 }
+  (  3)  r63: Bytes(4) <- Int { value: 0, size: 4 }
          r65: Bytes(16) <- ArithK(Add, r10, -12)
          r66: Effect <- StoreMem { addr: r65, value: r63 }
-         r67: Bytes(4) <- Int { value: 0, size: 4 }
          r69: Bytes(16) <- ArithK(Add, r10, -16)
-         r70: Effect <- StoreMem { addr: r69, value: r67 }
+         r70: Effect <- StoreMem { addr: r69, value: r63 }
 .B5:    ;; preds:B0,B4  → Conditional { pos: Block(BlockID(1)), neg: Block(BlockID(6)) }.
   (  2)  r247: Bytes(4) <- StructGetMember { struct_value: r42, name: "rows", size: 4 }
          r213: Bool <- OverflowOf(r247)
@@ -465,22 +464,22 @@ ssa program  300 instrs
          r186: Bool <- Not(r185)
          r187: Effect <- SetJumpCondition(r186)
 .B4:    ;; preds:B3  → Always(Block(BlockID(5))).
+         r190: Bytes(16) <- ArithK(Add, r10, -16)
          r193: Bytes(8) <- Int { value: 1, size: 8 }
-         r195: Bytes(16) <- ArithK(Add, r10, -16)
-         r196: Effect <- StoreMem { addr: r195, value: r193 }
+         r196: Effect <- StoreMem { addr: r190, value: r193 }
 .B2:    ;; preds:B3  → Always(Block(BlockID(3))).
-         r299: Bytes(4) <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
-         r90: Bytes(8) <- ArithK(Mul, r299, 0)
-         r118: Bytes(4) <- Part { src: r90, offset: 0, size: 4 }
-         r119: Bytes(8) <- Widen { reg: r118, target_size: 8, sign: true }
+         r294: Bytes(4) <- StructGetMember { struct_value: r42, name: "cols", size: 4 }
+         r90: Bytes(8) <- ArithK(Mul, r294, 0)
+         r99: Bytes(4) <- Part { src: r90, offset: 0, size: 4 }
+         r103: Bytes(16) <- ArithK(Add, r10, -20)
+         r119: Bytes(8) <- Widen { reg: r99, target_size: 8, sign: true }
          r122: Bytes(16) <- ArithK(Shl, r119, 2)
          r128: Error <- Arith(Add, r122, r236)
          r138: Bytes(4) <- LoadMem { addr: r128, size: 4 }
-         r147: Bytes(16) <- ArithK(Add, r10, -12)
-         r148: Effect <- StoreMem { addr: r147, value: r138 }
+         r142: Bytes(16) <- ArithK(Add, r10, -12)
+         r148: Effect <- StoreMem { addr: r142, value: r138 }
          r159: Bytes(8) <- Int { value: 1, size: 8 }
-         r161: Bytes(16) <- ArithK(Add, r10, -20)
-         r162: Effect <- StoreMem { addr: r161, value: r159 }
+         r162: Effect <- StoreMem { addr: r103, value: r159 }
 
 
  --- ast

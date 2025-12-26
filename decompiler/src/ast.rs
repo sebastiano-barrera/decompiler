@@ -108,6 +108,45 @@ impl Ast {
     pub fn block_order(&self) -> &[cfg::BlockID] {
         &self.block_order
     }
+
+    pub fn assert_invariants(&self) {
+        self.assert_graph_is_tree();
+    }
+
+    fn assert_graph_is_tree(&self) {
+        let mut has_parent = vec![false; self.nodes.len()];
+        let mut work = vec![self.root()];
+        while let Some(sid) = work.pop() {
+            let had_parent = std::mem::replace(&mut has_parent[sid.0], true);
+            assert!(!had_parent);
+
+            match self.get(sid) {
+                Stmt::NamedBlock { bid: _, body }
+                | Stmt::Let {
+                    name: _,
+                    value: _,
+                    body,
+                }
+                | Stmt::LetPhi { name: _, body } => work.push(*body),
+                Stmt::Seq { first, then } => {
+                    work.push(*first);
+                    work.push(*then);
+                }
+                Stmt::If { cond: _, cons, alt } => {
+                    work.push(*cons);
+                    work.push(*alt);
+                }
+                Stmt::Eval(_)
+                | Stmt::Return(_)
+                | Stmt::JumpUndefined
+                | Stmt::JumpExternal(_)
+                | Stmt::JumpIndirect(_)
+                | Stmt::Loop(_)
+                | Stmt::Jump(_)
+                | Stmt::Pass => {}
+            }
+        }
+    }
 }
 
 impl Ast {
@@ -224,7 +263,13 @@ impl<'a> AstBuilder<'a> {
                 None => Some(block_sid),
             });
 
+        #[cfg(debug_assertions)]
+        self.ast.assert_invariants();
+
         cleanup::cleanup(&mut self.ast);
+
+        #[cfg(debug_assertions)]
+        self.ast.assert_invariants();
 
         self.ast
     }
@@ -414,6 +459,10 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
 
 /// AST cleanup algorithm
 mod cleanup {
+    use std::collections::HashMap;
+
+    use tracing::Instrument;
+
     use crate::BlockID;
 
     use super::*;
@@ -554,14 +603,11 @@ mod cleanup {
     }
 
     fn remove_unused_labels(ast: &mut Ast) {
-        // one element per block, with an overestimated number of elements:
-        // there can't be more blocks than stmts, and blocks are numbered
-        // densely from 0.
-        let mut uses_count = vec![0; ast.nodes.len()];
+        let mut is_used = HashSet::new();
 
         for stmt in ast.nodes.iter() {
             if let Stmt::Jump(bid) | Stmt::Loop(bid) = stmt {
-                uses_count[bid.as_usize()] += 1;
+                is_used.insert(*bid);
             }
         }
 
@@ -569,7 +615,7 @@ mod cleanup {
             let sid = StmtID(stmt_ndx);
             loop {
                 if let Stmt::NamedBlock { bid, body } = ast.nodes[stmt_ndx] {
-                    if uses_count[bid.as_usize()] == 0 {
+                    if !is_used.contains(&bid) {
                         move_node_tofrom(ast, sid, body);
                         continue;
                     }
@@ -618,12 +664,14 @@ mod cleanup {
         }
 
         fn mk_simple_ast(nodes: Vec<Stmt>) -> Ast {
-            Ast {
+            let ast = Ast {
                 nodes,
                 is_named: RegMap::empty(),
                 // wrong, but the cleanup algorithm doesn't care about this
                 block_order: Vec::new(),
-            }
+            };
+            ast.assert_invariants();
+            ast
         }
 
         #[test]

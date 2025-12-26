@@ -798,7 +798,6 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     // TODO make this architecture agnostic
     let mem_ref_reg = find_mem_ref(prog);
     let mut prog = ssa::OpenProgram::wrap(prog);
-    let mut deduper = Deduper::new();
 
     // TODO propagate this error
     let rtx = types.read_tx().unwrap();
@@ -807,6 +806,14 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
     let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
     for bid in bids {
+        // the deduper is block-local
+        //
+        // this is a limited implementation of the original vision, which had a
+        // single function-shared deduper, but it avoids a bug where an insn is
+        // replaced with another from a non-dominator block (in other words, a
+        // register that does not have a defined value in some cases.)
+        let mut deduper = Deduper::new();
+
         // the block is passed 3 times so that:
         //
         // - instructions added by any of the transforms have a chance to be
@@ -847,7 +854,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 insn = select_type_on_deref_member_read(insn, &mut prog, bid, rtx.read());
                 insn = select_type_on_part(insn, &mut prog, bid, rtx.read());
                 insn = pick_callee_name(insn, &mut prog, rtx.read());
-                if !insn.is_replaceable_with_get() {
+                if insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
                     insn = deduper.try_dedup(reg, insn);
