@@ -203,24 +203,15 @@ ssa program  114 instrs
 
  --- ast
 # block order: B0, B1, B2, B3, B4
-.B0: {
-  let r42 = FuncArgument 0 Bytes(8);
-  let r99 = StructGetMember (LoadMem r42 16) "next" 8;
-  if IsZero r99
-  then  jump .B4
-  else  .B1: {
-          if Not (IsZero (StructGetMember (LoadMem r42 16) "direction" 4))
-          then  jump .B3
-          else  .B2: {
-                  StoreMem r42 (StructGetMember (LoadMem r99 24) "next" 8);
-                  return r99
-                }
-        }
-};
-.B3: {
-  StoreMem r42 (StructGetMember (LoadMem r99 24) "prev" 8);
-  jump .B4
-};
+let r42 = FuncArgument 0 Bytes(8);
+let r99 = StructGetMember (LoadMem r42 16) "next" 8;
+if IsZero r99
+  then  jump .B4;
+if Not (IsZero (StructGetMember (LoadMem r42 16) "direction" 4))
+  then  pass
+  else  StoreMem r42 (StructGetMember (LoadMem r99 24) "next" 8);
+        return r99;
+StoreMem r42 (StructGetMember (LoadMem r99 24) "prev" 8);
 .B4: {
   return r99
 }

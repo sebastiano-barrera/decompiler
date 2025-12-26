@@ -1124,47 +1124,35 @@ ssa program  647 instrs
 
  --- ast
 # block order: B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B15, B16, B11, B12, B13, B17, B18, B14
-.B0: {
-  let r42 = FuncArgument 0 Bytes(8);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
-  let r47 = ArithK Add r42 12;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBX") Bytes(8));
-  StoreMem (ArithK Add r42 8) (Int 0 4);
-  Call (Global "strlen") (CArg r47 None);
-  let r84 = Arith BitXor (Part (Ancestral AncestralName("RSI") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RSI") Bytes(8)) 0 4);
-  Call (Global "__builtin_memset") None;
-  let r577 = StructGetMember (LoadMem r42 272) "privctx" 8;
-  if IsZero r577
-  then  jump .B3
-  else  .B1: {
-          let r581 = StructGetMember (LoadMem r42 272) "funcs" 8;
-          let r124 = LoadMem (ArithK Add r581 8) 8;
-          Upsilon r581 r568;
-          if IsZero r124
-          then  jump .B4
-          else  .B2: {
-                  Call r124 (CArg r577 (CArg r84 (CArg r124 (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
-                  StoreMem (ArithK Add r42 256) (Int 0 8);
-                  jump .B3
-                }
-        }
-};
-.B3: {
-  let r585 = StructGetMember (LoadMem r42 272) "funcs" 8;
-  Upsilon r585 r568;
-  if IsZero r585
-  then  jump .B6
-  else  jump .B4
-};
+let r42 = FuncArgument 0 Bytes(8);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+let r47 = ArithK Add r42 12;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBX") Bytes(8));
+StoreMem (ArithK Add r42 8) (Int 0 4);
+Call (Global "strlen") (CArg r47 None);
+let r84 = Arith BitXor (Part (Ancestral AncestralName("RSI") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RSI") Bytes(8)) 0 4);
+Call (Global "__builtin_memset") None;
+let r577 = StructGetMember (LoadMem r42 272) "privctx" 8;
+if IsZero r577
+  then  pass
+  else  let r581 = StructGetMember (LoadMem r42 272) "funcs" 8;
+        let r124 = LoadMem (ArithK Add r581 8) 8;
+        Upsilon r581 r568;
+        if IsZero r124
+          then  jump .B4;
+        Call r124 (CArg r577 (CArg r84 (CArg r124 (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
+        StoreMem (ArithK Add r42 256) (Int 0 8);
+let r585 = StructGetMember (LoadMem r42 272) "funcs" 8;
+Upsilon r585 r568;
+if IsZero r585
+  then  jump .B6;
+pass;
 .B4: {
   r568: phi;
   let r169 = LoadMem r568 8;
   if IsZero r169
-  then  jump .B6
-  else  .B5: {
-          Call r169 (CArg r42 (CArg r84 (CArg (Call (Global "strlen") (CArg r47 None)) (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
-          jump .B6
-        }
+    then  pass
+    else  Call r169 (CArg r42 (CArg r84 (CArg (Call (Global "strlen") (CArg r47 None)) (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))))
 };
 .B6: {
   Call (Global "hi_sdsfree") (CArg (StructGetMember (LoadMem r42 272) "obuf" 8) None);
@@ -1174,56 +1162,38 @@ ssa program  647 instrs
   let r248 = Call (Global "redisReaderCreate") None;
   StoreMem (ArithK Add r42 160) r248;
   if IsZero (StructGetMember (LoadMem r42 272) "obuf" 8)
-  then  jump .B18
-  else  .B7: {
-          if IsZero r248
-          then  jump .B18
-          else  .B8: {
-                  let r286 = LoadMem (ArithK Add r42 168) 4;
-                  if IsZero r286
-                  then  jump .B16
-                  else  .B9: {
-                          if IsZero (ArithK Add r286 -1)
-                          then  jump .B15
-                          else  .B10: {
-                                  Call (Global "__redisSetError") (CArg r42 (CArg (Int 2 4) (CArg (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7007800) None)));
-                                  jump .B11
-                                }
-                        }
-                }
-        }
+    then  jump .B18;
+  if IsZero r248
+    then  jump .B18;
+  let r286 = LoadMem (ArithK Add r42 168) 4;
+  if IsZero r286
+    then  jump .B16;
+  if IsZero (ArithK Add r286 -1)
+    then  pass
+    else  Call (Global "__redisSetError") (CArg r42 (CArg (Int 2 4) (CArg (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7007800) None)));
+          jump .B11
 };
-.B15: {
-  Call (Global "redisContextConnectUnix") (CArg r42 (CArg (StructGetMember (LoadMem r42 272) "unix_sock" 8) (CArg (StructGetMember (LoadMem r42 272) "connect_timeout" 8) None)));
-  jump .B11
-};
+Call (Global "redisContextConnectUnix") (CArg r42 (CArg (StructGetMember (LoadMem r42 272) "unix_sock" 8) (CArg (StructGetMember (LoadMem r42 272) "connect_timeout" 8) None)));
+jump .B11;
 .B16: {
-  Call (Global "redisContextConnectBindTcp") (CArg r42 (CArg (StructGetMember (StructGetMember (LoadMem r42 272) "tcp" 24) "host" 8) (CArg (StructGetMember (StructGetMember (LoadMem r42 272) "tcp" 24) "port" 4) (CArg (StructGetMember (LoadMem r42 272) "connect_timeout" 8) (CArg (StructGetMember (StructGetMember (LoadMem r42 272) "tcp" 24) "source_addr" 8) None)))));
-  jump .B11
+  Call (Global "redisContextConnectBindTcp") (CArg r42 (CArg (StructGetMember (StructGetMember (LoadMem r42 272) "tcp" 24) "host" 8) (CArg (StructGetMember (StructGetMember (LoadMem r42 272) "tcp" 24) "port" 4) (CArg (StructGetMember (LoadMem r42 272) "connect_timeout" 8) (CArg (StructGetMember (StructGetMember (LoadMem r42 272) "tcp" 24) "source_addr" 8) None)))))
 };
 .B11: {
   Upsilon r47 r569;
   if IsZero (StructGetMember (LoadMem r42 272) "command_timeout" 8)
-  then  jump .B14
-  else  .B12: {
-          Upsilon r47 r569;
-          if IsZero (ArithK BitAnd (LoadMem (ArithK Add r42 144) 1) 1)
-          then  jump .B14
-          else  .B13: {
-                  Upsilon r47 r569;
-                  if Not (IsZero (ArithK Add (StructGetMember (LoadMem r42 272) "fd" 4) 1))
-                  then  .B17: {
-                          Call (Global "redisContextSetTimeout") (CArg r42 None);
-                          return Part r47 0 4
-                        }
-                  else  jump .B14
-                }
-        }
+    then  jump .B14;
+  Upsilon r47 r569;
+  if IsZero (ArithK BitAnd (LoadMem (ArithK Add r42 144) 1) 1)
+    then  jump .B14;
+  Upsilon r47 r569;
+  if Not (IsZero (ArithK Add (StructGetMember (LoadMem r42 272) "fd" 4) 1))
+    then  Call (Global "redisContextSetTimeout") (CArg r42 None);
+          return Part r47 0 4;
+  jump .B14
 };
 .B18: {
   Call (Global "__redisSetError") (CArg r42 (CArg (Int 5 4) (CArg (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 6951854) None)));
-  Upsilon (Int 4294967295 8) r569;
-  jump .B14
+  Upsilon (Int 4294967295 8) r569
 };
 .B14: {
   r569: phi;

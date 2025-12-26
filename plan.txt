@@ -175,9 +175,9 @@ suitable alternative
 - [ ] gui: asm view: highlight instructions related to selected AST node
 - [ ] string literals
 
-- [ ] restore "AST cleanup" features
-    - [ ] remove gotos that "look like they just jump to the next block"
-    - [ ] hide unused block labels
+- [x] restore "AST cleanup" features
+    - [x] remove gotos that "look like they just jump to the next block"
+    - [x] hide unused block labels
 
 - [ ] control flow graph view: basic
 - [ ] cfg view: highlight current block, preds/succs

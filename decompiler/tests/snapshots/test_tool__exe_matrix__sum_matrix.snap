@@ -485,39 +485,27 @@ ssa program  300 instrs
 
  --- ast
 # block order: B0, B5, B6, B1, B3, B4, B2
-.B0: {
-  let r42 = FuncArgument 0 Bytes(16);
-  let r236 = StructGetMember r42 "numbers" 8;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) r236;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Part r42 8 8);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -12) (Int 0 4);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Int 0 4);
-  jump .B5
-};
+let r42 = FuncArgument 0 Bytes(16);
+let r236 = StructGetMember r42 "numbers" 8;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) r236;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Part r42 8 8);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -12) (Int 0 4);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Int 0 4);
 .B5: {
   let r247 = StructGetMember r42 "rows" 4;
   if Not (Cmp EQ (SignOf r247) (OverflowOf r247))
-  then  jump .B1
-  else  .B6: {
-          return Int 0 4
-        }
+    then  pass
+    else  return Int 0 4
 };
-.B1: {
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -20) (Int 0 4);
-  jump .B3
-};
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -20) (Int 0 4);
 .B3: {
   let r263 = StructGetMember r42 "cols" 4;
   if Not (Cmp EQ (SignOf r263) (OverflowOf r263))
-  then  jump .B2
-  else  .B4: {
-          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Int 1 8);
+    then  pass
+    else  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Int 1 8);
           jump .B5
-        }
 };
-.B2: {
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -12) (LoadMem (Arith Add (ArithK Shl (Widen (Part (ArithK Mul (StructGetMember r42 "cols" 4) 0) 0 4) 8 true) 2) r236) 4);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -20) (Int 1 8);
-  jump .B3
-}
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -12) (LoadMem (Arith Add (ArithK Shl (Widen (Part (ArithK Mul (StructGetMember r42 "cols" 4) 0) 0 4) 8 true) 2) r236) 4);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -20) (Int 1 8);
+jump .B3

@@ -1590,166 +1590,96 @@ ssa program  775 instrs
 
  --- ast
 # block order: B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B30, B31, B16, B17, B18, B19, B20, B21, B22, B35, B34, B23, B24, B25, B26, B27, B28, B29, B32, B33
-.B0: {
-  let r42 = FuncArgument 0 Bytes(8);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBX") Bytes(8));
-  Call (LoadMem (LoadMem (Int 7837800 8) 8) 8) (CArg (Int 1 8) (CArg (Int 272 8) (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
-  Upsilon (Ancestral AncestralName("RBX") Bytes(8)) r770;
-  if IsZero (Int 7837792 8)
-  then  jump .B33
-  else  .B1: {
-          StoreMem (Int 7837792 8) (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7837920);
-          Call (Global "hi_sdsempty") None;
-          StoreMem (Int 7837944 8) (Call (Global "hi_sdsempty") None);
-          let r117 = Call (Global "redisReaderCreate") None;
-          StoreMem (Int 7837932 8) (Int 4294967295 4);
-          StoreMem (Int 7837952 8) r117;
-          if IsZero (LoadMem (Int 7837944 8) 8)
-          then  jump .B32
-          else  .B2: {
-                  if IsZero r117
-                  then  jump .B32
-                  else  .B3: {
-                          let r159 = LoadMem (ArithK Add r42 4) 4;
-                          if Not (IsZero (ArithK BitAnd (Part r159 0 1) 1))
-                          then  jump .B5
-                          else  .B4: {
-                                  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 1);
-                                  jump .B5
-                                }
-                        }
-                }
-        }
-};
-.B5: {
-  if IsZero (ArithK BitAnd (Part r159 0 1) 2)
-  then  jump .B7
-  else  .B6: {
-          StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 128);
-          jump .B7
-        }
-};
-.B7: {
-  if IsZero (ArithK BitAnd (Part r159 0 1) 4)
-  then  jump .B9
-  else  .B8: {
-          StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 512);
-          jump .B9
-        }
-};
-.B9: {
-  if IsZero (ArithK BitAnd (Part r159 0 1) 16)
-  then  jump .B11
-  else  .B10: {
-          StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 1024);
-          jump .B11
-        }
-};
-.B11: {
-  if IsZero (ArithK BitAnd (Part r159 0 1) 32)
-  then  jump .B13
-  else  .B12: {
-          StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 2048);
-          jump .B13
-        }
-};
-.B13: {
-  if IsZero (ArithK BitAnd (Part r159 0 1) 64)
-  then  jump .B15
-  else  .B14: {
-          StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 4096);
-          jump .B15
-        }
-};
-.B15: {
-  let r315 = LoadMem (ArithK Add r42 64) 8;
-  Upsilon r315 r769;
-  if IsZero r315
-  then  .B30: {
-          if Not (IsZero (ArithK BitAnd (Part r159 0 1) 8))
-          then  jump .B17
-          else  .B31: {
-                  Upsilon (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 5846864) r769;
-                  jump .B16
-                }
-        }
-  else  jump .B16
-};
-.B16: {
-  r769: phi;
-  Call (Global "redisSetPushCallback") (CArg (Int 7837792 8) (CArg r769 None));
-  jump .B17
-};
+let r42 = FuncArgument 0 Bytes(8);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBX") Bytes(8));
+Call (LoadMem (LoadMem (Int 7837800 8) 8) 8) (CArg (Int 1 8) (CArg (Int 272 8) (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
+Upsilon (Ancestral AncestralName("RBX") Bytes(8)) r770;
+if IsZero (Int 7837792 8)
+  then  jump .B33;
+StoreMem (Int 7837792 8) (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7837920);
+Call (Global "hi_sdsempty") None;
+StoreMem (Int 7837944 8) (Call (Global "hi_sdsempty") None);
+let r117 = Call (Global "redisReaderCreate") None;
+StoreMem (Int 7837932 8) (Int 4294967295 4);
+StoreMem (Int 7837952 8) r117;
+if IsZero (LoadMem (Int 7837944 8) 8)
+  then  jump .B32;
+if IsZero r117
+  then  jump .B32;
+let r159 = LoadMem (ArithK Add r42 4) 4;
+if Not (IsZero (ArithK BitAnd (Part r159 0 1) 1))
+  then  pass
+  else  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 1);
+if IsZero (ArithK BitAnd (Part r159 0 1) 2)
+  then  pass
+  else  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 128);
+if IsZero (ArithK BitAnd (Part r159 0 1) 4)
+  then  pass
+  else  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 512);
+if IsZero (ArithK BitAnd (Part r159 0 1) 16)
+  then  pass
+  else  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 1024);
+if IsZero (ArithK BitAnd (Part r159 0 1) 32)
+  then  pass
+  else  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 2048);
+if IsZero (ArithK BitAnd (Part r159 0 1) 64)
+  then  pass
+  else  StoreMem (Int 7837936 8) (ArithK BitOr (LoadMem (Int 7837936 8) 4) 4096);
+let r315 = LoadMem (ArithK Add r42 64) 8;
+Upsilon r315 r769;
+if IsZero r315
+  then  if Not (IsZero (ArithK BitAnd (Part r159 0 1) 8))
+          then  jump .B17;
+        Upsilon (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 5846864) r769;
+r769: phi;
+Call (Global "redisSetPushCallback") (CArg (Int 7837792 8) (CArg r769 None));
 .B17: {
   StoreMem (Int 7838032 8) (LoadMem (ArithK Add r42 48) 8);
   StoreMem (Int 7838040 8) (LoadMem (ArithK Add r42 56) 8);
   Call (Global "redisContextUpdateConnectTimeout") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 8) 8) None));
   if Not (IsZero (Call (Global "redisContextUpdateConnectTimeout") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 8) 8) None))))
-  then  jump .B28
-  else  .B18: {
-          Call (Global "redisContextUpdateCommandTimeout") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 16) 8) None));
-          if Not (IsZero (Call (Global "redisContextUpdateCommandTimeout") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 16) 8) None))))
-          then  jump .B28
-          else  .B19: {
-                  let r431 = LoadMem r42 4;
-                  if IsZero r431
-                  then  jump .B34
-                  else  .B20: {
-                          if IsZero (ArithK Add r431 -1)
-                          then  jump .B35
-                          else  .B21: {
-                                  if Not (IsZero (ArithK Add r431 -2))
-                                  then  jump .B32
-                                  else  .B22: {
-                                          NotYetImplemented "unsupported: punpckldq xmm0,xmm1";
-                                          NotYetImplemented "unsupported: movq [rbx+8Ch],xmm0";
-                                          jump .B23
-                                        }
-                                }
-                        }
-                }
-        }
+    then  jump .B28;
+  Call (Global "redisContextUpdateCommandTimeout") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 16) 8) None));
+  if Not (IsZero (Call (Global "redisContextUpdateCommandTimeout") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 16) 8) None))))
+    then  jump .B28;
+  let r431 = LoadMem r42 4;
+  if IsZero r431
+    then  jump .B34;
+  if IsZero (ArithK Add r431 -1)
+    then  pass
+    else  if Not (IsZero (ArithK Add r431 -2))
+            then  jump .B32;
+          NotYetImplemented "unsupported: punpckldq xmm0,xmm1";
+          NotYetImplemented "unsupported: movq [rbx+8Ch],xmm0";
+          jump .B23
 };
-.B35: {
-  Call (Global "redisContextConnectUnix") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 24) 8) (CArg (LoadMem (ArithK Add r42 8) 8) None)));
-  jump .B23
-};
+Call (Global "redisContextConnectUnix") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 24) 8) (CArg (LoadMem (ArithK Add r42 8) 8) None)));
+jump .B23;
 .B34: {
-  Call (Global "redisContextConnectBindTcp") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 32) 8) (CArg (LoadMem (ArithK Add r42 40) 4) (CArg (LoadMem (ArithK Add r42 8) 8) (CArg (LoadMem (ArithK Add r42 24) 8) None)))));
-  jump .B23
+  Call (Global "redisContextConnectBindTcp") (CArg (Int 7837792 8) (CArg (LoadMem (ArithK Add r42 32) 8) (CArg (LoadMem (ArithK Add r42 40) 4) (CArg (LoadMem (ArithK Add r42 8) 8) (CArg (LoadMem (ArithK Add r42 24) 8) None)))))
 };
 .B23: {
   if Not (IsZero (LoadMem (Int 7837800 8) 4))
-  then  jump .B29
-  else  .B24: {
-          if IsZero (ArithK Add (LoadMem (Int 7837932 8) 4) 1)
-          then  jump .B29
-          else  .B25: {
-                  if IsZero (LoadMem (ArithK Add r42 16) 8)
-                  then  jump .B29
-                  else  .B26: {
-                          if IsZero (ArithK BitAnd (LoadMem (Int 7837936 8) 1) 1)
-                          then  jump .B29
-                          else  .B27: {
-                                  Call (Global "redisContextSetTimeout") (CArg (Int 7837792 8) None);
-                                  jump .B29
-                                }
-                        }
-                }
-        }
+    then  jump .B29;
+  if IsZero (ArithK Add (LoadMem (Int 7837932 8) 4) 1)
+    then  jump .B29;
+  if IsZero (LoadMem (ArithK Add r42 16) 8)
+    then  jump .B29;
+  if IsZero (ArithK BitAnd (LoadMem (Int 7837936 8) 1) 1)
+    then  jump .B29;
+  Call (Global "redisContextSetTimeout") (CArg (Int 7837792 8) None);
+  jump .B29
 };
 .B28: {
-  Call (Global "__redisSetError") (CArg (Int 7837792 8) (CArg (Int 5 4) (CArg (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 6951854) None)));
-  jump .B29
+  Call (Global "__redisSetError") (CArg (Int 7837792 8) (CArg (Int 5 4) (CArg (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 6951854) None)))
 };
 .B29: {
   return Int 7837792 8
 };
 .B32: {
   Call (Global "redisFree") (CArg (Int 7837792 8) None);
-  Upsilon (Int 7837792 8) r770;
-  jump .B33
+  Upsilon (Int 7837792 8) r770
 };
 .B33: {
   r770: phi;

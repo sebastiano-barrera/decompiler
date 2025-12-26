@@ -78,14 +78,18 @@ pub fn write_ast_node<W: std::io::Write>(
                 } else {
                     write!(wrt, "if ???")?;
                 }
-                write!(wrt, "\nthen  ")?;
+                write!(wrt, "\n  then  ")?;
                 wrt.open_box();
                 write_ast_node(wrt, ast, ssa, types, *cons)?;
                 wrt.close_box();
-                write!(wrt, "\nelse  ")?;
-                wrt.open_box();
-                write_ast_node(wrt, ast, ssa, types, *alt)?;
-                wrt.close_box();
+
+                if ast.get(*alt) != &Stmt::Pass {
+                    write!(wrt, "\n  else  ")?;
+                    wrt.open_box();
+                    write_ast_node(wrt, ast, ssa, types, *alt)?;
+                    wrt.close_box();
+                }
+
                 return Ok(());
             }
 
@@ -124,6 +128,10 @@ pub fn write_ast_node<W: std::io::Write>(
             }
             Stmt::Jump(bid) => {
                 write!(wrt, "jump .B{}", bid.as_number())?;
+                return Ok(());
+            }
+            Stmt::Pass => {
+                write!(wrt, "pass")?;
                 return Ok(());
             }
         }

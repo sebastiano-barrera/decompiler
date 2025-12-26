@@ -3153,107 +3153,79 @@ ssa program  1709 instrs
 
  --- ast
 # block order: B0, B53, B1, B2, B3, B4, B5, B6, B7, B8, B51, B52, B9, B10, B49, B50, B11, B12, B47, B48, B13, B14, B19, B20, B21, B15, B22, B16, B38, B39, B17, B40, B41, B23, B24, B25, B26, B27, B28, B43, B44, B29, B54, B18, B30, B31, B32, B33, B34, B35, B55, B45, B46, B36, B37, B42
-.B0: {
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("R15") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R14") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("R13") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Ancestral AncestralName("R12") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) (Ancestral AncestralName("RBP") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -48) (Ancestral AncestralName("RBX") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -72) (Ancestral AncestralName("RDI") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -104) (Ancestral AncestralName("R8") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -136) (Ancestral AncestralName("RDX") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -112) (Ancestral AncestralName("R9") Bytes(8));
-  let r89 = Call (Global "strchr") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg (Int 46 4) None));
-  Upsilon r89 r1453;
-  if IsZero r89
-  then  .B53: {
-          Call (Global "__builtin_strlen") None;
-          Upsilon (Arith Add (Ancestral AncestralName("RDX") Bytes(8)) r89) r1453;
-          jump .B1
-        }
-  else  jump .B1
-};
-.B1: {
-  r1453: phi;
-  let r115 = Arith Sub r1453 (Ancestral AncestralName("RDX") Bytes(8));
-  if IsZero r115
-  then  jump .B42
-  else  .B2: {
-          if IsZero (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8)
-          then  jump .B55
-          else  .B3: {
-                  let r144 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 24) 8;
-                  let r148 = Arith BitXor (Part (Ancestral AncestralName("R15") Bytes(8)) 0 4) (Part (Ancestral AncestralName("R15") Bytes(8)) 0 4);
-                  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -64) (Ancestral AncestralName("RCX") Bytes(8));
-                  Upsilon (Int 46 8) r1470;
-                  Upsilon r1453 r1471;
-                  Upsilon (Ancestral AncestralName("RSI") Bytes(8)) r1454;
-                  if IsZero (LoadMem r144 1)
-                  then  jump .B30
-                  else  jump .B4
-                }
-        }
-};
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("R15") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R14") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("R13") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Ancestral AncestralName("R12") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) (Ancestral AncestralName("RBP") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -48) (Ancestral AncestralName("RBX") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -72) (Ancestral AncestralName("RDI") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -104) (Ancestral AncestralName("R8") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -136) (Ancestral AncestralName("RDX") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -112) (Ancestral AncestralName("R9") Bytes(8));
+let r89 = Call (Global "strchr") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg (Int 46 4) None));
+Upsilon r89 r1453;
+if IsZero r89
+  then  Call (Global "__builtin_strlen") None;
+        Upsilon (Arith Add (Ancestral AncestralName("RDX") Bytes(8)) r89) r1453;
+r1453: phi;
+let r115 = Arith Sub r1453 (Ancestral AncestralName("RDX") Bytes(8));
+if IsZero r115
+  then  jump .B42;
+if IsZero (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8)
+  then  jump .B55;
+let r144 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 24) 8;
+let r148 = Arith BitXor (Part (Ancestral AncestralName("R15") Bytes(8)) 0 4) (Part (Ancestral AncestralName("R15") Bytes(8)) 0 4);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -64) (Ancestral AncestralName("RCX") Bytes(8));
+Upsilon (Int 46 8) r1470;
+Upsilon r1453 r1471;
+Upsilon (Ancestral AncestralName("RSI") Bytes(8)) r1454;
+if IsZero (LoadMem r144 1)
+  then  jump .B30;
+pass;
 .B4: {
   r1454: phi;
   let r175 = LoadMem (ArithK Add r1454 16) 8;
   StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -120) r175;
   if IsZero r175
-  then  jump .B42
-  else  .B5: {
-          let r192 = Arith BitXor (Part (Ancestral AncestralName("RCX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RCX") Bytes(8)) 0 4);
-          let r203 = ArithK BitAnd (Part r175 0 4) 3;
-          Upsilon r1453 r1460;
-          Upsilon r144 r1461;
-          if IsZero r203
-          then  jump .B14
-          else  .B6: {
-                  Upsilon r1453 r1458;
-                  Upsilon r144 r1459;
-                  if IsZero (ArithK Add r203 -1)
-                  then  jump .B12
-                  else  .B7: {
-                          Upsilon r1453 r1456;
-                          Upsilon r144 r1457;
-                          if IsZero (ArithK Add r203 -3)
-                          then  jump .B10
-                          else  .B8: {
-                                  let r236 = LoadMem (ArithK Add r144 8) 8;
-                                  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -88) r1453;
-                                  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) r144;
-                                  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r236;
-                                  Call (Global "strlen") (CArg r236 None);
-                                  let r270 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -88) 8;
-                                  Upsilon r144 r1455;
-                                  if IsZero (Arith Sub (Call (Global "strlen") (CArg r236 None)) r115)
-                                  then  .B51: {
-                                          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) r270;
-                                          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r144;
-                                          Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r236 (CArg r115 None)));
-                                          Upsilon r144 r1455;
-                                          if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r236 (CArg r115 None)))))
-                                          then  jump .B9
-                                          else  .B52: {
-                                                  Upsilon r192 r1465;
-                                                  Upsilon r144 r1466;
-                                                  Upsilon r1454 r1467;
-                                                  Upsilon r148 r1468;
-                                                  jump .B24
-                                                }
-                                        }
-                                  else  jump .B9
-                                }
-                        }
-                }
-        }
+    then  jump .B42;
+  let r192 = Arith BitXor (Part (Ancestral AncestralName("RCX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RCX") Bytes(8)) 0 4);
+  let r203 = ArithK BitAnd (Part r175 0 4) 3;
+  Upsilon r1453 r1460;
+  Upsilon r144 r1461;
+  if IsZero r203
+    then  jump .B14;
+  Upsilon r1453 r1458;
+  Upsilon r144 r1459;
+  if IsZero (ArithK Add r203 -1)
+    then  jump .B12;
+  Upsilon r1453 r1456;
+  Upsilon r144 r1457;
+  if IsZero (ArithK Add r203 -3)
+    then  jump .B10;
+  let r236 = LoadMem (ArithK Add r144 8) 8;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -88) r1453;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) r144;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r236;
+  Call (Global "strlen") (CArg r236 None);
+  let r270 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -88) 8;
+  Upsilon r144 r1455;
+  if IsZero (Arith Sub (Call (Global "strlen") (CArg r236 None)) r115)
+    then  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) r270;
+          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r144;
+          Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r236 (CArg r115 None)));
+          Upsilon r144 r1455;
+          if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r236 (CArg r115 None)))))
+            then  pass
+            else  Upsilon r192 r1465;
+                  Upsilon r144 r1466;
+                  Upsilon r1454 r1467;
+                  Upsilon r148 r1468;
+                  jump .B24
 };
-.B9: {
-  r1455: phi;
-  Upsilon r270 r1456;
-  Upsilon (ArithK Add r1455 40) r1457;
-  jump .B10
-};
+r1455: phi;
+Upsilon r270 r1456;
+Upsilon (ArithK Add r1455 40) r1457;
 .B10: {
   r1457: phi;
   r1456: phi;
@@ -3263,26 +3235,18 @@ ssa program  1709 instrs
   Call (Global "strlen") (CArg r290 None);
   let r321 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) 8;
   if IsZero (Arith Sub (Call (Global "strlen") (CArg r290 None)) r115)
-  then  .B49: {
-          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r321;
+    then  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r321;
           Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r290 (CArg r115 None)));
           if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r290 (CArg r115 None)))))
-          then  jump .B11
-          else  .B50: {
-                  Upsilon r192 r1465;
+            then  pass
+            else  Upsilon r192 r1465;
                   Upsilon r1457 r1466;
                   Upsilon r1454 r1467;
                   Upsilon r148 r1468;
                   jump .B24
-                }
-        }
-  else  jump .B11
 };
-.B11: {
-  Upsilon r321 r1458;
-  Upsilon (ArithK Add r1457 40) r1459;
-  jump .B12
-};
+Upsilon r321 r1458;
+Upsilon (ArithK Add r1457 40) r1459;
 .B12: {
   r1459: phi;
   r1458: phi;
@@ -3292,109 +3256,77 @@ ssa program  1709 instrs
   Call (Global "strlen") (CArg r352 None);
   let r383 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) 8;
   if IsZero (Arith Sub (Call (Global "strlen") (CArg r352 None)) r115)
-  then  .B47: {
-          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r383;
+    then  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r383;
           Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r352 (CArg r115 None)));
           if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r352 (CArg r115 None)))))
-          then  jump .B13
-          else  .B48: {
-                  Upsilon r192 r1465;
+            then  pass
+            else  Upsilon r192 r1465;
                   Upsilon r1459 r1466;
                   Upsilon r1454 r1467;
                   Upsilon r148 r1468;
                   jump .B24
-                }
-        }
-  else  jump .B13
 };
-.B13: {
-  Upsilon r383 r1460;
-  Upsilon (ArithK Add r1459 40) r1461;
-  if IsZero (Arith Sub (ArithK Add r192 1) r175)
-  then  jump .B42
-  else  jump .B14
-};
+Upsilon r383 r1460;
+Upsilon (ArithK Add r1459 40) r1461;
+if IsZero (Arith Sub (ArithK Add r192 1) r175)
+  then  jump .B42;
+pass;
 .B14: {
   r1461: phi;
   r1460: phi;
   StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -80) r1454;
   StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -96) r148;
   StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -88) r1460;
-  Upsilon r1461 r1462;
-  jump .B19
+  Upsilon r1461 r1462
 };
 .B19: {
   r1462: phi;
   let r588 = LoadMem (ArithK Add r1462 8) 8;
   Call (Global "strlen") (CArg r588 None);
   if Not (IsZero (Arith Sub (Call (Global "strlen") (CArg r588 None)) r115))
-  then  jump .B15
-  else  .B20: {
-          Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r588 (CArg r115 None)));
+    then  pass
+    else  Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r588 (CArg r115 None)));
           if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r588 (CArg r115 None)))))
-          then  jump .B15
-          else  .B21: {
-                  Upsilon r192 r1465;
+            then  pass
+            else  Upsilon r192 r1465;
                   Upsilon r1462 r1466;
                   Upsilon r1454 r1467;
                   Upsilon r148 r1468;
                   jump .B24
-                }
-        }
 };
-.B15: {
-  let r438 = LoadMem (ArithK Add r1462 48) 8;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r438;
-  Call (Global "strlen") (CArg r438 None);
-  if IsZero (Arith Sub (Call (Global "strlen") (CArg r438 None)) r115)
-  then  .B22: {
-          Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r438 (CArg r115 None)));
-          Upsilon (ArithK Add r1462 40) r1464;
-          if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r438 (CArg r115 None)))))
-          then  jump .B16
-          else  jump .B23
-        }
-  else  jump .B16
-};
-.B16: {
-  let r483 = LoadMem (ArithK Add r1462 88) 8;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r483;
-  Call (Global "strlen") (CArg r483 None);
-  if IsZero (Arith Sub (Call (Global "strlen") (CArg r483 None)) r115)
-  then  .B38: {
-          Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r483 (CArg r115 None)));
-          if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r483 (CArg r115 None)))))
-          then  jump .B17
-          else  .B39: {
-                  Upsilon (ArithK Add r1462 80) r1464;
-                  jump .B23
-                }
-        }
-  else  jump .B17
-};
-.B17: {
-  let r526 = LoadMem (ArithK Add r1462 128) 8;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r526;
-  Call (Global "strlen") (CArg r526 None);
-  if IsZero (Arith Sub (Call (Global "strlen") (CArg r526 None)) r115)
-  then  .B40: {
-          Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r526 (CArg r115 None)));
-          if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r526 (CArg r115 None)))))
-          then  jump .B18
-          else  .B41: {
-                  Upsilon (ArithK Add r1462 120) r1464;
-                  jump .B23
-                }
-        }
-  else  jump .B18
-};
+let r438 = LoadMem (ArithK Add r1462 48) 8;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r438;
+Call (Global "strlen") (CArg r438 None);
+if IsZero (Arith Sub (Call (Global "strlen") (CArg r438 None)) r115)
+  then  Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r438 (CArg r115 None)));
+        Upsilon (ArithK Add r1462 40) r1464;
+        if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r438 (CArg r115 None)))))
+          then  pass
+          else  jump .B23;
+let r483 = LoadMem (ArithK Add r1462 88) 8;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r483;
+Call (Global "strlen") (CArg r483 None);
+if IsZero (Arith Sub (Call (Global "strlen") (CArg r483 None)) r115)
+  then  Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r483 (CArg r115 None)));
+        if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r483 (CArg r115 None)))))
+          then  pass
+          else  Upsilon (ArithK Add r1462 80) r1464;
+                jump .B23;
+let r526 = LoadMem (ArithK Add r1462 128) 8;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) r526;
+Call (Global "strlen") (CArg r526 None);
+if IsZero (Arith Sub (Call (Global "strlen") (CArg r526 None)) r115)
+  then  Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r526 (CArg r115 None)));
+        if Not (IsZero (Call (Global "strncmp") (CArg (Ancestral AncestralName("RDX") Bytes(8)) (CArg r526 (CArg r115 None)))))
+          then  jump .B18;
+        Upsilon (ArithK Add r1462 120) r1464
+  else  jump .B18;
 .B23: {
   r1464: phi;
   Upsilon (ArithK Add r192 1) r1465;
   Upsilon r1464 r1466;
   Upsilon r1454 r1467;
-  Upsilon r148 r1468;
-  jump .B24
+  Upsilon r148 r1468
 };
 .B24: {
   r1468: phi;
@@ -3403,39 +3335,31 @@ ssa program  1709 instrs
   r1465: phi;
   StoreMem (Arith Add (Ancestral AncestralName("R8") Bytes(8)) (ArithK Mul r1468 8)) r1465;
   if IsZero (Arith Sub r1466 r1467)
-  then  jump .B42
-  else  .B25: {
-          let r756 = Concat (Widen (LoadMem r1453 1) 4 false) (Part (Ancestral AncestralName("RDX") Bytes(8)) 1 7);
-          Upsilon r756 r1472;
-          Upsilon r756 r1469;
-          if Not (IsZero (LoadMem (ArithK Add (Ancestral AncestralName("R13") Bytes(8)) 32) 8))
-          then  jump .B34
-          else  jump .B26
-        }
+    then  jump .B42;
+  let r756 = Concat (Widen (LoadMem r1453 1) 4 false) (Part (Ancestral AncestralName("RDX") Bytes(8)) 1 7);
+  Upsilon r756 r1472;
+  Upsilon r756 r1469;
+  if Not (IsZero (LoadMem (ArithK Add (Ancestral AncestralName("R13") Bytes(8)) 32) 8))
+    then  jump .B34;
+  pass
 };
 .B26: {
   r1469: phi;
   if IsZero (Arith BitAnd (Part r1469 0 1) (Part r1469 0 1))
-  then  jump .B54
-  else  .B27: {
-          let r772 = ArithK Add r1453 1;
-          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -136) r772;
-          let r788 = Call (Global "strchr") (CArg r772 (CArg (Int 46 4) None));
-          if IsZero r788
-          then  jump .B43
-          else  .B28: {
-                  if Not (CarryOf (Arith Sub (ArithK Add r148 1) (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8)))
-                  then  jump .B44
-                  else  jump .B29
-                }
-        }
+    then  jump .B54;
+  let r772 = ArithK Add r1453 1;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -136) r772;
+  let r788 = Call (Global "strchr") (CArg r772 (CArg (Int 46 4) None));
+  if IsZero r788
+    then  pass
+    else  if Not (CarryOf (Arith Sub (ArithK Add r148 1) (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8)))
+            then  jump .B44;
+          jump .B29
 };
-.B43: {
-  Call (Global "__builtin_strlen") None;
-  if CarryOf (Arith Sub (ArithK Add r148 1) (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8))
-  then  jump .B29
-  else  jump .B44
-};
+Call (Global "__builtin_strlen") None;
+if CarryOf (Arith Sub (ArithK Add r148 1) (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8))
+  then  jump .B29;
+pass;
 .B44: {
   Upsilon (Ancestral AncestralName("RCX") Bytes(8)) r1475;
   jump .B45
@@ -3445,8 +3369,8 @@ ssa program  1709 instrs
   Upsilon (Int 46 8) r1470;
   Upsilon r788 r1471;
   if Not (IsZero (LoadMem (LoadMem (ArithK Add (Ancestral AncestralName("R13") Bytes(8)) 24) 8) 1))
-  then  jump .B4
-  else  jump .B30
+    then  jump .B4;
+  jump .B30
 };
 .B54: {
   Upsilon (Ancestral AncestralName("RCX") Bytes(8)) r1473;
@@ -3455,8 +3379,8 @@ ssa program  1709 instrs
 .B18: {
   Upsilon (ArithK Add r1462 160) r1462;
   if IsZero (Arith Sub (ArithK Add r192 4) r175)
-  then  jump .B42
-  else  jump .B19
+    then  jump .B42;
+  jump .B19
 };
 .B30: {
   r1471: phi;
@@ -3466,53 +3390,46 @@ ssa program  1709 instrs
   let r912 = LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -128) 8;
   let r915 = ArithK Add r899 1;
   if IsZero r915
-  then  jump .B42
-  else  .B31: {
-          let r927 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 24) 8;
-          StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -136) r912;
-          if Not (IsZero (LoadMem r927 1))
-          then  jump_external 4206915
-          else  .B32: {
-                  Call (LoadMem (LoadMem (ArithK Add r927 8) 8) 8) (CArg (Ancestral AncestralName("RDI") Bytes(8)) (CArg (Ancestral AncestralName("R8") Bytes(8)) (CArg (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8) (CArg r915 None))));
-                  if IsZero r915
-                  then  jump .B42
-                  else  .B33: {
-                          StoreMem (Arith Add (Ancestral AncestralName("R8") Bytes(8)) (ArithK Mul r148 8)) r915;
-                          let r1018 = Concat (Widen (LoadMem r912 1) 4 false) (Part (Ancestral AncestralName("RDI") Bytes(8)) 1 7);
-                          Upsilon r1018 r1469;
-                          Upsilon r1018 r1472;
-                          if IsZero (LoadMem (ArithK Add r899 33) 8)
-                          then  jump .B26
-                          else  jump .B34
-                        }
-                }
-        }
+    then  jump .B42;
+  let r927 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 24) 8;
+  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -136) r912;
+  if Not (IsZero (LoadMem r927 1))
+    then  jump_external 4206915;
+  Call (LoadMem (LoadMem (ArithK Add r927 8) 8) 8) (CArg (Ancestral AncestralName("RDI") Bytes(8)) (CArg (Ancestral AncestralName("R8") Bytes(8)) (CArg (LoadMem (Ancestral AncestralName("R9") Bytes(8)) 8) (CArg r915 None))));
+  if IsZero r915
+    then  jump .B42;
+  StoreMem (Arith Add (Ancestral AncestralName("R8") Bytes(8)) (ArithK Mul r148 8)) r915;
+  let r1018 = Concat (Widen (LoadMem r912 1) 4 false) (Part (Ancestral AncestralName("RDI") Bytes(8)) 1 7);
+  Upsilon r1018 r1469;
+  Upsilon r1018 r1472;
+  if IsZero (LoadMem (ArithK Add r899 33) 8)
+    then  jump .B26;
+  pass
 };
 .B34: {
   r1472: phi;
   Upsilon (Ancestral AncestralName("RCX") Bytes(8)) r1473;
   if Not (IsZero (Arith BitAnd (Part r1472 0 1) (Part r1472 0 1)))
-  then  jump .B42
-  else  jump .B35
+    then  jump .B42;
+  pass
 };
 .B35: {
   r1473: phi;
   StoreMem (Ancestral AncestralName("R9") Bytes(8)) (ArithK Add r148 1);
   Upsilon r1473 r1476;
   if Not (IsZero r1473)
-  then  jump .B46
-  else  jump .B36
+    then  jump .B46;
+  jump .B36
 };
 .B55: {
-  Upsilon (Ancestral AncestralName("RCX") Bytes(8)) r1475;
-  jump .B45
+  Upsilon (Ancestral AncestralName("RCX") Bytes(8)) r1475
 };
 .B45: {
   r1475: phi;
   Upsilon r1475 r1476;
   if IsZero r1475
-  then  jump .B36
-  else  jump .B46
+    then  jump .B36;
+  pass
 };
 .B46: {
   r1476: phi;
@@ -3521,8 +3438,7 @@ ssa program  1709 instrs
   jump .B37
 };
 .B36: {
-  Upsilon (Arith BitXor (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4)) r1474;
-  jump .B37
+  Upsilon (Arith BitXor (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4)) r1474
 };
 .B37: {
   r1474: phi;

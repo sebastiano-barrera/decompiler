@@ -1293,59 +1293,38 @@ ssa program  676 instrs
 
  --- ast
 # block order: B0, B1, B2, B3, B4, B5, B13, B14, B6, B7, B15, B8, B35, B10, B11, B12, B16, B9
-.B0: {
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R12") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("RBX") Bytes(8));
-  let r67 = ArithK BitAnd (Widen (LoadMem (Ancestral AncestralName("RDI") Bytes(8)) 1) 4 false) -16;
-  if IsZero (ArithK Add (Part r67 0 1) -144)
-  then  jump .B10
-  else  .B1: {
-          if Not (IsZero (ArithK Add (Part r67 0 1) -176))
-          then  jump .B35
-          else  .B2: {
-                  let r107 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 8) 8;
-                  let r111 = LoadMem (ArithK Add (Ancestral AncestralName("RDI") Bytes(8)) 8) 8;
-                  if IsZero (ArithK Add (Part (ArithK BitAnd (Widen (LoadMem (Ancestral AncestralName("RSI") Bytes(8)) 1) 4 false) -16) 0 1) -16)
-                  then  jump .B6
-                  else  .B3: {
-                          let r146 = ArithK BitAnd (Widen (LoadMem (ArithK Add r107 -1) 1) 4 false) 7;
-                          if Not (IsZero (Arith BitAnd (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4)))
-                          then  jump .B13
-                          else  .B4: {
-                                  let r169 = ArithK Add (Part r146 0 1) -4;
-                                  if Bool And (Not (SignOf r169)) (Not (IsZero r169))
-                                  then  jump_external 4203597
-                                  else  .B5: {
-                                          jump (ArithK Add (ArithK Mul (Concat (Widen (Part r146 0 1) 4 false) (Part r146 1 7)) 8) 6851632).*
-                                        }
-                                }
-                        }
-                }
-        }
-};
-.B13: {
-  let r322 = ArithK Add (Part r146 0 1) -4;
-  if Bool And (Not (SignOf r322)) (Not (IsZero r322))
-  then  jump_external 4203604
-  else  .B14: {
-          jump (ArithK Add (ArithK Mul (Concat (Widen (Part r146 0 1) 4 false) (Part r146 1 7)) 8) 6851712).*
-        }
-};
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R12") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("RBX") Bytes(8));
+let r67 = ArithK BitAnd (Widen (LoadMem (Ancestral AncestralName("RDI") Bytes(8)) 1) 4 false) -16;
+if IsZero (ArithK Add (Part r67 0 1) -144)
+  then  jump .B10;
+if Not (IsZero (ArithK Add (Part r67 0 1) -176))
+  then  jump .B35;
+let r107 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 8) 8;
+let r111 = LoadMem (ArithK Add (Ancestral AncestralName("RDI") Bytes(8)) 8) 8;
+if IsZero (ArithK Add (Part (ArithK BitAnd (Widen (LoadMem (Ancestral AncestralName("RSI") Bytes(8)) 1) 4 false) -16) 0 1) -16)
+  then  jump .B6;
+let r146 = ArithK BitAnd (Widen (LoadMem (ArithK Add r107 -1) 1) 4 false) 7;
+if Not (IsZero (Arith BitAnd (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4)))
+  then  pass
+  else  let r169 = ArithK Add (Part r146 0 1) -4;
+        if Bool And (Not (SignOf r169)) (Not (IsZero r169))
+          then  jump_external 4203597;
+        jump (ArithK Add (ArithK Mul (Concat (Widen (Part r146 0 1) 4 false) (Part r146 1 7)) 8) 6851632).*;
+let r322 = ArithK Add (Part r146 0 1) -4;
+if Bool And (Not (SignOf r322)) (Not (IsZero r322))
+  then  jump_external 4203604;
+jump (ArithK Add (ArithK Mul (Concat (Widen (Part r146 0 1) 4 false) (Part r146 1 7)) 8) 6851712).*;
 .B6: {
   if IsZero (Arith BitAnd (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RDX") Bytes(8)) 0 4))
-  then  jump .B15
-  else  .B7: {
-          Call (Global "lpAppendInteger") (CArg r111 (CArg r107 None));
+    then  pass
+    else  Call (Global "lpAppendInteger") (CArg r111 (CArg r107 None));
           Upsilon (Call (Global "lpAppendInteger") (CArg r111 (CArg r107 None))) r670;
           jump .B8
-        }
 };
-.B15: {
-  Call (Global "lpPrependInteger") (CArg r111 (CArg r107 None));
-  Upsilon (Call (Global "lpPrependInteger") (CArg r111 (CArg r107 None))) r670;
-  jump .B8
-};
+Call (Global "lpPrependInteger") (CArg r111 (CArg r107 None));
+Upsilon (Call (Global "lpPrependInteger") (CArg r111 (CArg r107 None))) r670;
 .B8: {
   r670: phi;
   StoreMem (ArithK Add (Ancestral AncestralName("RDI") Bytes(8)) 8) r670;
@@ -1361,26 +1340,19 @@ ssa program  676 instrs
   let r252 = LoadMem (ArithK Add (Ancestral AncestralName("RSI") Bytes(8)) 8) 8;
   NotYetImplemented "unsupported: sbb ecx,ecx";
   if IsZero (ArithK Add (Part (ArithK BitAnd (Widen (LoadMem (Ancestral AncestralName("RSI") Bytes(8)) 1) 4 false) -16) 0 1) -16)
-  then  jump .B16
-  else  .B11: {
-          let r288 = ArithK BitAnd (Widen (LoadMem (ArithK Add r252 -1) 1) 4 false) 7;
+    then  pass
+    else  let r288 = ArithK BitAnd (Widen (LoadMem (ArithK Add r252 -1) 1) 4 false) 7;
           let r299 = ArithK Add (Part r288 0 1) -4;
           if Bool And (Not (SignOf r299)) (Not (IsZero r299))
-          then  jump_external 4203590
-          else  .B12: {
-                  jump (ArithK Add (ArithK Mul (Concat (Widen (Part r288 0 1) 4 false) (Part r288 1 7)) 8) 6851672).*
-                }
-        }
+            then  jump_external 4203590;
+          jump (ArithK Add (ArithK Mul (Concat (Widen (Part r288 0 1) 4 false) (Part r288 1 7)) 8) 6851672).*
 };
-.B16: {
-  let r363 = ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -56;
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) (Part (Ancestral AncestralName("RCX") Bytes(8)) 0 4);
-  Call (Global "ll2string") (CArg r363 (CArg (Int 32 8) (CArg r252 None)));
-  Call (Global "strlen") (CArg r363 None);
-  Call (Global "quicklistPush") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RDI") Bytes(8)) 8) 8) (CArg r363 None));
-  Upsilon (Call (Global "strlen") (CArg r363 None)) r671;
-  jump .B9
-};
+let r363 = ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -56;
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -60) (Part (Ancestral AncestralName("RCX") Bytes(8)) 0 4);
+Call (Global "ll2string") (CArg r363 (CArg (Int 32 8) (CArg r252 None)));
+Call (Global "strlen") (CArg r363 None);
+Call (Global "quicklistPush") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RDI") Bytes(8)) 8) 8) (CArg r363 None));
+Upsilon (Call (Global "strlen") (CArg r363 None)) r671;
 .B9: {
   r671: phi;
   return r671

@@ -12,7 +12,7 @@ mod pp;
 pub use pp::write_ast;
 
 // TODO intern strings? (check performance gain)
-#[derive(serde::Serialize, Debug, Clone)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "stmt", content = "arg")]
 pub enum Stmt {
     // TODO add a table to Ast for assigning custom names to blocks (and use
@@ -52,6 +52,13 @@ pub enum Stmt {
     JumpIndirect(Reg),
     Loop(cfg::BlockID),
     Jump(cfg::BlockID),
+
+    /// Represents a "no op", doing nothing.
+    ///
+    /// Useful as placeholder (e.g., as an empty body a "then" or "else"
+    /// clause). It is used as a temporary placeholder during the `cleanup`
+    /// algorithm.
+    Pass,
 }
 
 #[derive(Clone, Copy, serde::Serialize, Debug, PartialEq, Eq)]
@@ -68,6 +75,15 @@ pub struct Ast {
     // there is a full AST inside. The public APIs are supposed to create the
     // illusion of operating on a typed AST that is actually a tree.
     /// All statements in the AST, indexed by [StmtID].
+    ///
+    /// Note that each Stmt can only be "pointed to" by one other statement
+    /// (unless it's *the* root Stmt). For this reason, it's appropriate to say
+    /// that each Stmt is "contained" by exactly one other Stmt (unless it's the
+    /// root). In other words, a StmtID can only appear in one other Stmt whose
+    /// StmtID is higher (unless it's the root stataement, which has the highest
+    /// StmtID).
+    ///
+    /// This enables "moving" Stmts in the tree by copying over Stmt nodes.
     nodes: Vec<Stmt>,
     is_named: RegMap<bool>,
     block_order: Vec<cfg::BlockID>,
@@ -94,6 +110,15 @@ impl Ast {
     }
 }
 
+impl Ast {
+    // private mutation API
+    // used by AstBuilder
+    fn push_stmt(&mut self, stmt: Stmt) -> StmtID {
+        self.nodes.push(stmt);
+        self.root()
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("block order contains duplicates")]
@@ -105,15 +130,12 @@ pub struct AstBuilder<'a> {
     ssa: &'a ssa::Program,
     block_order_rev: Vec<cfg::BlockID>,
 
-    // input, state & output
-    is_named: ssa::RegMap<bool>,
-
     // state variables
     let_emitted: HashSet<Reg>,
     block_printed: cfg::BlockMap<bool>,
 
-    // output
-    nodes: Vec<Stmt>,
+    // state & output
+    ast: Ast,
 }
 
 impl<'a> AstBuilder<'a> {
@@ -133,11 +155,14 @@ impl<'a> AstBuilder<'a> {
 
         let mut builder = AstBuilder {
             ssa,
-            is_named,
             block_order_rev: Vec::new(),
             let_emitted: HashSet::new(),
             block_printed: cfg::BlockMap::new(ssa.cfg(), false),
-            nodes: Vec::new(),
+            ast: Ast {
+                nodes: Vec::new(),
+                is_named,
+                block_order: Vec::new(),
+            },
         };
 
         // default block order: reverse postorder
@@ -170,7 +195,7 @@ impl<'a> AstBuilder<'a> {
     }
 
     fn is_named(&self, reg: Reg) -> bool {
-        self.is_named[reg]
+        self.ast.is_named[reg]
     }
 
     pub fn build(mut self) -> Ast {
@@ -178,9 +203,9 @@ impl<'a> AstBuilder<'a> {
             *value = false;
         }
 
-        let block_order = {
-            let mut ord = self.block_order_rev.clone();
-            ord.reverse();
+        self.ast.block_order = {
+            let mut ord = Vec::with_capacity(self.block_order_rev.len());
+            ord.extend(self.block_order_rev.iter().rev().cloned());
             ord
         };
 
@@ -199,11 +224,9 @@ impl<'a> AstBuilder<'a> {
                 None => Some(block_sid),
             });
 
-        Ast {
-            nodes: self.nodes,
-            is_named: self.is_named,
-            block_order,
-        }
+        cleanup::cleanup(&mut self.ast);
+
+        self.ast
     }
 
     fn build_block(&mut self, bid: cfg::BlockID) -> StmtID {
@@ -326,14 +349,8 @@ impl<'a> AstBuilder<'a> {
         }
     }
 
-    fn next_stmt_id(&mut self) -> StmtID {
-        StmtID(self.nodes.len())
-    }
-
     fn push_stmt(&mut self, stmt: Stmt) -> StmtID {
-        let sid = self.next_stmt_id();
-        self.nodes.push(stmt);
-        sid
+        self.ast.push_stmt(stmt)
     }
 }
 
@@ -392,5 +409,418 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,
         // Insn::CArg { .. } => panic!("CArg undefined precedence"),
+    }
+}
+
+/// AST cleanup algorithm
+mod cleanup {
+    use crate::BlockID;
+
+    use super::*;
+
+    /// Process the given AST to make it easier to read by a human being.
+    ///
+    /// The processing done by this function is only cosmetic, and not
+    /// particularly sophisticated.
+    ///
+    /// # Implementation notes
+    ///
+    /// More articulate transformations should be done at the SSA stage
+    /// (including CFG analysis, if appropriate) instead of here. This is only
+    /// for surface-level changes.
+    pub(super) fn cleanup(ast: &mut Ast) {
+        let root_sid_pre = ast.root();
+        cleanup_stmt(ast, root_sid_pre, Cont::End);
+
+        // little hack: `cleanup_stmt` may add new nodes via push_stmt, which
+        // violates the invariant that the root node MUST be the last in the
+        // `nodes` Vec. this restores it (at the cost of maybe one extra copy of
+        // the node)
+        if ast.root() != root_sid_pre {
+            ast.push_stmt(ast.get(root_sid_pre).clone());
+        }
+
+        remove_unused_labels(ast);
+    }
+
+    /// How a Stmt is expected to "continue", i.e. where control flow is led
+    /// after the Stmt is "run".
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    enum Cont {
+        /// There is one statement coming naturally after this one (e.g. in a
+        /// Seq), which is not labeled (it's not, for example, a block).
+        Fallthrough,
+
+        /// Jump "out" of the function.
+        ///
+        /// Control flow exits the function entirely, never to return to any
+        /// other Stmt within it.
+        ///
+        /// This includes both the natural end of the function, or any form of
+        /// return or external jump.
+        End,
+
+        /// Jump to a specific block within the function
+        ToBlock(BlockID),
+    }
+
+    /// Run the cleanup algorithm on a specific statement.
+    ///
+    /// Recurs on all child statements.
+    ///
+    /// Parameter [`nat_cont`] represents the statement's "natural
+    /// continuation": where control flow would normally go after this statement
+    /// (assuming that its *does* continue; i.e., that it's not a return or
+    /// external jump.)
+    ///
+    /// Returns the statement's actual continuation (including the effect of
+    /// any change).
+    fn cleanup_stmt(ast: &mut Ast, sid: StmtID, nat_cont: Cont) -> Cont {
+        match ast.nodes[sid.0].clone() {
+            Stmt::NamedBlock { bid: _, body }
+            | Stmt::Let {
+                name: _,
+                value: _,
+                body,
+            }
+            | Stmt::LetPhi { name: _, body } => cleanup_stmt(ast, body, nat_cont),
+
+            Stmt::Seq { first, then } => {
+                let cont_from_then = cleanup_stmt(ast, then, nat_cont);
+                if ast.nodes[then.0] == Stmt::Pass {
+                    move_node_tofrom(ast, sid, first);
+                    return cleanup_stmt(ast, sid, nat_cont);
+                }
+
+                let cont_to_then = cont_to(ast, then);
+                cleanup_stmt(ast, first, cont_to_then);
+                if ast.nodes[first.0] == Stmt::Pass {
+                    move_node_tofrom(ast, sid, then);
+                    return cleanup_stmt(ast, sid, nat_cont);
+                }
+
+                cont_from_then
+            }
+
+            Stmt::If { cond, cons, alt } => {
+                let cons_cont = cleanup_stmt(ast, cons, nat_cont);
+                let _alt_cont = cleanup_stmt(ast, alt, nat_cont);
+
+                if cons_cont != Cont::Fallthrough {
+                    // hoist else
+                    let empty_alt = ast.push_stmt(Stmt::Pass);
+                    let new_if = ast.push_stmt(Stmt::If {
+                        cond,
+                        cons,
+                        alt: empty_alt,
+                    });
+                    ast.nodes[sid.0] = Stmt::Seq {
+                        first: new_if,
+                        then: alt,
+                    };
+                }
+
+                Cont::Fallthrough
+            }
+
+            Stmt::Loop(bid) | Stmt::Jump(bid) => {
+                if let Cont::ToBlock(cont_bid) = nat_cont {
+                    if cont_bid == bid {
+                        ast.nodes[sid.0] = Stmt::Pass;
+                        return Cont::Fallthrough;
+                    }
+                }
+
+                Cont::ToBlock(bid)
+            }
+
+            Stmt::Eval(_) | Stmt::Pass => Cont::Fallthrough,
+
+            Stmt::Return(_)
+            | Stmt::JumpUndefined
+            | Stmt::JumpExternal(_)
+            | Stmt::JumpIndirect(_) => Cont::End,
+        }
+    }
+
+    fn cont_to(ast: &mut Ast, sid: StmtID) -> Cont {
+        match ast.nodes[sid.0] {
+            Stmt::NamedBlock { bid, body: _ } => Cont::ToBlock(bid),
+            _ => Cont::Fallthrough,
+        }
+    }
+    fn move_node_tofrom(ast: &mut Ast, to: StmtID, from: StmtID) {
+        ast.nodes[to.0] = std::mem::replace(&mut ast.nodes[from.0], Stmt::Pass);
+    }
+
+    fn remove_unused_labels(ast: &mut Ast) {
+        // one element per block, with an overestimated number of elements:
+        // there can't be more blocks than stmts, and blocks are numbered
+        // densely from 0.
+        let mut uses_count = vec![0; ast.nodes.len()];
+
+        for stmt in ast.nodes.iter() {
+            if let Stmt::Jump(bid) | Stmt::Loop(bid) = stmt {
+                uses_count[bid.as_usize()] += 1;
+            }
+        }
+
+        for stmt_ndx in 0..ast.nodes.len() {
+            let sid = StmtID(stmt_ndx);
+            loop {
+                if let Stmt::NamedBlock { bid, body } = ast.nodes[stmt_ndx] {
+                    if uses_count[bid.as_usize()] == 0 {
+                        move_node_tofrom(ast, sid, body);
+                        continue;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::R;
+
+        use super::*;
+
+        // rules to check:
+        //
+        // - remove empty then/else branch
+        //
+        // - remove unused block labels
+
+        #[test]
+        fn remove_pass_from_seq() {
+            let mut ast = mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Pass,
+                Stmt::Eval(R(2)),
+                Stmt::Seq {
+                    first: StmtID(0),
+                    then: StmtID(1),
+                },
+                Stmt::Seq {
+                    first: StmtID(3),
+                    then: StmtID(2),
+                },
+            ]);
+
+            cleanup(&mut ast);
+
+            let &Stmt::Seq { first, then } = ast.get(ast.root()) else {
+                panic!()
+            };
+            assert_eq!(ast.get(first), &Stmt::Eval(R(0)));
+            assert_eq!(ast.get(then), &Stmt::Eval(R(2)));
+        }
+
+        fn mk_simple_ast(nodes: Vec<Stmt>) -> Ast {
+            Ast {
+                nodes,
+                is_named: RegMap::empty(),
+                // wrong, but the cleanup algorithm doesn't care about this
+                block_order: Vec::new(),
+            }
+        }
+
+        #[test]
+        fn fallthrough_to_block() {
+            let bid = BlockID::from_number(3);
+            let mut ast = mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Jump(bid),
+                Stmt::Eval(R(2)),
+                // 3
+                Stmt::Seq {
+                    first: StmtID(0),
+                    then: StmtID(1),
+                },
+                Stmt::NamedBlock {
+                    bid,
+                    body: StmtID(2),
+                },
+                Stmt::Seq {
+                    first: StmtID(3),
+                    then: StmtID(4),
+                },
+            ]);
+
+            cleanup(&mut ast);
+
+            let &Stmt::Seq {
+                first: block_jumper,
+                then: _,
+            } = ast.get(ast.root())
+            else {
+                panic!();
+            };
+            assert_eq!(ast.get(block_jumper), &Stmt::Eval(R(0)));
+        }
+
+        #[test]
+        fn remove_unused_block_labels() {
+            let bid = BlockID::from_number(3);
+            let other_bid = BlockID::from_number(4);
+            let mut ast = mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Jump(other_bid),
+                Stmt::Eval(R(2)),
+                // 3
+                Stmt::Seq {
+                    first: StmtID(0),
+                    then: StmtID(1),
+                },
+                Stmt::NamedBlock {
+                    bid,
+                    body: StmtID(2),
+                },
+                Stmt::Seq {
+                    first: StmtID(3),
+                    then: StmtID(4),
+                },
+            ]);
+
+            cleanup(&mut ast);
+
+            let &Stmt::Seq {
+                first: _,
+                then: block_label,
+            } = ast.get(ast.root())
+            else {
+                panic!();
+            };
+            assert_eq!(ast.get(block_label), &Stmt::Eval(R(2)));
+        }
+
+        #[test]
+        fn remove_unused_block_labels_neg() {
+            let bid = BlockID::from_number(3);
+            let mut ast = mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Jump(bid),
+                Stmt::Eval(R(1)),
+                Stmt::Eval(R(2)),
+                // 4
+                Stmt::Seq {
+                    first: StmtID(0),
+                    then: StmtID(1),
+                },
+                Stmt::Seq {
+                    first: StmtID(4),
+                    then: StmtID(2),
+                },
+                Stmt::NamedBlock {
+                    bid,
+                    body: StmtID(3),
+                },
+                Stmt::Seq {
+                    first: StmtID(5),
+                    then: StmtID(6),
+                },
+            ]);
+
+            cleanup(&mut ast);
+
+            let &Stmt::Seq {
+                first: _,
+                then: block_label,
+            } = ast.get(ast.root())
+            else {
+                panic!();
+            };
+            assert_eq!(
+                ast.get(block_label),
+                &Stmt::NamedBlock {
+                    bid,
+                    body: StmtID(3),
+                }
+            );
+        }
+
+        #[test]
+        #[should_panic]
+        fn cyclic_detected() {
+            mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Jump(BlockID::from_number(3)),
+                Stmt::Eval(R(1)),
+                // 3
+                Stmt::Seq {
+                    first: StmtID(0),
+                    then: StmtID(1),
+                },
+                Stmt::If {
+                    cond: Some(R(2)),
+                    cons: StmtID(4),
+                    alt: StmtID(2),
+                },
+            ]);
+        }
+
+        /// In an if-then-else clause, if the consequent (`then`) block does not
+        /// fallthrough to the next statement, the alternate (`else`) block can
+        /// be hoised out of the if (with an appropriate wrapping Seq).
+        #[test]
+        fn if_then_else_hoist_else() {
+            let mut ast = mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Jump(BlockID::from_number(3)),
+                Stmt::Eval(R(1)),
+                // 3
+                Stmt::Seq {
+                    first: StmtID(0),
+                    then: StmtID(1),
+                },
+                Stmt::If {
+                    cond: Some(R(2)),
+                    cons: StmtID(3),
+                    alt: StmtID(2),
+                },
+            ]);
+
+            cleanup(&mut ast);
+
+            let root = ast.get(ast.root());
+            let &Stmt::Seq { first, then } = root else {
+                panic!();
+            };
+
+            {
+                let &Stmt::If { cond: _, cons, alt } = ast.get(first) else {
+                    panic!()
+                };
+                assert_eq!(cons, StmtID(3));
+                assert_eq!(ast.get(alt), &Stmt::Pass);
+            }
+
+            assert_eq!(then, StmtID(2));
+        }
+
+        #[test]
+        fn if_then_else_hoist_else_neg() {
+            let mut ast = mk_simple_ast(vec![
+                Stmt::Eval(R(0)),
+                Stmt::Eval(R(1)),
+                Stmt::If {
+                    cond: Some(R(2)),
+                    cons: StmtID(0),
+                    alt: StmtID(1),
+                },
+            ]);
+
+            cleanup(&mut ast);
+
+            assert_eq!(
+                ast.get(ast.root()),
+                &Stmt::If {
+                    cond: Some(R(2)),
+                    cons: StmtID(0),
+                    alt: StmtID(1),
+                },
+            );
+        }
     }
 }

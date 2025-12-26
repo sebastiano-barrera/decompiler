@@ -256,6 +256,14 @@ impl BlockID {
     pub fn as_usize(&self) -> usize {
         self.0 as usize
     }
+
+    /// Create a BlockID with a known numeric value.
+    ///
+    /// For testing purposes ONLY.
+    #[cfg(test)]
+    pub(crate) fn from_number(value: u16) -> Self {
+        BlockID(value)
+    }
 }
 
 impl Graph {

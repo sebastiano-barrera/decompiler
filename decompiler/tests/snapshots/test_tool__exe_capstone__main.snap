@@ -708,25 +708,18 @@ ssa program  376 instrs
 
  --- ast
 # block order: B0, B1, B2, B3, B4, B7, B5, B8, B6
-.B0: {
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("R12") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBP") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("RBX") Bytes(8));
-  let r55 = ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40;
-  Call (Int 4198512 8) (CArg (Int 3 8) (CArg (Int 8 8) (CArg r55 (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
-  if Not (IsZero (Arith BitAnd (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)))
-  then  jump .B8
-  else  .B1: {
-          let r139 = Call (Global "cs_disasm") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) 8) (CArg (Int 4203184 8) (CArg (Int 8 8) (CArg (Int 4096 8) (CArg (Arith BitXor (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4) (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4)) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) None))))));
-          if IsZero r139
-          then  jump .B7
-          else  .B2: {
-                  Upsilon r139 r355;
-                  Upsilon (Arith BitXor (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4)) r356;
-                  jump .B3
-                }
-        }
-};
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("R12") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("RBP") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("RBX") Bytes(8));
+let r55 = ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40;
+Call (Int 4198512 8) (CArg (Int 3 8) (CArg (Int 8 8) (CArg r55 (CArg (Ancestral AncestralName("RCX") Bytes(8)) None))));
+if Not (IsZero (Arith BitAnd (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)))
+  then  jump .B8;
+let r139 = Call (Global "cs_disasm") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) 8) (CArg (Int 4203184 8) (CArg (Int 8 8) (CArg (Int 4096 8) (CArg (Arith BitXor (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4) (Part (Ancestral AncestralName("R8") Bytes(8)) 0 4)) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) None))))));
+if IsZero r139
+  then  jump .B7;
+Upsilon r139 r355;
+Upsilon (Arith BitXor (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RBX") Bytes(8)) 0 4)) r356;
 .B3: {
   r356: phi;
   r355: phi;
@@ -737,23 +730,20 @@ ssa program  376 instrs
   Upsilon r245 r355;
   Upsilon r196 r356;
   if Not (IsZero r245)
-  then  jump .B3
-  else  .B4: {
-          Call (Global "cs_free") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (CArg r245 None));
-          Upsilon r245 r357;
-          Upsilon (Call (Global "printf") (CArg (Int 4203193 8) None)) r358;
-          Upsilon (ArithK Add r207 74) r359;
-          Upsilon (ArithK Add r207 42) r360;
-          jump .B5
-        }
+    then  jump .B3;
+  Call (Global "cs_free") (CArg (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) 8) (CArg r245 None));
+  Upsilon r245 r357;
+  Upsilon (Call (Global "printf") (CArg (Int 4203193 8) None)) r358;
+  Upsilon (ArithK Add r207 74) r359;
+  Upsilon (ArithK Add r207 42) r360;
+  jump .B5
 };
 .B7: {
   Call (Global "__builtin_puts") None;
   Upsilon (Int 4203184 8) r357;
   Upsilon r139 r358;
   Upsilon (Int 4096 8) r359;
-  Upsilon (Int 8 8) r360;
-  jump .B5
+  Upsilon (Int 8 8) r360
 };
 .B5: {
   r360: phi;
@@ -765,8 +755,7 @@ ssa program  376 instrs
   jump .B6
 };
 .B8: {
-  Upsilon (ArithK BitOr (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) -1) r361;
-  jump .B6
+  Upsilon (ArithK BitOr (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) -1) r361
 };
 .B6: {
   r361: phi;

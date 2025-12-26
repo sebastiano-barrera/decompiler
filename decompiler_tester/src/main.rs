@@ -916,13 +916,19 @@ mod ast {
                             }
                         });
                         ui.horizontal(|ui| {
-                            print_kw(ui, s, "then");
+                            ui.add_space(20.0);
                             render_stmt(ui, s, *cons);
                         });
-                        ui.horizontal(|ui| {
+
+                        if s.ast.get(*alt) != &Stmt::Pass {
                             print_kw(ui, s, "else");
-                            render_stmt(ui, s, *alt);
-                        });
+                            ui.horizontal(|ui| {
+                                ui.add_space(20.0);
+                                render_stmt(ui, s, *alt);
+                            });
+                        }
+
+                        print_kw(ui, s, "end");
                     });
                 }
                 Stmt::Return(reg) => {
@@ -963,6 +969,7 @@ mod ast {
                         print_block_ref(ui, s, *block_id);
                     });
                 }
+                Stmt::Pass => print_kw(ui, s, "pass"),
             }
         });
     }

@@ -202,15 +202,12 @@ ssa program  103 instrs
 
  --- ast
 # block order: B0, B1, B2
-.B0: {
-  let r42 = FuncArgument 0 Bytes(24);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 8) (Part r42 0 8);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 16) (StructGetMember r42 "prev" 8);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 24) (StructGetMember r42 "next" 8);
-  Upsilon (Arith BitXor (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)) r95;
-  Upsilon (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 8) r96;
-  jump .B1
-};
+let r42 = FuncArgument 0 Bytes(24);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 8) (Part r42 0 8);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 16) (StructGetMember r42 "prev" 8);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 24) (StructGetMember r42 "next" 8);
+Upsilon (Arith BitXor (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4) (Part (Ancestral AncestralName("RAX") Bytes(8)) 0 4)) r95;
+Upsilon (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) 8) r96;
 .B1: {
   r96: phi;
   r95: phi;
@@ -219,8 +216,6 @@ ssa program  103 instrs
   Upsilon r67 r95;
   Upsilon r78 r96;
   if Not (IsZero r78)
-  then  jump .B1
-  else  .B2: {
-          return Part r67 0 4
-        }
+    then  jump .B1;
+  return Part r67 0 4
 }

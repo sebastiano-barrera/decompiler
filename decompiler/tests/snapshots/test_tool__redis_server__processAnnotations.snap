@@ -1136,92 +1136,65 @@ ssa program  633 instrs
 
  --- ast
 # block order: B0, B1, B2, B4, B5, B6, B7, B8, B9, B10, B11, B3, B12, B13, B14, B15
-.B0: {
-  let r42 = FuncArgument 0 Bytes(8);
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R15") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("R14") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Ancestral AncestralName("R13") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) (Ancestral AncestralName("R12") Bytes(8));
-  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -48) (Ancestral AncestralName("RBX") Bytes(8));
-  Call (Global "ftello") (CArg r42 None);
-  StoreMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) (Call (Global "ftello") (CArg r42 None));
-  Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None)));
-  if IsZero (Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None))))
-  then  jump .B12
-  else  .B1: {
-          let r134 = LoadMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7967296) 8;
-          Upsilon (Int 1 8) r605;
-          if IsZero r134
-          then  jump .B3
-          else  .B2: {
-                  Upsilon (Int 1 8) r605;
-                  if IsZero (ArithK Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) 4) -978539555)
-                  then  .B4: {
-                          let r197 = Call (Global "__errno_location") None;
-                          StoreMem r197 (Int 0 4);
-                          Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None)));
-                          let r627 = LoadMem r197 4;
-                          if Not (IsZero r627)
-                          then  jump .B13
-                          else  .B5: {
-                                  if Not (IsZero (ArithK Add (LoadMem (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) 8) 1) -13))
-                                  then  jump .B13
-                                  else  .B6: {
-                                          let r279 = Arith Sub r134 (Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None))));
-                                          if Cmp EQ (SignOf r279) (OverflowOf r279)
-                                          then  jump .B11
-                                          else  .B7: {
-                                                  let r291 = LoadMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) 8;
-                                                  if IsZero r291
-                                                  then  jump .B14
-                                                  else  .B8: {
-                                                          if IsZero (FuncArgument 2 Bytes(4))
-                                                          then  jump .B15
-                                                          else  .B9: {
-                                                                  StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1104) r291;
-                                                                  Call (Global "fileno") (CArg r42 None);
-                                                                  Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None)) (CArg r291 None));
-                                                                  Upsilon (Widen r627 8 false) r605;
-                                                                  if Not (IsZero (ArithK Add (Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None)) (CArg r291 None))) 1))
-                                                                  then  jump .B3
-                                                                  else  .B10: {
-                                                                          Call (Global "printf") (CArg (Int 7162352 8) None);
-                                                                          Call (Global "exit") (CArg (Int 1 4) None);
-                                                                          jump .B11
-                                                                        }
-                                                                }
-                                                        }
-                                                }
-                                        }
-                                }
-                        }
-                  else  jump .B3
-                }
-        }
-};
-.B11: {
-  Upsilon (Int 1 8) r605;
-  jump .B3
-};
+let r42 = FuncArgument 0 Bytes(8);
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -16) (Ancestral AncestralName("R15") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral AncestralName("R14") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Ancestral AncestralName("R13") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) (Ancestral AncestralName("R12") Bytes(8));
+StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -48) (Ancestral AncestralName("RBX") Bytes(8));
+Call (Global "ftello") (CArg r42 None);
+StoreMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) (Call (Global "ftello") (CArg r42 None));
+Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None)));
+if IsZero (Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None))))
+  then  jump .B12;
+let r134 = LoadMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7967296) 8;
+Upsilon (Int 1 8) r605;
+if IsZero r134
+  then  jump .B3;
+Upsilon (Int 1 8) r605;
+if IsZero (ArithK Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) 4) -978539555)
+  then  let r197 = Call (Global "__errno_location") None;
+        StoreMem r197 (Int 0 4);
+        Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None)));
+        let r627 = LoadMem r197 4;
+        if Not (IsZero r627)
+          then  jump .B13;
+        if Not (IsZero (ArithK Add (LoadMem (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) 8) 1) -13))
+          then  jump .B13;
+        let r279 = Arith Sub r134 (Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None))));
+        if Cmp EQ (SignOf r279) (OverflowOf r279)
+          then  pass
+          else  let r291 = LoadMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) 8;
+                if IsZero r291
+                  then  jump .B14;
+                if IsZero (FuncArgument 2 Bytes(4))
+                  then  jump .B15;
+                StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1104) r291;
+                Call (Global "fileno") (CArg r42 None);
+                Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None)) (CArg r291 None));
+                Upsilon (Widen r627 8 false) r605;
+                if Not (IsZero (ArithK Add (Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None)) (CArg r291 None))) 1))
+                  then  jump .B3;
+                Call (Global "printf") (CArg (Int 7162352 8) None);
+                Call (Global "exit") (CArg (Int 1 4) None)
+  else  jump .B3;
+Upsilon (Int 1 8) r605;
 .B3: {
   r605: phi;
   return Part r605 0 4
 };
 .B12: {
   Call (Global "printf") (CArg (Int 7161960 8) None);
-  Call (Global "exit") (CArg (Int 1 4) None);
-  jump .B13
+  Call (Global "exit") (CArg (Int 1 4) None)
 };
 .B13: {
   Call (Global "__builtin_puts") None;
-  Call (Global "exit") (CArg (Int 1 4) None);
-  jump .B14
+  Call (Global "exit") (CArg (Int 1 4) None)
 };
 .B14: {
   Call (Global "printf") (CArg (Int 7162016 8) None);
-  Call (Global "exit") (CArg (Int 1 4) None);
-  jump .B15
+  Call (Global "exit") (CArg (Int 1 4) None)
 };
 .B15: {
   Call (Global "printf") (CArg (Int 7162072 8) None);
