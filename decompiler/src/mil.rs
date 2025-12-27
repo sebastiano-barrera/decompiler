@@ -92,7 +92,6 @@ pub enum RegType {
     Bytes(usize),
     Bool,
     Effect,
-    Error,
 }
 impl RegType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
@@ -100,7 +99,6 @@ impl RegType {
             RegType::Bytes(sz) => Some(*sz),
             RegType::Bool => None,
             RegType::Effect => None,
-            RegType::Error => None,
         }
     }
 }

@@ -190,12 +190,13 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     let program_core = program.unwrap();
 
     // infer_reg_types has to work here and also for new instructions added
-    // later via OpenProgram; so, initialize it with RegType::Error, then
-    // call infer_reg_type on all registers the same way clients do
+    // later via OpenProgram; so, initialize it with a default value that
+    // doesn't really mean anything, then call infer_reg_type on all registers
+    // the same way clients do
     let reg_types = program_core
         .insns
         .iter()
-        .map(|_| mil::RegType::Error)
+        .map(|_| mil::RegType::Effect)
         .collect();
 
     let mut ssa = Program {
@@ -209,14 +210,12 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         endianness: program_core.endianness,
     };
     event!(Level::TRACE, ?ssa, "ssa constructed");
+
+    println!("---- ssa pre-refresh");
+    println!("{:?}", ssa);
+    println!("----");
+
     ssa.assert_invariants();
-
-    // TODO this allocation should be avoidable
-    let insns_rpo: Vec<_> = ssa.insns_rpo().collect();
-    for (_, reg) in insns_rpo {
-        ssa.refresh_reg_type(reg);
-    }
-
     ssa
 }
 

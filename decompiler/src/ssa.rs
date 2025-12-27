@@ -13,7 +13,6 @@ use crate::{
     mil::{self, Endianness},
     pp, ty,
     util::Bytes,
-    Reg,
 };
 use std::{cell::Cell, io::Write};
 
@@ -117,18 +116,6 @@ impl Program {
     /// Depends on the source machine's endianness.
     pub fn int_bytes(&self, value: i64, size: u16) -> Bytes {
         int_bytes(value, size, self.endianness)
-    }
-
-    /// Set the defining instruction for the given register.
-    ///
-    /// Returns `true` if the operation is completed successfully. Returns `false` on
-    /// failure (the register is invalid for this SSA program.)
-    pub fn set(&self, reg: mil::Reg, insn: mil::Insn) -> bool {
-        let Some(cell) = self.insns.get(reg.reg_index() as usize) else {
-            return false;
-        };
-        cell.set(insn);
-        true
     }
 
     /// Total number of registers/instructions stored in this Program.
@@ -253,7 +240,13 @@ impl Program {
         }
     }
 
-    pub fn assert_invariants(&self) {
+    /// Check that the SSA program is valid and refresh cached derived data
+    /// (such as each value's RegType).
+    ///
+    /// Panics if any check fails.
+    pub fn assert_invariants(&mut self) {
+        self.refresh_reg_types();
+
         self.assert_insns_valid();
         self.assert_consistent_arrays_len();
         self.assert_no_circular_refs();
@@ -302,8 +295,9 @@ fn test_int_bytes() {
 
 /// Internal API
 impl Program {
-    fn refresh_reg_type(&mut self, reg: Reg) {
-        self.reg_types[reg.0 as usize] = infer_reg_type(reg, self);
+    fn refresh_reg_types(&mut self) {
+        let mut state = RegMap::for_program(self, rt_infer::State::Pending);
+        rt_infer::fill(self, &mut state);
     }
 
     fn assert_consistent_arrays_len(&self) {
@@ -522,110 +516,178 @@ pub struct UpsilonDesc {
     input_reg: mil::Reg,
 }
 
-/// Determine the RegType for a given instruction, not by looking it up in the
-/// [Program::reg_types], but by only looking at the instruction itself and
-/// its inputs.
-///
-/// The RegType for the inputs *is* in [Program::reg_types].
-///
-/// Not all instructions can have their RegType be inferred this way. For those,
-/// `None` is returned.
-fn infer_reg_type(reg: mil::Reg, prog: &Program) -> mil::RegType {
+mod rt_infer {
+    use super::*;
+
     use mil::{Insn, RegType};
+    use smallvec::SmallVec;
 
-    // Note that each call to reg_type is a lookup into Program::reg_types. It
-    // just fetches the cahced value, does not infer anything.
+    #[derive(Clone, PartialEq, Eq)]
+    pub(super) enum State {
+        Pending,
+        Doing,
+        Completed,
+    }
 
-    match prog.get(reg).unwrap() {
-        Insn::Void => RegType::Bytes(0),
-        Insn::True => RegType::Bool,
-        Insn::False => RegType::Bool,
-        Insn::Int { size, .. } => RegType::Bytes(size as usize),
-        Insn::Bytes(bytes) => RegType::Bytes(bytes.len()),
-        // TODO not machine independent, but good enough for now
-        Insn::Global(_) => RegType::Bytes(8),
-        Insn::Part { size, .. } => RegType::Bytes(size as usize),
-        Insn::Get(arg) => prog.reg_type(arg),
-        Insn::Concat { lo, hi } => {
-            let Some(lo_size) = prog.reg_type(lo).bytes_size() else {
-                return RegType::Error;
-            };
-            let Some(hi_size) = prog.reg_type(hi).bytes_size() else {
-                return RegType::Error;
-            };
-            RegType::Bytes(lo_size + hi_size)
-        }
-        Insn::Widen {
-            reg: _,
-            target_size,
-            sign: _,
-        } => RegType::Bytes(target_size as usize),
-        Insn::Arith(_, a, b) => {
-            let at = prog.reg_type(a);
-            let bt = prog.reg_type(b);
-            // TODO check this some better way?
-            if at != bt {
-                RegType::Error
-            } else if let RegType::Bytes(sz) = at {
-                RegType::Bytes(sz * 2)
-            } else {
-                RegType::Error
+    /// Initialize a RegMap<State> from the already-constructed state of an
+    /// existing Program.
+    ///
+    /// Useful to extend the Program with more instructions.
+    pub(super) fn init_from_program(prog: &Program) -> RegMap<State> {
+        RegMap::for_program(prog, State::Completed)
+    }
+
+    pub(super) fn fill(prog: &mut Program, state: &mut RegMap<State>) {
+        for reg in prog.registers() {
+            if let Err(Error::CycleEncountered) = infer_one_reg(reg, state, prog) {
+                panic!("can't infer RegType for {reg:?} (no data paths without cycles? pathologic DFG?)");
             }
         }
-        Insn::ArithK(_, a, _) => match prog.reg_type(a) {
-            RegType::Bytes(sz) => RegType::Bytes(sz * 2),
-            _ => RegType::Error,
-        },
+    }
 
-        Insn::Cmp(_, _, _) => RegType::Bool,
-        Insn::Bool(_, _, _) => RegType::Bool,
-        Insn::Not(_) => RegType::Bool,
-        // TODO This might have to change based on the use of calling
-        // convention and function type info
-        Insn::Call { .. } => RegType::Bytes(8),
-        Insn::CArg { value, next_arg: _ } => prog.reg_type(value),
+    #[derive(Debug)]
+    pub(super) enum Error {
+        CycleEncountered,
+    }
+    pub(super) type Result = std::result::Result<mil::RegType, Error>;
 
-        Insn::SetReturnValue(_)
-        | Insn::SetJumpTarget(_)
-        | Insn::SetJumpCondition(_)
-        | Insn::Control(_)
-        | Insn::NotYetImplemented(_)
-        | Insn::StoreMem { .. }
-        | Insn::Upsilon { .. } => RegType::Effect,
+    pub(super) fn infer_one_reg(
+        reg: mil::Reg,
+        state: &mut RegMap<State>,
+        prog: &mut Program,
+    ) -> Result {
+        // NOTE: `prog.reg_type` MUST NOT be called here:
+        //   the reg types fetched by prog.reg_type, we're computing them here!
+        //   the result of prog.reg_type would have no meaning here
 
-        Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
-        Insn::OverflowOf(_) => RegType::Bool,
-        Insn::CarryOf(_) => RegType::Bool,
-        Insn::SignOf(_) => RegType::Bool,
-        Insn::IsZero(_) => RegType::Bool,
-        Insn::Parity(_) => RegType::Bool,
-        Insn::UndefinedBool => RegType::Bool,
-        Insn::UndefinedBytes { size } => RegType::Bytes(size as usize),
-        Insn::Phi => {
-            // must be determined by the complete RegType assignment algorithm,
-            // not via simple inference
-            let mut upsilon_rts = prog
-                .upsilons_of_phi(reg)
-                .map(|ups_desc| prog.reg_type(ups_desc.input_reg));
+        match state[reg] {
+            State::Pending => {}
+            State::Doing => return Err(Error::CycleEncountered),
+            State::Completed => {
+                let rt = prog.reg_type(reg);
+                return Ok(rt);
+            }
+        }
 
-            let rt = upsilon_rts.next().expect("no upsilons?!");
-            for other_rt in upsilon_rts {
-                if rt != other_rt {
-                    return RegType::Error;
+        state[reg] = State::Doing;
+
+        let rt = 'rt: {
+            match prog.get(reg).unwrap() {
+                Insn::Void => RegType::Bytes(0),
+                Insn::True => RegType::Bool,
+                Insn::False => RegType::Bool,
+                Insn::Int { size, .. } => RegType::Bytes(size as usize),
+                Insn::Bytes(bytes) => RegType::Bytes(bytes.len()),
+                // TODO not machine independent, but good enough for now
+                Insn::Global(_) => RegType::Bytes(8),
+                Insn::Part { size, .. } => RegType::Bytes(size as usize),
+                Insn::Get(arg) => infer_one_reg(arg, state, prog)?,
+                Insn::Concat { lo, hi } => {
+                    let lo_size = infer_one_reg(lo, state, prog)?
+                        .bytes_size()
+                        .expect("Insn::Concat: lo must be RegType::Bytes");
+                    let hi_size = infer_one_reg(hi, state, prog)?
+                        .bytes_size()
+                        .expect("Insn::Concat: hi must be RegType::Bytes");
+                    RegType::Bytes(lo_size + hi_size)
                 }
+                Insn::Widen {
+                    reg: _,
+                    target_size,
+                    sign: _,
+                } => RegType::Bytes(target_size as usize),
+                Insn::Arith(_, a, b) => {
+                    let at = infer_one_reg(a, state, prog)?;
+                    let bt = infer_one_reg(b, state, prog)?;
+                    assert_eq!(
+                        at, bt,
+                        "{reg:?}: Insn::Arith: operands have different RegType ({at:?}, {bt:?})"
+                    );
+                    let RegType::Bytes(sz) = at else {
+                        panic!("{reg:?}: Insn::Arith: `a` must be RegType::Bytes");
+                    };
+
+                    RegType::Bytes(sz)
+                }
+                Insn::ArithK(_, a, _) => {
+                    let RegType::Bytes(sz) = infer_one_reg(a, state, prog)? else {
+                        panic!("{reg:?}: Insn::ArithK: `a` must be RegType::Bytes");
+                    };
+                    RegType::Bytes(sz)
+                }
+
+                Insn::Cmp(_, _, _) => RegType::Bool,
+                Insn::Bool(_, _, _) => RegType::Bool,
+                Insn::Not(_) => RegType::Bool,
+                // TODO This might have to change based on the use of calling
+                // convention and function type info
+                Insn::Call { .. } => RegType::Bytes(8),
+                Insn::CArg { value, next_arg: _ } => infer_one_reg(value, state, prog)?,
+
+                Insn::SetReturnValue(_)
+                | Insn::SetJumpTarget(_)
+                | Insn::SetJumpCondition(_)
+                | Insn::Control(_)
+                | Insn::NotYetImplemented(_)
+                | Insn::StoreMem { .. }
+                | Insn::Upsilon { .. } => RegType::Effect,
+
+                Insn::LoadMem { size, .. } => RegType::Bytes(size as usize),
+                Insn::OverflowOf(_) => RegType::Bool,
+                Insn::CarryOf(_) => RegType::Bool,
+                Insn::SignOf(_) => RegType::Bool,
+                Insn::IsZero(_) => RegType::Bool,
+                Insn::Parity(_) => RegType::Bool,
+                Insn::UndefinedBool => RegType::Bool,
+                Insn::UndefinedBytes { size } => RegType::Bytes(size as usize),
+                Insn::Phi => {
+                    // phis may introduce cycles in the data flow graph, but we can
+                    // determine the phi node's type by discarding those cycles from
+                    // the analysis done here.
+                    //
+                    // no check here, only inference
+
+                    let upsilons: SmallVec<[_; 4]> = prog
+                        .upsilons_of_phi(reg)
+                        .map(|UpsilonDesc { input_reg, .. }| input_reg)
+                        .collect();
+
+                    for input_reg in upsilons {
+                        match infer_one_reg(input_reg, state, prog) {
+                            Ok(rt) => break 'rt rt,
+                            Err(Error::CycleEncountered) => {}
+                        }
+                    }
+
+                    panic!("{reg:?}: in this Phi node all Upsilons lead to cycles!");
+                }
+                Insn::FuncArgument { reg_type, .. } => reg_type,
+                Insn::Ancestral { reg_type, .. } => reg_type,
+                Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
+                Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
+                Insn::Struct { size, .. } => RegType::Bytes(size as usize),
+                Insn::StructMember { value, .. } => infer_one_reg(value, state, prog)?,
             }
-            rt
-        }
-        Insn::FuncArgument { reg_type, .. } => reg_type,
-        Insn::Ancestral { reg_type, .. } => reg_type,
-        Insn::StructGetMember { size, .. } => RegType::Bytes(size as usize),
-        Insn::ArrayGetElement { size, .. } => RegType::Bytes(size as usize),
-        Insn::Struct { size, .. } => RegType::Bytes(size as usize),
-        Insn::StructMember { value, .. } => prog.reg_type(value),
+        };
+
+        state[reg] = State::Completed;
+        prog.reg_types[reg.0 as usize] = rt;
+        Ok(rt)
     }
 }
 
-/// A wrapper for a Program that allows editing/mutation.
+/// A wrapper of a Program, that allows editing/mutation.
+///
+/// # Notes on RegTypes
+///
+/// In order to maintain consistency, it is *forbidden* to change an instruction
+/// to one with a different RegType, or in such a way that unresolvable cyclic
+/// dependencies between RegTypes are introduced (via phi nodes that don't
+/// have an independent RegType).
+///
+/// No problem for added instructions  (e.g. [Self::append_existing],
+/// [Self::append_new]). (Implementation note: Some effort is required in terms
+/// of bookkeeping to make this work without externally-visible hassle.)
 ///
 /// # Panics
 ///
@@ -633,10 +695,37 @@ fn infer_reg_type(reg: mil::Reg, prog: &Program) -> mil::RegType {
 /// invariants and panic if any is violated.
 pub struct OpenProgram<'a> {
     program: &'a mut Program,
+
+    // This RegMap only exists in order to allow us to call infer_one_reg for
+    // new registers.
+    rt_infer_state: RegMap<rt_infer::State>,
 }
 impl<'a> OpenProgram<'a> {
     pub fn wrap(program: &'a mut Program) -> Self {
-        OpenProgram { program }
+        let rt_infer_state = rt_infer::init_from_program(program);
+        OpenProgram {
+            program,
+            rt_infer_state,
+        }
+    }
+
+    /// Set the defining instruction for the given register.
+    ///
+    /// Returns `true` if the operation is completed successfully. Returns `false` on
+    /// failure (the register is invalid for this SSA program.)
+    pub fn set(&mut self, reg: mil::Reg, insn: mil::Insn) -> bool {
+        let Some(cell) = self.insns.get(reg.reg_index() as usize) else {
+            return false;
+        };
+        cell.set(insn);
+
+        let old_rt = self.reg_type(reg);
+        self.rt_infer_state[reg] = rt_infer::State::Pending;
+        // panics if an unresolvable cyclic RegType dependency is introduced
+        rt_infer::infer_one_reg(reg, &mut self.rt_infer_state, &mut self.program).unwrap();
+        assert_eq!(old_rt, self.reg_type(reg));
+
+        true
     }
 
     /// Add a new instruction to the set of values
@@ -651,19 +740,17 @@ impl<'a> OpenProgram<'a> {
     /// [Program::assert_invariants].
     fn add_insn(&mut self, insn: mil::Insn) -> mil::Reg {
         let ndx = self.insns.len().try_into().unwrap();
+        let reg = mil::Reg(ndx);
+
         self.program.insns.push(Cell::new(insn));
         self.program.addrs.push(u64::MAX);
         self.program.tyids.push(None);
+        self.program.reg_types.push(mil::RegType::Effect);
+        self.rt_infer_state.push(rt_infer::State::Pending);
+        // panics if an unresolvable cyclic RegType dependency is introduced
+        rt_infer::infer_one_reg(reg, &mut self.rt_infer_state, &mut self.program).unwrap();
 
-        let reg = mil::Reg(ndx);
-        // NOTE infer_reg_type is in this weird situation where it requires
-        // `self.get(reg)` to work, but not Program::reg_types to be valid for
-        // `reg` (the new register). It's sufficient that reg_types is valid for
-        // all inputs.
-        self.program
-            .reg_types
-            .push(infer_reg_type(mil::Reg(ndx), self.program));
-
+        assert_eq!(self.program.reg_count(), self.rt_infer_state.reg_count());
         reg
     }
 
@@ -684,7 +771,6 @@ impl<'a> OpenProgram<'a> {
         insn.assert_valid();
         let reg = self.add_insn(insn);
         self.program.schedule.append(reg.reg_index(), bid);
-        event!(Level::TRACE, ?bid, ?insn, ?reg, "append_new");
         reg
     }
     /// Append an existing instruction (identified by the given [Reg]) at the end
@@ -700,7 +786,6 @@ impl<'a> OpenProgram<'a> {
     /// Failing to uphold them will result in a panic at that time.
     pub fn append_existing(&mut self, bid: cfg::BlockID, reg: mil::Reg) {
         self.program.schedule.append(reg.reg_index(), bid);
-        self.program.refresh_reg_type(reg);
     }
 
     pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
@@ -819,6 +904,10 @@ impl<T: Clone> RegMap<T> {
         let elements: Vec<_> = self.items().map(|(reg, value)| f(reg, value)).collect();
         assert_eq!(elements.len(), self.0.len());
         RegMap(elements)
+    }
+
+    pub(crate) fn push(&mut self, value: T) {
+        self.0.push(value);
     }
 }
 // unit tests for empty RegMap:
@@ -954,7 +1043,7 @@ mod input_chain_tests {
 #[cfg(test)]
 mod tests {
 
-    use crate::mil;
+    use crate::{mil, RegType};
     use mil::{ArithOp, Control, Insn, Reg};
 
     #[test]
@@ -1004,9 +1093,12 @@ mod tests {
     #[test]
     #[should_panic]
     fn circular_graph_detected_pos() {
-        let prog = make_prog_no_cycles();
-        // introduce cycle:
-        prog.set(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(2)));
+        let mut prog = make_prog_no_cycles();
+        {
+            let mut prog = super::OpenProgram::wrap(&mut prog);
+            // introduce cycle:
+            prog.set(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(2)));
+        }
         prog.assert_no_circular_refs();
     }
 
@@ -1040,5 +1132,29 @@ mod tests {
         assert_eq!(ssa_prog.machine_addr(Reg(1)), Some(0x1008));
         assert_eq!(ssa_prog.machine_addr(Reg(2)), Some(0x1010));
         assert_eq!(ssa_prog.machine_addr(Reg(3)), None); // Invalid reg
+    }
+
+    #[test]
+    #[should_panic]
+    fn reg_type_invalidation() {
+        let mut prog = {
+            let mut prog = mil::Program::new(Reg(0));
+            prog.push(Reg(0), Insn::Int { value: 42, size: 8 });
+            prog.push(Reg(1), Insn::Get(mil::Reg(0)));
+            prog.push(Reg(2), Insn::Get(mil::Reg(1)));
+            prog.push(Reg(3), Insn::SetReturnValue(mil::Reg(2)));
+            super::Program::from_mil(prog)
+        };
+
+        assert_eq!(prog.reg_type(mil::Reg(0)), RegType::Bytes(8));
+        assert_eq!(prog.reg_type(mil::Reg(1)), RegType::Bytes(8));
+        assert_eq!(prog.reg_type(mil::Reg(2)), RegType::Bytes(8));
+
+        {
+            let mut prog = super::OpenProgram::wrap(&mut prog);
+            // with this, the type of r0 changes, and so should the other two
+            // registers' types.
+            prog.set(mil::Reg(0), Insn::Int { value: 42, size: 4 });
+        }
     }
 }

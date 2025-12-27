@@ -121,41 +121,41 @@ ssa program  98 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
   (  4)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
          r44: Bytes(8) <- Int { value: 0, size: 8 }
-         r45: Bytes(16) <- Arith(Add, r44, r42)
+         r45: Bytes(8) <- Arith(Add, r44, r42)
   (  2)  r46: Bytes(8) <- LoadMem { addr: r45, size: 8 }
-  (  5)  r48: Bytes(16) <- Arith(BitAnd, r46, r46)
+  (  5)  r48: Bytes(8) <- Arith(BitAnd, r46, r46)
          r50: Bool <- IsZero(r48)
          r55: Effect <- SetJumpCondition(r50)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
          r57: Bytes(8) <- Int { value: 8, size: 8 }
-         r58: Bytes(16) <- Arith(Add, r57, r42)
+         r58: Bytes(8) <- Arith(Add, r57, r42)
          r59: Bytes(4) <- LoadMem { addr: r58, size: 4 }
   (  2)  r60: Bytes(8) <- Widen { reg: r59, target_size: 8, sign: false }
          r62: Bytes(4) <- Part { src: r60, offset: 0, size: 4 }
          r63: Bytes(4) <- Part { src: r60, offset: 0, size: 4 }
-         r64: Bytes(8) <- Arith(BitAnd, r62, r63)
+         r64: Bytes(4) <- Arith(BitAnd, r62, r63)
          r66: Bool <- IsZero(r64)
          r71: Bool <- Not(r66)
          r72: Effect <- SetJumpCondition(r71)
 .B2:    ;; preds:B1  → Always(Return).
          r74: Bytes(8) <- Int { value: 8, size: 8 }
-         r75: Error <- Arith(Add, r74, r48)
+         r75: Bytes(8) <- Arith(Add, r74, r48)
          r76: Bytes(8) <- LoadMem { addr: r75, size: 8 }
          r78: Bytes(8) <- Int { value: 0, size: 8 }
-         r79: Bytes(16) <- Arith(Add, r78, r42)
+         r79: Bytes(8) <- Arith(Add, r78, r42)
          r80: Effect <- StoreMem { addr: r79, value: r76 }
-         r82: Bytes(16) <- Concat { lo: r81, hi: r48 }
+         r82: Bytes(8) <- Concat { lo: r81, hi: r48 }
          r83: Bytes(8) <- Part { src: r82, offset: 0, size: 8 }
          r84: Effect <- SetReturnValue(r83)
 .B3:    ;; preds:B1  → Always(Block(BlockID(4))).
          r86: Bytes(8) <- Int { value: 0, size: 8 }
-         r87: Error <- Arith(Add, r86, r48)
+         r87: Bytes(8) <- Arith(Add, r86, r48)
          r88: Bytes(8) <- LoadMem { addr: r87, size: 8 }
          r90: Bytes(8) <- Int { value: 0, size: 8 }
-         r91: Bytes(16) <- Arith(Add, r90, r42)
+         r91: Bytes(8) <- Arith(Add, r90, r42)
          r92: Effect <- StoreMem { addr: r91, value: r88 }
 .B4:    ;; preds:B0,B3  → Always(Return).
-         r94: Bytes(16) <- Concat { lo: r93, hi: r48 }
+         r94: Bytes(8) <- Concat { lo: r93, hi: r48 }
          r95: Bytes(8) <- Part { src: r94, offset: 0, size: 8 }
          r96: Effect <- SetReturnValue(r95)
 

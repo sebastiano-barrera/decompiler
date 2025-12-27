@@ -676,67 +676,67 @@ ssa program  576 instrs
          r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
   (  2)  r16: Bytes(8) <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
   ( 27)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
-  (  2)  r44: Bytes(16) <- ArithK(Add, r10, -8)
+  (  2)  r44: Bytes(8) <- ArithK(Add, r10, -8)
          r45: Effect <- StoreMem { addr: r44, value: r9 }
          r46: Bytes(8) <- Int { value: 12, size: 8 }
-  (  5)  r47: Bytes(16) <- Arith(Add, r46, r42)
-         r49: Bytes(32) <- ArithK(Add, r44, -8)
+  (  5)  r47: Bytes(8) <- Arith(Add, r46, r42)
+         r49: Bytes(8) <- ArithK(Add, r44, -8)
          r50: Effect <- StoreMem { addr: r49, value: r15 }
          r61: Bytes(4) <- Int { value: 0, size: 4 }
          r62: Bytes(8) <- Int { value: 8, size: 8 }
-         r63: Bytes(16) <- Arith(Add, r62, r42)
+         r63: Bytes(8) <- Arith(Add, r62, r42)
          r64: Effect <- StoreMem { addr: r63, value: r61 }
          r66: Bytes(8) <- Int { value: 4199136, size: 8 }
-         r69: Bytes(16) <- CArg { value: r47, next_arg: None }
+         r69: Bytes(8) <- CArg { value: r47, next_arg: None }
          r70: Bytes(8) <- Call { callee: r66, first_arg: Some(r69) }
          r80: Bytes(8) <- Part { src: r70, offset: 0, size: 8 }
          r82: Bytes(4) <- Part { src: r13, offset: 0, size: 4 }
          r83: Bytes(4) <- Part { src: r13, offset: 0, size: 4 }
-         r84: Bytes(8) <- Arith(BitXor, r82, r83)
+         r84: Bytes(4) <- Arith(BitXor, r82, r83)
   (  2)  r85: Bytes(8) <- Widen { reg: r84, target_size: 8, sign: false }
          r94: Bytes(8) <- Int { value: 4199488, size: 8 }
          r95: Bytes(8) <- Call { callee: r94, first_arg: None }
          r105: Bytes(8) <- Int { value: 256, size: 8 }
-         r106: Bytes(16) <- Arith(Add, r105, r42)
+         r106: Bytes(8) <- Arith(Add, r105, r42)
   (  2)  r107: Bytes(8) <- LoadMem { addr: r106, size: 8 }
-  (  2)  r109: Bytes(16) <- Arith(BitAnd, r107, r107)
+  (  2)  r109: Bytes(8) <- Arith(BitAnd, r107, r107)
          r111: Bool <- IsZero(r109)
          r116: Effect <- SetJumpCondition(r111)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(2)) }.
          r118: Bytes(8) <- Int { value: 0, size: 8 }
-         r119: Bytes(16) <- Arith(Add, r118, r42)
+         r119: Bytes(8) <- Arith(Add, r118, r42)
   (  2)  r120: Bytes(8) <- LoadMem { addr: r119, size: 8 }
          r122: Bytes(8) <- Int { value: 8, size: 8 }
-         r123: Bytes(16) <- Arith(Add, r122, r120)
+         r123: Bytes(8) <- Arith(Add, r122, r120)
   (  2)  r124: Bytes(8) <- LoadMem { addr: r123, size: 8 }
-  (  3)  r126: Bytes(16) <- Arith(BitAnd, r124, r124)
+  (  3)  r126: Bytes(8) <- Arith(BitAnd, r124, r124)
          r128: Bool <- IsZero(r126)
          r133: Effect <- SetJumpCondition(r128)
          r575: Effect <- Upsilon { value: r120, phi_ref: r568 }
 .B2:    ;; preds:B1  → Always(Block(BlockID(3))).
          r135: Bytes(8) <- CArg { value: r16, next_arg: None }
-         r136: Bytes(16) <- CArg { value: r126, next_arg: Some(r135) }
+         r136: Bytes(8) <- CArg { value: r126, next_arg: Some(r135) }
          r137: Bytes(8) <- CArg { value: r85, next_arg: Some(r136) }
-         r138: Bytes(16) <- CArg { value: r109, next_arg: Some(r137) }
+         r138: Bytes(8) <- CArg { value: r109, next_arg: Some(r137) }
          r139: Bytes(8) <- Call { callee: r126, first_arg: Some(r138) }
          r150: Bytes(8) <- Int { value: 0, size: 8 }
          r151: Bytes(8) <- Int { value: 256, size: 8 }
-         r152: Bytes(16) <- Arith(Add, r151, r42)
+         r152: Bytes(8) <- Arith(Add, r151, r42)
          r153: Effect <- StoreMem { addr: r152, value: r150 }
 .B3:    ;; preds:B0,B2  → Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(4)) }.
          r154: Bytes(8) <- Int { value: 0, size: 8 }
-         r155: Bytes(16) <- Arith(Add, r154, r42)
+         r155: Bytes(8) <- Arith(Add, r154, r42)
   (  2)  r156: Bytes(8) <- LoadMem { addr: r155, size: 8 }
-  (  2)  r158: Bytes(16) <- Arith(BitAnd, r156, r156)
+  (  2)  r158: Bytes(8) <- Arith(BitAnd, r156, r156)
          r160: Bool <- IsZero(r158)
          r165: Effect <- SetJumpCondition(r160)
          r574: Effect <- Upsilon { value: r158, phi_ref: r568 }
 .B4:    ;; preds:B1,B3  → Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(5)) }.
-         r568: Error <- Phi
+         r568: Bytes(8) <- Phi
          r167: Bytes(8) <- Int { value: 0, size: 8 }
-         r168: Error <- Arith(Add, r167, r568)
+         r168: Bytes(8) <- Arith(Add, r167, r568)
   (  2)  r169: Bytes(8) <- LoadMem { addr: r168, size: 8 }
-  (  2)  r171: Bytes(16) <- Arith(BitAnd, r169, r169)
+  (  2)  r171: Bytes(8) <- Arith(BitAnd, r169, r169)
          r173: Bool <- IsZero(r171)
          r178: Effect <- SetJumpCondition(r173)
 .B5:    ;; preds:B4  → Always(Block(BlockID(6))).
@@ -747,13 +747,13 @@ ssa program  576 instrs
          r185: Bytes(8) <- Call { callee: r171, first_arg: Some(r184) }
 .B6:    ;; preds:B3,B4,B5  → Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(7)) }.
          r196: Bytes(8) <- Int { value: 152, size: 8 }
-         r197: Bytes(16) <- Arith(Add, r196, r42)
+         r197: Bytes(8) <- Arith(Add, r196, r42)
          r198: Bytes(8) <- LoadMem { addr: r197, size: 8 }
          r200: Bytes(8) <- Int { value: 5857392, size: 8 }
          r203: Bytes(8) <- CArg { value: r198, next_arg: None }
          r204: Bytes(8) <- Call { callee: r200, first_arg: Some(r203) }
          r214: Bytes(8) <- Int { value: 160, size: 8 }
-         r215: Bytes(16) <- Arith(Add, r214, r42)
+         r215: Bytes(8) <- Arith(Add, r214, r42)
          r216: Bytes(8) <- LoadMem { addr: r215, size: 8 }
          r218: Bytes(8) <- Int { value: 5871760, size: 8 }
          r221: Bytes(8) <- CArg { value: r216, next_arg: None }
@@ -762,58 +762,58 @@ ssa program  576 instrs
          r233: Bytes(8) <- Call { callee: r232, first_arg: None }
          r243: Bytes(8) <- Part { src: r233, offset: 0, size: 8 }
          r244: Bytes(8) <- Int { value: 152, size: 8 }
-         r245: Bytes(16) <- Arith(Add, r244, r42)
+         r245: Bytes(8) <- Arith(Add, r244, r42)
          r246: Effect <- StoreMem { addr: r245, value: r243 }
          r247: Bytes(8) <- Int { value: 5852912, size: 8 }
          r248: Bytes(8) <- Call { callee: r247, first_arg: None }
   (  3)  r258: Bytes(8) <- Part { src: r248, offset: 0, size: 8 }
          r259: Bytes(8) <- Int { value: 152, size: 8 }
-         r260: Bytes(16) <- Arith(Add, r259, r42)
+         r260: Bytes(8) <- Arith(Add, r259, r42)
          r261: Bytes(8) <- LoadMem { addr: r260, size: 8 }
          r262: Bytes(8) <- Int { value: 0, size: 8 }
-         r263: Bytes(16) <- Arith(Sub, r261, r262)
+         r263: Bytes(8) <- Arith(Sub, r261, r262)
          r267: Bool <- IsZero(r263)
          r270: Bytes(8) <- Int { value: 160, size: 8 }
-         r271: Bytes(16) <- Arith(Add, r270, r42)
+         r271: Bytes(8) <- Arith(Add, r270, r42)
          r272: Effect <- StoreMem { addr: r271, value: r258 }
          r273: Effect <- SetJumpCondition(r267)
 .B7:    ;; preds:B6  → Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(8)) }.
-         r275: Bytes(16) <- Arith(BitAnd, r258, r258)
+         r275: Bytes(8) <- Arith(BitAnd, r258, r258)
          r277: Bool <- IsZero(r275)
          r282: Effect <- SetJumpCondition(r277)
 .B8:    ;; preds:B7  → Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(9)) }.
          r284: Bytes(8) <- Int { value: 168, size: 8 }
-         r285: Bytes(16) <- Arith(Add, r284, r42)
+         r285: Bytes(8) <- Arith(Add, r284, r42)
          r286: Bytes(4) <- LoadMem { addr: r285, size: 4 }
   (  3)  r287: Bytes(8) <- Widen { reg: r286, target_size: 8, sign: false }
          r289: Bytes(4) <- Part { src: r287, offset: 0, size: 4 }
          r290: Bytes(4) <- Part { src: r287, offset: 0, size: 4 }
-         r291: Bytes(8) <- Arith(BitAnd, r289, r290)
+         r291: Bytes(4) <- Arith(BitAnd, r289, r290)
          r293: Bool <- IsZero(r291)
          r298: Effect <- SetJumpCondition(r293)
 .B9:    ;; preds:B8  → Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(10)) }.
          r300: Bytes(4) <- Part { src: r287, offset: 0, size: 4 }
          r301: Bytes(4) <- Int { value: 1, size: 4 }
-         r302: Bytes(8) <- Arith(Sub, r300, r301)
+         r302: Bytes(4) <- Arith(Sub, r300, r301)
          r306: Bool <- IsZero(r302)
          r309: Effect <- SetJumpCondition(r306)
 .B10:    ;; preds:B9  → Always(Block(BlockID(11))).
          r311: Bytes(8) <- Int { value: 7007800, size: 8 }
-         r312: Bytes(16) <- Arith(Add, r311, r11)
+         r312: Bytes(8) <- Arith(Add, r311, r11)
          r314: Bytes(4) <- Int { value: 2, size: 4 }
          r315: Bytes(8) <- Widen { reg: r314, target_size: 8, sign: false }
          r321: Bytes(8) <- Int { value: 5852656, size: 8 }
          r326: Bytes(4) <- Part { src: r315, offset: 0, size: 4 }
-         r329: Bytes(16) <- CArg { value: r312, next_arg: None }
+         r329: Bytes(8) <- CArg { value: r312, next_arg: None }
          r330: Bytes(4) <- CArg { value: r326, next_arg: Some(r329) }
          r331: Bytes(8) <- CArg { value: r42, next_arg: Some(r330) }
          r332: Bytes(8) <- Call { callee: r321, first_arg: Some(r331) }
 .B15:    ;; preds:B9  → Always(Block(BlockID(11))).
          r405: Bytes(8) <- Int { value: 176, size: 8 }
-         r406: Bytes(16) <- Arith(Add, r405, r42)
+         r406: Bytes(8) <- Arith(Add, r405, r42)
          r407: Bytes(8) <- LoadMem { addr: r406, size: 8 }
          r409: Bytes(8) <- Int { value: 216, size: 8 }
-         r410: Bytes(16) <- Arith(Add, r409, r42)
+         r410: Bytes(8) <- Arith(Add, r409, r42)
          r411: Bytes(8) <- LoadMem { addr: r410, size: 8 }
          r414: Bytes(8) <- Int { value: 5845200, size: 8 }
          r421: Bytes(8) <- CArg { value: r407, next_arg: None }
@@ -822,17 +822,17 @@ ssa program  576 instrs
          r424: Bytes(8) <- Call { callee: r414, first_arg: Some(r423) }
 .B16:    ;; preds:B8  → Always(Block(BlockID(11))).
          r439: Bytes(8) <- Int { value: 176, size: 8 }
-         r440: Bytes(16) <- Arith(Add, r439, r42)
+         r440: Bytes(8) <- Arith(Add, r439, r42)
          r441: Bytes(8) <- LoadMem { addr: r440, size: 8 }
          r443: Bytes(8) <- Int { value: 208, size: 8 }
-         r444: Bytes(16) <- Arith(Add, r443, r42)
+         r444: Bytes(8) <- Arith(Add, r443, r42)
          r445: Bytes(4) <- LoadMem { addr: r444, size: 4 }
          r446: Bytes(8) <- Widen { reg: r445, target_size: 8, sign: false }
          r449: Bytes(8) <- Int { value: 192, size: 8 }
-         r450: Bytes(16) <- Arith(Add, r449, r42)
+         r450: Bytes(8) <- Arith(Add, r449, r42)
          r451: Bytes(8) <- LoadMem { addr: r450, size: 8 }
          r453: Bytes(8) <- Int { value: 200, size: 8 }
-         r454: Bytes(16) <- Arith(Add, r453, r42)
+         r454: Bytes(8) <- Arith(Add, r453, r42)
          r455: Bytes(8) <- LoadMem { addr: r454, size: 8 }
          r457: Bytes(8) <- Int { value: 5845184, size: 8 }
          r464: Bytes(4) <- Part { src: r446, offset: 0, size: 4 }
@@ -844,27 +844,27 @@ ssa program  576 instrs
          r474: Bytes(8) <- Call { callee: r457, first_arg: Some(r473) }
 .B11:    ;; preds:B10,B15,B16  → Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(12)) }.
          r342: Bytes(8) <- Int { value: 184, size: 8 }
-         r343: Bytes(16) <- Arith(Add, r342, r42)
+         r343: Bytes(8) <- Arith(Add, r342, r42)
   (  2)  r344: Bytes(8) <- LoadMem { addr: r343, size: 8 }
-         r346: Bytes(16) <- Arith(BitAnd, r344, r344)
+         r346: Bytes(8) <- Arith(BitAnd, r344, r344)
          r348: Bool <- IsZero(r346)
          r353: Effect <- SetJumpCondition(r348)
          r571: Effect <- Upsilon { value: r47, phi_ref: r569 }
 .B12:    ;; preds:B11  → Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(13)) }.
          r355: Bytes(8) <- Int { value: 144, size: 8 }
-         r356: Bytes(16) <- Arith(Add, r355, r42)
+         r356: Bytes(8) <- Arith(Add, r355, r42)
          r357: Bytes(1) <- LoadMem { addr: r356, size: 1 }
          r358: Bytes(1) <- Int { value: 1, size: 1 }
-         r359: Bytes(2) <- Arith(BitAnd, r357, r358)
+         r359: Bytes(1) <- Arith(BitAnd, r357, r358)
          r361: Bool <- IsZero(r359)
          r366: Effect <- SetJumpCondition(r361)
          r572: Effect <- Upsilon { value: r47, phi_ref: r569 }
 .B13:    ;; preds:B12  → Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(14)) }.
          r368: Bytes(8) <- Int { value: 140, size: 8 }
-         r369: Bytes(16) <- Arith(Add, r368, r42)
+         r369: Bytes(8) <- Arith(Add, r368, r42)
          r370: Bytes(4) <- LoadMem { addr: r369, size: 4 }
          r371: Bytes(4) <- Int { value: -1, size: 4 }
-         r372: Bytes(8) <- Arith(Sub, r370, r371)
+         r372: Bytes(4) <- Arith(Sub, r370, r371)
          r376: Bool <- IsZero(r372)
          r379: Bool <- Not(r376)
          r380: Effect <- SetJumpCondition(r379)
@@ -880,20 +880,20 @@ ssa program  576 instrs
          r534: Effect <- SetReturnValue(r533)
 .B18:    ;; preds:B6,B7  → Always(Block(BlockID(14))).
          r536: Bytes(8) <- Int { value: 6951854, size: 8 }
-         r537: Bytes(16) <- Arith(Add, r536, r11)
+         r537: Bytes(8) <- Arith(Add, r536, r11)
          r539: Bytes(4) <- Int { value: 5, size: 4 }
          r540: Bytes(8) <- Widen { reg: r539, target_size: 8, sign: false }
          r543: Bytes(4) <- Int { value: 4294967295, size: 4 }
          r544: Bytes(8) <- Widen { reg: r543, target_size: 8, sign: false }
          r546: Bytes(8) <- Int { value: 5852656, size: 8 }
          r551: Bytes(4) <- Part { src: r540, offset: 0, size: 4 }
-         r554: Bytes(16) <- CArg { value: r537, next_arg: None }
+         r554: Bytes(8) <- CArg { value: r537, next_arg: None }
          r555: Bytes(4) <- CArg { value: r551, next_arg: Some(r554) }
          r556: Bytes(8) <- CArg { value: r42, next_arg: Some(r555) }
          r557: Bytes(8) <- Call { callee: r546, first_arg: Some(r556) }
          r570: Effect <- Upsilon { value: r544, phi_ref: r569 }
 .B14:    ;; preds:B11,B12,B13,B18  → Always(Return).
-         r569: Error <- Phi
+         r569: Bytes(8) <- Phi
          r391: Bytes(4) <- Part { src: r569, offset: 0, size: 4 }
          r392: Bytes(8) <- Widen { reg: r391, target_size: 8, sign: false }
          r401: Bytes(8) <- Concat { lo: r400, hi: r392 }
@@ -952,16 +952,16 @@ ssa program  647 instrs
          r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
   (  2)  r16: Bytes(8) <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
   ( 27)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
-         r44: Bytes(16) <- ArithK(Add, r10, -8)
+         r44: Bytes(8) <- ArithK(Add, r10, -8)
          r45: Effect <- StoreMem { addr: r44, value: r9 }
-  (  5)  r47: Bytes(16) <- ArithK(Add, r42, 12)
-         r49: Bytes(16) <- ArithK(Add, r10, -16)
+  (  5)  r47: Bytes(8) <- ArithK(Add, r42, 12)
+         r49: Bytes(8) <- ArithK(Add, r10, -16)
          r50: Effect <- StoreMem { addr: r49, value: r15 }
          r61: Bytes(4) <- Int { value: 0, size: 4 }
-         r63: Bytes(16) <- ArithK(Add, r42, 8)
+         r63: Bytes(8) <- ArithK(Add, r42, 8)
          r64: Effect <- StoreMem { addr: r63, value: r61 }
          r66: Bytes(8) <- Global("strlen")
-         r69: Bytes(16) <- CArg { value: r47, next_arg: None }
+         r69: Bytes(8) <- CArg { value: r47, next_arg: None }
          r70: Bytes(8) <- Call { callee: r66, first_arg: Some(r69) }
   (  2)  r85: Bytes(8) <- Int { value: 0, size: 8 }
          r94: Bytes(8) <- Global("__builtin_memset")
@@ -973,7 +973,7 @@ ssa program  647 instrs
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(2)) }.
          r583: Bytes(272) <- LoadMem { addr: r42, size: 272 }
   (  2)  r581: Bytes(8) <- StructGetMember { struct_value: r583, name: "funcs", size: 8 }
-         r123: Bytes(16) <- ArithK(Add, r581, 8)
+         r123: Bytes(8) <- ArithK(Add, r581, 8)
   (  3)  r124: Bytes(8) <- LoadMem { addr: r123, size: 8 }
          r128: Bool <- IsZero(r124)
          r133: Effect <- SetJumpCondition(r128)
@@ -985,7 +985,7 @@ ssa program  647 instrs
          r138: Bytes(8) <- CArg { value: r577, next_arg: Some(r137) }
          r139: Bytes(8) <- Call { callee: r124, first_arg: Some(r138) }
          r150: Bytes(8) <- Int { value: 0, size: 8 }
-         r152: Bytes(16) <- ArithK(Add, r42, 256)
+         r152: Bytes(8) <- ArithK(Add, r42, 256)
          r153: Effect <- StoreMem { addr: r152, value: r150 }
 .B3:    ;; preds:B0,B2  → Conditional { pos: Block(BlockID(6)), neg: Block(BlockID(4)) }.
          r587: Bytes(272) <- LoadMem { addr: r42, size: 272 }
@@ -1005,13 +1005,13 @@ ssa program  647 instrs
          r184: Bytes(8) <- CArg { value: r42, next_arg: Some(r183) }
          r185: Bytes(8) <- Call { callee: r169, first_arg: Some(r184) }
 .B6:    ;; preds:B3,B4,B5  → Conditional { pos: Block(BlockID(18)), neg: Block(BlockID(7)) }.
-         r197: Bytes(16) <- ArithK(Add, r42, 152)
+         r197: Bytes(8) <- ArithK(Add, r42, 152)
          r597: Bytes(272) <- LoadMem { addr: r42, size: 272 }
          r589: Bytes(8) <- StructGetMember { struct_value: r597, name: "obuf", size: 8 }
          r200: Bytes(8) <- Global("hi_sdsfree")
          r203: Bytes(8) <- CArg { value: r589, next_arg: None }
          r204: Bytes(8) <- Call { callee: r200, first_arg: Some(r203) }
-         r215: Bytes(16) <- ArithK(Add, r42, 160)
+         r215: Bytes(8) <- ArithK(Add, r42, 160)
          r598: Bytes(272) <- LoadMem { addr: r42, size: 272 }
          r591: Bytes(8) <- StructGetMember { struct_value: r598, name: "reader", size: 8 }
          r218: Bytes(8) <- Global("redisReaderFree")
@@ -1031,19 +1031,19 @@ ssa program  647 instrs
          r277: Bool <- IsZero(r248)
          r282: Effect <- SetJumpCondition(r277)
 .B8:    ;; preds:B7  → Conditional { pos: Block(BlockID(16)), neg: Block(BlockID(9)) }.
-         r285: Bytes(16) <- ArithK(Add, r42, 168)
+         r285: Bytes(8) <- ArithK(Add, r42, 168)
   (  2)  r286: Bytes(4) <- LoadMem { addr: r285, size: 4 }
          r293: Bool <- IsZero(r286)
          r298: Effect <- SetJumpCondition(r293)
 .B9:    ;; preds:B8  → Conditional { pos: Block(BlockID(15)), neg: Block(BlockID(10)) }.
-         r302: Bytes(8) <- ArithK(Add, r286, -1)
+         r302: Bytes(4) <- ArithK(Add, r286, -1)
          r306: Bool <- IsZero(r302)
          r309: Effect <- SetJumpCondition(r306)
 .B10:    ;; preds:B9  → Always(Block(BlockID(11))).
-         r312: Bytes(16) <- ArithK(Add, r11, 7007800)
+         r312: Bytes(8) <- ArithK(Add, r11, 7007800)
          r314: Bytes(4) <- Int { value: 2, size: 4 }
          r321: Bytes(8) <- Global("__redisSetError")
-         r329: Bytes(16) <- CArg { value: r312, next_arg: None }
+         r329: Bytes(8) <- CArg { value: r312, next_arg: None }
          r330: Bytes(4) <- CArg { value: r314, next_arg: Some(r329) }
          r331: Bytes(8) <- CArg { value: r42, next_arg: Some(r330) }
          r332: Bytes(8) <- Call { callee: r321, first_arg: Some(r331) }
@@ -1083,16 +1083,16 @@ ssa program  647 instrs
          r353: Effect <- SetJumpCondition(r348)
          r571: Effect <- Upsilon { value: r47, phi_ref: r569 }
 .B12:    ;; preds:B11  → Conditional { pos: Block(BlockID(14)), neg: Block(BlockID(13)) }.
-         r356: Bytes(16) <- ArithK(Add, r42, 144)
+         r356: Bytes(8) <- ArithK(Add, r42, 144)
          r357: Bytes(1) <- LoadMem { addr: r356, size: 1 }
-         r359: Bytes(2) <- ArithK(BitAnd, r357, 1)
+         r359: Bytes(1) <- ArithK(BitAnd, r357, 1)
          r361: Bool <- IsZero(r359)
          r366: Effect <- SetJumpCondition(r361)
          r572: Effect <- Upsilon { value: r47, phi_ref: r569 }
 .B13:    ;; preds:B12  → Conditional { pos: Block(BlockID(17)), neg: Block(BlockID(14)) }.
          r646: Bytes(272) <- LoadMem { addr: r42, size: 272 }
          r644: Bytes(4) <- StructGetMember { struct_value: r646, name: "fd", size: 4 }
-         r372: Bytes(8) <- ArithK(Add, r644, 1)
+         r372: Bytes(4) <- ArithK(Add, r644, 1)
          r376: Bool <- IsZero(r372)
          r379: Bool <- Not(r376)
          r380: Effect <- SetJumpCondition(r379)
@@ -1104,17 +1104,17 @@ ssa program  647 instrs
          r522: Bytes(4) <- Part { src: r47, offset: 0, size: 4 }
          r534: Effect <- SetReturnValue(r522)
 .B18:    ;; preds:B6,B7  → Always(Block(BlockID(14))).
-         r537: Bytes(16) <- ArithK(Add, r11, 6951854)
+         r537: Bytes(8) <- ArithK(Add, r11, 6951854)
          r539: Bytes(4) <- Int { value: 5, size: 4 }
          r544: Bytes(8) <- Int { value: 4294967295, size: 8 }
          r546: Bytes(8) <- Global("__redisSetError")
-         r554: Bytes(16) <- CArg { value: r537, next_arg: None }
+         r554: Bytes(8) <- CArg { value: r537, next_arg: None }
          r555: Bytes(4) <- CArg { value: r539, next_arg: Some(r554) }
          r556: Bytes(8) <- CArg { value: r42, next_arg: Some(r555) }
          r557: Bytes(8) <- Call { callee: r546, first_arg: Some(r556) }
          r570: Effect <- Upsilon { value: r544, phi_ref: r569 }
 .B14:    ;; preds:B11,B12,B13,B18  → Always(Return).
-         r569: Error <- Phi
+         r569: Bytes(8) <- Phi
          r391: Bytes(4) <- Part { src: r569, offset: 0, size: 4 }
          r403: Effect <- SetReturnValue(r391)
 
