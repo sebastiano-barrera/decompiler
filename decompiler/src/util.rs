@@ -1,3 +1,5 @@
+pub mod bisect;
+
 #[derive(Default)]
 pub struct Warnings(Vec<Box<dyn std::error::Error>>);
 

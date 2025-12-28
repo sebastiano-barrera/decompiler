@@ -6,7 +6,7 @@ use crate::{
     cfg::BlockID,
     mil::{ArithOp, Endianness, Insn, Reg, RegType},
     ssa, ty,
-    util::Bytes,
+    util::{bisect, Bytes},
     x86_to_mil,
 };
 
@@ -779,9 +779,71 @@ fn select_type_on_deref_member_read(
     apply_type_selection(insn, prog, bid, types, reg_pointee_whole, member_range)
 }
 
+const BISECT: bool = true;
+
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 #[tracing::instrument(skip_all)]
 pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
+    if BISECT {
+        let prog = std::panic::AssertUnwindSafe(prog);
+        let panic_flags = bisect::bisect_find_panic(PeepholeFlags::default(), |flags| {
+            let mut prog = prog.clone();
+            peephole(&mut prog, types, flags)
+        });
+        panic!("found panic: {panic_flags:#?}");
+    } else {
+        peephole(prog, types, &PeepholeFlags::default());
+    }
+}
+
+#[derive(Debug)]
+struct PeepholeFlags {
+    level_lo: usize,
+    level_hi: usize,
+}
+
+impl Default for PeepholeFlags {
+    fn default() -> Self {
+        PeepholeFlags {
+            level_lo: 0,
+            level_hi: LEVEL_MAX + 1,
+        }
+    }
+}
+
+impl PeepholeFlags {
+    #[inline(always)]
+    fn is_enabled(&self, ndx: usize) -> bool {
+        self.level_lo <= ndx && ndx < self.level_hi
+    }
+}
+
+impl bisect::BisectState for PeepholeFlags {
+    fn split(&self) -> (Self, Self) {
+        let lo = self.level_lo;
+        let hi = self.level_hi;
+        let mid = lo + (hi - lo) / 2;
+        let left = PeepholeFlags {
+            level_lo: lo,
+            level_hi: mid,
+            ..*self
+        };
+        let right = PeepholeFlags {
+            level_lo: mid,
+            level_hi: hi,
+            ..*self
+        };
+        (left, right)
+    }
+
+    fn is_terminal(&self) -> bool {
+        self.level_hi - self.level_lo <= 1
+    }
+}
+
+/// Perform the standard chain of transformations that we intend to generally apply to programs
+#[tracing::instrument(skip_all)]
+pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFlags) {
     prog.assert_invariants();
 
     // apply transforms in lockstep
@@ -802,7 +864,9 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     // TODO propagate this error
     let rtx = types.read_tx().unwrap();
 
-    propagate_call_types(&mut prog, rtx.read());
+    if flags.is_enabled(0) {
+        propagate_call_types(&mut prog, rtx.read());
+    }
 
     let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
     for bid in bids {
@@ -836,24 +900,60 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
                 if let Some(mem_ref_reg) = mem_ref_reg {
                     insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
                 }
-                insn = pack_aggregates(reg, insn, &mut prog, bid, rtx.read());
-                insn = fold_get(insn, &prog);
-                insn = fold_subregs(insn, &prog);
-                insn = fold_concat_void(insn, &prog);
-                insn = fold_part_part(insn, &prog);
-                insn = fold_part_widen(insn, &prog);
-                insn = fold_part_concat(insn, &prog);
-                insn = fold_part_null(insn, &prog);
-                insn = fold_part_void(insn);
-                insn = fold_part_const(insn, &prog);
-                insn = fold_widen_null(insn, &prog);
-                insn = fold_widen_const(insn, &prog);
-                insn = fold_bitops(insn, &prog);
-                insn = fold_constants(insn, &mut prog, bid);
-                insn = fold_shr_part(insn, &mut prog, bid);
-                insn = select_type_on_deref_member_read(insn, &mut prog, bid, rtx.read());
-                insn = select_type_on_part(insn, &mut prog, bid, rtx.read());
-                insn = pick_callee_name(insn, &mut prog, rtx.read());
+                if flags.is_enabled(2) {
+                    insn = pack_aggregates(reg, insn, &mut prog, bid, rtx.read());
+                }
+                if flags.is_enabled(3) {
+                    insn = fold_get(insn, &prog);
+                }
+                if flags.is_enabled(4) {
+                    insn = fold_subregs(insn, &prog);
+                }
+                if flags.is_enabled(5) {
+                    insn = fold_concat_void(insn, &prog);
+                }
+                if flags.is_enabled(6) {
+                    insn = fold_part_part(insn, &prog);
+                }
+                if flags.is_enabled(7) {
+                    insn = fold_part_widen(insn, &prog);
+                }
+                if flags.is_enabled(8) {
+                    insn = fold_part_concat(insn, &prog);
+                }
+                if flags.is_enabled(9) {
+                    insn = fold_part_null(insn, &prog);
+                }
+                if flags.is_enabled(10) {
+                    insn = fold_part_void(insn);
+                }
+                if flags.is_enabled(11) {
+                    insn = fold_part_const(insn, &prog);
+                }
+                if flags.is_enabled(12) {
+                    insn = fold_widen_null(insn, &prog);
+                }
+                if flags.is_enabled(13) {
+                    insn = fold_widen_const(insn, &prog);
+                }
+                if flags.is_enabled(14) {
+                    insn = fold_bitops(insn, &prog);
+                }
+                if flags.is_enabled(15) {
+                    insn = fold_constants(insn, &mut prog, bid);
+                }
+                if flags.is_enabled(16) {
+                    insn = fold_shr_part(insn, &mut prog, bid);
+                }
+                if flags.is_enabled(17) {
+                    insn = select_type_on_deref_member_read(insn, &mut prog, bid, rtx.read());
+                }
+                if flags.is_enabled(18) {
+                    insn = select_type_on_part(insn, &mut prog, bid, rtx.read());
+                }
+                if flags.is_enabled(19) {
+                    insn = pick_callee_name(insn, &mut prog, rtx.read());
+                }
                 if insn.is_replaceable_with_get() {
                     // replacing a side-effecting instruction with a non-side-effecting
                     // Insn::Get is currently wrong (would be quite complicated to handle)
@@ -873,6 +973,8 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
     event!(Level::TRACE, prog = ? &*prog, "ssa after xform cycle");
 }
+
+const LEVEL_MAX: usize = 19;
 
 /// For each Insn::Call instruction, use the callee's type to assign types to
 /// the argument values.
