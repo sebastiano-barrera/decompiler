@@ -254,6 +254,19 @@ impl Program {
         self.assert_consistent_phis();
         self.assert_carg_chain();
     }
+
+    pub fn mutate<R>(&mut self, block: impl FnOnce(OpenProgram) -> R) -> R {
+        let rt_infer_state = rt_infer::init_from_program(self);
+        let ret = block(OpenProgram {
+            program: self,
+            rt_infer_state,
+        });
+
+        eliminate_dead_code(self);
+        self.assert_invariants();
+
+        ret
+    }
 }
 
 fn int_bytes(value: i64, size: u16, endianness: Endianness) -> Bytes {
@@ -701,31 +714,31 @@ pub struct OpenProgram<'a> {
     rt_infer_state: RegMap<rt_infer::State>,
 }
 impl<'a> OpenProgram<'a> {
-    pub fn wrap(program: &'a mut Program) -> Self {
-        let rt_infer_state = rt_infer::init_from_program(program);
-        OpenProgram {
-            program,
-            rt_infer_state,
-        }
-    }
-
     /// Set the defining instruction for the given register.
     ///
     /// Returns `true` if the operation is completed successfully. Returns `false` on
     /// failure (the register is invalid for this SSA program.)
-    pub fn set(&mut self, reg: mil::Reg, insn: mil::Insn) -> bool {
+    pub fn set(&mut self, reg: mil::Reg, insn: mil::Insn) {
         let Some(cell) = self.insns.get(reg.reg_index() as usize) else {
-            return false;
+            return;
         };
+
+        let orig_insn = cell.get();
+        if orig_insn == insn {
+            return;
+        }
         cell.set(insn);
+        event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
 
         let old_rt = self.reg_type(reg);
         self.rt_infer_state[reg] = rt_infer::State::Pending;
         // panics if an unresolvable cyclic RegType dependency is introduced
         rt_infer::infer_one_reg(reg, &mut self.rt_infer_state, &mut self.program).unwrap();
-        assert_eq!(old_rt, self.reg_type(reg));
-
-        true
+        assert_eq!(
+            old_rt,
+            self.reg_type(reg),
+            "{reg:?} changed type (left -> right)"
+        );
     }
 
     /// Add a new instruction to the set of values
@@ -790,12 +803,6 @@ impl<'a> OpenProgram<'a> {
 
     pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
         self.program.tyids[reg.0 as usize] = tyid;
-    }
-}
-impl Drop for OpenProgram<'_> {
-    fn drop(&mut self) {
-        eliminate_dead_code(&mut self.program);
-        self.program.assert_invariants();
     }
 }
 impl std::ops::Deref for OpenProgram<'_> {
@@ -1094,11 +1101,10 @@ mod tests {
     #[should_panic]
     fn circular_graph_detected_pos() {
         let mut prog = make_prog_no_cycles();
-        {
-            let mut prog = super::OpenProgram::wrap(&mut prog);
+        prog.mutate(|mut prog| {
             // introduce cycle:
             prog.set(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(2)));
-        }
+        });
         prog.assert_no_circular_refs();
     }
 
@@ -1150,11 +1156,10 @@ mod tests {
         assert_eq!(prog.reg_type(mil::Reg(1)), RegType::Bytes(8));
         assert_eq!(prog.reg_type(mil::Reg(2)), RegType::Bytes(8));
 
-        {
-            let mut prog = super::OpenProgram::wrap(&mut prog);
+        prog.mutate(|mut prog| {
             // with this, the type of r0 changes, and so should the other two
             // registers' types.
             prog.set(mil::Reg(0), Insn::Int { value: 42, size: 4 });
-        }
+        });
     }
 }

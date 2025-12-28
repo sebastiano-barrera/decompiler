@@ -784,16 +784,21 @@ const BISECT: bool = true;
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 #[tracing::instrument(skip_all)]
 pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
+    let prog = std::panic::AssertUnwindSafe(prog);
+
     if BISECT {
-        let prog = std::panic::AssertUnwindSafe(prog);
         let panic_flags = bisect::bisect_find_panic(PeepholeFlags::default(), |flags| {
-            let mut prog = prog.clone();
-            peephole(&mut prog, types, flags)
+            let mut prog_copy = prog.clone();
+            println!(" --- trying {:?}", flags);
+            peephole(&mut prog_copy, types, flags);
         });
-        panic!("found panic: {panic_flags:#?}");
-    } else {
-        peephole(prog, types, &PeepholeFlags::default());
+
+        if !panic_flags.is_empty() {
+            panic!(" ### found panic: {panic_flags:#?}");
+        }
     }
+
+    peephole(prog.0, types, &PeepholeFlags::default());
 }
 
 #[derive(Debug)]
@@ -857,121 +862,118 @@ pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFl
     // introduced by earlier transforms is going to be "dereferenced" and will
     // most likely end up dead and eliminated by the time this function returns.
 
-    // TODO make this architecture agnostic
-    let mem_ref_reg = find_mem_ref(prog);
-    let mut prog = ssa::OpenProgram::wrap(prog);
+    prog.mutate(|mut prog| {
+        // TODO make this architecture agnostic
+        let mem_ref_reg = find_mem_ref(&prog);
 
-    // TODO propagate this error
-    let rtx = types.read_tx().unwrap();
+        // TODO propagate this error
+        let rtx = types.read_tx().unwrap();
 
-    if flags.is_enabled(0) {
-        propagate_call_types(&mut prog, rtx.read());
-    }
+        if flags.is_enabled(0) {
+            propagate_call_types(&mut prog, rtx.read());
+        }
 
-    let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
-    for bid in bids {
-        // the deduper is block-local
-        //
-        // this is a limited implementation of the original vision, which had a
-        // single function-shared deduper, but it avoids a bug where an insn is
-        // replaced with another from a non-dominator block (in other words, a
-        // register that does not have a defined value in some cases.)
-        let mut deduper = Deduper::new();
+        let bids: Vec<_> = prog.cfg().block_ids_rpo().collect();
+        for bid in bids {
+            // the deduper is block-local
+            //
+            // this is a limited implementation of the original vision, which had a
+            // single function-shared deduper, but it avoids a bug where an insn is
+            // replaced with another from a non-dominator block (in other words, a
+            // register that does not have a defined value in some cases.)
+            let mut deduper = Deduper::new();
 
-        // the block is passed 3 times so that:
-        //
-        // - instructions added by any of the transforms have a chance to be
-        // seen/processed by the other passes;
-        //
-        // - the process does continue indefinitely, and instead always
-        // terminates
+            // the block is passed 3 times so that:
+            //
+            // - instructions added by any of the transforms have a chance to be
+            // seen/processed by the other passes;
+            //
+            // - the process does continue indefinitely, and instead always
+            // terminates
 
-        for _ in 0..3 {
-            // clear the block's schedule, then reconstruct it.
-            // existing instruction are processed and replaced to keep using the memory they already occupy
-            for reg in prog.clear_block_schedule(bid) {
-                let span = span!(Level::TRACE, "processing", ?reg);
-                let _enter = span.enter();
+            for _ in 0..3 {
+                // clear the block's schedule, then reconstruct it.
+                // existing instruction are processed and replaced to keep using the memory they already occupy
+                for reg in prog.clear_block_schedule(bid) {
+                    let span = span!(Level::TRACE, "processing", ?reg);
+                    let _enter = span.enter();
 
-                let orig_insn = prog.get(reg).unwrap();
-                let orig_has_fx = orig_insn.has_side_effects();
+                    let orig_insn = prog.get(reg).unwrap();
+                    let orig_has_fx = orig_insn.has_side_effects();
 
-                let mut insn = orig_insn;
-                if let Some(mem_ref_reg) = mem_ref_reg {
-                    insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
-                }
-                if flags.is_enabled(2) {
-                    insn = pack_aggregates(reg, insn, &mut prog, bid, rtx.read());
-                }
-                if flags.is_enabled(3) {
-                    insn = fold_get(insn, &prog);
-                }
-                if flags.is_enabled(4) {
-                    insn = fold_subregs(insn, &prog);
-                }
-                if flags.is_enabled(5) {
-                    insn = fold_concat_void(insn, &prog);
-                }
-                if flags.is_enabled(6) {
-                    insn = fold_part_part(insn, &prog);
-                }
-                if flags.is_enabled(7) {
-                    insn = fold_part_widen(insn, &prog);
-                }
-                if flags.is_enabled(8) {
-                    insn = fold_part_concat(insn, &prog);
-                }
-                if flags.is_enabled(9) {
-                    insn = fold_part_null(insn, &prog);
-                }
-                if flags.is_enabled(10) {
-                    insn = fold_part_void(insn);
-                }
-                if flags.is_enabled(11) {
-                    insn = fold_part_const(insn, &prog);
-                }
-                if flags.is_enabled(12) {
-                    insn = fold_widen_null(insn, &prog);
-                }
-                if flags.is_enabled(13) {
-                    insn = fold_widen_const(insn, &prog);
-                }
-                if flags.is_enabled(14) {
-                    insn = fold_bitops(insn, &prog);
-                }
-                if flags.is_enabled(15) {
-                    insn = fold_constants(insn, &mut prog, bid);
-                }
-                if flags.is_enabled(16) {
-                    insn = fold_shr_part(insn, &mut prog, bid);
-                }
-                if flags.is_enabled(17) {
-                    insn = select_type_on_deref_member_read(insn, &mut prog, bid, rtx.read());
-                }
-                if flags.is_enabled(18) {
-                    insn = select_type_on_part(insn, &mut prog, bid, rtx.read());
-                }
-                if flags.is_enabled(19) {
-                    insn = pick_callee_name(insn, &mut prog, rtx.read());
-                }
-                if insn.is_replaceable_with_get() {
-                    // replacing a side-effecting instruction with a non-side-effecting
-                    // Insn::Get is currently wrong (would be quite complicated to handle)
-                    insn = deduper.try_dedup(reg, insn);
-                }
-                prog.set(reg, insn);
-                prog.append_existing(bid, reg);
+                    let mut insn = orig_insn;
+                    if let Some(mem_ref_reg) = mem_ref_reg {
+                        insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
+                    }
+                    if flags.is_enabled(2) {
+                        insn = pack_aggregates(reg, insn, &mut prog, bid, rtx.read());
+                    }
+                    if flags.is_enabled(3) {
+                        insn = fold_get(insn, &prog);
+                    }
+                    if flags.is_enabled(4) {
+                        insn = fold_subregs(insn, &prog);
+                    }
+                    if flags.is_enabled(5) {
+                        insn = fold_concat_void(insn, &prog);
+                    }
+                    if flags.is_enabled(6) {
+                        insn = fold_part_part(insn, &prog);
+                    }
+                    if flags.is_enabled(7) {
+                        insn = fold_part_widen(insn, &prog);
+                    }
+                    if flags.is_enabled(8) {
+                        insn = fold_part_concat(insn, &prog);
+                    }
+                    if flags.is_enabled(9) {
+                        insn = fold_part_null(insn, &prog);
+                    }
+                    if flags.is_enabled(10) {
+                        insn = fold_part_void(insn);
+                    }
+                    if flags.is_enabled(11) {
+                        insn = fold_part_const(insn, &prog);
+                    }
+                    if flags.is_enabled(12) {
+                        insn = fold_widen_null(insn, &prog);
+                    }
+                    if flags.is_enabled(13) {
+                        insn = fold_widen_const(insn, &prog);
+                    }
+                    if flags.is_enabled(14) {
+                        insn = fold_bitops(insn, &prog);
+                    }
+                    if flags.is_enabled(15) {
+                        insn = fold_constants(insn, &mut prog, bid);
+                    }
+                    if flags.is_enabled(16) {
+                        insn = fold_shr_part(insn, &mut prog, bid);
+                    }
+                    if flags.is_enabled(17) {
+                        insn = select_type_on_deref_member_read(insn, &mut prog, bid, rtx.read());
+                    }
+                    if flags.is_enabled(18) {
+                        insn = select_type_on_part(insn, &mut prog, bid, rtx.read());
+                    }
+                    if flags.is_enabled(19) {
+                        insn = pick_callee_name(insn, &mut prog, rtx.read());
+                    }
+                    if insn.is_replaceable_with_get() {
+                        // replacing a side-effecting instruction with a non-side-effecting
+                        // Insn::Get is currently wrong (would be quite complicated to handle)
+                        insn = deduper.try_dedup(reg, insn);
+                    }
+                    prog.set(reg, insn);
+                    prog.append_existing(bid, reg);
 
-                assert_eq!(insn.has_side_effects(), orig_has_fx);
-
-                if insn != orig_insn {
-                    event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
+                    assert_eq!(insn.has_side_effects(), orig_has_fx);
                 }
             }
         }
-    }
 
-    event!(Level::TRACE, prog = ? &*prog, "ssa after xform cycle");
+        event!(Level::TRACE, prog = ? &*prog, "ssa after xform cycle");
+    });
 }
 
 const LEVEL_MAX: usize = 19;
