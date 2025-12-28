@@ -1205,7 +1205,7 @@ impl Importer {
                 let dest = insn.op_register(dest_op_ndx);
                 let dest_size: u16 = dest.size().try_into().unwrap();
                 self.extend_zero(value, value_size, dest_size);
-                self.emit_write_machine_reg(dest, value_size, value);
+                self.emit_write_machine_reg(dest, dest_size, value);
             }
 
             OpKind::NearBranch16
