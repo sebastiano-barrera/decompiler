@@ -1,4 +1,4 @@
-use decompiler::{api::proto, pp::PP};
+use decompiler::api::proto;
 use std::{fs::File, io::Read};
 
 struct CliOptions {

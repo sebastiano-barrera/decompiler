@@ -1031,7 +1031,7 @@ mod tests {
 
     #[test]
     fn classify_struct_one_int() {
-        let mut types = ty::TypeSet::new();
+        let types = ty::TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
         let scas = make_scalars(wtx.write(), &mut tyid_gen);

@@ -67,7 +67,9 @@ struct App {
 struct FunctionView {
     df: decompiler::DecompiledFunction,
     problems_is_visible: bool,
+    #[allow(dead_code)]
     problems_title: String,
+    #[allow(dead_code)]
     problems_error: Option<String>,
 
     ast: Option<decompiler::Ast>,
@@ -774,12 +776,14 @@ impl FunctionSelector {
 /// Preprocessed version of the original assembly program, geared towards being
 /// showed on screen.
 struct Assembly {
+    #[allow(dead_code)]
     machine_code: Vec<u8>,
     lines: Vec<AssemblyLine>,
     ndx_of_addr: BTreeMap<u64, usize>,
 }
 struct AssemblyLine {
     addr: u64,
+    #[allow(dead_code)]
     machine_code_range: std::ops::Range<usize>,
     text: String,
 }
@@ -1377,9 +1381,6 @@ mod hl {
             self.was_changed_this_frame = false;
             self.was_set_this_frame = false;
         }
-        pub fn was_changed_this_frame(&self) -> bool {
-            self.was_changed_this_frame
-        }
         pub fn was_set_this_frame(&self) -> bool {
             self.was_set_this_frame
         }
@@ -1399,6 +1400,7 @@ mod hl {
     }
 }
 
+#[allow(dead_code)]
 mod theme {
     use crate::hl;
 

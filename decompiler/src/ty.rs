@@ -1000,7 +1000,7 @@ mod tests {
 
     #[test]
     fn simple_struct() {
-        let mut types = TypeSet::new();
+        let types = TypeSet::new();
 
         let mut next_ty_id = 0;
         let mut gen_tyid = || {
@@ -1112,7 +1112,7 @@ mod tests {
     fn write_then_read_in_tx() {
         // just checking: reads "see" the effect of writes that happened in the
         // same write transaction
-        let mut types = TypeSet::new();
+        let types = TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let tyid = TypeID(123);
         wtx.write()

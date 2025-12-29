@@ -459,10 +459,6 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
 
 /// AST cleanup algorithm
 mod cleanup {
-    use std::collections::HashMap;
-
-    use tracing::Instrument;
-
     use crate::BlockID;
 
     use super::*;
