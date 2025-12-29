@@ -380,21 +380,19 @@ impl Program {
     fn assert_consistent_phis(&self) {
         // all Upsilons linked to the same Phi have the same regtype
         let mut phi_type = RegMap::for_program(self, None);
-        let rdr_count = count_readers(self);
 
         for reg in self.registers() {
-            if rdr_count[reg] == 0 {
+            let mil::Insn::Upsilon { value, phi_ref } = self.get(reg).unwrap() else {
                 continue;
-            }
-            if let mil::Insn::Upsilon { value, phi_ref } = self.get(reg).unwrap() {
-                let reg_type = self.reg_type(value);
-                match &mut phi_type[phi_ref] {
-                    slot @ None => {
-                        *slot = Some(reg_type);
-                    }
-                    Some(prev) => {
-                        assert_eq!(*prev, reg_type);
-                    }
+            };
+
+            let reg_type = self.reg_type(value);
+            match &mut phi_type[phi_ref] {
+                slot @ None => {
+                    *slot = Some(reg_type);
+                }
+                Some(prev) => {
+                    assert_eq!(*prev, reg_type);
                 }
             }
         }
