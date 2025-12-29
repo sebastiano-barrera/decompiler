@@ -10,20 +10,18 @@ use include_dir::{include_dir, Dir};
 use insta::assert_snapshot;
 use test_log::test;
 
-use std::{
-    path::Path,
-    sync::{Mutex, MutexGuard, OnceLock},
-};
+use std::path::Path;
 
 static DATA_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/test-data/");
 
 macro_rules! case {
-    ($case:ident, $exe:expr, $func_name:ident) => {
+    ($case:ident, $func_name:ident) => {
         #[test_log::test]
         #[allow(non_snake_case)]
         fn $case() {
+            let exe = crate::open_exe(PATH);
             let function_name = stringify!($func_name);
-            let out = $exe.process_function(function_name);
+            let out = crate::process_function(&exe, function_name);
             crate::assert_snapshot!(out);
         }
     };
@@ -32,20 +30,20 @@ macro_rules! case {
 macro_rules! tests_in_binary {
     ($group:ident, $exe_path:expr; $($funcs:ident),* $(,)?) => {
         mod $group {
-            use crate::{Exe, test_decompile_all_no_panic};
+            use crate::test_decompile_all_no_panic;
             use test_log::test;
 
-            pub(super) static EXE: Exe = Exe::new($exe_path);
+            pub static PATH: &'static str = $exe_path;
 
             #[test]
             fn no_panic() {
                 // for each executable (= invocation of the tests_in_binary! macro)
                 // add a `no_panic` test
-                let exe = EXE.get_or_init();
-                test_decompile_all_no_panic(&*exe);
+                let exe = crate::open_exe(PATH);
+                test_decompile_all_no_panic(&exe);
             }
 
-            $(case!($funcs, EXE, $funcs);)*
+            $(case!($funcs, $funcs);)*
         }
     };
 }
@@ -97,83 +95,64 @@ fn test_decompile_all_no_panic(exe: &decompiler::Executable) {
     });
 }
 
-struct Exe {
-    once_lock: OnceLock<Mutex<decompiler::Executable<'static>>>,
-    path: &'static str,
+fn process_function(exe: &decompiler::Executable<'_>, function_name: &str) -> String {
+    use std::fmt::Write;
+
+    let df = exe
+        .decompile_function(function_name)
+        .expect("decompiling function");
+
+    let mut log_buf = String::new();
+
+    if let Some(mil) = df.mil() {
+        writeln!(log_buf, " --- mil").unwrap();
+        writeln!(log_buf, "{:?}\n", mil).unwrap();
+    }
+
+    if let Some(ssa) = df.ssa_pre_xform() {
+        writeln!(log_buf, " --- ssa pre-xform").unwrap();
+        writeln!(log_buf, "{:?}\n", ssa).unwrap();
+    }
+
+    if let Some(ssa) = df.ssa() {
+        writeln!(log_buf, " --- cfg").unwrap();
+        let cfg = ssa.cfg();
+        writeln!(log_buf, "  entry: {:?}", cfg.direct().entry_bid()).unwrap();
+        for bid in cfg.block_ids() {
+            let regs: Vec<_> = ssa.block_regs(bid).collect();
+            writeln!(
+                log_buf,
+                "  {:?} -> {:?} {:?}",
+                bid,
+                cfg.block_cont(bid),
+                regs
+            )
+            .unwrap();
+        }
+        write!(log_buf, "  domtree:\n    ").unwrap();
+
+        let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
+        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
+        cfg.dom_tree().dump(pp).unwrap();
+        writeln!(log_buf).unwrap();
+
+        writeln!(log_buf, " --- ssa").unwrap();
+        writeln!(log_buf, "{:?}\n", ssa).unwrap();
+
+        writeln!(log_buf, " --- ast").unwrap();
+        let ast = decompiler::AstBuilder::new(&ssa).build();
+        let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
+        let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
+        decompiler::write_ast(pp, &ast, ssa, exe.types()).unwrap();
+    }
+
+    log_buf
 }
-impl Exe {
-    const fn new(path: &'static str) -> Self {
-        Exe {
-            once_lock: OnceLock::new(),
-            path,
-        }
-    }
 
-    fn get_or_init(&self) -> MutexGuard<'_, decompiler::Executable<'static>> {
-        let mutex = self.once_lock.get_or_init(|| {
-            let rel_path = Path::new(self.path);
-            let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
-            let exe = decompiler::Executable::parse(raw).unwrap();
-            Mutex::new(exe)
-        });
-        mutex.lock().unwrap()
-    }
-
-    fn process_function(&self, function_name: &str) -> String {
-        use std::fmt::Write;
-
-        let exe = self.get_or_init();
-
-        let df = exe
-            .decompile_function(function_name)
-            .expect("decompiling function");
-
-        let mut log_buf = String::new();
-
-        if let Some(mil) = df.mil() {
-            writeln!(log_buf, " --- mil").unwrap();
-            writeln!(log_buf, "{:?}\n", mil).unwrap();
-        }
-
-        if let Some(ssa) = df.ssa_pre_xform() {
-            writeln!(log_buf, " --- ssa pre-xform").unwrap();
-            writeln!(log_buf, "{:?}\n", ssa).unwrap();
-        }
-
-        if let Some(ssa) = df.ssa() {
-            writeln!(log_buf, " --- cfg").unwrap();
-            let cfg = ssa.cfg();
-            writeln!(log_buf, "  entry: {:?}", cfg.direct().entry_bid()).unwrap();
-            for bid in cfg.block_ids() {
-                let regs: Vec<_> = ssa.block_regs(bid).collect();
-                writeln!(
-                    log_buf,
-                    "  {:?} -> {:?} {:?}",
-                    bid,
-                    cfg.block_cont(bid),
-                    regs
-                )
-                .unwrap();
-            }
-            write!(log_buf, "  domtree:\n    ").unwrap();
-
-            let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
-            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
-            cfg.dom_tree().dump(pp).unwrap();
-            writeln!(log_buf).unwrap();
-
-            writeln!(log_buf, " --- ssa").unwrap();
-            writeln!(log_buf, "{:?}\n", ssa).unwrap();
-
-            writeln!(log_buf, " --- ast").unwrap();
-            let ast = decompiler::AstBuilder::new(&ssa).build();
-            let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
-            let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
-            decompiler::write_ast(pp, &ast, ssa, exe.types()).unwrap();
-        }
-
-        log_buf
-    }
+fn open_exe(s: &str) -> decompiler::Executable<'_> {
+    let rel_path = Path::new(s);
+    let raw = DATA_DIR.get_file(rel_path).unwrap().contents();
+    decompiler::Executable::parse(raw).unwrap()
 }
 
 tests_in_binary!(
@@ -196,8 +175,7 @@ tests_in_binary!(
 
 #[test]
 fn test_function_type_id_propagation() {
-    let exe_instance = Exe::new("ty/test_composite_type.so");
-    let exe = exe_instance.get_or_init();
+    let exe = open_exe("ty/test_composite_type.so");
     let function_name = "list_len";
 
     let df = exe
@@ -218,7 +196,7 @@ fn test_function_type_id_propagation() {
 
 #[test]
 fn test_named_callee() {
-    let exe = redis_server::EXE.get_or_init();
+    let exe = crate::open_exe(&redis_server::PATH);
     let func = exe.decompile_function("createSortOperation").unwrap();
     let ssa = func.ssa().unwrap();
 
