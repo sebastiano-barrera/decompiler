@@ -1204,6 +1204,7 @@ dependencies = [
  "iced-x86",
  "include_dir",
  "insta",
+ "ouroboros",
  "rayon",
  "rmp-serde",
  "serde",

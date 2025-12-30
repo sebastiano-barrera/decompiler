@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn single_bb_direct() {
         for size in [1, 2, 4, 5, 8] {
-            let mut program = mil::Program::new(Reg(10_000));
+            let mut program = mil::Program::new(Reg(10_000), None);
             program.push(Reg(0), Insn::Int { size, value: -123 });
             program.push(
                 Reg(1),
@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn single_bb_part() {
-        let mut program = mil::Program::new(Reg(10_000));
+        let mut program = mil::Program::new(Reg(10_000), None);
         program.push(
             Reg(0),
             Insn::Int {
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn single_bb_concat() {
-        let mut program = mil::Program::new(Reg(10_000));
+        let mut program = mil::Program::new(Reg(10_000), None);
         program.push(
             Reg(0),
             Insn::Int {

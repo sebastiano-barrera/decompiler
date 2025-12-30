@@ -14,7 +14,7 @@ use crate::{
     pp, ty,
     util::Bytes,
 };
-use std::{cell::Cell, io::Write};
+use std::{cell::Cell, io::Write, sync::Arc};
 
 mod cons;
 
@@ -54,6 +54,7 @@ pub struct Program {
     ///
     /// This is intended to be manipulated by specific passes in `xform`.
     tyids: Vec<Option<ty::TypeID>>,
+    types: Option<Arc<ty::TypeSet>>,
 
     /// The TypeID of the function this SSA program represents.
     func_tyid: Option<ty::TypeID>,
@@ -75,7 +76,7 @@ impl Program {
         // I know this looks weird, but it's the easiest way to get all the cfg
         // structures properly initialized without having to think too much
         // about it.
-        let mil_empty = mil::Program::new(mil::Reg(0));
+        let mil_empty = mil::Program::new(mil::Reg(0), None);
         Self::from_mil(mil_empty)
     }
 
@@ -851,7 +852,7 @@ pub fn eliminate_dead_code(prog: &mut Program) {
 fn test_assert_no_circular_refs() {
     use mil::{ArithOp, Insn, Reg};
 
-    let mut prog = mil::Program::new(Reg(0));
+    let mut prog = mil::Program::new(Reg(0), None);
     prog.set_input_addr(0xf0);
     prog.push(
         Reg(0),
@@ -1013,7 +1014,7 @@ mod input_chain_tests {
     use crate::mil::R;
 
     fn mk_simple_program() -> Program {
-        let mut prog = mil::Program::new(R(20));
+        let mut prog = mil::Program::new(R(20), None);
         prog.push(R(0), mil::Insn::Int { value: 8, size: 8 });
         prog.push(R(1), mil::Insn::Int { value: 9, size: 8 });
         prog.push(R(0), mil::Insn::Arith(mil::ArithOp::Mul, R(0), R(0)));
@@ -1053,7 +1054,7 @@ mod tests {
 
     #[test]
     fn test_phi_read() {
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
 
         prog.set_input_addr(0xf0);
         prog.push(
@@ -1107,7 +1108,7 @@ mod tests {
     }
 
     fn make_prog_no_cycles() -> super::Program {
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(Reg(0), Insn::Int { value: 5, size: 8 });
         prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
         prog.push(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(0)));
@@ -1119,7 +1120,7 @@ mod tests {
 
     #[test]
     fn test_machine_addr() {
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
 
         prog.set_input_addr(0x1000);
         prog.push(Reg(0), Insn::Int { value: 42, size: 8 });
@@ -1142,7 +1143,7 @@ mod tests {
     #[should_panic]
     fn reg_type_invalidation() {
         let mut prog = {
-            let mut prog = mil::Program::new(Reg(0));
+            let mut prog = mil::Program::new(Reg(0), None);
             prog.push(Reg(0), Insn::Int { value: 42, size: 8 });
             prog.push(Reg(1), Insn::Get(mil::Reg(0)));
             prog.push(Reg(2), Insn::Get(mil::Reg(1)));

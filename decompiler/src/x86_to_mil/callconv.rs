@@ -5,7 +5,7 @@ use crate::{
     ty,
 };
 
-use super::Builder;
+use super::Importer;
 
 use anyhow::{anyhow, Ok};
 use tracing::{event, instrument, span, Level};
@@ -26,7 +26,7 @@ pub struct Report {
 
 #[instrument(skip_all)]
 pub fn unpack_params(
-    bld: &mut Builder,
+    bld: &mut Importer,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
 ) -> anyhow::Result<Report> {
@@ -36,7 +36,7 @@ pub fn unpack_params(
     prepare_for_return_value(bld, ret_tyid, &mut state)?;
 
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = bld.types.read().get(param_tyid).unwrap();
+        let param_ty = bld.rtx.read().get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
@@ -64,16 +64,16 @@ pub fn unpack_params(
 
 #[instrument(skip_all)]
 fn unpack_param(
-    bld: &mut Builder,
+    bld: &mut Importer,
     state: &mut ParamPassing,
     tyid: ty::TypeID,
 ) -> anyhow::Result<()> {
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, bld.types.read(), tyid, 0)?;
+    classify_eightbytes(&mut eb_set, bld.rtx.read(), tyid, 0)?;
 
     let mode = eightbytes_to_pass_mode(eb_set, state);
     // .unwrap(): classify_eightbytes already checks that size is known
-    let sz = bld.types.read().bytes_size(tyid)?.unwrap();
+    let sz = bld.rtx.read().bytes_size(tyid)?.unwrap();
 
     let arg_value = bld.tmp_gen();
 
@@ -178,7 +178,7 @@ fn unpack_param(
                 };
 
                 bld.emit(eb, eb_init_insn);
-                bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
+                bld.emit(addr, Insn::ArithK(ArithOp::Add, Importer::RSP, eb_offset));
                 bld.emit(addr, Insn::StoreMem { addr, value: eb });
             }
         }
@@ -211,14 +211,14 @@ fn unpack_param(
 /// >
 /// > [... continues with more rules, but those aren't relevant for this function...]
 fn prepare_for_return_value(
-    bld: &mut Builder,
+    bld: &mut Importer,
     ret_tyid: ty::TypeID,
     state: &mut ParamPassing,
 ) -> anyhow::Result<()> {
     // We need to check whether the return type is allocated to memory or to a
     // register. In case it's memory (stack space, typically), the address is
     // going to be passed in as RDI, so we have to skip *that* for parameters.
-    match &*bld.types.read().get(ret_tyid)?.unwrap() {
+    match &*bld.rtx.read().get(ret_tyid)?.unwrap() {
         ty::Ty::Void => {
             // we're fine: no storage is used for this value, so `state` is already OK
         }
@@ -236,7 +236,7 @@ fn prepare_for_return_value(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, bld.types.read(), ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.rtx.read(), ret_tyid, 0)?;
             // pass a copy of state: in this step, we just want to predict the
             // outcome of pack_return_value, we don't want to actually pull
             // regs yet
@@ -255,9 +255,9 @@ fn prepare_for_return_value(
 }
 
 #[instrument(skip_all)]
-pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
+pub fn pack_return_value(bld: &mut Importer, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
     let ret_val = bld.tmp_gen();
-    let ret_ty = &*bld.types.read().get(ret_tyid)?.unwrap();
+    let ret_ty = &*bld.rtx.read().get(ret_tyid)?.unwrap();
     match &*ret_ty {
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
@@ -274,13 +274,13 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, bld.types.read(), ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.rtx.read(), ret_tyid, 0)?;
             // for return values, no more than 2 registers should be used; if the type
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
             // .unwrap(): classify_eightbytes already checks that size is known
-            let sz = bld.types.read().bytes_size(ret_tyid)?.unwrap();
+            let sz = bld.rtx.read().bytes_size(ret_tyid)?.unwrap();
             assert!(sz > 0);
 
             bld.emit(ret_val, Insn::Void);
@@ -289,8 +289,8 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
             match eb_set {
                 EightbytesSet::Regs { clss } => {
                     // different than those for parameter passing
-                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().iter();
-                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().iter();
+                    let mut int_regs = [Importer::RAX, Importer::RDX].as_slice().iter();
+                    let mut sse_regs = [Importer::ZMM0, Importer::ZMM1].as_slice().iter();
 
                     // TODO assert that the type is 1-16 bytes long, based on clss
                     let mut clss = clss.used().iter().peekable();
@@ -351,7 +351,7 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
                     let addr = bld.tmp_gen();
                     for eb_ndx in 0..eb_count {
                         let eb_offset = (8 * eb_ndx).try_into().unwrap();
-                        bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RAX, eb_offset));
+                        bld.emit(addr, Insn::ArithK(ArithOp::Add, Importer::RAX, eb_offset));
                         let eb = bld.tmp_gen();
                         bld.emit(eb, Insn::LoadMem { addr, size: 8 });
                         bld.emit(
@@ -384,10 +384,10 @@ pub fn pack_return_value(bld: &mut Builder, ret_tyid: ty::TypeID) -> anyhow::Res
 
 #[instrument(skip_all)]
 pub fn pack_params(
-    bld: &mut Builder,
+    bld: &mut Importer,
     subr_tyid: ty::TypeID,
 ) -> anyhow::Result<(Report, Vec<mil::Reg>)> {
-    let Result::Ok(subr_ty) = super::check_subroutine_type(bld.types.read(), subr_tyid) else {
+    let Result::Ok(subr_ty) = super::check_subroutine_type(bld.rtx.read(), subr_tyid) else {
         return Err(anyhow::anyhow!("could not narrow down to subroutine type"));
     };
     let param_types = subr_ty.param_tyids.clone();
@@ -400,7 +400,7 @@ pub fn pack_params(
     let param_count = param_types.len();
     let mut param_regs: Vec<mil::Reg> = Vec::with_capacity(param_count);
     for (ndx, &param_tyid) in param_types.iter().enumerate() {
-        let param_ty = bld.types.read().get(param_tyid).unwrap();
+        let param_ty = bld.rtx.read().get(param_tyid).unwrap();
 
         let span = span!(Level::INFO, "param", ndx, tyid=?param_tyid, ty=?param_ty);
         let _enter = span.enter();
@@ -428,17 +428,17 @@ pub fn pack_params(
 }
 
 fn pack_param(
-    bld: &mut Builder,
+    bld: &mut Importer,
     state: &mut ParamPassing,
     tyid: ty::TypeID,
 ) -> anyhow::Result<mil::Reg> {
     let mut eb_set = EightbytesSet::new_regs();
-    classify_eightbytes(&mut eb_set, bld.types.read(), tyid, 0)?;
+    classify_eightbytes(&mut eb_set, bld.rtx.read(), tyid, 0)?;
     let mode = eightbytes_to_pass_mode(eb_set, state);
     let arg_value = bld.tmp_gen();
 
     let sz = bld
-        .types
+        .rtx
         .read()
         .bytes_size(tyid)?
         .ok_or_else(|| anyhow!("type has no size?"))?;
@@ -488,7 +488,7 @@ fn pack_param(
             // read all eightbytes in a single 'operation'
             let addr = bld.tmp_gen();
             let eb_offset = state.pull_stack_eightbyte(eb_count) as i64;
-            bld.emit(addr, Insn::ArithK(ArithOp::Add, Builder::RSP, eb_offset));
+            bld.emit(addr, Insn::ArithK(ArithOp::Add, Importer::RSP, eb_offset));
             bld.emit(
                 arg_value,
                 Insn::LoadMem {
@@ -518,19 +518,19 @@ fn pack_param(
 }
 
 pub fn unpack_return_value(
-    bld: &mut Builder,
+    bld: &mut Importer,
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
 ) -> anyhow::Result<()> {
-    match &*bld.types.read().get(ret_tyid)?.unwrap() {
+    match &*bld.rtx.read().get(ret_tyid)?.unwrap() {
         // no register changed as a result of a call
         ty::Ty::Void => Ok(()),
         ty::Ty::Unknown => {
             // don't know anything better that could be done in this case...
-            for mreg in [Builder::RAX, Builder::RDX] {
+            for mreg in [Importer::RAX, Importer::RDX] {
                 bld.emit(mreg, Insn::UndefinedBytes { size: 8 });
             }
-            for mreg in [Builder::ZMM0, Builder::ZMM1] {
+            for mreg in [Importer::ZMM0, Importer::ZMM1] {
                 bld.emit(mreg, Insn::UndefinedBytes { size: 64 });
             }
             Ok(())
@@ -540,20 +540,20 @@ pub fn unpack_return_value(
         }
         _ => {
             let mut eb_set = EightbytesSet::new_regs();
-            classify_eightbytes(&mut eb_set, bld.types.read(), ret_tyid, 0)?;
+            classify_eightbytes(&mut eb_set, bld.rtx.read(), ret_tyid, 0)?;
             // for return values, no more than 2 registers should be used; if the type
             // is larger than that, it goes to memory
             let eb_set = eb_set.limit_regs(2);
 
             // .unwrap(): classify_eightbytes already checks that size is known
-            let sz = bld.types.read().bytes_size(ret_tyid)?.unwrap();
+            let sz = bld.rtx.read().bytes_size(ret_tyid)?.unwrap();
             assert!(sz > 0);
 
             match eb_set {
                 EightbytesSet::Regs { clss } => {
                     // different than those for parameter passing
-                    let mut int_regs = [Builder::RAX, Builder::RDX].as_slice().iter();
-                    let mut sse_regs = [Builder::ZMM0, Builder::ZMM1].as_slice().iter();
+                    let mut int_regs = [Importer::RAX, Importer::RDX].as_slice().iter();
+                    let mut sse_regs = [Importer::ZMM0, Importer::ZMM1].as_slice().iter();
 
                     // TODO assert that the type is 1-16 bytes long, based on clss
                     let mut clss = clss.used().iter().peekable();
@@ -626,7 +626,7 @@ pub fn unpack_return_value(
                     bld.emit(
                         tmp,
                         Insn::StoreMem {
-                            addr: Builder::RAX,
+                            addr: Importer::RAX,
                             value: ret_val,
                         },
                     );

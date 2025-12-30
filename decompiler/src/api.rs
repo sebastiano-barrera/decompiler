@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use sha1::Digest;
 use thiserror::Error;
@@ -75,7 +76,7 @@ pub struct Executable<'a> {
     raw_binary: &'a [u8],
     elf: goblin::elf::Elf<'a>,
     func_syms: HashMap<String, AddrRange>,
-    types: ty::TypeSet,
+    types: Arc<ty::TypeSet>,
 }
 
 #[derive(Clone, Copy)]
@@ -184,7 +185,7 @@ impl<'a> Executable<'a> {
             raw_binary,
             elf,
             func_syms,
-            types,
+            types: Arc::new(types),
         })
     }
 
@@ -196,7 +197,7 @@ impl<'a> Executable<'a> {
         self.func_syms.contains_key(name)
     }
 
-    pub fn types(&self) -> &ty::TypeSet {
+    pub fn types(&self) -> &Arc<ty::TypeSet> {
         &self.types
     }
 
@@ -212,10 +213,9 @@ impl<'a> Executable<'a> {
             iced_x86::DecoderOptions::NONE,
         );
 
-        let types_rtx = self.types.read_tx()?;
+        let types_rtx = self.types().read_tx()?;
         let func_tyid_opt = types_rtx.read().get_known_object(vm_addr)?;
-        let mil_res = x86_to_mil::Builder::new(&self.types)?
-            .translate(decoder.iter(), func_tyid_opt)
+        let mil_res = x86_to_mil::import(decoder.iter(), Arc::clone(&self.types), func_tyid_opt)
             .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()));
 
         let mut df = DecompiledFunction {
@@ -229,8 +229,8 @@ impl<'a> Executable<'a> {
             warnings: Vec::new(),
         };
 
-        let (mil, warnings) = match mil_res {
-            Ok(mw) => mw,
+        let mil = match mil_res {
+            Ok(mil) => mil,
             Err(err) => {
                 df.error = Some(err);
                 return Ok(df);
@@ -238,12 +238,6 @@ impl<'a> Executable<'a> {
         };
 
         df.mil = Some(mil.clone());
-        df.warnings.extend(
-            warnings
-                .into_vec()
-                .into_iter()
-                .map(|err| Error::FrontendError(err.to_string())),
-        );
 
         let mut ssa = match std::panic::catch_unwind(|| ssa::Program::from_mil(mil)) {
             Ok(p) => p,
@@ -330,6 +324,7 @@ pub struct DecompiledFunction {
     ast: Option<crate::ast::Ast>,
 
     error: Option<Error>,
+    // TODO remove
     warnings: Vec<Error>,
 }
 

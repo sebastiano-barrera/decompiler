@@ -1,5 +1,6 @@
 use crate::mil::{self, AncestralName, Control};
 use std::borrow::Cow;
+use std::sync::Arc;
 
 use crate::ty;
 use crate::util::{ToWarnings, Warnings};
@@ -11,17 +12,36 @@ use tracing::{event, instrument, span, Level};
 
 pub mod callconv;
 
-pub struct Builder<'a> {
-    pb: mil::Program,
-    types: ty::ReadTx<'a>,
+pub fn import(
+    insns: impl Iterator<Item = iced_x86::Instruction>,
+    types: Arc<ty::TypeSet>,
+    func_tyid_opt: Option<ty::TypeID>,
+) -> anyhow::Result<mil::Program> {
+    let (mil, _) = Importer::new(types)?.translate(insns, func_tyid_opt)?;
+    Ok(mil)
 }
 
-impl<'a> Builder<'a> {
-    pub fn new(types: &'a ty::TypeSet) -> ty::Result<Self> {
-        let types = types.read_tx()?;
-        let mut bld = Builder {
-            pb: mil::Program::new(Self::R_TMP_FIRST),
+// TODO make this private
+struct Importer {
+    // NOTE The order here is load-bearing. See safety notes in Self::new
+    pb: mil::Program,
+    types: Arc<ty::TypeSet>,
+    // 'static here is false; we're borrowing from pb via unsafe
+    rtx: ty::ReadTx<'static>,
+}
+
+impl Importer {
+    fn new(types: Arc<ty::TypeSet>) -> ty::Result<Self> {
+        // SAFETY: rtx borrows from types, which we ensure outlives rtx via
+        // borrow order.
+        let rtx: ty::ReadTx<'static> = unsafe {
+            let types: &'static _ = &*Arc::as_ptr(&types);
+            types.read_tx()?
+        };
+        let mut bld = Importer {
+            pb: mil::Program::new(Self::R_TMP_FIRST, Some(Arc::clone(&types))),
             types,
+            rtx,
         };
 
         bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, mil::RegType::Bytes(8));
@@ -117,7 +137,7 @@ impl<'a> Builder<'a> {
 
         let mut func_ty = None;
         if let Some(tyid) = func_tyid_opt {
-            if let Some(cow) = self.types.read().get_through_alias(tyid)? {
+            if let Some(cow) = self.rtx.read().get_through_alias(tyid)? {
                 if let ty::Ty::Subroutine(subr_ty) = cow.into_owned() {
                     func_ty = Some(subr_ty);
                 }
@@ -504,7 +524,7 @@ impl<'a> Builder<'a> {
                         Some((subr_tyid, param_values)) => {
                             // .unwrap(): resolve_call() is supposed to check this already
                             let subr_ty =
-                                check_subroutine_type(self.types.read(), subr_tyid).unwrap();
+                                check_subroutine_type(self.rtx.read(), subr_tyid).unwrap();
                             let return_tyid = subr_ty.return_tyid;
 
                             event!(Level::TRACE, ?subr_tyid, ?param_values, "resolved call");
@@ -764,7 +784,7 @@ impl<'a> Builder<'a> {
             OpKind::NearBranch64 => {
                 let return_pc = insn.next_ip();
                 let target = insn.near_branch_target();
-                self.types
+                self.rtx
                     .read()
                     .resolve_call(ty::CallSiteKey { return_pc, target })?
             }
@@ -1132,7 +1152,7 @@ impl<'a> Builder<'a> {
     /// Read a register of any size, emitting mil::Insn::Part as necessary
     fn emit_read_machine_reg(&mut self, reg: Register) -> mil::Reg {
         let full_reg = reg.full_register();
-        let value = Builder::xlat_reg(full_reg);
+        let value = Importer::xlat_reg(full_reg);
         if reg == full_reg {
             value
         } else {
@@ -1243,7 +1263,7 @@ impl<'a> Builder<'a> {
     fn emit_write_machine_reg(&mut self, dest_reg: Register, value_size: u16, value: mil::Reg) {
         let full_dest_reg = dest_reg.full_register();
         let full_size = full_dest_reg.size().try_into().unwrap();
-        let full_dest = Builder::xlat_reg(full_dest_reg);
+        let full_dest = Importer::xlat_reg(full_dest_reg);
 
         // Intel 64 Software Developer's Manual,
         // 3.4.1.1 "General-Purpose Registers in 64-Bit Mode":

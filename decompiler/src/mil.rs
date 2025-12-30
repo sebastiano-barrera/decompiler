@@ -4,7 +4,7 @@ use serde::ser::SerializeSeq;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{cell::Cell, collections::HashMap};
+use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::{ty, util::Bytes};
 
@@ -26,6 +26,8 @@ pub struct Program {
 
     /// The TypeID of the function this MIL program represents.
     func_tyid: Option<ty::TypeID>,
+
+    types: Option<Arc<ty::TypeSet>>,
 
     // TODO More specific types
     // kept even if dead, because we will still want to trace each MIL
@@ -435,7 +437,7 @@ impl std::fmt::Debug for Program {
 }
 
 impl Program {
-    pub fn new(lowest_tmp: Reg) -> Self {
+    pub fn new(lowest_tmp: Reg, types: Option<Arc<ty::TypeSet>>) -> Self {
         Self {
             insns: Vec::new(),
             dests: Vec::new(),
@@ -443,6 +445,7 @@ impl Program {
             cur_input_addr: 0,
             tyids: Vec::new(),
             func_tyid: None,
+            types,
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
             mil_of_input_addr: HashMap::new(),
@@ -659,6 +662,10 @@ impl Program {
         self.tyids.get(index as usize).copied().flatten()
     }
 
+    pub fn types(&self) -> Option<&Arc<ty::TypeSet>> {
+        self.types.as_ref()
+    }
+
     /// Set the value type (TypeID) for the result of the instruction located at
     /// the given index.
     ///
@@ -676,6 +683,7 @@ impl Program {
             addrs: self.addrs,
             tyids: self.tyids,
             func_tyid: self.func_tyid,
+            types: self.types,
             endianness: self.endianness,
         }
     }
@@ -691,6 +699,7 @@ pub struct ProgramCore {
     pub addrs: Vec<u64>,
     pub tyids: Vec<Option<ty::TypeID>>,
     pub func_tyid: Option<ty::TypeID>,
+    pub types: Option<Arc<ty::TypeSet>>,
     pub endianness: Endianness,
 }
 

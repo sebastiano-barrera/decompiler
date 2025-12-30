@@ -15,7 +15,7 @@ mod constant_folding {
 
     #[test]
     fn addk() {
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -61,7 +61,7 @@ mod constant_folding {
 
     #[test]
     fn mulk() {
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -132,7 +132,7 @@ mod subreg_folding {
             size: u16,
         }
         fn gen_prog(vp: VariantParams) -> mil::Program {
-            let mut p = mil::Program::new(Reg(0));
+            let mut p = mil::Program::new(Reg(0), None);
             p.push(
                 Reg(0),
                 Insn::Ancestral {
@@ -269,7 +269,7 @@ mod subreg_folding {
         }
 
         fn gen_prog(vp: VariantParams) -> mil::Program {
-            let mut p = mil::Program::new(Reg(10_000));
+            let mut p = mil::Program::new(Reg(10_000), None);
             p.push(
                 Reg(0),
                 Insn::Ancestral {
@@ -364,7 +364,7 @@ fn combined_with_fold_get() {
     // check that a transform "sees through" the Insn::Get introduced by an
     // earlier transform
 
-    let mut prog = mil::Program::new(Reg(0));
+    let mut prog = mil::Program::new(Reg(0), None);
     prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
     prog.push(Reg(2), Insn::Int { value: 44, size: 8 });
 
@@ -500,7 +500,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let ty_ids = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -564,7 +564,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let ty_ids = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -618,7 +618,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let ty_ids = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -660,7 +660,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let ty_ids = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -703,7 +703,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let ty_ids = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -745,7 +745,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let _ = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -875,7 +875,7 @@ mod struct_ptr_member_access {
 
         wtx.commit().unwrap();
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {
@@ -920,7 +920,7 @@ mod struct_ptr_member_access {
         let types = ty::TypeSet::new();
         let ty_ids = create_test_types(&types);
 
-        let mut prog = mil::Program::new(Reg(0));
+        let mut prog = mil::Program::new(Reg(0), None);
         prog.push(
             Reg(0),
             Insn::Ancestral {

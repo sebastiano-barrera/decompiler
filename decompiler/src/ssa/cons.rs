@@ -202,9 +202,10 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     let mut ssa = Program {
         insns: program_core.insns.into_iter().map(Cell::new).collect(),
         addrs: program_core.addrs,
-        tyids: program_core.tyids,
-        func_tyid,
         reg_types,
+        tyids: program_core.tyids,
+        types: program_core.types,
+        func_tyid,
         schedule,
         cfg,
         endianness: program_core.endianness,
