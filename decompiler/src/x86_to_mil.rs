@@ -25,7 +25,8 @@ pub fn import(
 struct Importer {
     // NOTE The order here is load-bearing. See safety notes in Self::new
     pb: mil::Program,
-    types: Arc<ty::TypeSet>,
+    // formally unused, but keeps `rtx` valid (borrowed unbeknownst to the compiler)
+    _types: Arc<ty::TypeSet>,
     // 'static here is false; we're borrowing from pb via unsafe
     rtx: ty::ReadTx<'static>,
 }
@@ -40,7 +41,7 @@ impl Importer {
         };
         let mut bld = Importer {
             pb: mil::Program::new(Self::R_TMP_FIRST, Some(Arc::clone(&types))),
-            types,
+            _types: types,
             rtx,
         };
 

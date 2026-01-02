@@ -517,7 +517,7 @@ fn pack_param(
     Ok(arg_value)
 }
 
-pub fn unpack_return_value(
+pub(super) fn unpack_return_value(
     bld: &mut Importer,
     ret_tyid: ty::TypeID,
     ret_val: mil::Reg,
@@ -1059,7 +1059,7 @@ mod tests {
 
     #[test]
     fn classify_struct_ints_fit_1_eb() {
-        let mut types = ty::TypeSet::new();
+        let  types = ty::TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
         let scas = make_scalars(wtx.write(), &mut tyid_gen);
@@ -1111,7 +1111,7 @@ mod tests {
 
     #[test]
     fn classify_struct_one_float() {
-        let mut types = ty::TypeSet::new();
+        let types = ty::TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
         let scas = make_scalars(wtx.write(), &mut tyid_gen);
@@ -1139,7 +1139,7 @@ mod tests {
 
     #[test]
     fn classify_struct_two_ints() {
-        let mut types = ty::TypeSet::new();
+        let types = ty::TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
         let scas = make_scalars(wtx.write(), &mut tyid_gen);
@@ -1181,7 +1181,7 @@ mod tests {
 
     #[test]
     fn classify_struct_larger() {
-        let mut types = ty::TypeSet::new();
+        let types = ty::TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
         let scas = make_scalars(wtx.write(), &mut tyid_gen);

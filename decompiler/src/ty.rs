@@ -971,7 +971,7 @@ mod tests {
 
     #[test]
     fn shared_void() {
-        let mut types = TypeSet::new();
+        let types = TypeSet::new();
 
         let tyid_void_1 = types.tyid_shared_void();
         let tyid_void_2 = types.tyid_shared_void();
