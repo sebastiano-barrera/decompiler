@@ -189,11 +189,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     // convert mil::Program into plain data, fully accessible form
     let program_core = program.unwrap();
 
-    // infer_reg_types has to work here and also for new instructions added
-    // later via OpenProgram; so, initialize it with a default value that
-    // doesn't really mean anything, then call infer_reg_type on all registers
-    // the same way clients do
-    let reg_types = program_core
+    let ll_types = program_core
         .insns
         .iter()
         .map(|_| mil::LLType::Effect)
@@ -202,13 +198,14 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     let mut ssa = Program {
         insns: program_core.insns.into_iter().map(Cell::new).collect(),
         addrs: program_core.addrs,
-        ll_types: reg_types,
+        ll_types,
         tyids: program_core.tyids,
         types: program_core.types,
         func_tyid,
         schedule,
         cfg,
         endianness: program_core.endianness,
+        faults: Vec::new(),
     };
     event!(Level::TRACE, ?ssa, "ssa constructed");
 

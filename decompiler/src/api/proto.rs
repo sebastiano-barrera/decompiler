@@ -66,7 +66,7 @@ impl From<&crate::ssa::Program> for SSA {
                     dest: reg.reg_index(),
                     insn,
                     tyid: ssa.value_type(reg),
-                    reg_type: Some(ssa.reg_type(reg)),
+                    reg_type: Some(ssa.ll_type(reg)),
                 });
             }
 

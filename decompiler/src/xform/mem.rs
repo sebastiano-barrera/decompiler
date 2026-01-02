@@ -223,7 +223,7 @@ fn find_dominating_conflicting_store(
             return None;
         }
 
-        let Some(size_s) = prog.reg_type(value_s).bytes_size() else {
+        let Some(size_s) = prog.ll_type(value_s).bytes_size() else {
             event!(
                 Level::WARN,
                 value_reg = ?value_s,
@@ -285,7 +285,7 @@ mod tests {
                 Reg(1),
                 Insn::Ancestral {
                     anc_name: x86_to_mil::ANC_RSP,
-                    reg_type: mil::LLType::Bytes(8),
+                    ll_type: mil::LLType::Bytes(8),
                 },
             );
             program.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
@@ -329,7 +329,7 @@ mod tests {
             Reg(1),
             Insn::Ancestral {
                 anc_name: x86_to_mil::ANC_RSP,
-                reg_type: mil::LLType::Bytes(8),
+                ll_type: mil::LLType::Bytes(8),
             },
         );
         program.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
@@ -383,7 +383,7 @@ mod tests {
             Reg(1),
             Insn::Ancestral {
                 anc_name: x86_to_mil::ANC_RSP,
-                reg_type: mil::LLType::Bytes(8),
+                ll_type: mil::LLType::Bytes(8),
             },
         );
         program.push(Reg(2), Insn::ArithK(ArithOp::Add, Reg(1), 16));
@@ -434,7 +434,7 @@ mod tests {
         assert_eq!(
             Insn::Ancestral {
                 anc_name: x86_to_mil::ANC_RSP,
-                reg_type: mil::LLType::Bytes(8)
+                ll_type: mil::LLType::Bytes(8)
             },
             program.get(base_reg).unwrap()
         );

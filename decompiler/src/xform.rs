@@ -167,7 +167,7 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
 
     let end = offset + size;
 
-    let Some(src_sz) = prog.reg_type(src).bytes_size() else {
+    let Some(src_sz) = prog.ll_type(src).bytes_size() else {
         return insn;
     };
     if end as usize > src_sz {
@@ -189,7 +189,7 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
             size: up_size,
         } => {
             let up_end = up_offset + up_size;
-            let Some(up_src_sz) = prog.reg_type(up_src).bytes_size() else {
+            let Some(up_src_sz) = prog.ll_type(up_src).bytes_size() else {
                 event!(
                     Level::ERROR,
                     ?insn,
@@ -222,7 +222,7 @@ fn fold_subregs(insn: Insn, prog: &ssa::Program) -> Insn {
 
         Insn::Concat { lo, hi } => {
             let lo_sz = prog
-                .reg_type(lo)
+                .ll_type(lo)
                 .bytes_size()
                 .unwrap()
                 .try_into()
@@ -257,7 +257,7 @@ fn fold_concat_void(insn: Insn, prog: &ssa::Program) -> Insn {
         return insn;
     };
 
-    match (prog.reg_type(lo), prog.reg_type(hi)) {
+    match (prog.ll_type(lo), prog.ll_type(hi)) {
         (LLType::Bytes(0), LLType::Bytes(0)) => Insn::Void,
         (LLType::Bytes(0), _) => Insn::Get(hi),
         (_, LLType::Bytes(0)) => Insn::Get(lo),
@@ -269,7 +269,7 @@ fn fold_bitops(insn: Insn, prog: &ssa::Program) -> Insn {
     match insn {
         // TODO put the appropriate size
         Insn::Arith(ArithOp::BitXor, a, b) if a == b => {
-            let size = prog.reg_type(a).bytes_size().unwrap().try_into().unwrap();
+            let size = prog.ll_type(a).bytes_size().unwrap().try_into().unwrap();
             if size <= 8 {
                 Insn::Int { value: 0, size }
             } else {
@@ -337,7 +337,7 @@ fn fold_part_concat(insn: Insn, prog: &ssa::Program) -> Insn {
     } = insn
     {
         if let Insn::Concat { lo, hi } = prog.get(p_src).unwrap() {
-            let lo_size = prog.reg_type(lo).bytes_size().unwrap().try_into().unwrap();
+            let lo_size = prog.ll_type(lo).bytes_size().unwrap().try_into().unwrap();
 
             if p_offset + p_size <= lo_size {
                 return Insn::Part {
@@ -390,7 +390,7 @@ fn fold_part_widen(insn: Insn, prog: &ssa::Program) -> Insn {
     };
 
     // TODO convert to error
-    let Some(orig_size) = prog.reg_type(reg).bytes_size() else {
+    let Some(orig_size) = prog.ll_type(reg).bytes_size() else {
         event!(
             Level::ERROR,
             ?insn,
@@ -451,7 +451,7 @@ fn fold_widen_null(insn: Insn, prog: &ssa::Program) -> Insn {
         sign: _,
     } = insn
     {
-        if let LLType::Bytes(sz) = prog.reg_type(reg) {
+        if let LLType::Bytes(sz) = prog.ll_type(reg) {
             if target_size as usize == sz {
                 return Insn::Get(reg);
             }
@@ -468,7 +468,7 @@ fn fold_part_null(insn: Insn, prog: &ssa::Program) -> Insn {
         size,
     } = insn
     {
-        if let LLType::Bytes(src_size) = prog.reg_type(src) {
+        if let LLType::Bytes(src_size) = prog.ll_type(src) {
             if src_size == size as usize {
                 return Insn::Get(src);
             }

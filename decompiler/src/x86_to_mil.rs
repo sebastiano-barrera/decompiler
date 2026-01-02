@@ -105,7 +105,7 @@ impl Importer {
         &mut self,
         reg: mil::Reg,
         anc_name: AncestralName,
-        rt: mil::LLType,
+        llt: mil::LLType,
     ) -> mil::Index {
         // TODO this function could be removed. this used to make more sense,
         // when it was more complex
@@ -113,7 +113,7 @@ impl Importer {
             reg,
             mil::Insn::Ancestral {
                 anc_name,
-                reg_type: rt,
+                ll_type: llt,
             },
         )
     }

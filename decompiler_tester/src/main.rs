@@ -575,7 +575,7 @@ impl FunctionView {
                             return;
                         }
                     };
-                    let ll_ty_str = format!("{:?}", ssa.reg_type(reg));
+                    let ll_ty_str = format!("{:?}", ssa.ll_type(reg));
 
                     egui::Grid::new("reg_details_grid").show(ui, |ui| {
                         ui.strong("Low-level type:");
@@ -1219,12 +1219,12 @@ mod ast {
                     ui.label(format!("bytes({})", size));
                 });
             }
-            Insn::FuncArgument { index, reg_type: _ } => {
+            Insn::FuncArgument { index, ll_type: _ } => {
                 print_ident(ui, s, &format!("$arg{}", index));
             }
             Insn::Ancestral {
                 anc_name,
-                reg_type: _,
+                ll_type: _,
             } => {
                 print_kw(ui, s, anc_name.name());
             }

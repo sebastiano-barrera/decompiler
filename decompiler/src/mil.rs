@@ -268,11 +268,11 @@ pub enum Insn {
 
     FuncArgument {
         index: u16,
-        reg_type: LLType,
+        ll_type: LLType,
     },
     Ancestral {
         anc_name: AncestralName,
-        reg_type: LLType,
+        ll_type: LLType,
     },
 
     Phi,
@@ -414,12 +414,10 @@ impl Insn {
         self.input_regs().into_iter()
     }
 
-    pub fn assert_valid(&self) {
+    pub fn is_valid(&self) -> bool {
         match *self {
-            Insn::Int { value: _, size } => {
-                assert!(size <= 8);
-            }
-            _ => {}
+            Insn::Int { value: _, size } => size <= 8,
+            _ => true,
         }
     }
 }

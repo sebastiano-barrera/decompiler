@@ -19,6 +19,59 @@ use std::{cell::Cell, io::Write, sync::Arc};
 
 mod cons;
 
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+pub enum Fault {
+    #[error("inconsistent array lengths in Program")]
+    InconsistentArrayLengths,
+
+    #[error("input {input:?} of {reg:?} is not defined")]
+    InputNotDefined { reg: mil::Reg, input: mil::Reg },
+
+    #[error("input {input:?} of {reg:?} is not dominated by its definition in block {def_block_input:?}")]
+    InputNotDominated {
+        reg: mil::Reg,
+        input: mil::Reg,
+        def_block_input: cfg::BlockID,
+    },
+
+    #[error("inconsistent types for phi node {phi_reg:?}: expected {expected:?}, found {found:?}")]
+    InconsistentPhiTypes {
+        phi_reg: mil::Reg,
+        expected: mil::LLType,
+        found: mil::LLType,
+    },
+
+    #[error("circular reference detected in data flow graph")]
+    CircularRef,
+
+    #[error(
+        "CArg chain broken at {reg:?}: points to {arg_def:?}, but expected a CArg instruction"
+    )]
+    CArgChainBroken { reg: mil::Reg, arg_def: mil::Insn },
+
+    #[error("instruction is ill-formed")]
+    InvalidInsn(mil::Reg),
+
+    #[error("{reg:?}: Insn::Concat: expected LLType::Bytes, found {found:?}")]
+    ConcatNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("{reg:?}: Insn::Arith: operands have different types ({left:?}, {right:?})")]
+    ArithDifferentTypes {
+        reg: mil::Reg,
+        left: mil::LLType,
+        right: mil::LLType,
+    },
+
+    #[error("{reg:?}: Insn::Arith: operand must be LLType::Bytes, found {found:?}")]
+    ArithNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("{reg:?}: Insn::ArithK: operand must be LLType::Bytes, found {found:?}")]
+    ArithKNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("pathologic data flow graph: phi {reg:?} can't be resolved, it's an all-phi cycle")]
+    PhiCycle { reg: mil::Reg },
+}
+
 #[derive(Clone)]
 pub struct Program {
     // # Design notes
@@ -64,6 +117,8 @@ pub struct Program {
     cfg: cfg::Graph,
 
     endianness: Endianness,
+
+    pub faults: Vec<Fault>,
 }
 
 /// Correctness relies on a few invariants.
@@ -205,7 +260,7 @@ impl Program {
     /// Return the LLType assigned to the given register.
     ///
     /// This amounts to a simple lookup in the internal.
-    pub fn reg_type(&self, reg: mil::Reg) -> mil::LLType {
+    pub fn ll_type(&self, reg: mil::Reg) -> mil::LLType {
         self.ll_types[reg.0 as usize]
     }
 
@@ -235,26 +290,25 @@ impl Program {
         chain
     }
 
-    /// Check that each single instruction is (independently) valid.
-    fn assert_insns_valid(&self) {
-        for insn in &self.insns {
-            insn.get().assert_valid();
-        }
-    }
-
     /// Check that the SSA program is valid and refresh cached derived data
     /// (such as each value's LLType).
     ///
-    /// Panics if any check fails.
+    /// Any violations are recorded in `self.faults`.
     pub fn assert_invariants(&mut self) {
-        self.refresh_reg_types();
+        self.faults.clear();
+        self.reset_ll_types();
 
-        self.assert_insns_valid();
-        self.assert_consistent_arrays_len();
-        self.assert_no_circular_refs();
-        self.assert_inputs_visible_scheduled();
-        self.assert_consistent_phis();
-        self.assert_carg_chain();
+        self.check_insns_valid();
+        self.check_consistent_arrays_len();
+        self.check_no_circular_refs();
+        self.check_inputs_visible_scheduled();
+        self.check_consistent_phis();
+        self.check_carg_chain();
+
+        #[cfg(test)]
+        if !self.faults.is_empty() {
+            panic!("SSA invariants violated: {:#?}", self.faults);
+        }
     }
 
     pub fn mutate<R>(&mut self, block: impl FnOnce(OpenProgram) -> R) -> R {
@@ -306,17 +360,30 @@ fn test_int_bytes() {
 
 /// Internal API
 impl Program {
-    fn refresh_reg_types(&mut self) {
+    fn reset_ll_types(&mut self) {
         rt_infer::reset(self);
     }
 
-    fn assert_consistent_arrays_len(&self) {
-        assert_eq!(self.insns.len(), self.addrs.len());
-        assert_eq!(self.insns.len(), self.tyids.len());
-        assert_eq!(self.insns.len(), self.ll_types.len());
+    /// Check that each single instruction is (independently) valid.
+    fn check_insns_valid(&mut self) {
+        for reg in self.registers() {
+            let insn = self.get(reg).unwrap();
+            if !insn.is_valid() {
+                self.faults.push(Fault::InvalidInsn(reg));
+            }
+        }
     }
 
-    fn assert_inputs_visible_scheduled(&self) {
+    fn check_consistent_arrays_len(&mut self) {
+        if self.insns.len() != self.addrs.len()
+            || self.insns.len() != self.tyids.len()
+            || self.insns.len() != self.ll_types.len()
+        {
+            self.faults.push(Fault::InconsistentArrayLengths);
+        }
+    }
+
+    fn check_inputs_visible_scheduled(&mut self) {
         enum Cmd {
             Start(cfg::BlockID),
             End(cfg::BlockID),
@@ -325,6 +392,7 @@ impl Program {
         let mut queue = vec![Cmd::End(entry_bid), Cmd::Start(entry_bid)];
 
         let dom_tree = self.cfg().dom_tree();
+        let mut faults = Vec::new();
 
         // walk the dom tree depth-first
 
@@ -346,13 +414,19 @@ impl Program {
                     for reg in self.block_regs(bid) {
                         let mut insn = self.get(reg).unwrap();
                         for &mut input in insn.input_regs_iter() {
-                            let Some(def_block_input) = def_block[input] else {
-                                panic!("input {input:?} of {reg:?} is not defined");
+                            if let Some(def_block_input) = def_block[input] {
+                                if !(def_block_input == bid
+                                    || dom_tree.imm_doms(bid).any(|b| b == def_block_input))
+                                {
+                                    faults.push(Fault::InputNotDominated {
+                                        reg,
+                                        input,
+                                        def_block_input,
+                                    });
+                                }
+                            } else {
+                                faults.push(Fault::InputNotDefined { reg, input });
                             };
-                            assert!(
-                                def_block_input == bid
-                                    || dom_tree.imm_doms(bid).any(|b| b == def_block_input)
-                            );
                         }
 
                         // otherwise it's a bug in this function:
@@ -372,9 +446,11 @@ impl Program {
                 }
             }
         }
+
+        self.faults.extend(faults);
     }
 
-    fn assert_consistent_phis(&self) {
+    fn check_consistent_phis(&mut self) {
         // all Upsilons linked to the same Phi have the same regtype
         let mut phi_type = RegMap::for_program(self, None);
 
@@ -383,19 +459,25 @@ impl Program {
                 continue;
             };
 
-            let reg_type = self.reg_type(value);
+            let ll_type = self.ll_type(value);
             match &mut phi_type[phi_ref] {
                 slot @ None => {
-                    *slot = Some(reg_type);
+                    *slot = Some(ll_type);
                 }
                 Some(prev) => {
-                    assert_eq!(*prev, reg_type);
+                    if *prev != ll_type {
+                        self.faults.push(Fault::InconsistentPhiTypes {
+                            phi_reg: phi_ref,
+                            expected: *prev,
+                            found: ll_type,
+                        });
+                    }
                 }
             }
         }
     }
 
-    fn assert_no_circular_refs(&self) {
+    fn check_no_circular_refs(&mut self) {
         // kahn's algorithm for topological sorting, but we don't actually store
         // the topological order
 
@@ -406,9 +488,9 @@ impl Program {
             .map(|(reg, _)| reg)
             .collect();
 
+        let mut topo_order_len = 0;
         while let Some(reg) = queue.pop() {
-            assert_eq!(rdr_count[reg], 0);
-
+            topo_order_len += 1;
             for &mut input in self.get(reg).unwrap().input_regs_iter() {
                 rdr_count[input] -= 1;
                 if rdr_count[input] == 0 {
@@ -417,10 +499,13 @@ impl Program {
             }
         }
 
-        assert!(rdr_count.items().all(|(_, count)| *count == 0));
+        if topo_order_len < self.reg_count() as usize {
+            self.faults.push(Fault::CircularRef);
+        }
     }
 
-    fn assert_carg_chain(&self) {
+    fn check_carg_chain(&mut self) {
+        let mut faults = Vec::new();
         for (_, reg) in self.insns_rpo() {
             let insn = self.get(reg).unwrap();
             let arg = match insn {
@@ -436,13 +521,11 @@ impl Program {
             };
 
             let arg_def = self.get(arg).unwrap();
-            assert!(
-                matches!(arg_def, mil::Insn::CArg { .. }),
-                "reg {:?} does not point to a CArg, but to {:?}",
-                reg,
-                arg_def
-            );
+            if !matches!(arg_def, mil::Insn::CArg { .. }) {
+                faults.push(Fault::CArgChainBroken { reg, arg_def });
+            }
         }
+        self.faults.extend(faults);
     }
 
     pub fn dump<S: std::fmt::Write>(
@@ -509,7 +592,7 @@ impl Program {
                 f,
                 "{:?}: {:?}{} <- {:?}",
                 reg,
-                self.reg_type(reg),
+                self.ll_type(reg),
                 type_s,
                 insn
             )?;
@@ -528,7 +611,6 @@ mod rt_infer {
     use super::*;
 
     use mil::{Insn, LLType};
-    use smallvec::SmallVec;
 
     pub(super) fn reset(prog: &mut Program) {
         // reverse post order, this way every instruction can 'see' the LLType
@@ -550,16 +632,33 @@ mod rt_infer {
             // but good enough for now
             Insn::Global(_) => LLType::Bytes(8),
             Insn::Part { size, .. } => LLType::Bytes(size as usize),
-            Insn::Get(arg) => prog.reg_type(arg),
+            Insn::Get(arg) => prog.ll_type(arg),
             Insn::Concat { lo, hi } => {
-                let lo_size = prog
-                    .reg_type(lo)
-                    .bytes_size()
-                    .expect("Insn::Concat: lo must be LLType::Bytes");
-                let hi_size = prog
-                    .reg_type(hi)
-                    .bytes_size()
-                    .expect("Insn::Concat: hi must be LLType::Bytes");
+                let lo_type = prog.ll_type(lo);
+                let hi_type = prog.ll_type(hi);
+
+                let lo_size = match lo_type.bytes_size() {
+                    Some(size) => size,
+                    None => {
+                        prog.faults.push(Fault::ConcatNonBytesType {
+                            reg,
+                            found: lo_type,
+                        });
+                        return LLType::Bytes(0);
+                    }
+                };
+
+                let hi_size = match hi_type.bytes_size() {
+                    Some(size) => size,
+                    None => {
+                        prog.faults.push(Fault::ConcatNonBytesType {
+                            reg,
+                            found: hi_type,
+                        });
+                        return LLType::Bytes(0);
+                    }
+                };
+
                 LLType::Bytes(lo_size + hi_size)
             }
             Insn::Widen {
@@ -568,21 +667,32 @@ mod rt_infer {
                 sign: _,
             } => LLType::Bytes(target_size as usize),
             Insn::Arith(_, a, b) => {
-                let at = prog.reg_type(a);
-                let bt = prog.reg_type(b);
-                assert_eq!(
-                    at, bt,
-                    "{reg:?}: Insn::Arith: operands have different LLType ({at:?}, {bt:?})"
-                );
+                let at = prog.ll_type(a);
+                let bt = prog.ll_type(b);
+
+                if at != bt {
+                    prog.faults.push(Fault::ArithDifferentTypes {
+                        reg,
+                        left: at,
+                        right: bt,
+                    });
+                    return LLType::Bytes(0);
+                }
+
                 let LLType::Bytes(sz) = at else {
-                    panic!("{reg:?}: Insn::Arith: `a` must be LLType::Bytes");
+                    prog.faults
+                        .push(Fault::ArithNonBytesType { reg, found: at });
+                    return LLType::Bytes(0);
                 };
 
                 LLType::Bytes(sz)
             }
             Insn::ArithK(_, a, _) => {
-                let LLType::Bytes(sz) = prog.reg_type(a) else {
-                    panic!("{reg:?}: Insn::ArithK: `a` must be LLType::Bytes");
+                let at = prog.ll_type(a);
+                let LLType::Bytes(sz) = at else {
+                    prog.faults
+                        .push(Fault::ArithKNonBytesType { reg, found: at });
+                    return LLType::Bytes(0);
                 };
                 LLType::Bytes(sz)
             }
@@ -593,7 +703,7 @@ mod rt_infer {
             // TODO This might have to change based on the use of calling
             // convention and function type info
             Insn::Call { .. } => LLType::Bytes(8),
-            Insn::CArg { value, next_arg: _ } => prog.reg_type(value),
+            Insn::CArg { value, next_arg: _ } => prog.ll_type(value),
 
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
@@ -629,20 +739,21 @@ mod rt_infer {
                         for UpsilonDesc { input_reg, .. } in prog.upsilons_of_phi(phi_reg) {
                             match prog.get(input_reg).unwrap() {
                                 Insn::Phi => work.push(input_reg),
-                                _ => break 'rt prog.reg_type(input_reg),
+                                _ => break 'rt prog.ll_type(input_reg),
                             }
                         }
                     }
 
-                    panic!("pathologic data flow graph: phi {reg:?} can't be resolved, it's an all-phi cycle");
+                    prog.faults.push(Fault::PhiCycle { reg });
+                    return LLType::Bytes(0);
                 }
             }
-            Insn::FuncArgument { reg_type, .. } => reg_type,
-            Insn::Ancestral { reg_type, .. } => reg_type,
+            Insn::FuncArgument { ll_type, .. } => ll_type,
+            Insn::Ancestral { ll_type, .. } => ll_type,
             Insn::StructGetMember { size, .. } => LLType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => LLType::Bytes(size as usize),
             Insn::Struct { size, .. } => LLType::Bytes(size as usize),
-            Insn::StructMember { value, .. } => prog.reg_type(value),
+            Insn::StructMember { value, .. } => prog.ll_type(value),
         };
 
         prog.ll_types[reg.0 as usize] = rt;
@@ -690,11 +801,11 @@ impl<'a> OpenProgram<'a> {
         cell.set(insn);
         event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
 
-        let old_rt = self.reg_type(reg);
+        let old_rt = self.ll_type(reg);
         rt_infer::update_one_reg(reg, &mut self.program);
         assert_eq!(
             old_rt,
-            self.reg_type(reg),
+            self.ll_type(reg),
             "{reg:?} changed type (left -> right)"
         );
     }
@@ -717,7 +828,7 @@ impl<'a> OpenProgram<'a> {
         self.program.addrs.push(u64::MAX);
         self.program.tyids.push(None);
         self.program.ll_types.push(mil::LLType::Effect);
-        // panics if an unresolvable cyclic LLType dependency is introduced
+        // adds faults if type inference encounters errors
         rt_infer::update_one_reg(reg, &mut self.program);
 
         reg
@@ -737,7 +848,6 @@ impl<'a> OpenProgram<'a> {
     ///
     /// Returns the register corresponding to the new value.
     pub fn append_new(&mut self, bid: cfg::BlockID, insn: mil::Insn) -> mil::Reg {
-        insn.assert_valid();
         let reg = self.add_insn(insn);
         self.program.schedule.append(reg.reg_index(), bid);
         reg
@@ -821,8 +931,8 @@ fn test_assert_no_circular_refs() {
     prog.push(Reg(1), Insn::Arith(ArithOp::Add, Reg(0), Reg(2)));
     prog.push(Reg(2), Insn::Arith(ArithOp::Add, Reg(0), Reg(1)));
 
-    let prog = Program::from_mil(prog);
-    prog.assert_no_circular_refs();
+    let mut prog = Program::from_mil(prog);
+    prog.check_no_circular_refs();
 }
 
 impl std::fmt::Debug for Program {
@@ -1007,7 +1117,7 @@ mod input_chain_tests {
 mod tests {
 
     use crate::{mil, LLType};
-    use mil::{ArithOp, Control, Insn, Reg};
+    use mil::{ArithOp, BoolOp, Control, Insn, Reg};
 
     #[test]
     fn test_phi_read() {
@@ -1049,8 +1159,9 @@ mod tests {
 
     #[test]
     fn circular_graph_detected_neg() {
-        let prog = make_prog_no_cycles();
-        prog.assert_no_circular_refs();
+        let mut prog = make_prog_no_cycles();
+        prog.check_no_circular_refs();
+        assert!(prog.faults.is_empty());
     }
 
     #[test]
@@ -1061,7 +1172,6 @@ mod tests {
             // introduce cycle:
             prog.set(Reg(0), Insn::Arith(mil::ArithOp::Add, Reg(1), Reg(2)));
         });
-        prog.assert_no_circular_refs();
     }
 
     fn make_prog_no_cycles() -> super::Program {
@@ -1098,7 +1208,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn reg_type_invalidation() {
+    fn ll_type_invalidation() {
         let mut prog = {
             let mut prog = mil::Program::new(Reg(0), None);
             prog.push(Reg(0), Insn::Int { value: 42, size: 8 });
@@ -1108,14 +1218,33 @@ mod tests {
             super::Program::from_mil(prog)
         };
 
-        assert_eq!(prog.reg_type(mil::Reg(0)), LLType::Bytes(8));
-        assert_eq!(prog.reg_type(mil::Reg(1)), LLType::Bytes(8));
-        assert_eq!(prog.reg_type(mil::Reg(2)), LLType::Bytes(8));
+        assert_eq!(prog.ll_type(mil::Reg(0)), LLType::Bytes(8));
+        assert_eq!(prog.ll_type(mil::Reg(1)), LLType::Bytes(8));
+        assert_eq!(prog.ll_type(mil::Reg(2)), LLType::Bytes(8));
 
         prog.mutate(|mut prog| {
             // with this, the type of r0 changes, and so should the other two
             // registers' types.
             prog.set(mil::Reg(0), Insn::Int { value: 42, size: 4 });
         });
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_arith_different_types() {
+        let mut prog = mil::Program::new(Reg(0), None);
+        prog.push(Reg(0), Insn::Int { value: 42, size: 8 }); // LLType::Bytes(8)
+        prog.push(Reg(1), Insn::Bool(BoolOp::And, Reg(0), Reg(0))); // LLType::Bool
+        prog.push(Reg(2), Insn::Arith(ArithOp::Add, Reg(0), Reg(1))); // Should cause fault
+        super::Program::from_mil(prog);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_arithk_non_bytes() {
+        let mut prog = mil::Program::new(Reg(0), None);
+        prog.push(Reg(0), Insn::Bool(BoolOp::And, Reg(0), Reg(0))); // LLType::Bool
+        prog.push(Reg(1), Insn::ArithK(ArithOp::Add, Reg(0), 1)); // Should cause fault
+        super::Program::from_mil(prog);
     }
 }
