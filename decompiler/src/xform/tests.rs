@@ -20,7 +20,7 @@ mod constant_folding {
             Reg(0),
             Insn::Ancestral {
                 anc_name: mil::ANC_STACK_BOTTOM,
-                reg_type: mil::RegType::Bytes(8),
+                reg_type: mil::LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
@@ -40,7 +40,7 @@ mod constant_folding {
             Reg(4),
             Insn::Ancestral {
                 anc_name: mil::ANC_STACK_BOTTOM,
-                reg_type: mil::RegType::Bytes(8),
+                reg_type: mil::LLType::Bytes(8),
             },
         );
         prog.push(Reg(3), Insn::Arith(ArithOp::Add, Reg(3), Reg(4)));
@@ -66,7 +66,7 @@ mod constant_folding {
             Reg(0),
             Insn::Ancestral {
                 anc_name: mil::ANC_STACK_BOTTOM,
-                reg_type: mil::RegType::Bytes(8),
+                reg_type: mil::LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::Int { value: 5, size: 8 });
@@ -86,7 +86,7 @@ mod constant_folding {
             Reg(4),
             Insn::Ancestral {
                 anc_name: mil::ANC_STACK_BOTTOM,
-                reg_type: mil::RegType::Bytes(8),
+                reg_type: mil::LLType::Bytes(8),
             },
         );
         prog.push(Reg(4), Insn::Arith(ArithOp::Mul, Reg(3), Reg(4)));
@@ -137,14 +137,14 @@ mod subreg_folding {
                 Reg(0),
                 Insn::Ancestral {
                     anc_name: ANC_A,
-                    reg_type: mil::RegType::Bytes(vp.anc_a_sz as _),
+                    reg_type: mil::LLType::Bytes(vp.anc_a_sz as _),
                 },
             );
             p.push(
                 Reg(1),
                 Insn::Ancestral {
                     anc_name: ANC_B,
-                    reg_type: mil::RegType::Bytes(vp.anc_b_sz as _),
+                    reg_type: mil::LLType::Bytes(vp.anc_b_sz as _),
                 },
             );
             p.push(
@@ -274,7 +274,7 @@ mod subreg_folding {
                 Reg(0),
                 Insn::Ancestral {
                     anc_name: ANC_A,
-                    reg_type: mil::RegType::Bytes(vp.src_sz as _),
+                    reg_type: mil::LLType::Bytes(vp.src_sz as _),
                 },
             );
             p.push(
@@ -394,7 +394,7 @@ fn combined_with_fold_get() {
 
 mod struct_ptr_member_access {
     use crate::{
-        mil::{self, ArithOp, Control, Insn, Reg, RegType},
+        mil::{self, ArithOp, Control, Insn, Reg, LLType},
         ssa,
         ty::{self, TypeID},
         xform,
@@ -505,7 +505,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         // ArithK with offset 0 to first member
@@ -569,7 +569,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::ArithK(ArithOp::Add, Reg(0), 8));
@@ -623,7 +623,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::ArithK(ArithOp::Add, Reg(0), 12));
@@ -665,7 +665,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         // Offset 4 doesn't align with any member start
@@ -708,7 +708,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::ArithK(ArithOp::Add, Reg(0), 8));
@@ -750,7 +750,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::ArithK(ArithOp::Add, Reg(0), 8));
@@ -880,7 +880,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         // Access outer.b.y: offset 8 (b) + 4 (y) = 12
@@ -925,7 +925,7 @@ mod struct_ptr_member_access {
             Reg(0),
             Insn::Ancestral {
                 anc_name: ANC_STRUCT_PTR,
-                reg_type: RegType::Bytes(8),
+                reg_type: LLType::Bytes(8),
             },
         );
         prog.push(Reg(1), Insn::ArithK(ArithOp::Add, Reg(0), -4));

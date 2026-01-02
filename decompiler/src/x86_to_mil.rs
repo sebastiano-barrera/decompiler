@@ -44,54 +44,54 @@ impl Importer {
             rtx,
         };
 
-        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, mil::RegType::Bytes(8));
+        bld.init_ancestral(Self::RSP, mil::ANC_STACK_BOTTOM, mil::LLType::Bytes(8));
 
         // ensure all registers are initialized at least once. most of these
         // instructions get "deleted" (masked) if the program is valid and the
         // decompilation correct. if not, this allows the program to still be
         // decompiled into something (albeit, with some "holes")
 
-        bld.init_ancestral(Self::PF, ANC_PF, mil::RegType::Bool);
-        bld.init_ancestral(Self::AF, ANC_AF, mil::RegType::Bool);
-        bld.init_ancestral(Self::ZF, ANC_ZF, mil::RegType::Bool);
-        bld.init_ancestral(Self::SF, ANC_SF, mil::RegType::Bool);
-        bld.init_ancestral(Self::TF, ANC_TF, mil::RegType::Bool);
-        bld.init_ancestral(Self::IF, ANC_IF, mil::RegType::Bool);
-        bld.init_ancestral(Self::DF, ANC_DF, mil::RegType::Bool);
-        bld.init_ancestral(Self::OF, ANC_OF, mil::RegType::Bool);
-        bld.init_ancestral(Self::RBP, ANC_RBP, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RSP, ANC_RSP, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RIP, ANC_RIP, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RDI, ANC_RDI, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RSI, ANC_RSI, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RAX, ANC_RAX, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RBX, ANC_RBX, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RCX, ANC_RCX, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::RDX, ANC_RDX, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R8, ANC_R8, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R9, ANC_R9, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R10, ANC_R10, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R11, ANC_R11, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R12, ANC_R12, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R13, ANC_R13, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R14, ANC_R14, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::R15, ANC_R15, mil::RegType::Bytes(8));
-        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, mil::RegType::Bytes(64));
-        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, mil::RegType::Bytes(64));
+        bld.init_ancestral(Self::PF, ANC_PF, mil::LLType::Bool);
+        bld.init_ancestral(Self::AF, ANC_AF, mil::LLType::Bool);
+        bld.init_ancestral(Self::ZF, ANC_ZF, mil::LLType::Bool);
+        bld.init_ancestral(Self::SF, ANC_SF, mil::LLType::Bool);
+        bld.init_ancestral(Self::TF, ANC_TF, mil::LLType::Bool);
+        bld.init_ancestral(Self::IF, ANC_IF, mil::LLType::Bool);
+        bld.init_ancestral(Self::DF, ANC_DF, mil::LLType::Bool);
+        bld.init_ancestral(Self::OF, ANC_OF, mil::LLType::Bool);
+        bld.init_ancestral(Self::RBP, ANC_RBP, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RSP, ANC_RSP, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RIP, ANC_RIP, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RDI, ANC_RDI, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RSI, ANC_RSI, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RAX, ANC_RAX, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RBX, ANC_RBX, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RCX, ANC_RCX, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::RDX, ANC_RDX, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R8, ANC_R8, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R9, ANC_R9, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R10, ANC_R10, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R11, ANC_R11, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R12, ANC_R12, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R13, ANC_R13, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R14, ANC_R14, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::R15, ANC_R15, mil::LLType::Bytes(8));
+        bld.init_ancestral(Self::ZMM0, ANC_ZMM0, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM1, ANC_ZMM1, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM2, ANC_ZMM2, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM3, ANC_ZMM3, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM4, ANC_ZMM4, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM5, ANC_ZMM5, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM6, ANC_ZMM6, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM7, ANC_ZMM7, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM8, ANC_ZMM8, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM9, ANC_ZMM9, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM10, ANC_ZMM10, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM11, ANC_ZMM11, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM12, ANC_ZMM12, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM13, ANC_ZMM13, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM14, ANC_ZMM14, mil::LLType::Bytes(64));
+        bld.init_ancestral(Self::ZMM15, ANC_ZMM15, mil::LLType::Bytes(64));
 
         Ok(bld)
     }
@@ -99,13 +99,13 @@ impl Importer {
     /// Emit an Ancestral instruction for the given AncestralName and assign the
     /// result to register to `reg`.
     ///
-    /// The register is assigned the given RegType. The high-level type is a
+    /// The register is assigned the given LLType. The high-level type is a
     /// corresponding ty::Ty::Unknown.
     fn init_ancestral(
         &mut self,
         reg: mil::Reg,
         anc_name: AncestralName,
-        rt: mil::RegType,
+        rt: mil::LLType,
     ) -> mil::Index {
         // TODO this function could be removed. this used to make more sense,
         // when it was more complex

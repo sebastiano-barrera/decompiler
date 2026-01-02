@@ -6,7 +6,7 @@ use std::collections::HashMap;
 // out the conversion.
 
 pub use crate::cfg::BlockID;
-pub use crate::mil::RegType;
+pub use crate::mil::LLType;
 pub use crate::ty::TypeID;
 pub use crate::ExpandedInsn;
 
@@ -100,7 +100,7 @@ pub struct Insn {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tyid: Option<TypeID>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reg_type: Option<RegType>,
+    pub reg_type: Option<LLType>,
 }
 
 #[derive(Debug, serde::Serialize)]

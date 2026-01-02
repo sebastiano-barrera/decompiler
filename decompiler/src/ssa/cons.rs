@@ -196,13 +196,13 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
     let reg_types = program_core
         .insns
         .iter()
-        .map(|_| mil::RegType::Effect)
+        .map(|_| mil::LLType::Effect)
         .collect();
 
     let mut ssa = Program {
         insns: program_core.insns.into_iter().map(Cell::new).collect(),
         addrs: program_core.addrs,
-        reg_types,
+        ll_types: reg_types,
         tyids: program_core.tyids,
         types: program_core.types,
         func_tyid,

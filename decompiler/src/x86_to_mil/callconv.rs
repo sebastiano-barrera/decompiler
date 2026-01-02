@@ -83,7 +83,7 @@ fn unpack_param(
             arg_value,
             Insn::FuncArgument {
                 index: arg_ndx,
-                reg_type: mil::RegType::Bytes(sz),
+                reg_type: mil::LLType::Bytes(sz),
             },
         );
         bld.set_value_type(arg_insn_ndx, tyid);

@@ -88,19 +88,28 @@ impl std::fmt::Debug for Reg {
 
 pub type Index = u16;
 
+/// Low-level type for an SSA value.
+///
+/// Unlike "high-level" types (the ones managed by the [`ty`] module):
+/// - LLTypes are small, simple, and self-contained (e.g.: no composites);
+/// - every SSA value has an LLType (whereas it may not have a high-level type);
+/// - are directly deduced from each instruction's semantics (they don't require
+///  whole-program type analysis to be assigned);
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, facet::Facet, serde::Serialize)]
 #[repr(u8)]
-pub enum RegType {
+pub enum LLType {
     Bytes(usize),
+    Int(usize),
+    Float(usize),
     Bool,
     Effect,
 }
-impl RegType {
+impl LLType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
-            RegType::Bytes(sz) => Some(*sz),
-            RegType::Bool => None,
-            RegType::Effect => None,
+            LLType::Int(sz) | LLType::Float(sz) | LLType::Bytes(sz) => Some(*sz),
+            LLType::Bool => None,
+            LLType::Effect => None,
         }
     }
 }
@@ -259,11 +268,11 @@ pub enum Insn {
 
     FuncArgument {
         index: u16,
-        reg_type: RegType,
+        reg_type: LLType,
     },
     Ancestral {
         anc_name: AncestralName,
-        reg_type: RegType,
+        reg_type: LLType,
     },
 
     Phi,
@@ -293,7 +302,7 @@ pub enum Control {
     Jmp(Index),
 
     /// Jump to the associated Index if the value set by the last
-    /// Insn::SetJumpCondition(_) is true (must be a RegType::Bool).
+    /// Insn::SetJumpCondition(_) is true (must be a LLType::Bool).
     JmpIf(Index),
 
     /// Jump to the associated machine address, which is external to the function.
@@ -301,7 +310,7 @@ pub enum Control {
 
     /// Jump to the associated machine address, which is external to the
     /// function, if the value set by the last Insn::SetJumpCondition(_) is true
-    /// (must be a RegType::Bool).
+    /// (must be a LLType::Bool).
     JmpExtIf(u64),
 
     /// Jump to the last address set by Insn::SetJumpTarget(_) in this block

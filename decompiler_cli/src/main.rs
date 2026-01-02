@@ -185,9 +185,11 @@ fn write_text_insn<W: std::io::Write>(
     }
     write!(wrt, "    r{:<4}", insn.dest)?;
     match insn.reg_type {
-        Some(decompiler::RegType::Bytes(n)) => write!(wrt, ": {:6} ", n)?,
-        Some(decompiler::RegType::Bool) => write!(wrt, ":   bool ")?,
-        Some(decompiler::RegType::Effect) => write!(wrt, ": effect ")?,
+        Some(decompiler::LLType::Bytes(n)) => write!(wrt, ": {:6} ", n)?,
+        Some(decompiler::LLType::Bool) => write!(wrt, ":   bool ")?,
+        Some(decompiler::LLType::Effect) => write!(wrt, ": effect ")?,
+        Some(decompiler::LLType::Int(n)) => write!(wrt, ": {:6} ", n)?,
+        Some(decompiler::LLType::Float(n)) => write!(wrt, ": {:6} ", n)?,
         None => write!(wrt, ":      ? ")?,
     }
     write!(wrt, " <- {:10} ", insn.insn.opcode)?;

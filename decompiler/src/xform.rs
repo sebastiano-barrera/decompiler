@@ -4,7 +4,7 @@ use tracing::{event, instrument, span, Level};
 
 use crate::{
     cfg::BlockID,
-    mil::{ArithOp, Endianness, Insn, Reg, RegType},
+    mil::{ArithOp, Endianness, Insn, LLType, Reg},
     ssa, ty,
     util::{bisect, Bytes},
     x86_to_mil,
@@ -258,9 +258,9 @@ fn fold_concat_void(insn: Insn, prog: &ssa::Program) -> Insn {
     };
 
     match (prog.reg_type(lo), prog.reg_type(hi)) {
-        (RegType::Bytes(0), RegType::Bytes(0)) => Insn::Void,
-        (RegType::Bytes(0), _) => Insn::Get(hi),
-        (_, RegType::Bytes(0)) => Insn::Get(lo),
+        (LLType::Bytes(0), LLType::Bytes(0)) => Insn::Void,
+        (LLType::Bytes(0), _) => Insn::Get(hi),
+        (_, LLType::Bytes(0)) => Insn::Get(lo),
         (_, _) => insn,
     }
 }
@@ -451,7 +451,7 @@ fn fold_widen_null(insn: Insn, prog: &ssa::Program) -> Insn {
         sign: _,
     } = insn
     {
-        if let RegType::Bytes(sz) = prog.reg_type(reg) {
+        if let LLType::Bytes(sz) = prog.reg_type(reg) {
             if target_size as usize == sz {
                 return Insn::Get(reg);
             }
@@ -468,7 +468,7 @@ fn fold_part_null(insn: Insn, prog: &ssa::Program) -> Insn {
         size,
     } = insn
     {
-        if let RegType::Bytes(src_size) = prog.reg_type(src) {
+        if let LLType::Bytes(src_size) = prog.reg_type(src) {
             if src_size == size as usize {
                 return Insn::Get(src);
             }

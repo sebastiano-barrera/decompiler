@@ -12,7 +12,7 @@ use crate::{mil, ssa, ty, x86_to_mil, xform};
 pub use crate::ast::{precedence, write_ast, Ast, AstBuilder, PrecedenceLevel};
 pub use crate::cfg::{BlockCont, BlockID, BlockMap, Dest, Graph};
 pub use crate::mil::{
-    to_expanded, AncestralName, ExpandedInsn, ExpandedValue, Insn, Reg, RegType, R,
+    to_expanded, AncestralName, ExpandedInsn, ExpandedValue, Insn, LLType, Reg, R,
 };
 pub use crate::ssa::{count_readers, Program as SSAProgram, RegMap};
 
