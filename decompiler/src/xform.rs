@@ -13,6 +13,7 @@ use crate::{
 mod mem;
 mod tests;
 
+#[instrument(skip(prog, bid, _types))]
 fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: ty::ReadTxRef) {
     use crate::mil::ArithOp;
 
@@ -156,7 +157,7 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
     prog.set(reg, result_insn);
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(prog, _bid, _types))]
 fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     // operators that matter here are:
     // - subrange: src[a..b]
@@ -262,6 +263,7 @@ fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty
     prog.set(reg, result_insn);
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_concat_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     let Insn::Concat { lo, hi } = insn else {
@@ -278,6 +280,7 @@ fn fold_concat_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
     prog.set(reg, result_insn);
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_bitops(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     let result_insn = match insn {
@@ -298,6 +301,7 @@ fn fold_bitops(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty:
     prog.set(reg, result_insn);
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_part_part(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     // the pattern is
     //  r0 <- (any, of size s0)
@@ -335,6 +339,7 @@ fn fold_part_part(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
     }
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_part_concat(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     // the pattern is
     //  r0 <- (any, of size s0)
@@ -378,6 +383,7 @@ fn fold_part_concat(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
     }
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_part_widen(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     // the pattern is
     //  r0 <- (any, of size s0)
@@ -446,6 +452,7 @@ fn fold_part_widen(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
     prog.set(reg, result_insn);
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_widen_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     // TODO add signedness to Const as well? then we could check if they match
     let insn = prog.get(reg).unwrap();
@@ -469,6 +476,7 @@ fn fold_widen_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
     }
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_widen_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     if let Insn::Widen {
@@ -487,6 +495,7 @@ fn fold_widen_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
     }
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_part_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     if let Insn::Part {
@@ -505,6 +514,7 @@ fn fold_part_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
     }
 }
 
+#[instrument(skip(prog, bid, _types))]
 fn fold_shr_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     if let Insn::ArithK(ArithOp::Shr, shr_reg, shift_len) = insn {
@@ -533,6 +543,7 @@ fn fold_shr_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: ty
     }
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_get(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let mut insn = prog.get(reg).unwrap();
     for input in insn.input_regs_iter() {
@@ -549,6 +560,7 @@ fn fold_get(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::Re
     prog.set(reg, insn);
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_part_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     if let Insn::Part { size: 0, .. } = insn {
@@ -557,6 +569,7 @@ fn fold_part_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
     }
 }
 
+#[instrument(skip(prog, _bid, _types))]
 fn fold_part_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     if let Insn::Part { src, offset, size } = insn {
@@ -637,6 +650,7 @@ fn fold_part_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
 ///
 /// Doesn't do anything for other types of instructions or when no type info is
 /// available.
+#[instrument(skip(prog, bid, types))]
 fn select_type_on_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     let Insn::Part { src, offset, size } = insn else {
@@ -650,6 +664,7 @@ fn select_type_on_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, type
     prog.set(reg, result_insn);
 }
 
+#[instrument(skip(prog, _bid, types))]
 fn pick_callee_name(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, types: ty::ReadTxRef) {
     let insn = prog.get(reg).unwrap();
     if let Insn::Call { callee, .. } = insn {
@@ -728,7 +743,7 @@ fn apply_type_selection(
     Insn::Get(last_reg)
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(prog, bid, types))]
 fn select_type_on_deref_member_read(
     reg: Reg,
     prog: &mut ssa::OpenProgram,
@@ -811,7 +826,6 @@ fn select_type_on_deref_member_read(
 const BISECT: bool = false;
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
-#[tracing::instrument(skip_all)]
 pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let prog = std::panic::AssertUnwindSafe(prog);
 
@@ -878,7 +892,7 @@ impl bisect::BisectState for PeepholeFlags {
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 #[tracing::instrument(skip_all)]
 pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFlags) {
-    prog.assert_invariants();
+    prog.check_invariants();
 
     // apply transforms in lockstep
     //
@@ -990,7 +1004,7 @@ pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFl
                         pick_callee_name(reg, &mut prog, bid, rtx.read());
                     }
                     let insn = prog.get(reg).unwrap();
-                    if insn.is_replaceable_with_get() {
+                    if insn.is_replaceable() {
                         // replacing a side-effecting instruction with a non-side-effecting
                         // Insn::Get is currently wrong (would be quite complicated to handle)
                         let deduped = deduper.try_dedup(reg, insn);
@@ -1198,7 +1212,7 @@ impl Deduper {
     fn try_dedup(&mut self, reg: Reg, insn: Insn) -> Insn {
         // replacing a side-effecting instruction with a non-side-effecting
         // Insn::Get is currently wrong (would be quite complicated to handle)
-        if !insn.is_replaceable_with_get() {
+        if !insn.is_replaceable() {
             return insn;
         }
 

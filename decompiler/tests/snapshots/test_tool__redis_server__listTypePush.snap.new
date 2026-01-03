@@ -1,6 +1,6 @@
 ---
 source: decompiler/tests/test_tool.rs
-assertion_line: 164
+assertion_line: 172
 expression: out
 ---
  --- mil

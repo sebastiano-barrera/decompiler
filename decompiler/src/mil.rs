@@ -132,7 +132,7 @@ pub enum Endianness {
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet, serde::Serialize)]
 #[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
-#[func(pub fn is_replaceable_with_get(&self) -> bool { ! self.has_side_effects() })]
+#[func(pub fn is_replaceable(&self) -> bool { ! self.has_side_effects() })]
 #[func(pub fn input_regs(&mut self) -> ArgsMut<'_> { ArgsMut::new() })]
 #[allow(dead_code)]
 pub enum Insn {
@@ -178,6 +178,7 @@ pub enum Insn {
         first_member: Option<Reg>,
         size: u32,
     },
+    #[assoc(is_replaceable = false)]
     #[assoc(input_regs = [Some(_value), _next.as_mut()].into_iter().flatten().collect())]
     StructMember {
         // TODO figure out proper memory management for these
@@ -217,7 +218,7 @@ pub enum Insn {
         first_arg: Option<Reg>,
         ret_ll_type: LLType,
     },
-    #[assoc(is_replaceable_with_get = false)]
+    #[assoc(is_replaceable = false)]
     #[assoc(input_regs = [Some(_value), _next_arg.as_mut()].into_iter().flatten().collect())]
     CArg {
         value: Reg,
@@ -278,6 +279,7 @@ pub enum Insn {
         ll_type: LLType,
     },
 
+    #[assoc(is_replaceable = false)]
     Phi,
 
     // must be marked with has_side_effects = true, in order to be associated to specific basic blocks

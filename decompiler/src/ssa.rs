@@ -39,6 +39,7 @@ pub enum Fault {
         phi_reg: mil::Reg,
         expected: mil::LLType,
         found: mil::LLType,
+        value: mil::Reg,
     },
 
     #[error("circular reference detected in data flow graph")]
@@ -294,7 +295,9 @@ impl Program {
     /// (such as each value's LLType).
     ///
     /// Any violations are recorded in `self.faults`.
-    pub fn assert_invariants(&mut self) {
+    ///
+    /// LLType's are also recomputed from scratch.
+    pub fn check_invariants(&mut self) {
         self.faults.clear();
         self.reset_ll_types();
 
@@ -320,7 +323,7 @@ impl Program {
         let ret = block(OpenProgram { program: self });
 
         eliminate_dead_code(self);
-        self.assert_invariants();
+        self.check_invariants();
 
         ret
     }
@@ -469,6 +472,15 @@ impl Program {
             };
 
             let ll_type = self.ll_type(value);
+            // Phi's are allowed to have one or more of their inputs be LLType::Error:
+            // - they don't count for consistency;
+            // - any Error already causes a panic in tests, so this is caught;
+            // - they allow the type deduction algorithm to recover the problem
+            //   "later" (with multiple xform cycles)
+            if ll_type == mil::LLType::Error {
+                continue;
+            }
+
             match &mut phi_type[phi_ref] {
                 slot @ None => {
                     *slot = Some(ll_type);
@@ -477,6 +489,7 @@ impl Program {
                     if *prev != ll_type {
                         self.faults.push(Fault::InconsistentPhiTypes {
                             phi_reg: phi_ref,
+                            value,
                             expected: *prev,
                             found: ll_type,
                         });
@@ -611,6 +624,7 @@ impl Program {
     }
 }
 
+#[derive(Debug)]
 pub struct UpsilonDesc {
     upsilon_reg: mil::Reg,
     input_reg: mil::Reg,
@@ -630,6 +644,7 @@ mod rt_infer {
         }
     }
 
+    #[tracing::instrument(skip(prog))]
     pub(super) fn update_one_reg(reg: mil::Reg, prog: &mut Program) -> LLType {
         let rt = match prog.get(reg).unwrap() {
             Insn::Void => LLType::Bytes(0),
@@ -734,10 +749,26 @@ mod rt_infer {
                 'rt: {
                     let mut work = vec![reg];
                     while let Some(phi_reg) = work.pop() {
-                        for UpsilonDesc { input_reg, .. } in prog.upsilons_of_phi(phi_reg) {
+                        for ups in prog.upsilons_of_phi(phi_reg) {
+                            let UpsilonDesc { input_reg, .. } = ups;
                             match prog.get(input_reg).unwrap() {
-                                Insn::Phi => work.push(input_reg),
-                                _ => break 'rt prog.ll_type(input_reg),
+                                Insn::Phi => {
+                                    event!(Level::TRACE, ?phi_reg, ?ups, "phi");
+                                    work.push(input_reg)
+                                }
+                                _ => {
+                                    let ll_type = prog.ll_type(input_reg);
+                                    event!(
+                                        Level::TRACE,
+                                        ?phi_reg,
+                                        ?ups,
+                                        ?ll_type,
+                                        "non-phi, typed"
+                                    );
+                                    if ll_type != LLType::Error {
+                                        break 'rt ll_type;
+                                    }
+                                }
                             }
                         }
                     }
@@ -787,11 +818,19 @@ impl<'a> OpenProgram<'a> {
     ///
     /// Panics if the new instruction would change the register's LLType.
     pub fn set(&mut self, reg: mil::Reg, insn: mil::Insn) {
+        use std::mem::discriminant;
+
         let Some(cell) = self.insns.get(reg.reg_index() as usize) else {
             return;
         };
 
         let orig_insn = cell.get();
+        if !orig_insn.is_replaceable() && discriminant(&orig_insn) != discriminant(&insn) {
+            panic!(
+                "instructions can't be replaced: {:?} -> {:?}",
+                orig_insn, insn
+            );
+        }
         if orig_insn == insn {
             return;
         }

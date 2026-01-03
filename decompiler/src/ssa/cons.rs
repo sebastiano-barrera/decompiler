@@ -208,7 +208,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         faults: Vec::new(),
     };
 
-    ssa.assert_invariants();
+    ssa.check_invariants();
     event!(Level::TRACE, ?ssa, "ssa constructed");
 
     ssa
