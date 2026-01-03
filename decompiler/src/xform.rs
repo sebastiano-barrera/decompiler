@@ -68,6 +68,7 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
         [⋅=×]⟹\frac{a\index{1}|a}}
     */
 
+    let orig_llt = prog.ll_type(reg);
     let insn = prog.get(reg).unwrap();
     let (mut op, mut lr, mut li, mut ri) = match insn {
         Insn::Arith(op, lr, rr) => {
@@ -136,9 +137,10 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
 
     let result_insn = match (op, li, ri) {
         (op, Insn::Int { value: ka, .. }, Insn::Int { value: kb, .. }) => {
-            match eval_const(op, ka, kb) {
-                Some(value) => Insn::Int { value, size: 8 },
-                None => insn,
+            let size = orig_llt.bytes_size().and_then(|sz| sz.try_into().ok());
+            match (size, eval_const(op, ka, kb)) {
+                (Some(size), Some(value)) => Insn::Int { value, size },
+                _ => insn,
             }
         }
         (ArithOp::Add, _, Insn::Int { value: 0, .. }) => Insn::Get(lr),

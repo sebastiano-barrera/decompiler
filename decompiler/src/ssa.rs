@@ -797,11 +797,15 @@ impl<'a> OpenProgram<'a> {
 
         let old_rt = self.ll_type(reg);
         rt_infer::update_one_reg(reg, &mut self.program);
-        assert_eq!(
-            old_rt,
-            self.ll_type(reg),
-            "{reg:?} changed type (left -> right)"
-        );
+        if old_rt != mil::LLType::Error {
+            assert_eq!(
+                old_rt,
+                self.ll_type(reg),
+                "{reg:?} changed type (left -> right)"
+            );
+        } else {
+            // we're allowed to "resolve" the error
+        }
     }
 
     /// Add a new instruction to the set of values
