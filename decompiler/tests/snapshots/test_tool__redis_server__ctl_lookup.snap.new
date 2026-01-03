@@ -1,6 +1,6 @@
 ---
 source: decompiler/tests/test_tool.rs
-assertion_line: 164
+assertion_line: 171
 expression: out
 ---
  --- mil
@@ -3339,3 +3339,13 @@ pass;
 .B42: {
   return Int 2 8
 }
+ --- ssa faults [9]
+ * ArithKNonBytesType { reg: r587, found: Error }
+ * ArithKNonBytesType { reg: r437, found: Error }
+ * ArithKNonBytesType { reg: r482, found: Error }
+ * ArithKNonBytesType { reg: r525, found: Error }
+ * ArithKNonBytesType { reg: r575, found: Error }
+ * InconsistentPhiTypes { phi_reg: r1462, expected: Bytes(8), found: Error }
+ * InconsistentPhiTypes { phi_reg: r1466, expected: Error, found: Bytes(8) }
+ * InconsistentPhiTypes { phi_reg: r1466, expected: Error, found: Bytes(8) }
+ * InconsistentPhiTypes { phi_reg: r1466, expected: Error, found: Bytes(8) }

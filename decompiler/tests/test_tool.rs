@@ -144,6 +144,14 @@ fn process_function(exe: &decompiler::Executable<'_>, function_name: &str) -> St
         let mut pp_buf = decompiler::pp::FmtAsIoUTF8(&mut log_buf);
         let pp = &mut decompiler::pp::PrettyPrinter::start(&mut pp_buf);
         decompiler::write_ast(pp, &ast, ssa, exe.types()).unwrap();
+
+        if ssa.faults().len() > 0 {
+            println!(" --- ssa faults [{}]", ssa.faults().len());
+            for fault in ssa.faults() {
+                println!(" * {:?}", fault);
+            }
+            panic!("panicking due to {} faults", ssa.faults().len());
+        }
     }
 
     log_buf

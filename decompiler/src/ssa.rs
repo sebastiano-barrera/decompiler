@@ -118,7 +118,7 @@ pub struct Program {
 
     endianness: Endianness,
 
-    pub faults: Vec<Fault>,
+    faults: Vec<Fault>,
 }
 
 /// Correctness relies on a few invariants.
@@ -323,6 +323,10 @@ impl Program {
         self.assert_invariants();
 
         ret
+    }
+
+    pub fn faults(&self) -> impl '_ + ExactSizeIterator<Item = &Fault> {
+        self.faults.iter()
     }
 }
 
