@@ -306,8 +306,13 @@ impl Program {
         self.check_carg_chain();
 
         #[cfg(test)]
-        if !self.faults.is_empty() {
-            panic!("SSA invariants violated: {:#?}", self.faults);
+        {
+            if !self.faults.is_empty() {
+                panic!("SSA invariants violated: {:#?}", self.faults);
+            }
+            if self.ll_types.contains(&mil::LLType::Error) {
+                panic!("SSA contains type errors");
+            }
         }
     }
 
