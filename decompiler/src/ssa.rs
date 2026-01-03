@@ -510,8 +510,8 @@ impl Program {
             let insn = self.get(reg).unwrap();
             let arg = match insn {
                 mil::Insn::Call {
-                    callee: _,
                     first_arg: Some(arg),
+                    ..
                 }
                 | mil::Insn::CArg {
                     value: _,
@@ -702,7 +702,7 @@ mod rt_infer {
             Insn::Not(_) => LLType::Bool,
             // TODO This might have to change based on the use of calling
             // convention and function type info
-            Insn::Call { .. } => LLType::Bytes(8),
+            Insn::Call { ret_ll_type, .. } => ret_ll_type,
             Insn::CArg { value, next_arg: _ } => prog.ll_type(value),
 
             Insn::SetReturnValue(_)

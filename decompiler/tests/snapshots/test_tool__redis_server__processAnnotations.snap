@@ -4,53 +4,53 @@ expression: out
 ---
  --- mil
 program  605 instrs
-    0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), reg_type: Bytes(8) }
-    1 r3 <- Ancestral { anc_name: AncestralName("PF"), reg_type: Bool }
-    2 r4 <- Ancestral { anc_name: AncestralName("AF"), reg_type: Bool }
-    3 r5 <- Ancestral { anc_name: AncestralName("ZF"), reg_type: Bool }
-    4 r6 <- Ancestral { anc_name: AncestralName("SF"), reg_type: Bool }
-    5 r7 <- Ancestral { anc_name: AncestralName("TF"), reg_type: Bool }
-    6 r8 <- Ancestral { anc_name: AncestralName("IF"), reg_type: Bool }
-    7 r9 <- Ancestral { anc_name: AncestralName("DF"), reg_type: Bool }
-    8 r10 <- Ancestral { anc_name: AncestralName("OF"), reg_type: Bool }
-    9 r11 <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
-   10 r12 <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-   11 r13 <- Ancestral { anc_name: AncestralName("RIP"), reg_type: Bytes(8) }
-   12 r14 <- Ancestral { anc_name: AncestralName("RDI"), reg_type: Bytes(8) }
-   13 r15 <- Ancestral { anc_name: AncestralName("RSI"), reg_type: Bytes(8) }
-   14 r16 <- Ancestral { anc_name: AncestralName("RAX"), reg_type: Bytes(8) }
-   15 r17 <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
-   16 r18 <- Ancestral { anc_name: AncestralName("RCX"), reg_type: Bytes(8) }
-   17 r19 <- Ancestral { anc_name: AncestralName("RDX"), reg_type: Bytes(8) }
-   18 r20 <- Ancestral { anc_name: AncestralName("R8"), reg_type: Bytes(8) }
-   19 r21 <- Ancestral { anc_name: AncestralName("R9"), reg_type: Bytes(8) }
-   20 r22 <- Ancestral { anc_name: AncestralName("R10"), reg_type: Bytes(8) }
-   21 r23 <- Ancestral { anc_name: AncestralName("R11"), reg_type: Bytes(8) }
-   22 r24 <- Ancestral { anc_name: AncestralName("R12"), reg_type: Bytes(8) }
-   23 r25 <- Ancestral { anc_name: AncestralName("R13"), reg_type: Bytes(8) }
-   24 r26 <- Ancestral { anc_name: AncestralName("R14"), reg_type: Bytes(8) }
-   25 r27 <- Ancestral { anc_name: AncestralName("R15"), reg_type: Bytes(8) }
-   26 r28 <- Ancestral { anc_name: AncestralName("ZMM0"), reg_type: Bytes(64) }
-   27 r29 <- Ancestral { anc_name: AncestralName("ZMM1"), reg_type: Bytes(64) }
-   28 r30 <- Ancestral { anc_name: AncestralName("ZMM2"), reg_type: Bytes(64) }
-   29 r31 <- Ancestral { anc_name: AncestralName("ZMM3"), reg_type: Bytes(64) }
-   30 r32 <- Ancestral { anc_name: AncestralName("ZMM4"), reg_type: Bytes(64) }
-   31 r33 <- Ancestral { anc_name: AncestralName("ZMM5"), reg_type: Bytes(64) }
-   32 r34 <- Ancestral { anc_name: AncestralName("ZMM6"), reg_type: Bytes(64) }
-   33 r35 <- Ancestral { anc_name: AncestralName("ZMM7"), reg_type: Bytes(64) }
-   34 r36 <- Ancestral { anc_name: AncestralName("ZMM8"), reg_type: Bytes(64) }
-   35 r37 <- Ancestral { anc_name: AncestralName("ZMM9"), reg_type: Bytes(64) }
-   36 r38 <- Ancestral { anc_name: AncestralName("ZMM10"), reg_type: Bytes(64) }
-   37 r39 <- Ancestral { anc_name: AncestralName("ZMM11"), reg_type: Bytes(64) }
-   38 r40 <- Ancestral { anc_name: AncestralName("ZMM12"), reg_type: Bytes(64) }
-   39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), reg_type: Bytes(64) }
-   40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), reg_type: Bytes(64) }
-   41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), reg_type: Bytes(64) }
-   42 r45 <- FuncArgument { index: 0, reg_type: Bytes(8) }
+    0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), ll_type: Bytes(8) }
+    1 r3 <- Ancestral { anc_name: AncestralName("PF"), ll_type: Bool }
+    2 r4 <- Ancestral { anc_name: AncestralName("AF"), ll_type: Bool }
+    3 r5 <- Ancestral { anc_name: AncestralName("ZF"), ll_type: Bool }
+    4 r6 <- Ancestral { anc_name: AncestralName("SF"), ll_type: Bool }
+    5 r7 <- Ancestral { anc_name: AncestralName("TF"), ll_type: Bool }
+    6 r8 <- Ancestral { anc_name: AncestralName("IF"), ll_type: Bool }
+    7 r9 <- Ancestral { anc_name: AncestralName("DF"), ll_type: Bool }
+    8 r10 <- Ancestral { anc_name: AncestralName("OF"), ll_type: Bool }
+    9 r11 <- Ancestral { anc_name: AncestralName("RBP"), ll_type: Bytes(8) }
+   10 r12 <- Ancestral { anc_name: AncestralName("RSP"), ll_type: Bytes(8) }
+   11 r13 <- Ancestral { anc_name: AncestralName("RIP"), ll_type: Bytes(8) }
+   12 r14 <- Ancestral { anc_name: AncestralName("RDI"), ll_type: Bytes(8) }
+   13 r15 <- Ancestral { anc_name: AncestralName("RSI"), ll_type: Bytes(8) }
+   14 r16 <- Ancestral { anc_name: AncestralName("RAX"), ll_type: Bytes(8) }
+   15 r17 <- Ancestral { anc_name: AncestralName("RBX"), ll_type: Bytes(8) }
+   16 r18 <- Ancestral { anc_name: AncestralName("RCX"), ll_type: Bytes(8) }
+   17 r19 <- Ancestral { anc_name: AncestralName("RDX"), ll_type: Bytes(8) }
+   18 r20 <- Ancestral { anc_name: AncestralName("R8"), ll_type: Bytes(8) }
+   19 r21 <- Ancestral { anc_name: AncestralName("R9"), ll_type: Bytes(8) }
+   20 r22 <- Ancestral { anc_name: AncestralName("R10"), ll_type: Bytes(8) }
+   21 r23 <- Ancestral { anc_name: AncestralName("R11"), ll_type: Bytes(8) }
+   22 r24 <- Ancestral { anc_name: AncestralName("R12"), ll_type: Bytes(8) }
+   23 r25 <- Ancestral { anc_name: AncestralName("R13"), ll_type: Bytes(8) }
+   24 r26 <- Ancestral { anc_name: AncestralName("R14"), ll_type: Bytes(8) }
+   25 r27 <- Ancestral { anc_name: AncestralName("R15"), ll_type: Bytes(8) }
+   26 r28 <- Ancestral { anc_name: AncestralName("ZMM0"), ll_type: Bytes(64) }
+   27 r29 <- Ancestral { anc_name: AncestralName("ZMM1"), ll_type: Bytes(64) }
+   28 r30 <- Ancestral { anc_name: AncestralName("ZMM2"), ll_type: Bytes(64) }
+   29 r31 <- Ancestral { anc_name: AncestralName("ZMM3"), ll_type: Bytes(64) }
+   30 r32 <- Ancestral { anc_name: AncestralName("ZMM4"), ll_type: Bytes(64) }
+   31 r33 <- Ancestral { anc_name: AncestralName("ZMM5"), ll_type: Bytes(64) }
+   32 r34 <- Ancestral { anc_name: AncestralName("ZMM6"), ll_type: Bytes(64) }
+   33 r35 <- Ancestral { anc_name: AncestralName("ZMM7"), ll_type: Bytes(64) }
+   34 r36 <- Ancestral { anc_name: AncestralName("ZMM8"), ll_type: Bytes(64) }
+   35 r37 <- Ancestral { anc_name: AncestralName("ZMM9"), ll_type: Bytes(64) }
+   36 r38 <- Ancestral { anc_name: AncestralName("ZMM10"), ll_type: Bytes(64) }
+   37 r39 <- Ancestral { anc_name: AncestralName("ZMM11"), ll_type: Bytes(64) }
+   38 r40 <- Ancestral { anc_name: AncestralName("ZMM12"), ll_type: Bytes(64) }
+   39 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), ll_type: Bytes(64) }
+   40 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), ll_type: Bytes(64) }
+   41 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), ll_type: Bytes(64) }
+   42 r45 <- FuncArgument { index: 0, ll_type: Bytes(8) }
    43 r14 <- Get(r45)
-   44 r46 <- FuncArgument { index: 1, reg_type: Bytes(8) }
+   44 r46 <- FuncArgument { index: 1, ll_type: Bytes(8) }
    45 r15 <- Get(r46)
-   46 r47 <- FuncArgument { index: 2, reg_type: Bytes(4) }
+   46 r47 <- FuncArgument { index: 2, ll_type: Bytes(4) }
    47 r48 <- Widen { reg: r47, target_size: 8, sign: false }
    48 r19 <- Get(r48)
 0x50b3e0:
@@ -96,7 +96,7 @@ program  605 instrs
    77 r47 <- Void
    78 r47 <- Get(r14)
    79 r46 <- CArg { value: r47, next_arg: None }
-   80 r46 <- Call { callee: r45, first_arg: Some(r46) }
+   80 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(8) }
    81 r2 <- UndefinedBool
    82 r3 <- UndefinedBool
    83 r4 <- UndefinedBool
@@ -133,7 +133,7 @@ program  605 instrs
   109 r46 <- CArg { value: r49, next_arg: None }
   110 r46 <- CArg { value: r48, next_arg: Some(r46) }
   111 r46 <- CArg { value: r47, next_arg: Some(r46) }
-  112 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  112 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(8) }
   113 r2 <- UndefinedBool
   114 r3 <- UndefinedBool
   115 r4 <- UndefinedBool
@@ -236,7 +236,7 @@ program  605 instrs
   195 r47 <- Control(Ret)
 0x50b460:
   196 r45 <- Int { value: 4198464, size: 8 }
-  197 r46 <- Call { callee: r45, first_arg: None }
+  197 r46 <- Call { callee: r45, first_arg: None, ret_ll_type: Bytes(8) }
   198 r2 <- UndefinedBool
   199 r3 <- UndefinedBool
   200 r4 <- UndefinedBool
@@ -278,7 +278,7 @@ program  605 instrs
   230 r46 <- CArg { value: r49, next_arg: None }
   231 r46 <- CArg { value: r48, next_arg: Some(r46) }
   232 r46 <- CArg { value: r47, next_arg: Some(r46) }
-  233 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  233 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(8) }
   234 r2 <- UndefinedBool
   235 r3 <- UndefinedBool
   236 r4 <- UndefinedBool
@@ -382,7 +382,7 @@ program  605 instrs
   318 r47 <- Void
   319 r47 <- Get(r14)
   320 r46 <- CArg { value: r47, next_arg: None }
-  321 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  321 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(4) }
   322 r2 <- UndefinedBool
   323 r3 <- UndefinedBool
   324 r4 <- UndefinedBool
@@ -411,7 +411,7 @@ program  605 instrs
   344 r48 <- Get(r15)
   345 r46 <- CArg { value: r48, next_arg: None }
   346 r46 <- CArg { value: r47, next_arg: Some(r46) }
-  347 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  347 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(4) }
   348 r2 <- UndefinedBool
   349 r3 <- UndefinedBool
   350 r4 <- UndefinedBool
@@ -461,7 +461,7 @@ program  605 instrs
   387 r47 <- Void
   388 r47 <- Get(r14)
   389 r46 <- CArg { value: r47, next_arg: None }
-  390 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  390 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(4) }
   391 r2 <- UndefinedBool
   392 r3 <- UndefinedBool
   393 r4 <- UndefinedBool
@@ -482,7 +482,7 @@ program  605 instrs
   406 r47 <- Get(r14)
   407 r47 <- Part { src: r47, offset: 0, size: 4 }
   408 r46 <- CArg { value: r47, next_arg: None }
-  409 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  409 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(0) }
   410 r2 <- UndefinedBool
   411 r3 <- UndefinedBool
   412 r4 <- UndefinedBool
@@ -509,7 +509,7 @@ program  605 instrs
   428 r47 <- Void
   429 r47 <- Get(r14)
   430 r46 <- CArg { value: r47, next_arg: None }
-  431 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  431 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(4) }
   432 r2 <- UndefinedBool
   433 r3 <- UndefinedBool
   434 r4 <- UndefinedBool
@@ -530,7 +530,7 @@ program  605 instrs
   447 r47 <- Get(r14)
   448 r47 <- Part { src: r47, offset: 0, size: 4 }
   449 r46 <- CArg { value: r47, next_arg: None }
-  450 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  450 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(0) }
   451 r2 <- UndefinedBool
   452 r3 <- UndefinedBool
   453 r4 <- UndefinedBool
@@ -546,7 +546,7 @@ program  605 instrs
   462 r14 <- Get(r45)
 0x50b52f:
   463 r45 <- Int { value: 4201744, size: 8 }
-  464 r46 <- Call { callee: r45, first_arg: None }
+  464 r46 <- Call { callee: r45, first_arg: None, ret_ll_type: Bytes(0) }
   465 r2 <- UndefinedBool
   466 r3 <- UndefinedBool
   467 r4 <- UndefinedBool
@@ -566,7 +566,7 @@ program  605 instrs
   479 r47 <- Get(r14)
   480 r47 <- Part { src: r47, offset: 0, size: 4 }
   481 r46 <- CArg { value: r47, next_arg: None }
-  482 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  482 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(0) }
   483 r2 <- UndefinedBool
   484 r3 <- UndefinedBool
   485 r4 <- UndefinedBool
@@ -601,7 +601,7 @@ program  605 instrs
   509 r47 <- Void
   510 r47 <- Get(r14)
   511 r46 <- CArg { value: r47, next_arg: None }
-  512 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  512 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(4) }
   513 r2 <- UndefinedBool
   514 r3 <- UndefinedBool
   515 r4 <- UndefinedBool
@@ -622,7 +622,7 @@ program  605 instrs
   528 r47 <- Get(r14)
   529 r47 <- Part { src: r47, offset: 0, size: 4 }
   530 r46 <- CArg { value: r47, next_arg: None }
-  531 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  531 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(0) }
   532 r2 <- UndefinedBool
   533 r3 <- UndefinedBool
   534 r4 <- UndefinedBool
@@ -659,7 +659,7 @@ program  605 instrs
   559 r47 <- Void
   560 r47 <- Get(r14)
   561 r46 <- CArg { value: r47, next_arg: None }
-  562 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  562 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(4) }
   563 r2 <- UndefinedBool
   564 r3 <- UndefinedBool
   565 r4 <- UndefinedBool
@@ -676,7 +676,7 @@ program  605 instrs
   575 r14 <- Get(r45)
 0x50b574:
   576 r45 <- Int { value: 4201744, size: 8 }
-  577 r46 <- Call { callee: r45, first_arg: None }
+  577 r46 <- Call { callee: r45, first_arg: None, ret_ll_type: Bytes(0) }
   578 r2 <- UndefinedBool
   579 r3 <- UndefinedBool
   580 r4 <- UndefinedBool
@@ -696,7 +696,7 @@ program  605 instrs
   592 r47 <- Get(r14)
   593 r47 <- Part { src: r47, offset: 0, size: 4 }
   594 r46 <- CArg { value: r47, next_arg: None }
-  595 r46 <- Call { callee: r45, first_arg: Some(r46) }
+  595 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(0) }
   596 r2 <- UndefinedBool
   597 r3 <- UndefinedBool
   598 r4 <- UndefinedBool
@@ -711,16 +711,16 @@ program  605 instrs
  --- ssa pre-xform
 ssa program  625 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(1)) }.
-         r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
-         r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  3)  r11: Bytes(8) <- Ancestral { anc_name: AncestralName("RIP"), reg_type: Bytes(8) }
-         r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
-         r22: Bytes(8) <- Ancestral { anc_name: AncestralName("R12"), reg_type: Bytes(8) }
-         r23: Bytes(8) <- Ancestral { anc_name: AncestralName("R13"), reg_type: Bytes(8) }
-         r24: Bytes(8) <- Ancestral { anc_name: AncestralName("R14"), reg_type: Bytes(8) }
-         r25: Bytes(8) <- Ancestral { anc_name: AncestralName("R15"), reg_type: Bytes(8) }
-  (  3)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
-         r46: Bytes(4) <- FuncArgument { index: 2, reg_type: Bytes(4) }
+         r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), ll_type: Bytes(8) }
+         r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), ll_type: Bytes(8) }
+  (  3)  r11: Bytes(8) <- Ancestral { anc_name: AncestralName("RIP"), ll_type: Bytes(8) }
+         r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), ll_type: Bytes(8) }
+         r22: Bytes(8) <- Ancestral { anc_name: AncestralName("R12"), ll_type: Bytes(8) }
+         r23: Bytes(8) <- Ancestral { anc_name: AncestralName("R13"), ll_type: Bytes(8) }
+         r24: Bytes(8) <- Ancestral { anc_name: AncestralName("R14"), ll_type: Bytes(8) }
+         r25: Bytes(8) <- Ancestral { anc_name: AncestralName("R15"), ll_type: Bytes(8) }
+  (  3)  r42: Bytes(8) <- FuncArgument { index: 0, ll_type: Bytes(8) }
+         r46: Bytes(4) <- FuncArgument { index: 2, ll_type: Bytes(4) }
          r47: Bytes(8) <- Widen { reg: r46, target_size: 8, sign: false }
   (  9)  r49: Bytes(8) <- ArithK(Add, r10, -8)
          r50: Effect <- StoreMem { addr: r49, value: r9 }
@@ -738,7 +738,7 @@ ssa program  625 instrs
          r65: Effect <- StoreMem { addr: r64, value: r15 }
          r76: Bytes(8) <- Int { value: 4201696, size: 8 }
          r79: Bytes(8) <- CArg { value: r42, next_arg: None }
-         r80: Bytes(8) <- Call { callee: r76, first_arg: Some(r79) }
+         r80: Bytes(8) <- Call { callee: r76, first_arg: Some(r79), ret_ll_type: Bytes(8) }
          r90: Bytes(8) <- Part { src: r80, offset: 0, size: 8 }
          r91: Bytes(8) <- Int { value: -1072, size: 8 }
          r92: Bytes(8) <- Arith(Add, r91, r49)
@@ -752,7 +752,7 @@ ssa program  625 instrs
          r109: Bytes(8) <- CArg { value: r42, next_arg: None }
          r110: Bytes(4) <- CArg { value: r106, next_arg: Some(r109) }
          r111: Bytes(8) <- CArg { value: r92, next_arg: Some(r110) }
-         r112: Bytes(8) <- Call { callee: r101, first_arg: Some(r111) }
+         r112: Bytes(8) <- Call { callee: r101, first_arg: Some(r111), ret_ll_type: Bytes(8) }
   (  2)  r122: Bytes(8) <- Part { src: r112, offset: 0, size: 8 }
          r123: Bytes(8) <- Arith(BitAnd, r122, r122)
          r125: Bool <- IsZero(r123)
@@ -778,7 +778,7 @@ ssa program  625 instrs
          r617: Effect <- Upsilon { value: r137, phi_ref: r605 }
 .B4:    ;; preds:B2  → Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(5)) }.
          r196: Bytes(8) <- Int { value: 4198464, size: 8 }
-         r197: Bytes(8) <- Call { callee: r196, first_arg: None }
+         r197: Bytes(8) <- Call { callee: r196, first_arg: None, ret_ll_type: Bytes(8) }
   (  2)  r207: Bytes(8) <- Part { src: r197, offset: 0, size: 8 }
          r208: Bytes(8) <- Int { value: -1080, size: 8 }
          r209: Bytes(8) <- Arith(Add, r208, r49)
@@ -795,7 +795,7 @@ ssa program  625 instrs
          r230: Bytes(4) <- CArg { value: r229, next_arg: None }
          r231: Bytes(8) <- CArg { value: r209, next_arg: Some(r230) }
          r232: Bytes(8) <- CArg { value: r215, next_arg: Some(r231) }
-         r233: Bytes(8) <- Call { callee: r222, first_arg: Some(r232) }
+         r233: Bytes(8) <- Call { callee: r222, first_arg: Some(r232), ret_ll_type: Bytes(8) }
          r243: Bytes(8) <- Part { src: r233, offset: 0, size: 8 }
          r244: Bytes(8) <- Int { value: 0, size: 8 }
          r245: Bytes(8) <- Arith(Add, r244, r207)
@@ -844,7 +844,7 @@ ssa program  625 instrs
          r316: Effect <- StoreMem { addr: r315, value: r293 }
          r317: Bytes(8) <- Int { value: 4200480, size: 8 }
          r320: Bytes(8) <- CArg { value: r42, next_arg: None }
-         r321: Bytes(8) <- Call { callee: r317, first_arg: Some(r320) }
+         r321: Bytes(4) <- Call { callee: r317, first_arg: Some(r320), ret_ll_type: Bytes(4) }
          r331: Bytes(8) <- Part { src: r321, offset: 0, size: 8 }
          r332: Bytes(8) <- Int { value: -1096, size: 8 }
          r333: Bytes(8) <- Arith(Add, r332, r49)
@@ -855,7 +855,7 @@ ssa program  625 instrs
          r342: Bytes(4) <- Part { src: r337, offset: 0, size: 4 }
          r345: Bytes(8) <- CArg { value: r334, next_arg: None }
          r346: Bytes(4) <- CArg { value: r342, next_arg: Some(r345) }
-         r347: Bytes(8) <- Call { callee: r339, first_arg: Some(r346) }
+         r347: Bytes(4) <- Call { callee: r339, first_arg: Some(r346), ret_ll_type: Bytes(4) }
          r357: Bytes(8) <- Part { src: r347, offset: 0, size: 8 }
          r358: Bytes(4) <- Part { src: r357, offset: 0, size: 4 }
          r359: Bytes(4) <- Int { value: -1, size: 4 }
@@ -869,13 +869,13 @@ ssa program  625 instrs
          r371: Bytes(8) <- Widen { reg: r370, target_size: 8, sign: false }
          r386: Bytes(8) <- Int { value: 4198480, size: 8 }
          r389: Bytes(8) <- CArg { value: r371, next_arg: None }
-         r390: Bytes(8) <- Call { callee: r386, first_arg: Some(r389) }
+         r390: Bytes(4) <- Call { callee: r386, first_arg: Some(r389), ret_ll_type: Bytes(4) }
          r401: Bytes(4) <- Int { value: 1, size: 4 }
          r402: Bytes(8) <- Widen { reg: r401, target_size: 8, sign: false }
          r404: Bytes(8) <- Int { value: 4200816, size: 8 }
          r407: Bytes(4) <- Part { src: r402, offset: 0, size: 4 }
          r408: Bytes(4) <- CArg { value: r407, next_arg: None }
-         r409: Bytes(8) <- Call { callee: r404, first_arg: Some(r408) }
+         r409: Bytes(0) <- Call { callee: r404, first_arg: Some(r408), ret_ll_type: Bytes(0) }
 .B11:    ;; preds:B6,B10  → Always(Block(BlockID(3))).
          r419: Bytes(4) <- Int { value: 1, size: 4 }
          r420: Bytes(8) <- Widen { reg: r419, target_size: 8, sign: false }
@@ -892,48 +892,48 @@ ssa program  625 instrs
          r424: Bytes(8) <- Widen { reg: r423, target_size: 8, sign: false }
          r427: Bytes(8) <- Int { value: 4198480, size: 8 }
          r430: Bytes(8) <- CArg { value: r424, next_arg: None }
-         r431: Bytes(8) <- Call { callee: r427, first_arg: Some(r430) }
+         r431: Bytes(4) <- Call { callee: r427, first_arg: Some(r430), ret_ll_type: Bytes(4) }
          r442: Bytes(4) <- Int { value: 1, size: 4 }
          r443: Bytes(8) <- Widen { reg: r442, target_size: 8, sign: false }
          r445: Bytes(8) <- Int { value: 4200816, size: 8 }
          r448: Bytes(4) <- Part { src: r443, offset: 0, size: 4 }
          r449: Bytes(4) <- CArg { value: r448, next_arg: None }
-         r450: Bytes(8) <- Call { callee: r445, first_arg: Some(r449) }
+         r450: Bytes(0) <- Call { callee: r445, first_arg: Some(r449), ret_ll_type: Bytes(0) }
 .B13:    ;; preds:B4,B5,B12  → Always(Block(BlockID(14))).
          r463: Bytes(8) <- Int { value: 4201744, size: 8 }
-         r464: Bytes(8) <- Call { callee: r463, first_arg: None }
+         r464: Bytes(0) <- Call { callee: r463, first_arg: None, ret_ll_type: Bytes(0) }
          r474: Bytes(4) <- Int { value: 1, size: 4 }
          r475: Bytes(8) <- Widen { reg: r474, target_size: 8, sign: false }
          r477: Bytes(8) <- Int { value: 4200816, size: 8 }
          r480: Bytes(4) <- Part { src: r475, offset: 0, size: 4 }
          r481: Bytes(4) <- CArg { value: r480, next_arg: None }
-         r482: Bytes(8) <- Call { callee: r477, first_arg: Some(r481) }
+         r482: Bytes(0) <- Call { callee: r477, first_arg: Some(r481), ret_ll_type: Bytes(0) }
 .B14:    ;; preds:B7,B13  → Always(Block(BlockID(15))).
          r492: Bytes(4) <- Int { value: 7162016, size: 4 }
          r493: Bytes(8) <- Widen { reg: r492, target_size: 8, sign: false }
          r508: Bytes(8) <- Int { value: 4198480, size: 8 }
          r511: Bytes(8) <- CArg { value: r493, next_arg: None }
-         r512: Bytes(8) <- Call { callee: r508, first_arg: Some(r511) }
+         r512: Bytes(4) <- Call { callee: r508, first_arg: Some(r511), ret_ll_type: Bytes(4) }
          r523: Bytes(4) <- Int { value: 1, size: 4 }
          r524: Bytes(8) <- Widen { reg: r523, target_size: 8, sign: false }
          r526: Bytes(8) <- Int { value: 4200816, size: 8 }
          r529: Bytes(4) <- Part { src: r524, offset: 0, size: 4 }
          r530: Bytes(4) <- CArg { value: r529, next_arg: None }
-         r531: Bytes(8) <- Call { callee: r526, first_arg: Some(r530) }
+         r531: Bytes(0) <- Call { callee: r526, first_arg: Some(r530), ret_ll_type: Bytes(0) }
 .B15:    ;; preds:B8,B14  → Always(Undefined).
          r544: Bytes(4) <- Int { value: 7162072, size: 4 }
          r545: Bytes(8) <- Widen { reg: r544, target_size: 8, sign: false }
          r558: Bytes(8) <- Int { value: 4198480, size: 8 }
          r561: Bytes(8) <- CArg { value: r545, next_arg: None }
-         r562: Bytes(8) <- Call { callee: r558, first_arg: Some(r561) }
+         r562: Bytes(4) <- Call { callee: r558, first_arg: Some(r561), ret_ll_type: Bytes(4) }
          r576: Bytes(8) <- Int { value: 4201744, size: 8 }
-         r577: Bytes(8) <- Call { callee: r576, first_arg: None }
+         r577: Bytes(0) <- Call { callee: r576, first_arg: None, ret_ll_type: Bytes(0) }
          r587: Bytes(4) <- Int { value: 1, size: 4 }
          r588: Bytes(8) <- Widen { reg: r587, target_size: 8, sign: false }
          r590: Bytes(8) <- Int { value: 4200816, size: 8 }
          r593: Bytes(4) <- Part { src: r588, offset: 0, size: 4 }
          r594: Bytes(4) <- CArg { value: r593, next_arg: None }
-         r595: Bytes(8) <- Call { callee: r590, first_arg: Some(r594) }
+         r595: Bytes(0) <- Call { callee: r590, first_arg: Some(r594), ret_ll_type: Bytes(0) }
 
 
  --- cfg
@@ -975,16 +975,16 @@ ssa program  625 instrs
  --- ssa
 ssa program  633 instrs
 .B0:    ;;  → Conditional { pos: Block(BlockID(12)), neg: Block(BlockID(1)) }.
-         r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), reg_type: Bytes(8) }
-  ( 12)  r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), reg_type: Bytes(8) }
-  (  3)  r11: Bytes(8) <- Ancestral { anc_name: AncestralName("RIP"), reg_type: Bytes(8) }
-         r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), reg_type: Bytes(8) }
-         r22: Bytes(8) <- Ancestral { anc_name: AncestralName("R12"), reg_type: Bytes(8) }
-         r23: Bytes(8) <- Ancestral { anc_name: AncestralName("R13"), reg_type: Bytes(8) }
-         r24: Bytes(8) <- Ancestral { anc_name: AncestralName("R14"), reg_type: Bytes(8) }
-         r25: Bytes(8) <- Ancestral { anc_name: AncestralName("R15"), reg_type: Bytes(8) }
-  (  3)  r42: Bytes(8) <- FuncArgument { index: 0, reg_type: Bytes(8) }
-         r46: Bytes(4) <- FuncArgument { index: 2, reg_type: Bytes(4) }
+         r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), ll_type: Bytes(8) }
+  ( 12)  r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), ll_type: Bytes(8) }
+  (  3)  r11: Bytes(8) <- Ancestral { anc_name: AncestralName("RIP"), ll_type: Bytes(8) }
+         r15: Bytes(8) <- Ancestral { anc_name: AncestralName("RBX"), ll_type: Bytes(8) }
+         r22: Bytes(8) <- Ancestral { anc_name: AncestralName("R12"), ll_type: Bytes(8) }
+         r23: Bytes(8) <- Ancestral { anc_name: AncestralName("R13"), ll_type: Bytes(8) }
+         r24: Bytes(8) <- Ancestral { anc_name: AncestralName("R14"), ll_type: Bytes(8) }
+         r25: Bytes(8) <- Ancestral { anc_name: AncestralName("R15"), ll_type: Bytes(8) }
+  (  3)  r42: Bytes(8) <- FuncArgument { index: 0, ll_type: Bytes(8) }
+         r46: Bytes(4) <- FuncArgument { index: 2, ll_type: Bytes(4) }
          r49: Bytes(8) <- ArithK(Add, r10, -8)
          r50: Effect <- StoreMem { addr: r49, value: r9 }
          r52: Bytes(8) <- ArithK(Add, r10, -16)
@@ -999,7 +999,7 @@ ssa program  633 instrs
          r65: Effect <- StoreMem { addr: r64, value: r15 }
          r76: Bytes(8) <- Global("ftello")
          r79: Bytes(8) <- CArg { value: r42, next_arg: None }
-         r80: Bytes(8) <- Call { callee: r76, first_arg: Some(r79) }
+         r80: Bytes(8) <- Call { callee: r76, first_arg: Some(r79), ret_ll_type: Bytes(8) }
          r92: Bytes(8) <- ArithK(Add, r10, -1080)
          r95: Bytes(4) <- Int { value: 1024, size: 4 }
          r99: Bytes(8) <- ArithK(Add, r11, 7968376)
@@ -1008,7 +1008,7 @@ ssa program  633 instrs
          r109: Bytes(8) <- CArg { value: r42, next_arg: None }
          r110: Bytes(4) <- CArg { value: r95, next_arg: Some(r109) }
          r111: Bytes(8) <- CArg { value: r92, next_arg: Some(r110) }
-         r112: Bytes(8) <- Call { callee: r101, first_arg: Some(r111) }
+         r112: Bytes(8) <- Call { callee: r101, first_arg: Some(r111), ret_ll_type: Bytes(8) }
          r125: Bool <- IsZero(r112)
          r130: Effect <- SetJumpCondition(r125)
 .B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
@@ -1027,7 +1027,7 @@ ssa program  633 instrs
          r617: Effect <- Upsilon { value: r137, phi_ref: r605 }
 .B4:    ;; preds:B2  → Conditional { pos: Block(BlockID(13)), neg: Block(BlockID(5)) }.
          r196: Bytes(8) <- Global("__errno_location")
-  (  2)  r197: Bytes(8) <- Call { callee: r196, first_arg: None }
+  (  2)  r197: Bytes(8) <- Call { callee: r196, first_arg: None, ret_ll_type: Bytes(8) }
          r209: Bytes(8) <- ArithK(Add, r10, -1088)
          r211: Bytes(4) <- Int { value: 10, size: 4 }
          r215: Bytes(8) <- ArithK(Add, r10, -1076)
@@ -1037,7 +1037,7 @@ ssa program  633 instrs
          r230: Bytes(4) <- CArg { value: r211, next_arg: None }
          r231: Bytes(8) <- CArg { value: r209, next_arg: Some(r230) }
          r232: Bytes(8) <- CArg { value: r215, next_arg: Some(r231) }
-         r233: Bytes(8) <- Call { callee: r222, first_arg: Some(r232) }
+         r233: Bytes(8) <- Call { callee: r222, first_arg: Some(r232), ret_ll_type: Bytes(8) }
   (  2)  r627: Bytes(4) <- LoadMem { addr: r197, size: 4 }
          r247: Bytes(8) <- Widen { reg: r627, target_size: 8, sign: false }
          r253: Bool <- IsZero(r627)
@@ -1070,12 +1070,12 @@ ssa program  633 instrs
          r316: Effect <- StoreMem { addr: r315, value: r291 }
          r317: Bytes(8) <- Global("fileno")
          r320: Bytes(8) <- CArg { value: r42, next_arg: None }
-         r321: Bytes(8) <- Call { callee: r317, first_arg: Some(r320) }
+         r321: Bytes(4) <- Call { callee: r317, first_arg: Some(r320), ret_ll_type: Bytes(4) }
          r339: Bytes(8) <- Global("ftruncate")
          r345: Bytes(8) <- CArg { value: r291, next_arg: None }
-         r346: Bytes(8) <- CArg { value: r321, next_arg: Some(r345) }
-         r347: Bytes(8) <- Call { callee: r339, first_arg: Some(r346) }
-         r360: Bytes(8) <- ArithK(Add, r347, 1)
+         r346: Bytes(4) <- CArg { value: r321, next_arg: Some(r345) }
+         r347: Bytes(4) <- Call { callee: r339, first_arg: Some(r346), ret_ll_type: Bytes(4) }
+         r360: Bytes(4) <- ArithK(Add, r347, 1)
          r364: Bool <- IsZero(r360)
          r367: Bool <- Not(r364)
          r368: Effect <- SetJumpCondition(r367)
@@ -1084,11 +1084,11 @@ ssa program  633 instrs
          r371: Bytes(8) <- Int { value: 7162352, size: 8 }
          r386: Bytes(8) <- Global("printf")
          r389: Bytes(8) <- CArg { value: r371, next_arg: None }
-         r390: Bytes(8) <- Call { callee: r386, first_arg: Some(r389) }
+         r390: Bytes(4) <- Call { callee: r386, first_arg: Some(r389), ret_ll_type: Bytes(4) }
          r401: Bytes(4) <- Int { value: 1, size: 4 }
          r404: Bytes(8) <- Global("exit")
          r408: Bytes(4) <- CArg { value: r401, next_arg: None }
-         r409: Bytes(8) <- Call { callee: r404, first_arg: Some(r408) }
+         r409: Bytes(0) <- Call { callee: r404, first_arg: Some(r408), ret_ll_type: Bytes(0) }
 .B11:    ;; preds:B6,B10  → Always(Block(BlockID(3))).
          r420: Bytes(8) <- Int { value: 1, size: 8 }
          r618: Effect <- Upsilon { value: r420, phi_ref: r605 }
@@ -1100,38 +1100,38 @@ ssa program  633 instrs
          r424: Bytes(8) <- Int { value: 7161960, size: 8 }
          r427: Bytes(8) <- Global("printf")
          r430: Bytes(8) <- CArg { value: r424, next_arg: None }
-         r431: Bytes(8) <- Call { callee: r427, first_arg: Some(r430) }
+         r431: Bytes(4) <- Call { callee: r427, first_arg: Some(r430), ret_ll_type: Bytes(4) }
          r442: Bytes(4) <- Int { value: 1, size: 4 }
          r445: Bytes(8) <- Global("exit")
          r449: Bytes(4) <- CArg { value: r442, next_arg: None }
-         r450: Bytes(8) <- Call { callee: r445, first_arg: Some(r449) }
+         r450: Bytes(0) <- Call { callee: r445, first_arg: Some(r449), ret_ll_type: Bytes(0) }
 .B13:    ;; preds:B4,B5,B12  → Always(Block(BlockID(14))).
          r463: Bytes(8) <- Global("__builtin_puts")
-         r464: Bytes(8) <- Call { callee: r463, first_arg: None }
+         r464: Bytes(0) <- Call { callee: r463, first_arg: None, ret_ll_type: Bytes(0) }
          r474: Bytes(4) <- Int { value: 1, size: 4 }
          r477: Bytes(8) <- Global("exit")
          r481: Bytes(4) <- CArg { value: r474, next_arg: None }
-         r482: Bytes(8) <- Call { callee: r477, first_arg: Some(r481) }
+         r482: Bytes(0) <- Call { callee: r477, first_arg: Some(r481), ret_ll_type: Bytes(0) }
 .B14:    ;; preds:B7,B13  → Always(Block(BlockID(15))).
          r493: Bytes(8) <- Int { value: 7162016, size: 8 }
          r508: Bytes(8) <- Global("printf")
          r511: Bytes(8) <- CArg { value: r493, next_arg: None }
-         r512: Bytes(8) <- Call { callee: r508, first_arg: Some(r511) }
+         r512: Bytes(4) <- Call { callee: r508, first_arg: Some(r511), ret_ll_type: Bytes(4) }
          r523: Bytes(4) <- Int { value: 1, size: 4 }
          r526: Bytes(8) <- Global("exit")
          r530: Bytes(4) <- CArg { value: r523, next_arg: None }
-         r531: Bytes(8) <- Call { callee: r526, first_arg: Some(r530) }
+         r531: Bytes(0) <- Call { callee: r526, first_arg: Some(r530), ret_ll_type: Bytes(0) }
 .B15:    ;; preds:B8,B14  → Always(Undefined).
          r545: Bytes(8) <- Int { value: 7162072, size: 8 }
          r558: Bytes(8) <- Global("printf")
          r561: Bytes(8) <- CArg { value: r545, next_arg: None }
-         r562: Bytes(8) <- Call { callee: r558, first_arg: Some(r561) }
+         r562: Bytes(4) <- Call { callee: r558, first_arg: Some(r561), ret_ll_type: Bytes(4) }
          r576: Bytes(8) <- Global("__builtin_puts")
-         r577: Bytes(8) <- Call { callee: r576, first_arg: None }
+         r577: Bytes(0) <- Call { callee: r576, first_arg: None, ret_ll_type: Bytes(0) }
          r587: Bytes(4) <- Int { value: 1, size: 4 }
          r590: Bytes(8) <- Global("exit")
          r594: Bytes(4) <- CArg { value: r587, next_arg: None }
-         r595: Bytes(8) <- Call { callee: r590, first_arg: Some(r594) }
+         r595: Bytes(0) <- Call { callee: r590, first_arg: Some(r594), ret_ll_type: Bytes(0) }
 
 
  --- ast
@@ -1143,10 +1143,10 @@ StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -24) (Ancestral A
 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -32) (Ancestral AncestralName("R13") Bytes(8));
 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -40) (Ancestral AncestralName("R12") Bytes(8));
 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -48) (Ancestral AncestralName("RBX") Bytes(8));
-Call (Global "ftello") (CArg r42 None);
-StoreMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) (Call (Global "ftello") (CArg r42 None));
-Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None)));
-if IsZero (Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None))))
+Call (Global "ftello") (CArg r42 None) Bytes(8);
+StoreMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) (Call (Global "ftello") (CArg r42 None) Bytes(8));
+Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None))) Bytes(8);
+if IsZero (Call (Global "fgets") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) (CArg (Int 1024 4) (CArg r42 None))) Bytes(8))
   then  jump .B12;
 let r134 = LoadMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7967296) 8;
 Upsilon (Int 1 8) r605;
@@ -1154,15 +1154,15 @@ if IsZero r134
   then  jump .B3;
 Upsilon (Int 1 8) r605;
 if IsZero (ArithK Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1080) 4) -978539555)
-  then  let r197 = Call (Global "__errno_location") None;
+  then  let r197 = Call (Global "__errno_location") None Bytes(8);
         StoreMem r197 (Int 0 4);
-        Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None)));
+        Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None))) Bytes(8);
         let r627 = LoadMem r197 4;
         if Not (IsZero r627)
           then  jump .B13;
         if Not (IsZero (ArithK Add (LoadMem (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) 8) 1) -13))
           then  jump .B13;
-        let r279 = Arith Sub r134 (Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None))));
+        let r279 = Arith Sub r134 (Call (Global "strtol") (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1076) (CArg (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1088) (CArg (Int 10 4) None))) Bytes(8));
         if Cmp EQ (SignOf r279) (OverflowOf r279)
           then  pass
           else  let r291 = LoadMem (ArithK Add (Ancestral AncestralName("RIP") Bytes(8)) 7968376) 8;
@@ -1171,13 +1171,13 @@ if IsZero (ArithK Add (LoadMem (ArithK Add (Ancestral AncestralName("RSP") Bytes
                 if IsZero (FuncArgument 2 Bytes(4))
                   then  jump .B15;
                 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -1104) r291;
-                Call (Global "fileno") (CArg r42 None);
-                Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None)) (CArg r291 None));
+                Call (Global "fileno") (CArg r42 None) Bytes(4);
+                Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None) Bytes(4)) (CArg r291 None)) Bytes(4);
                 Upsilon (Widen r627 8 false) r605;
-                if Not (IsZero (ArithK Add (Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None)) (CArg r291 None))) 1))
+                if Not (IsZero (ArithK Add (Call (Global "ftruncate") (CArg (Call (Global "fileno") (CArg r42 None) Bytes(4)) (CArg r291 None)) Bytes(4)) 1))
                   then  jump .B3;
-                Call (Global "printf") (CArg (Int 7162352 8) None);
-                Call (Global "exit") (CArg (Int 1 4) None)
+                Call (Global "printf") (CArg (Int 7162352 8) None) Bytes(4);
+                Call (Global "exit") (CArg (Int 1 4) None) Bytes(0)
   else  jump .B3;
 Upsilon (Int 1 8) r605;
 .B3: {
@@ -1185,20 +1185,20 @@ Upsilon (Int 1 8) r605;
   return Part r605 0 4
 };
 .B12: {
-  Call (Global "printf") (CArg (Int 7161960 8) None);
-  Call (Global "exit") (CArg (Int 1 4) None)
+  Call (Global "printf") (CArg (Int 7161960 8) None) Bytes(4);
+  Call (Global "exit") (CArg (Int 1 4) None) Bytes(0)
 };
 .B13: {
-  Call (Global "__builtin_puts") None;
-  Call (Global "exit") (CArg (Int 1 4) None)
+  Call (Global "__builtin_puts") None Bytes(0);
+  Call (Global "exit") (CArg (Int 1 4) None) Bytes(0)
 };
 .B14: {
-  Call (Global "printf") (CArg (Int 7162016 8) None);
-  Call (Global "exit") (CArg (Int 1 4) None)
+  Call (Global "printf") (CArg (Int 7162016 8) None) Bytes(4);
+  Call (Global "exit") (CArg (Int 1 4) None) Bytes(0)
 };
 .B15: {
-  Call (Global "printf") (CArg (Int 7162072 8) None);
-  Call (Global "__builtin_puts") None;
-  Call (Global "exit") (CArg (Int 1 4) None);
+  Call (Global "printf") (CArg (Int 7162072 8) None) Bytes(4);
+  Call (Global "__builtin_puts") None Bytes(0);
+  Call (Global "exit") (CArg (Int 1 4) None) Bytes(0);
   jump_undefined
 }

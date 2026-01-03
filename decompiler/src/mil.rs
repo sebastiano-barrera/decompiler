@@ -213,6 +213,7 @@ pub enum Insn {
     Call {
         callee: Reg,
         first_arg: Option<Reg>,
+        ret_ll_type: LLType,
     },
     #[assoc(is_replaceable_with_get = false)]
     #[assoc(input_regs = [Some(_value), _next_arg.as_mut()].into_iter().flatten().collect())]

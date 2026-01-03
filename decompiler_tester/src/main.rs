@@ -1147,7 +1147,11 @@ mod ast {
                     render_expr(ui, s, a, my_prec);
                 });
             }
-            Insn::Call { callee, first_arg } => {
+            Insn::Call {
+                callee,
+                first_arg,
+                ret_ll_type: _,
+            } => {
                 ui.horizontal(|ui| {
                     render_expr(ui, s, callee, my_prec);
                     print_kw(ui, s, "(");

@@ -1034,7 +1034,12 @@ const LEVEL_MAX: usize = 19;
 fn propagate_call_types<'t>(prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) {
     let mut tyids_to_set = ssa::RegMap::for_program(prog, None);
     for (_, reg) in prog.insns_rpo() {
-        let Insn::Call { callee, first_arg } = prog.get(reg).unwrap() else {
+        let Insn::Call {
+            callee,
+            first_arg,
+            ret_ll_type: _,
+        } = prog.get(reg).unwrap()
+        else {
             continue;
         };
         let Some(callee_tyid) = prog.value_type(callee) else {

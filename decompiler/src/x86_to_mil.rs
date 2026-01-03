@@ -530,7 +530,11 @@ impl Importer {
 
                             event!(Level::TRACE, ?subr_tyid, ?param_values, "resolved call");
 
-                            self.emit_call(callee, param_values, v1);
+                            let ret_size = self.rtx.read().bytes_size(return_tyid).ok().flatten().unwrap_or_else(|| {
+                                event!(Level::WARN, ret_reg = ?v1, "call return type unavailable; approximated return LLType to 8 bytes");
+                                8
+                            });
+                            self.emit_call(callee, param_values, v1, mil::LLType::Bytes(ret_size));
                             let callee_ndx = self.last_index_of_value(callee).unwrap();
                             self.set_value_type(callee_ndx, subr_tyid);
 
@@ -544,7 +548,7 @@ impl Importer {
                             // just a dumb approximation of a likely case
                             event!(Level::ERROR, "call unresolved, using a default fallback");
                             let param_values = vec![Self::RDI, Self::RSI, Self::RDX, Self::RCX];
-                            self.emit_call(callee, param_values, v1);
+                            self.emit_call(callee, param_values, v1, mil::LLType::Bytes(8));
                             self.emit(v1, mil::Insn::Get(Self::RAX));
                         }
                     }
@@ -807,7 +811,13 @@ impl Importer {
         Ok(Some((subr_tyid, param_values)))
     }
 
-    fn emit_call(&mut self, callee: mil::Reg, param_values: Vec<mil::Reg>, ret_reg: mil::Reg) {
+    fn emit_call(
+        &mut self,
+        callee: mil::Reg,
+        param_values: Vec<mil::Reg>,
+        ret_reg: mil::Reg,
+        ret_ll_type: mil::LLType,
+    ) {
         let first_arg = if param_values.is_empty() {
             None
         } else {
@@ -822,7 +832,14 @@ impl Importer {
             }
             Some(ret_reg)
         };
-        self.emit(ret_reg, mil::Insn::Call { callee, first_arg });
+        self.emit(
+            ret_reg,
+            mil::Insn::Call {
+                callee,
+                first_arg,
+                ret_ll_type,
+            },
+        );
         self.reset_all_flags();
     }
 
