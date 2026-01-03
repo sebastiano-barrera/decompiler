@@ -806,7 +806,7 @@ fn select_type_on_deref_member_read(
     prog.set(reg, result_insn);
 }
 
-const BISECT: bool = true;
+const BISECT: bool = false;
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 #[tracing::instrument(skip_all)]

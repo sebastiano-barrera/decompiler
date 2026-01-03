@@ -637,29 +637,16 @@ mod rt_infer {
                 let lo_type = prog.ll_type(lo);
                 let hi_type = prog.ll_type(hi);
 
-                let lo_size = match lo_type.bytes_size() {
-                    Some(size) => size,
-                    None => {
+                match (lo_type.bytes_size(), hi_type.bytes_size()) {
+                    (Some(lo_size), Some(hi_size)) => LLType::Bytes(lo_size + hi_size),
+                    _ => {
                         prog.faults.push(Fault::ConcatNonBytesType {
                             reg,
                             found: lo_type,
                         });
-                        return LLType::Bytes(0);
+                        LLType::Error
                     }
-                };
-
-                let hi_size = match hi_type.bytes_size() {
-                    Some(size) => size,
-                    None => {
-                        prog.faults.push(Fault::ConcatNonBytesType {
-                            reg,
-                            found: hi_type,
-                        });
-                        return LLType::Bytes(0);
-                    }
-                };
-
-                LLType::Bytes(lo_size + hi_size)
+                }
             }
             Insn::Widen {
                 reg: _,
@@ -670,31 +657,33 @@ mod rt_infer {
                 let at = prog.ll_type(a);
                 let bt = prog.ll_type(b);
 
-                if at != bt {
+                if at == bt {
+                    if let LLType::Bytes(sz) = at {
+                        LLType::Bytes(sz)
+                    } else {
+                        prog.faults
+                            .push(Fault::ArithNonBytesType { reg, found: at });
+                        LLType::Error
+                    }
+                } else {
                     prog.faults.push(Fault::ArithDifferentTypes {
                         reg,
                         left: at,
                         right: bt,
                     });
-                    return LLType::Bytes(0);
+                    LLType::Error
                 }
-
-                let LLType::Bytes(sz) = at else {
-                    prog.faults
-                        .push(Fault::ArithNonBytesType { reg, found: at });
-                    return LLType::Bytes(0);
-                };
-
-                LLType::Bytes(sz)
             }
             Insn::ArithK(_, a, _) => {
                 let at = prog.ll_type(a);
-                let LLType::Bytes(sz) = at else {
-                    prog.faults
-                        .push(Fault::ArithKNonBytesType { reg, found: at });
-                    return LLType::Bytes(0);
-                };
-                LLType::Bytes(sz)
+                match at {
+                    LLType::Bytes(_) | LLType::Int(_) | LLType::Float(_) => at,
+                    _ => {
+                        prog.faults
+                            .push(Fault::ArithKNonBytesType { reg, found: at });
+                        LLType::Error
+                    }
+                }
             }
 
             Insn::Cmp(_, _, _) => LLType::Bool,
@@ -745,7 +734,7 @@ mod rt_infer {
                     }
 
                     prog.faults.push(Fault::PhiCycle { reg });
-                    return LLType::Bytes(0);
+                    LLType::Error
                 }
             }
             Insn::FuncArgument { ll_type, .. } => ll_type,
@@ -799,7 +788,7 @@ impl<'a> OpenProgram<'a> {
         }
 
         cell.set(insn);
-        event!(Level::TRACE, ?insn, ?orig_insn, "insn set");
+        event!(Level::TRACE, ?orig_insn, ?insn, "insn set");
 
         let old_rt = self.ll_type(reg);
         rt_infer::update_one_reg(reg, &mut self.program);

@@ -103,6 +103,7 @@ pub enum LLType {
     Float(usize),
     Bool,
     Effect,
+    Error,
 }
 impl LLType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
@@ -110,6 +111,7 @@ impl LLType {
             LLType::Int(sz) | LLType::Float(sz) | LLType::Bytes(sz) => Some(*sz),
             LLType::Bool => None,
             LLType::Effect => None,
+            LLType::Error => None,
         }
     }
 }
