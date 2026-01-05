@@ -77,7 +77,7 @@ fn test_decompile_all_no_panic(exe: &decompiler::Executable) {
         for thread_ndx in 0..num_threads {
             let names = &names;
             s.spawn(move || {
-                for func_name in names.iter().skip(thread_ndx).step_by(num_threads) {
+                for func_name in names.iter().skip(thread_ndx).step_by(num_threads - 1) {
                     CURRENT_FUNC.with_borrow_mut(|cur_func_name| {
                         *cur_func_name = func_name.to_string();
                     });

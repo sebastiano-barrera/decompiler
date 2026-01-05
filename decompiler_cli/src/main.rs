@@ -190,6 +190,7 @@ fn write_text_insn<W: std::io::Write>(
         Some(decompiler::LLType::Effect) => write!(wrt, ": effect ")?,
         Some(decompiler::LLType::Int(n)) => write!(wrt, ": {:6} ", n)?,
         Some(decompiler::LLType::Float(n)) => write!(wrt, ": {:6} ", n)?,
+        Some(decompiler::LLType::Error) => write!(wrt, ": error ")?,
         None => write!(wrt, ":      ? ")?,
     }
     write!(wrt, " <- {:10} ", insn.insn.opcode)?;

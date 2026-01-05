@@ -551,7 +551,7 @@ program  769 instrs
   475 r45 <- LoadMem { addr: r46, size: 4 }
   476 r45 <- Part { src: r45, offset: 0, size: 4 }
   477 r45 <- Widen { reg: r45, target_size: 16, sign: false }
-  478 r47 <- Part { src: r28, offset: 4, size: 60 }
+  478 r47 <- Part { src: r28, offset: 16, size: 48 }
   479 r28 <- Concat { lo: r45, hi: r47 }
 0x595347:
   480 r46 <- Part { src: r16, offset: 0, size: 4 }
@@ -569,7 +569,7 @@ program  769 instrs
   491 r46 <- Part { src: r16, offset: 0, size: 4 }
   492 r46 <- Part { src: r46, offset: 0, size: 4 }
   493 r46 <- Widen { reg: r46, target_size: 16, sign: false }
-  494 r47 <- Part { src: r29, offset: 4, size: 60 }
+  494 r47 <- Part { src: r29, offset: 16, size: 48 }
   495 r29 <- Concat { lo: r46, hi: r47 }
 0x59534e:
   496 r45 <- NotYetImplemented("unsupported: punpckldq xmm0,xmm1")

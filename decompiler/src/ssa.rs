@@ -298,8 +298,11 @@ impl Program {
     ///
     /// LLType's are also recomputed from scratch.
     pub fn check_invariants(&mut self) {
+        // NOTE that LLTypes are NOT being reset here.
+        // - they are assumed to have been reset by calling `reset_ll_types` right after construction;
+        // - edits only allow changing instructions with ones with the same LLType.
+
         self.faults.clear();
-        self.reset_ll_types();
 
         self.check_insns_valid();
         self.check_consistent_arrays_len();
@@ -633,20 +636,102 @@ pub struct UpsilonDesc {
 mod rt_infer {
     use super::*;
 
+    use crate::util::disjoint_set::DisjointSet;
     use mil::{Insn, LLType};
 
+    #[derive(Debug)]
+    struct TypeInferenceState {
+        disjoint_set: DisjointSet,
+        equiv_class_types: Vec<LLType>,
+        reg_to_equiv_class: Vec<usize>,
+    }
+
+    impl TypeInferenceState {
+        fn new(reg_count: usize) -> Self {
+            Self {
+                disjoint_set: DisjointSet::new(reg_count),
+                equiv_class_types: vec![LLType::Error; reg_count],
+                reg_to_equiv_class: vec![0; reg_count],
+            }
+        }
+
+        fn build_equivalence_classes(&mut self, prog: &Program) {
+            // Iterate through all Upsilon instructions to build equivalence classes
+            for (_block_id, reg) in prog.insns_rpo() {
+                if let Insn::Upsilon { value, phi_ref } = prog.get(reg).unwrap() {
+                    // Unite the value register and phi register in the same equivalence class
+                    self.disjoint_set
+                        .union(value.0 as usize, phi_ref.0 as usize);
+                }
+            }
+
+            // Build the mapping from register to equivalence class representative
+            for reg_idx in 0..self.reg_to_equiv_class.len() {
+                let rep = self.disjoint_set.find(reg_idx);
+                self.reg_to_equiv_class[reg_idx] = rep;
+            }
+        }
+
+        fn get_equiv_class_type(&self, reg: mil::Reg) -> LLType {
+            self.equiv_class_types[self.reg_to_equiv_class[reg.0 as usize]]
+        }
+
+        fn set_equiv_class_type(&mut self, reg: mil::Reg, ll_type: LLType) {
+            let equiv_rep = self.reg_to_equiv_class[reg.0 as usize];
+            if self.equiv_class_types[equiv_rep] == LLType::Error {
+                // First assignment to this equivalence class
+                self.equiv_class_types[equiv_rep] = ll_type;
+            } else {
+                // Check for type conflicts within the equivalence class
+                if self.equiv_class_types[equiv_rep] != ll_type {
+                    self.equiv_class_types[equiv_rep] = LLType::Error;
+                }
+            }
+        }
+    }
+
+    #[tracing::instrument(skip_all)]
     pub(super) fn reset(prog: &mut Program) {
+        // Build equivalence classes first
+        let mut state = TypeInferenceState::new(prog.reg_count().into());
+        state.build_equivalence_classes(prog);
+
         // reverse post order, this way every instruction can 'see' the LLType
         // of its inputs
         let order: Vec<_> = prog.insns_rpo().map(|(_, reg)| reg).collect();
         for reg in order {
-            update_one_reg(reg, prog);
+            update_reg(reg, prog, &mut state);
         }
     }
 
-    #[tracing::instrument(skip(prog))]
-    pub(super) fn update_one_reg(reg: mil::Reg, prog: &mut Program) -> LLType {
-        let rt = match prog.get(reg).unwrap() {
+    fn update_reg(reg: mil::Reg, prog: &mut Program, state: &mut TypeInferenceState) -> LLType {
+        let llt = match prog.get(reg).unwrap() {
+            Insn::Phi => {
+                // Use equivalence class type that should already be resolved
+                let class_type = state.get_equiv_class_type(reg);
+                if class_type == LLType::Error {
+                    // Pure Phi cycle - no non-Phi inputs in equivalence class
+                    prog.faults.push(Fault::PhiCycle { reg });
+                }
+
+                prog.ll_types[reg.0 as usize] = class_type;
+                class_type
+            }
+
+            _ => deduce_one_reg(reg, prog),
+        };
+
+        event!(Level::TRACE, ?reg, ?llt, "updated low level type");
+
+        // Update equivalence class type for this register
+        state.set_equiv_class_type(reg, llt);
+        llt
+    }
+
+    pub(super) fn deduce_one_reg(reg: mil::Reg, prog: &mut Program) -> LLType {
+        // For individual updates (set/add_insn), use the old BFS approach
+        // since we don't have pre-computed equivalence classes
+        let ltt = match prog.get(reg).unwrap() {
             Insn::Void => LLType::Bytes(0),
             Insn::True => LLType::Bool,
             Insn::False => LLType::Bool,
@@ -734,59 +819,19 @@ mod rt_infer {
             Insn::Parity(_) => LLType::Bool,
             Insn::UndefinedBool => LLType::Bool,
             Insn::UndefinedBytes { size } => LLType::Bytes(size as usize),
-            Insn::Phi => {
-                // phis may introduce cycles in the data flow graph, so we
-                // look for the 'non cycle path' that assigns a clear LLType
-                //
-                // no check here, only type deduction
-
-                // we note that, of all inputs to a phi node, it's almost
-                // assured that there is one that is not a Phi (and
-                // therefore has a definite LLType). in the remaining case,
-                // we just repeat the algorithm until we hit a non-phi.
-                //
-                // in the "tree of phis", we look at one level at time
-                'rt: {
-                    let mut work = vec![reg];
-                    while let Some(phi_reg) = work.pop() {
-                        for ups in prog.upsilons_of_phi(phi_reg) {
-                            let UpsilonDesc { input_reg, .. } = ups;
-                            match prog.get(input_reg).unwrap() {
-                                Insn::Phi => {
-                                    event!(Level::TRACE, ?phi_reg, ?ups, "phi");
-                                    work.push(input_reg)
-                                }
-                                _ => {
-                                    let ll_type = prog.ll_type(input_reg);
-                                    event!(
-                                        Level::TRACE,
-                                        ?phi_reg,
-                                        ?ups,
-                                        ?ll_type,
-                                        "non-phi, typed"
-                                    );
-                                    if ll_type != LLType::Error {
-                                        break 'rt ll_type;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    prog.faults.push(Fault::PhiCycle { reg });
-                    LLType::Error
-                }
-            }
             Insn::FuncArgument { ll_type, .. } => ll_type,
             Insn::Ancestral { ll_type, .. } => ll_type,
             Insn::StructGetMember { size, .. } => LLType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => LLType::Bytes(size as usize),
             Insn::Struct { size, .. } => LLType::Bytes(size as usize),
             Insn::StructMember { value, .. } => prog.ll_type(value),
+
+            // phis cannot be introduced after initial construction (and that's when phi's types are computed, during reset())
+            Insn::Phi => unreachable!(),
         };
 
-        prog.ll_types[reg.0 as usize] = rt;
-        rt
+        prog.ll_types[reg.0 as usize] = ltt;
+        ltt
     }
 }
 
@@ -839,16 +884,11 @@ impl<'a> OpenProgram<'a> {
         event!(Level::TRACE, ?orig_insn, ?insn, "insn set");
 
         let old_rt = self.ll_type(reg);
-        rt_infer::update_one_reg(reg, &mut self.program);
-        if old_rt != mil::LLType::Error {
-            assert_eq!(
-                old_rt,
-                self.ll_type(reg),
-                "{reg:?} changed type (left -> right)"
-            );
-        } else {
-            // we're allowed to "resolve" the error
-        }
+        let new_rt = rt_infer::deduce_one_reg(reg, &mut self.program);
+        assert_eq!(
+            old_rt, new_rt,
+            "{reg:?} changed type (left: {orig_insn:?} -> right {insn:?})"
+        );
     }
 
     /// Add a new instruction to the set of values
@@ -870,7 +910,9 @@ impl<'a> OpenProgram<'a> {
         self.program.tyids.push(None);
         self.program.ll_types.push(mil::LLType::Effect);
         // adds faults if type inference encounters errors
-        rt_infer::update_one_reg(reg, &mut self.program);
+        rt_infer::deduce_one_reg(reg, &mut self.program);
+        let ltt = self.program.ll_type(reg);
+        event!(Level::TRACE, ?reg, ?insn, ?ltt, "add insn");
 
         reg
     }

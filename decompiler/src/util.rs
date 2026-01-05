@@ -1,4 +1,5 @@
 pub mod bisect;
+pub mod disjoint_set;
 
 #[derive(Default)]
 pub struct Warnings(Vec<Box<dyn std::error::Error>>);

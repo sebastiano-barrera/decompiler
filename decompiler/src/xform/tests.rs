@@ -120,7 +120,7 @@ mod subreg_folding {
     define_ancestral_name!(ANC_A, "A");
     define_ancestral_name!(ANC_B, "B");
 
-    #[test_log::test]
+    #[test]
     fn part_of_concat() {
         use mil::{Insn, Reg};
 

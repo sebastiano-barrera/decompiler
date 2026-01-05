@@ -207,8 +207,9 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         endianness: program_core.endianness,
         faults: Vec::new(),
     };
-
+    ssa.reset_ll_types();
     ssa.check_invariants();
+
     event!(Level::TRACE, ?ssa, "ssa constructed");
 
     ssa

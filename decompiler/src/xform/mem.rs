@@ -315,7 +315,7 @@ mod tests {
         }
     }
 
-    #[test]
+    #[test_log::test]
     fn single_bb_part() {
         let mut program = mil::Program::new(Reg(10_000), None);
         program.push(

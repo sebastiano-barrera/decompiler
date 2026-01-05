@@ -171,19 +171,20 @@ suitable alternative
 
 - [x] called function name
 
-- [ ] select parent AST node (corresponding value etc.)
-- [ ] gui: asm view: highlight instructions related to selected AST node
-- [ ] string literals
 
 - [x] restore "AST cleanup" features
     - [x] remove gotos that "look like they just jump to the next block"
     - [x] hide unused block labels
 
+- [x] gui: add ASM view
+    - make it possible to show/hide
+    - this should make custom block ordering significantly faster
+    - [x] add ASM view
+    - [x] make ASM, SSA toggleable
+        - [x] refactor: make views more independent from each other and from the "column allocation"
+
 - [ ] control flow graph view: basic
 - [ ] cfg view: highlight current block, preds/succs
-
-- [ ] gui: related log messages to reg
-- [ ] gui: related log messages to block/label
 
 - [ ] loops
     - think about them for a little while
@@ -195,18 +196,19 @@ suitable alternative
 
 - [ ] gui: user-editable identifiers/names
 
-- [ ] gui: add ASM view
-    - make it possible to show/hide
-    - this should make custom block ordering significantly faster
-    - [ ] add ASM view
-    - [ ] make ASM, SSA toggleable
-        - [ ] refactor: make views more independent from each other and from the "column allocation"
+- [ ] select parent AST node (corresponding value etc.)
+- [ ] gui: asm view: highlight instructions related to selected AST node
+- [ ] string literals
 
+- [ ] gui: related log messages to reg
+- [ ] gui: related log messages to block/label
 - [ ] attach errors/warnings to ssa instructions wherever applicable
     - reasonable approximation: create a panel for tracing that allows searching,
     also based on language elements (registers, types, etc.)
 
 - [ ] gui: export to non-interactive text
+
+--- low prio
 
 - [ ] gui: multiple functions (tabs?)
 
