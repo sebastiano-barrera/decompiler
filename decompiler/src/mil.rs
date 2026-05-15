@@ -99,8 +99,6 @@ pub type Index = u16;
 #[repr(u8)]
 pub enum LLType {
     Bytes(usize),
-    Int(usize),
-    Float(usize),
     Bool,
     Effect,
     Error,
@@ -108,7 +106,7 @@ pub enum LLType {
 impl LLType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
-            LLType::Int(sz) | LLType::Float(sz) | LLType::Bytes(sz) => Some(*sz),
+            LLType::Bytes(sz) => Some(*sz),
             LLType::Bool => None,
             LLType::Effect => None,
             LLType::Error => None,

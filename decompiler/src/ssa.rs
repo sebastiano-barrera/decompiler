@@ -725,7 +725,7 @@ mod rt_infer {
             Insn::ArithK(_, a, _) => {
                 let at = prog.ll_type(a);
                 match at {
-                    LLType::Bytes(_) | LLType::Int(_) | LLType::Float(_) => at,
+                    LLType::Bytes(_) => at,
                     _ => {
                         prog.faults
                             .push(Fault::ArithKNonBytesType { reg, found: at });
