@@ -811,6 +811,7 @@ impl Importer {
         Ok(Some((subr_tyid, param_values)))
     }
 
+    /// Emit a call whose arguments are stored directly on the `Insn::Call`.
     fn emit_call(
         &mut self,
         callee: mil::Reg,
@@ -818,25 +819,11 @@ impl Importer {
         ret_reg: mil::Reg,
         ret_ll_type: mil::LLType,
     ) {
-        let first_arg = if param_values.is_empty() {
-            None
-        } else {
-            for (ndx, arg) in param_values.into_iter().rev().enumerate() {
-                self.emit(
-                    ret_reg,
-                    mil::Insn::CArg {
-                        value: arg,
-                        next_arg: if ndx > 0 { Some(ret_reg) } else { None },
-                    },
-                );
-            }
-            Some(ret_reg)
-        };
         self.emit(
             ret_reg,
             mil::Insn::Call {
                 callee,
-                first_arg,
+                args: param_values,
                 ret_ll_type,
             },
         );

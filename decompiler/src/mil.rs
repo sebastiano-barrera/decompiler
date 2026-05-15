@@ -116,7 +116,7 @@ impl LLType {
     }
 }
 
-pub type ArgsMut<'a> = arrayvec::ArrayVec<&'a mut Reg, 3>;
+pub type ArgsMut<'a> = arrayvec::ArrayVec<&'a mut Reg, 8>;
 
 fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec<T, N> {
     items.into_iter().collect()
@@ -127,6 +127,13 @@ fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec
 pub enum Endianness {
     Little,
     Big,
+}
+
+/// A field initializer carried directly by `Insn::Struct`.
+#[derive(Clone, Hash, PartialEq, Eq, Debug, facet::Facet, serde::Serialize)]
+pub struct StructMemberValue {
+    pub name: &'static str,
+    pub value: Reg,
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet, serde::Serialize)]
@@ -171,20 +178,13 @@ pub enum Insn {
         // larger size are definitely possible
         size: u32,
     },
-    #[assoc(input_regs = [_first_member.as_mut()].into_iter().flatten().collect())]
+    #[assoc(input_regs = _members.iter_mut().map(|member| &mut member.value).collect())]
     Struct {
         // TODO figure out proper memory management for these
         type_name: &'static str,
-        first_member: Option<Reg>,
+        /// Field initializers stored directly on the struct instruction, in declaration order.
+        members: Vec<StructMemberValue>,
         size: u32,
-    },
-    #[assoc(is_replaceable = false)]
-    #[assoc(input_regs = [Some(_value), _next.as_mut()].into_iter().flatten().collect())]
-    StructMember {
-        // TODO figure out proper memory management for these
-        name: &'static str,
-        value: Reg,
-        next: Option<Reg>,
     },
     #[assoc(input_regs = array([_array]))]
     ArrayGetElement {
@@ -212,17 +212,12 @@ pub enum Insn {
     Not(Reg),
 
     #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = [Some(_callee), _first_arg.as_mut()].into_iter().flatten().collect())]
+    #[assoc(input_regs = [Some(_callee)].into_iter().chain(_args.iter_mut().map(Some)).flatten().collect())]
     Call {
         callee: Reg,
-        first_arg: Option<Reg>,
+        /// Call arguments stored directly on the call instruction, in call order.
+        args: Vec<Reg>,
         ret_ll_type: LLType,
-    },
-    #[assoc(is_replaceable = false)]
-    #[assoc(input_regs = [Some(_value), _next_arg.as_mut()].into_iter().flatten().collect())]
-    CArg {
-        value: Reg,
-        next_arg: Option<Reg>,
     },
 
     #[assoc(has_side_effects = true)]

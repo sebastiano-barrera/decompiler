@@ -4,7 +4,7 @@ use tracing::{event, instrument, span, Level};
 
 use crate::{
     cfg::BlockID,
-    mil::{ArithOp, Endianness, Insn, LLType, Reg},
+    mil::{ArithOp, Endianness, Insn, LLType, Reg, StructMemberValue},
     ssa, ty,
     util::{bisect, Bytes},
     x86_to_mil,
@@ -1031,11 +1031,7 @@ const LEVEL_MAX: usize = 19;
 /// If we have the following SSA:
 ///
 /// ```ignore
-/// r10 <- Call {value: r5, first_arg: None}
-/// r11 <- Call {value: r6, first_arg: Some(r10)}
-/// r12 <- Call {value: r7, first_arg: Some(r11)}
-/// r13 <- Call {value: r8, first_arg: Some(r12)}
-/// r14 <- Call {callee: F, first_arg: Some(r13)}
+/// r14 <- Call {callee: F, args: [r5, r6, r7, r8]}
 /// ```
 ///
 /// and we have type information for `F`, such that it is a subroutine/function type like
@@ -1046,13 +1042,16 @@ const LEVEL_MAX: usize = 19;
 /// * r7: T3
 /// * r8: T4
 /// * r14: TRet
+///
+/// Arguments are read directly from `Insn::Call::args`; there is no auxiliary
+/// chain of argument instructions.
 #[instrument(skip_all)]
 fn propagate_call_types<'t>(prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) {
     let mut tyids_to_set = ssa::RegMap::for_program(prog, None);
     for (_, reg) in prog.insns_rpo() {
         let Insn::Call {
             callee,
-            first_arg,
+            args,
             ret_ll_type: _,
         } = prog.get(reg).unwrap()
         else {
@@ -1087,13 +1086,11 @@ fn propagate_call_types<'t>(prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) {
         let param_count = subr_ty.param_tyids.len();
 
         let mut arg_count = 0;
-        if let Some(first_arg) = first_arg {
-            for (arg, arg_tyid) in prog.get_call_args(first_arg).zip(&subr_ty.param_tyids) {
-                if prog.value_type(arg).is_none() {
-                    tyids_to_set[arg] = Some(*arg_tyid);
-                }
-                arg_count += 1;
+        for (arg, arg_tyid) in args.into_iter().zip(&subr_ty.param_tyids) {
+            if prog.value_type(arg).is_none() {
+                tyids_to_set[arg] = Some(*arg_tyid);
             }
+            arg_count += 1;
         }
 
         if arg_count != param_count {
@@ -1141,12 +1138,14 @@ fn pack_aggregates<'t>(
     if let ty::Ty::Struct(struct_ty) = tycow.as_ref() {
         if matches!(insn, Insn::Concat { .. }) {
             // copy the instruction to a new value -- it will act as the "raw"
-            // value of the struct, to be formally sectioned into fields
+            // value of the struct, to be formally sectioned into fields and
+            // reassembled into a single `Insn::Struct` carrying all members
+            // directly.
             let src = prog.append_new(bid, insn);
 
-            let mut first_member_reg = None;
+            let mut members = Vec::new();
 
-            for member in struct_ty.members.iter().rev() {
+            for member in &struct_ty.members {
                 let Ok(Some(size)) = types.bytes_size(member.tyid) else {
                     event!(
                         Level::ERROR,
@@ -1157,7 +1156,7 @@ fn pack_aggregates<'t>(
                     );
                     continue;
                 };
-                // TODO figure out proper memory management
+                // TODO figure out proper memory management for leaked member names.
                 let name = member.name.to_string().leak();
                 let value = prog.append_new(
                     bid,
@@ -1169,14 +1168,7 @@ fn pack_aggregates<'t>(
                 );
                 prog.set_value_type(value, Some(member.tyid));
 
-                first_member_reg = Some(prog.append_new(
-                    bid,
-                    Insn::StructMember {
-                        name,
-                        value,
-                        next: first_member_reg,
-                    },
-                ));
+                members.push(StructMemberValue { name, value });
             }
 
             insn = Insn::Struct {
@@ -1185,7 +1177,7 @@ fn pack_aggregates<'t>(
                     .unwrap()
                     .map(|s| s.to_string().leak() as &str)
                     .unwrap_or("?"),
-                first_member: first_member_reg,
+                members,
                 size: struct_ty.size.try_into().unwrap(),
             };
 

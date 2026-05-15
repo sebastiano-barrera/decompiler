@@ -424,9 +424,8 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
 
         Insn::Part { .. } => 254,
         Insn::Concat { .. } => 253,
-        Insn::Struct { .. } | Insn::StructMember { .. } => 251,
+        Insn::Struct { .. } => 251,
         Insn::Call { .. } => 250,
-        Insn::CArg { .. } => 250,
         Insn::Widen { .. } => 248,
 
         Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
@@ -453,7 +452,6 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::NotYetImplemented(_)
         | Insn::Upsilon { .. }
         | Insn::StoreMem { .. } => 0,
-        // Insn::CArg { .. } => panic!("CArg undefined precedence"),
     }
 }
 

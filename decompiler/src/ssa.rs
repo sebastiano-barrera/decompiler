@@ -45,11 +45,6 @@ pub enum Fault {
     #[error("circular reference detected in data flow graph")]
     CircularRef,
 
-    #[error(
-        "CArg chain broken at {reg:?}: points to {arg_def:?}, but expected a CArg instruction"
-    )]
-    CArgChainBroken { reg: mil::Reg, arg_def: mil::Insn },
-
     #[error("instruction is ill-formed")]
     InvalidInsn(mil::Reg),
 
@@ -186,35 +181,6 @@ impl Program {
         (0..self.reg_count()).map(mil::Reg)
     }
 
-    pub fn get_call_args(&self, first_arg: mil::Reg) -> impl '_ + Iterator<Item = mil::Reg> {
-        let mut arg = Some(first_arg);
-        std::iter::repeat_with(move || {
-            let insn = self.get(arg?).unwrap();
-            let mil::Insn::CArg { value, next_arg } = insn else {
-                panic!("CArg must be chained to other CArgs only")
-            };
-            arg = next_arg;
-            Some(value)
-        })
-        .map_while(|x| x)
-    }
-
-    pub(crate) fn get_struct_members(
-        &self,
-        first_member: mil::Reg,
-    ) -> impl '_ + Iterator<Item = (&'static str, mil::Reg)> {
-        let mut memb = Some(first_member);
-        std::iter::repeat_with(move || {
-            let insn = self.get(memb?).unwrap();
-            let mil::Insn::StructMember { name, value, next } = insn else {
-                panic!("StructMember must be chained to other StructMembers only")
-            };
-            memb = next;
-            Some((name, value))
-        })
-        .map_while(|x| x)
-    }
-
     pub fn insns_rpo(&self) -> impl '_ + DoubleEndedIterator<Item = (cfg::BlockID, mil::Reg)> {
         self.cfg
             .block_ids_rpo()
@@ -307,7 +273,6 @@ impl Program {
         self.check_no_circular_refs();
         self.check_inputs_visible_scheduled();
         self.check_consistent_phis();
-        self.check_carg_chain();
 
         #[cfg(test)]
         {
@@ -525,30 +490,6 @@ impl Program {
         if topo_order_len < self.reg_count() as usize {
             self.faults.push(Fault::CircularRef);
         }
-    }
-
-    fn check_carg_chain(&mut self) {
-        let mut faults = Vec::new();
-        for (_, reg) in self.insns_rpo() {
-            let insn = self.get(reg).unwrap();
-            let arg = match insn {
-                mil::Insn::Call {
-                    first_arg: Some(arg),
-                    ..
-                }
-                | mil::Insn::CArg {
-                    value: _,
-                    next_arg: Some(arg),
-                } => arg,
-                _ => continue,
-            };
-
-            let arg_def = self.get(arg).unwrap();
-            if !matches!(arg_def, mil::Insn::CArg { .. }) {
-                faults.push(Fault::CArgChainBroken { reg, arg_def });
-            }
-        }
-        self.faults.extend(faults);
     }
 
     pub fn dump<S: std::fmt::Write>(
@@ -799,7 +740,6 @@ mod rt_infer {
             // TODO This might have to change based on the use of calling
             // convention and function type info
             Insn::Call { ret_ll_type, .. } => ret_ll_type,
-            Insn::CArg { value, next_arg: _ } => prog.ll_type(value),
 
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
@@ -822,7 +762,6 @@ mod rt_infer {
             Insn::StructGetMember { size, .. } => LLType::Bytes(size as usize),
             Insn::ArrayGetElement { size, .. } => LLType::Bytes(size as usize),
             Insn::Struct { size, .. } => LLType::Bytes(size as usize),
-            Insn::StructMember { value, .. } => prog.ll_type(value),
 
             // phis cannot be introduced after initial construction (and that's when phi's types are computed, during reset())
             Insn::Phi => unreachable!(),

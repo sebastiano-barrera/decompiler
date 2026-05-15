@@ -1059,7 +1059,7 @@ mod ast {
             }
             Insn::Struct {
                 type_name,
-                first_member,
+                members,
                 size: _,
             } => {
                 ui.vertical(|ui| {
@@ -1071,26 +1071,22 @@ mod ast {
                     ui.horizontal(|ui| {
                         ui.add_space(5.0);
                         ui.vertical(|ui| {
-                            if let Some(first) = first_member {
-                                render_expr(ui, s, first, my_prec);
-                            } else {
+                            if members.is_empty() {
                                 ui.label("(no members)");
+                            } else {
+                                for member in members {
+                                    ui.horizontal(|ui| {
+                                        print_ident(ui, s, member.name);
+                                        print_kw(ui, s, ":");
+                                        render_expr(ui, s, member.value, my_prec);
+                                        print_kw(ui, s, ";");
+                                    });
+                                }
                             }
                         });
                     });
                     print_kw(ui, s, "}");
                 });
-            }
-            Insn::StructMember { name, value, next } => {
-                ui.horizontal(|ui| {
-                    print_ident(ui, s, name);
-                    print_kw(ui, s, ":");
-                    render_expr(ui, s, value, my_prec);
-                    print_kw(ui, s, ";");
-                });
-                if let Some(next_val) = next {
-                    render_expr(ui, s, next_val, my_prec);
-                }
             }
             Insn::ArrayGetElement {
                 array,
@@ -1149,20 +1145,17 @@ mod ast {
             }
             Insn::Call {
                 callee,
-                first_arg,
+                args,
                 ret_ll_type: _,
             } => {
                 ui.horizontal(|ui| {
                     render_expr(ui, s, callee, my_prec);
                     print_kw(ui, s, "(");
-                    if let Some(arg) = first_arg {
-                        // show call args rendered as expressions
-                        for (ndx, a) in s.ssa.get_call_args(arg).enumerate() {
-                            if ndx > 0 {
-                                print_kw(ui, s, ",");
-                            }
-                            render_expr(ui, s, a, my_prec);
+                    for (ndx, a) in args.into_iter().enumerate() {
+                        if ndx > 0 {
+                            print_kw(ui, s, ",");
                         }
+                        render_expr(ui, s, a, my_prec);
                     }
                     print_kw(ui, s, ")");
                 });
@@ -1243,8 +1236,7 @@ mod ast {
                 });
             }
 
-            Insn::CArg { .. }
-            | Insn::Control(_)
+            Insn::Control(_)
             | Insn::SetReturnValue(_)
             | Insn::SetJumpCondition(_)
             | Insn::SetJumpTarget(_) => {
