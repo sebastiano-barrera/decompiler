@@ -36,8 +36,8 @@ impl From<&crate::mil::Program> for MIL {
             let iv = mil.get(ndx).unwrap();
             body.push(Insn {
                 addr: Some(iv.addr),
-                dest: iv.dest.get().reg_index(),
-                insn: crate::mil::to_expanded(&iv.insn.get()),
+                dest: iv.dest.reg_index(),
+                insn: crate::mil::to_expanded(iv.insn),
                 tyid: None,
                 reg_type: None,
             });

@@ -4,7 +4,7 @@ use serde::ser::SerializeSeq;
 
 // TODO This currently only represents the pre-SSA version of the program, but SSA conversion is
 // coming
-use std::{cell::Cell, collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{ty, util::Bytes};
 
@@ -18,8 +18,8 @@ use crate::{ty, util::Bytes};
 /// By convention, the entry point of the program is always at index 0.
 #[derive(Clone)]
 pub struct Program {
-    insns: Vec<Cell<Insn>>,
-    dests: Vec<Cell<Reg>>,
+    insns: Vec<Insn>,
+    dests: Vec<Reg>,
     addrs: Vec<u64>,
     /// Initial partial assignment of TypeID's to each instruction
     tyids: Vec<Option<ty::TypeID>>,
@@ -129,7 +129,7 @@ pub enum Endianness {
     Big,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet, serde::Serialize)]
+#[derive(Clone, Hash, PartialEq, Eq, Debug, Assoc, facet::Facet, serde::Serialize)]
 #[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable(&self) -> bool { ! self.has_side_effects() })]
@@ -433,8 +433,8 @@ impl std::fmt::Debug for Program {
         let mut last_addr = 0;
         let len = self.dests.len();
         for ndx in 0..len {
-            let insn = self.insns[ndx].get();
-            let dest = self.dests[ndx].get();
+            let insn = &self.insns[ndx];
+            let dest = &self.dests[ndx];
             let addr = self.addrs[ndx];
 
             if last_addr != addr {
@@ -510,7 +510,7 @@ impl Program {
         let ndx_end = self.dests.len();
 
         for ndx in ndx_start..ndx_end {
-            for &mut input in self.insns[ndx].get().input_regs() {
+            for &mut input in self.insns[ndx].input_regs() {
                 let is_temporary = input.0 >= self.reg_gen.first.0;
                 if !is_temporary {
                     continue;
@@ -519,7 +519,7 @@ impl Program {
                 // in the preceding part of the program (since the last check/reset),
                 // at least one instruction writes `input`
                 let is_initialized =
-                    (ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner].get() == input);
+                    (ndx_start..ndx).any(|ndx_inner| self.dests[ndx_inner] == input);
                 if !is_initialized {
                     panic!(
                         "Temporary register {:?} used at instruction {} without prior initialization in this block.",
@@ -539,8 +539,8 @@ impl Program {
     /// The instruction must not be a Phi node (these are only allowed to be
     /// introduced during conversion to SSA).
     pub fn push(&mut self, dest: Reg, insn: Insn) -> Index {
-        self.dests.push(Cell::new(dest));
-        self.insns.push(Cell::new(insn));
+        self.dests.push(dest);
+        self.insns.push(insn);
         self.addrs.push(self.cur_input_addr);
         self.tyids.push(None);
         self.len() - 1
@@ -572,26 +572,23 @@ impl Program {
         assert_eq!(count, self.insns.len());
         assert_eq!(count, self.addrs.len());
         assert_eq!(count, self.tyids.len());
-        assert!(!self
-            .insns
-            .iter()
-            .any(|insn| matches!(insn.get(), Insn::Phi)));
+        assert!(!self.insns.iter().any(|insn| matches!(insn, Insn::Phi)));
     }
 
     pub fn convert_jmp_ext_to_int(&mut self) {
         // mil::Index (in this MIL code) corresponding to each machine code address
         let index_of_mcode_addr = self.map_index_of_mcode_addr();
 
-        for insn in &self.insns {
-            match insn.get() {
+        for insn in &mut self.insns {
+            match *insn {
                 Insn::Control(Control::JmpExt(addr)) => {
                     if let Some(ndx) = index_of_mcode_addr.get(&addr) {
-                        insn.set(Insn::Control(Control::Jmp(*ndx)));
+                        *insn = Insn::Control(Control::Jmp(*ndx));
                     }
                 }
                 Insn::Control(Control::JmpExtIf(addr)) => {
                     if let Some(ndx) = index_of_mcode_addr.get(&addr) {
-                        insn.set(Insn::Control(Control::JmpIf(*ndx)));
+                        *insn = Insn::Control(Control::JmpIf(*ndx));
                     }
                 }
                 _ => {}
@@ -620,18 +617,14 @@ impl Program {
         let max_dest = self
             .dests
             .iter()
-            .map(|reg| reg.get().reg_index())
+            .map(|reg| reg.reg_index())
             .max()
             .unwrap_or(0);
         let max_input = self
             .insns
             .iter()
-            .flat_map(|insn| {
-                insn.get()
-                    .input_regs_iter()
-                    .map(|reg| reg.reg_index())
-                    .max()
-            })
+            .cloned()
+            .flat_map(|mut insn| insn.input_regs_iter().map(|reg| reg.reg_index()).max())
             .max()
             .unwrap_or(0);
         1 + max_dest.max(max_input)
@@ -688,10 +681,14 @@ impl Program {
         assert!(prev.is_none());
     }
 
+    pub(crate) fn set_insn(&mut self, ndx: Index, insn: Insn) {
+        self.insns[ndx as usize] = insn;
+    }
+
     pub fn unwrap(self) -> ProgramCore {
         ProgramCore {
-            insns: self.insns.into_iter().map(Cell::into_inner).collect(),
-            dests: self.dests.into_iter().map(Cell::into_inner).collect(),
+            insns: self.insns,
+            dests: self.dests,
             addrs: self.addrs,
             tyids: self.tyids,
             func_tyid: self.func_tyid,
@@ -716,8 +713,8 @@ pub struct ProgramCore {
 }
 
 pub struct InsnView<'a> {
-    pub insn: &'a Cell<Insn>,
-    pub dest: &'a Cell<Reg>,
+    pub insn: &'a Insn,
+    pub dest: &'a Reg,
     pub index: Index,
     pub addr: u64,
 }

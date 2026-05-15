@@ -3,8 +3,6 @@
 //! This module is fully internal. No API is exposed for consumption outside
 //! of the super module (ssa).
 
-use std::cell::Cell;
-
 use tracing::{event, Level};
 
 use super::Program;
@@ -111,7 +109,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                 // happen later on).
                 for &insn_ndx in schedule.of_block(bid) {
                     let iv = program.get(insn_ndx).unwrap();
-                    let mut insn = iv.insn.get();
+                    let mut insn = iv.insn.clone();
                     for reg in insn.input_regs() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
@@ -122,7 +120,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                     let new_dest = mil::Reg(insn_ndx);
                     // iv.dest is rewritten later (always mil::Reg(index))
                     // we only update `var_map`
-                    let old_name = iv.dest.get();
+                    let old_name = *iv.dest;
 
                     let new_name = if let mil::Insn::Get(input_reg) = insn {
                         // exception: for Get(_) instructions, we just reuse the input reg for the
@@ -132,7 +130,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                         new_dest
                     };
                     var_map.set(old_name, new_name);
-                    iv.insn.set(insn);
+                    program.set_insn(insn_ndx, insn.clone());
                 }
 
                 // -- patch successor's phi nodes
@@ -196,7 +194,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         .collect();
 
     let mut ssa = Program {
-        insns: program_core.insns.into_iter().map(Cell::new).collect(),
+        insns: program_core.insns,
         addrs: program_core.addrs,
         ll_types,
         tyids: program_core.tyids,
@@ -233,7 +231,7 @@ fn compute_phis_set(
     // (phis_set is to avoid having multiple phis for the same var)
     for bid in cfg.block_ids() {
         for &ndx in block_spans.of_block(bid) {
-            let dest = program.get(ndx).unwrap().dest.get();
+            let dest = *program.get(ndx).unwrap().dest;
             for target_bid in cfg.block_ids() {
                 if cfg.block_preds(target_bid).len() < 2 {
                     continue;
@@ -266,8 +264,8 @@ fn find_received_vars(
     for bid in graph.block_ids_postorder() {
         for &ndx in block_spans.of_block(bid).iter().rev() {
             let iv = prog.get(ndx).unwrap();
-            let dest = iv.dest.get();
-            let mut insn = iv.insn.get();
+            let dest = *iv.dest;
+            let mut insn = iv.insn.clone();
 
             is_received.set(bid, dest, false);
             for &mut input in insn.input_regs_iter() {

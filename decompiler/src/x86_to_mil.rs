@@ -1620,13 +1620,7 @@ impl Importer {
         self.pb
             .iter()
             .enumerate()
-            .filter_map(|(ndx, iv)| {
-                if iv.dest.get() == reg {
-                    Some(ndx)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(ndx, iv)| if *iv.dest == reg { Some(ndx) } else { None })
             .last()
             .map(|ndx| ndx.try_into().unwrap())
     }

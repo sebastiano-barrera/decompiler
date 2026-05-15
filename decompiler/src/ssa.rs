@@ -15,7 +15,7 @@ use crate::{
     pp, ty,
     util::Bytes,
 };
-use std::{cell::Cell, io::Write, sync::Arc};
+use std::{io::Write, sync::Arc};
 
 mod cons;
 
@@ -94,7 +94,7 @@ pub struct Program {
     //
     // - it's a bug if an instruction has an input register whose defining
     //   instruction is not scheduled.
-    insns: Vec<Cell<mil::Insn>>,
+    insns: Vec<mil::Insn>,
     addrs: Vec<u64>,
 
     /// Cached LLType for each instruction.
@@ -159,9 +159,7 @@ impl Program {
     pub fn get(&self, reg: mil::Reg) -> Option<mil::Insn> {
         // In SSA, Reg(ndx) happens to be located at index ndx.
         // if this  slot is enabled as per the mask, then every Vec access must succeed
-        self.insns
-            .get(reg.reg_index() as usize)
-            .map(|cell| cell.get())
+        self.insns.get(reg.reg_index() as usize).cloned()
     }
 
     /// Get the machine-code address for the given register's defining instruction.
@@ -865,11 +863,9 @@ impl<'a> OpenProgram<'a> {
     pub fn set(&mut self, reg: mil::Reg, insn: mil::Insn) {
         use std::mem::discriminant;
 
-        let Some(cell) = self.insns.get(reg.reg_index() as usize) else {
+        let Some(orig_insn) = self.insns.get(reg.reg_index() as usize).cloned() else {
             return;
         };
-
-        let orig_insn = cell.get();
         if !orig_insn.is_replaceable() && discriminant(&orig_insn) != discriminant(&insn) {
             panic!(
                 "instructions can't be replaced: {:?} -> {:?}",
@@ -880,7 +876,7 @@ impl<'a> OpenProgram<'a> {
             return;
         }
 
-        cell.set(insn);
+        self.program.insns[reg.reg_index() as usize] = insn.clone();
         event!(Level::TRACE, ?orig_insn, ?insn, "insn set");
 
         let old_rt = self.ll_type(reg);
@@ -905,14 +901,14 @@ impl<'a> OpenProgram<'a> {
         let ndx = self.insns.len().try_into().unwrap();
         let reg = mil::Reg(ndx);
 
-        self.program.insns.push(Cell::new(insn));
+        self.program.insns.push(insn.clone());
         self.program.addrs.push(u64::MAX);
         self.program.tyids.push(None);
         self.program.ll_types.push(mil::LLType::Effect);
         // adds faults if type inference encounters errors
         rt_infer::deduce_one_reg(reg, &mut self.program);
         let ltt = self.program.ll_type(reg);
-        event!(Level::TRACE, ?reg, ?insn, ?ltt, "add insn");
+        event!(Level::TRACE, reg = ?reg, insn = ?&self.program.insns[reg.reg_index() as usize], ?ltt, "add insn");
 
         reg
     }

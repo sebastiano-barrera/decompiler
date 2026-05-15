@@ -112,7 +112,7 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
         }
     }
 
-    match (li, ri) {
+    match (li.clone(), ri.clone()) {
         // (a op ka) op (b op kb) === (a op b) op (ka op kb)  (if op is associative)
         (Insn::ArithK(l_op, llr, lk), Insn::ArithK(r_op, rlr, rk))
             if l_op == r_op && l_op == op =>
@@ -136,7 +136,7 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
         _ => {}
     }
 
-    let result_insn = match (op, li, ri) {
+    let result_insn = match (op, li.clone(), ri.clone()) {
         (op, Insn::Int { value: ka, .. }, Insn::Int { value: kb, .. }) => {
             let size = orig_llt.bytes_size().and_then(|sz| sz.try_into().ok());
             match (size, eval_const(op, ka, kb)) {
@@ -1007,7 +1007,7 @@ pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFl
                     if insn.is_replaceable() {
                         // replacing a side-effecting instruction with a non-side-effecting
                         // Insn::Get is currently wrong (would be quite complicated to handle)
-                        let deduped = deduper.try_dedup(reg, insn);
+                        let deduped = deduper.try_dedup(reg, insn.clone());
                         prog.set(reg, deduped);
                     }
                     prog.append_existing(bid, reg);
@@ -1216,7 +1216,7 @@ impl Deduper {
             return insn;
         }
 
-        let prev_reg = self.rev_lookup.entry(insn).or_insert(reg);
+        let prev_reg = self.rev_lookup.entry(insn.clone()).or_insert(reg);
         if *prev_reg != reg {
             Insn::Get(*prev_reg)
         } else {

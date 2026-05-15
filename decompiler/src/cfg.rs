@@ -327,7 +327,7 @@ pub fn analyze_mil(program: &mil::Program) -> MILAnalysis {
 
     for ndx in 0..program.len() {
         if let Some(iv) = program.get(ndx) {
-            if let mil::Insn::Control(ctl) = iv.insn.get() {
+            if let mil::Insn::Control(ctl) = *iv.insn {
                 // the instruction jumps or otherwise affects control flow, and is a
                 // "block ender", i.e. the last instruction in the block; equivalently,
                 // ndx+1 must be a block's start.
@@ -381,7 +381,7 @@ pub fn analyze_mil(program: &mil::Program) -> MILAnalysis {
             if insn_ndx_end > insn_ndx_start {
                 // non-empty block
                 let last_ndx = insn_ndx_end - 1;
-                block_conts[bid] = match program.get(last_ndx).unwrap().insn.get() {
+                block_conts[bid] = match *program.get(last_ndx).unwrap().insn {
                     mil::Insn::Control(ctl) => match ctl {
                         mil::Control::Ret => BlockCont::Always(Dest::Return),
                         mil::Control::Jmp(tgt_ndx) => {
