@@ -573,6 +573,19 @@ pub struct UpsilonDesc {
 }
 
 mod rt_infer {
+    // Recompute low-level SSA register types.
+    //
+    // The non-obvious bit here is how Phi/Upsilon are handled:
+    // - every `Upsilon { value, phi_ref }` means `value` and `phi_ref`
+    //   must have the same `LLType`
+    // - we therefore build union-find equivalence classes over registers
+    // - non-Phi instructions contribute a type to their class
+    // - Phi instructions do not infer locally; they read the type that was
+    //   discovered for their whole class
+    //
+    // This is mainly here to make full-program `reset()` robust in the
+    // presence of Phi chains/cycles, where purely local inference is too
+    // order-sensitive.
     use super::*;
 
     use crate::util::disjoint_set::DisjointSet;
@@ -580,6 +593,8 @@ mod rt_infer {
 
     #[derive(Debug)]
     struct TypeInferenceState {
+        // Union-find over registers that are constrained to have the same
+        // low-level type by Phi/Upsilon flow.
         disjoint_set: DisjointSet,
         equiv_class_types: Vec<LLType>,
         reg_to_equiv_class: Vec<usize>,
@@ -587,6 +602,10 @@ mod rt_infer {
 
     impl TypeInferenceState {
         fn new(reg_count: usize) -> Self {
+            // `equiv_class_types` starts at `Error` for every class.
+            // In this module that means "no concrete class-wide type has been
+            // established yet"; if conflicting concrete types are later seen,
+            // we also collapse back to `Error`.
             Self {
                 disjoint_set: DisjointSet::new(reg_count),
                 equiv_class_types: vec![LLType::Error; reg_count],
@@ -595,7 +614,11 @@ mod rt_infer {
         }
 
         fn build_equivalence_classes(&mut self, prog: &Program) {
-            // Iterate through all Upsilon instructions to build equivalence classes
+            // `Upsilon` is the edge that feeds a value into a Phi. Type-wise,
+            // that means `value` and `phi_ref` must be equal, so we union them.
+            //
+            // Doing this globally up front lets us type Phi cycles without
+            // chasing them recursively or depending on a lucky visitation order.
             for (_block_id, reg) in prog.insns_rpo() {
                 if let Insn::Upsilon { value, phi_ref } = prog.get(reg).unwrap() {
                     // Unite the value register and phi register in the same equivalence class
@@ -612,10 +635,17 @@ mod rt_infer {
         }
 
         fn get_equiv_class_type(&self, reg: mil::Reg) -> LLType {
+            // All regs in the same class share one class-wide type slot.
             self.equiv_class_types[self.reg_to_equiv_class[reg.0 as usize]]
         }
 
         fn set_equiv_class_type(&mut self, reg: mil::Reg, ll_type: LLType) {
+            // Merge this register's deduced type into its class-wide type.
+            //
+            // Rules:
+            // - first concrete type seen for the class wins
+            // - same type again is fine
+            // - a different type poisons the whole class to `Error`
             let equiv_rep = self.reg_to_equiv_class[reg.0 as usize];
             if self.equiv_class_types[equiv_rep] == LLType::Error {
                 // First assignment to this equivalence class
@@ -631,7 +661,11 @@ mod rt_infer {
 
     #[tracing::instrument(skip_all)]
     pub(super) fn reset(prog: &mut Program) {
-        // Build equivalence classes first
+        // Full recomputation path.
+        //
+        // We first discover all Phi/Upsilon type-equivalence classes, then walk
+        // the program and let non-Phi instructions populate those classes.
+        // Phi instructions themselves just read back the class type.
         let mut state = TypeInferenceState::new(prog.reg_count().into());
         state.build_equivalence_classes(prog);
 
@@ -644,12 +678,19 @@ mod rt_infer {
     }
 
     fn update_reg(reg: mil::Reg, prog: &mut Program, state: &mut TypeInferenceState) -> LLType {
+        // Update one register during full `reset()`.
+        //
+        // Non-Phi regs are typed from their opcode/operands. Phi regs are typed
+        // indirectly via the precomputed equivalence class they belong to.
         let llt = match prog.get(reg).unwrap() {
             Insn::Phi => {
-                // Use equivalence class type that should already be resolved
+                // Phi does not infer locally. Instead it inherits the type of
+                // the whole connected Phi/Upsilon component.
                 let class_type = state.get_equiv_class_type(reg);
                 if class_type == LLType::Error {
-                    // Pure Phi cycle - no non-Phi inputs in equivalence class
+                    // Usually this means a "pure" Phi cycle: the class never saw
+                    // a concrete non-Phi producer that could anchor its type.
+                    // (It can also mean the class was type-inconsistent.)
                     prog.faults.push(Fault::PhiCycle { reg });
                 }
 
@@ -668,8 +709,12 @@ mod rt_infer {
     }
 
     pub(super) fn deduce_one_reg(reg: mil::Reg, prog: &mut Program) -> LLType {
-        // For individual updates (set/add_insn), use the old BFS approach
-        // since we don't have pre-computed equivalence classes
+        // Local per-instruction type deduction.
+        //
+        // This is used both by full `reset()` for non-Phi instructions and by
+        // incremental single-reg updates (`set`/`add_insn`). The incremental
+        // path does *not* rebuild Phi/Upsilon equivalence classes, so Phi typing
+        // remains a responsibility of the full reset pass.
         let ltt = match prog.get(reg).unwrap() {
             Insn::Void => LLType::Bytes(0),
             Insn::True => LLType::Bool,
