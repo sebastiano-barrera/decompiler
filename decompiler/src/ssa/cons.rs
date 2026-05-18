@@ -110,7 +110,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                 for &insn_ndx in schedule.of_block(bid) {
                     let iv = program.get(insn_ndx).unwrap();
                     let mut insn = iv.insn.clone();
-                    for reg in insn.input_regs() {
+                    for reg in insn.input_regs_mut() {
                         *reg = var_map.get(*reg).expect("value not initialized in pre-ssa");
                     }
 
@@ -130,7 +130,7 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
                         new_dest
                     };
                     var_map.set(old_name, new_name);
-                    program.set_insn(insn_ndx, insn.clone());
+                    program.set_insn(insn_ndx, insn);
                 }
 
                 // -- patch successor's phi nodes
@@ -268,7 +268,7 @@ fn find_received_vars(
             let mut insn = iv.insn.clone();
 
             is_received.set(bid, dest, false);
-            for &mut input in insn.input_regs_iter() {
+            for &mut input in insn.input_regs_iter_mut() {
                 is_received.set(bid, input, true);
             }
         }

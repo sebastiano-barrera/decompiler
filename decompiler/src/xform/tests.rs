@@ -52,11 +52,17 @@ mod constant_folding {
 
         assert_eq!(prog.cfg().block_count(), 1);
         assert_eq!(
-            prog.get(Reg(4)).unwrap(),
+            prog.get(Reg(4)).unwrap().clone(),
             Insn::ArithK(ArithOp::Add, Reg(0), 10)
         );
-        assert_eq!(prog.get(Reg(5)).unwrap(), Insn::Int { value: 49, size: 8 });
-        assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(0)));
+        assert_eq!(
+            prog.get(Reg(5)).unwrap().clone(),
+            Insn::Int { value: 49, size: 8 }
+        );
+        assert_eq!(
+            prog.get(Reg(10)).unwrap().clone(),
+            Insn::SetReturnValue(Reg(0))
+        );
     }
 
     #[test]
@@ -102,10 +108,13 @@ mod constant_folding {
         // influenced by insn deduping
         assert_eq!(prog.insns_rpo().count(), 5);
         assert_eq!(
-            prog.get(Reg(5)).unwrap(),
+            prog.get(Reg(5)).unwrap().clone(),
             Insn::ArithK(ArithOp::Mul, Reg(0), 1100)
         );
-        assert_eq!(prog.get(Reg(10)).unwrap(), Insn::SetReturnValue(Reg(0)));
+        assert_eq!(
+            prog.get(Reg(10)).unwrap().clone(),
+            Insn::SetReturnValue(Reg(0))
+        );
     }
 }
 
@@ -187,7 +196,7 @@ mod subreg_folding {
                         xform::canonical(&mut prog, &types);
 
                         assert_eq!(
-                            prog.get(Reg(3)).unwrap(),
+                            prog.get(Reg(3)).unwrap().clone(),
                             if offset == 0 && size == anc_a_sz {
                                 Insn::Get(Reg(0))
                             } else {
@@ -214,7 +223,7 @@ mod subreg_folding {
                         xform::canonical(&mut prog, &types);
 
                         assert_eq!(
-                            prog.get(Reg(3)).unwrap(),
+                            prog.get(Reg(3)).unwrap().clone(),
                             if offset == anc_a_sz && size == anc_b_sz {
                                 Insn::Get(Reg(1))
                             } else {
@@ -245,10 +254,10 @@ mod subreg_folding {
                             size,
                         });
                         let mut prog = ssa::Program::from_mil(prog);
-                        let orig_insn = prog.get(Reg(3)).unwrap();
+                        let orig_insn = prog.get(Reg(3)).unwrap().clone();
 
                         xform::canonical(&mut prog, &types);
-                        assert_eq!(prog.get(Reg(3)).unwrap(), orig_insn);
+                        assert_eq!(prog.get(Reg(3)).unwrap().clone(), orig_insn);
                     }
                 }
             }
@@ -322,16 +331,16 @@ mod subreg_folding {
                             let ret_val =
                                 prog.find_last_matching(prog.cfg().entry_block_id(), |insn| {
                                     match insn {
-                                        Insn::SetReturnValue(x) => Some(x),
+                                        Insn::SetReturnValue(x) => Some(*x),
                                         _ => None,
                                     }
                                 })
                                 .unwrap();
                             assert_eq!(
-                                prog.get(ret_val).unwrap(),
+                                prog.get(ret_val).unwrap().clone(),
                                 if offs1 == 0 && size1 == src_sz {
                                     // the full value
-                                    prog.get(Reg(0)).unwrap()
+                                    prog.get(Reg(0)).unwrap().clone()
                                 } else {
                                     Insn::Part {
                                         src: Reg(0),
@@ -384,7 +393,7 @@ fn combined_with_fold_get() {
 
     assert_eq!(prog.insns_rpo().count(), 2);
     assert_eq!(
-        prog.get(Reg(4)).unwrap(),
+        prog.get(Reg(4)).unwrap().clone(),
         Insn::Int {
             value: 5 * 44,
             size: 8
@@ -960,7 +969,7 @@ mod struct_ptr_member_access {
     {
         for (_, reg) in prog.insns_rpo() {
             if let Some(insn) = prog.get(reg) {
-                if pred(insn) {
+                if pred(insn.clone()) {
                     return Some(reg);
                 }
             }

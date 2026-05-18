@@ -60,7 +60,7 @@ impl From<&crate::ssa::Program> for SSA {
 
             let mut body = Vec::new();
             for reg in ssa.block_regs(bid) {
-                let insn = crate::mil::to_expanded(&ssa.get(reg).unwrap());
+                let insn = crate::mil::to_expanded(ssa.get(reg).unwrap());
                 body.push(Insn {
                     addr: None,
                     dest: reg.reg_index(),

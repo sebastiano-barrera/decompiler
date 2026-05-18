@@ -159,7 +159,7 @@ pub(crate) fn write_ast_expr<W: std::io::Write>(
     }
 
     let insn = ssa.get(reg).unwrap();
-    let xpinsn = mil::to_expanded(&insn);
+    let xpinsn = mil::to_expanded(insn);
 
     write!(wrt, "{} ", xpinsn.opcode)?;
     for (ndx, (_key, arg)) in xpinsn.fields.into_iter().enumerate() {

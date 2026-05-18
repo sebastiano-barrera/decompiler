@@ -148,13 +148,17 @@ impl Program {
         self.func_tyid
     }
 
-    /// Get the defining instruction for the given register.
+    /// Get the defining instruction for the given register by shared reference.
+    ///
+    /// This is borrowed access only: callers that merely inspect instructions
+    /// should avoid cloning, while callers that need to rewrite a temporary
+    /// instruction value can clone explicitly at the call site.
     ///
     /// (Note that it's not allowed to fetch instructions by position.)
-    pub fn get(&self, reg: mil::Reg) -> Option<mil::Insn> {
+    pub fn get(&self, reg: mil::Reg) -> Option<&mil::Insn> {
         // In SSA, Reg(ndx) happens to be located at index ndx.
         // if this  slot is enabled as per the mask, then every Vec access must succeed
-        self.insns.get(reg.reg_index() as usize).cloned()
+        self.insns.get(reg.reg_index() as usize)
     }
 
     /// Get the machine-code address for the given register's defining instruction.
@@ -193,7 +197,7 @@ impl Program {
 
     pub fn find_last_matching<P, R>(&self, bid: cfg::BlockID, pred: P) -> Option<R>
     where
-        P: Fn(mil::Insn) -> Option<R>,
+        P: Fn(&mil::Insn) -> Option<R>,
     {
         self.block_regs(bid)
             .rev()
@@ -206,9 +210,9 @@ impl Program {
 
         self.registers()
             .filter_map(move |reg| match self.get(reg).unwrap() {
-                mil::Insn::Upsilon { value, phi_ref } if phi_ref == phi_reg => Some(UpsilonDesc {
+                mil::Insn::Upsilon { value, phi_ref } if *phi_ref == phi_reg => Some(UpsilonDesc {
                     upsilon_reg: reg,
-                    input_reg: value,
+                    input_reg: *value,
                 }),
                 _ => None,
             })
@@ -246,8 +250,8 @@ impl Program {
             is_visited[reg] = true;
             chain.push(reg);
 
-            let mut insn = self.get(reg).unwrap();
-            for &mut input in insn.input_regs_iter() {
+            let insn = self.get(reg).unwrap();
+            for input in insn.input_regs_iter() {
                 queue.push(input);
             }
         }
@@ -390,8 +394,8 @@ impl Program {
                     block_visited[bid] = true;
 
                     for reg in self.block_regs(bid) {
-                        let mut insn = self.get(reg).unwrap();
-                        for &mut input in insn.input_regs_iter() {
+                        let insn = self.get(reg).unwrap();
+                        for input in insn.input_regs_iter() {
                             if let Some(def_block_input) = def_block[input] {
                                 if !(def_block_input == bid
                                     || dom_tree.imm_doms(bid).any(|b| b == def_block_input))
@@ -437,7 +441,7 @@ impl Program {
                 continue;
             };
 
-            let ll_type = self.ll_type(value);
+            let ll_type = self.ll_type(*value);
             // Phi's are allowed to have one or more of their inputs be LLType::Error:
             // - they don't count for consistency;
             // - any Error already causes a panic in tests, so this is caught;
@@ -447,15 +451,15 @@ impl Program {
                 continue;
             }
 
-            match &mut phi_type[phi_ref] {
+            match &mut phi_type[*phi_ref] {
                 slot @ None => {
                     *slot = Some(ll_type);
                 }
                 Some(prev) => {
                     if *prev != ll_type {
                         self.faults.push(Fault::InconsistentPhiTypes {
-                            phi_reg: phi_ref,
-                            value,
+                            phi_reg: *phi_ref,
+                            value: *value,
                             expected: *prev,
                             found: ll_type,
                         });
@@ -479,7 +483,7 @@ impl Program {
         let mut topo_order_len = 0;
         while let Some(reg) = queue.pop() {
             topo_order_len += 1;
-            for &mut input in self.get(reg).unwrap().input_regs_iter() {
+            for input in self.get(reg).unwrap().input_regs_iter() {
                 rdr_count[input] -= 1;
                 if rdr_count[input] == 0 {
                     queue.push(input);
@@ -523,7 +527,7 @@ impl Program {
             }
 
             let insn = self.get(reg).unwrap();
-            if insn == mil::Insn::Void {
+            if *insn == mil::Insn::Void {
                 continue;
             }
 
@@ -719,16 +723,16 @@ mod rt_infer {
             Insn::Void => LLType::Bytes(0),
             Insn::True => LLType::Bool,
             Insn::False => LLType::Bool,
-            Insn::Int { size, .. } => LLType::Bytes(size as usize),
+            Insn::Int { size, .. } => LLType::Bytes(*size as usize),
             Insn::Bytes(bytes) => LLType::Bytes(bytes.len()),
             // TODO not machine independent and doesn't cover various cases,
             // but good enough for now
             Insn::Global(_) => LLType::Bytes(8),
-            Insn::Part { size, .. } => LLType::Bytes(size as usize),
-            Insn::Get(arg) => prog.ll_type(arg),
+            Insn::Part { size, .. } => LLType::Bytes(*size as usize),
+            Insn::Get(arg) => prog.ll_type(*arg),
             Insn::Concat { lo, hi } => {
-                let lo_type = prog.ll_type(lo);
-                let hi_type = prog.ll_type(hi);
+                let lo_type = prog.ll_type(*lo);
+                let hi_type = prog.ll_type(*hi);
 
                 match (lo_type.bytes_size(), hi_type.bytes_size()) {
                     (Some(lo_size), Some(hi_size)) => LLType::Bytes(lo_size + hi_size),
@@ -745,10 +749,10 @@ mod rt_infer {
                 reg: _,
                 target_size,
                 sign: _,
-            } => LLType::Bytes(target_size as usize),
+            } => LLType::Bytes(*target_size as usize),
             Insn::Arith(_, a, b) => {
-                let at = prog.ll_type(a);
-                let bt = prog.ll_type(b);
+                let at = prog.ll_type(*a);
+                let bt = prog.ll_type(*b);
 
                 if at == bt {
                     if let LLType::Bytes(sz) = at {
@@ -768,7 +772,7 @@ mod rt_infer {
                 }
             }
             Insn::ArithK(_, a, _) => {
-                let at = prog.ll_type(a);
+                let at = prog.ll_type(*a);
                 match at {
                     LLType::Bytes(_) => at,
                     _ => {
@@ -784,7 +788,7 @@ mod rt_infer {
             Insn::Not(_) => LLType::Bool,
             // TODO This might have to change based on the use of calling
             // convention and function type info
-            Insn::Call { ret_ll_type, .. } => ret_ll_type,
+            Insn::Call { ret_ll_type, .. } => *ret_ll_type,
 
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
@@ -794,19 +798,19 @@ mod rt_infer {
             | Insn::StoreMem { .. }
             | Insn::Upsilon { .. } => LLType::Effect,
 
-            Insn::LoadMem { size, .. } => LLType::Bytes(size as usize),
+            Insn::LoadMem { size, .. } => LLType::Bytes(*size as usize),
             Insn::OverflowOf(_) => LLType::Bool,
             Insn::CarryOf(_) => LLType::Bool,
             Insn::SignOf(_) => LLType::Bool,
             Insn::IsZero(_) => LLType::Bool,
             Insn::Parity(_) => LLType::Bool,
             Insn::UndefinedBool => LLType::Bool,
-            Insn::UndefinedBytes { size } => LLType::Bytes(size as usize),
-            Insn::FuncArgument { ll_type, .. } => ll_type,
-            Insn::Ancestral { ll_type, .. } => ll_type,
-            Insn::StructGetMember { size, .. } => LLType::Bytes(size as usize),
-            Insn::ArrayGetElement { size, .. } => LLType::Bytes(size as usize),
-            Insn::Struct { size, .. } => LLType::Bytes(size as usize),
+            Insn::UndefinedBytes { size } => LLType::Bytes(*size as usize),
+            Insn::FuncArgument { ll_type, .. } => *ll_type,
+            Insn::Ancestral { ll_type, .. } => *ll_type,
+            Insn::StructGetMember { size, .. } => LLType::Bytes(*size as usize),
+            Insn::ArrayGetElement { size, .. } => LLType::Bytes(*size as usize),
+            Insn::Struct { size, .. } => LLType::Bytes(*size as usize),
 
             // phis cannot be introduced after initial construction (and that's when phi's types are computed, during reset())
             Insn::Phi => unreachable!(),
@@ -962,8 +966,8 @@ pub fn eliminate_dead_code(prog: &mut Program) {
 
         is_read[reg] = true;
 
-        let mut insn = prog.get(reg).unwrap();
-        for &mut input in insn.input_regs() {
+        let insn = prog.get(reg).unwrap();
+        for input in insn.input_regs_iter() {
             work.push(input);
         }
         if matches!(insn, mil::Insn::Phi) {
@@ -1107,7 +1111,7 @@ pub fn count_readers_with_dead(prog: &Program) -> RegMap<usize> {
     // infinite loop
 
     for reg in prog.registers() {
-        for &mut input in prog.get(reg).unwrap().input_regs_iter() {
+        for input in prog.get(reg).unwrap().input_regs_iter() {
             count[input] += 1;
         }
     }
@@ -1211,7 +1215,7 @@ mod tests {
 
         let prog = super::Program::from_mil(prog);
 
-        assert_eq!(prog.get(Reg(9)), Some(Insn::Phi));
+        assert_eq!(prog.get(Reg(9)), Some(&Insn::Phi));
 
         let mut upss: Vec<_> = prog.upsilons_of_phi(Reg(9)).collect();
         upss.sort_by_key(|ud| ud.input_reg.reg_index());

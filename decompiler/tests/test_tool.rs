@@ -216,13 +216,13 @@ fn test_named_callee() {
     let callee = ssa
         .registers()
         .find_map(|reg| {
-            if let Insn::Call { callee, .. } = ssa.get(reg).unwrap() {
+            if let Insn::Call { callee, .. } = ssa.get(reg).unwrap().clone() {
                 Some(callee)
             } else {
                 None
             }
         })
         .unwrap();
-    let callee_insn = ssa.get(callee).unwrap();
+    let callee_insn = ssa.get(callee).unwrap().clone();
     assert_eq!(Insn::Global("zmalloc"), callee_insn);
 }

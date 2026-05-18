@@ -61,33 +61,33 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
         \text{Convert sub to add, to get more associative nodes:}
         \frac{a\power-index{𝛽|-}|a\power-index{+|-𝛽}},\frac{a-b\power-index{+|𝛾}|a+b\power-index{+|-𝛾}}
 
-        \text{if op is associative: }\frac{a\index{𝛽}b\index{𝛾}|(ab)\index{\underline{𝛽𝛾}}},\frac{(a\index{𝛽})\index{𝛾}|a\index{\underline{𝛽𝛾}}}
-
-        \fracslashed{𝛽\index{𝛾}|\underline{𝛽𝛾}}
-
+        \text{if op is associative: }\frac{a\index{0}|a}
         [⋅=+]⟹\frac{a\index{0}|a}
         [⋅=×]⟹\frac{a\index{1}|a}}
     */
 
     let orig_llt = prog.ll_type(reg);
-    let insn = prog.get(reg).unwrap();
-    let (mut op, mut lr, mut li, mut ri) = match insn {
+    let insn = prog.get(reg).unwrap().clone();
+    let (mut op, mut lr, mut li, mut ri) = match &insn {
         Insn::Arith(op, lr, rr) => {
-            let li = prog.get(lr).unwrap();
-            let ri = prog.get(rr).unwrap();
+            let li = prog.get(*lr).unwrap().clone();
+            let ri = prog.get(*rr).unwrap().clone();
 
             // ensure the const is on the right
             if let Insn::Int { .. } = li {
-                (op, rr, ri, li)
+                (*op, *rr, ri, li)
             } else {
-                (op, lr, li, ri)
+                (*op, *lr, li, ri)
             }
         }
         Insn::ArithK(op, a, bk) => (
-            op,
-            a,
-            prog.get(a).unwrap(),
-            Insn::Int { value: bk, size: 8 },
+            *op,
+            *a,
+            prog.get(*a).unwrap().clone(),
+            Insn::Int {
+                value: *bk,
+                size: 8,
+            },
         ),
         _ => return,
     };
@@ -128,7 +128,7 @@ fn fold_constants(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: t
         // (a op ka) op kb === a op (ka op kb)  (if op is associative)
         (Insn::ArithK(l_op, llr, lk), Insn::Int { value: rk, .. }) if l_op == op => {
             if let Some(k) = assoc_const(op, lk, rk) {
-                li = prog.get(llr).unwrap();
+                li = prog.get(llr).unwrap().clone();
                 lr = llr;
                 ri = Insn::Int { value: k, size: 8 };
             }
@@ -169,7 +169,7 @@ fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty
     // - Part(Concat(...), ...)
     // - Part(Part(...), ...)
 
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     let Insn::Part { src, offset, size } = insn else {
         return;
     };
@@ -190,7 +190,7 @@ fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty
         return;
     }
 
-    let src_insn = prog.get(src).unwrap();
+    let src_insn = prog.get(src).unwrap().clone();
     let result_insn = match src_insn {
         Insn::Part {
             src: up_src,
@@ -209,7 +209,7 @@ fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty
                 return;
             };
 
-            let up_insn = prog.get(up_src).unwrap();
+            let up_insn = prog.get(up_src).unwrap().clone();
             if up_end as usize > up_src_sz {
                 event!(
                     Level::ERROR,
@@ -230,25 +230,25 @@ fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty
         }
 
         Insn::Concat { lo, hi } => {
-            let lo_sz = prog
+            let lo_size = prog
                 .ll_type(lo)
                 .bytes_size()
                 .unwrap()
                 .try_into()
                 .expect("size is too large for Concat");
 
-            if end <= lo_sz {
+            if end <= lo_size {
                 // offset..size falls entirely within lo
                 Insn::Part {
                     src: lo,
                     offset,
                     size,
                 }
-            } else if offset >= lo_sz {
+            } else if offset >= lo_size {
                 // offset..size falls entirely within hi
                 Insn::Part {
                     src: hi,
-                    offset: offset - lo_sz,
+                    offset: offset - lo_size,
                     size,
                 }
             } else {
@@ -265,7 +265,7 @@ fn fold_subregs(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_concat_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     let Insn::Concat { lo, hi } = insn else {
         return;
     };
@@ -282,7 +282,7 @@ fn fold_concat_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_bitops(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     let result_insn = match insn {
         // TODO put the appropriate size
         Insn::Arith(ArithOp::BitXor, a, b) if a == b => {
@@ -314,7 +314,7 @@ fn fold_part_part(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
     //  r2 <- Widen r0 to size plen
     // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Part {
         src: out_src,
         offset: out_offset,
@@ -325,7 +325,7 @@ fn fold_part_part(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
             src: in_src,
             offset: in_offset,
             size: in_size,
-        } = prog.get(out_src).unwrap()
+        } = prog.get(out_src).unwrap().clone()
         {
             assert!(out_size <= in_size);
             let result_insn = Insn::Part {
@@ -352,14 +352,14 @@ fn fold_part_concat(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
     //  r2 <- Widen r0 to size plen
     // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Part {
         src: p_src,
         offset: p_offset,
         size: p_size,
     } = insn
     {
-        if let Insn::Concat { lo, hi } = prog.get(p_src).unwrap() {
+        if let Insn::Concat { lo, hi } = prog.get(p_src).unwrap().clone() {
             let lo_size = prog.ll_type(lo).bytes_size().unwrap().try_into().unwrap();
 
             let result_insn = if p_offset + p_size <= lo_size {
@@ -396,7 +396,7 @@ fn fold_part_widen(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
     //  r2 <- Widen r0 to size plen
     // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     let Insn::Part {
         src: part_src,
         offset: 0,
@@ -405,7 +405,7 @@ fn fold_part_widen(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
     else {
         return;
     };
-    let part_src_insn = prog.get(part_src).unwrap();
+    let part_src_insn = prog.get(part_src).unwrap().clone();
 
     let Insn::Widen {
         reg: widen_reg,
@@ -427,7 +427,7 @@ fn fold_part_widen(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
         );
         return;
     };
-    let orig_size = orig_size.try_into().unwrap();
+    let orig_size = orig_size as u16;
 
     let result_insn = if part_size < orig_size {
         // skip the widen, as it does nothing; directly Part the orig. reg
@@ -455,7 +455,7 @@ fn fold_part_widen(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
 #[instrument(skip(prog, _bid, _types))]
 fn fold_widen_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
     // TODO add signedness to Const as well? then we could check if they match
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Widen {
         reg: widen_reg,
         target_size,
@@ -463,7 +463,8 @@ fn fold_widen_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
     } = insn
     {
         if target_size <= 8 {
-            if let Insn::Int { value, size } = prog.get(widen_reg).unwrap() {
+            let widen_insn = prog.get(widen_reg).unwrap().clone();
+            if let Insn::Int { value, size } = widen_insn {
                 assert!(target_size > size);
                 let result_insn = Insn::Int {
                     value,
@@ -478,7 +479,7 @@ fn fold_widen_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_widen_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Widen {
         reg: widen_reg,
         target_size,
@@ -497,7 +498,7 @@ fn fold_widen_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_part_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Part {
         src,
         offset: 0,
@@ -516,10 +517,10 @@ fn fold_part_null(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
 
 #[instrument(skip(prog, bid, _types))]
 fn fold_shr_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::ArithK(ArithOp::Shr, shr_reg, shift_len) = insn {
         if shift_len >= 0 && shift_len % 8 == 0 {
-            if let Insn::Part { src, offset, size } = prog.get(shr_reg).unwrap() {
+            if let Insn::Part { src, offset, size } = prog.get(shr_reg).unwrap().clone() {
                 let shift_bytes: u16 = (shift_len / 8).try_into().unwrap();
                 let smaller_part = prog.append_new(
                     bid,
@@ -545,10 +546,10 @@ fn fold_shr_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, _types: ty
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_get(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let mut insn = prog.get(reg).unwrap();
-    for input in insn.input_regs_iter() {
+    let mut insn = prog.get(reg).unwrap().clone();
+    for input in insn.input_regs_iter_mut() {
         loop {
-            let input_def = prog.get(*input).unwrap();
+            let input_def = prog.get(*input).unwrap().clone();
             if let Insn::Get(arg) = input_def {
                 *input = arg;
             } else {
@@ -562,7 +563,7 @@ fn fold_get(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::Re
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_part_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Part { size: 0, .. } = insn {
         prog.set(reg, Insn::Void);
         return;
@@ -571,14 +572,14 @@ fn fold_part_void(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: 
 
 #[instrument(skip(prog, _bid, _types))]
 fn fold_part_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Part { src, offset, size } = insn {
         let result_insn = match prog.get(src).unwrap() {
             Insn::Int {
                 value: src_value,
                 size: src_size,
             } => {
-                let src_bytes = prog.int_bytes(src_value, src_size);
+                let src_bytes = prog.int_bytes(*src_value, *src_size);
                 let src_bytes = src_bytes.as_slice();
 
                 let offset = offset as usize;
@@ -652,7 +653,7 @@ fn fold_part_const(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, _types:
 /// available.
 #[instrument(skip(prog, bid, types))]
 fn select_type_on_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     let Insn::Part { src, offset, size } = insn else {
         return;
     };
@@ -660,13 +661,13 @@ fn select_type_on_part(reg: Reg, prog: &mut ssa::OpenProgram, bid: BlockID, type
     let offset = offset as usize;
     let size = size as usize;
     let byte_range = ty::ByteRange::new(offset, offset + size);
-    let result_insn = apply_type_selection(insn, prog, bid, types, src, byte_range);
+    let result_insn = apply_type_selection(insn.clone(), prog, bid, types, src, byte_range);
     prog.set(reg, result_insn);
 }
 
 #[instrument(skip(prog, _bid, types))]
 fn pick_callee_name(reg: Reg, prog: &mut ssa::OpenProgram, _bid: BlockID, types: ty::ReadTxRef) {
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     if let Insn::Call { callee, .. } = insn {
         // only do this when the callee is a const int. this is the common case when
         // calling a globally defined address, and NOT when you do an indirect call.
@@ -762,7 +763,7 @@ fn select_type_on_deref_member_read(
     //  r_struct <- LoadMem(r_base, struct_size)
     //  r_loaded <- Part(r_struct, offset, size)
 
-    let insn = prog.get(reg).unwrap();
+    let insn = prog.get(reg).unwrap().clone();
     let Insn::LoadMem {
         addr: reg_member_addr,
         size: member_size,
@@ -772,7 +773,7 @@ fn select_type_on_deref_member_read(
     };
 
     let (reg_base_ptr, member_offset) = match prog.get(reg_member_addr).unwrap() {
-        Insn::ArithK(ArithOp::Add, reg_base_ptr, offset) => (reg_base_ptr, offset),
+        Insn::ArithK(ArithOp::Add, reg_base_ptr, offset) => (*reg_base_ptr, *offset),
         _ => (reg_member_addr, 0),
     };
 
@@ -819,7 +820,14 @@ fn select_type_on_deref_member_read(
 
     // find the struct member that matches the offset/size
     let member_range = ty::ByteRange::new(member_offset, member_offset + member_size);
-    let result_insn = apply_type_selection(insn, prog, bid, types, reg_pointee_whole, member_range);
+    let result_insn = apply_type_selection(
+        insn.clone(),
+        prog,
+        bid,
+        types,
+        reg_pointee_whole,
+        member_range,
+    );
     prog.set(reg, result_insn);
 }
 
@@ -941,16 +949,21 @@ pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFl
                     let span = span!(Level::TRACE, "processing", ?reg);
                     let _enter = span.enter();
 
-                    let orig_insn = prog.get(reg).unwrap();
-                    let orig_has_fx = orig_insn.has_side_effects();
+                    let orig_has_fx = prog.get(reg).unwrap().has_side_effects();
 
                     if let Some(mem_ref_reg) = mem_ref_reg {
-                        let mut insn = prog.get(reg).unwrap();
+                        let mut insn = prog.get(reg).unwrap().clone();
                         insn = mem::fold_load_store(&mut prog, mem_ref_reg, bid, insn);
                         prog.set(reg, insn);
                     }
                     if flags.is_enabled(2) {
-                        pack_aggregates(reg, prog.get(reg).unwrap(), &mut prog, bid, rtx.read());
+                        pack_aggregates(
+                            reg,
+                            prog.get(reg).unwrap().clone(),
+                            &mut prog,
+                            bid,
+                            rtx.read(),
+                        );
                     }
                     if flags.is_enabled(3) {
                         fold_get(reg, &mut prog, bid, rtx.read());
@@ -1003,7 +1016,7 @@ pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, flags: &PeepholeFl
                     if flags.is_enabled(19) {
                         pick_callee_name(reg, &mut prog, bid, rtx.read());
                     }
-                    let insn = prog.get(reg).unwrap();
+                    let insn = prog.get(reg).unwrap().clone();
                     if insn.is_replaceable() {
                         // replacing a side-effecting instruction with a non-side-effecting
                         // Insn::Get is currently wrong (would be quite complicated to handle)
@@ -1057,7 +1070,7 @@ fn propagate_call_types<'t>(prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) {
         else {
             continue;
         };
-        let Some(callee_tyid) = prog.value_type(callee) else {
+        let Some(callee_tyid) = prog.value_type(*callee) else {
             continue;
         };
         let Some(callee_ty) = types.get_through_alias(callee_tyid).unwrap() else {
@@ -1086,7 +1099,7 @@ fn propagate_call_types<'t>(prog: &mut ssa::OpenProgram, types: ty::ReadTxRef) {
         let param_count = subr_ty.param_tyids.len();
 
         let mut arg_count = 0;
-        for (arg, arg_tyid) in args.into_iter().zip(&subr_ty.param_tyids) {
+        for (arg, arg_tyid) in args.iter().copied().zip(&subr_ty.param_tyids) {
             if prog.value_type(arg).is_none() {
                 tyids_to_set[arg] = Some(*arg_tyid);
             }

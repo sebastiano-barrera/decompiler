@@ -281,7 +281,7 @@ impl<'a> AstBuilder<'a> {
             cfg::BlockCont::Always(tgt) => self.build_continuation(bid, tgt),
             cfg::BlockCont::Conditional { pos, neg } => {
                 let cond = self.ssa.find_last_matching(bid, |insn| match insn {
-                    Insn::SetJumpCondition(value) => Some(value),
+                    Insn::SetJumpCondition(value) => Some(*value),
                     _ => None,
                 });
                 let cons = self.build_continuation(bid, pos);
@@ -323,7 +323,7 @@ impl<'a> AstBuilder<'a> {
             }
             cfg::Dest::Indirect => {
                 let target = self.ssa.find_last_matching(src_bid, |insn| match insn {
-                    Insn::SetJumpTarget(value) => Some(value),
+                    Insn::SetJumpTarget(value) => Some(*value),
                     _ => None,
                 });
 
@@ -337,7 +337,7 @@ impl<'a> AstBuilder<'a> {
             }
             cfg::Dest::Return => {
                 let ret_val = self.ssa.find_last_matching(src_bid, |insn| match insn {
-                    Insn::SetReturnValue(value) => Some(value),
+                    Insn::SetReturnValue(value) => Some(*value),
                     _ => None,
                 });
 

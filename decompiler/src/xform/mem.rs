@@ -89,10 +89,8 @@ pub fn fold_load_store(
     bid: cfg::BlockID,
     load_insn: mil::Insn,
 ) -> mil::Insn {
-    //
     // check if we're looking at a Load that we know how to transform
     // Load(ArithK(Add, ref_reg, offset), size)
-    //
     let Insn::LoadMem {
         addr: addr_l,
         size: size_l,
@@ -100,8 +98,10 @@ pub fn fold_load_store(
     else {
         return load_insn;
     };
+
     let load = {
-        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start) = prog.get(addr_l).unwrap() else {
+        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start) = prog.get(addr_l).unwrap().clone()
+        else {
             // not in register-relative form; we can't work with this
             return load_insn;
         };
@@ -124,14 +124,7 @@ pub fn fold_load_store(
     let end_i = load.end.min(store.end);
 
     let left_size = (start_i - load.start).try_into().unwrap();
-    let left = prog.append_new(
-        bid,
-        load_or_void(
-            // same as load.start; but we can reuse the same ArithK as in the original load
-            addr_l,    // addr
-            left_size, // size
-        ),
-    );
+    let left = prog.append_new(bid, load_or_void(addr_l, left_size));
 
     let mid_size = (end_i - start_i).try_into().unwrap();
     let mid_offset = (start_i - store.start).try_into().unwrap();
@@ -146,13 +139,7 @@ pub fn fold_load_store(
 
     let right_addr = prog.append_new(bid, Insn::ArithK(mil::ArithOp::Add, ref_reg, end_i));
     let right_size = (load.end - end_i).try_into().unwrap();
-    let right = prog.append_new(
-        bid,
-        load_or_void(
-            right_addr, // addr
-            right_size, // size
-        ),
-    );
+    let right = prog.append_new(bid, load_or_void(right_addr, right_size));
 
     let mid_left = prog.append_new(bid, Insn::Concat { lo: mid, hi: left });
 
@@ -183,15 +170,6 @@ fn load_or_void(addr: Reg, size: u32) -> Insn {
     }
 }
 
-/// Find the last dominating store instruction.
-///
-/// # Important note!
-///
-/// This function is designed to follow the design of [crate::xform::canonical]:
-/// it expects the schedule for the block identified by `load_bid` to contain the
-/// load instruction (indirectly described by `load`) as its last instruction.
-///
-/// This is what normally happens.
 #[tracing::instrument(skip_all)]
 fn find_dominating_conflicting_store(
     prog: &ssa::Program,
@@ -213,45 +191,37 @@ fn find_dominating_conflicting_store(
             return None;
         };
 
-        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) = prog.get(addr_s).unwrap() else {
+        let Insn::ArithK(mil::ArithOp::Add, offset_reg, start_s) =
+            prog.get(addr_s).unwrap().clone()
+        else {
             // not in register-relative form; we can't work with this
             return None;
         };
 
         if offset_reg != ref_reg {
-            // wrong reference register; we can't work with this
             return None;
         }
 
         let Some(size_s) = prog.ll_type(value_s).bytes_size() else {
-            event!(
-                Level::WARN,
-                value_reg = ?value_s,
-                "StoreMem has unsized value; bailing out"
-            );
+            event!(Level::WARN, value_reg = ?value_s, "StoreMem has unsized value; bailing out");
             return None;
         };
-        let end_s = start_s + size_s as i64;
 
+        let end_s = start_s + size_s as i64;
         if start_s < load.end && end_s > load.start {
-            // we found a relevant StoreMem: represent it in interval+value form and use it
             return Some(StoreInt {
                 start: start_s,
                 end: end_s,
                 value: value_s,
             });
         }
-
         None
     };
 
-    // in case xform::canonical no longer clears+reconstructs each block's schedule,
-    // add this after .rev():
-    //     .skip_while(|&r| r != load_reg)
     if let Some(store) = prog
         .block_regs(load_bid)
         .rev()
-        .find_map(|r| select_store(&prog.get(r).unwrap()))
+        .find_map(|r| select_store(prog.get(r).unwrap()))
     {
         return Some(store);
     }
@@ -260,13 +230,13 @@ fn find_dominating_conflicting_store(
         if let Some(store) = prog
             .block_regs(bid)
             .rev()
-            .find_map(|r| select_store(&prog.get(r).unwrap()))
+            .find_map(|r| select_store(prog.get(r).unwrap()))
         {
             return Some(store);
         }
     }
 
-    return None;
+    None
 }
 
 #[cfg(test)]
@@ -307,10 +277,9 @@ mod tests {
             program.push(Reg(5), Insn::Control(Control::Ret));
 
             let mut program = ssa::Program::from_mil(program);
-
             xform::canonical(&mut program, &ty::TypeSet::new());
 
-            let insn = program.get(Reg(5)).unwrap();
+            let insn = program.get(Reg(5)).unwrap().clone();
             assert_eq!(insn, Insn::SetReturnValue(Reg(0)));
         }
     }
@@ -352,19 +321,18 @@ mod tests {
         program.push(Reg(6), Insn::Control(Control::Ret));
 
         let mut program = ssa::Program::from_mil(program);
-
         xform::canonical(&mut program, &ty::TypeSet::new());
 
-        let ret = program.get(Reg(6)).unwrap();
+        let ret = program.get(Reg(6)).unwrap().clone();
         let Insn::SetReturnValue(ret_val) = ret else {
             panic!()
         };
 
         assert_eq!(
-            program.get(ret_val).unwrap(),
+            program.get(ret_val).unwrap().clone(),
             Insn::Int {
                 value: 0xff_ff_ff,
-                size: 3,
+                size: 3
             }
         );
     }
@@ -406,13 +374,12 @@ mod tests {
         program.push(Reg(6), Insn::Control(Control::Ret));
 
         let mut program = ssa::Program::from_mil(program);
-
         xform::canonical(&mut program, &ty::TypeSet::new());
 
-        let Insn::SetReturnValue(ret_val) = program.get(Reg(6)).unwrap() else {
+        let Insn::SetReturnValue(ret_val) = program.get(Reg(6)).unwrap().clone() else {
             panic!()
         };
-        let Insn::Concat { hi, lo } = program.get(ret_val).unwrap() else {
+        let Insn::Concat { hi, lo } = program.get(ret_val).unwrap().clone() else {
             panic!()
         };
 
@@ -421,14 +388,13 @@ mod tests {
                 value: 0xff_ff_ff_ff_ff_ff,
                 size: 6
             },
-            program.get(hi).unwrap()
+            program.get(hi).unwrap().clone()
         );
 
-        let Insn::LoadMem { addr, size: 17 } = program.get(lo).unwrap() else {
+        let Insn::LoadMem { addr, size: 17 } = program.get(lo).unwrap().clone() else {
             panic!()
         };
-
-        let Insn::ArithK(ArithOp::Add, base_reg, 24) = program.get(addr).unwrap() else {
+        let Insn::ArithK(ArithOp::Add, base_reg, 24) = program.get(addr).unwrap().clone() else {
             panic!()
         };
         assert_eq!(
@@ -436,7 +402,7 @@ mod tests {
                 anc_name: x86_to_mil::ANC_RSP,
                 ll_type: mil::LLType::Bytes(8)
             },
-            program.get(base_reg).unwrap()
+            program.get(base_reg).unwrap().clone()
         );
     }
 }

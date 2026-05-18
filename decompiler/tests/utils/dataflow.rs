@@ -71,7 +71,7 @@ pub fn compute_data_flow(func_name: &str) -> DataFlow {
 
     let ret_val = ssa
         .find_last_matching(ssa.cfg().entry_block_id(), |insn| match insn {
-            decompiler::Insn::SetReturnValue(x) => Some(x),
+            decompiler::Insn::SetReturnValue(x) => Some(*x),
             _ => None,
         })
         .expect("no return value?");
@@ -79,7 +79,7 @@ pub fn compute_data_flow(func_name: &str) -> DataFlow {
     let input_chain = ssa.find_input_chain(ret_val);
     println!("---- input chain");
     for &reg in &input_chain {
-        let insn = ssa.get(reg).unwrap();
+        let insn = ssa.get(reg).unwrap().clone();
         println!(" r{:<4} = {:?}", reg.reg_index(), insn);
         match ssa.value_type(reg) {
             Some(tyid) => {
@@ -117,9 +117,10 @@ impl DataFlow {
         let mut insns = Vec::new();
 
         for &reg in input_chain.iter().rev() {
-            let mut insn = ssa.get(reg).unwrap();
-            for input in insn.input_regs() {
-                *input = *map.get(input).expect("input chain incomplete");
+            let mut insn = ssa.get(reg).unwrap().clone();
+            for input in insn.input_regs_mut() {
+                let key = *input;
+                *input = *map.get(&key).expect("input chain incomplete");
             }
 
             insns.push(insn);

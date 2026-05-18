@@ -114,6 +114,7 @@ impl LLType {
     }
 }
 
+pub type Args<'a> = arrayvec::ArrayVec<&'a Reg, 8>;
 pub type ArgsMut<'a> = arrayvec::ArrayVec<&'a mut Reg, 8>;
 
 fn array<T, const M: usize, const N: usize>(items: [T; M]) -> arrayvec::ArrayVec<T, N> {
@@ -138,7 +139,8 @@ pub struct StructMemberValue {
 #[repr(u8)]
 #[func(pub fn has_side_effects(&self) -> bool { false })]
 #[func(pub fn is_replaceable(&self) -> bool { ! self.has_side_effects() })]
-#[func(pub fn input_regs(&mut self) -> ArgsMut<'_> { ArgsMut::new() })]
+#[func(pub fn input_regs(&self) -> Args<'_> { Args::new() })]
+#[func(pub fn input_regs_mut(&mut self) -> ArgsMut<'_> { ArgsMut::new() })]
 #[allow(dead_code)]
 pub enum Insn {
     Void,
@@ -153,22 +155,26 @@ pub enum Insn {
     Global(&'static str),
 
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     #[assoc(is_repr_transparent = *_0)]
     Get(Reg),
 
     #[assoc(input_regs = array([_src]))]
+    #[assoc(input_regs_mut = array([_src]))]
     Part {
         src: Reg,
         offset: u16,
         size: u16,
     },
     #[assoc(input_regs = array([_lo, _hi]))]
+    #[assoc(input_regs_mut = array([_lo, _hi]))]
     Concat {
         lo: Reg,
         hi: Reg,
     },
 
     #[assoc(input_regs = array([_struct_value]))]
+    #[assoc(input_regs_mut = array([_struct_value]))]
     StructGetMember {
         /// Not necessarily a Struct
         struct_value: Reg,
@@ -176,7 +182,8 @@ pub enum Insn {
         // larger size are definitely possible
         size: u32,
     },
-    #[assoc(input_regs = _members.iter_mut().map(|member| &mut member.value).collect())]
+    #[assoc(input_regs = _members.iter().map(|member| &member.value).collect())]
+    #[assoc(input_regs_mut = _members.iter_mut().map(|member| &mut member.value).collect())]
     Struct {
         // TODO figure out proper memory management for these
         type_name: &'static str,
@@ -185,6 +192,7 @@ pub enum Insn {
         size: u32,
     },
     #[assoc(input_regs = array([_array]))]
+    #[assoc(input_regs_mut = array([_array]))]
     ArrayGetElement {
         array: Reg,
         index: u32,
@@ -192,6 +200,7 @@ pub enum Insn {
     },
 
     #[assoc(input_regs = array([_reg]))]
+    #[assoc(input_regs_mut = array([_reg]))]
     Widen {
         reg: Reg,
         target_size: u16,
@@ -199,18 +208,24 @@ pub enum Insn {
     },
 
     #[assoc(input_regs = array([_1, _2]))]
+    #[assoc(input_regs_mut = array([_1, _2]))]
     Arith(ArithOp, Reg, Reg),
     #[assoc(input_regs = array([_1]))]
+    #[assoc(input_regs_mut = array([_1]))]
     ArithK(ArithOp, Reg, i64),
     #[assoc(input_regs = array([_1, _2]))]
+    #[assoc(input_regs_mut = array([_1, _2]))]
     Cmp(CmpOp, Reg, Reg),
     #[assoc(input_regs = array([_1, _2]))]
+    #[assoc(input_regs_mut = array([_1, _2]))]
     Bool(BoolOp, Reg, Reg),
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     Not(Reg),
 
     #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = [Some(_callee)].into_iter().chain(_args.iter_mut().map(Some)).flatten().collect())]
+    #[assoc(input_regs = [Some(_callee)].into_iter().chain(_args.iter().map(Some)).flatten().collect())]
+    #[assoc(input_regs_mut = [Some(_callee)].into_iter().chain(_args.iter_mut().map(Some)).flatten().collect())]
     Call {
         callee: Reg,
         /// Call arguments stored directly on the call instruction, in call order.
@@ -220,14 +235,17 @@ pub enum Insn {
 
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     SetReturnValue(Reg),
 
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     SetJumpCondition(Reg),
 
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     SetJumpTarget(Reg),
 
     Control(Control),
@@ -237,26 +255,33 @@ pub enum Insn {
     NotYetImplemented(&'static str),
 
     #[assoc(input_regs = array([_addr]))]
+    #[assoc(input_regs_mut = array([_addr]))]
     LoadMem {
         addr: Reg,
         size: u32,
     },
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_addr, _value]))]
+    #[assoc(input_regs_mut = array([_addr, _value]))]
     StoreMem {
         addr: Reg,
         value: Reg,
     },
 
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     OverflowOf(Reg),
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     CarryOf(Reg),
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     SignOf(Reg),
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     IsZero(Reg),
     #[assoc(input_regs = array([_0]))]
+    #[assoc(input_regs_mut = array([_0]))]
     Parity(Reg),
     UndefinedBool,
     UndefinedBytes {
@@ -278,6 +303,7 @@ pub enum Insn {
     // must be marked with has_side_effects = true, in order to be associated to specific basic blocks
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = array([_value]))]
+    #[assoc(input_regs_mut = array([_value]))]
     Upsilon {
         value: Reg,
         phi_ref: Reg,
@@ -408,8 +434,68 @@ macro_rules! define_ancestral_name {
 define_ancestral_name!(ANC_STACK_BOTTOM, "stack_bottom");
 
 impl Insn {
-    pub fn input_regs_iter(&mut self) -> impl Iterator<Item = &mut Reg> {
-        self.input_regs().into_iter()
+    pub fn input_regs_iter_mut(&mut self) -> impl Iterator<Item = &mut Reg> {
+        self.input_regs_mut().into_iter()
+    }
+
+    /// Iterate over input registers through shared access.
+    ///
+    /// This is the read-only counterpart to [`Self::input_regs_iter_mut`].
+    /// Use it when inspecting an instruction without needing to rewrite its
+    /// operands.
+    pub fn input_regs_iter(&self) -> impl Iterator<Item = Reg> + '_ {
+        match self {
+            Insn::Void
+            | Insn::True
+            | Insn::False
+            | Insn::Bytes(_)
+            | Insn::Int { .. }
+            | Insn::Global(_)
+            | Insn::Control(_)
+            | Insn::NotYetImplemented(_)
+            | Insn::UndefinedBool
+            | Insn::UndefinedBytes { .. }
+            | Insn::FuncArgument { .. }
+            | Insn::Ancestral { .. }
+            | Insn::Phi => Box::new(std::iter::empty()) as Box<dyn Iterator<Item = Reg>>,
+
+            Insn::Get(reg)
+            | Insn::SetReturnValue(reg)
+            | Insn::SetJumpCondition(reg)
+            | Insn::SetJumpTarget(reg)
+            | Insn::OverflowOf(reg)
+            | Insn::CarryOf(reg)
+            | Insn::SignOf(reg)
+            | Insn::IsZero(reg)
+            | Insn::Parity(reg)
+            | Insn::Not(reg) => Box::new(std::iter::once(*reg)),
+
+            Insn::Part { src, .. }
+            | Insn::StructGetMember {
+                struct_value: src, ..
+            }
+            | Insn::ArrayGetElement { array: src, .. }
+            | Insn::Widen { reg: src, .. }
+            | Insn::ArithK(_, src, _)
+            | Insn::LoadMem { addr: src, .. } => Box::new(std::iter::once(*src)),
+
+            Insn::Concat { lo, hi }
+            | Insn::Arith(_, lo, hi)
+            | Insn::Cmp(_, lo, hi)
+            | Insn::Bool(_, lo, hi)
+            | Insn::StoreMem {
+                addr: lo,
+                value: hi,
+            } => Box::new([*lo, *hi].into_iter()),
+
+            Insn::Struct { members, .. } => Box::new(members.iter().map(|member| member.value)),
+
+            Insn::Call { callee, args, .. } => {
+                Box::new(std::iter::once(*callee).chain(args.iter().copied()))
+            }
+
+            Insn::Upsilon { value, .. } => Box::new(std::iter::once(*value)),
+        }
     }
 
     pub fn is_valid(&self) -> bool {
@@ -503,7 +589,7 @@ impl Program {
         let ndx_end = self.dests.len();
 
         for ndx in ndx_start..ndx_end {
-            for &mut input in self.insns[ndx].input_regs() {
+            for &input in self.insns[ndx].input_regs() {
                 let is_temporary = input.0 >= self.reg_gen.first.0;
                 if !is_temporary {
                     continue;
@@ -617,7 +703,7 @@ impl Program {
             .insns
             .iter()
             .cloned()
-            .flat_map(|mut insn| insn.input_regs_iter().map(|reg| reg.reg_index()).max())
+            .flat_map(|mut insn| insn.input_regs_iter_mut().map(|reg| reg.reg_index()).max())
             .max()
             .unwrap_or(0);
         1 + max_dest.max(max_input)
@@ -639,6 +725,22 @@ impl Program {
         let dest = &self.dests[ndx];
         let addr = self.addrs[ndx];
         Some(InsnView {
+            insn,
+            dest,
+            index,
+            addr,
+        })
+    }
+
+    #[inline(always)]
+    pub fn get_mut(&mut self, ndx: Index) -> Option<InsnViewMut<'_>> {
+        let index = ndx;
+        let ndx = ndx as usize;
+        // if this  slot is enabled as per the mask, then every Vec access must succeed
+        let insn = &mut self.insns[ndx];
+        let dest = &self.dests[ndx];
+        let addr = self.addrs[ndx];
+        Some(InsnViewMut {
             insn,
             dest,
             index,
@@ -707,6 +809,13 @@ pub struct ProgramCore {
 
 pub struct InsnView<'a> {
     pub insn: &'a Insn,
+    pub dest: &'a Reg,
+    pub index: Index,
+    pub addr: u64,
+}
+
+pub struct InsnViewMut<'a> {
+    pub insn: &'a mut Insn,
     pub dest: &'a Reg,
     pub index: Index,
     pub addr: u64,
