@@ -19,55 +19,6 @@ use std::{io::Write, sync::Arc};
 
 mod cons;
 
-#[derive(Error, Debug, Clone, PartialEq, Eq)]
-pub enum Fault {
-    #[error("inconsistent array lengths in Program")]
-    InconsistentArrayLengths,
-
-    #[error("input {input:?} of {reg:?} is not defined")]
-    InputNotDefined { reg: mil::Reg, input: mil::Reg },
-
-    #[error("input {input:?} of {reg:?} is not dominated by its definition in block {def_block_input:?}")]
-    InputNotDominated {
-        reg: mil::Reg,
-        input: mil::Reg,
-        def_block_input: cfg::BlockID,
-    },
-
-    #[error("inconsistent types for phi node {phi_reg:?}: expected {expected:?}, found {found:?}")]
-    InconsistentPhiTypes {
-        phi_reg: mil::Reg,
-        expected: mil::LLType,
-        found: mil::LLType,
-        value: mil::Reg,
-    },
-
-    #[error("circular reference detected in data flow graph")]
-    CircularRef,
-
-    #[error("instruction is ill-formed")]
-    InvalidInsn(mil::Reg),
-
-    #[error("{reg:?}: Insn::Concat: expected LLType::Bytes, found {found:?}")]
-    ConcatNonBytesType { reg: mil::Reg, found: mil::LLType },
-
-    #[error("{reg:?}: Insn::Arith: operands have different types ({left:?}, {right:?})")]
-    ArithDifferentTypes {
-        reg: mil::Reg,
-        left: mil::LLType,
-        right: mil::LLType,
-    },
-
-    #[error("{reg:?}: Insn::Arith: operand must be LLType::Bytes, found {found:?}")]
-    ArithNonBytesType { reg: mil::Reg, found: mil::LLType },
-
-    #[error("{reg:?}: Insn::ArithK: operand must be LLType::Bytes, found {found:?}")]
-    ArithKNonBytesType { reg: mil::Reg, found: mil::LLType },
-
-    #[error("pathologic data flow graph: phi {reg:?} can't be resolved, it's an all-phi cycle")]
-    PhiCycle { reg: mil::Reg },
-}
-
 #[derive(Clone)]
 pub struct Program {
     // # Design notes
@@ -1140,6 +1091,55 @@ pub fn count_readers(prog: &Program) -> RegMap<usize> {
     }
 
     RegMap(count)
+}
+
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+pub enum Fault {
+    #[error("inconsistent array lengths in Program")]
+    InconsistentArrayLengths,
+
+    #[error("input {input:?} of {reg:?} is not defined")]
+    InputNotDefined { reg: mil::Reg, input: mil::Reg },
+
+    #[error("input {input:?} of {reg:?} is not dominated by its definition in block {def_block_input:?}")]
+    InputNotDominated {
+        reg: mil::Reg,
+        input: mil::Reg,
+        def_block_input: cfg::BlockID,
+    },
+
+    #[error("inconsistent types for phi node {phi_reg:?}: expected {expected:?}, found {found:?}")]
+    InconsistentPhiTypes {
+        phi_reg: mil::Reg,
+        expected: mil::LLType,
+        found: mil::LLType,
+        value: mil::Reg,
+    },
+
+    #[error("circular reference detected in data flow graph")]
+    CircularRef,
+
+    #[error("instruction is ill-formed")]
+    InvalidInsn(mil::Reg),
+
+    #[error("{reg:?}: Insn::Concat: expected LLType::Bytes, found {found:?}")]
+    ConcatNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("{reg:?}: Insn::Arith: operands have different types ({left:?}, {right:?})")]
+    ArithDifferentTypes {
+        reg: mil::Reg,
+        left: mil::LLType,
+        right: mil::LLType,
+    },
+
+    #[error("{reg:?}: Insn::Arith: operand must be LLType::Bytes, found {found:?}")]
+    ArithNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("{reg:?}: Insn::ArithK: operand must be LLType::Bytes, found {found:?}")]
+    ArithKNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("pathologic data flow graph: phi {reg:?} can't be resolved, it's an all-phi cycle")]
+    PhiCycle { reg: mil::Reg },
 }
 
 #[cfg(test)]
