@@ -29,12 +29,6 @@ pub struct Program {
 
     types: Option<Arc<ty::TypeSet>>,
 
-    // TODO More specific types
-    // kept even if dead, because we will still want to trace each MIL
-    // instruction back to the original machine code / assembly
-    #[allow(dead_code)]
-    mil_of_input_addr: HashMap<u64, Index>,
-
     /// Address that will be associated to all instructions emitted until the
     /// next call to `set_input_addr`.
     cur_input_addr: u64,
@@ -539,7 +533,6 @@ impl Program {
             types,
             reg_gen: RegGen::new(lowest_tmp),
             init_checked_count: 0,
-            mil_of_input_addr: HashMap::new(),
             endianness: Endianness::Little,
         }
     }
