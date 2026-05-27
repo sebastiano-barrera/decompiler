@@ -885,6 +885,12 @@ impl<'a> OpenProgram<'a> {
         self.program.schedule.append(reg.reg_index(), bid);
     }
 
+    pub fn swap(&mut self, a: mil::Reg, b: mil::Reg) {
+        self.program
+            .insns
+            .swap(a.reg_index() as usize, b.reg_index() as usize);
+    }
+
     pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
         self.program.tyids[reg.0 as usize] = tyid;
     }

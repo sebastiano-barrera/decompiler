@@ -82,6 +82,12 @@ use crate::{
     ssa,
 };
 
+pub fn fold_load_store_reg(cursor: &mut super::Cursor, ref_reg: mil::Reg) {
+    let mut insn = cursor.prog.get(cursor.reg).unwrap().clone();
+    insn = fold_load_store(cursor.prog, ref_reg, cursor.bid, insn);
+    cursor.prog.set(cursor.reg, insn);
+}
+
 #[tracing::instrument(skip(prog))]
 pub fn fold_load_store(
     prog: &mut ssa::OpenProgram,
