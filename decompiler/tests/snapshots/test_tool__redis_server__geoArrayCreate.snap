@@ -3,7 +3,7 @@ source: decompiler/tests/test_tool.rs
 expression: out
 ---
  --- mil
-program  90 instrs
+program  89 instrs
     0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), ll_type: Bytes(8) }
     1 r3 <- Ancestral { anc_name: AncestralName("PF"), ll_type: Bool }
     2 r4 <- Ancestral { anc_name: AncestralName("AF"), ll_type: Bool }
@@ -59,54 +59,53 @@ program  90 instrs
    48 r45 <- Int { value: 4433936, size: 8 }
    49 r47 <- Void
    50 r47 <- Get(r14)
-   51 r46 <- CArg { value: r47, next_arg: None }
-   52 r46 <- Call { callee: r45, first_arg: Some(r46), ret_ll_type: Bytes(8) }
-   53 r2 <- UndefinedBool
-   54 r3 <- UndefinedBool
-   55 r4 <- UndefinedBool
-   56 r5 <- UndefinedBool
-   57 r6 <- UndefinedBool
-   58 r7 <- UndefinedBool
-   59 r8 <- UndefinedBool
-   60 r9 <- UndefinedBool
-   61 r10 <- UndefinedBool
-   62 r16 <- Part { src: r46, offset: 0, size: 8 }
+   51 r46 <- Call { callee: r45, args: [r47], ret_ll_type: Bytes(8) }
+   52 r2 <- UndefinedBool
+   53 r3 <- UndefinedBool
+   54 r4 <- UndefinedBool
+   55 r5 <- UndefinedBool
+   56 r6 <- UndefinedBool
+   57 r7 <- UndefinedBool
+   58 r8 <- UndefinedBool
+   59 r9 <- UndefinedBool
+   60 r10 <- UndefinedBool
+   61 r16 <- Part { src: r46, offset: 0, size: 8 }
 0x50c4de:
-   63 r46 <- Part { src: r28, offset: 0, size: 16 }
-   64 r48 <- Part { src: r28, offset: 0, size: 16 }
-   65 r46 <- Arith(BitXor, r46, r48)
-   66 r49 <- Part { src: r28, offset: 16, size: 48 }
-   67 r28 <- Concat { lo: r46, hi: r49 }
-   68 r10 <- False
-   69 r2 <- False
-   70 r6 <- SignOf(r46)
-   71 r5 <- IsZero(r46)
-   72 r50 <- Part { src: r46, offset: 0, size: 1 }
-   73 r3 <- Parity(r50)
+   62 r46 <- Part { src: r28, offset: 0, size: 16 }
+   63 r48 <- Part { src: r28, offset: 0, size: 16 }
+   64 r46 <- Arith(BitXor, r46, r48)
+   65 r49 <- Part { src: r28, offset: 16, size: 48 }
+   66 r28 <- Concat { lo: r46, hi: r49 }
+   67 r10 <- False
+   68 r2 <- False
+   69 r6 <- SignOf(r46)
+   70 r5 <- IsZero(r46)
+   71 r50 <- Part { src: r46, offset: 0, size: 1 }
+   72 r3 <- Parity(r50)
 0x50c4e2:
-   74 r45 <- Int { value: 0, size: 8 }
-   75 r46 <- Int { value: 0, size: 8 }
-   76 r46 <- Arith(Add, r46, r16)
-   77 r46 <- StoreMem { addr: r46, value: r45 }
+   73 r45 <- Int { value: 0, size: 8 }
+   74 r46 <- Int { value: 0, size: 8 }
+   75 r46 <- Arith(Add, r46, r16)
+   76 r46 <- StoreMem { addr: r46, value: r45 }
 0x50c4e9:
-   78 r46 <- Part { src: r28, offset: 0, size: 16 }
-   79 r47 <- Int { value: 8, size: 8 }
-   80 r47 <- Arith(Add, r47, r16)
-   81 r47 <- StoreMem { addr: r47, value: r46 }
+   77 r46 <- Part { src: r28, offset: 0, size: 16 }
+   78 r47 <- Int { value: 8, size: 8 }
+   79 r47 <- Arith(Add, r47, r16)
+   80 r47 <- StoreMem { addr: r47, value: r46 }
 0x50c4ed:
-   82 r45 <- LoadMem { addr: r12, size: 8 }
-   83 r11 <- Get(r45)
-   84 r12 <- ArithK(Add, r12, 8)
+   81 r45 <- LoadMem { addr: r12, size: 8 }
+   82 r11 <- Get(r45)
+   83 r12 <- ArithK(Add, r12, 8)
 0x50c4ee:
-   85 r45 <- Void
-   86 r45 <- Concat { lo: r45, hi: r16 }
-   87 r45 <- Part { src: r45, offset: 0, size: 8 }
-   88 r47 <- SetReturnValue(r45)
-   89 r47 <- Control(Ret)
+   84 r45 <- Void
+   85 r45 <- Concat { lo: r45, hi: r16 }
+   86 r45 <- Part { src: r45, offset: 0, size: 8 }
+   87 r47 <- SetReturnValue(r45)
+   88 r47 <- Control(Ret)
 
 
  --- ssa pre-xform
-ssa program  90 instrs
+ssa program  89 instrs
 .B0:    ;;  → Always(Return).
          r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), ll_type: Bytes(8) }
          r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), ll_type: Bytes(8) }
@@ -116,35 +115,34 @@ ssa program  90 instrs
          r44: Bytes(4) <- Int { value: 24, size: 4 }
          r45: Bytes(8) <- Widen { reg: r44, target_size: 8, sign: false }
          r48: Bytes(8) <- Int { value: 4433936, size: 8 }
-         r51: Bytes(8) <- CArg { value: r45, next_arg: None }
-         r52: Bytes(8) <- Call { callee: r48, first_arg: Some(r51), ret_ll_type: Bytes(8) }
-  (  3)  r62: Bytes(8) <- Part { src: r52, offset: 0, size: 8 }
+         r51: Bytes(8) <- Call { callee: r48, args: [r45], ret_ll_type: Bytes(8) }
+  (  3)  r61: Bytes(8) <- Part { src: r51, offset: 0, size: 8 }
+         r62: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
          r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
-         r64: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
-         r65: Bytes(16) <- Arith(BitXor, r63, r64)
-         r66: Bytes(48) <- Part { src: r26, offset: 16, size: 48 }
-         r67: Bytes(64) <- Concat { lo: r65, hi: r66 }
+         r64: Bytes(16) <- Arith(BitXor, r62, r63)
+         r65: Bytes(48) <- Part { src: r26, offset: 16, size: 48 }
+         r66: Bytes(64) <- Concat { lo: r64, hi: r65 }
+         r73: Bytes(8) <- Int { value: 0, size: 8 }
          r74: Bytes(8) <- Int { value: 0, size: 8 }
-         r75: Bytes(8) <- Int { value: 0, size: 8 }
-         r76: Bytes(8) <- Arith(Add, r75, r62)
-         r77: Effect <- StoreMem { addr: r76, value: r74 }
-         r78: Bytes(16) <- Part { src: r67, offset: 0, size: 16 }
-         r79: Bytes(8) <- Int { value: 8, size: 8 }
-         r80: Bytes(8) <- Arith(Add, r79, r62)
-         r81: Effect <- StoreMem { addr: r80, value: r78 }
-         r86: Bytes(8) <- Concat { lo: r85, hi: r62 }
-         r87: Bytes(8) <- Part { src: r86, offset: 0, size: 8 }
-         r88: Effect <- SetReturnValue(r87)
+         r75: Bytes(8) <- Arith(Add, r74, r61)
+         r76: Effect <- StoreMem { addr: r75, value: r73 }
+         r77: Bytes(16) <- Part { src: r66, offset: 0, size: 16 }
+         r78: Bytes(8) <- Int { value: 8, size: 8 }
+         r79: Bytes(8) <- Arith(Add, r78, r61)
+         r80: Effect <- StoreMem { addr: r79, value: r77 }
+         r85: Bytes(8) <- Concat { lo: r84, hi: r61 }
+         r86: Bytes(8) <- Part { src: r85, offset: 0, size: 8 }
+         r87: Effect <- SetReturnValue(r86)
 
 
  --- cfg
   entry: BlockID(0)
-  BlockID(0) -> Always(Return) [r9, r10, r26, r42, r43, r45, r48, r51, r52, r63, r65, r74, r77, r80, r81, r88]
+  BlockID(0) -> Always(Return) [r9, r10, r26, r42, r43, r45, r48, r51, r62, r64, r73, r76, r79, r80, r87]
   domtree:
     BlockID(0)
 
  --- ssa
-ssa program  90 instrs
+ssa program  89 instrs
 .B0:    ;;  → Always(Return).
          r9: Bytes(8) <- Ancestral { anc_name: AncestralName("RBP"), ll_type: Bytes(8) }
          r10: Bytes(8) <- Ancestral { anc_name: AncestralName("RSP"), ll_type: Bytes(8) }
@@ -153,22 +151,21 @@ ssa program  90 instrs
          r43: Effect <- StoreMem { addr: r42, value: r9 }
          r45: Bytes(8) <- Int { value: 24, size: 8 }
          r48: Bytes(8) <- Global("zmalloc")
-         r51: Bytes(8) <- CArg { value: r45, next_arg: None }
-  (  3)  r52: Bytes(8) <- Call { callee: r48, first_arg: Some(r51), ret_ll_type: Bytes(8) }
-  (  2)  r63: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
-         r65: Bytes(16) <- Arith(BitXor, r63, r63)
-         r74: Bytes(8) <- Int { value: 0, size: 8 }
-         r77: Effect <- StoreMem { addr: r52, value: r74 }
-         r80: Bytes(8) <- ArithK(Add, r52, 8)
-         r81: Effect <- StoreMem { addr: r80, value: r65 }
-         r88: Effect <- SetReturnValue(r52)
+  (  3)  r51: Bytes(8) <- Call { callee: r48, args: [r45], ret_ll_type: Bytes(8) }
+  (  2)  r62: Bytes(16) <- Part { src: r26, offset: 0, size: 16 }
+         r64: Bytes(16) <- Arith(BitXor, r62, r62)
+         r73: Bytes(8) <- Int { value: 0, size: 8 }
+         r76: Effect <- StoreMem { addr: r51, value: r73 }
+         r79: Bytes(8) <- ArithK(Add, r51, 8)
+         r80: Effect <- StoreMem { addr: r79, value: r64 }
+         r87: Effect <- SetReturnValue(r51)
 
 
  --- ast
 # block order: B0
 StoreMem (ArithK Add (Ancestral AncestralName("RSP") Bytes(8)) -8) (Ancestral AncestralName("RBP") Bytes(8));
-let r52 = Call (Global "zmalloc") (CArg (Int 24 8) None) Bytes(8);
-let r63 = Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16;
-StoreMem r52 (Int 0 8);
-StoreMem (ArithK Add r52 8) (Arith BitXor r63 r63);
-return r52
+let r51 = Call (Global "zmalloc") [Int 24 8] Bytes(8);
+let r62 = Part (Ancestral AncestralName("ZMM0") Bytes(64)) 0 16;
+StoreMem r51 (Int 0 8);
+StoreMem (ArithK Add r51 8) (Arith BitXor r62 r62);
+return r51

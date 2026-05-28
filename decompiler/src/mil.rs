@@ -218,8 +218,8 @@ pub enum Insn {
     Not(Reg),
 
     #[assoc(has_side_effects = true)]
-    #[assoc(input_regs = [Some(_callee)].into_iter().chain(_args.iter().map(Some)).flatten().collect())]
-    #[assoc(input_regs_mut = [Some(_callee)].into_iter().chain(_args.iter_mut().map(Some)).flatten().collect())]
+    #[assoc(input_regs = std::iter::once(_callee).chain(_args.iter()).collect())]
+    #[assoc(input_regs_mut = std::iter::once(_callee).chain(_args.iter_mut()).collect())]
     Call {
         callee: Reg,
         /// Call arguments stored directly on the call instruction, in call order.
@@ -824,6 +824,7 @@ pub struct ExpandedInsn {
 pub enum ExpandedValue {
     Reg(Reg),
     Generic(String),
+    RegList(Vec<Reg>),
 }
 
 pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
@@ -848,6 +849,8 @@ pub fn to_expanded(insn: &Insn) -> ExpandedInsn {
                 .and_then(|peek| peek.get::<Reg>().ok())
             {
                 ExpandedValue::Reg(*reg)
+            } else if let Ok(regs) = peek.get::<Vec<Reg>>() {
+                ExpandedValue::RegList(regs.clone())
             } else {
                 ExpandedValue::Generic(format!("{:?}", peek))
             };

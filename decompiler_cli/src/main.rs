@@ -196,6 +196,16 @@ fn write_text_insn<W: std::io::Write>(
         match arg {
             decompiler::ExpandedValue::Reg(reg) => write!(wrt, "{}:r{}  ", name, reg.0)?,
             decompiler::ExpandedValue::Generic(s) => write!(wrt, "{}:{}  ", name, s)?,
+            decompiler::ExpandedValue::RegList(regs) => {
+                write!(wrt, "{}:[", name)?;
+                for (ndx, reg) in regs.iter().enumerate() {
+                    if ndx > 0 {
+                        write!(wrt, ",")?;
+                    }
+                    write!(wrt, "r{}", reg.0)?;
+                }
+                write!(wrt, "]  ")?;
+            }
         }
     }
     if let Some(tyid) = insn.tyid {

@@ -169,19 +169,43 @@ pub(crate) fn write_ast_expr<W: std::io::Write>(
         // write!(wrt, "{}:", key)?;
         match arg {
             mil::ExpandedValue::Reg(reg) => {
-                if ast.is_value_named(reg) {
-                    write!(wrt, "r{}", reg.reg_index())?;
-                } else {
-                    write!(wrt, "(")?;
-                    write_ast_expr(wrt, ast, ssa, reg, ExprFlags::default())?;
-                    write!(wrt, ")")?;
-                }
+                write_ast_reg(wrt, ast, ssa, reg, true)?;
             }
             mil::ExpandedValue::Generic(repr) => {
                 write!(wrt, "{}", repr)?;
+            }
+            mil::ExpandedValue::RegList(regs) => {
+                write!(wrt, "[")?;
+                for (ndx, reg) in regs.into_iter().enumerate() {
+                    if ndx > 0 {
+                        write!(wrt, ", ")?;
+                    }
+                    write_ast_reg(wrt, ast, ssa, reg, false)?;
+                }
+                write!(wrt, "]")?;
             }
         }
     }
 
     Ok(())
+}
+
+fn write_ast_reg<W: std::io::Write>(
+    wrt: &mut W,
+    ast: &Ast,
+    ssa: &ssa::Program,
+    reg: Reg,
+    parens_required: bool,
+) -> Result<(), std::io::Error> {
+    Ok(if ast.is_value_named(reg) {
+        write!(wrt, "r{}", reg.reg_index())?;
+    } else {
+        if parens_required {
+            write!(wrt, "(")?;
+        }
+        write_ast_expr(wrt, ast, ssa, reg, ExprFlags::default())?;
+        if parens_required {
+            write!(wrt, ")")?;
+        }
+    })
 }
