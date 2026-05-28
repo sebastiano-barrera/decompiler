@@ -82,14 +82,20 @@ use crate::{
     ssa,
 };
 
-pub fn fold_load_store_reg(cursor: &mut super::Cursor, ref_reg: mil::Reg) {
-    let mut insn = cursor.prog.get(cursor.reg).unwrap().clone();
-    insn = fold_load_store(cursor.prog, ref_reg, cursor.bid, insn);
-    cursor.prog.set(cursor.reg, insn);
+pub struct FoldLoadStoreReg {
+    pub ref_reg: mil::Reg,
+}
+
+impl super::Transform for FoldLoadStoreReg {
+    fn apply(&self, cursor: &mut super::Cursor) {
+        let mut insn = cursor.prog.get(cursor.reg).unwrap().clone();
+        insn = fold_load_store(cursor.prog, self.ref_reg, cursor.bid, insn);
+        cursor.prog.set(cursor.reg, insn);
+    }
 }
 
 #[tracing::instrument(skip(prog))]
-pub fn fold_load_store(
+fn fold_load_store(
     prog: &mut ssa::OpenProgram,
     ref_reg: mil::Reg,
     bid: cfg::BlockID,
@@ -343,7 +349,7 @@ mod tests {
         );
     }
 
-    #[test]
+    #[test_log::test]
     fn single_bb_concat() {
         let mut program = mil::Program::new(Reg(10_000), None);
         program.push(
