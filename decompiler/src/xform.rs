@@ -1025,7 +1025,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
 
 /// Perform the standard chain of transformations that we intend to generally apply to programs
 #[tracing::instrument(skip_all)]
-pub fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, xformset: &TransformSet) {
+fn peephole(prog: &mut ssa::Program, types: &ty::TypeSet, xformset: &TransformSet) {
     prog.check_invariants();
 
     // apply transforms in lockstep

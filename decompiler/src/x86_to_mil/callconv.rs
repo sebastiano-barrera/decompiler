@@ -25,7 +25,7 @@ pub struct Report {
 }
 
 #[instrument(skip_all)]
-pub fn unpack_params(
+pub(super) fn unpack_params(
     bld: &mut Importer,
     param_types: &[ty::TypeID],
     ret_tyid: ty::TypeID,
@@ -255,7 +255,10 @@ fn prepare_for_return_value(
 }
 
 #[instrument(skip_all)]
-pub fn pack_return_value(bld: &mut Importer, ret_tyid: ty::TypeID) -> anyhow::Result<mil::Reg> {
+pub(super) fn pack_return_value(
+    bld: &mut Importer,
+    ret_tyid: ty::TypeID,
+) -> anyhow::Result<mil::Reg> {
     let ret_val = bld.tmp_gen();
     let ret_ty = &*bld.rtx.read().get(ret_tyid)?.unwrap();
     match &*ret_ty {
@@ -383,7 +386,7 @@ pub fn pack_return_value(bld: &mut Importer, ret_tyid: ty::TypeID) -> anyhow::Re
 }
 
 #[instrument(skip_all)]
-pub fn pack_params(
+pub(super) fn pack_params(
     bld: &mut Importer,
     subr_tyid: ty::TypeID,
 ) -> anyhow::Result<(Report, Vec<mil::Reg>)> {
@@ -1059,7 +1062,7 @@ mod tests {
 
     #[test]
     fn classify_struct_ints_fit_1_eb() {
-        let  types = ty::TypeSet::new();
+        let types = ty::TypeSet::new();
         let mut wtx = types.write_tx().unwrap();
         let mut tyid_gen = TypeIdGen::new();
         let scas = make_scalars(wtx.write(), &mut tyid_gen);

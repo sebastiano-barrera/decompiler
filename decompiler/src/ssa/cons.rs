@@ -198,7 +198,6 @@ pub(super) fn mil_to_ssa(mut program: mil::Program) -> super::Program {
         addrs: program_core.addrs,
         ll_types,
         tyids: program_core.tyids,
-        types: program_core.types,
         func_tyid,
         schedule,
         cfg,

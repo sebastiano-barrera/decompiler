@@ -15,7 +15,7 @@ use crate::{
     pp, ty,
     util::Bytes,
 };
-use std::{io::Write, sync::Arc};
+use std::io::Write;
 
 mod cons;
 
@@ -55,7 +55,6 @@ pub struct Program {
     ///
     /// This is intended to be manipulated by specific passes in `xform`.
     tyids: Vec<Option<ty::TypeID>>,
-    types: Option<Arc<ty::TypeSet>>,
 
     /// The TypeID of the function this SSA program represents.
     func_tyid: Option<ty::TypeID>,
@@ -524,6 +523,7 @@ impl Program {
 #[derive(Debug)]
 pub struct UpsilonDesc {
     upsilon_reg: mil::Reg,
+    #[allow(dead_code)]
     input_reg: mil::Reg,
 }
 
@@ -1001,10 +1001,6 @@ impl<T: Clone> RegMap<T> {
         let elements: Vec<_> = self.items().map(|(reg, value)| f(reg, value)).collect();
         assert_eq!(elements.len(), self.0.len());
         RegMap(elements)
-    }
-
-    pub(crate) fn push(&mut self, value: T) {
-        self.0.push(value);
     }
 }
 // unit tests for empty RegMap:

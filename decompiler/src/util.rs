@@ -1,4 +1,3 @@
-pub mod bisect;
 pub mod disjoint_set;
 
 #[derive(Default)]
@@ -9,6 +8,7 @@ impl Warnings {
         self.0.push(warn);
     }
 
+    #[allow(dead_code)]
     pub fn into_vec(self) -> Vec<Box<dyn std::error::Error>> {
         self.0
     }
