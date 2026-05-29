@@ -52,6 +52,7 @@ impl Importer {
         // decompilation correct. if not, this allows the program to still be
         // decompiled into something (albeit, with some "holes")
 
+        bld.init_ancestral(Self::PF, ANC_CF, mil::LLType::Bool);
         bld.init_ancestral(Self::PF, ANC_PF, mil::LLType::Bool);
         bld.init_ancestral(Self::AF, ANC_AF, mil::LLType::Bool);
         bld.init_ancestral(Self::ZF, ANC_ZF, mil::LLType::Bool);
