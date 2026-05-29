@@ -3,8 +3,8 @@ resolver = "2"
 members = [
   "decompiler"
 , "decompiler_cli"
-# , "decompiler_gui"
-# , "decompiler_tester"
+, "decompiler_gui"
+, "decompiler_tester"
 ]
 
 [profile.dev.package]

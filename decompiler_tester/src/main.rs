@@ -103,8 +103,8 @@ impl TypeDetailsWindow {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        egui::Panel::top("top_panel").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 self.show_topbar(ui);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
@@ -128,7 +128,7 @@ impl eframe::App for App {
             }
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             self.show_central(ui);
         });
     }
@@ -531,13 +531,13 @@ impl FunctionView {
     /// To be called before `show_central`.
     fn show_panels(&mut self, ui: &mut egui::Ui, exe: &Executable) {
         if self.is_asm_visible {
-            egui::SidePanel::left("asm_panel").show_inside(ui, |ui| {
+            egui::Panel::left("asm_panel").show_inside(ui, |ui| {
                 self.show_assembly(ui);
             });
         }
 
         if self.is_cfg_visible {
-            egui::SidePanel::right("cfg_panel").show_inside(ui, |ui| {
+            egui::Panel::right("cfg_panel").show_inside(ui, |ui| {
                 ui.heading("Control-flow graph");
             });
         }
@@ -546,7 +546,7 @@ impl FunctionView {
     }
 
     fn show_hl_details_panel(&mut self, ui: &mut egui::Ui, exe: &Executable<'_>) {
-        egui::TopBottomPanel::bottom("details_panel")
+        egui::Panel::bottom("details_panel")
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -726,7 +726,7 @@ impl FunctionSelector {
 
     fn show(&mut self, ctx: &egui::Context) -> egui::ModalResponse<Option<&String>> {
         egui::Modal::new(self.id.into()).show(ctx, |ui| {
-            let screen_rect = ctx.screen_rect();
+            let screen_rect = ctx.viewport_rect();
             ui.set_min_size(egui::Vec2::new(
                 screen_rect.width() * 0.6,
                 screen_rect.height() * 0.6,
@@ -1024,22 +1024,22 @@ mod ast {
             Insn::Bytes(bytes) => {
                 ui.label(format!("{:?}", bytes.as_slice()));
             }
-            Insn::Global(identifier) => {
+            &Insn::Global(identifier) => {
                 ui.label(identifier);
             }
             Insn::Int { value, size: _ } => {
                 ui.label(format!("{}", value));
             }
-            Insn::Get(r) => {
+            &Insn::Get(r) => {
                 render_expr(ui, s, r, my_prec);
             }
-            Insn::Part { src, offset, size } => {
+            &Insn::Part { src, offset, size } => {
                 ui.horizontal(|ui| {
                     render_expr(ui, s, src, my_prec);
                     ui.label(format!("[{} .. {}]", offset, offset + size));
                 });
             }
-            Insn::Concat { lo, hi } => {
+            &Insn::Concat { lo, hi } => {
                 ui.horizontal(|ui| {
                     render_expr(ui, s, hi, my_prec);
                     print_kw(ui, s, "++");
@@ -1052,7 +1052,7 @@ mod ast {
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, struct_value, my_prec);
+                    render_expr(ui, s, *struct_value, my_prec);
                     print_kw(ui, s, ".");
                     print_ident(ui, s, name);
                 });
@@ -1094,7 +1094,7 @@ mod ast {
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, array, my_prec);
+                    render_expr(ui, s, *array, my_prec);
                     ui.label(format!("[{}]", index));
                 });
             }
@@ -1104,43 +1104,43 @@ mod ast {
                 sign: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, inner, my_prec);
+                    render_expr(ui, s, *inner, my_prec);
                     print_kw(ui, s, "as");
                     ui.label(format!("i{}", target_size * 8));
                 });
             }
             Insn::Arith(arith_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, a, my_prec);
+                    render_expr(ui, s, *a, my_prec);
                     print_kw(ui, s, arith_op.symbol());
-                    render_expr(ui, s, b, my_prec);
+                    render_expr(ui, s, *b, my_prec);
                 });
             }
             Insn::ArithK(arith_op, a, k) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, a, my_prec);
+                    render_expr(ui, s, *a, my_prec);
                     print_kw(ui, s, arith_op.symbol());
                     ui.label(format!("{}", k));
                 });
             }
             Insn::Cmp(cmp_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, a, my_prec);
+                    render_expr(ui, s, *a, my_prec);
                     print_kw(ui, s, cmp_op.symbol());
-                    render_expr(ui, s, b, my_prec);
+                    render_expr(ui, s, *b, my_prec);
                 });
             }
             Insn::Bool(bool_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, a, my_prec);
+                    render_expr(ui, s, *a, my_prec);
                     print_kw(ui, s, bool_op.symbol());
-                    render_expr(ui, s, b, my_prec);
+                    render_expr(ui, s, *b, my_prec);
                 });
             }
             Insn::Not(a) => {
                 ui.horizontal(|ui| {
                     print_kw(ui, s, "!");
-                    render_expr(ui, s, a, my_prec);
+                    render_expr(ui, s, *a, my_prec);
                 });
             }
             Insn::Call {
@@ -1149,61 +1149,61 @@ mod ast {
                 ret_ll_type: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, callee, my_prec);
+                    render_expr(ui, s, *callee, my_prec);
                     print_kw(ui, s, "(");
                     for (ndx, a) in args.into_iter().enumerate() {
                         if ndx > 0 {
                             print_kw(ui, s, ",");
                         }
-                        render_expr(ui, s, a, my_prec);
+                        render_expr(ui, s, *a, my_prec);
                     }
                     print_kw(ui, s, ")");
                 });
             }
             Insn::LoadMem { addr, size } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, addr, my_prec);
+                    render_expr(ui, s, *addr, my_prec);
                     print_kw(ui, s, &format!(".* [..{}]", size));
                 });
             }
             Insn::StoreMem { addr, value } => {
                 ui.horizontal(|ui| {
                     ui.label("(");
-                    render_expr(ui, s, addr, my_prec);
+                    render_expr(ui, s, *addr, my_prec);
                     ui.label(")");
                     print_kw(ui, s, ".*");
                     print_kw(ui, s, ":=");
-                    render_expr(ui, s, value, my_prec);
+                    render_expr(ui, s, *value, my_prec);
                 });
             }
             Insn::OverflowOf(r) => {
                 ui.horizontal(|ui| {
                     print_kw(ui, s, "overflow_of");
-                    render_expr(ui, s, r, my_prec);
+                    render_expr(ui, s, *r, my_prec);
                 });
             }
             Insn::CarryOf(r) => {
                 ui.horizontal(|ui| {
                     print_kw(ui, s, "carry_of");
-                    render_expr(ui, s, r, my_prec);
+                    render_expr(ui, s, *r, my_prec);
                 });
             }
             Insn::SignOf(r) => {
                 ui.horizontal(|ui| {
                     print_kw(ui, s, "sign_of");
-                    render_expr(ui, s, r, my_prec);
+                    render_expr(ui, s, *r, my_prec);
                 });
             }
             Insn::IsZero(r) => {
                 ui.horizontal(|ui| {
                     print_kw(ui, s, "is_zero");
-                    render_expr(ui, s, r, my_prec);
+                    render_expr(ui, s, *r, my_prec);
                 });
             }
             Insn::Parity(r) => {
                 ui.horizontal(|ui| {
                     print_kw(ui, s, "parity");
-                    render_expr(ui, s, r, my_prec);
+                    render_expr(ui, s, *r, my_prec);
                 });
             }
             Insn::UndefinedBool => {
@@ -1230,9 +1230,9 @@ mod ast {
             }
             Insn::Upsilon { value, phi_ref } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, phi_ref, my_prec);
+                    render_expr(ui, s, *phi_ref, my_prec);
                     print_kw(ui, s, ":=");
-                    render_expr(ui, s, value, my_prec);
+                    render_expr(ui, s, *value, my_prec);
                 });
             }
 
