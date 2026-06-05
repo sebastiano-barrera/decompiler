@@ -81,6 +81,9 @@ struct FunctionView {
 
     is_asm_visible: bool,
     is_cfg_visible: bool,
+    is_block_order_visible: bool,
+    block_order: Vec<BlockID>,
+    block_order_error: Option<String>,
 }
 
 struct TypeDetailsWindow {
@@ -118,6 +121,10 @@ impl eframe::App for App {
                         ui.toggle_value(
                             &mut func_view.is_asm_visible,
                             egui::RichText::new("ASM").monospace(),
+                        );
+                        ui.toggle_value(
+                            &mut func_view.is_block_order_visible,
+                            egui::RichText::new("BlkOrd").monospace(),
                         );
                     }
                 });
@@ -237,21 +244,50 @@ impl FunctionView {
         let base_ip = df.base_ip();
         let asm = Assembly::disassemble_x86(machine_code, base_ip);
 
-        let ast = df.ssa().map(|ssa| decompiler::AstBuilder::new(ssa).build());
-
-        FunctionView {
+        let mut fv = FunctionView {
             df,
             problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
-            ast,
+            ast: None,
             asm,
             type_windows: Vec::new(),
             hl: hl::State::empty(),
             asm_hl_mask: Cache::default(),
             is_asm_visible: false,
             is_cfg_visible: false,
+            is_block_order_visible: false,
+            block_order: Vec::new(),
+            block_order_error: None,
+        };
+        fv.rebuild_ast(Vec::new());
+        fv
+    }
+
+    // Rebuild the AST from the SSA, using the current block order if provided.
+    //
+    // If `block_order` is empty, the default block order from the AST will be
+    // used (or an error will be shown if the AST cannot be built with any block
+    // order).
+    fn rebuild_ast(&mut self, block_order: Vec<BlockID>) {
+        self.ast = None;
+        self.block_order = block_order;
+        self.block_order_error = None;
+
+        let Some(ssa) = self.df.ssa() else {
+            return;
+        };
+
+        let mut builder = decompiler::AstBuilder::new(ssa);
+        if !self.block_order.is_empty() {
+            let res = builder.set_block_order(&self.block_order);
+            self.block_order_error = res.err().map(|err| err.to_string());
         }
+        let ast = builder.build();
+        if self.block_order.is_empty() {
+            self.block_order = Vec::from(ast.block_order());
+        }
+        self.ast = Some(ast);
     }
 
     /// Show the "second" top bar, i.e. the are right under the top bar
@@ -536,6 +572,36 @@ impl FunctionView {
             });
         }
 
+        if self.is_block_order_visible {
+            if let (Some(ssa), Some(ast)) = (self.df.ssa(), self.ast.as_mut()) {
+                let is_block_order_changed = egui::Panel::left("block_order_panel")
+                    .show_inside(ui, |ui| {
+                        ui.heading("Block order");
+                        let s = &mut ast::State {
+                            ast,
+                            ssa,
+                            hl: &mut self.hl,
+                        };
+
+                        let res = egui_dnd::dnd(ui, "block_order_dnd").show_vec(
+                            &mut self.block_order,
+                            |ui, bid, _handle, _item_state| {
+                                _handle.ui(ui, |ui| {
+                                    ast::print_block_ref(ui, s, *bid);
+                                });
+                            },
+                        );
+
+                        res.update.is_some()
+                    })
+                    .inner;
+
+                if is_block_order_changed {
+                    let block_order = std::mem::take(&mut self.block_order);
+                    self.rebuild_ast(block_order);
+                }
+            }
+        }
         if self.is_cfg_visible {
             egui::Panel::right("cfg_panel").show_inside(ui, |ui| {
                 ui.heading("Control-flow graph");
@@ -863,10 +929,10 @@ mod ast {
         render_stmt(ui, &mut s, ast.root())
     }
 
-    struct State<'a> {
-        ast: &'a decompiler::Ast,
-        ssa: &'a decompiler::SSAProgram,
-        hl: &'a mut hl::State,
+    pub struct State<'a> {
+        pub ast: &'a decompiler::Ast,
+        pub ssa: &'a decompiler::SSAProgram,
+        pub hl: &'a mut hl::State,
     }
 
     fn render_stmt(ui: &mut egui::Ui, s: &mut State<'_>, sid: StmtID) {
@@ -1278,7 +1344,7 @@ mod ast {
         let colors = theme::colors(hl::Focus::Block(bid), theme::Role::Definition);
         active_label(ui, s, hl::Focus::Block(bid), colors, &text);
     }
-    fn print_block_ref(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
+    pub fn print_block_ref(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
         let text = format!("♦{}", bid.as_number());
         let colors = theme::colors(hl::Focus::Block(bid), theme::Role::Reference);
         active_label(ui, s, hl::Focus::Block(bid), colors, &text);

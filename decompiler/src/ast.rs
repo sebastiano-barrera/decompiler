@@ -206,17 +206,16 @@ impl<'a> AstBuilder<'a> {
 
         // default block order: reverse postorder
         // TODO replace with dominator tree walked in reverse postorder
-        builder
-            .set_block_order(ssa.cfg().block_ids_rpo().collect())
-            .unwrap();
+        let block_order: Vec<_> = ssa.cfg().block_ids_rpo().collect();
+        builder.set_block_order(&block_order).unwrap();
 
         builder
     }
 
-    pub fn set_block_order(&mut self, mut block_order: Vec<cfg::BlockID>) -> Result<(), Error> {
+    pub fn set_block_order(&mut self, block_order: &[cfg::BlockID]) -> Result<(), Error> {
         let mut count_of_bid = cfg::BlockMap::new(self.ssa.cfg(), 0);
 
-        for &bid in &block_order {
+        for &bid in block_order {
             count_of_bid[bid] += 1;
         }
 
@@ -228,6 +227,7 @@ impl<'a> AstBuilder<'a> {
 
         // NOTE: reversed so that we can "peek" into it by inspecting the last
         // element and/or doing .pop() to advance
+        let mut block_order = Vec::from(block_order);
         block_order.reverse();
         self.block_order_rev = block_order;
         Ok(())
