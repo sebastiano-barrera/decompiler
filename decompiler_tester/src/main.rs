@@ -283,7 +283,10 @@ impl FunctionView {
             .set_block_order(&self.block_order)
             .err()
             .map(|err| err.to_string());
-        let ast = builder.build();
+        let mut ast = builder.build();
+
+        decompiler::ast::edit::cleanup_with_ssa(&mut ast, self.df.ssa_mut().unwrap());
+
         if self.block_order.is_empty() {
             self.block_order = Vec::from(ast.block_order());
         }

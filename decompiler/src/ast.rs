@@ -275,6 +275,12 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
 }
 
 /// AST cleanup algorithm
+///
+/// Entirely private: it should only be understood as the final phase of AST building.
+///
+/// Other operations that may be named "cleanup", and for which the word seems
+/// fitting, but which aren't strictly a part of building the AST, are hosted in
+/// [super::edit].
 mod cleanup {
     use crate::BlockID;
 
