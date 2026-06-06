@@ -438,58 +438,7 @@ impl Insn {
     /// Use it when inspecting an instruction without needing to rewrite its
     /// operands.
     pub fn input_regs_iter(&self) -> impl Iterator<Item = Reg> + '_ {
-        match self {
-            Insn::Void
-            | Insn::True
-            | Insn::False
-            | Insn::Bytes(_)
-            | Insn::Int { .. }
-            | Insn::Global(_)
-            | Insn::Control(_)
-            | Insn::NotYetImplemented(_)
-            | Insn::UndefinedBool
-            | Insn::UndefinedBytes { .. }
-            | Insn::FuncArgument { .. }
-            | Insn::Ancestral { .. }
-            | Insn::Phi => Box::new(std::iter::empty()) as Box<dyn Iterator<Item = Reg>>,
-
-            Insn::Get(reg)
-            | Insn::SetReturnValue(reg)
-            | Insn::SetJumpCondition(reg)
-            | Insn::SetJumpTarget(reg)
-            | Insn::OverflowOf(reg)
-            | Insn::CarryOf(reg)
-            | Insn::SignOf(reg)
-            | Insn::IsZero(reg)
-            | Insn::Parity(reg)
-            | Insn::Not(reg) => Box::new(std::iter::once(*reg)),
-
-            Insn::Part { src, .. }
-            | Insn::StructGetMember {
-                struct_value: src, ..
-            }
-            | Insn::ArrayGetElement { array: src, .. }
-            | Insn::Widen { reg: src, .. }
-            | Insn::ArithK(_, src, _)
-            | Insn::LoadMem { addr: src, .. } => Box::new(std::iter::once(*src)),
-
-            Insn::Concat { lo, hi }
-            | Insn::Arith(_, lo, hi)
-            | Insn::Cmp(_, lo, hi)
-            | Insn::Bool(_, lo, hi)
-            | Insn::StoreMem {
-                addr: lo,
-                value: hi,
-            } => Box::new([*lo, *hi].into_iter()),
-
-            Insn::Struct { members, .. } => Box::new(members.iter().map(|member| member.value)),
-
-            Insn::Call { callee, args, .. } => {
-                Box::new(std::iter::once(*callee).chain(args.iter().copied()))
-            }
-
-            Insn::Upsilon { value, .. } => Box::new(std::iter::once(*value)),
-        }
+        self.input_regs().into_iter().copied()
     }
 
     pub fn is_valid(&self) -> bool {
