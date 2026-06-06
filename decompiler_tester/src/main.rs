@@ -917,7 +917,7 @@ mod ast {
     };
 
     use super::hl;
-    use crate::theme;
+    use crate::{columns, theme};
 
     pub fn render(
         ui: &mut egui::Ui,
@@ -925,8 +925,11 @@ mod ast {
         ssa: &decompiler::SSAProgram,
         hl: &mut hl::State,
     ) {
-        let mut s = State { ast, ssa, hl };
-        render_stmt(ui, &mut s, ast.root())
+        columns::show(ui, [40.0, columns::EXPANDING_WIDTH], move |cols| {
+            let mut s = State { ast, ssa, hl };
+            let [block_def_col, main_col] = cols.uis();
+            render_stmt(block_def_col, main_col, &mut s, ast.root());
+        });
     }
 
     pub struct State<'a> {
@@ -935,14 +938,23 @@ mod ast {
         pub hl: &'a mut hl::State,
     }
 
-    fn render_stmt(ui: &mut egui::Ui, s: &mut State<'_>, sid: StmtID) {
+    fn render_stmt(
+        block_def_col: &mut egui::Ui,
+        ui: &mut egui::Ui,
+        s: &mut State<'_>,
+        sid: StmtID,
+    ) {
         // TODO replace tail-calls with a loop continue (or similar)
         ui.vertical(|ui| {
             match s.ast.get(sid) {
                 Stmt::NamedBlock { bid, body } => {
+                    block_def_col.advance_cursor_after_rect(
+                        block_def_col.cursor().with_max_y(ui.cursor().min.y - 3.0),
+                    );
+                    print_block_def(block_def_col, s, *bid);
                     ui.horizontal(|ui| {
                         print_block_def(ui, s, *bid);
-                        render_stmt(ui, s, *body);
+                        render_stmt(block_def_col, ui, s, *body);
                     });
                 }
                 Stmt::Let { name, value, body } => {
@@ -953,7 +965,7 @@ mod ast {
                         render_expr_def(ui, s, *value, 0);
                         print_kw(ui, s, "in");
                     });
-                    render_stmt(ui, s, *body);
+                    render_stmt(block_def_col, ui, s, *body);
                 }
                 Stmt::LetPhi { name, body } => {
                     ui.horizontal(|ui| {
@@ -961,11 +973,11 @@ mod ast {
                         // no reg available here in the AST node; use a placeholder reg index 0
                         print_ident_def(ui, s, name, hl::Focus::Reg(decompiler::Reg(0)));
                     });
-                    render_stmt(ui, s, *body);
+                    render_stmt(block_def_col, ui, s, *body);
                 }
                 Stmt::Seq { first, then } => {
-                    render_stmt(ui, s, *first);
-                    render_stmt(ui, s, *then);
+                    render_stmt(block_def_col, ui, s, *first);
+                    render_stmt(block_def_col, ui, s, *then);
                 }
                 Stmt::Eval(reg) => {
                     ui.horizontal(|ui| {
@@ -987,14 +999,14 @@ mod ast {
                         });
                         ui.horizontal(|ui| {
                             ui.add_space(20.0);
-                            render_stmt(ui, s, *cons);
+                            render_stmt(block_def_col, ui, s, *cons);
                         });
 
                         if s.ast.get(*alt) != &Stmt::Pass {
                             print_kw(ui, s, "else");
                             ui.horizontal(|ui| {
                                 ui.add_space(20.0);
-                                render_stmt(ui, s, *alt);
+                                render_stmt(block_def_col, ui, s, *alt);
                             });
                         }
 
@@ -1548,5 +1560,84 @@ where
 
     fn reset(&mut self) {
         self.0 = None;
+    }
+}
+
+mod columns {
+    pub const EXPANDING_WIDTH: f32 = f32::INFINITY;
+
+    /// Sets up a multi-column layout where each column can be filled independently by the given closure.
+    ///
+    /// The desired width for each column is set via the `width` array (also
+    /// determines the number of columns). Use `EXPANDING_WIDTH` for columns
+    /// that should take up the remaining available space equally.
+    ///
+    /// The `add_contents` closure is given an array of [`Column`], allowing
+    /// access to a separate `egui::Ui` for each column.
+    pub fn show<const N: usize>(
+        ui: &mut egui::Ui,
+        widths: [f32; N],
+        add_contents: impl FnOnce(&mut Columns<N>),
+    ) {
+        ui.horizontal(move |ui| {
+            let width_fixed: f32 = widths.into_iter().filter(|w| w.is_finite()).sum();
+            let width_expanding_count = widths.into_iter().filter(|w| w.is_infinite()).count();
+            let width_available = ui.available_width();
+            let width_expanding_each: f32 =
+                (width_available - width_fixed) / width_expanding_count as f32;
+
+            let uis = std::array::from_fn(|ndx| {
+                let width = match widths[ndx] {
+                    w if w.is_infinite() => width_expanding_each,
+                    other => other,
+                };
+
+                let (_, col_rect) = ui.allocate_space(egui::vec2(width, 0.0));
+                let col_ui = ui.new_child(
+                    egui::UiBuilder::new()
+                        .max_rect(col_rect)
+                        .layout(egui::Layout::top_down(egui::Align::TOP)),
+                );
+                ui.advance_cursor_after_rect(col_rect);
+
+                col_ui
+            });
+
+            let mut columns = Columns { uis };
+
+            add_contents(&mut columns);
+
+            for col in columns.uis {
+                // we're doing a custom layout, so we have to do this where egui
+                // would have done this automatically
+                ui.expand_to_include_rect(col.min_rect());
+            }
+        });
+    }
+
+    pub struct Columns<const N: usize> {
+        uis: [egui::Ui; N],
+    }
+    impl<const N: usize> Columns<N> {
+        pub fn uis(&mut self) -> [&mut egui::Ui; N] {
+            self.uis.each_mut()
+        }
+
+        pub fn ui(&mut self, ndx: usize) -> &mut egui::Ui {
+            &mut self.uis[ndx]
+        }
+
+        pub fn clear(&mut self) {
+            let y_clear = self
+                .uis
+                .iter()
+                .map(|ui| ui.min_rect().max.y)
+                .reduce(|ay, by| ay.max(by))
+                .unwrap();
+
+            for col in &mut self.uis {
+                col.advance_cursor_after_rect(col.cursor().with_max_y(y_clear));
+            }
+        }
     }
 }
