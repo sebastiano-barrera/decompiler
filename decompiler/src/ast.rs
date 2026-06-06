@@ -150,8 +150,7 @@ impl Ast {
 }
 
 impl Ast {
-    // private mutation API
-    // used by AstBuilder
+    // private mutation API used by AstBuilder
     fn push_stmt(&mut self, stmt: Stmt) -> StmtID {
         self.nodes.push(stmt);
         self.root()
@@ -165,26 +164,66 @@ pub enum Error {
 }
 
 pub struct AstBuilder<'a> {
-    // inputs
+    ssa: &'a ssa::Program,
+    block_order: Vec<cfg::BlockID>,
+}
+impl<'a> AstBuilder<'a> {
+    pub fn new(ssa: &'a ssa::Program) -> Self {
+        let mut builder = AstBuilder {
+            ssa,
+            block_order: Vec::new(),
+        };
+
+        // default block order: reverse postorder TODO replace with dominator
+        // tree walked in reverse postorder
+        let block_order: Vec<_> = ssa.cfg().block_ids_rpo().collect();
+        builder.set_block_order(&block_order).unwrap();
+        builder
+    }
+
+    pub fn set_block_order(&mut self, block_order: &[cfg::BlockID]) -> Result<(), Error> {
+        // TODO relax this constraint -- having duplicates in the block order
+        // will become useful in the future.
+        {
+            let mut count_of_bid = cfg::BlockMap::new(self.ssa.cfg(), 0);
+            for &bid in block_order {
+                count_of_bid[bid] += 1;
+            }
+            for (_, &count) in count_of_bid.items() {
+                if count > 1 {
+                    return Err(Error::BlockOrderHasDuplicates);
+                }
+            }
+        }
+
+        // NOTE: reversed so that we can "peek" into it by inspecting the last
+        // element and/or doing .pop() to advance
+        self.block_order = Vec::from(block_order);
+        Ok(())
+    }
+
+    pub fn build(self) -> Ast {
+        State::start(self).build()
+    }
+}
+
+struct State<'a> {
     ssa: &'a ssa::Program,
     block_order_rev: Vec<cfg::BlockID>,
-
-    // state variables
     let_emitted: HashSet<Reg>,
     block_printed: cfg::BlockMap<bool>,
-
-    // state & output
     ast: Ast,
 }
 
-impl<'a> AstBuilder<'a> {
-    pub fn new(ssa: &'a ssa::Program) -> Self {
-        let rdr_count = ssa::count_readers(ssa);
+impl<'a> State<'a> {
+    fn start(builder: AstBuilder<'a>) -> Self {
+        let rdr_count = ssa::count_readers(builder.ssa);
         let is_named = rdr_count.map(|reg, count| {
-            let Some(insn) = ssa.get(reg) else {
+            let Some(insn) = builder.ssa.get(reg) else {
                 return false;
             };
-            // ancestral are as good as r# refs, so never 'name' them / always print inline
+            // ancestral are as good as r# refs, so never 'name' them / always
+            // print inline
             matches!(insn, Insn::Phi)
                 || (*count > 1
                     && !matches!(insn, Insn::StoreMem { .. })
@@ -192,52 +231,25 @@ impl<'a> AstBuilder<'a> {
                     && !matches!(insn, Insn::Int { .. }))
         });
 
-        let mut builder = AstBuilder {
-            ssa,
-            block_order_rev: Vec::new(),
+        let block_order_rev = builder.block_order.into_iter().rev().collect();
+        State {
+            ssa: builder.ssa,
+            block_order_rev,
             let_emitted: HashSet::new(),
-            block_printed: cfg::BlockMap::new(ssa.cfg(), false),
+            block_printed: cfg::BlockMap::new(builder.ssa.cfg(), false),
             ast: Ast {
                 nodes: Vec::new(),
                 is_named,
                 block_order: Vec::new(),
             },
-        };
-
-        // default block order: reverse postorder
-        // TODO replace with dominator tree walked in reverse postorder
-        let block_order: Vec<_> = ssa.cfg().block_ids_rpo().collect();
-        builder.set_block_order(&block_order).unwrap();
-
-        builder
-    }
-
-    pub fn set_block_order(&mut self, block_order: &[cfg::BlockID]) -> Result<(), Error> {
-        let mut count_of_bid = cfg::BlockMap::new(self.ssa.cfg(), 0);
-
-        for &bid in block_order {
-            count_of_bid[bid] += 1;
         }
-
-        for (_, &count) in count_of_bid.items() {
-            if count > 1 {
-                return Err(Error::BlockOrderHasDuplicates);
-            }
-        }
-
-        // NOTE: reversed so that we can "peek" into it by inspecting the last
-        // element and/or doing .pop() to advance
-        let mut block_order = Vec::from(block_order);
-        block_order.reverse();
-        self.block_order_rev = block_order;
-        Ok(())
     }
 
     fn is_named(&self, reg: Reg) -> bool {
         self.ast.is_named[reg]
     }
 
-    pub fn build(mut self) -> Ast {
+    fn build(mut self) -> Ast {
         for (_, value) in self.block_printed.items_mut() {
             *value = false;
         }
@@ -300,16 +312,14 @@ impl<'a> AstBuilder<'a> {
 
         // if cfg.block_preds(bid).len() == 1 {
         self.push_stmt(Stmt::NamedBlock { bid, body: sid })
-        // } else {
-        //     sid
-        // }
+        // } else { sid }
     }
 
     fn build_continuation(&mut self, src_bid: cfg::BlockID, tgt: cfg::Dest) -> StmtID {
         match tgt {
             cfg::Dest::Ext(addr) => self.push_stmt(Stmt::JumpExternal(addr)),
             cfg::Dest::Block(tgt_bid) => {
-                if self.block_order_rev.last().copied() == Some(tgt_bid) &&
+                if self.block_order_rev.last() == Some(&tgt_bid) &&
                     // tgt has only one predecessor (then it must be us)
                     self.ssa.cfg().block_preds(tgt_bid).len() == 1
                 {
@@ -317,7 +327,8 @@ impl<'a> AstBuilder<'a> {
                     self.block_order_rev.pop();
                     self.build_block(tgt_bid)
                 } else {
-                    // TODO emit Stmt::Loop instead if we know we're looping back to an open block
+                    // TODO emit Stmt::Loop instead if we know we're looping
+                    // back to an open block
                     self.push_stmt(Stmt::Jump(tgt_bid))
                 }
             }
@@ -330,7 +341,8 @@ impl<'a> AstBuilder<'a> {
                 match target {
                     Some(target) => self.push_stmt(Stmt::JumpIndirect(target)),
                     None => {
-                        // TODO: report a bug: "internal bug: unspecified jump target"
+                        // TODO: report a bug: "internal bug: unspecified jump
+                        // target"
                         self.push_stmt(Stmt::JumpUndefined)
                     }
                 }
@@ -344,13 +356,15 @@ impl<'a> AstBuilder<'a> {
                 match ret_val {
                     Some(ret_val) => self.push_stmt(Stmt::Return(ret_val)),
                     None => {
-                        // TODO: report a bug: "actually unspecified in source program!"
+                        // TODO: report a bug: "actually unspecified in source
+                        // program!"
                         self.push_stmt(Stmt::JumpUndefined)
                     }
                 }
             }
             cfg::Dest::Undefined => {
-                // TODO: report a bug: "warning: due to decompiler bug or limitation"
+                // TODO: report a bug: "warning: due to decompiler bug or
+                // limitation"
                 self.push_stmt(Stmt::JumpUndefined)
             }
         }
@@ -404,8 +418,9 @@ pub type PrecedenceLevel = u8;
 pub fn precedence(insn: &Insn) -> PrecedenceLevel {
     // higher value == higher precedence == evaluated first unless parenthesized
     match insn {
-        // actually, Insn::Get is supposed to already be "resolved" to its argument
-        // prior to calling this function, but better to return something "safe"
+        // actually, Insn::Get is supposed to already be "resolved" to its
+        // argument prior to calling this function, but better to return
+        // something "safe"
         Insn::Get(_)
         | Insn::Void
         | Insn::True
@@ -516,8 +531,8 @@ mod cleanup {
     /// (assuming that its *does* continue; i.e., that it's not a return or
     /// external jump.)
     ///
-    /// Returns the statement's actual continuation (including the effect of
-    /// any change).
+    /// Returns the statement's actual continuation (including the effect of any
+    /// change).
     fn cleanup_stmt(ast: &mut Ast, sid: StmtID, nat_cont: Cont) -> Cont {
         match ast.nodes[sid.0].clone() {
             Stmt::NamedBlock { bid: _, body }
