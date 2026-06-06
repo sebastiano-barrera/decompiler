@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::Deref, path::Path, sync::Arc};
+use std::{borrow::Cow, fmt::Debug, ops::Deref, path::Path, sync::Arc};
 
 use smallvec::SmallVec;
 use thiserror::Error;
@@ -16,7 +16,7 @@ use crate::{
 )]
 pub struct TypeID(pub u64);
 
-impl std::fmt::Debug for TypeID {
+impl Debug for TypeID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self == &TypeSet::TYID_SHARED_VOID {
             write!(f, "TID:void")
@@ -184,7 +184,7 @@ impl TypeSet {
     }
 }
 
-impl std::fmt::Debug for TypeSet {
+impl Debug for TypeSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut pp = crate::pp::PrettyPrinter::start(pp::FmtAsIoUTF8(f));
         let rtx = self
@@ -745,6 +745,9 @@ impl ByteRange {
     pub fn new(start: usize, end: usize) -> Self {
         assert!(end >= start);
         ByteRange { start, end }
+    }
+    pub fn new_offset_size(offset: usize, size: usize) -> Self {
+        Self::new(offset, offset + size)
     }
 
     pub fn lo(&self) -> usize {

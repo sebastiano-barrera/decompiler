@@ -764,21 +764,17 @@ impl Transform for FoldPartConst {
 struct SelectTypeOnPart;
 
 impl Transform for SelectTypeOnPart {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let bid = cursor.bid;
-        let types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         let Insn::Part { src, offset, size } = insn else {
             return;
         };
 
-        let offset = offset as usize;
-        let size = size as usize;
-        let byte_range = ty::ByteRange::new(offset, offset + size);
-        let result_insn = apply_type_selection(insn.clone(), prog, bid, types, src, byte_range);
-        prog.set(reg, result_insn);
+        let byte_range = ty::ByteRange::new_offset_size(offset as usize, size as usize);
+        let tip = select_type_and_read(c.prog, c.bid, c.types, src, byte_range);
+        if tip != src {
+            c.prog.set(c.reg, Insn::Get(tip));
+        }
     }
 }
 
@@ -805,30 +801,46 @@ impl Transform for PickCalleeName {
     }
 }
 
-fn apply_type_selection(
-    insn: Insn,
+fn select_type_and_read(
     prog: &mut ssa::OpenProgram<'_>,
     bid: BlockID,
     types: ty::ReadTxRef<'_>,
     src: Reg,
     byte_range: ty::ByteRange,
-) -> Insn {
-    // desist if there is no type information for the src value
+) -> Reg {
+    let Some((tip_tyid, path)) = select_type(prog, types, src, byte_range) else {
+        return src;
+    };
+
+    // TypeSet::select returns an empty path when the required byte range
+    // precisely matches src
+
+    // in the most generic case, it contains a single SelectStep::RawBytes
+    let mut tip = src;
+    for step in path {
+        // add insns for intermediate steps
+        tip = prog.append_new(bid, step.to_insn(tip));
+    }
+
+    // for now, type IDs are not assigned to the intermediate steps
+    prog.set_value_type(tip, Some(tip_tyid));
+    tip
+}
+
+fn select_type(
+    prog: &mut ssa::OpenProgram<'_>,
+    types: ty::ReadTxRef<'_>,
+    src: Reg,
+    byte_range: ty::ByteRange,
+) -> Option<(ty::TypeID, smallvec::SmallVec<[ty::SelectStep; 4]>)> {
     let Some(src_tyid) = prog.value_type(src) else {
         event!(
             Level::DEBUG,
             ?src,
             "source has no type; skipping type selection"
         );
-        return insn;
+        return None;
     };
-
-    event!(
-        Level::DEBUG,
-        ?src_tyid,
-        ?byte_range,
-        "applying type selection"
-    );
     let ty::Selection {
         tyid: selected_tyid,
         path,
@@ -842,40 +854,17 @@ fn apply_type_selection(
                 ?err,
                 "unable to select in type"
             );
-            return insn;
+            return None;
         }
     };
-
-    event!(Level::TRACE, ?byte_range, "type selected");
-
-    if path.len() == 0 {
-        // this is what TypeSet::select returns when the required byte range precisely matches src
-        return Insn::Get(src);
-    }
-
-    // in the most generic case, it contains a single SelectStep::RawBytes
-    let mut last_reg = src;
-    for step in path {
-        // add insns for intermediate steps
-        last_reg = prog.append_new(bid, step.to_insn(last_reg));
-    }
-
-    // for now, type IDs are not assigned to the intermediate steps
-    prog.set_value_type(last_reg, Some(selected_tyid));
-    // because we currently only return an Insn, we can't call set_value_type
-    // on the register corresponding to its result (`append_new` is done by
-    // `canonical`). so, Insn::Get it is
-    Insn::Get(last_reg)
+    event!(Level::TRACE, ?src_tyid, ?byte_range, "type selected");
+    Some((selected_tyid, path))
 }
 
 struct SelectTypeOnDerefMemberRead;
 
 impl Transform for SelectTypeOnDerefMemberRead {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let bid = cursor.bid;
-        let types = cursor.types;
+    fn apply(&self, c: &mut Cursor) {
         // example of pattern:
         //
         //  (for a struct type S)
@@ -888,7 +877,7 @@ impl Transform for SelectTypeOnDerefMemberRead {
         //  r_struct <- LoadMem(r_base, struct_size)
         //  r_loaded <- Part(r_struct, offset, size)
 
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = c.prog.get(c.reg).unwrap().clone();
         let Insn::LoadMem {
             addr: reg_member_addr,
             size: member_size,
@@ -897,7 +886,7 @@ impl Transform for SelectTypeOnDerefMemberRead {
             return;
         };
 
-        let (reg_base_ptr, member_offset) = match prog.get(reg_member_addr).unwrap() {
+        let (reg_base_ptr, member_offset) = match c.prog.get(reg_member_addr).unwrap() {
             Insn::ArithK(ArithOp::Add, reg_base_ptr, offset) => (*reg_base_ptr, *offset),
             _ => (reg_member_addr, 0),
         };
@@ -916,11 +905,11 @@ impl Transform for SelectTypeOnDerefMemberRead {
             "ptr member read detected"
         );
 
-        let Some(base_ptr_tyid) = prog.value_type(reg_base_ptr) else {
+        let Some(base_ptr_tyid) = c.prog.value_type(reg_base_ptr) else {
             return;
         };
         event!(Level::DEBUG, ?base_ptr_tyid, "base ptr type ID");
-        let Some(base_ptr_ty) = types.get_through_alias(base_ptr_tyid).unwrap() else {
+        let Some(base_ptr_ty) = c.types.get_through_alias(base_ptr_tyid).unwrap() else {
             return;
         };
         event!(Level::DEBUG, ?base_ptr_ty, "base ptr type");
@@ -930,30 +919,25 @@ impl Transform for SelectTypeOnDerefMemberRead {
         event!(Level::DEBUG, ?pointee_tyid, "pointee type ID");
 
         // add a LoadMem for the whole pointee,
-        let Ok(Some(size)) = types.bytes_size(pointee_tyid) else {
+        let Ok(Some(size)) = c.types.bytes_size(pointee_tyid) else {
             event!(Level::DEBUG, ?pointee_tyid, "pointee type has no byte size");
             return;
         };
-        let reg_pointee_whole = prog.append_new(
-            bid,
+        let reg_pointee_whole = c.prog.append_new(
+            c.bid,
             Insn::LoadMem {
                 addr: reg_base_ptr,
                 size: size.try_into().unwrap(),
             },
         );
-        prog.set_value_type(reg_pointee_whole, Some(pointee_tyid));
+        c.prog.set_value_type(reg_pointee_whole, Some(pointee_tyid));
 
         // find the struct member that matches the offset/size
         let member_range = ty::ByteRange::new(member_offset, member_offset + member_size);
-        let result_insn = apply_type_selection(
-            insn.clone(),
-            prog,
-            bid,
-            types,
-            reg_pointee_whole,
-            member_range,
-        );
-        prog.set(reg, result_insn);
+        let tip = select_type_and_read(c.prog, c.bid, c.types, reg_pointee_whole, member_range);
+        if tip != reg_pointee_whole {
+            c.prog.set(c.reg, Insn::Get(tip));
+        }
     }
 }
 
@@ -968,7 +952,6 @@ impl<'a> TransformSet<'a> {
     fn apply(&self, cursor: &mut Cursor) {
         for labeled in self.transforms.iter() {
             span!(Level::TRACE, "applying transform", ?labeled.label).in_scope(|| {
-                event!(Level::TRACE, "starting");
                 labeled.xform.apply(cursor);
             });
         }
