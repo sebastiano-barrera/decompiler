@@ -879,66 +879,96 @@ impl Transform for SelectTypeOnDerefMemberRead {
 
         let insn = c.prog.get(c.reg).unwrap().clone();
         let Insn::LoadMem {
-            addr: reg_member_addr,
-            size: member_size,
+            addr: load_addr,
+            size: load_size,
         } = insn
         else {
             return;
         };
 
-        let (reg_base_ptr, member_offset) = match c.prog.get(reg_member_addr).unwrap() {
-            Insn::ArithK(ArithOp::Add, reg_base_ptr, offset) => (*reg_base_ptr, *offset),
-            _ => (reg_member_addr, 0),
+        let Some(deref_access) = select_type_deref(&c.prog, c.types, load_addr, load_size) else {
+            return;
         };
 
-        if member_offset < 0 {
-            return;
-        }
-        let member_offset: usize = member_offset.try_into().unwrap();
-        let member_size: usize = member_size.try_into().unwrap();
-
-        event!(
-            Level::DEBUG,
-            ?reg_base_ptr,
-            ?member_offset,
-            ?member_size,
-            "ptr member read detected"
-        );
-
-        let Some(base_ptr_tyid) = c.prog.value_type(reg_base_ptr) else {
-            return;
-        };
-        event!(Level::DEBUG, ?base_ptr_tyid, "base ptr type ID");
-        let Some(base_ptr_ty) = c.types.get_through_alias(base_ptr_tyid).unwrap() else {
-            return;
-        };
-        event!(Level::DEBUG, ?base_ptr_ty, "base ptr type");
-        let &ty::Ty::Ptr(pointee_tyid) = base_ptr_ty.as_ref() else {
-            return;
-        };
-        event!(Level::DEBUG, ?pointee_tyid, "pointee type ID");
-
-        // add a LoadMem for the whole pointee,
-        let Ok(Some(size)) = c.types.bytes_size(pointee_tyid) else {
-            event!(Level::DEBUG, ?pointee_tyid, "pointee type has no byte size");
-            return;
-        };
-        let reg_pointee_whole = c.prog.append_new(
+        // Load the aggregate instead of the member, and then do the part access
+        let reg_aggregate = c.prog.append_new(
             c.bid,
             Insn::LoadMem {
-                addr: reg_base_ptr,
-                size: size.try_into().unwrap(),
+                addr: deref_access.aggregate_addr_reg,
+                size: deref_access.aggregate_size,
             },
         );
-        c.prog.set_value_type(reg_pointee_whole, Some(pointee_tyid));
+        c.prog.set_value_type(
+            deref_access.aggregate_addr_reg,
+            Some(deref_access.aggregate_tyid),
+        );
 
         // find the struct member that matches the offset/size
-        let member_range = ty::ByteRange::new(member_offset, member_offset + member_size);
-        let tip = select_type_and_read(c.prog, c.bid, c.types, reg_pointee_whole, member_range);
-        if tip != reg_pointee_whole {
+        let tip = select_type_and_read(
+            c.prog,
+            c.bid,
+            c.types,
+            reg_aggregate,
+            deref_access.member_range,
+        );
+        if tip != reg_aggregate {
             c.prog.set(c.reg, Insn::Get(tip));
         }
     }
+}
+
+struct DerefAccess {
+    aggregate_addr_reg: Reg,
+    aggregate_size: u32,
+    aggregate_tyid: ty::TypeID,
+    member_range: ty::ByteRange,
+}
+
+fn select_type_deref(
+    prog: &ssa::Program,
+    types: ty::ReadTxRef<'_>,
+    reg_addr: Reg,
+    size: u32,
+) -> Option<DerefAccess> {
+    let (aggregate_addr_reg, offset) = match prog.get(reg_addr).unwrap() {
+        &Insn::ArithK(ArithOp::Add, reg_base, offset) => (reg_base, offset),
+        // assume the access is directly to the whole
+        _ => (reg_addr, 0),
+    };
+
+    if offset < 0 {
+        return None;
+    }
+
+    // let's see if we can actually characterize this as a member access via deref...
+    let member_range = {
+        let offset = offset.try_into().unwrap();
+        let size = size.try_into().unwrap();
+        ty::ByteRange::new_offset_size(offset, size)
+    };
+    event!(
+        Level::DEBUG,
+        ?aggregate_addr_reg,
+        ?member_range,
+        "pointee range read detected"
+    );
+
+    let aggregate_ptr_tyid = prog.value_type(aggregate_addr_reg)?;
+    let aggregate_ptr_ty = types.get_through_alias(aggregate_ptr_tyid).ok().flatten()?;
+    let &ty::Ty::Ptr(aggregate_tyid) = aggregate_ptr_ty.as_ref() else {
+        return None;
+    };
+    let aggregate_size = types.bytes_size(aggregate_tyid).ok().flatten()?;
+
+    /*
+        (member_range, whole_tyid, reg_pointee_whole)
+    */
+    Some(DerefAccess {
+        aggregate_addr_reg,
+        aggregate_size: aggregate_size.try_into().unwrap(),
+        aggregate_tyid,
+        member_range,
+    })
 }
 
 struct LabeledTransform<'a> {
