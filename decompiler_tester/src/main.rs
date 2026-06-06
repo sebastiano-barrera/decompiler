@@ -1119,26 +1119,26 @@ mod ast {
             Insn::Bytes(bytes) => {
                 ui.label(format!("{:?}", bytes.as_slice()));
             }
-            &Insn::Global(identifier) => {
-                ui.label(identifier);
+            Insn::Global(identifier) => {
+                ui.label(*identifier);
             }
             Insn::Int { value, size: _ } => {
                 ui.label(format!("{}", value));
             }
-            &Insn::Get(r) => {
-                render_expr(ui, s, r, my_prec);
+            Insn::Get(r) => {
+                render_expr(ui, s, *r, my_prec);
             }
-            &Insn::Part { src, offset, size } => {
+            Insn::Part { src, offset, size } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, src, my_prec);
+                    render_expr(ui, s, *src, my_prec);
                     ui.label(format!("[{} .. {}]", offset, offset + size));
                 });
             }
-            &Insn::Concat { lo, hi } => {
+            Insn::Concat { lo, hi } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, hi, my_prec);
+                    render_expr(ui, s, *hi, my_prec);
                     print_kw(ui, s, "++");
-                    render_expr(ui, s, lo, my_prec);
+                    render_expr(ui, s, *lo, my_prec);
                 });
             }
             Insn::StructGetMember {
@@ -1344,6 +1344,33 @@ mod ast {
                     s,
                     &format!("/* not yet implemented: {:?}: {} */", insn, msg),
                 );
+            }
+
+            Insn::StructSetMember {
+                struct_value,
+                name,
+                value,
+            } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, s, *struct_value, my_prec);
+                    print_kw(ui, s, ".");
+                    print_ident(ui, s, name);
+                    print_kw(ui, s, ":=");
+                    render_expr(ui, s, *value, my_prec);
+                });
+            }
+
+            Insn::ArraySetElement {
+                array,
+                index,
+                value,
+            } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, s, *array, my_prec);
+                    ui.label(format!("[{}]", index));
+                    print_kw(ui, s, ":=");
+                    render_expr(ui, s, *value, my_prec);
+                });
             }
         }
 

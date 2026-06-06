@@ -748,7 +748,9 @@ mod rt_infer {
             | Insn::Control(_)
             | Insn::NotYetImplemented(_)
             | Insn::StoreMem { .. }
-            | Insn::Upsilon { .. } => LLType::Effect,
+            | Insn::Upsilon { .. }
+            | Insn::StructSetMember { .. }
+            | Insn::ArraySetElement { .. } => LLType::Effect,
 
             Insn::LoadMem { size, .. } => LLType::Bytes(*size as usize),
             Insn::OverflowOf(_) => LLType::Bool,

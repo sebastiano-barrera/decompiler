@@ -176,6 +176,14 @@ pub enum Insn {
         // larger size are definitely possible
         size: u32,
     },
+    #[assoc(input_regs = array([_struct_value, _value]))]
+    #[assoc(input_regs_mut = array([_struct_value, _value]))]
+    StructSetMember {
+        /// Not necessarily a Struct
+        struct_value: Reg,
+        name: &'static str,
+        value: Reg,
+    },
     #[assoc(input_regs = _members.iter().map(|member| &member.value).collect())]
     #[assoc(input_regs_mut = _members.iter_mut().map(|member| &mut member.value).collect())]
     Struct {
@@ -191,6 +199,13 @@ pub enum Insn {
         array: Reg,
         index: u32,
         size: u32,
+    },
+    #[assoc(input_regs = array([_array, _value]))]
+    #[assoc(input_regs_mut = array([_array, _value]))]
+    ArraySetElement {
+        array: Reg,
+        index: u32,
+        value: Reg,
     },
 
     #[assoc(input_regs = array([_reg]))]

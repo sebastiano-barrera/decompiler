@@ -239,6 +239,8 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         | Insn::Phi
         | Insn::StructGetMember { .. }
         | Insn::ArrayGetElement { .. }
+        | Insn::StructSetMember { .. }
+        | Insn::ArraySetElement { .. }
         | Insn::LoadMem { .. } => 255,
 
         Insn::Part { .. } => 254,
