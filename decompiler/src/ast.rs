@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod builder;
+pub mod edit;
 mod pp;
 
 pub use pp::write_ast;

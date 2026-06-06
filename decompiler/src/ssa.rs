@@ -14,6 +14,7 @@ use crate::{
     mil::{self, Endianness},
     pp, ty,
     util::Bytes,
+    LLType,
 };
 use std::io::Write;
 
@@ -792,6 +793,18 @@ mod rt_infer {
 pub struct OpenProgram<'a> {
     program: &'a mut Program,
 }
+pub type MutationResult<T> = std::result::Result<T, MutationError>;
+#[derive(Error, Debug)]
+pub enum MutationError {
+    #[error("invalid register {reg:?}")]
+    InvalidRegister { reg: mil::Reg },
+    #[error("expected type {expected:?} but found {found:?} for register {reg:?}")]
+    TypeError {
+        reg: mil::Reg,
+        expected: mil::LLType,
+        found: mil::LLType,
+    },
+}
 impl<'a> OpenProgram<'a> {
     /// Set the defining instruction for the given register.
     ///
@@ -893,6 +906,35 @@ impl<'a> OpenProgram<'a> {
 
     pub fn set_value_type(&mut self, reg: mil::Reg, tyid: Option<ty::TypeID>) {
         self.program.tyids[reg.0 as usize] = tyid;
+    }
+
+    pub fn append_before(&mut self, reg: mil::Reg, insn: mil::Insn) -> mil::Reg {
+        let new_reg = self.add_insn(insn);
+
+        // TODO There is supposed to be a data structure that allows us to do this very efficiently
+        self.program
+            .schedule
+            .insert_before(new_reg.reg_index(), reg.reg_index());
+
+        new_reg
+    }
+
+    pub fn invert_bool(&mut self, cond: mil::Reg) -> MutationResult<mil::Reg> {
+        let ll_type = self.program.ll_type(cond);
+        if ll_type != LLType::Bool {
+            return Err(MutationError::TypeError {
+                reg: cond,
+                expected: LLType::Bool,
+                found: ll_type,
+            });
+        }
+
+        let new_cond = match self.program.get(cond).unwrap() {
+            mil::Insn::Not(inner) => *inner,
+            _ => self.append_before(cond, mil::Insn::Not(cond)),
+        };
+
+        Ok(new_cond)
     }
 }
 impl std::ops::Deref for OpenProgram<'_> {

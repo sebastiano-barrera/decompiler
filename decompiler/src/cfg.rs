@@ -223,6 +223,19 @@ impl Schedule {
         ret
     }
 
+    /// Insert `ndx` right before `pos_ref_ndx`
+    pub(crate) fn insert_before(&mut self, ndx: u16, pos_ref_ndx: u16) {
+        let (bid, pos) = self
+            .find_block_of(pos_ref_ndx)
+            .expect("reference position is not scheduled in any block");
+        assert!(
+            self.find_block_of(ndx).is_none(),
+            "index {} can't be inserted, because it's already scheduled in a block",
+            ndx,
+        );
+        self.0[bid].insert(pos, ndx);
+    }
+
     fn assert_invariants(&self) {
         // check: no duplicates
         let mut is_insn_scheduled = Vec::new();
@@ -240,6 +253,15 @@ impl Schedule {
 
             assert!(!ndxs.is_empty(), "block is empty: {:?}", bid);
         }
+    }
+
+    fn find_block_of(&self, ndx: u16) -> Option<(BlockID, usize)> {
+        for (bid, ndxs) in self.0.items() {
+            if let Some(pos) = ndxs.iter().position(|&n| n == ndx) {
+                return Some((bid, pos));
+            }
+        }
+        None
     }
 }
 
@@ -1014,5 +1036,54 @@ impl<T> Index<BlockID> for BlockMap<T> {
 impl<T> IndexMut<BlockID> for BlockMap<T> {
     fn index_mut(&mut self, index: BlockID) -> &mut Self::Output {
         self.0.index_mut(index.0 as usize)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn schedule_from_blocks(blocks: &[&[u16]]) -> Schedule {
+        let mut bmap = BlockMap::new_sized(Vec::new(), blocks.len() as u16);
+        for (i, block) in blocks.iter().enumerate() {
+            bmap[BlockID(i as u16)] = block.iter().copied().collect();
+        }
+        Schedule(bmap)
+    }
+
+    #[test]
+    fn insert_before_inserts_into_same_block_before_reference() {
+        let mut sched = schedule_from_blocks(&[&[0, 1, 2], &[3, 4]]);
+
+        sched.insert_before(99, 2);
+
+        assert_eq!(sched.of_block(BlockID(0)), &[0, 1, 99, 2]);
+        assert_eq!(sched.of_block(BlockID(1)), &[3, 4]);
+    }
+
+    #[test]
+    fn insert_before_inserts_into_reference_block_even_when_reference_is_in_another_block() {
+        let mut sched = schedule_from_blocks(&[&[0, 1], &[2, 3, 4]]);
+
+        sched.insert_before(99, 3);
+
+        assert_eq!(sched.of_block(BlockID(0)), &[0, 1]);
+        assert_eq!(sched.of_block(BlockID(1)), &[2, 99, 3, 4]);
+    }
+
+    #[test]
+    #[should_panic(expected = "already scheduled")]
+    fn insert_before_panics_when_inserting_an_already_scheduled_index() {
+        let mut sched = schedule_from_blocks(&[&[0, 1], &[2, 3]]);
+
+        sched.insert_before(1, 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "reference position is not scheduled in any block")]
+    fn insert_before_panics_when_reference_is_missing() {
+        let mut sched = schedule_from_blocks(&[&[0, 1], &[2, 3]]);
+
+        sched.insert_before(99, 42);
     }
 }

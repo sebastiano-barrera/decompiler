@@ -367,6 +367,9 @@ impl DecompiledFunction {
     pub fn ssa(&self) -> Option<&crate::ssa::Program> {
         self.ssa.as_ref()
     }
+    pub fn ssa_mut(&mut self) -> Option<&mut crate::ssa::Program> {
+        self.ssa.as_mut()
+    }
 
     pub fn ast(&self) -> Option<&crate::ast::Ast> {
         self.ast.as_ref()

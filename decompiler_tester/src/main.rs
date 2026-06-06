@@ -660,7 +660,7 @@ impl FunctionView {
     fn show_central(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::both()
             .auto_shrink([false, false])
-            .show(ui, |ui| match (self.df.ssa(), self.ast.as_ref()) {
+            .show(ui, |ui| match (self.df.ssa_mut(), self.ast.as_mut()) {
                 (Some(ssa), Some(ast)) => {
                     ast::render(ui, ast, ssa, &mut self.hl);
                 }
@@ -921,15 +921,20 @@ mod ast {
 
     pub fn render(
         ui: &mut egui::Ui,
-        ast: &decompiler::Ast,
-        ssa: &decompiler::SSAProgram,
+        ast: &mut decompiler::Ast,
+        ssa: &mut decompiler::SSAProgram,
         hl: &mut hl::State,
     ) {
-        columns::show(ui, [40.0, columns::EXPANDING_WIDTH], move |cols| {
+        let cmd = &mut Cmd::None;
+
+        columns::show(ui, [40.0, columns::EXPANDING_WIDTH], |cols| {
+            let root_sid = ast.root();
             let mut s = State { ast, ssa, hl };
             let [block_def_col, main_col] = cols.uis();
-            render_stmt(block_def_col, main_col, &mut s, ast.root());
+            render_stmt(block_def_col, main_col, &mut s, root_sid, cmd);
         });
+
+        cmd.execute(ast, ssa);
     }
 
     pub struct State<'a> {
@@ -943,6 +948,7 @@ mod ast {
         ui: &mut egui::Ui,
         s: &mut State<'_>,
         sid: StmtID,
+        command: &mut Cmd,
     ) {
         // TODO replace tail-calls with a loop continue (or similar)
         ui.vertical(|ui| {
@@ -954,7 +960,7 @@ mod ast {
                     print_block_def(block_def_col, s, *bid);
 
                     ui.horizontal(|ui| {
-                        render_stmt(block_def_col, ui, s, *body);
+                        render_stmt(block_def_col, ui, s, *body, command);
                     });
                 }
                 Stmt::Let { name, value, body } => {
@@ -965,7 +971,7 @@ mod ast {
                         render_expr_def(ui, s, *value, 0);
                         print_kw(ui, s, "in");
                     });
-                    render_stmt(block_def_col, ui, s, *body);
+                    render_stmt(block_def_col, ui, s, *body, command);
                 }
                 Stmt::LetPhi { name, body } => {
                     ui.horizontal(|ui| {
@@ -973,11 +979,11 @@ mod ast {
                         // no reg available here in the AST node; use a placeholder reg index 0
                         print_ident_def(ui, s, name, hl::Focus::Reg(decompiler::Reg(0)));
                     });
-                    render_stmt(block_def_col, ui, s, *body);
+                    render_stmt(block_def_col, ui, s, *body, command);
                 }
                 Stmt::Seq { first, then } => {
-                    render_stmt(block_def_col, ui, s, *first);
-                    render_stmt(block_def_col, ui, s, *then);
+                    render_stmt(block_def_col, ui, s, *first, command);
+                    render_stmt(block_def_col, ui, s, *then, command);
                 }
                 Stmt::Eval(reg) => {
                     ui.horizontal(|ui| {
@@ -987,7 +993,13 @@ mod ast {
                 Stmt::If { cond, cons, alt } => {
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
-                            print_kw(ui, s, "if");
+                            if print_kw(ui, s, "if")
+                                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                .double_clicked()
+                            {
+                                *command = Cmd::InvertIf(sid);
+                            }
+
                             match *cond {
                                 Some(cond) => {
                                     render_expr_def(ui, s, cond, 0);
@@ -999,14 +1011,14 @@ mod ast {
                         });
                         ui.horizontal(|ui| {
                             ui.add_space(20.0);
-                            render_stmt(block_def_col, ui, s, *cons);
+                            render_stmt(block_def_col, ui, s, *cons, command);
                         });
 
                         if s.ast.get(*alt) != &Stmt::Pass {
                             print_kw(ui, s, "else");
                             ui.horizontal(|ui| {
                                 ui.add_space(20.0);
-                                render_stmt(block_def_col, ui, s, *alt);
+                                render_stmt(block_def_col, ui, s, *alt, command);
                             });
                         }
 
@@ -1051,7 +1063,9 @@ mod ast {
                         print_block_ref(ui, s, *block_id);
                     });
                 }
-                Stmt::Pass => print_kw(ui, s, "pass"),
+                Stmt::Pass => {
+                    print_kw(ui, s, "pass");
+                }
             }
         });
     }
@@ -1347,8 +1361,8 @@ mod ast {
         active_label(ui, s, focus, colors, ident);
     }
 
-    fn print_kw(ui: &mut egui::Ui, _s: &mut State<'_>, kw: &str) {
-        ui.label(egui::RichText::new(kw).strong());
+    fn print_kw(ui: &mut egui::Ui, _s: &mut State<'_>, kw: &str) -> egui::Response {
+        ui.label(egui::RichText::new(kw).strong())
     }
 
     fn print_block_def(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
@@ -1407,6 +1421,23 @@ mod ast {
         }
 
         res.on_hover_cursor(egui::CursorIcon::PointingHand);
+    }
+
+    enum Cmd {
+        None,
+        InvertIf(StmtID),
+    }
+    impl Cmd {
+        fn execute(&self, ast: &mut decompiler::Ast, ssa: &mut decompiler::SSAProgram) {
+            match *self {
+                Cmd::None => {}
+                Cmd::InvertIf(sid) => {
+                    if let Err(err) = decompiler::ast::edit::invert_if(ast, ssa, sid) {
+                        eprintln!("Error inverting if: {:?}", err);
+                    }
+                }
+            }
+        }
     }
 }
 
