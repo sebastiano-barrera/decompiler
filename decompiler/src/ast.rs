@@ -166,39 +166,46 @@ pub enum Error {
 pub struct AstBuilder<'a> {
     ssa: &'a ssa::Program,
     block_order: Vec<cfg::BlockID>,
+    is_all_blocks_named: bool,
 }
 impl<'a> AstBuilder<'a> {
     pub fn new(ssa: &'a ssa::Program) -> Self {
         let mut builder = AstBuilder {
             ssa,
             block_order: Vec::new(),
+            is_all_blocks_named: false,
         };
-
-        // default block order: reverse postorder TODO replace with dominator
-        // tree walked in reverse postorder
-        let block_order: Vec<_> = ssa.cfg().block_ids_rpo().collect();
-        builder.set_block_order(&block_order).unwrap();
+        builder.set_block_order(&[]).unwrap();
         builder
     }
 
+    pub fn set_all_blocks_named(&mut self, value: bool) {
+        self.is_all_blocks_named = value;
+    }
+
     pub fn set_block_order(&mut self, block_order: &[cfg::BlockID]) -> Result<(), Error> {
-        // TODO relax this constraint -- having duplicates in the block order
-        // will become useful in the future.
-        {
-            let mut count_of_bid = cfg::BlockMap::new(self.ssa.cfg(), 0);
-            for &bid in block_order {
-                count_of_bid[bid] += 1;
-            }
-            for (_, &count) in count_of_bid.items() {
-                if count > 1 {
-                    return Err(Error::BlockOrderHasDuplicates);
-                }
+        if block_order.is_empty() {
+            // default block order: reverse postorder TODO replace with dominator
+            // tree walked in reverse postorder
+            self.block_order = self.ssa.cfg().block_ids_rpo().collect();
+            return Ok(());
+        }
+
+        // TODO relax with constraint -- it will become useful in the future.
+        let mut count_of_bid = cfg::BlockMap::new(self.ssa.cfg(), 0);
+        for &bid in block_order {
+            count_of_bid[bid] += 1;
+        }
+        for (_, &count) in count_of_bid.items() {
+            if count > 1 {
+                return Err(Error::BlockOrderHasDuplicates);
             }
         }
 
         // NOTE: reversed so that we can "peek" into it by inspecting the last
         // element and/or doing .pop() to advance
         self.block_order = Vec::from(block_order);
+
         Ok(())
     }
 
@@ -213,6 +220,7 @@ struct State<'a> {
     let_emitted: HashSet<Reg>,
     block_printed: cfg::BlockMap<bool>,
     ast: Ast,
+    is_all_blocks_named: bool,
 }
 
 impl<'a> State<'a> {
@@ -242,6 +250,7 @@ impl<'a> State<'a> {
                 is_named,
                 block_order: Vec::new(),
             },
+            is_all_blocks_named: builder.is_all_blocks_named,
         }
     }
 
@@ -279,6 +288,9 @@ impl<'a> State<'a> {
         self.ast.assert_invariants();
 
         cleanup::cleanup(&mut self.ast);
+        if !self.is_all_blocks_named {
+            cleanup::remove_unused_labels(&mut self.ast);
+        }
 
         #[cfg(debug_assertions)]
         self.ast.assert_invariants();
@@ -319,9 +331,9 @@ impl<'a> State<'a> {
         match tgt {
             cfg::Dest::Ext(addr) => self.push_stmt(Stmt::JumpExternal(addr)),
             cfg::Dest::Block(tgt_bid) => {
-                if self.block_order_rev.last() == Some(&tgt_bid) &&
-                    // tgt has only one predecessor (then it must be us)
-                    self.ssa.cfg().block_preds(tgt_bid).len() == 1
+                if self.block_order_rev.last() == Some(&tgt_bid)
+                // tgt has only one predecessor (then it must be us)
+                && self.ssa.cfg().block_preds(tgt_bid).len() == 1
                 {
                     debug_assert_eq!(self.ssa.cfg().block_preds(tgt_bid), &[src_bid]);
                     self.block_order_rev.pop();
@@ -497,8 +509,6 @@ mod cleanup {
         if ast.root() != root_sid_pre {
             ast.push_stmt(ast.get(root_sid_pre).clone());
         }
-
-        remove_unused_labels(ast);
     }
 
     /// How a Stmt is expected to "continue", i.e. where control flow is led
@@ -611,7 +621,7 @@ mod cleanup {
         ast.nodes[to.0] = std::mem::replace(&mut ast.nodes[from.0], Stmt::Pass);
     }
 
-    fn remove_unused_labels(ast: &mut Ast) {
+    pub(super) fn remove_unused_labels(ast: &mut Ast) {
         let mut is_used = HashSet::new();
 
         for stmt in ast.nodes.iter() {

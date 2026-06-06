@@ -260,7 +260,7 @@ impl FunctionView {
             block_order: Vec::new(),
             block_order_error: None,
         };
-        fv.rebuild_ast(Vec::new());
+        fv.rebuild_ast();
         fv
     }
 
@@ -269,9 +269,8 @@ impl FunctionView {
     // If `block_order` is empty, the default block order from the AST will be
     // used (or an error will be shown if the AST cannot be built with any block
     // order).
-    fn rebuild_ast(&mut self, block_order: Vec<BlockID>) {
+    fn rebuild_ast(&mut self) {
         self.ast = None;
-        self.block_order = block_order;
         self.block_order_error = None;
 
         let Some(ssa) = self.df.ssa() else {
@@ -279,10 +278,11 @@ impl FunctionView {
         };
 
         let mut builder = decompiler::AstBuilder::new(ssa);
-        if !self.block_order.is_empty() {
-            let res = builder.set_block_order(&self.block_order);
-            self.block_order_error = res.err().map(|err| err.to_string());
-        }
+        builder.set_all_blocks_named(true);
+        self.block_order_error = builder
+            .set_block_order(&self.block_order)
+            .err()
+            .map(|err| err.to_string());
         let ast = builder.build();
         if self.block_order.is_empty() {
             self.block_order = Vec::from(ast.block_order());
@@ -597,8 +597,8 @@ impl FunctionView {
                     .inner;
 
                 if is_block_order_changed {
-                    let block_order = std::mem::take(&mut self.block_order);
-                    self.rebuild_ast(block_order);
+                    self.block_order = std::mem::take(&mut self.block_order);
+                    self.rebuild_ast();
                 }
             }
         }
@@ -952,8 +952,8 @@ mod ast {
                         block_def_col.cursor().with_max_y(ui.cursor().min.y - 3.0),
                     );
                     print_block_def(block_def_col, s, *bid);
+
                     ui.horizontal(|ui| {
-                        print_block_def(ui, s, *bid);
                         render_stmt(block_def_col, ui, s, *body);
                     });
                 }
