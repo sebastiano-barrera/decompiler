@@ -14,7 +14,6 @@ mod pp;
 
 pub use pp::write_ast;
 
-// TODO intern strings? (check performance gain)
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "stmt", content = "arg")]
 pub enum Stmt {
@@ -25,12 +24,12 @@ pub enum Stmt {
         body: StmtID,
     },
     Let {
-        name: String,
+        name: Reg,
         value: Reg,
         body: StmtID,
     },
     LetPhi {
-        name: String,
+        name: Reg,
         body: StmtID,
     },
     Seq {

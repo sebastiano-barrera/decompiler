@@ -47,7 +47,7 @@ pub fn write_ast_node<W: std::io::Write>(
                 return Ok(());
             }
             Stmt::Let { name, value, body } => {
-                write!(wrt, "let {} = ", name)?;
+                write!(wrt, "let r{} = ", name.reg_index())?;
                 wrt.open_box();
                 write_ast_expr(
                     wrt,
@@ -63,7 +63,7 @@ pub fn write_ast_node<W: std::io::Write>(
                 sid = *body;
             }
             Stmt::LetPhi { name, body } => {
-                writeln!(wrt, "{}: phi;", name)?;
+                writeln!(wrt, "r{}: phi;", name.reg_index())?;
                 sid = *body;
             }
             Stmt::Seq { first, then } => {

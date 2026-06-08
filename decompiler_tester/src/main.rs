@@ -66,15 +66,16 @@ struct App {
 }
 struct FunctionView {
     df: decompiler::DecompiledFunction,
+    name_of_reg: decompiler::RegMap<String>,
+    ast: Option<decompiler::Ast>,
+    asm: Assembly,
+    type_windows: Vec<TypeDetailsWindow>,
+
     problems_is_visible: bool,
     #[allow(dead_code)]
     problems_title: String,
     #[allow(dead_code)]
     problems_error: Option<String>,
-
-    ast: Option<decompiler::Ast>,
-    asm: Assembly,
-    type_windows: Vec<TypeDetailsWindow>,
 
     hl: hl::State,
     asm_hl_mask: Cache<BlockID, Vec<bool>>,
@@ -244,8 +245,19 @@ impl FunctionView {
         let base_ip = df.base_ip();
         let asm = Assembly::disassemble_x86(machine_code, base_ip);
 
+        let name_of_reg = if let Some(prog) = df.ssa() {
+            let mut names = decompiler::RegMap::for_program(prog, String::new());
+            for reg in prog.registers() {
+                names[reg] = format!("r{}", reg.reg_index());
+            }
+            names
+        } else {
+            decompiler::RegMap::empty()
+        };
+
         let mut fv = FunctionView {
             df,
+            name_of_reg,
             problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
@@ -583,6 +595,7 @@ impl FunctionView {
                         let s = &mut ast::State {
                             ast,
                             ssa,
+                            name_of_reg: &self.name_of_reg,
                             hl: &mut self.hl,
                         };
 
@@ -623,16 +636,19 @@ impl FunctionView {
                         return;
                     };
 
-                    ui.heading(format!("{:?}", reg));
+                    let name = &mut self.name_of_reg[reg];
+                    let res = egui::TextEdit::singleline(name)
+                        .font(egui::TextStyle::Heading)
+                        .show(ui);
+                    if res.response.changed() {
+                        self.rebuild_ast();
+                    }
 
                     let Some(ssa) = self.df.ssa() else {
                         ui.label("(Error: No SSA!)");
                         return;
                     };
-                    let Some(tyid) = ssa.value_type(reg) else {
-                        ui.label("No Type ID.");
-                        return;
-                    };
+                    let hl_tyid = ssa.value_type(reg);
 
                     let rtx = match exe.types().read_tx() {
                         Ok(rtx) => rtx,
@@ -652,7 +668,15 @@ impl FunctionView {
                         ui.end_row();
 
                         ui.label(egui::RichText::new("High-level type:").strong());
-                        self.ui_type_ref(ui, tyid, &rtx.read());
+                        match hl_tyid {
+                            Some(hl_tyid) => {
+                                self.ui_type_ref(ui, hl_tyid, &rtx.read());
+                            }
+                            None => {
+                                ui.label("No Type ID.");
+                            }
+                        };
+
                         ui.end_row();
                     });
                 });
@@ -665,7 +689,7 @@ impl FunctionView {
             .auto_shrink([false, false])
             .show(ui, |ui| match (self.df.ssa_mut(), self.ast.as_mut()) {
                 (Some(ssa), Some(ast)) => {
-                    ast::render(ui, ast, ssa, &mut self.hl);
+                    ast::render(ui, ast, ssa, &mut self.hl, &self.name_of_reg);
                 }
                 _ => {
                     ui.centered_and_justified(|ui| {
@@ -927,12 +951,18 @@ mod ast {
         ast: &mut decompiler::Ast,
         ssa: &mut decompiler::SSAProgram,
         hl: &mut hl::State,
+        name_of_reg: &decompiler::RegMap<String>,
     ) {
         let cmd = &mut Cmd::None;
 
         columns::show(ui, [40.0, columns::EXPANDING_WIDTH], |cols| {
             let root_sid = ast.root();
-            let mut s = State { ast, ssa, hl };
+            let mut s = State {
+                ast,
+                ssa,
+                hl,
+                name_of_reg,
+            };
             let [block_def_col, main_col] = cols.uis();
             render_stmt(block_def_col, main_col, &mut s, root_sid, cmd);
         });
@@ -942,6 +972,7 @@ mod ast {
 
     pub struct State<'a> {
         pub ast: &'a decompiler::Ast,
+        pub name_of_reg: &'a decompiler::RegMap<String>,
         pub ssa: &'a decompiler::SSAProgram,
         pub hl: &'a mut hl::State,
     }
@@ -969,7 +1000,7 @@ mod ast {
                 Stmt::Let { name, value, body } => {
                     ui.horizontal(|ui| {
                         print_kw(ui, s, "let");
-                        print_ident_def(ui, s, name, hl::Focus::Reg(*value));
+                        print_reg_def(ui, s, *name, hl::Focus::Reg(*value));
                         print_kw(ui, s, "=");
                         render_expr_def(ui, s, *value, 0);
                         print_kw(ui, s, "in");
@@ -980,7 +1011,7 @@ mod ast {
                     ui.horizontal(|ui| {
                         print_kw(ui, s, "letphi");
                         // no reg available here in the AST node; use a placeholder reg index 0
-                        print_ident_def(ui, s, name, hl::Focus::Reg(decompiler::Reg(0)));
+                        print_reg_def(ui, s, *name, hl::Focus::Reg(decompiler::Reg(0)));
                     });
                     render_stmt(block_def_col, ui, s, *body, command);
                 }
@@ -1084,8 +1115,7 @@ mod ast {
         parent_prec: decompiler::PrecedenceLevel,
     ) {
         if s.ast.is_value_named(reg) {
-            let text = format!("r{}", reg.reg_index());
-            print_ident_ref(ui, s, &text, hl::Focus::Reg(reg));
+            print_ident_ref(ui, s, reg, hl::Focus::Reg(reg));
         } else {
             render_expr_def(ui, s, reg, parent_prec);
         }
@@ -1382,12 +1412,14 @@ mod ast {
     fn print_ident(ui: &mut egui::Ui, _s: &mut State<'_>, ident: &str) {
         ui.label(ident);
     }
-    fn print_ident_def(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str, focus: hl::Focus) {
+    fn print_reg_def(ui: &mut egui::Ui, s: &mut State<'_>, reg: decompiler::Reg, focus: hl::Focus) {
         let colors = theme::colors(focus, theme::Role::Definition);
+        let ident = &s.name_of_reg[reg];
         active_label(ui, s, focus, colors, ident);
     }
-    fn print_ident_ref(ui: &mut egui::Ui, s: &mut State, ident: &str, focus: hl::Focus) {
+    fn print_ident_ref(ui: &mut egui::Ui, s: &mut State, reg: decompiler::Reg, focus: hl::Focus) {
         let colors = theme::colors(focus, theme::Role::Reference);
+        let ident = &s.name_of_reg[reg];
         active_label(ui, s, focus, colors, ident);
     }
 

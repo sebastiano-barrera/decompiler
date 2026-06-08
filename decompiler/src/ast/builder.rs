@@ -192,18 +192,15 @@ impl<'a> State<'a> {
         match self.ssa.get(reg).unwrap() {
             // These are managed in the handling of if/return/etc.
             Insn::SetJumpCondition(_) | Insn::SetJumpTarget(_) | Insn::SetReturnValue(_) => sid,
-            Insn::Phi => {
-                let name = format!("r{}", reg.reg_index());
-                self.push_stmt(Stmt::LetPhi { name, body: sid })
-            }
-            _ if self.is_named(reg) => {
-                let name = format!("r{}", reg.reg_index());
-                self.push_stmt(Stmt::Let {
-                    name,
-                    value: reg,
-                    body: sid,
-                })
-            }
+            Insn::Phi => self.push_stmt(Stmt::LetPhi {
+                name: reg,
+                body: sid,
+            }),
+            _ if self.is_named(reg) => self.push_stmt(Stmt::Let {
+                name: reg,
+                value: reg,
+                body: sid,
+            }),
             _ => {
                 let eval = self.push_stmt(Stmt::Eval(reg));
                 self.push_stmt(Stmt::Seq {
