@@ -898,10 +898,8 @@ impl Transform for SelectTypeOnDerefMemberRead {
                 size: deref_access.aggregate_size,
             },
         );
-        c.prog.set_value_type(
-            deref_access.aggregate_addr_reg,
-            Some(deref_access.aggregate_tyid),
-        );
+        c.prog
+            .set_value_type(reg_aggregate, Some(deref_access.aggregate_tyid));
 
         // find the struct member that matches the offset/size
         let tip = select_type_and_read(
@@ -917,6 +915,7 @@ impl Transform for SelectTypeOnDerefMemberRead {
     }
 }
 
+#[derive(Debug)]
 struct DerefAccess {
     aggregate_addr_reg: Reg,
     aggregate_size: u32,
@@ -947,7 +946,7 @@ fn select_type_deref(
         ty::ByteRange::new_offset_size(offset, size)
     };
     event!(
-        Level::DEBUG,
+        Level::TRACE,
         ?aggregate_addr_reg,
         ?member_range,
         "pointee range read detected"
@@ -960,15 +959,14 @@ fn select_type_deref(
     };
     let aggregate_size = types.bytes_size(aggregate_tyid).ok().flatten()?;
 
-    /*
-        (member_range, whole_tyid, reg_pointee_whole)
-    */
-    Some(DerefAccess {
+    let deref_access = DerefAccess {
         aggregate_addr_reg,
         aggregate_size: aggregate_size.try_into().unwrap(),
         aggregate_tyid,
         member_range,
-    })
+    };
+    event!(Level::TRACE, ?deref_access, "deref access selected");
+    Some(deref_access)
 }
 
 struct LabeledTransform<'a> {
