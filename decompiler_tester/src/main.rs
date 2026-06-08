@@ -3,13 +3,17 @@ use std::{
     f32,
     fs::File,
     path::{Path, PathBuf},
+    sync::Arc,
     time::Instant,
 };
 
 use anyhow::{Context, Result};
 use decompiler::{BlockID, Executable};
+use egui::Widget;
 use ouroboros::self_referencing;
 use tracing_subscriber::EnvFilter;
+
+mod search;
 
 fn main() {
     tracing_subscriber::fmt::fmt()
@@ -62,7 +66,9 @@ struct Exe {
 struct App {
     exe: Exe,
     function_selector: Option<FunctionSelector>,
+    type_search: Option<search::TypeSearchEngine>,
     func_view: Option<Result<FunctionView, decompiler::Error>>,
+    type_selector: Option<TypeSelector>,
 }
 struct FunctionView {
     df: decompiler::DecompiledFunction,
@@ -168,15 +174,22 @@ impl App {
             exe,
             function_selector: None,
             func_view: None,
+            type_search: None,
+            type_selector: None,
         };
         app.start_function_selector();
         Ok(app)
     }
 
     fn show_topbar(&mut self, ui: &mut egui::Ui) {
+        if ui.button("Lookup types…").clicked() {
+            self.start_type_lookup();
+        }
         if ui.button("Load function…").clicked() {
             self.start_function_selector();
         }
+
+        self.exe.borrow_exe().types();
 
         match self.func_view.as_mut() {
             Some(Ok(stage_func)) => {
@@ -189,6 +202,17 @@ impl App {
                 ui.label("No function loaded.");
             }
         }
+    }
+
+    fn start_type_lookup(&mut self) {
+        if self.type_search.is_none() {
+            let mut engine = search::TypeSearchEngine::new();
+            let tys = Arc::clone(self.exe.borrow_exe().types());
+            engine.load_types(tys);
+            self.type_search = Some(engine);
+        }
+
+        self.type_selector = Some(TypeSelector::new("modal type selector"));
     }
 
     fn start_function_selector(&mut self) {
@@ -206,6 +230,22 @@ impl App {
         match self.func_view.as_mut() {
             Some(Ok(stage_func)) => {
                 stage_func.show(ui, self.exe.borrow_exe());
+
+                if let (Some(type_selector), Some(engine)) =
+                    (&mut self.type_selector, &mut self.type_search)
+                {
+                    let res = type_selector.show(ui, engine);
+
+                    if let Some(tyid) = res.inner {
+                        if let Some(rtx) = self.exe.borrow_exe().types().read_tx().ok() {
+                            let rtx = rtx.read();
+                            stage_func.add_type_window(tyid, &rtx);
+                        }
+                        self.type_selector = None;
+                    } else if res.should_close() {
+                        self.type_selector = None;
+                    }
+                }
             }
             Some(Err(err)) => {
                 egui::Frame::new().show(ui, |ui| {
@@ -361,16 +401,24 @@ impl FunctionView {
 
         let res = ui.button(text);
         if res.clicked() {
-            if self
-                .type_windows
-                .iter()
-                .find(|win| win.tyid == tyid)
-                .is_none()
-            {
-                self.type_windows.push(TypeDetailsWindow::new(tyid, rtx));
-            }
+            self.add_type_window(tyid, rtx);
         } else {
             res.on_hover_text(format!("{:?}", tyid));
+        }
+    }
+
+    fn add_type_window(
+        &mut self,
+        tyid: decompiler::ty::TypeID,
+        rtx: &decompiler::ty::ReadTxRef<'_>,
+    ) {
+        if self
+            .type_windows
+            .iter()
+            .find(|win| win.tyid == tyid)
+            .is_none()
+        {
+            self.type_windows.push(TypeDetailsWindow::new(tyid, rtx));
         }
     }
 
@@ -862,6 +910,78 @@ impl FunctionSelector {
                 });
 
             response_inner
+        })
+    }
+}
+
+struct TypeSelector {
+    id: &'static str,
+    query: String,
+    query_prev_frame: String,
+    results: Vec<search::TypeRecord>,
+}
+impl TypeSelector {
+    fn new(id: &'static str) -> Self {
+        TypeSelector {
+            id,
+            query: String::new(),
+            query_prev_frame: String::new(),
+            results: Vec::new(),
+        }
+    }
+
+    fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        engine: &mut search::TypeSearchEngine,
+    ) -> egui::ModalResponse<Option<decompiler::ty::TypeID>> {
+        // TODO debounce?
+        if engine.tick() {
+            engine.fetch_current_results(&mut self.results);
+        }
+
+        egui::Modal::new(self.id.into()).show(ui.ctx(), |ui| {
+            let screen_rect = ui.ctx().viewport_rect();
+            ui.set_min_size(egui::Vec2::new(
+                screen_rect.width() * 0.6,
+                screen_rect.height() * 0.6,
+            ));
+
+            let input_res = egui::TextEdit::singleline(&mut self.query)
+                .font(egui::TextStyle::Monospace)
+                .hint_text("Type query...")
+                .desired_width(f32::INFINITY)
+                .show(ui);
+            if input_res.response.changed() {
+                let is_append = self.query.starts_with(&self.query_prev_frame);
+                engine.set_query(&self.query, is_append);
+                self.query_prev_frame = self.query.clone();
+            }
+
+            ui.add_space(5.0);
+
+            use egui::scroll_area::ScrollBarVisibility;
+            let mut selected_tyid = None;
+            egui::ScrollArea::vertical()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+                .show_rows(ui, 18.0, self.results.len(), |ui, ndxs| {
+                    ui.set_min_width(ui.available_width());
+                    for ndx in ndxs {
+                        let record = &self.results[ndx];
+                        let label = format!(
+                            "{:15} {} (ID: {:?})",
+                            record.category.as_str(),
+                            record.name,
+                            record.tyid
+                        );
+                        let label = egui::RichText::new(label).monospace();
+                        if ui.selectable_label(false, label).clicked() {
+                            selected_tyid = Some(record.tyid);
+                        }
+                    }
+                });
+
+            selected_tyid
         })
     }
 }

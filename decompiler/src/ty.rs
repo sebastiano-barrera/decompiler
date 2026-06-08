@@ -431,6 +431,19 @@ impl<'a> ReadTxRef<'a> {
         }
     }
 
+    /// Read the entire database, one type at a time.
+    ///
+    /// Each record is decoded from the on-disk format and returned through the
+    /// iterator.
+    ///
+    /// This is potentially a long-running operation.
+    ///
+    /// TODO: this currently gives up if any record is invalid, but maybe it
+    /// should just skip invalid records instead?
+    pub fn scan_types(&self) -> Result<impl '_ + Iterator<Item = (TypeID, Ty)>> {
+        Ok(self.ts.db_types.iter(self.tx)?.flatten())
+    }
+
     #[allow(dead_code)]
     pub fn dump<W: PP + ?Sized>(&self, out: &mut W) -> std::io::Result<()> {
         let count = self
