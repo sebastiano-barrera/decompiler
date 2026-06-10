@@ -716,15 +716,32 @@ impl FunctionView {
                         ui.end_row();
 
                         ui.label(egui::RichText::new("High-level type:").strong());
-                        match hl_tyid {
-                            Some(hl_tyid) => {
-                                self.ui_type_ref(ui, hl_tyid, &rtx.read());
+                        ui.horizontal(|ui| {
+                            match hl_tyid {
+                                Some(hl_tyid) => {
+                                    self.ui_type_ref(ui, hl_tyid, &rtx.read());
+                                }
+                                None => {
+                                    ui.label("No Type ID.");
+                                }
                             }
-                            None => {
-                                ui.label("No Type ID.");
-                            }
-                        };
 
+                            ui.add_space(5.0);
+
+                            egui::containers::menu::MenuButton::new("Change...").ui(ui, |ui| {
+                                for type_window in &self.type_windows {
+                                    if ui.button(&type_window.title).clicked() {
+                                        let tyid = type_window.tyid;
+
+                                        let program = self.df.ssa_mut().unwrap();
+                                        program.mutate(|mut prog| {
+                                            prog.set_value_type(reg, Some(tyid));
+                                        });
+                                        self.df.reoptimize(exe.types());
+                                    }
+                                }
+                            });
+                        });
                         ui.end_row();
                     });
                 });

@@ -374,4 +374,10 @@ impl DecompiledFunction {
     pub fn ast(&self) -> Option<&crate::ast::Ast> {
         self.ast.as_ref()
     }
+
+    pub fn reoptimize(&mut self, types: &ty::TypeSet) {
+        if let Some(ssa) = self.ssa_mut() {
+            xform::canonical(ssa, types);
+        }
+    }
 }
