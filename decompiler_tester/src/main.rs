@@ -9,7 +9,6 @@ use std::{
 
 use anyhow::{Context, Result};
 use decompiler::{BlockID, Executable};
-use egui::Widget;
 use ouroboros::self_referencing;
 use tracing_subscriber::EnvFilter;
 
@@ -87,7 +86,6 @@ struct FunctionView {
     asm_hl_mask: Cache<BlockID, Vec<bool>>,
 
     is_asm_visible: bool,
-    is_cfg_visible: bool,
     is_block_order_visible: bool,
     block_order: Vec<BlockID>,
     block_order_error: Option<String>,
@@ -121,10 +119,6 @@ impl eframe::App for App {
                     egui::widgets::global_theme_preference_switch(ui);
 
                     if let Some(Ok(func_view)) = &mut self.func_view {
-                        ui.toggle_value(
-                            &mut func_view.is_cfg_visible,
-                            egui::RichText::new("CFG").monospace(),
-                        );
                         ui.toggle_value(
                             &mut func_view.is_asm_visible,
                             egui::RichText::new("ASM").monospace(),
@@ -307,7 +301,6 @@ impl FunctionView {
             hl: hl::State::empty(),
             asm_hl_mask: Cache::default(),
             is_asm_visible: false,
-            is_cfg_visible: false,
             is_block_order_visible: false,
             block_order: Vec::new(),
             block_order_error: None,
@@ -665,11 +658,6 @@ impl FunctionView {
                     self.rebuild_ast();
                 }
             }
-        }
-        if self.is_cfg_visible {
-            egui::Panel::right("cfg_panel").show_inside(ui, |ui| {
-                ui.heading("Control-flow graph");
-            });
         }
 
         self.show_hl_details_panel(ui, exe);
