@@ -109,6 +109,10 @@ fn inject_types_fallible(
     let mut check_countdown = CHECK_COUNTDOWN_MAX;
 
     for (ndx, (tyid, ty)) in rtx.scan_types()?.enumerate() {
+        if let Ty::Alias(_) = ty {
+            continue;
+        }
+
         check_countdown -= 1;
         if check_countdown == 0 {
             if !running_flag.load(atomic::Ordering::SeqCst) {
@@ -118,10 +122,11 @@ fn inject_types_fallible(
             eprintln!("scanning types ({})...", ndx);
         }
 
+        let name = rtx.name(tyid)?.unwrap_or_else(|| String::new());
         let record = TypeRecord {
             tyid,
             category: TypeCategory::of_type(&ty),
-            name: rtx.name(tyid)?.unwrap_or_else(|| String::new()),
+            name,
         };
         injector.push(record, |record, columns| {
             // TODO lots of copying! can this be avoided?
