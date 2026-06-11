@@ -5,6 +5,7 @@ use thiserror::Error;
 use tracing::{event, Level};
 
 pub mod dwarf;
+pub mod notation;
 
 use crate::{
     mil,
@@ -238,6 +239,11 @@ impl<'a> ReadTxRef<'a> {
             .get(self.tx, &tyid)
             .map(|opt| opt.map(Cow::Owned))
             .map_err(Into::into)
+    }
+
+    pub fn is_tyid_defined(&self, tyid: TypeID) -> Result<bool> {
+        let opt = self.ts.db_types.get(self.tx, &tyid)?;
+        Ok(opt.is_some())
     }
 
     pub fn get_through_alias(&self, mut tyid: TypeID) -> Result<Option<Cow<'a, Ty>>> {
