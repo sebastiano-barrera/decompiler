@@ -35,6 +35,7 @@ enum Step {
     Ref {
         tyid: TypeID,
     },
+    Void,
 }
 
 impl TypeBuilder {
@@ -71,6 +72,9 @@ impl TypeBuilder {
 
         for (step, &tyid) in self.program.iter().zip(&tyids) {
             match step {
+                Step::Void => {
+                    wtx.set(tyid, Ty::Void)?;
+                }
                 Step::Ptr => {
                     let subj = stack.pop().unwrap();
                     wtx.set(tyid, Ty::Ptr(subj))?;

@@ -98,6 +98,7 @@ fn parse_type(cursor: &mut Cursor, program: &mut Vec<Step>) -> ParseResult<()> {
         Token::KwUint64 => program.push(Step::Uint { size_bytes: 8 }),
         Token::KwFloat32 => program.push(Step::Float { size_bytes: 4 }),
         Token::KwFloat64 => program.push(Step::Float { size_bytes: 8 }),
+        Token::Void => program.push(Step::Void),
         Token::Ident(tyid) => {
             program.push(Step::Ref { tyid });
         }
@@ -139,6 +140,7 @@ enum Token {
     Semicolon,
     Star,
     Comma,
+    Void,
 }
 
 fn expect_token(cursor: &mut Cursor, expected: Token) -> ParseResult<()> {
@@ -214,6 +216,7 @@ fn next_token<'a>(cursor: &mut Cursor<'a>) -> ParseResult<Token> {
                 "u64" => Ok(Token::KwUint64),
                 "f32" => Ok(Token::KwFloat32),
                 "f64" => Ok(Token::KwFloat64),
+                "void" => Ok(Token::Void),
                 _ => {
                     *cursor = cur_start;
                     return Err(ParseError {
