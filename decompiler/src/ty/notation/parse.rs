@@ -80,7 +80,6 @@ fn parse_type(cursor: &mut Cursor, program: &mut Vec<Step>) -> ParseResult<()> {
                     other => return Err(error_unexpected_token(cursor, other)),
                 }
             }
-            expect_token(cursor, Token::ParenClosed)?;
             parse_type(cursor, program)?;
             program.push(Step::Func { count });
         }
@@ -397,6 +396,11 @@ mod tests {
                 Step::Struct { count: 2 },
             ]
         );
+    }
+
+    #[test]
+    fn parses_func() {
+        parse("func(*#123459) void").unwrap();
     }
 
     #[test]
