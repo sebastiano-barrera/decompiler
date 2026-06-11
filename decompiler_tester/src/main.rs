@@ -204,14 +204,17 @@ impl App {
         }
     }
 
-    fn start_type_lookup(&mut self) {
-        if self.type_search.is_none() {
+    fn ensure_type_search_engine(&mut self) -> &mut search::TypeSearchEngine {
+        self.type_search.get_or_insert_with(|| {
             let mut engine = search::TypeSearchEngine::new();
             let tys = Arc::clone(self.exe.borrow_exe().types());
             engine.load_types(tys);
-            self.type_search = Some(engine);
-        }
+            engine
+        })
+    }
 
+    fn start_type_lookup(&mut self) {
+        self.ensure_type_search_engine();
         self.type_selector = Some(TypeSelectorDialog::new("modal type selector"));
     }
 
@@ -270,8 +273,11 @@ impl App {
             }
         }
 
-        if let Some(dialog) = &mut self.func_type_force_dialog {
-            if dialog.show(ui).should_close() {
+        if self.func_type_force_dialog.is_some() {
+            self.ensure_type_search_engine();
+            let engine = self.type_search.as_mut().unwrap();
+            let dialog = self.func_type_force_dialog.as_mut().unwrap();
+            if dialog.show(ui, engine).should_close() {
                 self.func_type_force_dialog = None;
             }
         }
@@ -1033,6 +1039,7 @@ struct FuncTypeForceDialog {
     is_recently_changed: bool,
     change_time: Instant,
     status: decompiler::ty::notation::ParseResult<decompiler::ty::notation::TypeBuilder>,
+    type_selector: Option<TypeSelector>,
 }
 
 impl FuncTypeForceDialog {
@@ -1045,10 +1052,15 @@ impl FuncTypeForceDialog {
             is_recently_changed: false,
             change_time: Instant::now(),
             status: Ok(decompiler::ty::notation::TypeBuilder::empty()),
+            type_selector: None,
         }
     }
 
-    fn show(&mut self, ctx: &egui::Context) -> egui::ModalResponse<()> {
+    fn show(
+        &mut self,
+        ctx: &egui::Context,
+        engine: &mut search::TypeSearchEngine,
+    ) -> egui::ModalResponse<()> {
         egui::Modal::new(self.id.into()).show(ctx, |ui| {
             ui.label(egui::RichText::new(
                 "Type the definition of the new type for the function.\n\
@@ -1056,36 +1068,56 @@ impl FuncTypeForceDialog {
                  - array: [12]T\n\
                  - struct: struct { T; U; V }\n\
                  - primitives: u64, u8, f32\n\
-                 - functions: func(T, U) R\n",
+                 - functions: func(T, U) R\n\
+                 - search for type: ?name of type ...\n",
             ));
 
             let res = egui::TextEdit::multiline(&mut self.text_buffer)
                 .min_size(egui::vec2(ui.available_width(), 50.0))
                 .show(ui);
 
-            if res.response.changed() {
-                self.change_time = Instant::now();
-                self.is_recently_changed = true;
-            }
+            if let Some(qmark_pos) = self.text_buffer.find('?') {
+                let ts = self.type_selector.get_or_insert_with(TypeSelector::new);
+                // .show(ui, ctx, &self.text_buffer[qmark_pos + 1..]);
+                let name_query = &self.text_buffer[qmark_pos + 1..];
+                let ts_res = ui
+                    .allocate_ui(egui::Vec2::new(ui.available_width(), 200.0), |ui| {
+                        ui.label("Searching type by name:");
+                        ts.show(ui, engine, name_query)
+                    })
+                    .inner;
 
-            if self.is_recently_changed
-                && Instant::now().duration_since(self.change_time) >= Self::CHANGE_DEBOUNCE_TIME
-            {
-                self.is_recently_changed = false;
-                self.status = decompiler::ty::notation::parse(&self.text_buffer);
-            }
-
-            ui.horizontal(|ui| {
-                ui.label("Status: ");
-                match &self.status {
-                    Ok(tb) => {
-                        ui.label(format!("ok: {:?}", tb));
-                    }
-                    Err(err) => {
-                        ui.label(format!("error: {:?}", err));
-                    }
+                if let Some(tyid) = ts_res.selected_tyid {
+                    self.text_buffer.truncate(qmark_pos);
+                    self.text_buffer.push_str(&format!("#{}", tyid.0));
                 }
-            });
+            } else {
+                self.type_selector = None;
+
+                if res.response.changed() {
+                    self.change_time = Instant::now();
+                    self.is_recently_changed = true;
+                }
+
+                if self.is_recently_changed
+                    && Instant::now().duration_since(self.change_time) >= Self::CHANGE_DEBOUNCE_TIME
+                {
+                    self.is_recently_changed = false;
+                    self.status = decompiler::ty::notation::parse(&self.text_buffer);
+                }
+
+                ui.horizontal(|ui| {
+                    ui.label("Status: ");
+                    match &self.status {
+                        Ok(tb) => {
+                            ui.label(format!("ok: {:?}", tb));
+                        }
+                        Err(err) => {
+                            ui.label(format!("error: {:?}", err));
+                        }
+                    }
+                });
+            }
         })
     }
 }
