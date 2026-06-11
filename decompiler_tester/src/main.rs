@@ -68,7 +68,7 @@ struct App {
     type_search: Option<search::TypeSearchEngine>,
     func_type_force_dialog: Option<FuncTypeForceDialog>,
     func_view: Option<Result<FunctionView, decompiler::Error>>,
-    type_selector: Option<TypeSelector>,
+    type_selector: Option<TypeSelectorDialog>,
 }
 struct FunctionView {
     df: decompiler::DecompiledFunction,
@@ -212,7 +212,7 @@ impl App {
             self.type_search = Some(engine);
         }
 
-        self.type_selector = Some(TypeSelector::new("modal type selector"));
+        self.type_selector = Some(TypeSelectorDialog::new("modal type selector"));
     }
 
     fn start_function_selector(&mut self) {
@@ -931,17 +931,53 @@ impl FunctionSelector {
     }
 }
 
-struct TypeSelector {
+struct TypeSelectorDialog {
     id: &'static str,
     query: String,
+    selector: TypeSelector,
+}
+impl TypeSelectorDialog {
+    fn new(id: &'static str) -> Self {
+        TypeSelectorDialog {
+            id,
+            query: String::new(),
+            selector: TypeSelector::new(),
+        }
+    }
+
+    fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        engine: &mut search::TypeSearchEngine,
+    ) -> egui::ModalResponse<Option<decompiler::ty::TypeID>> {
+        egui::Modal::new(self.id.into()).show(ui.ctx(), |ui| {
+            let screen_rect = ui.ctx().viewport_rect();
+            ui.set_min_size(egui::Vec2::new(
+                screen_rect.width() * 0.6,
+                screen_rect.height() * 0.6,
+            ));
+
+            egui::TextEdit::singleline(&mut self.query)
+                .font(egui::TextStyle::Monospace)
+                .hint_text("Type query...")
+                .desired_width(f32::INFINITY)
+                .show(ui);
+
+            ui.add_space(5.0);
+
+            let res = self.selector.show(ui, engine, &self.query);
+            res.selected_tyid
+        })
+    }
+}
+
+struct TypeSelector {
     query_prev_frame: String,
     results: Vec<search::TypeRecord>,
 }
 impl TypeSelector {
-    fn new(id: &'static str) -> Self {
+    fn new() -> Self {
         TypeSelector {
-            id,
-            query: String::new(),
             query_prev_frame: String::new(),
             results: Vec::new(),
         }
@@ -951,56 +987,44 @@ impl TypeSelector {
         &mut self,
         ui: &mut egui::Ui,
         engine: &mut search::TypeSearchEngine,
-    ) -> egui::ModalResponse<Option<decompiler::ty::TypeID>> {
-        // TODO debounce?
+        query: &str,
+    ) -> TypeSelectorResponse {
+        if query != self.query_prev_frame {
+            let is_append = query.starts_with(&self.query_prev_frame);
+            engine.set_query(query, is_append);
+            self.query_prev_frame = query.to_string();
+        }
+
         if engine.tick() {
             engine.fetch_current_results(&mut self.results);
         }
 
-        egui::Modal::new(self.id.into()).show(ui.ctx(), |ui| {
-            let screen_rect = ui.ctx().viewport_rect();
-            ui.set_min_size(egui::Vec2::new(
-                screen_rect.width() * 0.6,
-                screen_rect.height() * 0.6,
-            ));
+        let mut selected_tyid = None;
 
-            let input_res = egui::TextEdit::singleline(&mut self.query)
-                .font(egui::TextStyle::Monospace)
-                .hint_text("Type query...")
-                .desired_width(f32::INFINITY)
-                .show(ui);
-            if input_res.response.changed() {
-                let is_append = self.query.starts_with(&self.query_prev_frame);
-                engine.set_query(&self.query, is_append);
-                self.query_prev_frame = self.query.clone();
-            }
-
-            ui.add_space(5.0);
-
-            use egui::scroll_area::ScrollBarVisibility;
-            let mut selected_tyid = None;
-            egui::ScrollArea::vertical()
-                .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
-                .show_rows(ui, 18.0, self.results.len(), |ui, ndxs| {
-                    ui.set_min_width(ui.available_width());
-                    for ndx in ndxs {
-                        let record = &self.results[ndx];
-                        let label = format!(
-                            "{:15} {} (ID: {:?})",
-                            record.category.as_str(),
-                            record.name,
-                            record.tyid
-                        );
-                        let label = egui::RichText::new(label).monospace();
-                        if ui.selectable_label(false, label).clicked() {
-                            selected_tyid = Some(record.tyid);
-                        }
+        egui::ScrollArea::vertical()
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
+            .show_rows(ui, 18.0, self.results.len(), |ui, ndxs| {
+                ui.set_min_width(ui.available_width());
+                for ndx in ndxs {
+                    let record = &self.results[ndx];
+                    let label = format!(
+                        "{:15} {} (ID: {:?})",
+                        record.category.as_str(),
+                        record.name,
+                        record.tyid
+                    );
+                    let label = egui::RichText::new(label).monospace();
+                    if ui.selectable_label(false, label).clicked() {
+                        selected_tyid = Some(record.tyid);
                     }
-                });
+                }
+            });
 
-            selected_tyid
-        })
+        TypeSelectorResponse { selected_tyid }
     }
+}
+struct TypeSelectorResponse {
+    selected_tyid: Option<decompiler::ty::TypeID>,
 }
 
 struct FuncTypeForceDialog {
