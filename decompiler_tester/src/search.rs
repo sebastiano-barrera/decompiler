@@ -59,7 +59,6 @@ impl TypeSearchEngine {
     /// This enables additional optimizations but can lead to missing matches if
     /// an incorrect value is passed.
     pub fn set_query(&mut self, query: &str, is_append: bool) {
-        eprintln!("set_query: query={query} is_append={is_append}");
         self.nuc.pattern.reparse(
             1,
             query,
@@ -70,18 +69,13 @@ impl TypeSearchEngine {
     }
 
     pub fn tick(&mut self) -> bool {
-        let changed = self.nuc.tick(10).changed;
-        if changed {
-            eprintln!("tick: changed");
-        }
-        changed
+        self.nuc.tick(10).changed
     }
 
     pub fn fetch_current_results(&self, results: &mut Vec<TypeRecord>) {
         let snapshot = self.nuc.snapshot();
         results.clear();
         let count = snapshot.matched_item_count();
-        eprintln!("fetch_current_results: {} items", count);
         for item in snapshot.matched_items(0..count) {
             results.push(item.data.clone());
         }
