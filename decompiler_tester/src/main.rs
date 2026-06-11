@@ -4,7 +4,7 @@ use std::{
     fs::File,
     path::{Path, PathBuf},
     sync::Arc,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
@@ -66,6 +66,7 @@ struct App {
     exe: Exe,
     function_selector: Option<FunctionSelector>,
     type_search: Option<search::TypeSearchEngine>,
+    func_type_force_dialog: Option<FuncTypeForceDialog>,
     func_view: Option<Result<FunctionView, decompiler::Error>>,
     type_selector: Option<TypeSelector>,
 }
@@ -170,6 +171,7 @@ impl App {
             func_view: None,
             type_search: None,
             type_selector: None,
+            func_type_force_dialog: None,
         };
         app.start_function_selector();
         Ok(app)
@@ -188,6 +190,10 @@ impl App {
         match self.func_view.as_mut() {
             Some(Ok(stage_func)) => {
                 ui.label(stage_func.df.name());
+                if ui.button("Force type...").clicked() {
+                    self.func_type_force_dialog =
+                        Some(FuncTypeForceDialog::new("func type force dialog"));
+                }
             }
             Some(Err(_)) => {
                 // error shown in central area
@@ -261,6 +267,12 @@ impl App {
                 self.function_selector = None;
             } else if res.should_close() {
                 self.function_selector = None;
+            }
+        }
+
+        if let Some(dialog) = &mut self.func_type_force_dialog {
+            if dialog.show(ui).should_close() {
+                self.func_type_force_dialog = None;
             }
         }
     }
@@ -987,6 +999,69 @@ impl TypeSelector {
                 });
 
             selected_tyid
+        })
+    }
+}
+
+struct FuncTypeForceDialog {
+    id: &'static str,
+    text_buffer: String,
+    is_recently_changed: bool,
+    change_time: Instant,
+    status: decompiler::ty::notation::ParseResult<decompiler::ty::notation::TypeBuilder>,
+}
+
+impl FuncTypeForceDialog {
+    const CHANGE_DEBOUNCE_TIME: Duration = Duration::from_secs(1);
+
+    fn new(id: &'static str) -> Self {
+        FuncTypeForceDialog {
+            id,
+            text_buffer: String::new(),
+            is_recently_changed: false,
+            change_time: Instant::now(),
+            status: Ok(decompiler::ty::notation::TypeBuilder::empty()),
+        }
+    }
+
+    fn show(&mut self, ctx: &egui::Context) -> egui::ModalResponse<()> {
+        egui::Modal::new(self.id.into()).show(ctx, |ui| {
+            ui.label(egui::RichText::new(
+                "Type the definition of the new type for the function.\n\
+                Syntax:\n\
+                 - array: [12]T\n\
+                 - struct: struct { T; U; V }\n\
+                 - primitives: u64, u8, f32\n\
+                 - functions: func(T, U) R\n",
+            ));
+
+            let res = egui::TextEdit::multiline(&mut self.text_buffer)
+                .min_size(egui::vec2(ui.available_width(), 50.0))
+                .show(ui);
+
+            if res.response.changed() {
+                self.change_time = Instant::now();
+                self.is_recently_changed = true;
+            }
+
+            if self.is_recently_changed
+                && Instant::now().duration_since(self.change_time) >= Self::CHANGE_DEBOUNCE_TIME
+            {
+                self.is_recently_changed = false;
+                self.status = decompiler::ty::notation::parse(&self.text_buffer);
+            }
+
+            ui.horizontal(|ui| {
+                ui.label("Status: ");
+                match &self.status {
+                    Ok(tb) => {
+                        ui.label(format!("ok: {:?}", tb));
+                    }
+                    Err(err) => {
+                        ui.label(format!("error: {:?}", err));
+                    }
+                }
+            });
         })
     }
 }
