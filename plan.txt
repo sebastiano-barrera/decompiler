@@ -1,204 +1,43 @@
 
-- now: proceed without gui, power up CLI/textual interface if needed
+- [...] force function type
+    - [ ] allow forcing a function type (instead of fetching it automatically from TypeSet)
+    - [ ] do so when using the "Force type..." button
+- [ ] render $argN values as the parameter name if known, then inline them everywhere
+    - creates the illusion that the argument IS a binding
 
-- [x] precise testing of calling convention
-    - [x] outgoing calls
-        - workshopping the xform pass by using decompiler_cli
-            - current test case: func097_out
-            - [x] why is `void *x = NULL` compiled to a 32-bit register set?
-                    (e.g. `mov esi,0` instead of `mov rsi,0`)
-                    - becuase of fucking x86_64!
-            - [x] fix: infinite loop when compiling with -O0
-                cmd: gcc -O0 -gdwarf -masm=intel -o decompiler/test-data/x86_64_callconv decompiler/test-data/x86_64_callconv.c
-                cmd: cargo run --bin decompiler_cli -- --exe decompiler/test-data/x86_64_callconv --func func097_out
-            - [x] wrong connection of struct members to values?
+- [ ] "view features" paradigm:
+    - instead of separate panels for asm, cfg, ast,
+    - we get a single view and three toggles for asm, cfg, ast;
+        - when asm: just the assembly, linear
+        - when cfg: just a graph for the cfg with the block numbers
+        - when ast: just the ast without explicit cfg repr or asm
 
-        - [x] transform into proper generated tests, like for incoming calls
+        - when asm|cfg: the cfg view is filled in with asm fragments
+        - when cfg|ast: the cfg view is filled in with AST fragments
 
-- [x] separate raw bytes from typed consts
-    - why though?
-    - approach:
-        - change Insn::Const into Insn::Bytes, Insn::ConstInt
-        - introduce Insn::Cast?
+        - when asm|ast: the ast view has asm fragments on the side, but the code is still laid out in structured programming
 
-    - [x] float literals
+        - when asm|cfg|ast: cfg view filled in with asm and AST fragments side by side
 
-- [x] either support arbitrarily sized integer literals (Insn::Int), or find a
-suitable alternative
+- [ ] advanced block order customization
+    - [ ] blocks can be duplicated
+    - [ ] blocks can be hidden
+        - these must still be "archived" somewhere so that they can be pulled out again
 
-    - the suitable alternative, turns out, is to just ignore this. Large (> 8
-    bytes) values are represented as whatever (maybe a Struct, or a Concat chain
-    of multiple large parts), while small values are fine with Int literals.
-    In both cases, Part/Widen/Concat chains can be collapsed and extract a Const
-    if it's at all possible to do so.
+    - [ ] context menu:
+        - "duplicate to here"
+        - "move to here" (blocks must not have duplicates)
 
-- [x] large scale testing and tracking
-
-    - I expect that large-scale is correlated with lower-value/significance
-    tests; high-value tests are more likely to be highly specific
-
-    - what could be some good large-scale tests? decompile every function and
-    chack that...
-
-        - [x] the decompiler does not panic on any of them
-
-            - in particular, for debug builds (which is what integration tests
-            use), also check a few additional invariants for the SSA code (after
-            construction and again after transforms)
-
-        - [~] there are no unsupported asm instructions
-
-            - (delayed; just list insns for now)
-
-            - this only makes sense for a reference application that was
-            explicitly selected as "normal enough" (close to our target).
-            implementing the whole of x86_64 is pretty much impossible!
-
-            - redis-server is fine for the purpose. maybe some other data
-            processing application. maybe a driver for a specific bit of
-            hardware? would be cool to target low-level applications like those.
-
-            - would be cool to do this sort of "search" tasks by making the
-            output structured and then doing the search with external tools
-            (e.g. jq).
-
-- [x] cache type info
-
-    - any particular logic to invalidate the cache across different (but potentially
-    compatible) build?
-
-- [x] structured output (to plug the decompiler into other things)
-    - JSON?
-    - graphviz for CFG?
-    - SQLite?
-
-    - this is very important for me to 'live into' the product, so I can find bugs
-    and prioritize them based on how much they affect the output; also, invent and
-    prioritize new features.
-
-    - any UI must be based on this data-based representation. I don't want to work
-    on both things independently.
-
-        - if the UI is written in Rust, a Rust API for the data structure might be
-        sufficient.
-
-        - if the UI is to be written into something else, then the data-based
-        representation might also be *the* input representation to be transformed
-        into a GUI
-
-- [x] gui: restore
-    - evaluate HTML/web interface approach. (I'm thinking: better suited to our
-    output, which is fundamentally text, with more or less interactivity added on top)
-
-- [x] feasibility study: web app general structure (with edit API requests AND ALSO localized edits) (and also learn Solid.js):
-    - [x] decide what the editable data structure looks like (for the experiment)
-        - needs to have some part that is editable AND appears in multiple places
-
-    - [x] basic server
-    - [x] view API
-    - [x] edit API
-    - [x] frontend boilerplate with Preact
-    - [x] view
-    - [x] edit workflow:
-        - [x] localized
-        - [x] call edit API + refresh
-
-- [x] custom block ordering
-
-    - does it make sense for decompiler_cli?
-
-- [x] go back to single executable, single function at a time
-    - increased code complexity is not worth it. can be paid to higher benefit later
-
-- [ ] data oriented interface
-    - [x] standardized serde-able output
-    - [ ] standardized serde-able input parameters (other than the executable itself)
-
-- [x] decompiler_tester: remove save file
-- [x] improve ui design (and internals)
-    - [x] remove block labels (and everything else)
-        - not all labels are going to be required, plus the new Stmt API already handles explicit placement of these where useful
-
-    - [x] use the new Stmt API to render to interactive text
-    - [x] fix: show function name
-
-    - [x] clicking/hovering on an element sets the "cursor"
-    - [x] details panel for "thing" under the cursor
-    - [x] details for reg: type
-
-    - [-] details for block/label
-        - actually doesn't make very much sense for block/labels. instead, create a cfg view
-
-
-- [-] gui: details for reg: AST expr parent?
-    - nah, a dedicated UI is better here
-
-- [x] faster load from executable cache
-    - approach: "zero-copy deserialization"
-        - link: https://github.com/rkyv/rkyv
-        - link: https://crates.io/crates/epserde
-
-    - approach: embedded file-based database
-        - ideas
-            - TypeSet is changed so that it always wraps a database, possibly in memory
-            - currently, TypeSet is first created and kept in memory, then saved to/loaded from a file.
-            - but in this approach, TypeSet is always mapped to a file *at
-            construction time* (though copying the entire database from one
-            location to another is perfectly doable.)
-
-                => maybe we could have a TypeSet::transfer(another_location) that transactionally does the following:
-                    1. copies the entire database to another location
-                    2. reconfigures the TypeSet instance to use the new location
-                    3. deletes (or at least detaches from) the old location
-                    => the program continues without any sort of hitch/discontinuity, and you've effectively "saved a file"
-
-        - options:
-            - [-] simple and new: redb
-            - [x] simple and old: lmdb
-            - [-] the good ol' classic: sqlite
-
-- [x] gui: restore asm view
-- [x] gui: asm view: highlight instructions related to selected block
-
-- [ ] use type info
-    - [x] struct member accesses
-    - [x] ssa: value types in cli
-    - [x] function prototype
-    - [x] ast: named values ("let") (good enough to have it in the small bottom panel)
-    - [x] show type details (the type itself: name, structure, links, etc.)
-    - [ ] enum values
-        - initialize with DWARF, allow user edits
-
-- [x] called function name
-
-
-- [x] restore "AST cleanup" features
-    - [x] remove gotos that "look like they just jump to the next block"
-    - [x] hide unused block labels
-
-- [x] gui: add ASM view
-    - make it possible to show/hide
-    - this should make custom block ordering significantly faster
-    - [x] add ASM view
-    - [x] make ASM, SSA toggleable
-        - [x] refactor: make views more independent from each other and from the "column allocation"
-
-- [ ] control flow graph view: basic
-- [ ] cfg view: highlight current block, preds/succs
+- [ ] use type info: enum values
+    - initialize with DWARF, allow user edits
 
 - [ ] loops
     - think about them for a little while
     - [ ] ui?
     - [ ] heuristically mark them
 
-- [ ] AST edit cmd: invert if
-- [ ] AST edit cmd: change block order
-
-- [ ] gui: user-editable identifiers/names
-
-- [ ] select parent AST node (corresponding value etc.)
-- [ ] gui: asm view: highlight instructions related to selected AST node
 - [ ] string literals
+- [ ] select parent AST node (corresponding value etc.)
 
 - [ ] gui: related log messages to reg
 - [ ] gui: related log messages to block/label
@@ -219,6 +58,3 @@ suitable alternative
         - when hovering a register/block, highlight every corresponding item in every view (both same view and the others)
 
 - [ ] better syntax for deref
-
-- [-] fully data-driven asm->mil?
-    - out of scope, too difficult right now (plus LLMs cover many gaps)

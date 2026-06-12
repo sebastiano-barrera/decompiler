@@ -201,9 +201,16 @@ impl<'a> Executable<'a> {
         &self.types
     }
 
-    #[instrument(skip(self))]
     pub fn decompile_function(&self, function_name: &str) -> Result<DecompiledFunction> {
-        let coords = self.find_function(function_name)?;
+        self.decompile_function_ex(&DecompileParams {
+            function_name,
+            force_function_type: None,
+        })
+    }
+
+    #[instrument(skip(self))]
+    pub fn decompile_function_ex(&self, params: &DecompileParams) -> Result<DecompiledFunction> {
+        let coords = self.find_function(params.function_name)?;
 
         let vm_addr = coords.vm_addr.try_into().unwrap();
         let mut decoder = iced_x86::Decoder::with_ip(
@@ -213,13 +220,16 @@ impl<'a> Executable<'a> {
             iced_x86::DecoderOptions::NONE,
         );
 
-        let types_rtx = self.types().read_tx()?;
-        let func_tyid_opt = types_rtx.read().get_known_object(vm_addr)?;
+        let mut func_tyid_opt = params.force_function_type;
+        if func_tyid_opt.is_none() {
+            let types_rtx = self.types().read_tx()?;
+            func_tyid_opt = types_rtx.read().get_known_object(vm_addr)?;
+        }
         let mil_res = x86_to_mil::import(decoder.iter(), Arc::clone(&self.types), func_tyid_opt)
             .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()));
 
         let mut df = DecompiledFunction {
-            function_name: function_name.to_string(),
+            function_name: params.function_name.to_string(),
             coords,
             mil: None,
             ssa_pre_xform: None,
@@ -303,6 +313,12 @@ impl<'a> Executable<'a> {
         } = *coords;
         &self.raw_binary[file_offset..file_offset + code_size]
     }
+}
+
+#[derive(Debug)]
+pub struct DecompileParams<'a> {
+    function_name: &'a str,
+    force_function_type: Option<ty::TypeID>,
 }
 
 fn panic_message(panic_err: Box<dyn std::any::Any + Send>) -> String {
