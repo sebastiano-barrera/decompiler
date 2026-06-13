@@ -441,7 +441,9 @@ impl FunctionView {
                     .map(|arc| arc.as_str())
                     .unwrap_or("<unnamed>");
                 ui.horizontal(|ui| {
-                    ui.label(format!(" • {}:", param_name));
+                    ui.label(" • ");
+                    ui.label(param_name);
+                    ui.label(": ");
                     self.ui_type_ref(ui, *param_tyid, &rtx.read());
                 });
             }
@@ -1415,7 +1417,7 @@ mod ast {
         parent_prec: decompiler::PrecedenceLevel,
     ) {
         if s.ast.is_value_named(reg) {
-            print_ident_ref(ui, s, reg, hl::Focus::Reg(reg));
+            print_reg_ref(ui, s, reg, hl::Focus::Reg(reg));
         } else {
             render_expr_def(ui, s, reg, parent_prec);
         }
@@ -1655,7 +1657,7 @@ mod ast {
             }
             Insn::Upsilon { value, phi_ref } => {
                 ui.horizontal(|ui| {
-                    print_ident_ref(ui, s, *phi_ref, hl::Focus::Reg(*phi_ref));
+                    print_reg_ref(ui, s, *phi_ref, hl::Focus::Reg(*phi_ref));
                     print_kw(ui, s, ":=");
                     render_expr(ui, s, *value, my_prec);
                 });
@@ -1713,16 +1715,21 @@ mod ast {
         ui.label(ident);
     }
     fn print_reg_def(ui: &mut egui::Ui, s: &mut State<'_>, reg: decompiler::Reg, focus: hl::Focus) {
+        let ident = &s.name_of_reg[reg];
+        print_ident_def(ui, s, ident, focus);
+    }
+    fn print_reg_ref(ui: &mut egui::Ui, s: &mut State, reg: decompiler::Reg, focus: hl::Focus) {
+        let ident = &s.name_of_reg[reg];
+        print_ident_ref(ui, s, ident, focus);
+    }
+    fn print_ident_def(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str, focus: hl::Focus) {
         let colors = theme::colors(focus, theme::Role::Definition);
-        let ident = &s.name_of_reg[reg];
         active_label(ui, s, focus, colors, ident);
     }
-    fn print_ident_ref(ui: &mut egui::Ui, s: &mut State, reg: decompiler::Reg, focus: hl::Focus) {
+    fn print_ident_ref(ui: &mut egui::Ui, s: &mut State, ident: &str, focus: hl::Focus) {
         let colors = theme::colors(focus, theme::Role::Reference);
-        let ident = &s.name_of_reg[reg];
         active_label(ui, s, focus, colors, ident);
     }
-
     fn print_kw(ui: &mut egui::Ui, _s: &mut State<'_>, kw: &str) -> egui::Response {
         ui.label(egui::RichText::new(kw).strong())
     }
