@@ -26,11 +26,12 @@ impl<'a> State<'a> {
             };
             // ancestral are as good as r# refs, so never 'name' them / always
             // print inline
-            matches!(insn, Insn::Phi)
-                || (*count > 1
-                    && !matches!(insn, Insn::StoreMem { .. })
-                    && !matches!(insn, Insn::Ancestral { .. })
-                    && !matches!(insn, Insn::Int { .. }))
+            !matches!(insn, Insn::FuncArgument { .. })
+                && (matches!(insn, Insn::Phi)
+                    || (*count > 1
+                        && !matches!(insn, Insn::StoreMem { .. })
+                        && !matches!(insn, Insn::Ancestral { .. })
+                        && !matches!(insn, Insn::Int { .. })))
         });
 
         let block_order_rev = builder.block_order.into_iter().rev().collect();
