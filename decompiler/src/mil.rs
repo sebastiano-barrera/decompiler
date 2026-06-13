@@ -513,6 +513,7 @@ impl Program {
     }
 
     pub fn set_function_type_id(&mut self, func_tyid: Option<ty::TypeID>) {
+        eprintln!("set_function_type_id: {:?}", func_tyid);
         self.func_tyid = func_tyid;
     }
 

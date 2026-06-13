@@ -265,8 +265,11 @@ impl App {
         if let Some(function_selector) = &mut self.function_selector {
             let res = function_selector.show(ui.ctx());
             if let Some(function_name) = res.inner {
-                let stage_func_or_err = load_function(&mut self.exe, function_name);
-                self.func_view = Some(stage_func_or_err);
+                let function_name = function_name.clone();
+                self.reload_function(&decompiler::DecompileParams {
+                    function_name: &function_name,
+                    force_function_type: None,
+                });
                 self.function_selector = None;
             } else if res.should_close() {
                 self.function_selector = None;
@@ -277,10 +280,46 @@ impl App {
             self.ensure_type_search_engine();
             let engine = self.type_search.as_mut().unwrap();
             let dialog = self.func_type_force_dialog.as_mut().unwrap();
-            if dialog.show(ui, engine).should_close() {
+            let mut res = dialog.show(ui, engine);
+            if let Some(type_builder) = res.inner.take() {
+                let types = self.exe.borrow_exe().types();
+                match type_builder.build_types(&types) {
+                    Ok(new_tyid) => {
+                        // changing the function type potentially changes the
+                        // entire SSA and AST, so a full reload is necessary
+                        if let Some(Ok(func_view)) = &mut self.func_view {
+                            let function_name = func_view.df.name().to_string();
+                            self.reload_function(&decompiler::DecompileParams {
+                                function_name: &function_name,
+                                force_function_type: Some(new_tyid),
+                            });
+                        }
+                    }
+                    Err(err) => {
+                        // TODO make a dialog or toast or something
+                        eprintln!("error building the requested type: {err:?}");
+                    }
+                }
+            }
+            if res.should_close() {
                 self.func_type_force_dialog = None;
             }
         }
+    }
+
+    fn reload_function(&mut self, params: &decompiler::DecompileParams) {
+        let mut stage_func_or_err = self.exe.with_exe_mut(|exe| {
+            eprintln!("reload function: {:?}", params);
+            let df = exe.decompile_function_ex(params)?;
+            Ok(FunctionView::new(df, exe))
+        });
+
+        if let Ok(func_view) = &mut stage_func_or_err {
+            func_view.problems_is_visible =
+                func_view.df.error().is_some() || !func_view.df.warnings().is_empty();
+        }
+
+        self.func_view = Some(stage_func_or_err);
     }
 }
 
@@ -359,18 +398,31 @@ impl FunctionView {
     /// Show the "second" top bar, i.e. the are right under the top bar
     fn show_topbar_2(&mut self, ui: &mut egui::Ui, exe: &decompiler::Executable) {
         let Some(tyid) = self.df.ssa().and_then(|ssa| ssa.function_type_id()) else {
+            ui.label("unknown function type");
             return;
         };
 
         let Some(rtx) = exe.types().read_tx().ok() else {
+            ui.label("could not start read tx");
             return;
         };
-        let Some(ty) = rtx.read().get_through_alias(tyid).ok().flatten() else {
-            return;
+        let ty = match rtx.read().get_through_alias(tyid) {
+            Ok(Some(ty)) => ty,
+            Ok(None) => {
+                ui.label(format!("no such type: {:?}", tyid));
+                return;
+            }
+            Err(err) => {
+                ui.label(format!("could not fetch type: {:?}: {:?}", tyid, err));
+                return;
+            }
         };
         let func_ty = match ty.into_owned() {
             decompiler::ty::Ty::Subroutine(func_ty) => func_ty,
-            _ => return,
+            other => {
+                ui.label(format!("not a subroutine type: {:?}", other));
+                return;
+            }
         };
 
         ui.horizontal_wrapped(move |ui| {
@@ -852,20 +904,6 @@ fn load_executable(path: &Path) -> Result<Exe> {
     .try_build()
 }
 
-fn load_function(exe: &mut Exe, function_name: &str) -> Result<FunctionView, decompiler::Error> {
-    let mut stage_func = exe.with_exe_mut(|exe| {
-        let df = exe.decompile_function(function_name)?;
-        Ok(FunctionView::new(df, exe))
-    });
-
-    if let Ok(func_view) = &mut stage_func {
-        func_view.problems_is_visible =
-            func_view.df.error().is_some() || !func_view.df.warnings().is_empty();
-    }
-
-    stage_func
-}
-
 struct FunctionSelector {
     id: &'static str,
     line: String,
@@ -1060,8 +1098,10 @@ impl FuncTypeForceDialog {
         &mut self,
         ctx: &egui::Context,
         engine: &mut search::TypeSearchEngine,
-    ) -> egui::ModalResponse<()> {
+    ) -> egui::ModalResponse<Option<decompiler::ty::notation::TypeBuilder>> {
         egui::Modal::new(self.id.into()).show(ctx, |ui| {
+            let mut ret = None;
+
             ui.label(egui::RichText::new(
                 "Type the definition of the new type for the function.\n\
                 Syntax:\n\
@@ -1108,16 +1148,23 @@ impl FuncTypeForceDialog {
 
                 ui.horizontal(|ui| {
                     ui.label("Status: ");
-                    match &self.status {
+                    match &mut self.status {
                         Ok(tb) => {
-                            ui.label(format!("ok: {:?}", tb));
+                            ui.horizontal_centered(|ui| {
+                                if ui.button("  Apply  ").clicked() {
+                                    ret = Some(std::mem::replace(tb, Default::default()));
+                                    ui.close();
+                                }
+                            });
                         }
                         Err(err) => {
                             ui.label(format!("error: {:?}", err));
                         }
-                    }
+                    };
                 });
             }
+
+            ret
         })
     }
 }

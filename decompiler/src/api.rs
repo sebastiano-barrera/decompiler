@@ -317,8 +317,8 @@ impl<'a> Executable<'a> {
 
 #[derive(Debug)]
 pub struct DecompileParams<'a> {
-    function_name: &'a str,
-    force_function_type: Option<ty::TypeID>,
+    pub function_name: &'a str,
+    pub force_function_type: Option<ty::TypeID>,
 }
 
 fn panic_message(panic_err: Box<dyn std::any::Any + Send>) -> String {
