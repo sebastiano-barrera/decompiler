@@ -1288,121 +1288,118 @@ mod ast {
         command: &mut Cmd,
     ) {
         // TODO replace tail-calls with a loop continue (or similar)
-        ui.vertical(|ui| {
-            match s.ast.get(sid) {
-                Stmt::NamedBlock { bid, body } => {
-                    block_def_col.advance_cursor_after_rect(
-                        block_def_col.cursor().with_max_y(ui.cursor().min.y - 3.0),
-                    );
-                    print_block_def(block_def_col, s, *bid);
+        ui.vertical(|ui| match s.ast.get(sid) {
+            Stmt::NamedBlock { bid, body } => {
+                block_def_col.advance_cursor_after_rect(
+                    block_def_col.cursor().with_max_y(ui.cursor().min.y - 3.0),
+                );
+                print_block_def(block_def_col, s, *bid);
 
-                    ui.horizontal(|ui| {
-                        render_stmt(block_def_col, ui, s, *body, command);
-                    });
-                }
-                Stmt::Let { name, value, body } => {
-                    ui.horizontal(|ui| {
-                        print_kw(ui, s, "let");
-                        print_reg_def(ui, s, *name, hl::Focus::Reg(*value));
-                        print_kw(ui, s, "=");
-                        render_expr_def(ui, s, *value, 0);
-                        print_kw(ui, s, "in");
-                    });
+                ui.horizontal(|ui| {
                     render_stmt(block_def_col, ui, s, *body, command);
-                }
-                Stmt::LetPhi { name, body } => {
+                });
+            }
+            Stmt::Let { name, value, body } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "let");
+                    print_reg_def(ui, s, *name, hl::Focus::Reg(*value));
+                    print_kw(ui, s, "=");
+                    render_expr_def(ui, s, *value, 0);
+                    print_kw(ui, s, "in");
+                });
+                render_stmt(block_def_col, ui, s, *body, command);
+            }
+            Stmt::LetPhi { name, body } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "letphi");
+                    print_reg_def(ui, s, *name, hl::Focus::Reg(*name));
+                });
+                render_stmt(block_def_col, ui, s, *body, command);
+            }
+            Stmt::Seq { first, then } => {
+                render_stmt(block_def_col, ui, s, *first, command);
+                render_stmt(block_def_col, ui, s, *then, command);
+            }
+            Stmt::Eval(reg) => {
+                ui.horizontal(|ui| {
+                    render_expr_def(ui, s, *reg, 0);
+                });
+            }
+            Stmt::If { cond, cons, alt } => {
+                ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        print_kw(ui, s, "letphi");
-                        // no reg available here in the AST node; use a placeholder reg index 0
-                        print_reg_def(ui, s, *name, hl::Focus::Reg(decompiler::Reg(0)));
-                    });
-                    render_stmt(block_def_col, ui, s, *body, command);
-                }
-                Stmt::Seq { first, then } => {
-                    render_stmt(block_def_col, ui, s, *first, command);
-                    render_stmt(block_def_col, ui, s, *then, command);
-                }
-                Stmt::Eval(reg) => {
-                    ui.horizontal(|ui| {
-                        render_expr_def(ui, s, *reg, 0);
-                    });
-                }
-                Stmt::If { cond, cons, alt } => {
-                    ui.vertical(|ui| {
-                        ui.horizontal(|ui| {
-                            if print_kw(ui, s, "if")
-                                .on_hover_cursor(egui::CursorIcon::PointingHand)
-                                .double_clicked()
-                            {
-                                *command = Cmd::InvertIf(sid);
-                            }
-
-                            match *cond {
-                                Some(cond) => {
-                                    render_expr_def(ui, s, cond, 0);
-                                }
-                                None => {
-                                    print_error_tag(ui, s, "undefined condition");
-                                }
-                            }
-                        });
-                        ui.horizontal(|ui| {
-                            ui.add_space(20.0);
-                            render_stmt(block_def_col, ui, s, *cons, command);
-                        });
-
-                        if s.ast.get(*alt) != &Stmt::Pass {
-                            print_kw(ui, s, "else");
-                            ui.horizontal(|ui| {
-                                ui.add_space(20.0);
-                                render_stmt(block_def_col, ui, s, *alt, command);
-                            });
+                        if print_kw(ui, s, "if")
+                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                            .double_clicked()
+                        {
+                            *command = Cmd::InvertIf(sid);
                         }
 
-                        print_kw(ui, s, "end");
+                        match *cond {
+                            Some(cond) => {
+                                render_expr_def(ui, s, cond, 0);
+                            }
+                            None => {
+                                print_error_tag(ui, s, "undefined condition");
+                            }
+                        }
                     });
-                }
-                Stmt::Return(reg) => {
                     ui.horizontal(|ui| {
-                        print_kw(ui, s, "return");
-                        render_expr(ui, s, *reg, 0);
+                        ui.add_space(20.0);
+                        render_stmt(block_def_col, ui, s, *cons, command);
                     });
-                }
-                Stmt::JumpUndefined => {
-                    ui.horizontal(|ui| {
-                        print_kw(ui, s, "goto");
-                        print_kw(ui, s, "undefined");
-                    });
-                }
-                Stmt::JumpExternal(addr) => {
-                    ui.horizontal(|ui| {
-                        print_kw(ui, s, "goto");
-                        ui.label(format!("0x{:x}", *addr));
-                    });
-                }
-                Stmt::JumpIndirect(reg) => {
-                    ui.horizontal(|ui| {
-                        print_kw(ui, s, "goto");
-                        ui.label("(");
-                        render_expr_def(ui, s, *reg, 0);
-                        ui.label(").*");
-                    });
-                }
-                Stmt::Loop(block_id) => {
-                    ui.horizontal(|ui| {
-                        print_kw(ui, s, "loop");
-                        print_block_ref(ui, s, *block_id);
-                    });
-                }
-                Stmt::Jump(block_id) => {
-                    ui.horizontal(|ui| {
-                        print_kw(ui, s, "goto");
-                        print_block_ref(ui, s, *block_id);
-                    });
-                }
-                Stmt::Pass => {
-                    print_kw(ui, s, "pass");
-                }
+
+                    if s.ast.get(*alt) != &Stmt::Pass {
+                        print_kw(ui, s, "else");
+                        ui.horizontal(|ui| {
+                            ui.add_space(20.0);
+                            render_stmt(block_def_col, ui, s, *alt, command);
+                        });
+                    }
+
+                    print_kw(ui, s, "end");
+                });
+            }
+            Stmt::Return(reg) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "return");
+                    render_expr(ui, s, *reg, 0);
+                });
+            }
+            Stmt::JumpUndefined => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "goto");
+                    print_kw(ui, s, "undefined");
+                });
+            }
+            Stmt::JumpExternal(addr) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "goto");
+                    ui.label(format!("0x{:x}", *addr));
+                });
+            }
+            Stmt::JumpIndirect(reg) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "goto");
+                    ui.label("(");
+                    render_expr_def(ui, s, *reg, 0);
+                    ui.label(").*");
+                });
+            }
+            Stmt::Loop(block_id) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "loop");
+                    print_block_ref(ui, s, *block_id);
+                });
+            }
+            Stmt::Jump(block_id) => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s, "goto");
+                    print_block_ref(ui, s, *block_id);
+                });
+            }
+            Stmt::Pass => {
+                print_kw(ui, s, "pass");
             }
         });
     }
@@ -1658,7 +1655,7 @@ mod ast {
             }
             Insn::Upsilon { value, phi_ref } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *phi_ref, my_prec);
+                    print_ident_ref(ui, s, *phi_ref, hl::Focus::Reg(*phi_ref));
                     print_kw(ui, s, ":=");
                     render_expr(ui, s, *value, my_prec);
                 });
