@@ -179,11 +179,7 @@ impl Transform for FoldConstants {
 struct FoldSubregs;
 
 impl Transform for FoldSubregs {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
+    fn apply(&self, c: &mut Cursor) {
         // operators that matter here are:
         // - subrange: src[a..b]
         //      b > a; b <= 8; a, b >= 0
@@ -194,14 +190,14 @@ impl Transform for FoldSubregs {
         // - Part(Concat(...), ...)
         // - Part(Part(...), ...)
 
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = c.prog.get(c.reg).unwrap().clone();
         let Insn::Part { src, offset, size } = insn else {
             return;
         };
 
         let end = offset + size;
 
-        let Some(src_sz) = prog.ll_type(src).bytes_size() else {
+        let Some(src_sz) = c.prog.ll_type(src).bytes_size() else {
             return;
         };
         if end as usize > src_sz {
@@ -215,7 +211,7 @@ impl Transform for FoldSubregs {
             return;
         }
 
-        let src_insn = prog.get(src).unwrap().clone();
+        let src_insn = c.prog.get(src).unwrap().clone();
         let result_insn = match src_insn {
             Insn::Part {
                 src: up_src,
@@ -223,7 +219,7 @@ impl Transform for FoldSubregs {
                 size: up_size,
             } => {
                 let up_end = up_offset + up_size;
-                let Some(up_src_sz) = prog.ll_type(up_src).bytes_size() else {
+                let Some(up_src_sz) = c.prog.ll_type(up_src).bytes_size() else {
                     event!(
                         Level::ERROR,
                         ?insn,
@@ -234,7 +230,7 @@ impl Transform for FoldSubregs {
                     return;
                 };
 
-                let up_insn = prog.get(up_src).unwrap().clone();
+                let up_insn = c.prog.get(up_src).unwrap().clone();
                 if up_end as usize > up_src_sz {
                     event!(
                         Level::ERROR,
@@ -255,7 +251,8 @@ impl Transform for FoldSubregs {
             }
 
             Insn::Concat { lo, hi } => {
-                let lo_size = prog
+                let lo_size = c
+                    .prog
                     .ll_type(lo)
                     .bytes_size()
                     .unwrap()
@@ -285,31 +282,27 @@ impl Transform for FoldSubregs {
             _ => insn,
         };
 
-        prog.set(reg, result_insn);
+        c.prog.set(c.reg, result_insn);
     }
 }
 
 struct FoldConcatVoid;
 
 impl Transform for FoldConcatVoid {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         let Insn::Concat { lo, hi } = insn else {
             return;
         };
 
-        let result_insn = match (prog.ll_type(lo), prog.ll_type(hi)) {
+        let result_insn = match (c.prog.ll_type(lo), c.prog.ll_type(hi)) {
             (LLType::Bytes(0), LLType::Bytes(0)) => Insn::Void,
             (LLType::Bytes(0), _) => Insn::Get(hi),
             (_, LLType::Bytes(0)) => Insn::Get(lo),
             (_, _) => insn,
         };
 
-        prog.set(reg, result_insn);
+        c.prog.set(c.reg, result_insn);
     }
 }
 
@@ -317,15 +310,17 @@ struct FoldBitops;
 
 impl Transform for FoldBitops {
     fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = cursor.prog.get(cursor.reg).unwrap().clone();
         let result_insn = match insn {
             // TODO put the appropriate size
             Insn::Arith(ArithOp::BitXor, a, b) if a == b => {
-                let size = prog.ll_type(a).bytes_size().unwrap().try_into().unwrap();
+                let size = cursor
+                    .prog
+                    .ll_type(a)
+                    .bytes_size()
+                    .unwrap()
+                    .try_into()
+                    .unwrap();
                 if size <= 8 {
                     Insn::Int { value: 0, size }
                 } else {
@@ -337,18 +332,14 @@ impl Transform for FoldBitops {
             _ => insn,
         };
 
-        prog.set(reg, result_insn);
+        cursor.prog.set(cursor.reg, result_insn);
     }
 }
 
 struct FoldPartPart;
 
 impl Transform for FoldPartPart {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
+    fn apply(&self, c: &mut Cursor) {
         // the pattern is
         //  r0 <- (any, of size s0)
         //  r1 <- Widen r0 to size s1,  s1 > s0
@@ -360,7 +351,7 @@ impl Transform for FoldPartPart {
         //  r2 <- Widen r0 to size plen
         // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Part {
             src: out_src,
             offset: out_offset,
@@ -371,7 +362,7 @@ impl Transform for FoldPartPart {
                 src: in_src,
                 offset: in_offset,
                 size: in_size,
-            } = prog.get(out_src).unwrap().clone()
+            } = c.prog.get(out_src).unwrap().clone()
             {
                 assert!(out_size <= in_size);
                 let result_insn = Insn::Part {
@@ -379,7 +370,7 @@ impl Transform for FoldPartPart {
                     offset: out_offset + in_offset,
                     size: out_size,
                 };
-                prog.set(reg, result_insn);
+                c.prog.set(c.reg, result_insn);
                 return;
             }
         }
@@ -389,11 +380,7 @@ impl Transform for FoldPartPart {
 struct FoldPartConcat;
 
 impl Transform for FoldPartConcat {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
+    fn apply(&self, c: &mut Cursor) {
         // the pattern is
         //  r0 <- (any, of size s0)
         //  r1 <- Widen r0 to size s1,  s1 > s0
@@ -405,15 +392,15 @@ impl Transform for FoldPartConcat {
         //  r2 <- Widen r0 to size plen
         // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Part {
             src: p_src,
             offset: p_offset,
             size: p_size,
         } = insn
         {
-            if let Insn::Concat { lo, hi } = prog.get(p_src).unwrap().clone() {
-                let lo_size = prog.ll_type(lo).bytes_size().unwrap().try_into().unwrap();
+            if let Insn::Concat { lo, hi } = c.prog.get(p_src).unwrap().clone() {
+                let lo_size = c.prog.ll_type(lo).bytes_size().unwrap().try_into().unwrap();
 
                 let result_insn = if p_offset + p_size <= lo_size {
                     Insn::Part {
@@ -430,7 +417,7 @@ impl Transform for FoldPartConcat {
                 } else {
                     insn
                 };
-                prog.set(reg, result_insn);
+                c.prog.set(c.reg, result_insn);
                 return;
             }
         }
@@ -440,11 +427,7 @@ impl Transform for FoldPartConcat {
 struct FoldPartWiden;
 
 impl Transform for FoldPartWiden {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
+    fn apply(&self, c: &mut Cursor) {
         // the pattern is
         //  r0 <- (any, of size s0)
         //  r1 <- Widen r0 to size s1,  s1 > s0
@@ -456,7 +439,7 @@ impl Transform for FoldPartWiden {
         //  r2 <- Widen r0 to size plen
         // (skip the r1 Widen, and transform Part to a shorter Widen)
 
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = c.prog.get(c.reg).unwrap().clone();
         let Insn::Part {
             src: part_src,
             offset: 0,
@@ -465,7 +448,7 @@ impl Transform for FoldPartWiden {
         else {
             return;
         };
-        let part_src_insn = prog.get(part_src).unwrap().clone();
+        let part_src_insn = c.prog.get(part_src).unwrap().clone();
 
         let Insn::Widen {
             reg: widen_reg,
@@ -477,7 +460,7 @@ impl Transform for FoldPartWiden {
         };
 
         // TODO convert to error
-        let Some(orig_size) = prog.ll_type(widen_reg).bytes_size() else {
+        let Some(orig_size) = c.prog.ll_type(widen_reg).bytes_size() else {
             event!(
                 Level::ERROR,
                 ?insn,
@@ -509,20 +492,16 @@ impl Transform for FoldPartWiden {
             }
         };
 
-        prog.set(reg, result_insn);
+        c.prog.set(c.reg, result_insn);
     }
 }
 
 struct FoldWidenConst;
 
 impl Transform for FoldWidenConst {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
+    fn apply(&self, c: &mut Cursor) {
         // TODO add signedness to Const as well? then we could check if they match
-        let insn = prog.get(reg).unwrap().clone();
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Widen {
             reg: widen_reg,
             target_size,
@@ -530,14 +509,14 @@ impl Transform for FoldWidenConst {
         } = insn
         {
             if target_size <= 8 {
-                let widen_insn = prog.get(widen_reg).unwrap().clone();
+                let widen_insn = c.prog.get(widen_reg).unwrap().clone();
                 if let Insn::Int { value, size } = widen_insn {
                     assert!(target_size > size);
                     let result_insn = Insn::Int {
                         value,
                         size: target_size,
                     };
-                    prog.set(reg, result_insn);
+                    c.prog.set(c.reg, result_insn);
                     return;
                 }
             }
@@ -548,22 +527,18 @@ impl Transform for FoldWidenConst {
 struct FoldWidenNull;
 
 impl Transform for FoldWidenNull {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Widen {
             reg: widen_reg,
             target_size,
             sign: _,
         } = insn
         {
-            if let LLType::Bytes(sz) = prog.ll_type(widen_reg) {
+            if let LLType::Bytes(sz) = c.prog.ll_type(widen_reg) {
                 if target_size as usize == sz {
                     let result_insn = Insn::Get(widen_reg);
-                    prog.set(reg, result_insn);
+                    c.prog.set(c.reg, result_insn);
                     return;
                 }
             }
@@ -574,22 +549,18 @@ impl Transform for FoldWidenNull {
 struct FoldPartNull;
 
 impl Transform for FoldPartNull {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Part {
             src,
             offset: 0,
             size,
         } = insn
         {
-            if let LLType::Bytes(src_size) = prog.ll_type(src) {
+            if let LLType::Bytes(src_size) = c.prog.ll_type(src) {
                 if src_size == size as usize {
                     let result_insn = Insn::Get(src);
-                    prog.set(reg, result_insn);
+                    c.prog.set(c.reg, result_insn);
                     return;
                 }
             }
@@ -600,18 +571,14 @@ impl Transform for FoldPartNull {
 struct FoldShrPart;
 
 impl Transform for FoldShrPart {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::ArithK(ArithOp::Shr, shr_reg, shift_len) = insn {
             if shift_len >= 0 && shift_len % 8 == 0 {
-                if let Insn::Part { src, offset, size } = prog.get(shr_reg).unwrap().clone() {
+                if let Insn::Part { src, offset, size } = c.prog.get(shr_reg).unwrap().clone() {
                     let shift_bytes: u16 = (shift_len / 8).try_into().unwrap();
-                    let smaller_part = prog.append_new(
-                        bid,
+                    let smaller_part = c.prog.append_new(
+                        c.bid,
                         Insn::Part {
                             src,
                             offset: offset + shift_bytes,
@@ -625,7 +592,7 @@ impl Transform for FoldShrPart {
                         target_size: size,
                         sign: false,
                     };
-                    prog.set(reg, result_insn);
+                    c.prog.set(c.reg, result_insn);
                     return;
                 }
             }
@@ -636,15 +603,11 @@ impl Transform for FoldShrPart {
 struct FoldGet;
 
 impl Transform for FoldGet {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let mut insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let mut insn = c.prog.get(c.reg).unwrap().clone();
         for input in insn.input_regs_iter_mut() {
             loop {
-                let input_def = prog.get(*input).unwrap().clone();
+                let input_def = c.prog.get(*input).unwrap().clone();
                 if let Insn::Get(arg) = input_def {
                     *input = arg;
                 } else {
@@ -653,7 +616,7 @@ impl Transform for FoldGet {
             }
         }
 
-        prog.set(reg, insn);
+        c.prog.set(c.reg, insn);
     }
 }
 
@@ -671,19 +634,15 @@ impl Transform for FoldPartVoid {
 struct FoldPartConst;
 
 impl Transform for FoldPartConst {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Part { src, offset, size } = insn {
-            let result_insn = match prog.get(src).unwrap() {
+            let result_insn = match c.prog.get(src).unwrap() {
                 Insn::Int {
                     value: src_value,
                     size: src_size,
                 } => {
-                    let src_bytes = prog.int_bytes(*src_value, *src_size);
+                    let src_bytes = c.prog.int_bytes(*src_value, *src_size);
                     let src_bytes = src_bytes.as_slice();
 
                     let offset = offset as usize;
@@ -706,7 +665,7 @@ impl Transform for FoldPartConst {
                     }
 
                     let part_bytes = &src_bytes[offset..end];
-                    let value = match prog.endianness() {
+                    let value = match c.prog.endianness() {
                         Endianness::Little => {
                             let mut result_bytes = [0u8; 8];
                             result_bytes[..size].copy_from_slice(part_bytes);
@@ -744,7 +703,7 @@ impl Transform for FoldPartConst {
                 _ => return,
             };
 
-            prog.set(reg, result_insn);
+            c.prog.set(c.reg, result_insn);
         }
     }
 }
@@ -789,19 +748,15 @@ impl Transform for SelectTypeOnPart {
 struct PickCalleeName;
 
 impl Transform for PickCalleeName {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Call { callee, .. } = insn {
             // only do this when the callee is a const int. this is the common case when
             // calling a globally defined address, and NOT when you do an indirect call.
-            if let Insn::Int { .. } = prog.get(callee).unwrap() {
-                if let Some(callee_tyid) = prog.value_type(callee) {
-                    if let Ok(Some(name)) = types.name(callee_tyid) {
-                        prog.set(callee, Insn::Global(name.leak()));
+            if let Insn::Int { .. } = c.prog.get(callee).unwrap() {
+                if let Some(callee_tyid) = c.prog.value_type(callee) {
+                    if let Ok(Some(name)) = c.types.name(callee_tyid) {
+                        c.prog.set(callee, Insn::Global(name.leak()));
                     }
                 }
             }
@@ -1165,39 +1120,35 @@ impl Transform for PropagateCallTypes {
 struct PackAggregates;
 
 impl Transform for PackAggregates {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let bid = cursor.bid;
-        let types = cursor.types;
-        let Some(tyid) = prog.value_type(reg) else {
+    fn apply(&self, c: &mut Cursor) {
+        let Some(tyid) = c.prog.value_type(c.reg) else {
             return;
         };
-        let Some(tycow) = types.get_through_alias(tyid).unwrap() else {
+        let Some(tycow) = c.types.get_through_alias(tyid).unwrap() else {
             return;
         };
 
         if let ty::Ty::Struct(struct_ty) = tycow.as_ref() {
-            let insn = prog.get(reg).unwrap();
+            let insn = c.prog.get(c.reg).unwrap();
 
             if matches!(insn, Insn::Concat { .. }) {
                 // copy the instruction to a new value -- it will act as the "raw"
                 // value of the struct, to be formally sectioned into fields and
                 // reassembled into a single `Insn::Struct` carrying all members
                 // directly.
-                let src = prog.append_new(bid, Insn::Void);
-                prog.swap(src, reg);
+                let src = c.prog.append_new(c.bid, Insn::Void);
+                c.prog.swap(src, c.reg);
 
                 // reborrow
-                let insn = prog.get(reg).unwrap();
+                let insn = c.prog.get(c.reg).unwrap();
 
                 // now: src -> orig insn;  reg -> Insn::Void (which we're going to replace)
-                debug_assert_eq!(prog.get(src).unwrap(), insn);
+                debug_assert_eq!(c.prog.get(src).unwrap(), insn);
 
                 let mut members = Vec::new();
 
                 for member in &struct_ty.members {
-                    let Ok(Some(size)) = types.bytes_size(member.tyid) else {
+                    let Ok(Some(size)) = c.types.bytes_size(member.tyid) else {
                         event!(
                             Level::ERROR,
                             struct_tyid = ?tyid,
@@ -1209,23 +1160,24 @@ impl Transform for PackAggregates {
                     };
                     // TODO figure out proper memory management for leaked member names.
                     let name = member.name.to_string().leak();
-                    let value = prog.append_new(
-                        bid,
+                    let value = c.prog.append_new(
+                        c.bid,
                         Insn::Part {
                             src,
                             offset: member.offset.try_into().unwrap(),
                             size: size.try_into().unwrap(),
                         },
                     );
-                    prog.set_value_type(value, Some(member.tyid));
+                    c.prog.set_value_type(value, Some(member.tyid));
 
                     members.push(StructMemberValue { name, value });
                 }
 
-                prog.set(
-                    reg,
+                c.prog.set(
+                    c.reg,
                     Insn::Struct {
-                        type_name: types
+                        type_name: c
+                            .types
                             .name(tyid)
                             .unwrap()
                             .map(|s| s.to_string().leak() as &str)
