@@ -660,15 +660,10 @@ impl Transform for FoldGet {
 struct FoldPartVoid;
 
 impl Transform for FoldPartVoid {
-    fn apply(&self, cursor: &mut Cursor) {
-        let reg = cursor.reg;
-        let prog = &mut *cursor.prog;
-        let _bid = cursor.bid;
-        let _types = cursor.types;
-        let insn = prog.get(reg).unwrap().clone();
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
         if let Insn::Part { size: 0, .. } = insn {
-            prog.set(reg, Insn::Void);
-            return;
+            c.prog.set(c.reg, Insn::Void);
         }
     }
 }
@@ -750,6 +745,19 @@ impl Transform for FoldPartConst {
             };
 
             prog.set(reg, result_insn);
+        }
+    }
+}
+
+struct AddNegativeToSub;
+
+impl Transform for AddNegativeToSub {
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap().clone();
+        if let Insn::ArithK(ArithOp::Add, lr, rk) = insn {
+            if rk < 0 {
+                c.prog.set(c.reg, Insn::ArithK(ArithOp::Sub, lr, -rk));
+            }
         }
     }
 }
@@ -1024,6 +1032,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     push_xform!(FoldBitops);
     push_xform!(FoldConstants);
     push_xform!(FoldShrPart);
+    push_xform!(AddNegativeToSub);
     push_xform!(SelectTypeOnDerefMemberRead);
     push_xform!(SelectTypeOnPart);
     push_xform!(PickCalleeName);

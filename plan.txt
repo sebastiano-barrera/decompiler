@@ -6,6 +6,9 @@
     - creates the illusion that the argument IS a binding
 - [x] gui: fix highlighting between phi and upsilon
 
+- [x] a + (-n) -> a - n
+- [ ] global variables referred to as [RIP + k]
+
 - [ ] "view features" paradigm:
     - instead of separate panels for asm, cfg, ast,
     - we get a single view and three toggles for asm, cfg, ast;
