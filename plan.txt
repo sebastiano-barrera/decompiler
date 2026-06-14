@@ -2,7 +2,7 @@
 - [x] force function type
     - [x] allow forcing a function type (instead of fetching it automatically from TypeSet)
     - [x] do so when using the "Force type..." button
-- [ ] render $argN values as the parameter name if known, then inline them everywhere
+- [x] render $argN values as the parameter name if known, then inline them everywhere
     - creates the illusion that the argument IS a binding
 - [x] gui: fix highlighting between phi and upsilon
 

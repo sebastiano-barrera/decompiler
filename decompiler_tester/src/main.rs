@@ -72,6 +72,8 @@ struct App {
 }
 struct FunctionView {
     df: decompiler::DecompiledFunction,
+    /// Cached from df's function type
+    param_names: Vec<String>,
     name_of_reg: decompiler::RegMap<String>,
     ast: Option<decompiler::Ast>,
     asm: Assembly,
@@ -346,8 +348,14 @@ impl FunctionView {
             decompiler::RegMap::empty()
         };
 
+        let param_names = df
+            .ssa()
+            .and_then(|ssa| get_param_names(exe, ssa))
+            .unwrap_or(Vec::new());
+
         let mut fv = FunctionView {
             df,
+            param_names,
             name_of_reg,
             problems_is_visible: false,
             problems_title: title,
@@ -435,14 +443,20 @@ impl FunctionView {
             let title_label = format!("ARGUMENTS ({})", count);
             ui.label(egui::RichText::new(title_label).small().strong());
 
-            for (param_name, param_tyid) in func_ty.param_names.iter().zip(&func_ty.param_tyids) {
+            for (arg_ndx, (param_name, param_tyid)) in func_ty
+                .param_names
+                .iter()
+                .zip(&func_ty.param_tyids)
+                .enumerate()
+            {
+                let arg_ndx = arg_ndx.try_into().unwrap();
                 let param_name = param_name
                     .as_ref()
                     .map(|arc| arc.as_str())
                     .unwrap_or("<unnamed>");
                 ui.horizontal(|ui| {
                     ui.label(" • ");
-                    ui.label(param_name);
+                    ast::print_ident_def(ui, &mut self.hl, param_name, hl::Focus::Arg(arg_ndx));
                     ui.label(": ");
                     self.ui_type_ref(ui, *param_tyid, &rtx.read());
                 });
@@ -701,34 +715,26 @@ impl FunctionView {
         }
 
         if self.is_block_order_visible {
-            if let (Some(ssa), Some(ast)) = (self.df.ssa(), self.ast.as_mut()) {
-                let is_block_order_changed = egui::Panel::left("block_order_panel")
-                    .show_inside(ui, |ui| {
-                        ui.heading("Block order");
-                        let s = &mut ast::State {
-                            ast,
-                            ssa,
-                            name_of_reg: &self.name_of_reg,
-                            hl: &mut self.hl,
-                        };
+            let is_block_order_changed = egui::Panel::left("block_order_panel")
+                .show_inside(ui, |ui| {
+                    ui.heading("Block order");
 
-                        let res = egui_dnd::dnd(ui, "block_order_dnd").show_vec(
-                            &mut self.block_order,
-                            |ui, bid, _handle, _item_state| {
-                                _handle.ui(ui, |ui| {
-                                    ast::print_block_ref(ui, s, *bid);
-                                });
-                            },
-                        );
+                    let res = egui_dnd::dnd(ui, "block_order_dnd").show_vec(
+                        &mut self.block_order,
+                        |ui, bid, _handle, _item_state| {
+                            _handle.ui(ui, |ui| {
+                                ast::print_block_ref(ui, &mut self.hl, *bid);
+                            });
+                        },
+                    );
 
-                        res.update.is_some()
-                    })
-                    .inner;
+                    res.update.is_some()
+                })
+                .inner;
 
-                if is_block_order_changed {
-                    self.block_order = std::mem::take(&mut self.block_order);
-                    self.rebuild_ast();
-                }
+            if is_block_order_changed {
+                self.block_order = std::mem::take(&mut self.block_order);
+                self.rebuild_ast();
             }
         }
 
@@ -814,7 +820,14 @@ impl FunctionView {
             .auto_shrink([false, false])
             .show(ui, |ui| match (self.df.ssa_mut(), self.ast.as_mut()) {
                 (Some(ssa), Some(ast)) => {
-                    ast::render(ui, ast, ssa, &mut self.hl, &self.name_of_reg);
+                    let mut params = ast::Params {
+                        ast,
+                        name_of_reg: &self.name_of_reg,
+                        ssa,
+                        hl: &mut self.hl,
+                        param_names: &self.param_names,
+                    };
+                    ast::render(ui, &mut params);
                 }
                 _ => {
                     ui.centered_and_justified(|ui| {
@@ -870,6 +883,25 @@ impl FunctionView {
                 }
             });
     }
+}
+
+fn get_param_names(exe: &Executable<'_>, ssa: &decompiler::SSAProgram) -> Option<Vec<String>> {
+    let rtx = exe.types().read_tx().ok()?;
+    let tyid = ssa.function_type_id()?;
+    let ty = rtx.read().get_through_alias(tyid).ok().flatten()?;
+    let decompiler::ty::Ty::Subroutine(func_ty) = ty.into_owned() else {
+        return None;
+    };
+    let param_names = func_ty
+        .param_names
+        .iter()
+        .enumerate()
+        .map(|(ndx, s)| match s {
+            Some(s) => s.to_string(),
+            None => format!("arg{}", ndx),
+        })
+        .collect();
+    Some(param_names)
 }
 
 fn show_details_ty_int(
@@ -1243,6 +1275,8 @@ impl Assembly {
 }
 
 mod ast {
+    use std::borrow::Cow;
+
     use decompiler::{
         BlockID, Insn,
         ast::{Stmt, StmtID},
@@ -1251,93 +1285,82 @@ mod ast {
     use super::hl;
     use crate::{columns, theme};
 
-    pub fn render(
-        ui: &mut egui::Ui,
-        ast: &mut decompiler::Ast,
-        ssa: &mut decompiler::SSAProgram,
-        hl: &mut hl::State,
-        name_of_reg: &decompiler::RegMap<String>,
-    ) {
+    pub struct Params<'a> {
+        pub ast: &'a mut decompiler::Ast,
+        pub name_of_reg: &'a decompiler::RegMap<String>,
+        pub ssa: &'a mut decompiler::SSAProgram,
+        pub hl: &'a mut hl::State,
+        pub param_names: &'a [String],
+    }
+
+    pub fn render(ui: &mut egui::Ui, params: &mut Params) {
         let cmd = &mut Cmd::None;
 
         columns::show(ui, [40.0, columns::EXPANDING_WIDTH], |cols| {
-            let root_sid = ast.root();
-            let mut s = State {
-                ast,
-                ssa,
-                hl,
-                name_of_reg,
-            };
+            let root_sid = params.ast.root();
             let [block_def_col, main_col] = cols.uis();
-            render_stmt(block_def_col, main_col, &mut s, root_sid, cmd);
+            render_stmt(block_def_col, main_col, params, root_sid, cmd);
         });
 
-        cmd.execute(ast, ssa);
-    }
-
-    pub struct State<'a> {
-        pub ast: &'a decompiler::Ast,
-        pub name_of_reg: &'a decompiler::RegMap<String>,
-        pub ssa: &'a decompiler::SSAProgram,
-        pub hl: &'a mut hl::State,
+        cmd.execute(params.ast, params.ssa);
     }
 
     fn render_stmt(
         block_def_col: &mut egui::Ui,
         ui: &mut egui::Ui,
-        s: &mut State<'_>,
+        s: &mut Params<'_>,
         sid: StmtID,
         command: &mut Cmd,
     ) {
         // TODO replace tail-calls with a loop continue (or similar)
         ui.vertical(|ui| match s.ast.get(sid) {
-            Stmt::NamedBlock { bid, body } => {
+            &Stmt::NamedBlock { bid, body } => {
                 block_def_col.advance_cursor_after_rect(
                     block_def_col.cursor().with_max_y(ui.cursor().min.y - 3.0),
                 );
-                print_block_def(block_def_col, s, *bid);
+                print_block_def(block_def_col, s.hl, bid);
 
                 ui.horizontal(|ui| {
-                    render_stmt(block_def_col, ui, s, *body, command);
+                    render_stmt(block_def_col, ui, s, body, command);
                 });
             }
-            Stmt::Let { name, value, body } => {
+            &Stmt::Let { name, value, body } => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "let");
-                    print_reg_def(ui, s, *name, hl::Focus::Reg(*value));
-                    print_kw(ui, s, "=");
-                    render_expr_def(ui, s, *value, 0);
-                    print_kw(ui, s, "in");
+                    print_kw(ui, s.hl, "let");
+                    print_reg_def(ui, s, name, hl::Focus::Reg(value));
+                    print_kw(ui, s.hl, "=");
+                    render_expr_def(ui, s, value, 0);
+                    print_kw(ui, s.hl, "in");
                 });
-                render_stmt(block_def_col, ui, s, *body, command);
+                render_stmt(block_def_col, ui, s, body, command);
             }
-            Stmt::LetPhi { name, body } => {
+            &Stmt::LetPhi { name, body } => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "letphi");
-                    print_reg_def(ui, s, *name, hl::Focus::Reg(*name));
+                    print_kw(ui, s.hl, "letphi");
+                    print_reg_def(ui, s, name, hl::Focus::Reg(name));
                 });
-                render_stmt(block_def_col, ui, s, *body, command);
+                render_stmt(block_def_col, ui, s, body, command);
             }
-            Stmt::Seq { first, then } => {
-                render_stmt(block_def_col, ui, s, *first, command);
-                render_stmt(block_def_col, ui, s, *then, command);
+            &Stmt::Seq { first, then } => {
+                render_stmt(block_def_col, ui, s, first, command);
+                render_stmt(block_def_col, ui, s, then, command);
             }
-            Stmt::Eval(reg) => {
+            &Stmt::Eval(reg) => {
                 ui.horizontal(|ui| {
-                    render_expr_def(ui, s, *reg, 0);
+                    render_expr_def(ui, s, reg, 0);
                 });
             }
-            Stmt::If { cond, cons, alt } => {
+            &Stmt::If { cond, cons, alt } => {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        if print_kw(ui, s, "if")
+                        if print_kw(ui, s.hl, "if")
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
                             .double_clicked()
                         {
                             *command = Cmd::InvertIf(sid);
                         }
 
-                        match *cond {
+                        match cond {
                             Some(cond) => {
                                 render_expr_def(ui, s, cond, 0);
                             }
@@ -1348,71 +1371,71 @@ mod ast {
                     });
                     ui.horizontal(|ui| {
                         ui.add_space(20.0);
-                        render_stmt(block_def_col, ui, s, *cons, command);
+                        render_stmt(block_def_col, ui, s, cons, command);
                     });
 
-                    if s.ast.get(*alt) != &Stmt::Pass {
-                        print_kw(ui, s, "else");
+                    if s.ast.get(alt) != &Stmt::Pass {
+                        print_kw(ui, s.hl, "else");
                         ui.horizontal(|ui| {
                             ui.add_space(20.0);
-                            render_stmt(block_def_col, ui, s, *alt, command);
+                            render_stmt(block_def_col, ui, s, alt, command);
                         });
                     }
 
-                    print_kw(ui, s, "end");
+                    print_kw(ui, s.hl, "end");
                 });
             }
-            Stmt::Return(reg) => {
+            &Stmt::Return(reg) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "return");
-                    render_expr(ui, s, *reg, 0);
+                    print_kw(ui, s.hl, "return");
+                    render_expr(ui, s, reg, 0);
                 });
             }
             Stmt::JumpUndefined => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "goto");
-                    print_kw(ui, s, "undefined");
+                    print_kw(ui, s.hl, "goto");
+                    print_kw(ui, s.hl, "undefined");
                 });
             }
-            Stmt::JumpExternal(addr) => {
+            &Stmt::JumpExternal(addr) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "goto");
-                    ui.label(format!("0x{:x}", *addr));
+                    print_kw(ui, s.hl, "goto");
+                    ui.label(format!("0x{:x}", addr));
                 });
             }
-            Stmt::JumpIndirect(reg) => {
+            &Stmt::JumpIndirect(reg) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "goto");
+                    print_kw(ui, s.hl, "goto");
                     ui.label("(");
-                    render_expr_def(ui, s, *reg, 0);
+                    render_expr_def(ui, s, reg, 0);
                     ui.label(").*");
                 });
             }
             Stmt::Loop(block_id) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "loop");
-                    print_block_ref(ui, s, *block_id);
+                    print_kw(ui, s.hl, "loop");
+                    print_block_ref(ui, s.hl, *block_id);
                 });
             }
             Stmt::Jump(block_id) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "goto");
-                    print_block_ref(ui, s, *block_id);
+                    print_kw(ui, s.hl, "goto");
+                    print_block_ref(ui, s.hl, *block_id);
                 });
             }
             Stmt::Pass => {
-                print_kw(ui, s, "pass");
+                print_kw(ui, s.hl, "pass");
             }
         });
     }
 
-    fn print_error_tag(ui: &mut egui::Ui, _s: &mut State<'_>, text: &str) {
+    fn print_error_tag(ui: &mut egui::Ui, _s: &mut Params<'_>, text: &str) {
         ui.label(egui::RichText::new(text).color(egui::Color32::DARK_RED));
     }
 
     fn render_expr(
         ui: &mut egui::Ui,
-        s: &mut State<'_>,
+        s: &mut Params<'_>,
         reg: decompiler::Reg,
         parent_prec: decompiler::PrecedenceLevel,
     ) {
@@ -1425,7 +1448,7 @@ mod ast {
 
     fn render_expr_def(
         ui: &mut egui::Ui,
-        s: &mut State<'_>,
+        s: &mut Params<'_>,
         reg: decompiler::Reg,
         parent_prec: decompiler::PrecedenceLevel,
     ) {
@@ -1436,17 +1459,17 @@ mod ast {
 
         let my_prec = decompiler::precedence(&insn);
         if my_prec < parent_prec {
-            print_kw(ui, s, "(");
+            print_kw(ui, s.hl, "(");
         }
         match insn {
             Insn::Void => {
-                print_kw(ui, s, "void");
+                print_kw(ui, s.hl, "void");
             }
             Insn::True => {
-                print_kw(ui, s, "true");
+                print_kw(ui, s.hl, "true");
             }
             Insn::False => {
-                print_kw(ui, s, "false");
+                print_kw(ui, s.hl, "false");
             }
             Insn::Bytes(bytes) => {
                 ui.label(format!("{:?}", bytes.as_slice()));
@@ -1460,28 +1483,28 @@ mod ast {
             Insn::Get(r) => {
                 render_expr(ui, s, *r, my_prec);
             }
-            Insn::Part { src, offset, size } => {
+            &Insn::Part { src, offset, size } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *src, my_prec);
+                    render_expr(ui, s, src, my_prec);
                     ui.label(format!("[{} .. {}]", offset, offset + size));
                 });
             }
-            Insn::Concat { lo, hi } => {
+            &Insn::Concat { lo, hi } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *hi, my_prec);
-                    print_kw(ui, s, "++");
-                    render_expr(ui, s, *lo, my_prec);
+                    render_expr(ui, s, hi, my_prec);
+                    print_kw(ui, s.hl, "++");
+                    render_expr(ui, s, lo, my_prec);
                 });
             }
-            Insn::StructGetMember {
+            &Insn::StructGetMember {
                 struct_value,
                 name,
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *struct_value, my_prec);
-                    print_kw(ui, s, ".");
-                    print_ident(ui, s, name);
+                    render_expr(ui, s, struct_value, my_prec);
+                    print_kw(ui, s.hl, ".");
+                    print_ident(ui, s.hl, name);
                 });
             }
             Insn::Struct {
@@ -1489,85 +1512,89 @@ mod ast {
                 members,
                 size: _,
             } => {
+                let type_name = *type_name;
+                // sad: I don't know how to get around cloning this potentially large struct.
+                // temporary allocator?
+                let members = members.clone();
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        print_kw(ui, s, "struct");
-                        print_ident(ui, s, type_name);
-                        print_kw(ui, s, "{");
+                        print_kw(ui, s.hl, "struct");
+                        print_ident(ui, s.hl, type_name);
+                        print_kw(ui, s.hl, "{");
                     });
                     ui.horizontal(|ui| {
                         ui.add_space(5.0);
                         ui.vertical(|ui| {
                             if members.is_empty() {
-                                ui.label("(no members)");
+                                ui.label("(* no members *)");
                             } else {
                                 for member in members {
                                     ui.horizontal(|ui| {
-                                        print_ident(ui, s, member.name);
-                                        print_kw(ui, s, ":");
+                                        print_ident(ui, s.hl, member.name);
+                                        print_kw(ui, s.hl, ":");
                                         render_expr(ui, s, member.value, my_prec);
-                                        print_kw(ui, s, ";");
+                                        print_kw(ui, s.hl, ";");
                                     });
                                 }
                             }
                         });
                     });
-                    print_kw(ui, s, "}");
+                    print_kw(ui, s.hl, "}");
                 });
             }
-            Insn::ArrayGetElement {
+            &Insn::ArrayGetElement {
                 array,
                 index,
                 size: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *array, my_prec);
+                    render_expr(ui, s, array, my_prec);
                     ui.label(format!("[{}]", index));
                 });
             }
-            Insn::Widen {
+            &Insn::Widen {
                 reg: inner,
                 target_size,
                 sign: _,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *inner, my_prec);
-                    print_kw(ui, s, "as");
+                    render_expr(ui, s, inner, my_prec);
+                    print_kw(ui, s.hl, "as");
                     ui.label(format!("i{}", target_size * 8));
                 });
             }
-            Insn::Arith(arith_op, a, b) => {
+            &Insn::Arith(arith_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *a, my_prec);
-                    print_kw(ui, s, arith_op.symbol());
-                    render_expr(ui, s, *b, my_prec);
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s.hl, arith_op.symbol());
+                    render_expr(ui, s, b, my_prec);
                 });
             }
-            Insn::ArithK(arith_op, a, k) => {
+            &Insn::ArithK(arith_op, a, k) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *a, my_prec);
-                    print_kw(ui, s, arith_op.symbol());
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s.hl, arith_op.symbol());
                     ui.label(format!("{}", k));
                 });
             }
-            Insn::Cmp(cmp_op, a, b) => {
+            &Insn::Cmp(cmp_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *a, my_prec);
-                    print_kw(ui, s, cmp_op.symbol());
-                    render_expr(ui, s, *b, my_prec);
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s.hl, cmp_op.symbol());
+                    render_expr(ui, s, b, my_prec);
                 });
             }
-            Insn::Bool(bool_op, a, b) => {
+            &Insn::Bool(bool_op, a, b) => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *a, my_prec);
-                    print_kw(ui, s, bool_op.symbol());
-                    render_expr(ui, s, *b, my_prec);
+                    render_expr(ui, s, a, my_prec);
+                    print_kw(ui, s.hl, bool_op.symbol());
+                    render_expr(ui, s, b, my_prec);
                 });
             }
-            Insn::Not(a) => {
+            &Insn::Not(a) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "!");
-                    render_expr(ui, s, *a, my_prec);
+                    print_kw(ui, s.hl, "!");
+                    render_expr(ui, s, a, my_prec);
                 });
             }
             Insn::Call {
@@ -1575,91 +1602,98 @@ mod ast {
                 args,
                 ret_ll_type: _,
             } => {
+                let callee = *callee;
+                let args = args.clone();
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *callee, my_prec);
-                    print_kw(ui, s, "(");
+                    render_expr(ui, s, callee, my_prec);
+                    print_kw(ui, s.hl, "(");
                     for (ndx, a) in args.into_iter().enumerate() {
                         if ndx > 0 {
-                            print_kw(ui, s, ",");
+                            print_kw(ui, s.hl, ",");
                         }
-                        render_expr(ui, s, *a, my_prec);
+                        render_expr(ui, s, a, my_prec);
                     }
-                    print_kw(ui, s, ")");
+                    print_kw(ui, s.hl, ")");
                 });
             }
-            Insn::LoadMem { addr, size } => {
+            &Insn::LoadMem { addr, size } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *addr, my_prec);
-                    print_kw(ui, s, &format!(".* [..{}]", size));
+                    render_expr(ui, s, addr, my_prec);
+                    print_kw(ui, s.hl, &format!(".* [..{}]", size));
                 });
             }
-            Insn::StoreMem { addr, value } => {
+            &Insn::StoreMem { addr, value } => {
                 ui.horizontal(|ui| {
                     ui.label("(");
-                    render_expr(ui, s, *addr, my_prec);
+                    render_expr(ui, s, addr, my_prec);
                     ui.label(")");
-                    print_kw(ui, s, ".*");
-                    print_kw(ui, s, ":=");
-                    render_expr(ui, s, *value, my_prec);
+                    print_kw(ui, s.hl, ".*");
+                    print_kw(ui, s.hl, ":=");
+                    render_expr(ui, s, value, my_prec);
                 });
             }
-            Insn::OverflowOf(r) => {
+            &Insn::OverflowOf(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "overflow_of");
-                    render_expr(ui, s, *r, my_prec);
+                    print_kw(ui, s.hl, "overflow_of");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
-            Insn::CarryOf(r) => {
+            &Insn::CarryOf(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "carry_of");
-                    render_expr(ui, s, *r, my_prec);
+                    print_kw(ui, s.hl, "carry_of");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
-            Insn::SignOf(r) => {
+            &Insn::SignOf(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "sign_of");
-                    render_expr(ui, s, *r, my_prec);
+                    print_kw(ui, s.hl, "sign_of");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
-            Insn::IsZero(r) => {
+            &Insn::IsZero(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "is_zero");
-                    render_expr(ui, s, *r, my_prec);
+                    print_kw(ui, s.hl, "is_zero");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
-            Insn::Parity(r) => {
+            &Insn::Parity(r) => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "parity");
-                    render_expr(ui, s, *r, my_prec);
+                    print_kw(ui, s.hl, "parity");
+                    render_expr(ui, s, r, my_prec);
                 });
             }
             Insn::UndefinedBool => {
-                print_kw(ui, s, "undefined");
-                print_kw(ui, s, "bool");
+                print_kw(ui, s.hl, "undefined");
+                print_kw(ui, s.hl, "bool");
             }
             Insn::UndefinedBytes { size } => {
                 ui.horizontal(|ui| {
-                    print_kw(ui, s, "undefined");
+                    print_kw(ui, s.hl, "undefined");
                     ui.label(format!("bytes({})", size));
                 });
             }
-            Insn::FuncArgument { index, ll_type: _ } => {
-                print_ident(ui, s, &format!("$arg{}", index));
+            &Insn::FuncArgument { index, ll_type: _ } => {
+                let name = s
+                    .param_names
+                    .get(index as usize)
+                    .map(Cow::Borrowed)
+                    .unwrap_or_else(|| Cow::Owned(format!("arg{}", index)));
+                print_ident_ref(ui, s.hl, name.as_str(), hl::Focus::Arg(index));
             }
             Insn::Ancestral {
                 anc_name,
                 ll_type: _,
             } => {
-                print_kw(ui, s, anc_name.name());
+                print_kw(ui, s.hl, anc_name.name());
             }
             Insn::Phi => {
-                print_kw(ui, s, "phi");
+                print_kw(ui, s.hl, "phi");
             }
-            Insn::Upsilon { value, phi_ref } => {
+            &Insn::Upsilon { value, phi_ref } => {
                 ui.horizontal(|ui| {
-                    print_reg_ref(ui, s, *phi_ref, hl::Focus::Reg(*phi_ref));
-                    print_kw(ui, s, ":=");
-                    render_expr(ui, s, *value, my_prec);
+                    print_reg_ref(ui, s, phi_ref, hl::Focus::Reg(phi_ref));
+                    print_kw(ui, s.hl, ":=");
+                    render_expr(ui, s, value, my_prec);
                 });
             }
 
@@ -1678,68 +1712,79 @@ mod ast {
                 );
             }
 
-            Insn::StructSetMember {
+            &Insn::StructSetMember {
                 struct_value,
                 name,
                 value,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *struct_value, my_prec);
-                    print_kw(ui, s, ".");
-                    print_ident(ui, s, name);
-                    print_kw(ui, s, ":=");
-                    render_expr(ui, s, *value, my_prec);
+                    render_expr(ui, s, struct_value, my_prec);
+                    print_kw(ui, s.hl, ".");
+                    print_ident(ui, s.hl, name);
+                    print_kw(ui, s.hl, ":=");
+                    render_expr(ui, s, value, my_prec);
                 });
             }
 
-            Insn::ArraySetElement {
+            &Insn::ArraySetElement {
                 array,
                 index,
                 value,
             } => {
                 ui.horizontal(|ui| {
-                    render_expr(ui, s, *array, my_prec);
+                    render_expr(ui, s, array, my_prec);
                     ui.label(format!("[{}]", index));
-                    print_kw(ui, s, ":=");
-                    render_expr(ui, s, *value, my_prec);
+                    print_kw(ui, s.hl, ":=");
+                    render_expr(ui, s, value, my_prec);
                 });
             }
         }
 
         if my_prec < parent_prec {
-            print_kw(ui, s, ")");
+            print_kw(ui, s.hl, ")");
         }
     }
 
-    fn print_ident(ui: &mut egui::Ui, _s: &mut State<'_>, ident: &str) {
+    fn print_reg_def(
+        ui: &mut egui::Ui,
+        s: &mut Params<'_>,
+        reg: decompiler::Reg,
+        focus: hl::Focus,
+    ) {
+        let ident = &s.name_of_reg[reg];
+        print_ident_def(ui, s.hl, ident, focus);
+    }
+    fn print_reg_ref(
+        ui: &mut egui::Ui,
+        s: &mut Params<'_>,
+        reg: decompiler::Reg,
+        focus: hl::Focus,
+    ) {
+        let ident = &s.name_of_reg[reg];
+        print_ident_ref(ui, s.hl, ident, focus);
+    }
+
+    fn print_ident(ui: &mut egui::Ui, _s: &mut hl::State, ident: &str) {
         ui.label(ident);
     }
-    fn print_reg_def(ui: &mut egui::Ui, s: &mut State<'_>, reg: decompiler::Reg, focus: hl::Focus) {
-        let ident = &s.name_of_reg[reg];
-        print_ident_def(ui, s, ident, focus);
-    }
-    fn print_reg_ref(ui: &mut egui::Ui, s: &mut State, reg: decompiler::Reg, focus: hl::Focus) {
-        let ident = &s.name_of_reg[reg];
-        print_ident_ref(ui, s, ident, focus);
-    }
-    fn print_ident_def(ui: &mut egui::Ui, s: &mut State<'_>, ident: &str, focus: hl::Focus) {
+    pub fn print_ident_def(ui: &mut egui::Ui, s: &mut hl::State, ident: &str, focus: hl::Focus) {
         let colors = theme::colors(focus, theme::Role::Definition);
         active_label(ui, s, focus, colors, ident);
     }
-    fn print_ident_ref(ui: &mut egui::Ui, s: &mut State, ident: &str, focus: hl::Focus) {
+    pub fn print_ident_ref(ui: &mut egui::Ui, s: &mut hl::State, ident: &str, focus: hl::Focus) {
         let colors = theme::colors(focus, theme::Role::Reference);
         active_label(ui, s, focus, colors, ident);
     }
-    fn print_kw(ui: &mut egui::Ui, _s: &mut State<'_>, kw: &str) -> egui::Response {
+    fn print_kw(ui: &mut egui::Ui, _s: &mut hl::State, kw: &str) -> egui::Response {
         ui.label(egui::RichText::new(kw).strong())
     }
 
-    fn print_block_def(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
+    fn print_block_def(ui: &mut egui::Ui, s: &mut hl::State, bid: BlockID) {
         let text = format!("♦{}", bid.as_number());
         let colors = theme::colors(hl::Focus::Block(bid), theme::Role::Definition);
         active_label(ui, s, hl::Focus::Block(bid), colors, &text);
     }
-    pub fn print_block_ref(ui: &mut egui::Ui, s: &mut State<'_>, bid: BlockID) {
+    pub fn print_block_ref(ui: &mut egui::Ui, s: &mut hl::State, bid: BlockID) {
         let text = format!("♦{}", bid.as_number());
         let colors = theme::colors(hl::Focus::Block(bid), theme::Role::Reference);
         active_label(ui, s, hl::Focus::Block(bid), colors, &text);
@@ -1747,7 +1792,7 @@ mod ast {
 
     fn active_label(
         ui: &mut egui::Ui,
-        s: &mut State<'_>,
+        hl: &mut hl::State,
         focus: hl::Focus,
         colors_active: &theme::Colors,
         text: &str,
@@ -1755,9 +1800,9 @@ mod ast {
         const TRANSPARENT: egui::Color32 = egui::Color32::TRANSPARENT;
         let col_text_normal = ui.visuals().text_color();
 
-        let (col_bg, col_border, col_text) = if s.hl.pinned.focus() == Some(focus) {
+        let (col_bg, col_border, col_text) = if hl.pinned.focus() == Some(focus) {
             (colors_active.background, TRANSPARENT, colors_active.text)
-        } else if s.hl.hovered.focus() == Some(focus) {
+        } else if hl.hovered.focus() == Some(focus) {
             (TRANSPARENT, colors_active.background, col_text_normal)
         } else {
             (TRANSPARENT, TRANSPARENT, col_text_normal)
@@ -1780,13 +1825,13 @@ mod ast {
 
         if res.clicked() {
             // toggle pinned state when clicking on something that's already pinned
-            if Some(focus) == s.hl.pinned.focus() {
-                s.hl.pinned.set_focus(None);
+            if Some(focus) == hl.pinned.focus() {
+                hl.pinned.set_focus(None);
             } else {
-                s.hl.pinned.set_focus(Some(focus));
+                hl.pinned.set_focus(Some(focus));
             }
         } else if res.hovered() {
-            s.hl.hovered.set_focus(Some(focus));
+            hl.hovered.set_focus(Some(focus));
         }
 
         res.on_hover_cursor(egui::CursorIcon::PointingHand);
@@ -1840,6 +1885,7 @@ mod hl {
     pub enum Focus {
         Reg(decompiler::Reg),
         Block(decompiler::BlockID),
+        Arg(u16),
     }
 
     impl Set {
@@ -1890,13 +1936,13 @@ mod theme {
 
     pub fn colors(focus: hl::Focus, role: Role) -> &'static Colors {
         match (focus, role) {
-            (hl::Focus::Reg(_), Role::Definition) => {
+            (hl::Focus::Reg(_) | hl::Focus::Arg(_), Role::Definition) => {
                 &(Colors {
                     background: COLOR_GREEN_DARK,
                     text: egui::Color32::WHITE,
                 })
             }
-            (hl::Focus::Reg(_), Role::Reference) => {
+            (hl::Focus::Reg(_) | hl::Focus::Arg(_), Role::Reference) => {
                 &(Colors {
                     background: COLOR_GREEN_LIGHT,
                     text: egui::Color32::BLACK,
