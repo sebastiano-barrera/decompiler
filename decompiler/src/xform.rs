@@ -55,7 +55,7 @@ impl Transform for FoldConstants {
             }
         }
 
-        /// Compute (op_res, rk) such that, for all x:
+        /// Compute rk such that, for all x:
         ///   (x <op> ak) <op> bk <===> x <op> rk
         /// or, equivalently:
         ///   (x <op> ak) <op> (y <op> bk)<===> (x <op> y) <op> rk
@@ -1049,12 +1049,19 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     push_xform!(FoldBitops);
     push_xform!(FoldConstants);
     push_xform!(FoldShrPart);
-    push_xform!(AddNegativeToSub);
     push_xform!(SelectTypeOnDerefMemberRead);
     push_xform!(SelectTypeOnPart);
     push_xform!(PickGlobalName);
     push_xform!(PickCalleeName);
 
+    let xformset = TransformSet {
+        transforms: &mut transforms[..],
+    };
+    peephole(prog, types, &xformset);
+
+    // apply some transfomrs at the end, for "cosmetic purposes" or readability
+    transforms.clear();
+    push_xform!(AddNegativeToSub);
     let xformset = TransformSet {
         transforms: &mut transforms[..],
     };

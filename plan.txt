@@ -8,7 +8,7 @@
 
 - [x] a + (-n) -> a - n
 - [x] global variables referred to as [RIP + k]
-- [ ] fix arithk folding with subtraction (addition already works)
+- [x] fix arithk folding with subtraction (addition already works)
 
 - [ ] "view features" paradigm:
     - instead of separate panels for asm, cfg, ast,
