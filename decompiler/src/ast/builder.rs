@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::mil::Reg;
+use crate::mil::{LLType, Reg};
 
 use std::collections::HashSet;
 
@@ -24,14 +24,16 @@ impl<'a> State<'a> {
             let Some(insn) = builder.ssa.get(reg) else {
                 return false;
             };
+
             // ancestral are as good as r# refs, so never 'name' them / always
             // print inline
-            !matches!(insn, Insn::FuncArgument { .. })
-                && (matches!(insn, Insn::Phi)
-                    || (*count > 1
-                        && !matches!(insn, Insn::StoreMem { .. })
-                        && !matches!(insn, Insn::Ancestral { .. })
-                        && !matches!(insn, Insn::Int { .. })))
+            insn.has_side_effects()
+                || !matches!(insn, Insn::FuncArgument { .. })
+                    && !matches!(insn, Insn::StoreMem { .. })
+                    && !matches!(insn, Insn::Ancestral { .. })
+                    && !matches!(insn, Insn::Int { .. })
+                    && matches!(insn, Insn::Phi)
+                    && *count > 1
         });
 
         let block_order_rev = builder.block_order.into_iter().rev().collect();
@@ -112,7 +114,7 @@ impl<'a> State<'a> {
 
         let mut sid = end_sid;
         for reg in self.ssa.block_regs(bid).rev() {
-            if self.is_named(reg) || self.ssa.get(reg).unwrap().has_side_effects() {
+            if self.is_named(reg) {
                 sid = self.build_stmt(reg, sid);
             }
         }
@@ -197,11 +199,13 @@ impl<'a> State<'a> {
                 name: reg,
                 body: sid,
             }),
-            _ if self.is_named(reg) => self.push_stmt(Stmt::Let {
-                name: reg,
-                value: reg,
-                body: sid,
-            }),
+            _ if self.is_named(reg) && self.ssa.ll_type(reg) != LLType::Effect => {
+                self.push_stmt(Stmt::Let {
+                    name: reg,
+                    value: reg,
+                    body: sid,
+                })
+            }
             _ => {
                 let eval = self.push_stmt(Stmt::Eval(reg));
                 self.push_stmt(Stmt::Seq {
