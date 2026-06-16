@@ -10,6 +10,8 @@
 - [x] global variables referred to as [RIP + k]
 - [x] fix arithk folding with subtraction (addition already works)
 
+- [ ] basic cfg view (prototype for the upcoming "view features" paradigm)
+
 - [ ] "view features" paradigm:
     - instead of separate panels for asm, cfg, ast,
     - we get a single view and three toggles for asm, cfg, ast;

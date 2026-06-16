@@ -76,6 +76,7 @@ struct FunctionView {
     param_names: Vec<String>,
     name_of_reg: decompiler::RegMap<String>,
     ast: Option<decompiler::Ast>,
+    cfg_layout: cfg::Layout,
     asm: Assembly,
     type_windows: Vec<TypeDetailsWindow>,
 
@@ -89,6 +90,7 @@ struct FunctionView {
     asm_hl_mask: Cache<BlockID, Vec<bool>>,
 
     is_asm_visible: bool,
+    is_cfg_visible: bool,
     is_block_order_visible: bool,
     block_order: Vec<BlockID>,
     block_order_error: Option<String>,
@@ -129,6 +131,10 @@ impl eframe::App for App {
                         ui.toggle_value(
                             &mut func_view.is_block_order_visible,
                             egui::RichText::new("BlkOrd").monospace(),
+                        );
+                        ui.toggle_value(
+                            &mut func_view.is_cfg_visible,
+                            egui::RichText::new("CFG").monospace(),
                         );
                     }
                 });
@@ -360,6 +366,7 @@ impl FunctionView {
             problems_is_visible: false,
             problems_title: title,
             problems_error: error_label,
+            cfg_layout: cfg::Layout::default(),
             ast: None,
             asm,
             type_windows: Vec::new(),
@@ -369,6 +376,7 @@ impl FunctionView {
             is_block_order_visible: false,
             block_order: Vec::new(),
             block_order_error: None,
+            is_cfg_visible: false,
         };
         fv.rebuild_ast();
         fv
@@ -382,10 +390,13 @@ impl FunctionView {
     fn rebuild_ast(&mut self) {
         self.ast = None;
         self.block_order_error = None;
+        self.cfg_layout = cfg::Layout::default();
 
         let Some(ssa) = self.df.ssa() else {
             return;
         };
+
+        self.cfg_layout = cfg::Layout::from_cfg(&ssa.cfg());
 
         let mut builder = decompiler::AstBuilder::new(ssa);
         builder.set_all_blocks_named(true);
@@ -820,14 +831,18 @@ impl FunctionView {
             .auto_shrink([false, false])
             .show(ui, |ui| match (self.df.ssa_mut(), self.ast.as_mut()) {
                 (Some(ssa), Some(ast)) => {
-                    let mut params = ast::Params {
-                        ast,
-                        name_of_reg: &self.name_of_reg,
-                        ssa,
-                        hl: &mut self.hl,
-                        param_names: &self.param_names,
-                    };
-                    ast::render(ui, &mut params);
+                    if self.is_cfg_visible {
+                        self.cfg_layout.render(ui);
+                    } else {
+                        let mut params = ast::Params {
+                            ast,
+                            name_of_reg: &self.name_of_reg,
+                            ssa,
+                            hl: &mut self.hl,
+                            param_names: &self.param_names,
+                        };
+                        ast::render(ui, &mut params);
+                    }
                 }
                 _ => {
                     ui.centered_and_justified(|ui| {
@@ -1851,6 +1866,209 @@ mod ast {
                     }
                 }
             }
+        }
+    }
+}
+
+mod cfg {
+    use decompiler::{BlockID, BlockMap};
+
+    use std::collections::HashMap;
+
+    pub struct Layout {
+        nodes: Vec<Node>,
+        edges: HashMap<(NodeID, NodeID), EdgeData>,
+        level_count: u32,
+    }
+    type NodeID = usize;
+
+    #[derive(Debug)]
+    struct Node {
+        content: NodeContent,
+        succs: Vec<NodeID>,
+        level: u32,
+        horiz_ord_key: u32,
+    }
+
+    #[derive(Default)]
+    struct EdgeData {
+        is_inverted: bool,
+    }
+
+    #[derive(Debug)]
+    enum NodeContent {
+        Block(BlockID),
+        Dummy,
+    }
+
+    impl Default for Layout {
+        fn default() -> Self {
+            Self {
+                nodes: Vec::new(),
+                edges: HashMap::new(),
+                level_count: 0,
+            }
+        }
+    }
+
+    impl Layout {
+        fn add_node(&mut self, content: NodeContent) -> NodeID {
+            let ndx = self.nodes.len();
+            self.nodes.push(Node {
+                content,
+                succs: Vec::new(),
+                level: 0,
+                horiz_ord_key: 0,
+            });
+            ndx
+        }
+
+        fn get(&self, nid: NodeID) -> &Node {
+            self.nodes.get(nid).unwrap()
+        }
+        fn get_mut(&mut self, nid: NodeID) -> &mut Node {
+            self.nodes.get_mut(nid).unwrap()
+        }
+
+        fn add_edge(&mut self, from: NodeID, to: NodeID) -> &mut EdgeData {
+            let node = self.nodes.get_mut(from).unwrap();
+            if !node.succs.contains(&to) {
+                node.succs.push(to);
+            }
+            self.edges
+                .entry((from, to))
+                .or_insert_with(|| EdgeData::default())
+        }
+
+        pub(super) fn from_cfg(cfg: &decompiler::Graph) -> Self {
+            // Modified Sugiyama algorithm for CFG layout
+            // Heavily inspired by this blog post: https://spidermonkey.dev/blog/2025/10/28/iongraph-web.html
+
+            // General outline:
+            let mut layout = Layout::default();
+
+            // 1. Cycle breaking, where the direction of some edges are flipped in order to produce a DAG.
+
+            // 2. Leveling, where vertices are assigned into horizontal layers according to their depth in the graph, and dummy vertices are added to any edge that crosses multiple layers.
+            let nid_of_bid =
+                BlockMap::new_with(cfg, |bid| layout.add_node(NodeContent::Block(bid)));
+
+            for bid in cfg.block_ids_rpo() {
+                let nid = nid_of_bid[bid];
+                layout.get_mut(nid).level = 1 + cfg
+                    .block_preds(bid)
+                    .iter()
+                    .map(|&pred| layout.get(nid_of_bid[pred]).level)
+                    .max()
+                    .unwrap_or(0u32);
+            }
+            layout.level_count = 1 + layout.nodes.iter().map(|n| n.level).max().unwrap_or(0u32);
+
+            // 3. Crossing minimization, where vertices on a layer are reordered
+            // in order to minimize the number of edge crossings.
+
+            // 3.1 Create edges and dummy nodes
+            for bid in cfg.block_ids() {
+                let start_nid = nid_of_bid[bid];
+                for succ in cfg.direct().successors(bid) {
+                    let nid_end = nid_of_bid[succ];
+
+                    // If the edge is inverted (i.e. upwards), then we still
+                    // create a downward edge, but we mark it "inverted" so
+                    // that the arrow is rendered the other way. The graph as
+                    // represented for layout is a guaranteed DAG.
+                    let lvl_start = layout.get(start_nid).level;
+                    let lvl_end = layout.get(nid_end).level;
+                    let (lvl_start, nid_start, lvl_end, nid_end, is_inverted) =
+                        if lvl_start <= lvl_end {
+                            (lvl_start, start_nid, lvl_end, nid_end, false)
+                        } else {
+                            (lvl_end, nid_end, lvl_start, start_nid, true)
+                        };
+
+                    assert!(lvl_start <= lvl_end);
+
+                    let mut src = nid_start;
+                    for inter_level in lvl_start + 1..lvl_end {
+                        let dummy = layout.add_node(NodeContent::Dummy);
+                        layout.get_mut(dummy).level = inter_level;
+
+                        let edge = layout.add_edge(src, dummy);
+                        edge.is_inverted = is_inverted;
+
+                        src = dummy;
+                    }
+                    let edge = layout.add_edge(src, nid_end);
+                    edge.is_inverted = is_inverted;
+                }
+            }
+
+            // 4. Vertex positioning, where vertices are horizontally positioned
+            // in order to make the edges as straight as possible.
+
+            // my heuristic here is to just do a DFS preorder numbering of the DAG,
+            // using the ordering as a sort key
+            {
+                let entry_nid = nid_of_bid[cfg.entry_block_id()];
+                let mut work = vec![entry_nid];
+
+                #[cfg(test)]
+                let mut is_visited = {
+                    use std::collections::HashSet;
+                    HashSet::new()
+                };
+
+                let mut number = 0;
+                while let Some(nid) = work.pop() {
+                    layout.get_mut(nid).horiz_ord_key = number;
+                    number += 1;
+
+                    #[cfg(test)]
+                    {
+                        let is_newly_visited = is_visited.insert(nid);
+                        assert!(is_newly_visited);
+                    }
+
+                    for &succ in &layout.get(nid).succs {
+                        work.push(succ);
+                    }
+                }
+            }
+
+            layout
+        }
+    }
+
+    impl Layout {
+        pub fn render(&self, ui: &mut egui::Ui) {
+            ui.vertical(|ui| {
+                ui.label(format!("{} levels", self.level_count));
+                let mut ordered = Vec::new();
+                for level in 0..self.level_count {
+                    ordered.clear();
+                    ordered.extend(
+                        self.nodes
+                            .iter()
+                            .enumerate()
+                            .filter(|&(_, node)| node.level == level)
+                            .map(|(nid, _)| nid),
+                    );
+                    ordered.sort_by_key(|&nid| self.nodes[nid].horiz_ord_key);
+
+                    ui.horizontal_top(|ui| {
+                        ui.label(format!("[{}]", ordered.len()));
+                        ui.vertical(|ui| {
+                            for &nid in &ordered {
+                                let node = self.get(nid);
+                                ui.label(format!("{:?}:{:?}", nid, node.content));
+                                for &succ in &node.succs {
+                                    ui.label(format!("-> {:?}", succ));
+                                }
+                            }
+                        });
+                    });
+                }
+            });
         }
     }
 }
