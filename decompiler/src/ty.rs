@@ -393,11 +393,16 @@ impl<'a> ReadTxRef<'a> {
         }
     }
 
-    pub fn get_known_object(&self, addr: Addr) -> Result<Option<TypeID>> {
-        self.ts
+    pub fn get_known_object(&self, addr: Addr) -> Result<Option<(TypeID, i64)>> {
+        let hit_opt = self
+            .ts
             .db_type_of_global
-            .get(self.tx, &addr)
-            .map_err(Into::into)
+            .get_lower_than_or_equal_to(self.tx, &addr)?;
+        let hit_opt = hit_opt.map(|(global_addr, tyid)| {
+            let offset = addr as i64 - global_addr as i64;
+            (tyid, offset)
+        });
+        Ok(hit_opt)
     }
 
     pub fn alignment(&self, tyid: TypeID) -> Result<Option<u8>> {
@@ -620,7 +625,11 @@ impl<'a> ReadTxRef<'a> {
         let CallSiteKey { return_pc, target } = key;
 
         let tyid_from_call_site = self.call_site_by_return_pc(return_pc)?;
-        let tyid_from_global = self.get_known_object(target)?;
+        let tyid_from_global =
+            self.get_known_object(target)?
+                .and_then(|(tyid_from_global, offset_from_global)| {
+                    (offset_from_global == 0).then_some(tyid_from_global)
+                });
 
         let tyid = tyid_from_call_site.or(tyid_from_global);
 

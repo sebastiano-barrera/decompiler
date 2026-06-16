@@ -764,6 +764,68 @@ impl Transform for PickCalleeName {
     }
 }
 
+struct PickGlobalName;
+
+impl Transform for PickGlobalName {
+    fn apply(&self, c: &mut Cursor) {
+        let insn = c.prog.get(c.reg).unwrap();
+        let &Insn::ArithK(ArithOp::Add, base_reg, offset) = insn else {
+            return;
+        };
+        let Insn::Ancestral {
+            anc_name: x86_to_mil::ANC_RIP,
+            ..
+        } = c.prog.get(base_reg).unwrap()
+        else {
+            return;
+        };
+
+        let Some(rip_value) = c.prog.machine_addr(c.reg) else {
+            event!(
+                Level::DEBUG,
+                ?c.reg,
+                ?insn,
+                "unable to get machine address for RIP-relative access"
+            );
+            return;
+        };
+
+        let global_addr = (rip_value as i64 + offset) as u64;
+        let Ok(Some((known_obj, offset))) = c.types.get_known_object(global_addr) else {
+            event!(
+                Level::DEBUG,
+                ?c.reg,
+                ?insn,
+                global_addr,
+                "unable to get known object type for RIP-relative access"
+            );
+            return;
+        };
+
+        let Ok(Some(name)) = c.types.name(known_obj) else {
+            event!(
+                Level::DEBUG,
+                ?c.reg,
+                ?insn,
+                global_addr,
+                ?known_obj,
+                "unable to get name for known object type for RIP-relative access"
+            );
+            return;
+        };
+
+        if offset == 0 {
+            c.prog.set(c.reg, Insn::Global(name.leak()));
+            c.prog.set_value_type(c.reg, Some(known_obj));
+        } else {
+            let global = c.prog.append_new(c.bid, Insn::Global(name.leak()));
+            c.prog.set_value_type(global, Some(known_obj));
+            c.prog
+                .set(c.reg, Insn::ArithK(ArithOp::Add, global, offset));
+        }
+    }
+}
+
 fn select_type_and_read(
     prog: &mut ssa::OpenProgram<'_>,
     bid: BlockID,
@@ -990,6 +1052,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     push_xform!(AddNegativeToSub);
     push_xform!(SelectTypeOnDerefMemberRead);
     push_xform!(SelectTypeOnPart);
+    push_xform!(PickGlobalName);
     push_xform!(PickCalleeName);
 
     let xformset = TransformSet {

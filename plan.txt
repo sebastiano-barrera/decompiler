@@ -7,7 +7,8 @@
 - [x] gui: fix highlighting between phi and upsilon
 
 - [x] a + (-n) -> a - n
-- [ ] global variables referred to as [RIP + k]
+- [x] global variables referred to as [RIP + k]
+- [ ] fix arithk folding with subtraction (addition already works)
 
 - [ ] "view features" paradigm:
     - instead of separate panels for asm, cfg, ast,

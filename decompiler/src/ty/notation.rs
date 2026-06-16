@@ -196,7 +196,7 @@ mod tests {
         let ty_cow = rtx.read().get(root_tyid).unwrap().unwrap();
         let Ty::Subroutine(crate::ty::Subroutine {
             return_tyid,
-            param_names,
+            param_names: _,
             param_tyids,
         }) = ty_cow.as_ref()
         else {

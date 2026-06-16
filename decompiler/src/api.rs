@@ -223,7 +223,10 @@ impl<'a> Executable<'a> {
         let mut func_tyid_opt = params.force_function_type;
         if func_tyid_opt.is_none() {
             let types_rtx = self.types().read_tx()?;
-            func_tyid_opt = types_rtx.read().get_known_object(vm_addr)?;
+            func_tyid_opt = types_rtx
+                .read()
+                .get_known_object(vm_addr)?
+                .and_then(|(tyid, ofs)| (ofs == 0).then_some(tyid));
         }
         let mil_res = x86_to_mil::import(decoder.iter(), Arc::clone(&self.types), func_tyid_opt)
             .map_err(|anyhow_err| Error::FrontendError(anyhow_err.to_string()));
