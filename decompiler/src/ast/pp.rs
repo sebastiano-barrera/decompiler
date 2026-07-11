@@ -11,7 +11,7 @@ pub fn write_ast<W: std::io::Write>(
     use std::io::Write;
 
     write!(wrt, "# block order: ")?;
-    for (ndx, bid) in ast.block_order().into_iter().enumerate() {
+    for (ndx, bid) in ast.block_order().iter().enumerate() {
         if ndx > 0 {
             write!(wrt, ", ")?;
         }
@@ -59,7 +59,7 @@ pub fn write_ast_node<W: std::io::Write>(
                     },
                 )?;
                 wrt.close_box();
-                write!(wrt, ";\n")?;
+                writeln!(wrt, ";")?;
                 sid = *body;
             }
             Stmt::LetPhi { name, body } => {
@@ -68,7 +68,7 @@ pub fn write_ast_node<W: std::io::Write>(
             }
             Stmt::Seq { first, then } => {
                 write_ast_node(wrt, ast, ssa, types, *first)?;
-                write!(wrt, ";\n")?;
+                writeln!(wrt, ";")?;
                 sid = *then;
             }
             Stmt::If { cond, cons, alt } => {
@@ -197,7 +197,7 @@ fn write_ast_reg<W: std::io::Write>(
     reg: Reg,
     parens_required: bool,
 ) -> Result<(), std::io::Error> {
-    Ok(if ast.is_value_named(reg) {
+    let _: () = if ast.is_value_named(reg) {
         write!(wrt, "r{}", reg.reg_index())?;
     } else {
         if parens_required {
@@ -207,5 +207,6 @@ fn write_ast_reg<W: std::io::Write>(
         if parens_required {
             write!(wrt, ")")?;
         }
-    })
+    };
+    Ok(())
 }

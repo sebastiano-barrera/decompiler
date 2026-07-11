@@ -730,7 +730,7 @@ impl Program {
     /// This operation must not be done twice for the same instruction (index).
     /// This function panics on violation of this rule.
     pub fn set_value_type(&mut self, index: Index, tyid: ty::TypeID) {
-        let prev = std::mem::replace(&mut self.tyids[index as usize], Some(tyid));
+        let prev = self.tyids[index as usize].replace(tyid);
         assert!(prev.is_none());
     }
 

@@ -834,7 +834,7 @@ impl<'a> OpenProgram<'a> {
         event!(Level::TRACE, ?orig_insn, ?insn, "insn set");
 
         let old_rt = self.ll_type(reg);
-        let new_rt = rt_infer::deduce_one_reg(reg, &mut self.program);
+        let new_rt = rt_infer::deduce_one_reg(reg, self.program);
         assert_eq!(
             old_rt, new_rt,
             "{reg:?} changed type (left: {orig_insn:?} -> right {insn:?})"
@@ -860,7 +860,7 @@ impl<'a> OpenProgram<'a> {
         self.program.tyids.push(None);
         self.program.ll_types.push(mil::LLType::Effect);
         // adds faults if type inference encounters errors
-        rt_infer::deduce_one_reg(reg, &mut self.program);
+        rt_infer::deduce_one_reg(reg, self.program);
         let ltt = self.program.ll_type(reg);
         event!(Level::TRACE, reg = ?reg, insn = ?&self.program.insns[reg.reg_index() as usize], ?ltt, "add insn");
 
@@ -872,7 +872,7 @@ impl<'a> OpenProgram<'a> {
             .schedule
             .clear_block(bid)
             .into_iter()
-            .map(|ndx| mil::Reg(ndx))
+            .map(mil::Reg)
             .collect()
     }
 

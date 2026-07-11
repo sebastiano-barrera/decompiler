@@ -371,7 +371,6 @@ impl Transform for FoldPartPart {
                     size: out_size,
                 };
                 c.prog.set(c.reg, result_insn);
-                return;
             }
         }
     }
@@ -418,7 +417,6 @@ impl Transform for FoldPartConcat {
                     insn
                 };
                 c.prog.set(c.reg, result_insn);
-                return;
             }
         }
     }
@@ -517,7 +515,6 @@ impl Transform for FoldWidenConst {
                         size: target_size,
                     };
                     c.prog.set(c.reg, result_insn);
-                    return;
                 }
             }
         }
@@ -539,7 +536,6 @@ impl Transform for FoldWidenNull {
                 if target_size as usize == sz {
                     let result_insn = Insn::Get(widen_reg);
                     c.prog.set(c.reg, result_insn);
-                    return;
                 }
             }
         }
@@ -561,7 +557,6 @@ impl Transform for FoldPartNull {
                 if src_size == size as usize {
                     let result_insn = Insn::Get(src);
                     c.prog.set(c.reg, result_insn);
-                    return;
                 }
             }
         }
@@ -593,7 +588,6 @@ impl Transform for FoldShrPart {
                         sign: false,
                     };
                     c.prog.set(c.reg, result_insn);
-                    return;
                 }
             }
         }
@@ -911,7 +905,7 @@ impl Transform for SelectTypeOnDerefMemberRead {
             return;
         };
 
-        let Some(deref_access) = select_type_deref(&c.prog, c.types, load_addr, load_size) else {
+        let Some(deref_access) = select_type_deref(c.prog, c.types, load_addr, load_size) else {
             return;
         };
 
@@ -1016,7 +1010,7 @@ pub fn canonical(prog: &mut ssa::Program, types: &ty::TypeSet) {
     let mut transforms: Vec<LabeledTransform> = Vec::new();
 
     let mut mem_fold_load_store =
-        find_mem_ref(&prog).map(|ref_reg| mem::FoldLoadStoreReg { ref_reg });
+        find_mem_ref(prog).map(|ref_reg| mem::FoldLoadStoreReg { ref_reg });
     if let Some(xform) = &mut mem_fold_load_store {
         transforms.push(LabeledTransform {
             label: "FoldLoadStoreReg",

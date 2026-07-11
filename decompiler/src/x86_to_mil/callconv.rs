@@ -261,7 +261,7 @@ pub(super) fn pack_return_value(
 ) -> anyhow::Result<mil::Reg> {
     let ret_val = bld.tmp_gen();
     let ret_ty = &*bld.rtx.read().get(ret_tyid)?.unwrap();
-    match &*ret_ty {
+    match ret_ty {
         ty::Ty::Void => {
             bld.emit(ret_val, Insn::Void);
         }
@@ -722,7 +722,7 @@ fn classify_eightbytes<'t>(
         .alignment(tyid)?
         .ok_or_else(|| anyhow!("type has no alignment?"))?
         .into();
-    if (offset % alignment) != 0 {
+    if !offset.is_multiple_of(alignment) {
         // unaligned member of a struct
         // (things that aren't struct members have offset == 0)
         *eb_set = EightbytesSet::Memory;

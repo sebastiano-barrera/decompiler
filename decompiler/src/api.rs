@@ -124,7 +124,7 @@ fn path_of_key(key: &[u8]) -> Result<PathBuf> {
 }
 
 fn open_typeset(dir_path: &Path) -> ty::Result<(ty::TypeSet, bool)> {
-    let is_new = !std::fs::exists(&dir_path).unwrap();
+    let is_new = !std::fs::exists(dir_path).unwrap();
     let types = ty::TypeSet::open(ty::Location::Dir(dir_path))?;
     Ok((types, is_new))
 }

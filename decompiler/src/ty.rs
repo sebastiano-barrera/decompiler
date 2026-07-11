@@ -120,6 +120,12 @@ pub enum Location<'a> {
     Memory,
 }
 
+impl Default for TypeSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TypeSet {
     const TYID_SHARED_VOID: TypeID = TypeID(u64::MAX);
 
@@ -341,7 +347,7 @@ impl<'a> ReadTxRef<'a> {
             | Ty::Float(_)
             | Ty::Unknown
             | Ty::Bool(_) => Err(SelectError::InvalidRange.into()),
-            Ty::Alias(ref_tyid) => self.select(*ref_tyid, byte_range).map_err(Into::into),
+            Ty::Alias(ref_tyid) => self.select(*ref_tyid, byte_range),
             Ty::Struct(struct_ty) => {
                 let member = struct_ty.members.iter().find(|m| {
                     let Ok(Some(memb_size)) = self.bytes_size(m.tyid) else {
@@ -366,9 +372,9 @@ impl<'a> ReadTxRef<'a> {
                         size: member_size,
                     });
                     let memb_range = byte_range.shift_left(member.offset);
-                    return self.select_from(member.tyid, memb_range, path);
+                    self.select_from(member.tyid, memb_range, path)
                 } else {
-                    return Err(SelectError::RangeCrossesBoundaries.into());
+                    Err(SelectError::RangeCrossesBoundaries.into())
                 }
             }
             Ty::Array(array_ty) => {
@@ -376,7 +382,7 @@ impl<'a> ReadTxRef<'a> {
                     .bytes_size(array_ty.element_tyid)?
                     .ok_or(SelectError::InvalidType)?;
 
-                if byte_range.start % element_size == 0
+                if byte_range.start.is_multiple_of(element_size)
                     && byte_range.end - byte_range.start == element_size
                 {
                     let index = byte_range.start / element_size;
@@ -385,9 +391,9 @@ impl<'a> ReadTxRef<'a> {
                         index,
                         element_size,
                     });
-                    return self.select_from(array_ty.element_tyid, element_range, path);
+                    self.select_from(array_ty.element_tyid, element_range, path)
                 } else {
-                    return Err(SelectError::RangeCrossesBoundaries.into());
+                    Err(SelectError::RangeCrossesBoundaries.into())
                 }
             }
         }
@@ -461,7 +467,7 @@ impl<'a> ReadTxRef<'a> {
             .ts
             .db_types
             .len(self.tx)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         writeln!(out, "TypeSet ({} types) = {{", count)?;
 
         // ensure that the iteration always happens in the same order
@@ -470,7 +476,7 @@ impl<'a> ReadTxRef<'a> {
                 .ts
                 .db_types
                 .iter(self.tx)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
+                .map_err(|e| std::io::Error::other(e.to_string()))?
                 .flatten()
                 .map(|(tyid, _)| tyid)
                 .collect();
@@ -481,7 +487,7 @@ impl<'a> ReadTxRef<'a> {
         for tyid in tyids {
             let ty_opt = self
                 .get(tyid)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
             let ty = ty_opt.ok_or_else(|| {
                 std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
@@ -490,7 +496,7 @@ impl<'a> ReadTxRef<'a> {
             })?;
             write!(out, "  <{:?}> = ", tyid)?;
             out.open_box();
-            self.dump_type(out, tyid, &*ty)?;
+            self.dump_type(out, tyid, &ty)?;
             out.close_box();
             writeln!(out)?;
         }
@@ -500,7 +506,7 @@ impl<'a> ReadTxRef<'a> {
     pub fn dump_type_ref<W: PP + ?Sized>(&self, out: &mut W, tyid: TypeID) -> std::io::Result<()> {
         let typ_opt = self
             .get(tyid)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         let typ = typ_opt.ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -510,10 +516,10 @@ impl<'a> ReadTxRef<'a> {
 
         let name_res = self
             .name(tyid)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         match name_res {
             Some(name) if !name.is_empty() => write!(out, "{}", name),
-            _ => self.dump_type(out, tyid, &*typ),
+            _ => self.dump_type(out, tyid, &typ),
         }
     }
 
@@ -525,7 +531,7 @@ impl<'a> ReadTxRef<'a> {
     ) -> std::io::Result<()> {
         let name_res = self
             .name(tyid)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         if let Some(name) = name_res {
             write!(out, "\"{}\" ", name)?;
         }
@@ -980,7 +986,7 @@ fn dump_types<W: pp::PP>(
     writeln!(out, "dwarf types --[[")?;
     let rtx = types
         .read_tx()
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
     rtx.read().dump(out)?;
 
     writeln!(out)?;
