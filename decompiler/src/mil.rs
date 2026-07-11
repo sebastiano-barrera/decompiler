@@ -232,6 +232,17 @@ pub enum Insn {
     #[assoc(input_regs_mut = array([_0]))]
     Not(Reg),
 
+    /// Conditional value selection (ternary mux), modelling x86_64 `cmov*`:
+    /// if `cond` (a boolean) then `then_val` else `else_val`.  Both arms must
+    /// have the same type and size; the result type is that of the arms.
+    #[assoc(input_regs = array([_cond, _then_val, _else_val]))]
+    #[assoc(input_regs_mut = array([_cond, _then_val, _else_val]))]
+    Select {
+        cond: Reg,
+        then_val: Reg,
+        else_val: Reg,
+    },
+
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = std::iter::once(_callee).chain(_args.iter()).collect())]
     #[assoc(input_regs_mut = std::iter::once(_callee).chain(_args.iter_mut()).collect())]

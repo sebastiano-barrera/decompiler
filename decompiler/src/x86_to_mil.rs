@@ -885,6 +885,49 @@ impl Importer {
                     self.emit_flag_to_byte(v0);
                 }
 
+                // Conditional moves (cmovCC dst, src): if the condition is
+                // true, dst := src, else dst keeps its old value.  Modeled as
+                //   dst := Select { cond, then_val: src, else_val: old_dst }
+                // which is a pure (side-effect-free) value selection.  The
+                // condition is computed by the same `emit_cmp_*` helpers used
+                // by the matching conditional-jump / set families.
+                M::Cmova => {
+                    self.emit_cmov(&insn, Self::emit_cmp_a);
+                }
+                M::Cmovae => {
+                    self.emit_cmov(&insn, Self::emit_cmp_ae);
+                }
+                M::Cmovb => {
+                    self.emit_cmov(&insn, Self::emit_cmp_b);
+                }
+                M::Cmovbe => {
+                    self.emit_cmov(&insn, Self::emit_cmp_be);
+                }
+                M::Cmove => {
+                    self.emit_cmov(&insn, Self::emit_cmp_e);
+                }
+                M::Cmovg => {
+                    self.emit_cmov(&insn, Self::emit_cmp_g);
+                }
+                M::Cmovge => {
+                    self.emit_cmov(&insn, Self::emit_cmp_ge);
+                }
+                M::Cmovl => {
+                    self.emit_cmov(&insn, Self::emit_cmp_l);
+                }
+                M::Cmovle => {
+                    self.emit_cmov(&insn, Self::emit_cmp_le);
+                }
+                M::Cmovne => {
+                    self.emit_cmov(&insn, Self::emit_cmp_ne);
+                }
+                M::Cmovns => {
+                    self.emit_cmov(&insn, Self::emit_cmp_ns);
+                }
+                M::Cmovs => {
+                    self.emit_cmov(&insn, Self::emit_cmp_s);
+                }
+
                 M::Cbw => {
                     let al = self.pb.tmp_gen();
                     self.emit(
@@ -1678,6 +1721,33 @@ impl Importer {
         reg
     }
 
+    /// Emit a `cmovCC dst, src` instruction as
+    ///   dst := Select { cond, then_val: src, else_val: old_dst }
+    /// where `cond_fn` computes the boolean condition from the flags.
+    ///
+    /// `cond_fn` is a method on `Self` that takes `&mut self` and returns the
+    /// boolean `Reg` holding the condition (e.g. `Self::emit_cmp_e`).  It is
+    /// invoked once.
+    fn emit_cmov(&mut self, insn: &iced_x86::Instruction, cond_fn: fn(&mut Self) -> mil::Reg) {
+        let cond = cond_fn(self);
+        let (src, src_sz) = self.emit_read(insn, 1);
+        let (old_dst, dst_sz) = self.emit_read(insn, 0);
+        assert_eq!(
+            src_sz, dst_sz,
+            "cmov: source and destination must be the same size"
+        );
+        let result = self.pb.tmp_gen();
+        self.emit(
+            result,
+            mil::Insn::Select {
+                cond,
+                then_val: src,
+                else_val: old_dst,
+            },
+        );
+        self.emit_write(insn, 0, result, dst_sz);
+    }
+
     // flags
     const CF: mil::Reg = mil::Reg(2); // Carry flag
     const PF: mil::Reg = mil::Reg(3); // Parity flag      true=even false=odd
@@ -1981,8 +2051,7 @@ mod tests {
         let prog = decode_one(|a| a.movq(xmm0, xmm1));
         assert!(!has_nyi(&prog));
         assert!(
-            prog
-                .iter()
+            prog.iter()
                 .any(|v| matches!(v.insn, mil::Insn::Int { value: 0, size: 8 })),
             "movq xmm, xmm must zero the upper 64 bits of the destination xmm"
         );
@@ -2003,7 +2072,11 @@ mod tests {
         // The high qword is extracted via Part { offset: 8, size: 8 }.
         assert!(prog.iter().any(|v| matches!(
             v.insn,
-            mil::Insn::Part { offset: 8, size: 8, .. }
+            mil::Insn::Part {
+                offset: 8,
+                size: 8,
+                ..
+            }
         )));
     }
 
@@ -2012,5 +2085,90 @@ mod tests {
         // movhlps xmm1, xmm0
         let prog = decode_one(|a| a.movhlps(xmm1, xmm0));
         assert!(!has_nyi(&prog));
+    }
+
+    // ---- Phase 3: Cmov* (Insn::Select) ----
+
+    /// True if the program contains a `Select` instruction with the given
+    /// condition, then, and else regs.
+    fn has_select(prog: &mil::Program) -> bool {
+        prog.iter()
+            .any(|v| matches!(v.insn, mil::Insn::Select { .. }))
+    }
+
+    #[test]
+    fn cmove_reg_reg() {
+        // cmove rax, rdx  -> Select { cond: ZF, then: rdx, else: old_rax }
+        let prog = decode_one(|a| a.cmove(rax, rdx));
+        assert!(!has_nyi(&prog), "cmove should be supported");
+        assert!(has_select(&prog), "cmove must emit Insn::Select");
+    }
+
+    #[test]
+    fn cmovne_reg_reg() {
+        // cmovne eax, ecx
+        let prog = decode_one(|a| a.cmovne(eax, ecx));
+        assert!(!has_nyi(&prog));
+        assert!(has_select(&prog));
+    }
+
+    #[test]
+    fn cmovl_reg_reg() {
+        // cmovl ecx, eax
+        let prog = decode_one(|a| a.cmovl(ecx, eax));
+        assert!(!has_nyi(&prog));
+        assert!(has_select(&prog));
+    }
+
+    #[test]
+    fn cmova_mem_src() {
+        // cmova eax, dword ptr [rdx+0x918]  (mem source, from unsupported_insns.txt)
+        let prog = decode_one(|a| a.cmova(eax, dword_ptr(rdx + 0x918)));
+        assert!(!has_nyi(&prog));
+        assert!(has_select(&prog));
+    }
+
+    #[test]
+    fn cmov_renders_as_ternary() {
+        // End-to-end: a MIL program containing a Select must render with
+        // C-like ternary syntax `(cond ? pos : neg)` through the AST
+        // pretty-printer.
+        use crate::ast::AstBuilder;
+        use crate::pp::PrettyPrinter;
+        use crate::ssa;
+
+        let types = Arc::new(ty::TypeSet::new());
+        let mut prog = mil::Program::new(mil::Reg(100), Some(Arc::clone(&types)));
+        prog.push(
+            mil::Reg(1),
+            mil::Insn::Ancestral {
+                anc_name: ANC_ZF,
+                ll_type: mil::LLType::Bool,
+            },
+        );
+        prog.push(mil::Reg(2), mil::Insn::Int { value: 42, size: 8 });
+        prog.push(mil::Reg(3), mil::Insn::Int { value: 99, size: 8 });
+        prog.push(
+            mil::Reg(4),
+            mil::Insn::Select {
+                cond: mil::Reg(1),
+                then_val: mil::Reg(2),
+                else_val: mil::Reg(3),
+            },
+        );
+        prog.push(mil::Reg(5), mil::Insn::SetReturnValue(mil::Reg(4)));
+        prog.push(mil::Reg(5), mil::Insn::Control(Control::Ret));
+
+        let ssa = ssa::Program::from_mil(prog);
+        let ast = AstBuilder::new(&ssa).build();
+        let mut buf = Vec::<u8>::new();
+        let mut pp = PrettyPrinter::start(&mut buf);
+        crate::ast::write_ast(&mut pp, &ast, &ssa, &types).expect("write_ast");
+        let out = String::from_utf8(buf).expect("utf8");
+        assert!(
+            out.contains("?") && out.contains(" : "),
+            "Select must render as `(cond ? pos : neg)`; got:\n{}",
+            out
+        );
     }
 }

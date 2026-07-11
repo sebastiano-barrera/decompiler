@@ -159,6 +159,27 @@ pub(crate) fn write_ast_expr<W: std::io::Write>(
     }
 
     let insn = ssa.get(reg).unwrap();
+
+    // `Select` is rendered with C-like ternary syntax instead of the generic
+    // `Select cond then else` opcode form, so the output reads naturally as
+    // `(cond ? pos : neg)`.  The sub-expressions are rendered with the same
+    // `write_ast_reg` path (which parenthesizes unnamed composite values).
+    if let mil::Insn::Select {
+        cond,
+        then_val,
+        else_val,
+    } = insn
+    {
+        write!(wrt, "(")?;
+        write_ast_reg(wrt, ast, ssa, *cond, false)?;
+        write!(wrt, " ? ")?;
+        write_ast_reg(wrt, ast, ssa, *then_val, false)?;
+        write!(wrt, " : ")?;
+        write_ast_reg(wrt, ast, ssa, *else_val, false)?;
+        write!(wrt, ")")?;
+        return Ok(());
+    }
+
     let xpinsn = mil::to_expanded(insn);
 
     write!(wrt, "{} ", xpinsn.opcode)?;

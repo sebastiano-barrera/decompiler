@@ -262,6 +262,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         Insn::Bool(_, _, _) => 199,
         Insn::Not(_) => 199,
         Insn::Cmp(_, _, _) => 197,
+        Insn::Select { .. } => 100,
 
         // effectful instructions are basically *always* done last due to their
         // position in the printed syntax

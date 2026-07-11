@@ -738,6 +738,7 @@ mod rt_infer {
             Insn::Cmp(_, _, _) => LLType::Bool,
             Insn::Bool(_, _, _) => LLType::Bool,
             Insn::Not(_) => LLType::Bool,
+            Insn::Select { then_val, .. } => prog.ll_type(*then_val),
             // TODO This might have to change based on the use of calling
             // convention and function type info
             Insn::Call { ret_ll_type, .. } => *ret_ll_type,
