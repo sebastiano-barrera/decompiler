@@ -1,0 +1,217 @@
+---
+source: decompiler/tests/test_tool.rs
+assertion_line: 172
+expression: out
+---
+ --- mil
+program  99 instrs
+    0 r12 <- Ancestral { anc_name: AncestralName("stack_bottom"), ll_type: Bytes(8) }
+    1 r3 <- Ancestral { anc_name: AncestralName("CF"), ll_type: Bool }
+    2 r3 <- Ancestral { anc_name: AncestralName("PF"), ll_type: Bool }
+    3 r4 <- Ancestral { anc_name: AncestralName("AF"), ll_type: Bool }
+    4 r5 <- Ancestral { anc_name: AncestralName("ZF"), ll_type: Bool }
+    5 r6 <- Ancestral { anc_name: AncestralName("SF"), ll_type: Bool }
+    6 r7 <- Ancestral { anc_name: AncestralName("TF"), ll_type: Bool }
+    7 r8 <- Ancestral { anc_name: AncestralName("IF"), ll_type: Bool }
+    8 r9 <- Ancestral { anc_name: AncestralName("DF"), ll_type: Bool }
+    9 r10 <- Ancestral { anc_name: AncestralName("OF"), ll_type: Bool }
+   10 r11 <- Ancestral { anc_name: AncestralName("RBP"), ll_type: Bytes(8) }
+   11 r12 <- Ancestral { anc_name: AncestralName("RSP"), ll_type: Bytes(8) }
+   12 r13 <- Ancestral { anc_name: AncestralName("RIP"), ll_type: Bytes(8) }
+   13 r14 <- Ancestral { anc_name: AncestralName("RDI"), ll_type: Bytes(8) }
+   14 r15 <- Ancestral { anc_name: AncestralName("RSI"), ll_type: Bytes(8) }
+   15 r16 <- Ancestral { anc_name: AncestralName("RAX"), ll_type: Bytes(8) }
+   16 r17 <- Ancestral { anc_name: AncestralName("RBX"), ll_type: Bytes(8) }
+   17 r18 <- Ancestral { anc_name: AncestralName("RCX"), ll_type: Bytes(8) }
+   18 r19 <- Ancestral { anc_name: AncestralName("RDX"), ll_type: Bytes(8) }
+   19 r20 <- Ancestral { anc_name: AncestralName("R8"), ll_type: Bytes(8) }
+   20 r21 <- Ancestral { anc_name: AncestralName("R9"), ll_type: Bytes(8) }
+   21 r22 <- Ancestral { anc_name: AncestralName("R10"), ll_type: Bytes(8) }
+   22 r23 <- Ancestral { anc_name: AncestralName("R11"), ll_type: Bytes(8) }
+   23 r24 <- Ancestral { anc_name: AncestralName("R12"), ll_type: Bytes(8) }
+   24 r25 <- Ancestral { anc_name: AncestralName("R13"), ll_type: Bytes(8) }
+   25 r26 <- Ancestral { anc_name: AncestralName("R14"), ll_type: Bytes(8) }
+   26 r27 <- Ancestral { anc_name: AncestralName("R15"), ll_type: Bytes(8) }
+   27 r28 <- Ancestral { anc_name: AncestralName("ZMM0"), ll_type: Bytes(64) }
+   28 r29 <- Ancestral { anc_name: AncestralName("ZMM1"), ll_type: Bytes(64) }
+   29 r30 <- Ancestral { anc_name: AncestralName("ZMM2"), ll_type: Bytes(64) }
+   30 r31 <- Ancestral { anc_name: AncestralName("ZMM3"), ll_type: Bytes(64) }
+   31 r32 <- Ancestral { anc_name: AncestralName("ZMM4"), ll_type: Bytes(64) }
+   32 r33 <- Ancestral { anc_name: AncestralName("ZMM5"), ll_type: Bytes(64) }
+   33 r34 <- Ancestral { anc_name: AncestralName("ZMM6"), ll_type: Bytes(64) }
+   34 r35 <- Ancestral { anc_name: AncestralName("ZMM7"), ll_type: Bytes(64) }
+   35 r36 <- Ancestral { anc_name: AncestralName("ZMM8"), ll_type: Bytes(64) }
+   36 r37 <- Ancestral { anc_name: AncestralName("ZMM9"), ll_type: Bytes(64) }
+   37 r38 <- Ancestral { anc_name: AncestralName("ZMM10"), ll_type: Bytes(64) }
+   38 r39 <- Ancestral { anc_name: AncestralName("ZMM11"), ll_type: Bytes(64) }
+   39 r40 <- Ancestral { anc_name: AncestralName("ZMM12"), ll_type: Bytes(64) }
+   40 r41 <- Ancestral { anc_name: AncestralName("ZMM13"), ll_type: Bytes(64) }
+   41 r42 <- Ancestral { anc_name: AncestralName("ZMM14"), ll_type: Bytes(64) }
+   42 r43 <- Ancestral { anc_name: AncestralName("ZMM15"), ll_type: Bytes(64) }
+   43 r45 <- FuncArgument { index: 0, ll_type: Bytes(8) }
+   44 r14 <- Get(r45)
+0x4110b0:
+   45 r46 <- Int { value: 0, size: 8 }
+   46 r46 <- Arith(Add, r46, r14)
+   47 r45 <- LoadMem { addr: r46, size: 8 }
+   48 r16 <- Get(r45)
+0x4110b3:
+   49 r16 <- Arith(BitAnd, r16, r16)
+   50 r6 <- SignOf(r16)
+   51 r5 <- IsZero(r16)
+   52 r47 <- Part { src: r16, offset: 0, size: 1 }
+   53 r3 <- Parity(r16)
+   54 r2 <- False
+   55 r10 <- False
+0x4110b6:
+   56 r45 <- SetJumpCondition(r5)
+   57 r45 <- Control(JmpExtIf(4264150))
+0x4110b8:
+   58 r46 <- Int { value: 8, size: 8 }
+   59 r46 <- Arith(Add, r46, r14)
+   60 r45 <- LoadMem { addr: r46, size: 4 }
+   61 r45 <- Widen { reg: r45, target_size: 8, sign: false }
+   62 r19 <- Get(r45)
+0x4110bb:
+   63 r46 <- Part { src: r19, offset: 0, size: 4 }
+   64 r48 <- Part { src: r19, offset: 0, size: 4 }
+   65 r46 <- Arith(BitAnd, r46, r48)
+   66 r6 <- SignOf(r46)
+   67 r5 <- IsZero(r46)
+   68 r49 <- Part { src: r46, offset: 0, size: 1 }
+   69 r3 <- Parity(r46)
+   70 r2 <- False
+   71 r10 <- False
+0x4110bd:
+   72 r45 <- Not(r5)
+   73 r46 <- SetJumpCondition(r45)
+   74 r46 <- Control(JmpExtIf(4264144))
+0x4110bf:
+   75 r46 <- Int { value: 8, size: 8 }
+   76 r46 <- Arith(Add, r46, r16)
+   77 r45 <- LoadMem { addr: r46, size: 8 }
+   78 r19 <- Get(r45)
+0x4110c3:
+   79 r46 <- Int { value: 0, size: 8 }
+   80 r46 <- Arith(Add, r46, r14)
+   81 r46 <- StoreMem { addr: r46, value: r19 }
+0x4110c6:
+   82 r45 <- Void
+   83 r45 <- Concat { lo: r45, hi: r16 }
+   84 r45 <- Part { src: r45, offset: 0, size: 8 }
+   85 r47 <- SetReturnValue(r45)
+   86 r47 <- Control(Ret)
+0x4110d0:
+   87 r46 <- Int { value: 0, size: 8 }
+   88 r46 <- Arith(Add, r46, r16)
+   89 r45 <- LoadMem { addr: r46, size: 8 }
+   90 r19 <- Get(r45)
+0x4110d3:
+   91 r46 <- Int { value: 0, size: 8 }
+   92 r46 <- Arith(Add, r46, r14)
+   93 r46 <- StoreMem { addr: r46, value: r19 }
+0x4110d6:
+   94 r45 <- Void
+   95 r45 <- Concat { lo: r45, hi: r16 }
+   96 r45 <- Part { src: r45, offset: 0, size: 8 }
+   97 r47 <- SetReturnValue(r45)
+   98 r47 <- Control(Ret)
+
+
+ --- ssa pre-xform
+ssa program  99 instrs
+.B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
+  (  4)  r43: Bytes(8) <- FuncArgument { index: 0, ll_type: Bytes(8) }
+         r45: Bytes(8) <- Int { value: 0, size: 8 }
+         r46: Bytes(8) <- Arith(Add, r45, r43)
+  (  2)  r47: Bytes(8) <- LoadMem { addr: r46, size: 8 }
+  (  5)  r49: Bytes(8) <- Arith(BitAnd, r47, r47)
+         r51: Bool <- IsZero(r49)
+         r56: Effect <- SetJumpCondition(r51)
+.B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
+         r58: Bytes(8) <- Int { value: 8, size: 8 }
+         r59: Bytes(8) <- Arith(Add, r58, r43)
+         r60: Bytes(4) <- LoadMem { addr: r59, size: 4 }
+  (  2)  r61: Bytes(8) <- Widen { reg: r60, target_size: 8, sign: false }
+         r63: Bytes(4) <- Part { src: r61, offset: 0, size: 4 }
+         r64: Bytes(4) <- Part { src: r61, offset: 0, size: 4 }
+         r65: Bytes(4) <- Arith(BitAnd, r63, r64)
+         r67: Bool <- IsZero(r65)
+         r72: Bool <- Not(r67)
+         r73: Effect <- SetJumpCondition(r72)
+.B2:    ;; preds:B1  → Always(Return).
+         r75: Bytes(8) <- Int { value: 8, size: 8 }
+         r76: Bytes(8) <- Arith(Add, r75, r49)
+         r77: Bytes(8) <- LoadMem { addr: r76, size: 8 }
+         r79: Bytes(8) <- Int { value: 0, size: 8 }
+         r80: Bytes(8) <- Arith(Add, r79, r43)
+         r81: Effect <- StoreMem { addr: r80, value: r77 }
+         r83: Bytes(8) <- Concat { lo: r82, hi: r49 }
+         r84: Bytes(8) <- Part { src: r83, offset: 0, size: 8 }
+         r85: Effect <- SetReturnValue(r84)
+.B3:    ;; preds:B1  → Always(Block(BlockID(4))).
+         r87: Bytes(8) <- Int { value: 0, size: 8 }
+         r88: Bytes(8) <- Arith(Add, r87, r49)
+         r89: Bytes(8) <- LoadMem { addr: r88, size: 8 }
+         r91: Bytes(8) <- Int { value: 0, size: 8 }
+         r92: Bytes(8) <- Arith(Add, r91, r43)
+         r93: Effect <- StoreMem { addr: r92, value: r89 }
+.B4:    ;; preds:B0,B3  → Always(Return).
+         r95: Bytes(8) <- Concat { lo: r94, hi: r49 }
+         r96: Bytes(8) <- Part { src: r95, offset: 0, size: 8 }
+         r97: Effect <- SetReturnValue(r96)
+
+
+ --- cfg
+  entry: BlockID(0)
+  BlockID(0) -> Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) } [r43, r99, r100, r51, r56]
+  BlockID(1) -> Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) } [r104, r105, r67, r72, r73]
+  BlockID(2) -> Always(Return) [r109, r110, r81, r85]
+  BlockID(3) -> Always(Block(BlockID(4))) [r114, r115, r93]
+  BlockID(4) -> Always(Return) [r97]
+  domtree:
+    BlockID(0)
+|  BlockID(1)
+|  |  BlockID(2)
+|  |  BlockID(3)
+|  BlockID(4)
+
+ --- ssa
+ssa program  119 instrs
+.B0:    ;;  → Conditional { pos: Block(BlockID(4)), neg: Block(BlockID(1)) }.
+  (  4)  r43: Bytes(8) <- FuncArgument { index: 0, ll_type: Bytes(8) }
+         r99: Bytes(16) <- LoadMem { addr: r43, size: 16 }
+  (  5)  r100: Bytes(8) <- StructGetMember { struct_value: r99, name: "next", size: 8 }
+         r51: Bool <- IsZero(r100)
+         r56: Effect <- SetJumpCondition(r51)
+.B1:    ;; preds:B0  → Conditional { pos: Block(BlockID(3)), neg: Block(BlockID(2)) }.
+         r104: Bytes(16) <- LoadMem { addr: r43, size: 16 }
+         r105: Bytes(4) <- StructGetMember { struct_value: r104, name: "direction", size: 4 }
+         r67: Bool <- IsZero(r105)
+         r72: Bool <- Not(r67)
+         r73: Effect <- SetJumpCondition(r72)
+.B2:    ;; preds:B1  → Always(Return).
+         r109: Bytes(24) <- LoadMem { addr: r100, size: 24 }
+         r110: Bytes(8) <- StructGetMember { struct_value: r109, name: "next", size: 8 }
+         r81: Effect <- StoreMem { addr: r43, value: r110 }
+         r85: Effect <- SetReturnValue(r100)
+.B3:    ;; preds:B1  → Always(Block(BlockID(4))).
+         r114: Bytes(24) <- LoadMem { addr: r100, size: 24 }
+         r115: Bytes(8) <- StructGetMember { struct_value: r114, name: "prev", size: 8 }
+         r93: Effect <- StoreMem { addr: r43, value: r115 }
+.B4:    ;; preds:B0,B3  → Always(Return).
+         r97: Effect <- SetReturnValue(r100)
+
+
+ --- ast
+# block order: B0, B1, B2, B3, B4
+if IsZero (StructGetMember (LoadMem (FuncArgument 0 Bytes(8)) 16) "next" 8)
+  then  jump .B4;
+if Not (IsZero (StructGetMember (LoadMem (FuncArgument 0 Bytes(8)) 16) "direction" 4))
+  then  pass
+  else  StoreMem (FuncArgument 0 Bytes(8)) (StructGetMember (LoadMem (StructGetMember (LoadMem (FuncArgument 0 Bytes(8)) 16) "next" 8) 24) "next" 8);
+        return StructGetMember (LoadMem (FuncArgument 0 Bytes(8)) 16) "next" 8;
+StoreMem (FuncArgument 0 Bytes(8)) (StructGetMember (LoadMem (StructGetMember (LoadMem (FuncArgument 0 Bytes(8)) 16) "next" 8) 24) "prev" 8);
+.B4: {
+  return StructGetMember (LoadMem (FuncArgument 0 Bytes(8)) 16) "next" 8
+}
