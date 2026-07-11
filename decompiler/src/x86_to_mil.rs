@@ -274,7 +274,13 @@ impl Importer {
                 //
                 // Note that movaps, movapd are not the same as their AVX
                 // versions vmovaps, vmovapd
-                M::Mov | M::Movaps | M::Movapd | M::Movups | M::Movzx => {
+                // `movdqa`/`movdqu` are MIL-identical to `movaps`/`movups`:
+                // all four move 16 bytes between xmm/mem.  In real hardware the
+                // only difference is alignment checking — `movdqa`/`movaps`/
+                // `movapd` raise `#GP` on a misaligned address, while `movdqu`/
+                // `movups`/`movupd` tolerate any alignment.  This decompiler does
+                // not model alignment faults, so they collapse into one arm.
+                M::Mov | M::Movaps | M::Movapd | M::Movups | M::Movdqa | M::Movdqu | M::Movzx => {
                     // movzx is implicitly handled by emit_write.
                     // the other opcodes are requried to have same-size source
                     // and destination operands
@@ -306,6 +312,174 @@ impl Importer {
                         },
                     );
                     self.emit_write(&insn, 0, value, 4);
+                }
+
+                // Sign-extending moves.
+                //
+                // `movsxd` is always 32->64.  `movsx` is 8/16 -> 16/32/64.
+                // Unlike `movzx` (which is implicitly zero-extended by
+                // `emit_write`'s `extend_zero`), these need an explicit
+                // `Widen { sign: true }` to the destination size before the
+                // write, so that `emit_write` does not zero-extend.
+                //
+                // Note on the 32-bit-destination case (e.g. `movsx eax, …`):
+                // the sign-widen here targets 4 bytes, then
+                // `emit_write_machine_reg` applies its 32->64 zero-extend.
+                // The two widens compose correctly (the low 32 bits already
+                // hold the sign-extended result, so zeroing bits 32..63 yields
+                // the x86_64-defined 32-bit-result-zero-extended-to-64). Do
+                // not remove either widen without re-checking this.
+                M::Movsxd | M::Movsx => {
+                    let (value, src_sz) = self.emit_read(&insn, 1);
+                    let dest_sz = Self::op_size(&insn, 0);
+                    assert!(
+                        dest_sz > src_sz,
+                        "movsx/movsxd: destination must be larger than source"
+                    );
+                    self.emit(
+                        value,
+                        mil::Insn::Widen {
+                            reg: value,
+                            target_size: dest_sz,
+                            sign: true,
+                        },
+                    );
+                    self.emit_write(&insn, 0, value, dest_sz);
+                }
+
+                // `movq` transfers 8 bytes (the low qword of an xmm source).
+                // Unlike `movsd` (which preserves the upper bits of the
+                // destination xmm), `movq xmm, …` zero-extends the upper 64
+                // bits of the 16-byte xmm.  The zmm bits above 128 are
+                // preserved, consistent with the rest of the decoder's
+                // legacy-SSE upper-bit approximation.
+                M::Movq => {
+                    let (value, _sz) = self.emit_read(&insn, 1);
+                    self.emit(
+                        value,
+                        mil::Insn::Part {
+                            src: value,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    if matches!(insn.op0_kind(), OpKind::Register) && insn.op0_register().is_xmm() {
+                        let full = Importer::xlat_reg(insn.op0_register().full_register());
+                        let zero8 = self.pb.tmp_gen();
+                        self.emit(zero8, mil::Insn::Int { value: 0, size: 8 });
+                        let hi48 = self.pb.tmp_gen();
+                        self.emit(
+                            hi48,
+                            mil::Insn::Part {
+                                src: full,
+                                offset: 16,
+                                size: 48,
+                            },
+                        );
+                        let low16 = self.pb.tmp_gen();
+                        self.emit(
+                            low16,
+                            mil::Insn::Concat {
+                                lo: value,
+                                hi: zero8,
+                            },
+                        );
+                        self.emit(
+                            full,
+                            mil::Insn::Concat {
+                                lo: low16,
+                                hi: hi48,
+                            },
+                        );
+                    } else {
+                        // movq r64/m64, src: plain 8-byte move.
+                        self.emit_write(&insn, 0, value, 8);
+                    }
+                }
+
+                // `movhps xmm, [mem]` loads 8 bytes into the high qword
+                // (offset 8) of the xmm.  `movhps [mem], xmm` stores the
+                // high qword of the xmm to memory.
+                M::Movhps => {
+                    if matches!(insn.op0_kind(), OpKind::Register) {
+                        let (value, _sz) = self.emit_read(&insn, 1);
+                        self.emit(
+                            value,
+                            mil::Insn::Part {
+                                src: value,
+                                offset: 0,
+                                size: 8,
+                            },
+                        );
+                        let full = Importer::xlat_reg(insn.op0_register().full_register());
+                        let lo8 = self.pb.tmp_gen();
+                        self.emit(
+                            lo8,
+                            mil::Insn::Part {
+                                src: full,
+                                offset: 0,
+                                size: 8,
+                            },
+                        );
+                        let hi48 = self.pb.tmp_gen();
+                        self.emit(
+                            hi48,
+                            mil::Insn::Part {
+                                src: full,
+                                offset: 16,
+                                size: 48,
+                            },
+                        );
+                        let low16 = self.pb.tmp_gen();
+                        self.emit(low16, mil::Insn::Concat { lo: lo8, hi: value });
+                        self.emit(
+                            full,
+                            mil::Insn::Concat {
+                                lo: low16,
+                                hi: hi48,
+                            },
+                        );
+                    } else {
+                        // movhps [mem], xmm: store the high qword of the xmm.
+                        assert_eq!(
+                            insn.op1_kind(),
+                            OpKind::Register,
+                            "movhps store: source must be a register"
+                        );
+                        let src_full = Importer::xlat_reg(insn.op1_register().full_register());
+                        let hi8 = self.pb.tmp_gen();
+                        self.emit(
+                            hi8,
+                            mil::Insn::Part {
+                                src: src_full,
+                                offset: 8,
+                                size: 8,
+                            },
+                        );
+                        self.emit_write(&insn, 0, hi8, 8);
+                    }
+                }
+
+                // `movhlps xmm1, xmm2` copies the high qword of xmm2 into
+                // the low qword of xmm1 (the upper bits of xmm1 are
+                // preserved, which `emit_write`'s `Concat` path does for us).
+                M::Movhlps => {
+                    assert_eq!(
+                        insn.op1_kind(),
+                        OpKind::Register,
+                        "movhlps: source must be a register"
+                    );
+                    let src_full = Importer::xlat_reg(insn.op1_register().full_register());
+                    let hi8 = self.pb.tmp_gen();
+                    self.emit(
+                        hi8,
+                        mil::Insn::Part {
+                            src: src_full,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    self.emit_write(&insn, 0, hi8, 8);
                 }
 
                 M::Add => {
@@ -1668,3 +1842,175 @@ define_ancestral_name!(ANC_ZMM12, "ZMM12");
 define_ancestral_name!(ANC_ZMM13, "ZMM13");
 define_ancestral_name!(ANC_ZMM14, "ZMM14");
 define_ancestral_name!(ANC_ZMM15, "ZMM15");
+
+#[cfg(test)]
+mod tests {
+    //! Decoder-level unit tests for individual x86_64 instructions.
+    //!
+    //! Each test assembles a single instruction with `iced_x86::code_asm`,
+    //! feeds it through `import`, and asserts on the emitted MIL.
+
+    use super::*;
+    use iced_x86::code_asm::*;
+
+    /// Assemble a single instruction and decode it to a MIL program.
+    fn decode_one(build: impl FnOnce(&mut CodeAssembler) -> Result<(), IcedError>) -> mil::Program {
+        let mut a = CodeAssembler::new(64).expect("create assembler");
+        build(&mut a).expect("assemble instruction");
+        let insns = a.take_instructions();
+        let types = Arc::new(ty::TypeSet::new());
+        import(insns.into_iter(), types, None).expect("import")
+    }
+
+    /// True if the program contains any `NotYetImplemented` instruction.
+    fn has_nyi(prog: &mil::Program) -> bool {
+        prog.iter()
+            .any(|v| matches!(v.insn, mil::Insn::NotYetImplemented(_)))
+    }
+
+    /// True if the program contains a sign-widen to `target` bytes.
+    fn has_sign_widen(prog: &mil::Program, target: u16) -> bool {
+        prog.iter().any(|v| {
+            matches!(
+                v.insn,
+                mil::Insn::Widen { sign: true, target_size, .. } if *target_size == target
+            )
+        })
+    }
+
+    #[test]
+    fn movsxd_reg_reg() {
+        // movsxd rax, ecx
+        let prog = decode_one(|a| a.movsxd(rax, ecx));
+        assert!(!has_nyi(&prog), "movsxd should be supported");
+        assert!(
+            has_sign_widen(&prog, 8),
+            "movsxd rax, ecx must sign-extend to 8 bytes"
+        );
+    }
+
+    #[test]
+    fn movsxd_r12_r12d() {
+        // movsxd r12, r12d
+        let prog = decode_one(|a| a.movsxd(r12, r12d));
+        assert!(!has_nyi(&prog));
+        assert!(has_sign_widen(&prog, 8));
+    }
+
+    #[test]
+    fn movsx_byte_to_dword_mem() {
+        // movsx eax, byte ptr [rsi]
+        let prog = decode_one(|a| a.movsx(eax, byte_ptr(rsi)));
+        assert!(!has_nyi(&prog));
+        assert!(has_sign_widen(&prog, 4));
+    }
+
+    #[test]
+    fn movsx_word_to_dword_reg() {
+        // movsx eax, word ptr [rsi]  (16-bit source -> 32-bit dest)
+        let prog = decode_one(|a| a.movsx(eax, word_ptr(rsi)));
+        assert!(!has_nyi(&prog));
+        assert!(has_sign_widen(&prog, 4));
+    }
+
+    #[test]
+    fn movsx_byte_to_qword_mem() {
+        // movsx rax, byte ptr [rdx+0x32]
+        let prog = decode_one(|a| a.movsx(rax, byte_ptr(rdx + 0x32)));
+        assert!(!has_nyi(&prog));
+        assert!(has_sign_widen(&prog, 8));
+    }
+
+    #[test]
+    fn movsx_word_to_qword() {
+        // movsx rax, word ptr [rsi]  (16-bit source -> 64-bit dest)
+        let prog = decode_one(|a| a.movsx(rax, word_ptr(rsi)));
+        assert!(!has_nyi(&prog));
+        assert!(has_sign_widen(&prog, 8));
+    }
+
+    // ---- Phase 2: SSE moves ----
+
+    #[test]
+    fn movdqa_xmm_xmm() {
+        // movdqa xmm0, xmm1
+        let prog = decode_one(|a| a.movdqa(xmm0, xmm1));
+        assert!(!has_nyi(&prog), "movdqa should be supported");
+    }
+
+    #[test]
+    fn movdqu_xmm_mem() {
+        // movdqu xmm0, [rsi]
+        let prog = decode_one(|a| a.movdqu(xmm0, xmmword_ptr(rsi)));
+        assert!(!has_nyi(&prog));
+        assert!(prog.iter().any(|v| matches!(
+            v.insn,
+            mil::Insn::LoadMem { size, .. } if *size == 16
+        )));
+    }
+
+    #[test]
+    fn movq_xmm_reg_zeroes_upper() {
+        // movq xmm0, rax  -> low 64 bits = rax, upper 64 bits zeroed
+        let prog = decode_one(|a| a.movq(xmm0, rax));
+        assert!(!has_nyi(&prog));
+        // The zero-extension is emitted as an Int { value: 0, size: 8 }.
+        assert!(
+            prog.iter()
+                .any(|v| matches!(v.insn, mil::Insn::Int { value: 0, size: 8 })),
+            "movq xmm, reg must zero the upper 64 bits of the xmm"
+        );
+    }
+
+    #[test]
+    fn movq_reg_xmm_plain_move() {
+        // movq rax, xmm0  -> plain 8-byte move, no zeroing
+        let prog = decode_one(|a| a.movq(rax, xmm0));
+        assert!(!has_nyi(&prog));
+        assert!(
+            !prog
+                .iter()
+                .any(|v| matches!(v.insn, mil::Insn::Int { value: 0, size: 8 })),
+            "movq r64, xmm must not zero-extend anything"
+        );
+    }
+
+    #[test]
+    fn movq_xmm_xmm() {
+        // movq xmm0, xmm1 -> low 64 bits copied, upper 64 bits zeroed
+        let prog = decode_one(|a| a.movq(xmm0, xmm1));
+        assert!(!has_nyi(&prog));
+        assert!(
+            prog
+                .iter()
+                .any(|v| matches!(v.insn, mil::Insn::Int { value: 0, size: 8 })),
+            "movq xmm, xmm must zero the upper 64 bits of the destination xmm"
+        );
+    }
+
+    #[test]
+    fn movhps_xmm_mem() {
+        // movhps xmm0, [rsi]
+        let prog = decode_one(|a| a.movhps(xmm0, qword_ptr(rsi)));
+        assert!(!has_nyi(&prog));
+    }
+
+    #[test]
+    fn movhps_mem_xmm_store() {
+        // movhps [rsi], xmm0  -> store the high qword of xmm0 to memory
+        let prog = decode_one(|a| a.movhps(qword_ptr(rsi), xmm0));
+        assert!(!has_nyi(&prog));
+        // The high qword is extracted via Part { offset: 8, size: 8 }.
+        assert!(prog.iter().any(|v| matches!(
+            v.insn,
+            mil::Insn::Part { offset: 8, size: 8, .. }
+        )));
+    }
+
+    #[test]
+    fn movhlps_xmm_xmm() {
+        // movhlps xmm1, xmm0
+        let prog = decode_one(|a| a.movhlps(xmm1, xmm0));
+        assert!(!has_nyi(&prog));
+    }
+}
