@@ -605,7 +605,195 @@ impl Importer {
                     self.emit_shift(insn, mil::ArithOp::Ror);
                 }
 
-                M::Imul => {
+                // Neg: dest = 0 - src; flags from the subtraction result.
+                // CF = 1 iff src != 0 (which is the borrow from 0 - src).
+                M::Neg => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let zero = self.pb.tmp_gen();
+                    self.emit(zero, mil::Insn::Int { value: 0, size: sz });
+                    self.emit(zero, mil::Insn::Arith(mil::ArithOp::Sub, zero, a));
+                    self.emit_write(&insn, 0, zero, sz);
+                    self.emit_set_flags_arith(zero);
+                }
+
+                // Not: bitwise complement (one's complement negation).
+                // dest = src ^ all_ones.  Does not affect any flags.
+                M::Not => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let all_ones = self.pb.tmp_gen();
+                    self.emit(
+                        all_ones,
+                        mil::Insn::Int {
+                            value: -1,
+                            size: sz,
+                        },
+                    );
+                    self.emit(a, mil::Insn::Arith(mil::ArithOp::BitXor, a, all_ones));
+                    self.emit_write(&insn, 0, a, sz);
+                    self.emit(Self::OF, mil::Insn::False);
+                    self.emit(Self::CF, mil::Insn::False);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::ZF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                }
+
+                // Adc: add with carry.
+                //   t = a + b
+                //   cf = Widen{CF, sz, false}
+                //   dest = t + cf
+                // Flags from final result (approximation of true carry chain).
+                M::Adc => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    assert_eq!(sz, b_sz);
+                    let t = self.pb.tmp_gen();
+                    self.emit(t, mil::Insn::Arith(mil::ArithOp::Add, a, b));
+                    let cf = self.pb.tmp_gen();
+                    self.emit(
+                        cf,
+                        mil::Insn::Widen {
+                            reg: Self::CF,
+                            target_size: sz,
+                            sign: false,
+                        },
+                    );
+                    self.emit(t, mil::Insn::Arith(mil::ArithOp::Add, t, cf));
+                    self.emit_write(&insn, 0, t, sz);
+                    self.emit_set_flags_arith(t);
+                }
+
+                // Sbb: subtract with borrow.
+                //   t = a - b
+                //   cf = Widen{CF, sz, false}
+                //   dest = t - cf
+                M::Sbb => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    assert_eq!(sz, b_sz);
+                    let t = self.pb.tmp_gen();
+                    self.emit(t, mil::Insn::Arith(mil::ArithOp::Sub, a, b));
+                    let cf = self.pb.tmp_gen();
+                    self.emit(
+                        cf,
+                        mil::Insn::Widen {
+                            reg: Self::CF,
+                            target_size: sz,
+                            sign: false,
+                        },
+                    );
+                    self.emit(t, mil::Insn::Arith(mil::ArithOp::Sub, t, cf));
+                    self.emit_write(&insn, 0, t, sz);
+                    self.emit_set_flags_arith(t);
+                }
+
+                // Bt: bit test.  CF = (src >> bit_index) & 1.  No dest write.
+                M::Bt => {
+                    let (a, _sz) = self.emit_read(&insn, 0);
+                    let (n, _n_sz) = self.emit_read(&insn, 1);
+                    let shifted = self.pb.tmp_gen();
+                    self.emit(shifted, mil::Insn::Arith(mil::ArithOp::Shr, a, n));
+                    let lowbit = self.pb.tmp_gen();
+                    self.emit(
+                        lowbit,
+                        mil::Insn::Part {
+                            src: shifted,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
+                    let is_zero = self.pb.tmp_gen();
+                    self.emit(is_zero, mil::Insn::IsZero(lowbit));
+                    self.emit(Self::CF, mil::Insn::Not(is_zero));
+                    self.emit(Self::OF, mil::Insn::UndefinedBool);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::ZF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                }
+
+                // Btr: bit test and reset.  CF from original src, then dest = src & ~(1 << n).
+                M::Btr => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (n, n_sz) = self.emit_read(&insn, 1);
+                    let shifted = self.pb.tmp_gen();
+                    self.emit(shifted, mil::Insn::Arith(mil::ArithOp::Shr, a, n));
+                    let lowbit = self.pb.tmp_gen();
+                    self.emit(
+                        lowbit,
+                        mil::Insn::Part {
+                            src: shifted,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
+                    let is_zero = self.pb.tmp_gen();
+                    self.emit(is_zero, mil::Insn::IsZero(lowbit));
+                    self.emit(Self::CF, mil::Insn::Not(is_zero));
+                    // mask = 1 << n
+                    let mask = self.pb.tmp_gen();
+                    self.emit(mask, mil::Insn::Int { value: 1, size: sz });
+                    self.emit_arith(mask, sz, n, n_sz, mil::ArithOp::Shl);
+                    // not_mask = all_ones ^ mask
+                    let not_mask = self.pb.tmp_gen();
+                    self.emit(
+                        not_mask,
+                        mil::Insn::Int {
+                            value: -1,
+                            size: sz,
+                        },
+                    );
+                    self.emit(
+                        not_mask,
+                        mil::Insn::Arith(mil::ArithOp::BitXor, not_mask, mask),
+                    );
+                    // dest = a & not_mask
+                    self.emit(a, mil::Insn::Arith(mil::ArithOp::BitAnd, a, not_mask));
+                    self.emit_write(&insn, 0, a, sz);
+                    self.emit(Self::OF, mil::Insn::UndefinedBool);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::ZF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                }
+
+                // Bts: bit test and set.  CF from original src, then dest = src | (1 << n).
+                M::Bts => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (n, n_sz) = self.emit_read(&insn, 1);
+                    let shifted = self.pb.tmp_gen();
+                    self.emit(shifted, mil::Insn::Arith(mil::ArithOp::Shr, a, n));
+                    let lowbit = self.pb.tmp_gen();
+                    self.emit(
+                        lowbit,
+                        mil::Insn::Part {
+                            src: shifted,
+                            offset: 0,
+                            size: 1,
+                        },
+                    );
+                    let is_zero = self.pb.tmp_gen();
+                    self.emit(is_zero, mil::Insn::IsZero(lowbit));
+                    self.emit(Self::CF, mil::Insn::Not(is_zero));
+                    // mask = 1 << n
+                    let mask = self.pb.tmp_gen();
+                    self.emit(mask, mil::Insn::Int { value: 1, size: sz });
+                    self.emit_arith(mask, sz, n, n_sz, mil::ArithOp::Shl);
+                    // dest = a | mask
+                    self.emit(a, mil::Insn::Arith(mil::ArithOp::BitOr, a, mask));
+                    self.emit_write(&insn, 0, a, sz);
+                    self.emit(Self::OF, mil::Insn::UndefinedBool);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::ZF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                }
+
+                // Mul (1-op): unsigned multiply.  Same as the existing 1-op Imul
+                // (signed) but uses `ArithOp::Mul` (which already produces a 2N-bit
+                // result).  The 2N-bit product is split into hi/lo and written to
+                // RDX:RAX (or EDX:EAX, etc.).
+                M::Mul => {
                     match insn.op_count() {
                         1 => {
                             let src_b = self.emit_read_value(&insn, 0);
@@ -692,7 +880,7 @@ impl Importer {
                             self.emit(Self::PF, mil::Insn::UndefinedBool);
                         }
 
-                        other => panic!("imul: invalid operands count: {}", other),
+                        other => panic!("mul: invalid operands count: {}", other),
                     };
                 }
 
