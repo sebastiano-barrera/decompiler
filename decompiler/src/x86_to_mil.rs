@@ -884,6 +884,109 @@ impl Importer {
                     };
                 }
 
+                // Xadd: exchange-and-add (atomic if locked).
+                //   old = dest;  sum = dest + src;  dest = sum;  src = old
+                // Lock prefix is ignored (sequential decompile is fine).
+                M::Xadd => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    let old_a = self.pb.tmp_gen();
+                    self.emit(old_a, mil::Insn::Get(a));
+                    let sum = self.pb.tmp_gen();
+                    self.emit(sum, mil::Insn::Arith(mil::ArithOp::Add, a, b));
+                    self.emit_write(&insn, 0, sum, a_sz);
+                    self.emit_write(&insn, 1, old_a, b_sz);
+                    self.emit_set_flags_arith(sum);
+                }
+
+                // Xchg: exchange operands (handles reg↔reg and mem↔reg).
+                //   temp = a;  a = b;  b = temp
+                M::Xchg => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    let old_a = self.pb.tmp_gen();
+                    self.emit(old_a, mil::Insn::Get(a));
+                    self.emit_write(&insn, 0, b, b_sz);
+                    self.emit_write(&insn, 1, old_a, a_sz);
+                }
+
+                // Shld: shift left double.
+                //   dest = (dest << count) | (src >> (bitsize - count))
+                M::Shld => {
+                    let (dst, dst_sz) = self.emit_read(&insn, 0);
+                    let (src, src_sz) = self.emit_read(&insn, 1);
+                    let (count, cnt_sz) = self.emit_read(&insn, 2);
+                    // shl_part = dst << count
+                    let shl_part = self.pb.tmp_gen();
+                    self.emit(shl_part, mil::Insn::Get(dst));
+                    self.emit_arith(shl_part, dst_sz, count, cnt_sz, mil::ArithOp::Shl);
+                    // right_shift = (bitsize) - count  (bitsize = dst_sz * 8)
+                    let right_shift = self.pb.tmp_gen();
+                    self.emit(
+                        right_shift,
+                        mil::Insn::Int {
+                            value: dst_sz as i64 * 8,
+                            size: 1,
+                        },
+                    );
+                    self.emit(
+                        right_shift,
+                        mil::Insn::Arith(mil::ArithOp::Sub, right_shift, count),
+                    );
+                    // shr_part = src >> right_shift
+                    let shr_part = self.pb.tmp_gen();
+                    self.emit(shr_part, mil::Insn::Get(src));
+                    self.emit_arith(shr_part, src_sz, right_shift, 1, mil::ArithOp::Shr);
+                    // result = shl_part | shr_part
+                    self.emit(
+                        dst,
+                        mil::Insn::Arith(mil::ArithOp::BitOr, shl_part, shr_part),
+                    );
+                    self.emit_write(&insn, 0, dst, dst_sz);
+                }
+
+                // Psrldq: packed shift right logical double quadword.
+                //   xmm = xmm >> (imm8 * 8)   (byte-granular 128-bit shift)
+                M::Psrldq => {
+                    let (val, sz) = self.emit_read(&insn, 0);
+                    let (shift_bytes, _) = self.emit_read(&insn, 1);
+                    let eight = self.pb.tmp_gen();
+                    self.emit(eight, mil::Insn::Int { value: 8, size: 1 });
+                    let shift_bits = self.pb.tmp_gen();
+                    self.emit(
+                        shift_bits,
+                        mil::Insn::Arith(mil::ArithOp::Mul, shift_bytes, eight),
+                    );
+                    self.emit_arith(val, sz, shift_bits, 1, mil::ArithOp::Shr);
+                    self.emit_write(&insn, 0, val, sz);
+                }
+
+                // Por: packed bitwise OR (128-bit / 256-bit).
+                M::Por => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    self.emit_bit_op(a_sz, b_sz, a, b, mil::ArithOp::BitOr, insn);
+                }
+
+                // Xorpd: packed bitwise XOR of double-precision floats (128-bit).
+                // At the bit level, it is identical to Pxor.
+                M::Xorpd => {
+                    let (a, a_sz) = self.emit_read(&insn, 0);
+                    let (b, b_sz) = self.emit_read(&insn, 1);
+                    self.emit_bit_op(a_sz, b_sz, a, b, mil::ArithOp::BitXor, insn);
+                }
+
+                // Ud2: undefined instruction (guaranteed invalid opcode).
+                // Model as an unreachable trap by emitting a dummy return with
+                // an undefined value of zero size.
+                M::Ud2 => {
+                    let v0 = self.pb.tmp_gen();
+                    let undef = self.pb.tmp_gen();
+                    self.emit(undef, mil::Insn::UndefinedBytes { size: 0 });
+                    self.emit(v0, mil::Insn::SetReturnValue(undef));
+                    self.emit(v0, mil::Insn::Control(Control::Ret));
+                }
+
                 M::Call => {
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
