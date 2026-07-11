@@ -45,9 +45,22 @@ impl Transform for FoldConstants {
                     let bk = bk.try_into().ok()?;
                     ak.checked_shl(bk)
                 }
-                ArithOp::Shr => {
+                ArithOp::Shr | ArithOp::Sar => {
                     let bk = bk.try_into().ok()?;
+                    // Both logical (Shr) and arithmetic (Sar) right shift use
+                    // i64::checked_shr, which is sign-extending on signed types.
+                    // The MIL-level distinction between them affects downstream
+                    // type inference (unsigned vs signed context), not the bit
+                    // pattern at the i64 constant-folding level.
                     ak.checked_shr(bk)
+                }
+                ArithOp::Rol => {
+                    let bk: u32 = bk.try_into().ok()?;
+                    Some(((ak as u64).rotate_left(bk)) as i64)
+                }
+                ArithOp::Ror => {
+                    let bk: u32 = bk.try_into().ok()?;
+                    Some(((ak as u64).rotate_right(bk)) as i64)
                 }
                 ArithOp::BitXor => Some(ak ^ bk),
                 ArithOp::BitAnd => Some(ak & bk),
@@ -67,6 +80,8 @@ impl Transform for FoldConstants {
                 ArithOp::Add => ak.checked_add(bk),
                 ArithOp::Mul => ak.checked_mul(bk),
                 ArithOp::Shl => ak.checked_add(bk),
+                // Rotation is associative: (x rol A) rol B = x rol (A + B)
+                ArithOp::Rol | ArithOp::Ror => ak.checked_add(bk),
                 _ => None,
             }
         }

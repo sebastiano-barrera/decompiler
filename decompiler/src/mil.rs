@@ -405,6 +405,15 @@ pub enum ArithOp {
     Mul,
     Shl,
     Shr,
+    /// Arithmetic (sign-extending) right shift.
+    Sar,
+    /// Rotate left: each bit moves left by `shift`, and the bits that fall
+    /// off the left end wrap around to the right side.  Unlike `Shl`/`Sar`,
+    /// no bits are lost.
+    Rol,
+    /// Rotate right: each bit moves right by `shift`, and the bits that fall
+    /// off the right end wrap around to the left side.
+    Ror,
     BitXor,
     BitAnd,
     BitOr,
@@ -418,6 +427,9 @@ impl ArithOp {
             ArithOp::Mul => "*",
             ArithOp::Shl => "<<",
             ArithOp::Shr => ">>",
+            ArithOp::Sar => ">>>",
+            ArithOp::Rol => "rol",
+            ArithOp::Ror => "ror",
             ArithOp::BitXor => "^",
             ArithOp::BitAnd => "&",
             ArithOp::BitOr => "|",

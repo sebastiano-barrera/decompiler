@@ -249,7 +249,14 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         Insn::Widen { .. } => 248,
 
         Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
-            ArithOp::Shl | ArithOp::Shr | ArithOp::BitXor | ArithOp::BitAnd | ArithOp::BitOr => 212,
+            ArithOp::Shl
+            | ArithOp::Shr
+            | ArithOp::Sar
+            | ArithOp::Rol
+            | ArithOp::Ror
+            | ArithOp::BitXor
+            | ArithOp::BitAnd
+            | ArithOp::BitOr => 212,
             ArithOp::Add | ArithOp::Sub => 210,
             ArithOp::Mul => 211,
         },

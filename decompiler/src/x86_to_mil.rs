@@ -595,6 +595,15 @@ impl Importer {
                 M::Shr => {
                     self.emit_shift(insn, mil::ArithOp::Shr);
                 }
+                M::Sar => {
+                    self.emit_shift(insn, mil::ArithOp::Sar);
+                }
+                M::Rol => {
+                    self.emit_shift(insn, mil::ArithOp::Rol);
+                }
+                M::Ror => {
+                    self.emit_shift(insn, mil::ArithOp::Ror);
+                }
 
                 M::Imul => {
                     match insn.op_count() {
@@ -2170,5 +2179,45 @@ mod tests {
             "Select must render as `(cond ? pos : neg)`; got:\n{}",
             out
         );
+    }
+
+    // ---- Phase 4: Sar, Rol, Ror ----
+
+    #[test]
+    fn sar_reg_reg() {
+        // sar rax, cl
+        let prog = decode_one(|a| a.sar(rax, cl));
+        assert!(!has_nyi(&prog));
+    }
+
+    #[test]
+    fn sar_imm8() {
+        // sar rcx, 2
+        let prog = decode_one(|a| a.sar(rcx, 2));
+        assert!(!has_nyi(&prog));
+    }
+
+    #[test]
+    fn rol_reg_reg() {
+        // rol eax, cl
+        let prog = decode_one(|a| a.rol(eax, cl));
+        assert!(!has_nyi(&prog));
+    }
+
+    #[test]
+    fn ror_imm8() {
+        // ror dx, 8
+        let prog = decode_one(|a| a.ror(dx, 8));
+        assert!(!has_nyi(&prog));
+    }
+
+    #[test]
+    fn sar_ror_mem() {
+        // sar qword ptr [rdi+0x28], 1 (from unsupported_insns.txt)
+        let prog = decode_one(|a| a.sar(qword_ptr(rdi + 0x28), 1));
+        assert!(!has_nyi(&prog));
+        // ror qword ptr [rdi+0x28], 1
+        let prog = decode_one(|a| a.ror(qword_ptr(rdi + 0x28), 1));
+        assert!(!has_nyi(&prog));
     }
 }
