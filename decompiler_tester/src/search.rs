@@ -35,23 +35,22 @@ impl TypeSearchEngine {
     pub fn load_types(&mut self, tys: Arc<decompiler::ty::TypeSet>) {
         self.stop_loading();
 
-        assert!(self.injector_running.load(atomic::Ordering::SeqCst) == false);
+        assert!(!self.injector_running.load(atomic::Ordering::SeqCst));
         assert!(self.injector_thread.is_none());
 
         self.injector_running.store(true, atomic::Ordering::SeqCst);
         let injector = self.nuc.injector();
         let running_flag = Arc::clone(&self.injector_running);
-        let jh = std::thread::spawn(move || inject_types(injector, &*tys, &*running_flag));
+        let jh = std::thread::spawn(move || inject_types(injector, &tys, &running_flag));
         self.injector_thread = Some(jh);
     }
 
     pub fn stop_loading(&mut self) {
         self.injector_running.store(false, atomic::Ordering::SeqCst);
-        if let Some(jh) = self.injector_thread.take() {
-            if let Err(err) = jh.join() {
+        if let Some(jh) = self.injector_thread.take()
+            && let Err(err) = jh.join() {
                 eprintln!("Injector thread panicked: {err:?}");
             }
-        }
     }
 
     /// By specifying `is_append` the caller promises that text passed to the
@@ -122,7 +121,7 @@ fn inject_types_fallible(
             eprintln!("scanning types ({})...", ndx);
         }
 
-        let name = rtx.name(tyid)?.unwrap_or_else(|| String::new());
+        let name = rtx.name(tyid)?.unwrap_or_else(String::new);
         let record = TypeRecord {
             tyid,
             category: TypeCategory::of_type(&ty),

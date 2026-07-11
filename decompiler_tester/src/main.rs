@@ -248,7 +248,7 @@ impl App {
                     let res = type_selector.show(ui, engine);
 
                     if let Some(tyid) = res.inner {
-                        if let Some(rtx) = self.exe.borrow_exe().types().read_tx().ok() {
+                        if let Ok(rtx) = self.exe.borrow_exe().types().read_tx() {
                             let rtx = rtx.read();
                             stage_func.add_type_window(tyid, &rtx);
                         }
@@ -291,7 +291,7 @@ impl App {
             let mut res = dialog.show(ui, engine);
             if let Some(type_builder) = res.inner.take() {
                 let types = self.exe.borrow_exe().types();
-                match type_builder.build_types(&types) {
+                match type_builder.build_types(types) {
                     Ok(new_tyid) => {
                         // changing the function type potentially changes the
                         // entire SSA and AST, so a full reload is necessary
@@ -357,7 +357,7 @@ impl FunctionView {
         let param_names = df
             .ssa()
             .and_then(|ssa| get_param_names(exe, ssa))
-            .unwrap_or(Vec::new());
+            .unwrap_or_default();
 
         let mut fv = FunctionView {
             df,
@@ -396,7 +396,7 @@ impl FunctionView {
             return;
         };
 
-        self.cfg_layout = cfg::Layout::from_cfg(&ssa.cfg());
+        self.cfg_layout = cfg::Layout::from_cfg(ssa.cfg());
 
         let mut builder = decompiler::AstBuilder::new(ssa);
         builder.set_all_blocks_named(true);
@@ -529,7 +529,7 @@ impl FunctionView {
             return;
         };
 
-        let mut type_windows = std::mem::replace(&mut self.type_windows, Vec::new());
+        let mut type_windows = std::mem::take(&mut self.type_windows);
         for win in type_windows.iter_mut() {
             egui::Window::new(&win.title)
                 .id(egui::Id::new(win.tyid))
@@ -543,7 +543,7 @@ impl FunctionView {
 
         type_windows.retain(|win| win.is_open);
         // some windows may have been added in the meantime (during show_type_details_content)
-        type_windows.extend(self.type_windows.drain(..));
+        type_windows.append(&mut self.type_windows);
         std::mem::swap(&mut self.type_windows, &mut type_windows);
     }
 
@@ -1201,7 +1201,7 @@ impl FuncTypeForceDialog {
                         Ok(tb) => {
                             ui.horizontal_centered(|ui| {
                                 if ui.button("  Apply  ").clicked() {
-                                    ret = Some(std::mem::replace(tb, Default::default()));
+                                    ret = Some(std::mem::take(tb));
                                     ui.close();
                                 }
                             });
@@ -1278,11 +1278,10 @@ impl Assembly {
         let mut mask = vec![false; self.lines.len()];
         if let Some(ssa) = ssa {
             for reg in ssa.block_regs(bid) {
-                if let Some(addr) = ssa.machine_addr(reg) {
-                    if let Some(&ndx) = self.ndx_of_addr.get(&addr) {
+                if let Some(addr) = ssa.machine_addr(reg)
+                    && let Some(&ndx) = self.ndx_of_addr.get(&addr) {
                         mask[ndx] = true;
                     }
-                }
             }
         }
         mask
@@ -1472,7 +1471,7 @@ mod ast {
             return;
         };
 
-        let my_prec = decompiler::precedence(&insn);
+        let my_prec = decompiler::precedence(insn);
         if my_prec < parent_prec {
             print_kw(ui, s.hl, "(");
         }
@@ -1875,6 +1874,7 @@ mod cfg {
 
     use std::collections::HashMap;
 
+    #[derive(Default)]
     pub struct Layout {
         nodes: Vec<Node>,
         edges: HashMap<(NodeID, NodeID), EdgeData>,
@@ -1901,15 +1901,7 @@ mod cfg {
         Dummy,
     }
 
-    impl Default for Layout {
-        fn default() -> Self {
-            Self {
-                nodes: Vec::new(),
-                edges: HashMap::new(),
-                level_count: 0,
-            }
-        }
-    }
+    
 
     impl Layout {
         fn add_node(&mut self, content: NodeContent) -> NodeID {
@@ -1937,7 +1929,7 @@ mod cfg {
             }
             self.edges
                 .entry((from, to))
-                .or_insert_with(|| EdgeData::default())
+                .or_insert_with(EdgeData::default)
         }
 
         pub(super) fn from_cfg(cfg: &decompiler::Graph) -> Self {
@@ -2124,7 +2116,7 @@ mod hl {
         }
 
         pub fn focus(&self) -> Option<Focus> {
-            self.focus.clone()
+            self.focus
         }
 
         pub fn set_focus(&mut self, focus: Option<Focus>) {
@@ -2214,7 +2206,7 @@ where
         };
 
         if needs_recompute {
-            let new_value = recompute(&key);
+            let new_value = recompute(key);
             self.0 = Some((key.clone(), new_value));
         }
 

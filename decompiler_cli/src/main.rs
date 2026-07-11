@@ -35,12 +35,12 @@ fn main() {
                 "usage: {} --exe EXE [--func FUNCTION | --types]",
                 program_name
             );
-            eprintln!("");
+            eprintln!();
             eprintln!("       EXE = path to the executable (only ELF is supported)");
-            eprintln!("");
+            eprintln!();
             eprintln!("  FUNCTION = name of the function to analyze (e.g. 'main')");
             eprintln!("             (If absent, all functions are decompiled in parallel)");
-            eprintln!("");
+            eprintln!();
             eprintln!("    FORMAT = format for the output ");
             eprintln!("             (supported: json, ast/text, ast/json, ast/dot)");
             return;
@@ -86,7 +86,7 @@ fn dump_functions(
 ) -> anyhow::Result<()> {
     for function_name in function_names {
         let df = exe
-            .decompile_function(&function_name)
+            .decompile_function(function_name)
             .expect("decompiling function");
 
         let stdout = std::io::stdout().lock();

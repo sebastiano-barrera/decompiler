@@ -138,7 +138,7 @@ impl SharedState {
             return Ok(Arc::clone(df_data));
         }
 
-        let df = self.exe.decompile_function(&function_name)?;
+        let df = self.exe.decompile_function(function_name)?;
         let df = proto::Function::from(&df);
         let df = Arc::new(Mutex::new(df));
 
