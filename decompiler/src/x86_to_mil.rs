@@ -987,6 +987,41 @@ impl Importer {
                     self.emit(v0, mil::Insn::Control(Control::Ret));
                 }
 
+                // Div (unsigned) and Idiv (signed): 1-op division.
+                // dividend = RDX:RAX (or EDX:EAX, DX:AX); divisor = op0.
+                // quotient -> RAX (lo), remainder -> RDX (hi).
+                M::Div => {
+                    self.emit_div(insn, mil::ArithOp::DivU, mil::ArithOp::RemU);
+                }
+                M::Idiv => {
+                    self.emit_div(insn, mil::ArithOp::DivS, mil::ArithOp::RemS);
+                }
+
+                // Bswap: byte-swap a register (32-bit or 64-bit).
+                M::Bswap => {
+                    let dest = insn.op_register(0);
+                    let sz: u32 = dest.size().try_into().unwrap();
+                    let value = self.emit_read_machine_reg(dest);
+                    let swapped = self.pb.tmp_gen();
+                    self.emit(
+                        swapped,
+                        mil::Insn::ByteSwap {
+                            src: value,
+                            size: sz,
+                        },
+                    );
+                    self.emit_write_machine_reg(dest, sz.try_into().unwrap(), swapped);
+                }
+
+                // Bsr: bit scan reverse.  ZF = (src == 0), dest = index of MSB.
+                M::Bsr => {
+                    let (src, sz) = self.emit_read(&insn, 1);
+                    self.emit(Self::ZF, mil::Insn::IsZero(src));
+                    let result = self.pb.tmp_gen();
+                    self.emit(result, mil::Insn::BitScanReverse { src });
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
                 M::Call => {
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
@@ -1466,6 +1501,76 @@ impl Importer {
             },
         );
         self.emit(Self::PF, mil::Insn::Parity(v0));
+    }
+
+    /// Emit a 1-op unsigned or signed division (`div` / `idiv`).
+    ///
+    /// Divides the 2N-bit dividend (constructed from the implicit hi:lo register
+    /// pair, e.g. RDX:RAX) by the explicit source operand.  Quotient is written
+    /// to the lo register, remainder to the hi register.
+    fn emit_div(
+        &mut self,
+        insn: iced_x86::Instruction,
+        div_op: mil::ArithOp,
+        rem_op: mil::ArithOp,
+    ) {
+        let divisor = self.emit_read_value(&insn, 0);
+        let a_size: u16 = match insn.op0_kind() {
+            OpKind::Register => insn.op0_register().size().try_into().unwrap(),
+            OpKind::Memory => insn.memory_size().size().try_into().unwrap(),
+            kind => panic!("div: invalid operand: {:?}", kind),
+        };
+        let (dest_hi, dest_lo) = match a_size {
+            1 => (Register::AH, Register::AL),
+            2 => (Register::DX, Register::AX),
+            4 => (Register::EDX, Register::EAX),
+            8 => (Register::RDX, Register::RAX),
+            _ => panic!("div: invalid operand size: {}", a_size),
+        };
+        // Build the 2N-bit dividend from the hi:lo register pair.
+        let dividend_lo = self.emit_read_machine_reg(dest_lo);
+        let dividend_hi = self.emit_read_machine_reg(dest_hi);
+        let dividend = self.pb.tmp_gen();
+        self.emit(
+            dividend,
+            mil::Insn::Concat {
+                hi: dividend_hi,
+                lo: dividend_lo,
+            },
+        );
+        // Zero-extend the divisor to match the dividend size.
+        let dividend_size = a_size * 2;
+        self.extend_zero(divisor, a_size, dividend_size);
+        // Emit the division and remainder.
+        let quotient = self.pb.tmp_gen();
+        self.emit(quotient, mil::Insn::Arith(div_op, dividend, divisor));
+        // For remainder we need a separate copy of the dividend (Arith mutates
+        // its first operand in place via emit_arith).
+        let dividend_rem = self.pb.tmp_gen();
+        self.emit(dividend_rem, mil::Insn::Get(dividend));
+        let remainder = self.pb.tmp_gen();
+        self.emit(remainder, mil::Insn::Arith(rem_op, dividend_rem, divisor));
+        // Extract the low `a_size` bytes for both quotient and remainder.
+        let q_part = self.pb.tmp_gen();
+        self.emit(
+            q_part,
+            mil::Insn::Part {
+                src: quotient,
+                offset: 0,
+                size: a_size,
+            },
+        );
+        self.emit_write_machine_reg(dest_lo, a_size, q_part);
+        let r_part = self.pb.tmp_gen();
+        self.emit(
+            r_part,
+            mil::Insn::Part {
+                src: remainder,
+                offset: 0,
+                size: a_size,
+            },
+        );
+        self.emit_write_machine_reg(dest_hi, a_size, r_part);
     }
 
     fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u16 {

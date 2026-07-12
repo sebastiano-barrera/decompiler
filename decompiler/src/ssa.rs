@@ -742,6 +742,8 @@ mod rt_infer {
             // TODO This might have to change based on the use of calling
             // convention and function type info
             Insn::Call { ret_ll_type, .. } => *ret_ll_type,
+            Insn::ByteSwap { src, .. } => prog.ll_type(*src),
+            Insn::BitScanReverse { src, .. } => prog.ll_type(*src),
 
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)

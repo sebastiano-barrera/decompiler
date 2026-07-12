@@ -65,6 +65,10 @@ impl Transform for FoldConstants {
                 ArithOp::BitXor => Some(ak ^ bk),
                 ArithOp::BitAnd => Some(ak & bk),
                 ArithOp::BitOr => Some(ak | bk),
+                ArithOp::DivU => (ak as u64).checked_div(bk as u64).map(|v| v as i64),
+                ArithOp::DivS => ak.checked_div(bk),
+                ArithOp::ModU => (ak as u64).checked_rem(bk as u64).map(|v| v as i64),
+                ArithOp::ModS => ak.checked_rem(bk),
             }
         }
 

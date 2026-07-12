@@ -243,6 +243,24 @@ pub enum Insn {
         else_val: Reg,
     },
 
+    /// Byte swap (e.g. x86 `bswap`): reverses the order of bytes in `src`.
+    /// Operates on `size` bytes (typically 4 or 8).
+    #[assoc(input_regs = array([_src]))]
+    #[assoc(input_regs_mut = array([_src]))]
+    ByteSwap {
+        src: Reg,
+        size: u32,
+    },
+
+    /// Bit scan reverse (e.g. x86 `bsr`): returns the index of the most
+    /// significant set bit in `src`.  If `src` is zero, ZF is set and the
+    /// result is undefined.
+    #[assoc(input_regs = array([_src]))]
+    #[assoc(input_regs_mut = array([_src]))]
+    BitScanReverse {
+        src: Reg,
+    },
+
     #[assoc(has_side_effects = true)]
     #[assoc(input_regs = std::iter::once(_callee).chain(_args.iter()).collect())]
     #[assoc(input_regs_mut = std::iter::once(_callee).chain(_args.iter_mut()).collect())]
@@ -417,6 +435,14 @@ pub enum ArithOp {
     BitXor,
     BitAnd,
     BitOr,
+    /// Unsigned division (truncation toward zero).
+    DivU,
+    /// Signed division (truncation toward zero).
+    DivS,
+    /// Unsigned remainder (modulo).
+    ModU,
+    /// Signed remainder (modulo).
+    ModS,
 }
 
 impl ArithOp {
@@ -433,6 +459,10 @@ impl ArithOp {
             ArithOp::BitXor => "^",
             ArithOp::BitAnd => "&",
             ArithOp::BitOr => "|",
+            ArithOp::DivU => "/",
+            ArithOp::DivS => "/",
+            ArithOp::ModU => "mod",
+            ArithOp::ModS => "mod",
         }
     }
 }
