@@ -37,6 +37,8 @@ impl Transform for FoldConstants {
         ///
         /// Overflow/underflow results in `None`.
         fn eval_const(op: ArithOp, ak: i64, bk: i64) -> Option<i64> {
+            // TODO: Float constant folding is deferred — Float-typed operands
+            // never reach this path because MIL constants are Int → Bytes.
             match op {
                 ArithOp::Add => ak.checked_add(bk),
                 ArithOp::Sub => ak.checked_sub(bk),
@@ -67,8 +69,8 @@ impl Transform for FoldConstants {
                 ArithOp::BitOr => Some(ak | bk),
                 ArithOp::DivU => (ak as u64).checked_div(bk as u64).map(|v| v as i64),
                 ArithOp::DivS => ak.checked_div(bk),
-                ArithOp::ModU => (ak as u64).checked_rem(bk as u64).map(|v| v as i64),
-                ArithOp::ModS => ak.checked_rem(bk),
+                ArithOp::RemU => (ak as u64).checked_rem(bk as u64).map(|v| v as i64),
+                ArithOp::RemS => ak.checked_rem(bk),
             }
         }
 

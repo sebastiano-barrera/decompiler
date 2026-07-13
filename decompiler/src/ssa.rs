@@ -707,12 +707,14 @@ mod rt_infer {
                 let bt = prog.ll_type(*b);
 
                 if at == bt {
-                    if let LLType::Bytes(sz) = at {
-                        LLType::Bytes(sz)
-                    } else {
-                        prog.faults
-                            .push(Fault::ArithNonBytesType { reg, found: at });
-                        LLType::Error
+                    match at {
+                        LLType::Bytes(sz) => LLType::Bytes(sz),
+                        LLType::Float(n) => LLType::Float(n),
+                        _ => {
+                            prog.faults
+                                .push(Fault::ArithNonBytesType { reg, found: at });
+                            LLType::Error
+                        }
                     }
                 } else {
                     prog.faults.push(Fault::ArithDifferentTypes {
@@ -726,7 +728,7 @@ mod rt_infer {
             Insn::ArithK(_, a, _) => {
                 let at = prog.ll_type(*a);
                 match at {
-                    LLType::Bytes(_) => at,
+                    LLType::Bytes(_) | LLType::Float(_) => at,
                     _ => {
                         prog.faults
                             .push(Fault::ArithKNonBytesType { reg, found: at });
@@ -744,6 +746,16 @@ mod rt_infer {
             Insn::Call { ret_ll_type, .. } => *ret_ll_type,
             Insn::ByteSwap { src, .. } => prog.ll_type(*src),
             Insn::BitScanReverse { src, .. } => prog.ll_type(*src),
+            Insn::IntToDouble { .. } => LLType::Float(8),
+            Insn::IntToFloat { .. } => LLType::Float(4),
+            Insn::FloatToBytes { src } => match prog.ll_type(*src) {
+                LLType::Float(n) => LLType::Bytes(n),
+                other => {
+                    prog.faults
+                        .push(Fault::FloatToBytesNonFloat { reg, found: other });
+                    LLType::Error
+                }
+            },
 
             Insn::SetReturnValue(_)
             | Insn::SetJumpTarget(_)
@@ -1186,6 +1198,9 @@ pub enum Fault {
 
     #[error("{reg:?}: Insn::ArithK: operand must be LLType::Bytes, found {found:?}")]
     ArithKNonBytesType { reg: mil::Reg, found: mil::LLType },
+
+    #[error("{reg:?}: Insn::FloatToBytes: operand must be LLType::Float, found {found:?}")]
+    FloatToBytesNonFloat { reg: mil::Reg, found: mil::LLType },
 
     #[error("pathologic data flow graph: phi {reg:?} can't be resolved, it's an all-phi cycle")]
     PhiCycle { reg: mil::Reg },

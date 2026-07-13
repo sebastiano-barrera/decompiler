@@ -249,6 +249,9 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
         Insn::Widen { .. } => 248,
         Insn::ByteSwap { .. } => 248,
         Insn::BitScanReverse { .. } => 248,
+        Insn::IntToDouble { .. } => 248,
+        Insn::IntToFloat { .. } => 248,
+        Insn::FloatToBytes { .. } => 248,
 
         Insn::Arith(op, _, _) | Insn::ArithK(op, _, _) => match op {
             ArithOp::Shl
@@ -260,7 +263,7 @@ pub fn precedence(insn: &Insn) -> PrecedenceLevel {
             | ArithOp::BitAnd
             | ArithOp::BitOr => 212,
             ArithOp::Add | ArithOp::Sub => 210,
-            ArithOp::Mul | ArithOp::DivU | ArithOp::DivS | ArithOp::ModU | ArithOp::ModS => 211,
+            ArithOp::Mul | ArithOp::DivU | ArithOp::DivS | ArithOp::RemU | ArithOp::RemS => 211,
         },
         Insn::OverflowOf(_) => 200,
         Insn::CarryOf(_) => 200,

@@ -96,11 +96,13 @@ pub enum LLType {
     Bool,
     Effect,
     Error,
+    Float(usize),
 }
 impl LLType {
     pub(crate) fn bytes_size(&self) -> Option<usize> {
         match self {
             LLType::Bytes(sz) => Some(*sz),
+            LLType::Float(n) => Some(*n),
             LLType::Bool => None,
             LLType::Effect => None,
             LLType::Error => None,
@@ -258,6 +260,30 @@ pub enum Insn {
     #[assoc(input_regs = array([_src]))]
     #[assoc(input_regs_mut = array([_src]))]
     BitScanReverse {
+        src: Reg,
+    },
+
+    /// Convert a 32-bit or 64-bit integer (Bytes) to a 64-bit double (Float).
+    /// x86: `cvtsi2sd`.
+    #[assoc(input_regs = array([_src]))]
+    #[assoc(input_regs_mut = array([_src]))]
+    IntToDouble {
+        src: Reg,
+    },
+
+    /// Convert a 32-bit or 64-bit integer (Bytes) to a 32-bit single (Float).
+    /// x86: `cvtsi2ss`.
+    #[assoc(input_regs = array([_src]))]
+    #[assoc(input_regs_mut = array([_src]))]
+    IntToFloat {
+        src: Reg,
+    },
+
+    /// Reinterpret a Float value as its byte representation (Bytes).
+    /// The bit pattern is unchanged; only the type changes.
+    #[assoc(input_regs = array([_src]))]
+    #[assoc(input_regs_mut = array([_src]))]
+    FloatToBytes {
         src: Reg,
     },
 
@@ -440,9 +466,9 @@ pub enum ArithOp {
     /// Signed division (truncation toward zero).
     DivS,
     /// Unsigned remainder (modulo).
-    ModU,
+    RemU,
     /// Signed remainder (modulo).
-    ModS,
+    RemS,
 }
 
 impl ArithOp {
@@ -461,8 +487,8 @@ impl ArithOp {
             ArithOp::BitOr => "|",
             ArithOp::DivU => "/",
             ArithOp::DivS => "/",
-            ArithOp::ModU => "mod",
-            ArithOp::ModS => "mod",
+            ArithOp::RemU => "rem",
+            ArithOp::RemS => "rem",
         }
     }
 }

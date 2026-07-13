@@ -1022,6 +1022,670 @@ impl Importer {
                     self.emit_write(&insn, 0, result, sz);
                 }
 
+                // ---- Phase 8: Float, SIMD, shuffle, convert ----
+
+                // Paddq: packed 64-bit addition (2 lanes).
+                M::Paddq => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lo_a = self.pb.tmp_gen();
+                    self.emit(
+                        lo_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let hi_a = self.pb.tmp_gen();
+                    self.emit(
+                        hi_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let lo_b = self.pb.tmp_gen();
+                    self.emit(
+                        lo_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let hi_b = self.pb.tmp_gen();
+                    self.emit(
+                        hi_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    self.emit_arith(lo_a, 8, lo_b, 8, mil::ArithOp::Add);
+                    self.emit_arith(hi_a, 8, hi_b, 8, mil::ArithOp::Add);
+                    let result = self.pb.tmp_gen();
+                    self.emit(result, mil::Insn::Concat { hi: hi_a, lo: lo_a });
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // Psrld: packed 32-bit logical shift right (4 lanes).
+                M::Psrld => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (count_raw, cnt_sz) = self.emit_read(&insn, 1);
+                    let count = if cnt_sz > 4 {
+                        let c = self.pb.tmp_gen();
+                        self.emit(
+                            c,
+                            mil::Insn::Part {
+                                src: count_raw,
+                                offset: 0,
+                                size: 1,
+                            },
+                        );
+                        c
+                    } else {
+                        count_raw
+                    };
+                    // Shift each 32-bit lane independently
+                    let mut lanes = Vec::new();
+                    for i in 0..4u16 {
+                        let lane = self.pb.tmp_gen();
+                        self.emit(
+                            lane,
+                            mil::Insn::Part {
+                                src: a,
+                                offset: i * 4,
+                                size: 4,
+                            },
+                        );
+                        self.emit_arith(lane, 4, count, 1, mil::ArithOp::Shr);
+                        lanes.push(lane);
+                    }
+                    let pair_lo = self.pb.tmp_gen();
+                    self.emit(
+                        pair_lo,
+                        mil::Insn::Concat {
+                            hi: lanes[1],
+                            lo: lanes[0],
+                        },
+                    );
+                    let pair_hi = self.pb.tmp_gen();
+                    self.emit(
+                        pair_hi,
+                        mil::Insn::Concat {
+                            hi: lanes[3],
+                            lo: lanes[2],
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi: pair_hi,
+                            lo: pair_lo,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // Pcmpeqd: packed 32-bit compare-equal (4 lanes).
+                // Each lane: all-ones if equal, all-zeros if not.
+                M::Pcmpeqd => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let mut lanes: Vec<mil::Reg> = Vec::new();
+                    for i in 0..4u16 {
+                        let offset = i * 4;
+                        let lane_a = self.pb.tmp_gen();
+                        self.emit(
+                            lane_a,
+                            mil::Insn::Part {
+                                src: a,
+                                offset,
+                                size: 4,
+                            },
+                        );
+                        let lane_b = self.pb.tmp_gen();
+                        self.emit(
+                            lane_b,
+                            mil::Insn::Part {
+                                src: b,
+                                offset,
+                                size: 4,
+                            },
+                        );
+                        let cmp = self.pb.tmp_gen();
+                        self.emit(cmp, mil::Insn::Cmp(mil::CmpOp::EQ, lane_a, lane_b));
+                        let w = self.pb.tmp_gen();
+                        self.emit(
+                            w,
+                            mil::Insn::Widen {
+                                reg: cmp,
+                                target_size: 4,
+                                sign: false,
+                            },
+                        );
+                        // result = 0 - w  →  -1 (all-ones) for equal, 0 for not
+                        let zero = self.pb.tmp_gen();
+                        self.emit(zero, mil::Insn::Int { value: 0, size: 4 });
+                        self.emit_arith(zero, 4, w, 4, mil::ArithOp::Sub);
+                        lanes.push(zero);
+                    }
+                    let pair_lo = self.pb.tmp_gen();
+                    self.emit(
+                        pair_lo,
+                        mil::Insn::Concat {
+                            hi: lanes[1],
+                            lo: lanes[0],
+                        },
+                    );
+                    let pair_hi = self.pb.tmp_gen();
+                    self.emit(
+                        pair_hi,
+                        mil::Insn::Concat {
+                            hi: lanes[3],
+                            lo: lanes[2],
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi: pair_hi,
+                            lo: pair_lo,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // ---- Scalar float arithmetic ----
+                M::Addsd => {
+                    let (result_flt, sz) = self.emit_float_arith(
+                        &insn,
+                        8,
+                        |src| mil::Insn::IntToDouble { src },
+                        mil::ArithOp::Add,
+                    );
+                    let result_bytes = self.pb.tmp_gen();
+                    self.emit(result_bytes, mil::Insn::FloatToBytes { src: result_flt });
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi,
+                            lo: result_bytes,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+                M::Addss => {
+                    let (result_flt, sz) = self.emit_float_arith(
+                        &insn,
+                        4,
+                        |src| mil::Insn::IntToFloat { src },
+                        mil::ArithOp::Add,
+                    );
+                    let result_bytes = self.pb.tmp_gen();
+                    self.emit(result_bytes, mil::Insn::FloatToBytes { src: result_flt });
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 4,
+                            size: 12,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi,
+                            lo: result_bytes,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+                M::Subss => {
+                    let (result_flt, sz) = self.emit_float_arith(
+                        &insn,
+                        4,
+                        |src| mil::Insn::IntToFloat { src },
+                        mil::ArithOp::Sub,
+                    );
+                    let result_bytes = self.pb.tmp_gen();
+                    self.emit(result_bytes, mil::Insn::FloatToBytes { src: result_flt });
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 4,
+                            size: 12,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi,
+                            lo: result_bytes,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+                M::Mulsd => {
+                    let (result_flt, sz) = self.emit_float_arith(
+                        &insn,
+                        8,
+                        |src| mil::Insn::IntToDouble { src },
+                        mil::ArithOp::Mul,
+                    );
+                    let result_bytes = self.pb.tmp_gen();
+                    self.emit(result_bytes, mil::Insn::FloatToBytes { src: result_flt });
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi,
+                            lo: result_bytes,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+                M::Divsd => {
+                    let (result_flt, sz) = self.emit_float_arith(
+                        &insn,
+                        8,
+                        |src| mil::Insn::IntToDouble { src },
+                        mil::ArithOp::DivU,
+                    );
+                    let result_bytes = self.pb.tmp_gen();
+                    self.emit(result_bytes, mil::Insn::FloatToBytes { src: result_flt });
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi,
+                            lo: result_bytes,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+                M::Divss => {
+                    let (result_flt, sz) = self.emit_float_arith(
+                        &insn,
+                        4,
+                        |src| mil::Insn::IntToFloat { src },
+                        mil::ArithOp::DivU,
+                    );
+                    let result_bytes = self.pb.tmp_gen();
+                    self.emit(result_bytes, mil::Insn::FloatToBytes { src: result_flt });
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 4,
+                            size: 12,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi,
+                            lo: result_bytes,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // ---- Float compares ----
+                // Extract low element, compare as integers (approx), set flags.
+                M::Comisd => {
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lo_a = self.pb.tmp_gen();
+                    self.emit(
+                        lo_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let lo_b = self.pb.tmp_gen();
+                    self.emit(
+                        lo_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let diff = self.pb.tmp_gen();
+                    self.emit(diff, mil::Insn::Arith(mil::ArithOp::Sub, lo_a, lo_b));
+                    self.emit(Self::ZF, mil::Insn::IsZero(diff));
+                    self.emit(Self::CF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::OF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                }
+                M::Comiss => {
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lo_a = self.pb.tmp_gen();
+                    self.emit(
+                        lo_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    let lo_b = self.pb.tmp_gen();
+                    self.emit(
+                        lo_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    let diff = self.pb.tmp_gen();
+                    self.emit(diff, mil::Insn::Arith(mil::ArithOp::Sub, lo_a, lo_b));
+                    self.emit(Self::ZF, mil::Insn::IsZero(diff));
+                    self.emit(Self::CF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::OF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                }
+                M::Ucomiss => {
+                    let (a, _) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lo_a = self.pb.tmp_gen();
+                    self.emit(
+                        lo_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    let lo_b = self.pb.tmp_gen();
+                    self.emit(
+                        lo_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 0,
+                            size: 4,
+                        },
+                    );
+                    let diff = self.pb.tmp_gen();
+                    self.emit(diff, mil::Insn::Arith(mil::ArithOp::Sub, lo_a, lo_b));
+                    self.emit(Self::ZF, mil::Insn::IsZero(diff));
+                    self.emit(Self::CF, mil::Insn::UndefinedBool);
+                    self.emit(Self::PF, mil::Insn::UndefinedBool);
+                    self.emit(Self::SF, mil::Insn::UndefinedBool);
+                    self.emit(Self::OF, mil::Insn::UndefinedBool);
+                    self.emit(Self::AF, mil::Insn::UndefinedBool);
+                }
+
+                // ---- Int-to-float conversions ----
+                M::Cvtsi2sd => {
+                    let (src, _) = self.emit_read(&insn, 1);
+                    let flt = self.pb.tmp_gen();
+                    self.emit(flt, mil::Insn::IntToDouble { src });
+                    let (dst, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: dst,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(result, mil::Insn::Concat { hi, lo: flt });
+                    self.emit_write(&insn, 0, result, 16);
+                }
+                M::Cvtsi2ss => {
+                    let (src, _) = self.emit_read(&insn, 1);
+                    let flt = self.pb.tmp_gen();
+                    self.emit(flt, mil::Insn::IntToFloat { src });
+                    let flt_bytes = self.pb.tmp_gen();
+                    self.emit(flt_bytes, mil::Insn::FloatToBytes { src: flt });
+                    let (dst, _) = self.emit_read(&insn, 0);
+                    let hi = self.pb.tmp_gen();
+                    self.emit(
+                        hi,
+                        mil::Insn::Part {
+                            src: dst,
+                            offset: 4,
+                            size: 12,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(result, mil::Insn::Concat { hi, lo: flt_bytes });
+                    self.emit_write(&insn, 0, result, 16);
+                }
+
+                // ---- Packed shuffles (data movement only) ----
+                // Punpckldq: interleave low dwords from two XMMs.
+                M::Punpckldq => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lanes: [mil::Reg; 4] = std::array::from_fn(|i| {
+                        let offset = (i as u16 / 2) * 4;
+                        let src = if i % 2 == 0 { a } else { b };
+                        let lane = self.pb.tmp_gen();
+                        self.emit(
+                            lane,
+                            mil::Insn::Part {
+                                src,
+                                offset,
+                                size: 4,
+                            },
+                        );
+                        lane
+                    });
+                    let pair_lo = self.pb.tmp_gen();
+                    self.emit(
+                        pair_lo,
+                        mil::Insn::Concat {
+                            hi: lanes[1],
+                            lo: lanes[0],
+                        },
+                    );
+                    let pair_hi = self.pb.tmp_gen();
+                    self.emit(
+                        pair_hi,
+                        mil::Insn::Concat {
+                            hi: lanes[3],
+                            lo: lanes[2],
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi: pair_hi,
+                            lo: pair_lo,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // Punpcklqdq: interleave low quadwords from two XMMs.
+                M::Punpcklqdq => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lo_a = self.pb.tmp_gen();
+                    self.emit(
+                        lo_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let lo_b = self.pb.tmp_gen();
+                    self.emit(
+                        lo_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let pair_lo = self.pb.tmp_gen();
+                    self.emit(pair_lo, mil::Insn::Concat { hi: lo_b, lo: lo_a });
+                    let hi_a = self.pb.tmp_gen();
+                    self.emit(
+                        hi_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let hi_b = self.pb.tmp_gen();
+                    self.emit(
+                        hi_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 8,
+                            size: 8,
+                        },
+                    );
+                    let pair_hi = self.pb.tmp_gen();
+                    self.emit(pair_hi, mil::Insn::Concat { hi: hi_b, lo: hi_a });
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi: pair_hi,
+                            lo: pair_lo,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // Shufps: shuffle single-precision across two XMMs.
+                M::Shufps => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let imm = insn.immediate(2) as u8;
+                    // Build 4 dwords: 2 from a (imm[1:0], imm[3:2]), 2 from b (imm[5:4], imm[7:6])
+                    let mut dws: Vec<mil::Reg> = Vec::new();
+                    for i in 0..4 {
+                        let field = (imm >> (i * 2)) & 3;
+                        let src = if i < 2 { a } else { b };
+                        let dw = self.pb.tmp_gen();
+                        self.emit(
+                            dw,
+                            mil::Insn::Part {
+                                src,
+                                offset: (field as u16) * 4,
+                                size: 4,
+                            },
+                        );
+                        dws.push(dw);
+                    }
+                    let pair_lo = self.pb.tmp_gen();
+                    self.emit(
+                        pair_lo,
+                        mil::Insn::Concat {
+                            hi: dws[1],
+                            lo: dws[0],
+                        },
+                    );
+                    let pair_hi = self.pb.tmp_gen();
+                    self.emit(
+                        pair_hi,
+                        mil::Insn::Concat {
+                            hi: dws[3],
+                            lo: dws[2],
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(
+                        result,
+                        mil::Insn::Concat {
+                            hi: pair_hi,
+                            lo: pair_lo,
+                        },
+                    );
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
+                // Unpcklpd: unpack low double-precision (2 doubles, one per 64-bit lane).
+                M::Unpcklpd => {
+                    let (a, sz) = self.emit_read(&insn, 0);
+                    let (b, _) = self.emit_read(&insn, 1);
+                    let lo_a = self.pb.tmp_gen();
+                    self.emit(
+                        lo_a,
+                        mil::Insn::Part {
+                            src: a,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let lo_b = self.pb.tmp_gen();
+                    self.emit(
+                        lo_b,
+                        mil::Insn::Part {
+                            src: b,
+                            offset: 0,
+                            size: 8,
+                        },
+                    );
+                    let result = self.pb.tmp_gen();
+                    self.emit(result, mil::Insn::Concat { hi: lo_b, lo: lo_a });
+                    self.emit_write(&insn, 0, result, sz);
+                }
+
                 M::Call => {
                     let (callee, sz) = self.emit_read(&insn, 0);
                     assert_eq!(
@@ -1571,6 +2235,46 @@ impl Importer {
             },
         );
         self.emit_write_machine_reg(dest_hi, a_size, r_part);
+    }
+
+    /// Emit arithmetic on a scalar float element (double or single) extracted
+    /// from the destination XMM register.  Returns the resulting float value
+    /// (still `LLType::Float(n)`) and the full register size — the caller must
+    /// wrap with `FloatToBytes` + `Concat` with the preserved upper bytes.
+    fn emit_float_arith(
+        &mut self,
+        insn: &iced_x86::Instruction,
+        elt_sz: u16,
+        int2flt: fn(mil::Reg) -> mil::Insn,
+        arith_op: mil::ArithOp,
+    ) -> (mil::Reg, u16) {
+        let (a, sz) = self.emit_read(insn, 0);
+        let (b, _) = self.emit_read(insn, 1);
+        let lo_a = self.pb.tmp_gen();
+        self.emit(
+            lo_a,
+            mil::Insn::Part {
+                src: a,
+                offset: 0,
+                size: elt_sz,
+            },
+        );
+        let lo_b = self.pb.tmp_gen();
+        self.emit(
+            lo_b,
+            mil::Insn::Part {
+                src: b,
+                offset: 0,
+                size: elt_sz,
+            },
+        );
+        let flt_a = self.pb.tmp_gen();
+        self.emit(flt_a, int2flt(lo_a));
+        let flt_b = self.pb.tmp_gen();
+        self.emit(flt_b, int2flt(lo_b));
+        let result_flt = self.pb.tmp_gen();
+        self.emit(result_flt, mil::Insn::Arith(arith_op, flt_a, flt_b));
+        (result_flt, sz)
     }
 
     fn op_size(insn: &iced_x86::Instruction, op_ndx: u32) -> u16 {
