@@ -180,7 +180,7 @@ fn next_token<'a>(cursor: &mut Cursor<'a>) -> ParseResult<Token> {
         Some('#') => {
             // e.g. #1234 -> Token::Ref(TypeID(1234))
             let start = cursor.offset;
-            let num_str = take_while(cursor, |c| c.is_digit(10));
+            let num_str = take_while(cursor, |c| c.is_ascii_digit());
             let num = num_str.parse::<u64>().map_err(|_| ParseError {
                 offset: start,
                 description: format!("Invalid numeric type ID after '#': [{}]", num_str),
@@ -190,7 +190,7 @@ fn next_token<'a>(cursor: &mut Cursor<'a>) -> ParseResult<Token> {
         Some('0'..='9') => {
             *cursor = cur_start;
             let start = cursor.offset;
-            let num_str = take_while(cursor, |c| c.is_digit(10));
+            let num_str = take_while(cursor, |c| c.is_ascii_digit());
             assert!(!num_str.is_empty());
             let num = num_str.parse::<u32>().map_err(|_| ParseError {
                 offset: start,
@@ -218,10 +218,10 @@ fn next_token<'a>(cursor: &mut Cursor<'a>) -> ParseResult<Token> {
                 "void" => Ok(Token::Void),
                 _ => {
                     *cursor = cur_start;
-                    return Err(ParseError {
+                    Err(ParseError {
                         offset: cur_start.offset,
                         description: format!("Unrecognized keyword: '{}'", ident),
-                    });
+                    })
                 }
             }
         }

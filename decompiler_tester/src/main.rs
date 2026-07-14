@@ -1279,9 +1279,10 @@ impl Assembly {
         if let Some(ssa) = ssa {
             for reg in ssa.block_regs(bid) {
                 if let Some(addr) = ssa.machine_addr(reg)
-                    && let Some(&ndx) = self.ndx_of_addr.get(&addr) {
-                        mask[ndx] = true;
-                    }
+                    && let Some(&ndx) = self.ndx_of_addr.get(&addr)
+                {
+                    mask[ndx] = true;
+                }
             }
         }
         mask
@@ -1752,7 +1753,51 @@ mod ast {
                     render_expr(ui, s, value, my_prec);
                 });
             }
-        }
+
+            &Insn::Select {
+                cond,
+                then_val,
+                else_val,
+            } => {
+                ui.horizontal(|ui| {
+                    render_expr(ui, s, cond, my_prec);
+                    print_kw(ui, s.hl, "?");
+                    render_expr(ui, s, then_val, my_prec);
+                    print_kw(ui, s.hl, ":");
+                    render_expr(ui, s, else_val, my_prec);
+                });
+            }
+            &Insn::ByteSwap { src, size } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s.hl, "#byteswap");
+                    render_expr(ui, s, src, my_prec);
+                });
+            }
+            &Insn::BitScanReverse { src } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s.hl, "#index_of_msb");
+                    render_expr(ui, s, src, my_prec);
+                });
+            }
+            &Insn::IntToDouble { src } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s.hl, "#int_to_double");
+                    render_expr(ui, s, src, my_prec);
+                });
+            }
+            &Insn::IntToFloat { src } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s.hl, "#int_to_float");
+                    render_expr(ui, s, src, my_prec);
+                });
+            }
+            &Insn::FloatToBytes { src } => {
+                ui.horizontal(|ui| {
+                    print_kw(ui, s.hl, "#float_to_bytes");
+                    render_expr(ui, s, src, my_prec);
+                });
+            }
+        };
 
         if my_prec < parent_prec {
             print_kw(ui, s.hl, ")");
@@ -1900,8 +1945,6 @@ mod cfg {
         Block(BlockID),
         Dummy,
     }
-
-    
 
     impl Layout {
         fn add_node(&mut self, content: NodeContent) -> NodeID {
